@@ -22,6 +22,13 @@ jobs:
           gradle-version: '8.10.2'
       - name: Instalar SDK Android 35
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Incluir motor Three.js y cargador GLB sin conexión
+        run: |
+          mkdir -p app/src/main/assets
+          curl --fail --location --retry 3 --silent --show-error https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js -o app/src/main/assets/three.min.js
+          curl --fail --location --retry 3 --silent --show-error https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js -o app/src/main/assets/GLTFLoader.js
+          test -s app/src/main/assets/three.min.js
+          test -s app/src/main/assets/GLTFLoader.js
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
