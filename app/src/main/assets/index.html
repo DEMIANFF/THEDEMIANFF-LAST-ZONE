@@ -930,6 +930,28 @@ function v22ApplyLilaModel(character){
  character.v22Loaded=true;
  character.v22Model=model;
 }
+// V22: runtime animation for our own named GLB pivots; no animation clips required.
+function v22AnimateLila(dt){
+ const c=playerModel;if(!c||!c.isFemaleOperator||!c.v22Model)return;
+ const model=c.v22Model;
+ if(!c.v22Joints){c.v22Joints={};for(const n of ['leftArm','rightArm','leftLeg','rightLeg','leftHair','rightHair'])c.v22Joints[n]=model.getObjectByName(n);}
+ const j=c.v22Joints;const speed=Math.hypot(moveVX,moveVZ),pace=Math.min(1,speed/10),phase=c.animPhase;
+ const air=!onGround,aim=adsHeld||fireHeld,shooting=fireHeld&&shootCooldown>0;
+ const crouch=!!(keys.ControlLeft||keys.ControlRight||keys.KeyC);
+ const reload=reloadTimer>0&&reloadWeapon===weaponIndex;
+ const ease=Math.min(1,dt*13),wave=Math.sin(phase),sway=Math.sin(phase*.6);
+ const pose=(name,x,z=0)=>{const part=j[name];if(!part)return;part.rotation.x+=(x-part.rotation.x)*ease;part.rotation.z+=(z-part.rotation.z)*ease;};
+ pose('leftLeg',air?-.18:crouch?-.8:wave*.72*pace);
+ pose('rightLeg',air?.28:crouch?-.8:-wave*.72*pace);
+ pose('leftArm',reload?-.95:aim?-1.05:air?-.3:-wave*.52*pace,-.12);
+ pose('rightArm',reload?-.6:aim?-1.2:air?-.3:wave*.52*pace,.12);
+ pose('leftHair',sway*.085+(speed>.5?.10:0));
+ pose('rightHair',-sway*.085+(speed>.5?.10:0));
+ if(c.v22BaseY===undefined)c.v22BaseY=model.position.y;
+ const targetY=c.v22BaseY-(crouch?.42:0)+(shooting?.018*Math.sin(time*40):0);
+ model.position.y+=(targetY-model.position.y)*ease;
+ model.rotation.x+=((air?-.10:crouch?.10:0)-model.rotation.x)*ease;
+}
 // V22: original playable 3D interpretation of the submitted lavender-haired operator.
 function v22FemaleOperator(){
  const c=makeCharacter('#e7e9f2');const b=c.body;
@@ -1208,7 +1230,7 @@ camera.lookAt(camera.position.clone().addScaledVector(aimForward,100));
 v14Recoil=Math.max(0,v14Recoil-dt*8);
 playerModel.gun.rotation.x=-camPitch*.55-v14Recoil*.12;
 playerModel.body.rotation.x=onGround?Math.sin(playerModel.animPhase)*.014*clamp(Math.hypot(moveVX,moveVZ)/10,0,1):-.10;
-playerModel.gun.position.y=1.45-v14Recoil*.045;
+playerModel.gun.position.y=1.45-v14Recoil*.045;v22AnimateLila(dt);
 $('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':fireHeld?'◉ MIRA DE COMBATE':'⊕ MIRA LIBRE';
 zoneTick+=dt;if($('v18Mode').value!=='training'&&zoneTick>45){zoneTick=0;zonePhase++;zoneCenter.x=clamp(zoneCenter.x+rand(-12,12),-40,40);zoneCenter.y=clamp(zoneCenter.y+rand(-12,12),-40,40);toast('⚠ LA ZONA SE ESTÁ CERRANDO');v9Event('⚠ NUEVA ZONA DE COMBATE')}const targetRadius=$('v18Mode').value==='training'?225:Math.max(13,225*Math.pow(.75,zonePhase+clamp(zoneTick/45,0,1)));zoneRadius+=(targetRadius-zoneRadius)*Math.min(1,dt*1.8);zoneRing.position.set(zoneCenter.x,ground(zoneCenter.x,zoneCenter.y)+.25,zoneCenter.y);zoneRing.scale.set(zoneRadius,zoneRadius,zoneRadius);if(Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y)>zoneRadius){damageFlash=Math.max(damageFlash,.05);hp-=dt*(2.5+zonePhase*.9);if(hp<=0){hp=0;finish(false);}}
 for(const b of bots){if(!b.alive)continue;const px=player.position.x-b.x,pz=player.position.z-b.z,d=Math.hypot(px,pz);
