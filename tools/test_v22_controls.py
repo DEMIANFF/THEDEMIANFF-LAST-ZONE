@@ -33,6 +33,10 @@ checks = {
     "V23 pointer cancellation cleanup": "document.addEventListener('pointercancel',v23PointerEnd,true)" in html,
     "V23 fire drag uses camera aim": "if(Math.abs(dx)+Math.abs(dy)>.12)aim(dx,dy,mode)" in html,
     "pause exit to lobby": 'id="leaveMatch"' in html and "function v23LeaveMatch()" in html and "$('leaveMatch').onclick=v23LeaveMatch" in html,
+    "V24 3D lobby preview": 'id="v24LobbyStage"' in html and "function v24InitLobby()" in html,
+    "V24 skin selection updates preview": "if(type==='skin')v24RefreshLobbyCharacter()" in html,
+    "V24 render loop": "v24LobbyTick();" in html,
+    "V24 Lila GLB loads into lobby": "v24Lobby.skin===4)v22ApplyLilaModel(v24Lobby.operator)" in html,
 }
 for name, ok in checks.items():
     assert ok, f"V22 control regression: {name}"
