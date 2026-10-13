@@ -52,7 +52,7 @@ jobs:
           python3 - <<'PY'
           import re, pathlib
           html=pathlib.Path('app/src/main/assets/index.html').read_text()
-          blocks=re.findall(r'<script(?:\\s[^>]*)?>([\\s\\S]*?)</script>',html,re.I)
+          blocks=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',html,re.I)
           main=max(blocks,key=len)
           assert len(main)>30000, 'No se encontró el motor principal del juego'
           pathlib.Path('/tmp/thedemianff-game.js').write_text(main)
