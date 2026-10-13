@@ -3,7 +3,7 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main, v22-complete-upgrade]
+    branches: [main, v22-complete-upgrade, v26-major-upgrade]
 
 jobs:
   android:
@@ -64,5 +64,5 @@ jobs:
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIANFF-V22-APK-DEBUG
+          name: THEDEMIANFF-V26-APK-DEBUG
           path: app/build/outputs/apk/debug/app-debug.apk
