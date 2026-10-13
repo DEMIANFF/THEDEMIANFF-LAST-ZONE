@@ -1,0 +1,12 @@
+# Pruebas de aceptación offline
+- [ ] Compila en Android Studio sin errores
+- [ ] Abre sin permiso INTERNET
+- [ ] En modo avión carga el lobby y Puerto Aurora
+- [ ] Joystick, cámara libre, cámara al disparar y ADS funcionan
+- [ ] Cinco armas, recarga y sonidos funcionan
+- [ ] Enemigos IA atacan y pueden eliminarse
+- [ ] Modos Entrenamiento y Supervivencia
+- [ ] Reinicio de partida y regreso al lobby
+- [ ] Misiones y progreso sobreviven a cerrar y abrir app
+- [ ] FPS y temperatura tras 15 minutos
+- [ ] No se cierra al bloquear/desbloquear la pantalla

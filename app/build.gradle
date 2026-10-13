@@ -1,0 +1,40 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.thedemianff.lastzone'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.thedemianff.lastzone'
+        minSdk 26
+        targetSdk 35
+        versionCode 20
+        versionName '20.0-offline-alpha'
+    }
+    buildTypes { release { minifyEnabled false } }
+}
+tasks.register('bundleThree') {
+    def destination=file('src/main/assets/three.min.js')
+    inputs.property('threeVersion','0.160.1')
+    outputs.file(destination)
+    doLast {
+        if(destination.exists() && destination.length()>100000) {
+            println 'Three.js local already present; offline dependency ready.'
+            return
+        }
+        destination.parentFile.mkdirs()
+        def url='https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.min.js'
+        println 'Fetching Three.js for inclusion in the APK: '+url
+        try {
+            new URL(url).withInputStream { stream ->
+                destination.withOutputStream { out -> out << stream }
+            }
+        } catch(Exception e) {
+            destination.delete()
+            throw new GradleException('Could not bundle Three.js. Internet is required ONCE when building, or manually place version 0.160.1 three.min.js in app/src/main/assets/.',e)
+        }
+        if(destination.length()<100000) {
+            destination.delete()
+            throw new GradleException('Three.js download invalid: aborting build.')
+        }
+    }
+}
+tasks.named('preBuild').configure { dependsOn(tasks.named('bundleThree')) }
