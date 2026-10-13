@@ -47,6 +47,17 @@ jobs:
           assert len(scene.geometry)>=40, 'Modelo incompleto'
           print('Lila GLB verificado:',len(scene.geometry),'mallas,',len(nodes),'nodos')
           PY
+      - name: Comprobar sintaxis JavaScript del juego
+        run: |
+          python3 - <<'PY'
+          import re, pathlib
+          html=pathlib.Path('app/src/main/assets/index.html').read_text()
+          blocks=re.findall(r'<script(?:\\s[^>]*)?>([\\s\\S]*?)</script>',html,re.I)
+          main=max(blocks,key=len)
+          assert len(main)>30000, 'No se encontró el motor principal del juego'
+          pathlib.Path('/tmp/thedemianff-game.js').write_text(main)
+          PY
+          node --check /tmp/thedemianff-game.js
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
