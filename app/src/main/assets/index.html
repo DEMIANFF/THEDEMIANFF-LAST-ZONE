@@ -1225,8 +1225,9 @@ function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather
  }
 }// Automatic fire is evaluated after the current-frame camera orientation is applied.
 let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value)),spd=sprintHeld?14.5:(sprint?10.1:6.1);
-const wantedX=(mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
-const wantedZ=(-mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
+// Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
+const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
+const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
 const acceleration=Number($('moveAcceleration').value);
 const smoothing=Number($('moveSmooth').value);
 const response=1-Math.exp(-dt*Math.max(10,acceleration)*(1-.32*smoothing));
@@ -1450,8 +1451,8 @@ function aimFromFire(dx,dy){
  if(Math.abs(fireCameraFilter.x)+Math.abs(fireCameraFilter.y)>.35)aim(fireCameraFilter.x,fireCameraFilter.y,'fire');
 }
 function applyAim(dx,dy){
- // Screen-right swipe turns the view right. Full horizontal rotation is unrestricted.
- camYaw+=dx*.003*Number($('sensitivity').value);
+ // V21 reference orientation: right swipe decreases yaw, matching the camera's screen-right vector.
+ camYaw-=dx*.003*Number($('sensitivity').value);
  camPitch=clamp(camPitch+dy*.0022*Number($('verticalSensitivity').value)*($('invertY').checked?-1:1),-1.30,1.30);
 }
 function aimAssistPull(dt){
