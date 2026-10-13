@@ -1452,12 +1452,17 @@ function aimAssistPull(dt){
   const rel=Math.atan2(Math.sin(dir-camYaw),Math.cos(dir-camYaw));
   if(Math.abs(rel)>(adsHeld?.28:.38))continue;
   if(blocked(player.position.x,player.position.z,b.x,b.z))continue;
-  const score=d*(0.45+Math.abs(rel)*1.4);
-  if(score<bestScore){bestScore=score;best={rel,d};}
+  const targetY=b.root.position.y+1.65;
+  const pitch=Math.atan2(player.position.y+2.0-targetY,d);
+  const pitchError=pitch-camPitch;
+  if(Math.abs(pitchError)>(adsHeld?.22:.17))continue;
+  const score=Math.abs(rel)*3+Math.abs(pitchError)*2+d*.008;
+  if(score<bestScore){bestScore=score;best={rel,pitchError};}
  }
  if(!best)return;
  const strength=(adsHeld?1.0:0.62)*(1-Math.exp(-dt*3.4));
- camYaw+=Math.atan2(Math.sin(best.rel),Math.cos(best.rel))*strength*0.55;
+ camYaw+=best.rel*strength*.55;
+ camPitch=clamp(camPitch+best.pitchError*strength*.30,-.34,.95);
 }
 function flushCamera(dt){
  if(!mobile)return;
