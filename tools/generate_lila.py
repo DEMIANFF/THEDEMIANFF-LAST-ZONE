@@ -51,7 +51,7 @@ for side,sgn in (("left",-1),("right",1)):
 add("backpack",(0,1.66,-.34),(.52,.62,.23),"black")
 add("backpack_led",(0,1.70,-.47),(.20,.20,.035),"glow")
 add("utility_pouch",(-.43,1.00,.05),(.18,.27,.25),"navy")
-output=Path(__file__).resolve().parent/"app/src/main/assets/models/lila-operator.glb"
+output=Path(__file__).resolve().parent.parent/"app/src/main/assets/models/lila-operator.glb"
 output.parent.mkdir(parents=True,exist_ok=True)
 scene.export(str(output))
 print("Generated",output,output.stat().st_size,"bytes")
