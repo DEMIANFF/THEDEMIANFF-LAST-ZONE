@@ -1488,11 +1488,12 @@ function flushCamera(dt){
  cameraDX=0;cameraDY=0;
  if(dx!==0||dy!==0)applyAim(dx,dy);
 }function pause(){if(!running)return;if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);v123ResetInputs();$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');settingsFromMenu=false;paused=true;fireHeld=false;fireTouch=null;adsHeld=false;sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)';$('pausePanel').classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();}function resume(){clock.getDelta();paused=false;$('pausePanel').classList.add('hidden');if(!mobile)renderer.domElement.requestPointerLock?.();}
-window.addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(!running||paused){if(e.code==='Escape'&&paused)resume();return;}if(e.code==='Space')jumpQueued=true;if(e.code==='KeyR')reload();if(e.code==='KeyH')heal();if(e.code==='Digit1')swap(0);if(e.code==='Digit2')swap(1);if(e.code==='Digit3')swap(2);if(e.code==='Digit4')swap(3);if(e.code==='Digit5')swap(4);if(e.code==='Escape')pause();});window.addEventListener('keyup',e=>keys[e.code]=false);window.addEventListener('blur',()=>{keys={};fireHeld=false;if(running&&!paused)pause()});$('start').onclick=start;$('again').onclick=start;$('toMenu').onclick=()=>{$('end').classList.add('hidden');$('v18Panel').classList.add('hidden');$('menu').classList.remove('hidden');if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.1);};$('settings').onclick=pause;$('resume').onclick=resume;$('quality').onchange=e=>{applyPrefs();};const stickBase=$('stickBase'),stick=$('stick');stickBase.style.touchAction='none';function setJoy(e){const r=stickBase.getBoundingClientRect(),x=e.clientX-(r.left+r.width/2),y=e.clientY-(r.top+r.height/2),len=Math.hypot(x,y),max=r.width*.33,scale=Math.min(1,max/(len||1)),xx=x*scale,yy=y*scale;const dz=Number($('deadzone').value),strength=Math.min(1,len/max);
+window.addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(!running||paused){if(e.code==='Escape'&&paused)resume();return;}if(e.code==='Space')jumpQueued=true;if(e.code==='KeyR')reload();if(e.code==='KeyH')heal();if(e.code==='Digit1')swap(0);if(e.code==='Digit2')swap(1);if(e.code==='Digit3')swap(2);if(e.code==='Digit4')swap(3);if(e.code==='Digit5')swap(4);if(e.code==='Escape')pause();});window.addEventListener('keyup',e=>keys[e.code]=false);window.addEventListener('blur',()=>{keys={};fireHeld=false;if(running&&!paused)pause()});$('start').onclick=start;$('again').onclick=start;$('toMenu').onclick=()=>{$('end').classList.add('hidden');$('v18Panel').classList.add('hidden');$('menu').classList.remove('hidden');if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.1);};$('settings').onclick=pause;$('resume').onclick=resume;$('quality').onchange=e=>{applyPrefs();};const v23ControlsEnabled=true;
+const stickBase=$('stickBase'),stick=$('stick');stickBase.style.touchAction='none';function setJoy(e){const r=stickBase.getBoundingClientRect(),x=e.clientX-(r.left+r.width/2),y=e.clientY-(r.top+r.height/2),len=Math.hypot(x,y),max=r.width*.33,scale=Math.min(1,max/(len||1)),xx=x*scale,yy=y*scale;const dz=Number($('deadzone').value),strength=Math.min(1,len/max);
 let filtered=strength<=dz?0:(strength-dz)/(1-dz);
 const curve=$('joystickCurve').value;
 if(curve==='precision')filtered=filtered*filtered;
-else if(curve==='dynamic')filtered=filtered*(.65+.35*filtered);joyX=(len?x/len:0)*filtered*($('invertStickX').checked?-1:1);joyY=(len?y/len:0)*filtered*($('invertStickY').checked?-1:1);stick.style.transform=`translate(calc(-50% + ${xx}px),calc(-50% + ${yy}px))`;}stickBase.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(stickTouch!==null)return;stickTouch=e.pointerId;stickBase.setPointerCapture(e.pointerId);setJoy(e)});stickBase.addEventListener('pointermove',e=>{if(e.pointerId===stickTouch)setJoy(e)});function endJoy(e){if(e.pointerId===stickTouch){stickTouch=null;joyX=joyY=0;stick.style.transform='translate(-50%,-50%)';}}stickBase.addEventListener('pointerup',endJoy);stickBase.addEventListener('pointercancel',endJoy);stickBase.addEventListener('lostpointercapture',endJoy);const lookArea=$('lookArea');
+else if(curve==='dynamic')filtered=filtered*(.65+.35*filtered);joyX=(len?x/len:0)*filtered*($('invertStickX').checked?-1:1);joyY=(len?y/len:0)*filtered*($('invertStickY').checked?-1:1);stick.style.transform=`translate(calc(-50% + ${xx}px),calc(-50% + ${yy}px))`;}stickBase.addEventListener('pointerdown',e=>{if(v23ControlsEnabled)return;e.preventDefault();e.stopPropagation();if(stickTouch!==null)return;stickTouch=e.pointerId;stickBase.setPointerCapture(e.pointerId);setJoy(e)});stickBase.addEventListener('pointermove',e=>{if(v23ControlsEnabled)return;if(e.pointerId===stickTouch)setJoy(e)});function endJoy(e){if(v23ControlsEnabled)return;if(e.pointerId===stickTouch){stickTouch=null;joyX=joyY=0;stick.style.transform='translate(-50%,-50%)';}}stickBase.addEventListener('pointerup',endJoy);stickBase.addEventListener('pointercancel',endJoy);stickBase.addEventListener('lostpointercapture',endJoy);const lookArea=$('lookArea');
 // V13.1: camera input routed at document capture level, independent of HUD layers.
 // A camera pointer never steals a joystick or action pointer.
 const cameraPointers=new Map();
@@ -1502,12 +1503,13 @@ function cameraAllowedTarget(target){
  return true;
 }
 document.addEventListener('pointerdown',e=>{
- if(e.pointerType==='mouse'||!cameraAllowedTarget(e.target))return;
+ if(v23ControlsEnabled||e.pointerType==='mouse'||!cameraAllowedTarget(e.target))return;
  if(cameraPointers.size)return; // one camera finger; other fingers remain independent
  cameraPointers.set(e.pointerId,{x:e.clientX,y:e.clientY,filteredX:0,filteredY:0});
  lookTouch=e.pointerId;
 },true);
 document.addEventListener('pointermove',e=>{
+ if(v23ControlsEnabled)return;
  const p=cameraPointers.get(e.pointerId);
  if(!p||!running||paused||hudEditing)return;
  const rawX=e.clientX-p.x,rawY=e.clientY-p.y;
@@ -1520,6 +1522,7 @@ document.addEventListener('pointermove',e=>{
  if(e.cancelable)e.preventDefault();
 },true);
 function releaseCamera(e){
+ if(v23ControlsEnabled)return;
  if(cameraPointers.delete(e.pointerId)&&lookTouch===e.pointerId)lookTouch=null;
 }
 document.addEventListener('pointerup',releaseCamera,true);
@@ -1665,6 +1668,7 @@ function v123Feedback(){
  $('aimBtn').classList.toggle('adsActive',adsHeld);
 }
 function v123ResetInputs(){
+ if(v23ControlsEnabled)v23Clear();
  resetCameraPointers();resetFireCamera();v22FireDragging=false;activeActionPointers.clear();
  fireHeld=false;fireTouch=null;$('fire').style.setProperty('--fire-stick-x','0px');$('fire').style.setProperty('--fire-stick-y','0px');sprintHeld=false;adsHeld=false;
  joyX=joyY=0;stickTouch=lookTouch=null;
@@ -1672,6 +1676,7 @@ function v123ResetInputs(){
  v123Feedback();
 }
 document.addEventListener('pointerdown',e=>{
+ if(v23ControlsEnabled)return;
  if(!running||paused||hudEditing||$('controls').classList.contains('hidden'))return;
  const button=e.target.closest?.('button');
  if(!button||!touchActionIds.has(button.id)||!$('controls').contains(button))return;
@@ -1687,6 +1692,7 @@ document.addEventListener('pointerdown',e=>{
  v123Feedback();
 },true);
 document.addEventListener('pointermove',e=>{
+ if(v23ControlsEnabled)return;
  const state=activeActionPointers.get(e.pointerId);
  if(!state)return;
  if(state.id==='fire'&&fireHeld){
@@ -1703,6 +1709,7 @@ document.addEventListener('pointermove',e=>{
  e.preventDefault();e.stopImmediatePropagation();
 },true);
 function v123Release(e){
+ if(v23ControlsEnabled)return;
  const state=activeActionPointers.get(e.pointerId);
  if(!state)return;
  if(state.id==='fire'&&fireTouch===e.pointerId){fireHeld=false;fireTouch=null;v22FireDragging=false;resetFireCamera();$('fire').style.setProperty('--fire-stick-x','0px');$('fire').style.setProperty('--fire-stick-y','0px');}
@@ -1713,6 +1720,97 @@ function v123Release(e){
 document.addEventListener('pointerup',v123Release,true);
 document.addEventListener('pointercancel',v123Release,true);
 // The button itself remains in place; other fingers retain their own pointer events.
+
+// V23: Single-owner touch router. Each pointer has exactly one role.
+// Legacy camera, joystick and action listeners above are intentionally disabled.
+const v23Touches=new Map();
+function v23Ready(){return mobile&&running&&!paused&&!hudEditing&&!$('controls').classList.contains('hidden');}
+function v23Joy(x,y){
+ const r=stickBase.getBoundingClientRect(),radius=Math.max(18,r.width*.33);
+ const vx=x-(r.left+r.width/2),vy=y-(r.top+r.height/2);
+ const dist=Math.hypot(vx,vy),fraction=Math.min(1,dist/radius);
+ const dz=clamp(Number($('deadzone').value)||0,0,.8);
+ let power=fraction<=dz?0:(fraction-dz)/(1-dz);
+ const curve=$('joystickCurve').value;
+ if(curve==='precision')power*=power;
+ else if(curve==='dynamic')power*=.65+.35*power;
+ joyX=(dist?vx/dist:0)*power*($('invertStickX').checked?-1:1);
+ joyY=(dist?vy/dist:0)*power*($('invertStickY').checked?-1:1);
+ const k=dist?Math.min(1,radius/dist):0;
+ stick.style.transform='translate(calc(-50% + '+(vx*k).toFixed(1)+'px),calc(-50% + '+(vy*k).toFixed(1)+'px))';
+}
+function v23FireThumb(t){
+ const el=$('fire'),radius=Math.max(16,el.getBoundingClientRect().width*.35);
+ const dx=t.x-t.startX,dy=t.y-t.startY,dist=Math.hypot(dx,dy),k=dist?Math.min(1,radius/dist):0;
+ el.style.setProperty('--fire-stick-x',(dx*k).toFixed(1)+'px');
+ el.style.setProperty('--fire-stick-y',(dy*k).toFixed(1)+'px');
+}
+function v23Clear(){
+ v23Touches.clear();cameraPointers.clear();activeActionPointers.clear();
+ joyX=joyY=0;stickTouch=lookTouch=fireTouch=null;
+ fireHeld=false;v22FireDragging=false;cameraDX=cameraDY=0;
+ stick.style.transform='translate(-50%,-50%)';
+ $('fire').style.setProperty('--fire-stick-x','0px');
+ $('fire').style.setProperty('--fire-stick-y','0px');
+}
+function v23PointerDown(e){
+ if(!v23Ready()||e.pointerType==='mouse')return;
+ const button=e.target.closest?.('button');
+ const id=button&&$('controls').contains(button)?button.id:null;
+ let role=null;
+ if(e.target.closest?.('#stickBase'))role='joystick';
+ else if(id&&touchActionIds.has(id))role=id;
+ else if(cameraAllowedTarget(e.target))role='look';
+ if(!role)return;
+ // A second finger must never steal an existing joystick or firing channel.
+ if((role==='joystick'||role==='fire'||role==='look')&&[...v23Touches.values()].some(t=>t.role===role))return;
+ const t={role,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};
+ v23Touches.set(e.pointerId,t);
+ if(role==='joystick'){stickTouch=e.pointerId;v23Joy(t.x,t.y);}
+ else if(role==='look'){lookTouch=e.pointerId;cameraPointers.set(e.pointerId,t);}
+ else if(role==='fire'){fireTouch=e.pointerId;fireHeld=true;v22FireDragging=false;v23FireThumb(t);}
+ else if(role==='sprint')sprintHeld=!sprintHeld;
+ else if(role==='aimBtn')adsHeld=!adsHeld;
+ else if(role==='jump')jumpQueued=true;
+ else if(role==='heal')heal();
+ else if(role==='reload')reload();
+ else if(role==='switchGun')swap((weaponIndex+1)%weapons.length);
+ v123Feedback();
+ if(e.cancelable)e.preventDefault();
+ e.stopImmediatePropagation();
+}
+function v23PointerMove(e){
+ const t=v23Touches.get(e.pointerId);if(!t)return;
+ if(!v23Ready()){v23PointerEnd(e);return;}
+ const dx=e.clientX-t.x,dy=e.clientY-t.y;
+ t.x=e.clientX;t.y=e.clientY;
+ if(t.role==='joystick')v23Joy(t.x,t.y);
+ else if(t.role==='look'||t.role==='fire'){
+  if(t.role==='fire'){v23FireThumb(t);v22FireDragging=true;}
+  if(t.role==='look'||$('dragFire').checked){
+   // Exactly one angular update per pointer delta, with no momentum or residual smoothing.
+   const mode=t.role==='fire'?'fire':'free';
+   if(Math.abs(dx)+Math.abs(dy)>.12)aim(dx,dy,mode);
+  }
+ }
+ if(e.cancelable)e.preventDefault();
+ e.stopImmediatePropagation();
+}
+function v23PointerEnd(e){
+ const t=v23Touches.get(e.pointerId);if(!t)return;
+ v23Touches.delete(e.pointerId);
+ if(t.role==='joystick'){stickTouch=null;joyX=joyY=0;stick.style.transform='translate(-50%,-50%)';}
+ else if(t.role==='look'){cameraPointers.delete(e.pointerId);lookTouch=null;}
+ else if(t.role==='fire'){fireTouch=null;fireHeld=false;v22FireDragging=false;$('fire').style.setProperty('--fire-stick-x','0px');$('fire').style.setProperty('--fire-stick-y','0px');}
+ v123Feedback();
+ if(e.cancelable)e.preventDefault();
+ e.stopImmediatePropagation();
+}
+document.addEventListener('pointerdown',v23PointerDown,true);
+document.addEventListener('pointermove',v23PointerMove,true);
+document.addEventListener('pointerup',v23PointerEnd,true);
+document.addEventListener('pointercancel',v23PointerEnd,true);
+window.addEventListener('blur',v23Clear);
 
 // V12: individually positioned controls, normalized to the visible play area.
 const hudIds=['stickBase','sprint','jump','fire','heal','reload','aimBtn','switchGun'];
