@@ -941,7 +941,7 @@ function v22ApplyLilaModel(character){
 // Keep an alternate primary rifle visible on the back; the active gun stays in the hands.
 function v22UpdateHolster(c,activeIndex){
  if(!c||!c.backGun)return;
- const alternate=(activeIndex===0?4:0);
+ const alternate=(activeIndex===0?Math.min(4,weapons.length-1):0);
  c.backGun.visible=weapons.length>1&&alternate!==activeIndex;
  c.backGun.userData.weaponIndex=alternate;
  c.backGun.scale.setScalar(alternate===4?.87:1);
@@ -1209,7 +1209,7 @@ function reload(){
 function finish(win){if(gameOver)return;gameOver=true;const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 let moveVX=0,moveVZ=0,v14Recoil=0;
 function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);
- if(camera){const movingFast=Math.hypot(moveVX,moveVZ)>9;const targetFov=adsHeld?53:fireHeld?62:movingFast?72:68;camera.fov+=(targetFov-camera.fov)*(1-Math.exp(-dt*9));camera.updateProjectionMatrix();}
+ if(camera){const targetFov=adsHeld?58:68;camera.fov+=(targetFov-camera.fov)*(1-Math.exp(-dt*9));camera.updateProjectionMatrix();}
  time+=dt;shootCooldown=Math.max(0,shootCooldown-dt);if(reloadTimer>0){
  reloadTimer-=dt;
  if(reloadTimer<=0){
@@ -1223,7 +1223,7 @@ function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather
    updateHud();
   }
  }
-}if(mobile&&$('autoFire').checked){for(const b of bots){if(!b.alive)continue;const dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);if(d<45&&Math.abs(Math.atan2(Math.sin(angle-camYaw),Math.cos(angle-camYaw)))<.075&&!blocked(player.position.x,player.position.z,b.x,b.z)){shoot();break;}}}
+}// Automatic fire is evaluated after the current-frame camera orientation is applied.
 let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value)),spd=sprintHeld?14.5:(sprint?10.1:6.1);
 const wantedX=(mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(-mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
@@ -1254,11 +1254,15 @@ const dx=moveVX*dt,dz=moveVZ*dt;let nx=clamp(player.position.x+dx,-HALF+4,HALF-4
 const shoulder=adsHeld?1.25:fireHeld?1.55:1.9,back=adsHeld?3.65:fireHeld?5.0:6.1,height=adsHeld?2.15:fireHeld?2.55:2.85;
 const target=new THREE.Vector3(player.position.x+Math.cos(camYaw)*shoulder-Math.sin(camYaw)*back,player.position.y+height,player.position.z-Math.sin(camYaw)*shoulder-Math.cos(camYaw)*back);
 // The camera must not lag behind rapid swipes or oscillate around the player.
-camera.position.copy(target);
+// Follow horizontal motion immediately; soften terrain-induced vertical oscillation.
+camera.position.x=target.x;
+camera.position.z=target.z;
+camera.position.y+=(target.y-camera.position.y)*(1-Math.exp(-dt*15));
 const aimForward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
 camera.lookAt(camera.position.clone().addScaledVector(aimForward,100));
 // Fire after the camera has been aimed this frame, avoiding one-frame stale shots.
 if(fireHeld)shoot();
+else if(mobile&&$('autoFire').checked){for(const b of bots){if(!b.alive)continue;const dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);if(d<45&&Math.abs(Math.atan2(Math.sin(angle-camYaw),Math.cos(angle-camYaw)))<.075&&!blocked(player.position.x,player.position.z,b.x,b.z)){shoot();break;}}}
 v14Recoil=Math.max(0,v14Recoil-dt*8);
 playerModel.gun.rotation.x=-camPitch*.55-v14Recoil*.12;
 playerModel.body.rotation.x=onGround?Math.sin(playerModel.animPhase)*.014*clamp(Math.hypot(moveVX,moveVZ)/10,0,1):-.10;
