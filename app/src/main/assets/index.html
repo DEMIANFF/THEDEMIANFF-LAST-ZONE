@@ -1676,15 +1676,6 @@ function hudEnd(save) {
 
   hudReturnToGame = false;
 }
- if(save){hudSaveLocal()}else{hudLayout=hudBefore;}
- hudEditing=false;hudDrag=null;v123ResetInputs();
- $('hudEditor').classList.add('hidden');$('controls').classList.remove('hudEditing');
- for(const id of hudIds)$(id).classList.remove('hudSelected');
- if(!save&&hudLayout===null){$('controls').classList.remove('hudCustom');for(const id of hudIds){const el=$(id);for(const prop of ['left','top','width','height','opacity','right','bottom'])el.style[prop]='';}applyPrefs()}
- else hudApply();
- if(hudReturnToGame&&running){paused=false;$('pausePanel').classList.add('hidden');clock.getDelta();}else{$('pausePanel').classList.remove('hidden');}
- if(!running)$('controls').classList.add('hidden');
-}
 $('editHud').addEventListener('click',hudBegin);
 $('hudSave').addEventListener('click',()=>hudEnd(true));
 $('hudCancel').addEventListener('click',()=>hudEnd(false));
