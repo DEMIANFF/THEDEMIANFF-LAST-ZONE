@@ -51,6 +51,32 @@ for side,sgn in (("left",-1),("right",1)):
 add("backpack",(0,1.66,-.34),(.52,.62,.23),"black")
 add("backpack_led",(0,1.70,-.47),(.20,.20,.035),"glow")
 add("utility_pouch",(-.43,1.00,.05),(.18,.27,.25),"navy")
+
+# V22 enhanced silhouette: segmented futuristic armor, luminous piping and hair accessories.
+add("collar_guard",(0,1.98,-.04),(.43,.14,.31),"navy",sphere=True)
+add("collar_light",(0,1.99,.14),(.27,.055,.04),"glow")
+add("chest_plate",(0,1.73,.24),(.31,.23,.08),"white",sphere=True)
+add("chest_emblem",(0,1.74,.30),(.13,.13,.035),"blue")
+add("abdomen_armor",(0,1.40,.18),(.32,.20,.07),"navy",sphere=True)
+add("abdomen_light",(0,1.39,.23),(.18,.045,.04),"glow")
+add("hair_clip_left",(-.31,2.59,.19),(.13,.065,.07),"blue")
+add("hair_clip_right",(.31,2.59,.19),(.13,.065,.07),"blue")
+add("nose",(0,2.26,.342),(.055,.065,.045),"skin",sphere=True)
+add("chin",(0,2.08,.12),(.20,.09,.19),"skin",sphere=True)
+for side,sgn in (("left",-1),("right",1)):
+    add(side+"_shoulder_plate",(sgn*.06,-.08,-.015),(.28,.17,.26),"blue",side+"Arm",True)
+    add(side+"_elbow_guard",(0,-.43,.14),(.19,.13,.08),"navy",side+"Arm")
+    add(side+"_hand_light",(0,-.64,.145),(.10,.07,.04),"glow",side+"Arm")
+    add(side+"_knee_armor",(0,-.49,.19),(.24,.20,.08),"navy",side+"Leg",True)
+    add(side+"_knee_light",(0,-.48,.26),(.13,.035,.035),"glow",side+"Leg")
+    add(side+"_shin_guard",(0,-.77,.18),(.23,.24,.08),"white",side+"Leg")
+    add(side+"_boot_light",(0,-.95,.26),(.18,.035,.04),"glow",side+"Leg")
+    add(side+"_hair_band",(sgn*.07,-.12,-.06),(.19,.10,.20),"blue",side+"Hair",True)
+add("backpack_antenna",(0,2.08,-.45),(.045,.26,.055),"metal")
+add("backpack_antenna_light",(0,2.23,-.45),(.08,.08,.08),"glow",sphere=True)
+add("hip_module",(.43,1.00,.05),(.19,.28,.24),"blue")
+add("hip_module_light",(.53,1.02,.10),(.035,.15,.08),"glow")
+
 output=Path(__file__).resolve().parent.parent/"app/src/main/assets/models/lila-operator.glb"
 output.parent.mkdir(parents=True,exist_ok=True)
 scene.export(str(output))
