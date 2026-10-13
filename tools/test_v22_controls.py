@@ -37,6 +37,11 @@ checks = {
     "V24 skin selection updates preview": "if(type==='skin')v24RefreshLobbyCharacter()" in html,
     "V24 render loop": "v24LobbyTick();" in html,
     "V25 terrain anchor stabilization": "v22ShoulderRig.anchorY+=(anchorGoal-v22ShoulderRig.anchorY)" in html,
+    "V26 lobby independent startup": "requestAnimationFrame(v26LobbyLoop);" in html and "function v26LobbyLoop()" in html,
+    "V26 lobby tick independent of match loop": "requestAnimationFrame(frame);\n v24LobbyTick();" not in html,
+    "V26 camera smoothing setting used": "const v26CameraSmooth=clamp(Number($('cameraSmooth').value)" in html,
+    "V26 pointer jump clamp": "const dx=clamp(e.clientX-t.x,-55,55)" in html,
+    "V26 minimap north compass": "c.fillText('N',w/2-5,17)" in html,
     "V24 Lila GLB loads into lobby": "v24Lobby.skin===4)v22ApplyLilaModel(v24Lobby.operator)" in html,
 }
 for name, ok in checks.items():
