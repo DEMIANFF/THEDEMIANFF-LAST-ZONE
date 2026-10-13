@@ -925,7 +925,13 @@ function v22ApplyLilaModel(character){
  model.position.x=-(bounds.min.x+bounds.max.x)*scale*.5;
  model.position.z=-(bounds.min.z+bounds.max.z)*scale*.5;
  // Keep procedural limbs and gun anchors for controls; hide only their meshes.
- character.body.traverse(o=>{if(o.isMesh&&o!==character.gun&&o.parent!==character.gun&&o!==character.backGun&&o.parent!==character.backGun)o.visible=false});
+ character.body.traverse(o=>{
+  if(!o.isMesh)return;
+  // Preserve all descendants of weapon attachment groups, not just direct children.
+  let parent=o,weaponPart=false;
+  while(parent&&parent!==character.body){if(parent===character.gun||parent===character.backGun){weaponPart=true;break}parent=parent.parent}
+  if(!weaponPart)o.visible=false;
+ });
  character.body.add(model);
  character.v22Loaded=true;
  character.v22Model=model;
