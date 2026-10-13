@@ -1223,7 +1223,7 @@ function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather
    updateHud();
   }
  }
-}if(fireHeld)shoot();if(mobile&&$('autoFire').checked){for(const b of bots){if(!b.alive)continue;const dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);if(d<45&&Math.abs(Math.atan2(Math.sin(angle-camYaw),Math.cos(angle-camYaw)))<.075&&!blocked(player.position.x,player.position.z,b.x,b.z)){shoot();break;}}}
+}if(mobile&&$('autoFire').checked){for(const b of bots){if(!b.alive)continue;const dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);if(d<45&&Math.abs(Math.atan2(Math.sin(angle-camYaw),Math.cos(angle-camYaw)))<.075&&!blocked(player.position.x,player.position.z,b.x,b.z)){shoot();break;}}}
 let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value)),spd=sprintHeld?14.5:(sprint?10.1:6.1);
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
@@ -1256,6 +1256,8 @@ const target=new THREE.Vector3(player.position.x+Math.cos(camYaw)*shoulder-Math.
 camera.position.lerp(target,1-Math.exp(-dt*(adsHeld?19:12)));
 const aimForward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
 camera.lookAt(camera.position.clone().addScaledVector(aimForward,100));
+// Fire after the camera has been aimed this frame, avoiding one-frame stale shots.
+if(fireHeld)shoot();
 v14Recoil=Math.max(0,v14Recoil-dt*8);
 playerModel.gun.rotation.x=-camPitch*.55-v14Recoil*.12;
 playerModel.body.rotation.x=onGround?Math.sin(playerModel.animPhase)*.014*clamp(Math.hypot(moveVX,moveVZ)/10,0,1):-.10;
@@ -1448,13 +1450,13 @@ function aimAssistPull(dt){
   if(d>62||d<2.2)continue;
   const dir=Math.atan2(dx,dz);
   const rel=Math.atan2(Math.sin(dir-camYaw),Math.cos(dir-camYaw));
-  if(Math.abs(rel)>0.55)continue;
+  if(Math.abs(rel)>(adsHeld?.28:.38))continue;
   if(blocked(player.position.x,player.position.z,b.x,b.z))continue;
   const score=d*(0.45+Math.abs(rel)*1.4);
   if(score<bestScore){bestScore=score;best={rel,d};}
  }
  if(!best)return;
- const strength=(adsHeld?1.0:0.62)*Math.min(1,dt*3.4);
+ const strength=(adsHeld?1.0:0.62)*(1-Math.exp(-dt*3.4));
  camYaw+=Math.atan2(Math.sin(best.rel),Math.cos(best.rel))*strength*0.55;
 }
 function flushCamera(dt){
