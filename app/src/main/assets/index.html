@@ -1616,8 +1616,14 @@ function hudEnd(save){
    try{if(renderer&&camera){resize();if(scene)renderer.render(scene,camera)}}catch(error){v21Diagnostic('WEBGL RESUME',error)}
    try{clock.getDelta();if(audioContext&&audioContext.state==='suspended')audioContext.resume().catch(()=>{});if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(1,audioContext.currentTime,.12)}catch(error){v21Diagnostic('AUDIO RESUME',error)}
   }else{
+   // V21: HUD editor opened from the main lobby, not an active match.
+   // Restore the lobby behind the settings panel; never show empty 3D canvas.
+   $('game').classList.remove('hidden');
+   $('menu').classList.remove('hidden');
+   $('end').classList.add('hidden');
+   $('controls').classList.add('hidden');
    $('pausePanel').classList.remove('hidden');
-   if(!running)$('controls').classList.add('hidden');
+   paused=true;
   }
  }
 }
