@@ -1,8 +1,10 @@
 name: Compilar APK offline THEDEMIANFF
+
 on:
   workflow_dispatch:
   push:
     branches: [main]
+
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -12,9 +14,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: - uses: android-actions/setup-android@v3
-  with:
-    packages: ''
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: ''
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
