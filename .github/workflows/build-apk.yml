@@ -3,7 +3,7 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, v22-complete-upgrade]
 
 jobs:
   android:
