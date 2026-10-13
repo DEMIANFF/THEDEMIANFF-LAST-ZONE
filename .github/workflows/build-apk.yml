@@ -29,6 +29,11 @@ jobs:
           curl --fail --location --retry 3 --silent --show-error https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js -o app/src/main/assets/GLTFLoader.js
           test -s app/src/main/assets/three.min.js
           test -s app/src/main/assets/GLTFLoader.js
+      - name: Generar personaje Lila GLB original
+        run: |
+          python3 -m pip install --quiet numpy trimesh
+          python3 tools/generate_lila.py
+          test -s app/src/main/assets/models/lila-operator.glb
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
