@@ -58,6 +58,8 @@ jobs:
           pathlib.Path('/tmp/thedemianff-game.js').write_text(main)
           PY
           node --check /tmp/thedemianff-game.js
+      - name: Pruebas de regresión de cámara y controles táctiles V22
+        run: python3 tools/test_v22_controls.py
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
