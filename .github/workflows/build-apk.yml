@@ -34,6 +34,19 @@ jobs:
           python3 -m pip install --quiet numpy trimesh
           python3 tools/generate_lila.py
           test -s app/src/main/assets/models/lila-operator.glb
+      - name: Validar modelo Lila y articulaciones
+        run: |
+          python3 - <<'PY'
+          import trimesh
+          path='app/src/main/assets/models/lila-operator.glb'
+          scene=trimesh.load(path,force='scene')
+          nodes=set(scene.graph.nodes)
+          required={'leftArm','rightArm','leftLeg','rightLeg','leftHair','rightHair'}
+          missing=required-nodes
+          assert not missing, f'Faltan articulaciones de Lila: {sorted(missing)}'
+          assert len(scene.geometry)>=40, 'Modelo incompleto'
+          print('Lila GLB verificado:',len(scene.geometry),'mallas,',len(nodes),'nodos')
+          PY
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
