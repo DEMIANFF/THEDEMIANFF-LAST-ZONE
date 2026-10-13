@@ -1567,7 +1567,115 @@ function hudBegin(){hudReturnToGame=running;v123ResetInputs();
  $('hudEditor').classList.remove('hidden');
  hudApply();hudSelect('fire');
 }
-function hudEnd(save){
+
+function hudEnd(save) {
+  // THEDEMIANFF LAST ZONE V21
+  // Correccion del retorno desde el editor HUD.
+
+  if (save) {
+    hudSaveLocal();
+  } else {
+    hudLayout = hudBefore;
+  }
+
+  hudEditing = false;
+  hudDrag = null;
+
+  // Limpiar entradas tactiles anteriores.
+  v123ResetInputs();
+
+  // Cerrar editor HUD.
+  $('hudEditor').classList.add('hidden');
+  $('controls').classList.remove('hudEditing');
+
+  for (const id of hudIds) {
+    $(id).classList.remove('hudSelected');
+  }
+
+  // Restaurar o aplicar posiciones del HUD.
+  if (!save && hudLayout === null) {
+    $('controls').classList.remove('hudCustom');
+
+    for (const id of hudIds) {
+      const el = $(id);
+
+      for (const prop of [
+        'left',
+        'top',
+        'width',
+        'height',
+        'opacity',
+        'right',
+        'bottom'
+      ]) {
+        el.style[prop] = '';
+      }
+    }
+
+    applyPrefs();
+  } else {
+    hudApply();
+  }
+
+  // Regresar a la partida activa.
+  if (hudReturnToGame && running) {
+
+    // Ocultar menus y pantallas superpuestas.
+    $('menu').classList.add('hidden');
+    $('end').classList.add('hidden');
+    $('pausePanel').classList.add('hidden');
+    $('hudEditor').classList.add('hidden');
+
+    // Mostrar nuevamente el escenario.
+    $('game').classList.remove('hidden');
+
+    // Recuperar controles tactiles.
+    if (mobile) {
+      $('controls').classList.remove('hidden');
+    }
+
+    // Actualizar el renderizador 3D.
+    if (renderer && camera) {
+      resize();
+
+      if (scene) {
+        renderer.render(scene, camera);
+      }
+    }
+
+    // Reiniciar tiempo y continuar partida.
+    clock.getDelta();
+    paused = false;
+
+    // Recuperar audio ambiental.
+    if (ambientBus && audioContext) {
+      ambientBus.gain.setTargetAtTime(
+        1,
+        audioContext.currentTime,
+        0.12
+      );
+    }
+
+    if (
+      audioContext &&
+      audioContext.state === 'suspended'
+    ) {
+      audioContext.resume().catch(() => {});
+    }
+
+  } else {
+
+    // Si no habia partida activa,
+    // regresar al panel de ajustes.
+    $('pausePanel').classList.remove('hidden');
+
+    if (!running) {
+      $('controls').classList.add('hidden');
+    }
+  }
+
+  hudReturnToGame = false;
+}
  if(save){hudSaveLocal()}else{hudLayout=hudBefore;}
  hudEditing=false;hudDrag=null;v123ResetInputs();
  $('hudEditor').classList.add('hidden');$('controls').classList.remove('hudEditing');
