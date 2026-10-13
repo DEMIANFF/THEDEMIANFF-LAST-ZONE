@@ -947,7 +947,7 @@ function v22AnimateLila(dt){
  const air=!onGround,aim=adsHeld||fireHeld,shooting=fireHeld&&shootCooldown>0;
  const crouch=!!(keys.ControlLeft||keys.ControlRight||keys.KeyC);
  const reload=reloadTimer>0&&reloadWeapon===weaponIndex;
- const ease=Math.min(1,dt*13),wave=Math.sin(phase),sway=Math.sin(phase*.6);
+ const ease=1-Math.exp(-13*Math.max(0,dt)),wave=Math.sin(phase),sway=Math.sin(phase*.6);
  const pose=(name,x,z=0)=>{const part=j[name];if(!part)return;part.rotation.x+=(x-part.rotation.x)*ease;part.rotation.z+=(z-part.rotation.z)*ease;};
  pose('leftLeg',air?-.18:crouch?-.8:wave*.72*pace);
  pose('rightLeg',air?.28:crouch?-.8:-wave*.72*pace);
