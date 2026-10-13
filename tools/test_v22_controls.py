@@ -23,15 +23,16 @@ checks = {
     "shoot uses updated camera": "camera.lookAt(camera.position.clone().addScaledVector(aimForward,100));" in html and "if(fireHeld)shoot();" in html,
     "no zoom pulses while firing": "const targetFov=adsHeld?58:68;" in html,
     "terrain camera smoothing": "camera.position.y+=(target.y-camera.position.y)" in html,
-    "no fire-induced shoulder camera jump": "const shoulder=adsHeld?1.25:1.9,back=adsHeld?3.65:6.1,height=adsHeld?2.15:2.85;" in html,
+    "no fire-induced shoulder camera jump": "const shoulder=adsHeld?.28:.55,back=adsHeld?4.25:6.5,height=adsHeld?2.35:3.05;" in html,
     "full horizontal yaw without clamping": "camYaw-=dx*.003*Number" in html,
-    "vertical look range extended": "-1.30,1.30" in html,
+    "vertical look range stabilized": "-.90,1.12" in html,
     "camera gestures consumed once": "const dx=cameraDX,dy=cameraDY;" in html and "cameraDX=0;cameraDY=0;" in html,
     "aim assist yields to manual swipe": "cameraPointers.size>0||v22FireDragging" in html,
     "V23 single touch router enabled": "const v23ControlsEnabled=true;" in html,
     "V23 independent pointer roles": "const v23Touches=new Map();" in html and "role='joystick'" in html and "role='look'" in html and "role=id" in html and "else if(role==='fire')" in html,
     "V23 pointer cancellation cleanup": "document.addEventListener('pointercancel',v23PointerEnd,true)" in html,
     "V23 fire drag uses camera aim": "if(Math.abs(dx)+Math.abs(dy)>.12)aim(dx,dy,mode)" in html,
+    "pause exit to lobby": 'id="leaveMatch"' in html and "function v23LeaveMatch()" in html and "$('leaveMatch').onclick=v23LeaveMatch" in html,
 }
 for name, ok in checks.items():
     assert ok, f"V22 control regression: {name}"
