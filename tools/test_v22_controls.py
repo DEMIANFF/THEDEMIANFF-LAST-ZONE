@@ -23,9 +23,9 @@ checks = {
     "shoot uses updated camera": "camera.lookAt(camera.position.clone().addScaledVector(aimForward,100));" in html and "if(fireHeld)shoot();" in html,
     "no zoom pulses while firing": "const targetFov=adsHeld?58:68;" in html,
     "terrain camera smoothing": "camera.position.y+=(target.y-camera.position.y)" in html,
-    "no fire-induced shoulder camera jump": "const shoulder=adsHeld?.28:.55,back=adsHeld?4.25:6.5,height=adsHeld?2.35:3.05;" in html,
+    "no fire-induced shoulder camera jump": "const shoulder=adsHeld?-1.0:-1.65,back=adsHeld?5.8:8.8,height=adsHeld?2.65:3.35;" in html,
     "full horizontal yaw without clamping": "camYaw-=dx*.003*Number" in html,
-    "vertical look range stabilized": "-.90,1.12" in html,
+    "vertical look range stabilized": "-.62,.98" in html,
     "camera gestures consumed once": "const dx=cameraDX,dy=cameraDY;" in html and "cameraDX=0;cameraDY=0;" in html,
     "aim assist yields to manual swipe": "cameraPointers.size>0||v22FireDragging" in html,
     "V23 single touch router enabled": "const v23ControlsEnabled=true;" in html,
@@ -36,6 +36,7 @@ checks = {
     "V24 3D lobby preview": 'id="v24LobbyStage"' in html and "function v24InitLobby()" in html,
     "V24 skin selection updates preview": "if(type==='skin')v24RefreshLobbyCharacter()" in html,
     "V24 render loop": "v24LobbyTick();" in html,
+    "V25 terrain anchor stabilization": "v22ShoulderRig.anchorY+=(anchorGoal-v22ShoulderRig.anchorY)" in html,
     "V24 Lila GLB loads into lobby": "v24Lobby.skin===4)v22ApplyLilaModel(v24Lobby.operator)" in html,
 }
 for name, ok in checks.items():
