@@ -924,6 +924,8 @@ function v22ApplyLilaModel(character){
  model.position.y=-bounds.min.y*scale;
  model.position.x=-(bounds.min.x+bounds.max.x)*scale*.5;
  model.position.z=-(bounds.min.z+bounds.max.z)*scale*.5;
+ // GLB is centered around its own bounds; retain a stable origin for locomotion.
+ model.userData.v22OriginalScale=scale;
  // Keep procedural limbs and gun anchors for controls; hide only their meshes.
  character.body.traverse(o=>{
   if(!o.isMesh)return;
