@@ -1244,9 +1244,30 @@ function v18RecordMatch(win){
  v18Save();return reward;
 }
 function start(){unlockAudio();v123ResetInputs();if(!renderer){renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;$('game').appendChild(renderer.domElement);camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,480);window.addEventListener('resize',resize);renderer.domElement.addEventListener('click',()=>{if(running&&!paused&&!mobile){const pl=renderer.domElement.requestPointerLock?.();if(pl&&pl.catch)pl.catch(()=>{})}});document.addEventListener('mousemove',e=>{if(running&&!paused&&!mobile)aim(e.movementX,e.movementY)});document.addEventListener('mousedown',e=>{if(e.button===0&&running&&!paused)fireHeld=true});document.addEventListener('mouseup',()=>fireHeld=false);requestAnimationFrame(frame);}reset();running=true;paused=false;$('v18Panel').classList.add('hidden');$('menu').classList.add('hidden');$('end').classList.add('hidden');$('pausePanel').classList.add('hidden');if(mobile)$('controls').classList.remove('hidden');else renderer.domElement.requestPointerLock?.();clock.getDelta();applyPrefs();}
-function resize(){if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}let v9RenderAccum=0;function frame(){requestAnimationFrame(frame);const dt=Math.min(.045,clock.getDelta());v9RenderAccum+=dt;if(running&&!paused){update(dt);v71Update(dt);}if(renderer&&scene&&camera&&(!$('batterySaver').checked||v9RenderAccum>=1/30)){
- renderer.render(scene,camera);v9RenderAccum=0;fpsFrames++;
-}fpsElapsed+=dt;if(fpsElapsed>0.7){$('fpsCounter').textContent=$('showFps').checked?Math.round(fpsFrames/fpsElapsed)+' FPS':'';fpsFrames=0;fpsElapsed=0;}}let cameraDX=0,cameraDY=0,adsHeld=false,fireTouch=null,fireLastX=0,fireLastY=0;
+function resize(){if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}// V21: show runtime errors on Android instead of silently freezing on a black screen.
+let v21LastError='';
+function v21Diagnostic(stage,error){
+ const message=String(error&&error.stack||error&&error.message||error).slice(0,450);
+ if(v21LastError===stage+message)return;
+ v21LastError=stage+message;
+ console.error('[THEDEMIANFF V21]',stage,error);
+ let panel=document.getElementById('v21Diagnostic');
+ if(!panel){panel=document.createElement('div');panel.id='v21Diagnostic';panel.style.cssText='position:fixed;z-index:99999;top:8px;left:8px;right:8px;padding:12px;border:2px solid #ffb04d;border-radius:9px;background:#260b0bee;color:white;font:12px/1.5 monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:45vh;overflow:auto;pointer-events:auto';document.body.appendChild(panel)}
+ panel.textContent='THEDEMIANFF V21 - ERROR '+stage+'\\n'+message+'\\nToma una captura y enviala al chat.';
+}
+let v9RenderAccum=0;
+function frame(){
+ requestAnimationFrame(frame);
+ try{
+  const dt=Math.min(.045,clock.getDelta());v9RenderAccum+=dt;
+  if(running&&!paused){update(dt);v71Update(dt)}
+  if(renderer&&scene&&camera&&(!$('batterySaver').checked||v9RenderAccum>=1/30)){
+   renderer.render(scene,camera);v9RenderAccum=0;fpsFrames++;
+  }
+  fpsElapsed+=dt;
+  if(fpsElapsed>0.7){$('fpsCounter').textContent=$('showFps').checked?Math.round(fpsFrames/fpsElapsed)+' FPS':'';fpsFrames=0;fpsElapsed=0}
+ }catch(error){v21Diagnostic('GAME LOOP',error);paused=true}
+}let cameraDX=0,cameraDY=0,adsHeld=false,fireTouch=null,fireLastX=0,fireLastY=0;
 // Dual independent camera channels: screen swipe (FREE) and fire drag (FIRE).
 // Each pointer owns its own low-pass filter and never changes the other channel.
 const fireCameraFilter={x:0,y:0};
@@ -1568,113 +1589,37 @@ function hudBegin(){hudReturnToGame=running;v123ResetInputs();
  hudApply();hudSelect('fire');
 }
 
-function hudEnd(save) {
-  // THEDEMIANFF LAST ZONE V21
-  // Correccion del retorno desde el editor HUD.
-
-  if (save) {
-    hudSaveLocal();
-  } else {
-    hudLayout = hudBefore;
-  }
-
-  hudEditing = false;
-  hudDrag = null;
-
-  // Limpiar entradas tactiles anteriores.
+function hudEnd(save){
+ const returnToGame=Boolean(hudReturnToGame&&running);
+ try{
+  if(save){hudSaveLocal()}else{hudLayout=hudBefore}
+  hudEditing=false;hudDrag=null;
   v123ResetInputs();
-
-  // Cerrar editor HUD.
   $('hudEditor').classList.add('hidden');
   $('controls').classList.remove('hudEditing');
-
-  for (const id of hudIds) {
-    $(id).classList.remove('hudSelected');
+  for(const id of hudIds)$(id).classList.remove('hudSelected');
+  if(!save&&hudLayout===null){
+   $('controls').classList.remove('hudCustom');
+   for(const id of hudIds){const el=$(id);for(const prop of ['left','top','width','height','opacity','right','bottom'])el.style[prop]=''}
+   applyPrefs();
+  }else{hudApply()}
+ }catch(error){v21Diagnostic('HUD SAVE',error)}
+ finally{
+  hudEditing=false;hudDrag=null;hudReturnToGame=false;
+  $('hudEditor').classList.add('hidden');
+  $('controls').classList.remove('hudEditing');
+  if(returnToGame){
+   $('menu').classList.add('hidden');$('end').classList.add('hidden');$('pausePanel').classList.add('hidden');
+   $('game').classList.remove('hidden');
+   if(mobile)$('controls').classList.remove('hidden');
+   paused=false;
+   try{if(renderer&&camera){resize();if(scene)renderer.render(scene,camera)}}catch(error){v21Diagnostic('WEBGL RESUME',error)}
+   try{clock.getDelta();if(audioContext&&audioContext.state==='suspended')audioContext.resume().catch(()=>{});if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(1,audioContext.currentTime,.12)}catch(error){v21Diagnostic('AUDIO RESUME',error)}
+  }else{
+   $('pausePanel').classList.remove('hidden');
+   if(!running)$('controls').classList.add('hidden');
   }
-
-  // Restaurar o aplicar posiciones del HUD.
-  if (!save && hudLayout === null) {
-    $('controls').classList.remove('hudCustom');
-
-    for (const id of hudIds) {
-      const el = $(id);
-
-      for (const prop of [
-        'left',
-        'top',
-        'width',
-        'height',
-        'opacity',
-        'right',
-        'bottom'
-      ]) {
-        el.style[prop] = '';
-      }
-    }
-
-    applyPrefs();
-  } else {
-    hudApply();
-  }
-
-  // Regresar a la partida activa.
-  if (hudReturnToGame && running) {
-
-    // Ocultar menus y pantallas superpuestas.
-    $('menu').classList.add('hidden');
-    $('end').classList.add('hidden');
-    $('pausePanel').classList.add('hidden');
-    $('hudEditor').classList.add('hidden');
-
-    // Mostrar nuevamente el escenario.
-    $('game').classList.remove('hidden');
-
-    // Recuperar controles tactiles.
-    if (mobile) {
-      $('controls').classList.remove('hidden');
-    }
-
-    // Actualizar el renderizador 3D.
-    if (renderer && camera) {
-      resize();
-
-      if (scene) {
-        renderer.render(scene, camera);
-      }
-    }
-
-    // Reiniciar tiempo y continuar partida.
-    clock.getDelta();
-    paused = false;
-
-    // Recuperar audio ambiental.
-    if (ambientBus && audioContext) {
-      ambientBus.gain.setTargetAtTime(
-        1,
-        audioContext.currentTime,
-        0.12
-      );
-    }
-
-    if (
-      audioContext &&
-      audioContext.state === 'suspended'
-    ) {
-      audioContext.resume().catch(() => {});
-    }
-
-  } else {
-
-    // Si no habia partida activa,
-    // regresar al panel de ajustes.
-    $('pausePanel').classList.remove('hidden');
-
-    if (!running) {
-      $('controls').classList.add('hidden');
-    }
-  }
-
-  hudReturnToGame = false;
+ }
 }
 $('editHud').addEventListener('click',hudBegin);
 $('hudSave').addEventListener('click',()=>hudEnd(true));
