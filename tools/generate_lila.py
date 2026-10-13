@@ -7,12 +7,32 @@ scene=trimesh.Scene()
 scene.graph.update(frame_to="LilaRoot",frame_from="world",matrix=np.eye(4))
 colors={"skin":[235,177,167,255],"hair":[190,160,218,255],"hairlight":[224,200,238,255],"white":[236,242,251,255],"blue":[31,88,203,255],"navy":[19,27,49,255],"black":[29,32,45,255],"metal":[83,97,120,255],"violet":[121,69,166,255],"glow":[78,187,255,255]}
 def add(name,xyz,size,color,parent="LilaRoot",sphere=False):
-    m=trimesh.creation.icosphere(subdivisions=2,radius=1) if sphere else trimesh.creation.box(extents=size)
+    m=trimesh.creation.icosphere(subdivisions=3,radius=1) if sphere else trimesh.creation.box(extents=size)
     if sphere:m.apply_scale(size)
     m.visual.vertex_colors=colors[color]
     scene.add_geometry(m,node_name=name,parent_node_name=parent,transform=T(xyz))
 def pivot(name,xyz):
     scene.graph.update(frame_to=name,frame_from="LilaRoot",matrix=T(xyz))
+# V26: softer anatomical volumes and layered hair, replacing the boxy silhouette.
+# Rounded meshes are part of the exported offline GLB; no runtime downloads.
+add("shoulder_line",(0,1.83,-.005),(.53,.17,.255),"white",sphere=True)
+add("upper_chest",(0,1.63,.035),(.40,.36,.245),"white",sphere=True)
+add("midriff",(0,1.34,-.015),(.30,.24,.21),"navy",sphere=True)
+add("hip_curve",(0,1.06,-.015),(.40,.22,.245),"navy",sphere=True)
+add("jawline",(0,2.20,.085),(.275,.235,.255),"skin",sphere=True)
+add("cheek_left",(-.22,2.31,.20),(.115,.12,.095),"skin",sphere=True)
+add("cheek_right",(.22,2.31,.20),(.115,.12,.095),"skin",sphere=True)
+add("upper_lip",(0,2.145,.327),(.092,.025,.016),"skin",sphere=True)
+add("hair_back",(0,2.34,-.255),(.40,.49,.18),"hair",sphere=True)
+for i in range(9):
+    x=(i-4)*.086
+    add("layered_fringe_"+str(i),(x,2.58-abs(x)*.21,.28),(.067,.16+abs(x)*.14,.075),"hairlight" if i%3==0 else "hair",sphere=True)
+for side,sgn in (("left",-1),("right",1)):
+    add(side+"_thigh_volume",(sgn*.19,.76,.0),(.19,.34,.195),"navy",sphere=True)
+    add(side+"_calf_volume",(sgn*.19,.38,.01),(.155,.27,.17),"white",sphere=True)
+    add(side+"_shoulder_volume",(sgn*.48,1.84,0),(.21,.20,.22),"white",sphere=True)
+    add(side+"_forearm_volume",(sgn*.51,1.38,.03),(.145,.29,.16),"blue",sphere=True)
+    add(side+"_hair_layer",(sgn*.39,2.20,-.21),(.18,.49,.17),"hair",sphere=True)
 add("torso",(0,1.55,0),(.38,.55,.25),"skin",sphere=True)
 add("waist",(0,1.09,0),(.33,.23,.23),"skin",sphere=True)
 add("jacket",(0,1.68,-.045),(.43,.33,.285),"white",sphere=True)
