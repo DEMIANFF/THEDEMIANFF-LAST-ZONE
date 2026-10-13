@@ -1216,14 +1216,16 @@ moveVZ+=(wantedZ-moveVZ)*response;
 if(mag<.01&&Math.hypot(moveVX,moveVZ)<.025){moveVX=0;moveVZ=0;}
 const dx=moveVX*dt,dz=moveVZ*dt;let nx=clamp(player.position.x+dx,-HALF+4,HALF-4),nz=clamp(player.position.z+dz,-HALF+4,HALF-4);if(!solid(nx,nz,.52)){player.position.x=nx;player.position.z=nz;}else{if(!solid(nx,player.position.z,.52))player.position.x=nx;if(!solid(player.position.x,nz,.52))player.position.z=nz;}if(Math.hypot(moveVX,moveVZ)>.25){
  const a=Math.atan2(moveVX,moveVZ),pace=Math.min(1,Math.hypot(moveVX,moveVZ)/9.2);
- player.rotation.y+=Math.atan2(Math.sin(a-player.rotation.y),Math.cos(a-player.rotation.y))*(1-Math.exp(-dt*18));
+ const facing=(adsHeld||fireHeld)?camYaw:a;
+ player.rotation.y+=Math.atan2(Math.sin(facing-player.rotation.y),Math.cos(facing-player.rotation.y))*(1-Math.exp(-dt*((adsHeld||fireHeld)?18:11)));
  playerModel.animPhase+=dt*(8+pace*7);
  playerModel.left.rotation.x=Math.sin(playerModel.animPhase)*.65*pace;
  playerModel.right.rotation.x=-Math.sin(playerModel.animPhase)*.65*pace;
  playerModel.body.position.y=Math.abs(Math.sin(playerModel.animPhase))*.075*pace;
  playerModel.body.rotation.z=Math.sin(playerModel.animPhase*.5)*.025*pace;
 }else{
- player.rotation.y+=Math.atan2(Math.sin(camYaw-player.rotation.y),Math.cos(camYaw-player.rotation.y))*(1-Math.exp(-dt*15));
+ // Free-look: rotating the camera alone must not rotate the character.
+ if(adsHeld||fireHeld)player.rotation.y+=Math.atan2(Math.sin(camYaw-player.rotation.y),Math.cos(camYaw-player.rotation.y))*(1-Math.exp(-dt*16));
  playerModel.left.rotation.x*=Math.exp(-dt*12);
  playerModel.right.rotation.x*=Math.exp(-dt*12);
  playerModel.body.position.y*=Math.exp(-dt*12);
