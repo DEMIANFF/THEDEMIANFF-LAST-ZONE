@@ -1118,6 +1118,35 @@ function v27AuroraTick(dt){
   ribbon.rotation.z=Math.sin(v27AuroraClock*.045+i*.8)*.07;
  }
 }
+// Aurora V27: open-access interiors. Wall segments leave two traversable doorways.
+// Collision is registered per segment, never as a single solid building footprint.
+function v27BuildInterior(cx,cz,kind){
+ const group=new THREE.Group();group.position.set(cx,ground(cx,cz),cz);scene.add(group);
+ const wall=new THREE.MeshStandardMaterial({color:kind==='helios'?'#60778a':'#465e75',metalness:.45,roughness:.58});
+ const floor=new THREE.MeshStandardMaterial({color:'#9bc5d8',roughness:.72});
+ const light=new THREE.MeshStandardMaterial({color:'#52d7d2',emissive:'#137e91',emissiveIntensity:.75});
+ const slab=new THREE.Mesh(new THREE.BoxGeometry(17,.22,14),floor);slab.position.y=.12;slab.receiveShadow=true;group.add(slab);
+ const segment=(x,z,w,d,h=3.5)=>{
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),wall);
+  mesh.position.set(x,h/2,z);mesh.receiveShadow=true;mesh.castShadow=false;group.add(mesh);
+  worldObjects.push({x:cx+x,z:cz+z,r:Math.max(w,d)*.48});
+ };
+ // North/south doors: a central 4.5 m opening, with side segments only.
+ for(const z of [-7,7]){segment(-6.15,z,4.7,.65);segment(6.15,z,4.7,.65);}
+ // East/west doors: second set of routes through the interior.
+ for(const x of [-8.5,8.5]){segment(x,-4.9,.65,4.2);segment(x,4.9,.65,4.2);}
+ // Waist-high cover, with generous room for camera and joystick movement.
+ for(const [x,z] of [[-3.5,-2.2],[3.5,2.2]]){
+  const crate=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.15,1.5),wall);
+  crate.position.set(x,.58,z);crate.receiveShadow=true;group.add(crate);
+  worldObjects.push({x:cx+x,z:cz+z,r:1.1});
+ }
+ const strip=new THREE.Mesh(new THREE.BoxGeometry(7,.12,.3),light);
+ strip.position.set(0,2.7,-6.6);group.add(strip);
+ // Existing pickup system handles collision, visibility and collection.
+ spawnPickup('armor',cx-2,cz+4);
+ spawnPickup('med',cx+2,cz-4);
+}
 function addWorldDetails(){
  // AURORA ALPHA: glacial biomes replace the previous coastal vegetation.
  const aurora=new THREE.Group();scene.add(aurora);
@@ -1201,6 +1230,9 @@ function addWorldDetails(){
    worldObjects.push({x,z,r:1.6});
   }
  }
+ // Two accessible tactical interiors; preserve the legacy map while migrating it.
+ v27BuildInterior(-100,-105,'helios');
+ v27BuildInterior(102,74,'vortex');
  const rockMat=new THREE.MeshStandardMaterial({color:'#3a5268',roughness:.96,flatShading:true});
  const shrubMat=new THREE.MeshStandardMaterial({color:'#75b8c7',roughness:1,flatShading:true});
  const detail=new THREE.Group();scene.add(detail);
