@@ -1496,6 +1496,23 @@ function v21Diagnostic(stage,error){
  panel.textContent='THEDEMIANFF V21 - ERROR '+stage+'\\n'+message+'\\nToma una captura y enviala al chat.';
 }
 let v9RenderAccum=0;
+// Adaptive internal resolution based on measured rendering throughput.
+// Device temperature is not exposed reliably to WebView; FPS is the safe proxy.
+const v26Performance={scale:1,lowFrames:0,highFrames:0};
+function v26TunePerformance(fps){
+ if(!renderer||!running||paused)return;
+ if(fps<25){v26Performance.lowFrames++;v26Performance.highFrames=0;}
+ else if(fps>48){v26Performance.highFrames++;v26Performance.lowFrames=0;}
+ else {v26Performance.lowFrames=0;v26Performance.highFrames=0;}
+ if(v26Performance.lowFrames>=5){v26Performance.scale=Math.max(.65,v26Performance.scale-.1);v26Performance.lowFrames=0;v26ApplyPixelRatio();}
+ if(v26Performance.highFrames>=12){v26Performance.scale=Math.min(1,v26Performance.scale+.05);v26Performance.highFrames=0;v26ApplyPixelRatio();}
+}
+function v26ApplyPixelRatio(){
+ if(!renderer)return;
+ const resolution=Number($('resolution').value)||.75;
+ renderer.setPixelRatio(Math.min(devicePixelRatio,1.5)*resolution*v26Performance.scale);
+ renderer.setSize(innerWidth,innerHeight,false);
+}
 function frame(){
  requestAnimationFrame(frame);
  try{
@@ -1505,7 +1522,7 @@ function frame(){
    renderer.render(scene,camera);v9RenderAccum=0;fpsFrames++;
   }
   fpsElapsed+=dt;
-  if(fpsElapsed>0.7){$('fpsCounter').textContent=$('showFps').checked?Math.round(fpsFrames/fpsElapsed)+' FPS':'';fpsFrames=0;fpsElapsed=0}
+  if(fpsElapsed>0.7){const measuredFps=fpsFrames/fpsElapsed;v26TunePerformance(measuredFps);$('fpsCounter').textContent=$('showFps').checked?Math.round(measuredFps)+' FPS':'';fpsFrames=0;fpsElapsed=0}
  }catch(error){v21Diagnostic('GAME LOOP',error);paused=true}
 }let cameraDX=0,cameraDY=0,adsHeld=false,fireTouch=null,fireLastX=0,fireLastY=0;
 const v22ShoulderRig={back:NaN,shoulder:NaN,height:NaN,anchorY:NaN};
