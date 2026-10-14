@@ -1,5 +1,6 @@
 #include "AuroraHeliosGenerator.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Components/SceneComponent.h"
 #include "UObject/ConstructorHelpers.h"
 
 AAuroraHeliosGenerator::AAuroraHeliosGenerator()
