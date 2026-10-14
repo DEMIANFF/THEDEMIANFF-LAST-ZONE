@@ -1123,6 +1123,45 @@ function addWorldDetails(){
   else {for(let j=0;j<5;j++){const p=new THREE.Mesh(new THREE.BoxGeometry(3,3+j%3*2,3),darkIce);p.position.set((j-2)*4,2,Math.sin(j*2)*5);g.add(p);}}
  }
 
+ // Aurora V27: navigable landmarks and identifiable POIs, built from low-poly geometry.
+ const auroraPoi=[
+  {name:'CRÁTER AURORA',x:0,z:0,tier:4},
+  {name:'GLACIAR ESPEJO',x:0,z:140,tier:1},
+  {name:'SANTUARIO DE HIELO',x:-100,z:112,tier:4},
+  {name:'BOSQUE LUMÍNICO',x:95,z:112,tier:2},
+  {name:'VALLE DE LOS ECOS',x:-115,z:65,tier:2},
+  {name:'PUERTO VÓRTEX',x:102,z:74,tier:3},
+  {name:'COMPLEJO HELIOS',x:-100,z:-105,tier:3},
+  {name:'BAHÍA DE CRISTAL',x:100,z:-95,tier:2}
+ ];
+ window.v27AuroraPOI=auroraPoi;
+ const metal=new THREE.MeshStandardMaterial({color:'#566d83',metalness:.62,roughness:.36});
+ const snow=new THREE.MeshStandardMaterial({color:'#d9f2ff',roughness:.8});
+ const lit=new THREE.MeshStandardMaterial({color:'#59e3d5',emissive:'#136e7a',emissiveIntensity:.65});
+ for(const poi of auroraPoi){
+  if(poi.name==='CRÁTER AURORA')continue;
+  const g=new THREE.Group();g.position.set(poi.x,ground(poi.x,poi.z),poi.z);aurora.add(g);
+  if(poi.name==='BOSQUE LUMÍNICO'){
+   for(let i=0;i<30;i++){const angle=i*2.399963,rad=4+Math.sqrt(i)*4;
+    const tree=new THREE.Mesh(new THREE.ConeGeometry(1.25,7+(i%4),6),i%5===0?lit:snow);
+    tree.position.set(Math.cos(angle)*rad,4,Math.sin(angle)*rad);g.add(tree);
+   }
+  }else if(poi.name==='COMPLEJO HELIOS'||poi.name==='PUERTO VÓRTEX'){
+   for(let i=0;i<5;i++){const x=(i-2)*7,z=i%2?7:-6;
+    const block=new THREE.Mesh(new THREE.BoxGeometry(5,3+i%3*2,6),metal);
+    block.position.set(x,(3+i%3*2)/2,z);g.add(block);
+    worldObjects.push({x:poi.x+x,z:poi.z+z,r:3.2});
+   }
+  }else if(poi.name==='SANTUARIO DE HIELO'){
+   for(let i=0;i<6;i++){const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.8,1.2,9,6),snow);
+    pillar.position.set(Math.cos(i*Math.PI/3)*9,4.5,Math.sin(i*Math.PI/3)*9);g.add(pillar);
+   }
+  }else if(poi.name==='VALLE DE LOS ECOS'){
+   for(let i=0;i<8;i++){const cliff=new THREE.Mesh(new THREE.DodecahedronGeometry(2.2+i%3,0),metal);
+    cliff.position.set(Math.cos(i*.8)*12,2,Math.sin(i*.8)*9);g.add(cliff);
+   }
+  }
+ }
  const rockMat=new THREE.MeshStandardMaterial({color:'#3a5268',roughness:.96,flatShading:true});
  const shrubMat=new THREE.MeshStandardMaterial({color:'#75b8c7',roughness:1,flatShading:true});
  const detail=new THREE.Group();scene.add(detail);
@@ -1371,12 +1410,12 @@ function v16Weather(dt){
  const cloud=(.5+.5*Math.sin(time*.016))*(.5+.5*Math.sin(time*.009+1.4));
  const mist=cloud*strength;
  scene.fog.density=.0037+mist*.0028;
- scene.background.setRGB(.725-mist*.16,.78-mist*.13,.825-mist*.10);
+ scene.background.setRGB(.065+mist*.025,.14+mist*.03,.24+mist*.035);
  if(v16Sun)v16Sun.intensity=2.4-mist*.85;
  if(v16Hemi)v16Hemi.intensity=1.7-mist*.36;
 }
 let v16Sun=null,v16Hemi=null;
-function drawMap(){const w=256,c=mctx;c.clearRect(0,0,w,w);c.fillStyle='#173a3b';c.fillRect(0,0,w,w);c.strokeStyle='#6c927e';c.lineWidth=1;for(let i=0;i<7;i++){let p=i*w/6;c.beginPath();c.moveTo(p,0);c.lineTo(p,w);c.moveTo(0,p);c.lineTo(w,p);c.stroke();}const point=(x,z)=>[(x/WORLD+.5)*w,(z/WORLD+.5)*w];let [cx,cz]=point(zoneCenter.x,zoneCenter.y);c.strokeStyle='#7eeef6';c.lineWidth=3;c.beginPath();c.arc(cx,cz,zoneRadius/WORLD*w,0,Math.PI*2);c.stroke();c.fillStyle='#bdc3b4';for(const o of worldObjects){const [x,z]=point(o.x,o.z);c.fillRect(x-2,z-2,4,4);}for(const poi of [{x:36,z:30},{x:-43,z:43},{x:-86,z:-82}]){
+function drawMap(){const w=256,c=mctx;c.clearRect(0,0,w,w);c.fillStyle='#173a3b';c.fillRect(0,0,w,w);c.strokeStyle='#6c927e';c.lineWidth=1;for(let i=0;i<7;i++){let p=i*w/6;c.beginPath();c.moveTo(p,0);c.lineTo(p,w);c.moveTo(0,p);c.lineTo(w,p);c.stroke();}const point=(x,z)=>[(x/WORLD+.5)*w,(z/WORLD+.5)*w];let [cx,cz]=point(zoneCenter.x,zoneCenter.y);c.strokeStyle='#7eeef6';c.lineWidth=3;c.beginPath();c.arc(cx,cz,zoneRadius/WORLD*w,0,Math.PI*2);c.stroke();c.fillStyle='#bdc3b4';for(const o of worldObjects){const [x,z]=point(o.x,o.z);c.fillRect(x-2,z-2,4,4);}for(const poi of (window.v27AuroraPOI||[])){
  const [px,pz]=point(poi.x,poi.z);c.fillStyle='#77d6d8';c.fillRect(px-3,pz-3,6,6);
 }
 for(const p of pickups){const [x,z]=point(p.x,p.z);c.fillStyle='#efce7a';c.fillRect(x-2,z-2,4,4);}for(const b of bots)if(b.alive){const [x,z]=point(b.x,b.z);c.fillStyle='#e56d65';c.beginPath();c.arc(x,z,2.7,0,7);c.fill();}// Map readability: draw safe-zone overlay, compass and map frame.
