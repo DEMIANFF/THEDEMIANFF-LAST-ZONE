@@ -16,6 +16,7 @@ classes = {
     "AuroraMobileController": ("AAuroraMobileController", "SetMobileMovement", "AddMobileLook", "SetMobileJump"),
     "AuroraTouchHUD": ("UAuroraTouchHUD", "UpdateMoveJoystick", "UpdateCameraDrag", "SetFirePressed"),
     "AuroraHeliosOutpost": ("AAuroraHeliosOutpost", "UInstancedStaticMeshComponent"),
+    "AuroraHeliosGenerator": ("AAuroraHeliosGenerator", "GenerateHelios", "ClearInstances"),
     "AuroraPerformanceSettings": ("UAuroraPerformanceSettings", "ApplyGraphicsPreset"),
     "AuroraGameMode": ("AAuroraGameMode",),
 }
