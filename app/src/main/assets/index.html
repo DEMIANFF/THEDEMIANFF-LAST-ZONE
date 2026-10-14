@@ -1833,6 +1833,9 @@ document.addEventListener('pointercancel',v123Release,true);
 // V23: Single-owner touch router. Each pointer has exactly one role.
 // Legacy camera, joystick and action listeners above are intentionally disabled.
 const v23Touches=new Map();
+// V26: multiple independent view fingers; only the most recently moving view finger aims.
+let v26LookOwner=null;
+let v26LastLookMove=0;
 function v23Ready(){return mobile&&running&&!paused&&!hudEditing&&!$('controls').classList.contains('hidden');}
 function v23Joy(x,y){
  const r=stickBase.getBoundingClientRect(),radius=Math.max(18,r.width*.33);
@@ -1856,6 +1859,7 @@ function v23FireThumb(t){
 }
 function v23Clear(){
  v23Touches.clear();cameraPointers.clear();activeActionPointers.clear();
+ v26LookOwner=null;v26LastLookMove=0;
  joyX=joyY=0;stickTouch=lookTouch=fireTouch=null;
  fireHeld=false;v22FireDragging=false;cameraDX=cameraDY=0;
  stick.style.transform='translate(-50%,-50%)';
@@ -1872,11 +1876,11 @@ function v23PointerDown(e){
  else if(cameraAllowedTarget(e.target))role='look';
  if(!role)return;
  // A second finger must never steal an existing joystick or firing channel.
- if((role==='joystick'||role==='fire'||role==='look')&&[...v23Touches.values()].some(t=>t.role===role))return;
+ if((role==='joystick'||role==='fire')&&[...v23Touches.values()].some(t=>t.role===role))return;
  const t={role,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};
  v23Touches.set(e.pointerId,t);
  if(role==='joystick'){stickTouch=e.pointerId;v23Joy(t.x,t.y);}
- else if(role==='look'){lookTouch=e.pointerId;cameraPointers.set(e.pointerId,t);}
+ else if(role==='look'){cameraPointers.set(e.pointerId,t);if(v26LookOwner===null){v26LookOwner=e.pointerId;lookTouch=e.pointerId;}}
  else if(role==='fire'){fireTouch=e.pointerId;fireHeld=true;v22FireDragging=false;v23FireThumb(t);}
  else if(role==='sprint')sprintHeld=!sprintHeld;
  else if(role==='aimBtn')adsHeld=!adsHeld;
@@ -1900,7 +1904,15 @@ function v23PointerMove(e){
   if(t.role==='look'||$('dragFire').checked){
    // Exactly one angular update per pointer delta, with no momentum or residual smoothing.
    const mode=t.role==='fire'?'fire':'free';
-   if(Math.abs(dx)+Math.abs(dy)>.12)aim(dx,dy,mode);
+   if(t.role==='look'){
+    // A resting finger must not block another finger from freely rotating the view.
+    // Only one moving look finger contributes per event, preventing doubled sensitivity.
+    const movement=Math.hypot(dx,dy),now=performance.now();
+    if(movement>.22){
+     if(v26LookOwner===null||v26LookOwner===e.pointerId||now-v26LastLookMove>85){v26LookOwner=e.pointerId;lookTouch=e.pointerId;}
+     if(v26LookOwner===e.pointerId){v26LastLookMove=now;aim(dx,dy,mode);}
+    }
+   }else if(Math.abs(dx)+Math.abs(dy)>.12)aim(dx,dy,mode);
   }
  }
  if(e.cancelable)e.preventDefault();
@@ -1910,7 +1922,7 @@ function v23PointerEnd(e){
  const t=v23Touches.get(e.pointerId);if(!t)return;
  v23Touches.delete(e.pointerId);
  if(t.role==='joystick'){stickTouch=null;joyX=joyY=0;stick.style.transform='translate(-50%,-50%)';}
- else if(t.role==='look'){cameraPointers.delete(e.pointerId);lookTouch=null;}
+ else if(t.role==='look'){cameraPointers.delete(e.pointerId);if(v26LookOwner===e.pointerId){v26LookOwner=null;lookTouch=null;v26LastLookMove=0;}}
  else if(t.role==='fire'){fireTouch=null;fireHeld=false;v22FireDragging=false;$('fire').style.setProperty('--fire-stick-x','0px');$('fire').style.setProperty('--fire-stick-y','0px');}
  v123Feedback();
  if(e.cancelable)e.preventDefault();
@@ -1920,6 +1932,10 @@ document.addEventListener('pointerdown',v23PointerDown,true);
 document.addEventListener('pointermove',v23PointerMove,true);
 document.addEventListener('pointerup',v23PointerEnd,true);
 document.addEventListener('pointercancel',v23PointerEnd,true);
+document.addEventListener('lostpointercapture',v23PointerEnd,true);
+// Prevent browser pinch/zoom/scroll from canceling five- and six-finger gameplay.
+$('controls').style.touchAction='none';
+$('game').style.touchAction='none';
 window.addEventListener('blur',v23Clear);
 
 // V12: individually positioned controls, normalized to the visible play area.
