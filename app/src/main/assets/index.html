@@ -1201,10 +1201,12 @@ function addWorldDetails(){
     tree.position.set(Math.cos(angle)*rad,4,Math.sin(angle)*rad);g.add(tree);
    }
   }else if(poi.name==='COMPLEJO HELIOS'||poi.name==='PUERTO VÓRTEX'){
-   for(let i=0;i<5;i++){const x=(i-2)*7,z=i%2?7:-6;
-    const block=new THREE.Mesh(new THREE.BoxGeometry(5,3+i%3*2,6),metal);
-    block.position.set(x,(3+i%3*2)/2,z);g.add(block);
-    worldObjects.push({x:poi.x+x,z:poi.z+z,r:3.2});
+   // Open metal pylons replace solid block props so players can enter the new interiors.
+   for(let i=0;i<4;i++){
+    const x=i%2===0?-12:12,z=i<2?-10:10;
+    const pylon=new THREE.Mesh(new THREE.CylinderGeometry(.6,.8,7,6),metal);
+    pylon.position.set(x,3.5,z);g.add(pylon);
+    worldObjects.push({x:poi.x+x,z:poi.z+z,r:.85});
    }
   }else if(poi.name==='SANTUARIO DE HIELO'){
    for(let i=0;i<6;i++){const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.8,1.2,9,6),snow);
