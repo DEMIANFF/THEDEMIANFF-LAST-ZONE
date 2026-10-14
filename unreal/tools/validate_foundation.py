@@ -37,4 +37,8 @@ assert "PlayerControllerClass = AAuroraMobileController::StaticClass()" in game_
 assert "DefaultPawnClass = AAuroraCharacter::StaticClass()" in game_mode
 config = (ROOT / "Config" / "DefaultEngine.ini").read_text()
 assert "GlobalDefaultGameMode=/Script/THEDEMIANFF.AuroraGameMode" in config
+# Catch a specific missing include that otherwise fails when compiling on a real UE host.
+generator = (source / "AuroraHeliosGenerator.cpp").read_text()
+assert '#include "Components/SceneComponent.h"' in generator, "Helios generator needs USceneComponent include"
+assert "ClearInstances()" in generator, "Regeneration must clear previous instances"
 print("PASS: Unreal foundation static checks (not an Unreal compilation)")
