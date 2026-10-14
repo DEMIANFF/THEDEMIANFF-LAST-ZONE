@@ -37,6 +37,7 @@ checks = {
     "V24 skin selection updates preview": "if(type==='skin')v24RefreshLobbyCharacter()" in html,
     "V24 render loop": "v24LobbyTick();" in html,
     "V25 terrain anchor stabilization": "v22ShoulderRig.anchorY+=(anchorGoal-v22ShoulderRig.anchorY)" in html,
+    "V26 adaptive FPS resolution": "function v26TunePerformance(fps)" in html and "v26ApplyPixelRatio()" in html,
     "V26 camera controls": 'id="v26CameraDistance"' in html and 'id="v26CameraShoulder"' in html,
     "V26 touch curve": "const shape=d=>" in html and 'id="v26TouchDeadzone"' in html,
     "V26 HUD profiles": "function v26HudPreset(fingers)" in html and "function v26HudSaveProfile()" in html,
