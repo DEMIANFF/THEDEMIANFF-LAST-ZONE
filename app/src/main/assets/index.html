@@ -1104,9 +1104,34 @@ function showCombat(message){
  const el=$('combatFeed');el.textContent=message;el.style.opacity='1';
  clearTimeout(showCombat.timeout);showCombat.timeout=setTimeout(()=>{el.style.opacity='0'},650);
 }
+let v27AuroraRibbons=[],v27AuroraClock=0;
+function v27AuroraTick(dt){
+ if(!scene||!v27AuroraRibbons.length)return;
+ v27AuroraClock+=dt;
+ // Cycle through green, blue and purple every five simulated minutes.
+ const phase=(v27AuroraClock%300)/300;
+ const color=new THREE.Color().setHSL((.43+phase*.31)%1,.8,.58);
+ for(let i=0;i<v27AuroraRibbons.length;i++){
+  const ribbon=v27AuroraRibbons[i];
+  ribbon.material.color.copy(color);
+  ribbon.material.opacity=.17+.13*(.5+.5*Math.sin(v27AuroraClock*.35+i));
+  ribbon.rotation.z=Math.sin(v27AuroraClock*.045+i*.8)*.07;
+ }
+}
 function addWorldDetails(){
  // AURORA ALPHA: glacial biomes replace the previous coastal vegetation.
  const aurora=new THREE.Group();scene.add(aurora);
+ v27AuroraRibbons=[];v27AuroraClock=0;
+ // Lightweight translucent aurora curtains. Unlit, no shadow maps or texture downloads.
+ for(let i=0;i<5;i++){
+  const ribbon=new THREE.Mesh(
+   new THREE.PlaneGeometry(110,18,12,1),
+   new THREE.MeshBasicMaterial({color:'#56e8c9',transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false})
+  );
+  ribbon.position.set((i-2)*31,56+i*3,-90+i*14);
+  ribbon.rotation.y=.18+i*.1;
+  ribbon.renderOrder=2;aurora.add(ribbon);v27AuroraRibbons.push(ribbon);
+ }
  const ice=new THREE.MeshStandardMaterial({color:'#8bd9f1',roughness:.18,metalness:.42,transparent:true,opacity:.76});
  const darkIce=new THREE.MeshStandardMaterial({color:'#344b6b',roughness:.8});
  const glow=new THREE.MeshBasicMaterial({color:'#6df7db',transparent:true,opacity:.74});
@@ -1160,6 +1185,20 @@ function addWorldDetails(){
    for(let i=0;i<8;i++){const cliff=new THREE.Mesh(new THREE.DodecahedronGeometry(2.2+i%3,0),metal);
     cliff.position.set(Math.cos(i*.8)*12,2,Math.sin(i*.8)*9);g.add(cliff);
    }
+  }
+ }
+ // Tactical low-cost cover around the central crater and main industrial approaches.
+ const coverMaterial=new THREE.MeshStandardMaterial({color:'#5a7186',metalness:.38,roughness:.65});
+ for(const [cx,cz] of [[0,0],[-100,-105],[102,74]]){
+  for(let i=0;i<9;i++){
+   const a=i*Math.PI*2/9,rad=cx===0?48:17;
+   const x=cx+Math.cos(a)*rad,z=cz+Math.sin(a)*rad;
+   if(Math.abs(x)>HALF-8||Math.abs(z)>HALF-8||solid(x,z,2.1))continue;
+   const barricade=new THREE.Mesh(new THREE.BoxGeometry(3.2,1.6,.8),coverMaterial);
+   barricade.position.set(x,ground(x,z)+.8,z);
+   barricade.rotation.y=a+Math.PI/2;
+   barricade.castShadow=false;barricade.receiveShadow=true;aurora.add(barricade);
+   worldObjects.push({x,z,r:1.6});
   }
  }
  const rockMat=new THREE.MeshStandardMaterial({color:'#3a5268',roughness:.96,flatShading:true});
@@ -1276,7 +1315,7 @@ function reload(){
 }function damage(amount,fromX,fromZ){let absorbed=Math.min(armor,amount*.55);armor-=absorbed;hp-=amount-absorbed;damageFlash=.25;if(fromX!==undefined&&player)showDmgDir(fromX,fromZ);if(hp<=0){hp=0;finish(false);}updateHud()}function showDmgDir(fx,fz){const ang=Math.atan2(fx-player.position.x,fz-player.position.z);let rel=ang-camYaw;rel=Math.atan2(Math.sin(rel),Math.cos(rel));const el=$('dmgDir');if(!el)return;el.style.transform=`translate(-50%,-50%) rotate(${rel}rad)`;el.style.opacity=.92;clearTimeout(showDmgDir.t);showDmgDir.t=setTimeout(()=>el.style.opacity=0,900);}
 function finish(win){if(gameOver)return;gameOver=true;const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 let moveVX=0,moveVZ=0,v14Recoil=0;
-function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);
+function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
  if(camera){const targetFov=adsHeld?58:68;camera.fov+=(targetFov-camera.fov)*(1-Math.exp(-dt*9));camera.updateProjectionMatrix();}
  time+=dt;shootCooldown=Math.max(0,shootCooldown-dt);if(reloadTimer>0){
  reloadTimer-=dt;
