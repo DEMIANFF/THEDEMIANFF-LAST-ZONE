@@ -60,6 +60,12 @@ jobs:
           import re,struct,json,subprocess,tempfile
           root=Path("app/src/main/assets")
           html=(root/"index.html").read_text(encoding="utf-8")
+          # Evitar que el respaldo vuelva a tapar JUGAR en el lobby.
+          if html.count('id="v29BackupButton"')!=1: raise SystemExit("Debe existir un único botón de respaldo")
+          if 'data-tab="progress"' not in html or 'data-section="progress"' not in html: raise SystemExit("Falta la pestaña PROGRESO en configuración")
+          settings=html.split('<div id="pausePanel"',1)[-1].split('</div>',1)[0]
+          if 'data-tab="progress"' not in settings: raise SystemExit("PROGRESO no está en configuración")
+          if 'document.body.appendChild(btn)' in html: raise SystemExit("Regresión: botón flotante de respaldo fuera de ajustes")
           scripts=re.findall(r"<script\b[^>]*>([\s\S]*?)</script\s*>",html,re.I)
           count=0
           for script in scripts:
