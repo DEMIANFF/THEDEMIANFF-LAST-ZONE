@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 29
-        versionName '29.0-lila-preview'
+        versionCode 30
+        versionName '30.0-progress-preview'
     }
     signingConfigs {
         persistentRelease {
