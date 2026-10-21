@@ -27,18 +27,21 @@ jobs:
           set -euo pipefail
           ASSETS=app/src/main/assets
           mkdir -p "$ASSETS"
-          if grep -q 'src="three.min.js"' "$ASSETS/index.html"; then
+          if grep -q 'src="three.min.js"' "$ASSETS/index.html" && [ ! -s "$ASSETS/three.min.js" ]; then
             curl --fail --location --retry 3 --silent --show-error "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" -o "$ASSETS/three.min.js"
           fi
-          if grep -q 'src="GLTFLoader.js"' "$ASSETS/index.html"; then
+          if grep -q 'src="GLTFLoader.js"' "$ASSETS/index.html" && [ ! -s "$ASSETS/GLTFLoader.js" ]; then
             curl --fail --location --retry 3 --silent --show-error "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" -o "$ASSETS/GLTFLoader.js"
           fi
           test -s "$ASSETS/index.html"
+          test -s "$ASSETS/models/lila-operator.glb" || { echo "::error::Falta models/lila-operator.glb: no generar APK con Lila de respaldo"; exit 1; }
+          echo "Recursos 3D presentes:"
+          ls -lh "$ASSETS/index.html" "$ASSETS/three.min.js" "$ASSETS/GLTFLoader.js" "$ASSETS/models/lila-operator.glb"
           if grep -q 'src="three.min.js"' "$ASSETS/index.html"; then test -s "$ASSETS/three.min.js"; fi
           if grep -q 'src="GLTFLoader.js"' "$ASSETS/index.html"; then test -s "$ASSETS/GLTFLoader.js"; fi
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIANFF-V28-APK-DEBUG
+          name: THEDEMIANFF-V29-LILA-CORREGIDA-APK
           path: app/build/outputs/apk/debug/app-debug.apk
