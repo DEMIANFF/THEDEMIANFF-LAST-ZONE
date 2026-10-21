@@ -75,6 +75,27 @@ jobs:
           PY
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
+      - name: Compilar APK release con firma permanente
+        if: ${{ secrets.THEDEMIANFF_KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.THEDEMIANFF_KEYSTORE_BASE64 }}
+          THEDEMIANFF_KEYSTORE_PASSWORD: ${{ secrets.THEDEMIANFF_KEYSTORE_PASSWORD }}
+          THEDEMIANFF_KEY_ALIAS: ${{ secrets.THEDEMIANFF_KEY_ALIAS }}
+          THEDEMIANFF_KEY_PASSWORD: ${{ secrets.THEDEMIANFF_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$THEDEMIANFF_KEYSTORE_PASSWORD"
+          test -n "$THEDEMIANFF_KEY_ALIAS"
+          test -n "$THEDEMIANFF_KEY_PASSWORD"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/thedemianff-release.jks"
+          export THEDEMIANFF_KEYSTORE_PATH="$RUNNER_TEMP/thedemianff-release.jks"
+          gradle --no-daemon assembleRelease
+          test -s app/build/outputs/apk/release/app-release.apk
+      - uses: actions/upload-artifact@v4
+        if: ${{ secrets.THEDEMIANFF_KEYSTORE_BASE64 != '' }}
+        with:
+          name: THEDEMIANFF-V29-APK-RELEASE-FIRMA-PERMANENTE
+          path: app/build/outputs/apk/release/app-release.apk
       - uses: actions/upload-artifact@v4
         with:
           name: THEDEMIANFF-V29-LILA-CORREGIDA-APK
