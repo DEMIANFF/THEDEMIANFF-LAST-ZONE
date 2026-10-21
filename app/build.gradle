@@ -9,7 +9,25 @@ android {
         versionCode 29
         versionName '29.0-lila-preview'
     }
-    buildTypes { release { minifyEnabled false } }
+    signingConfigs {
+        persistentRelease {
+            def ksPath = System.getenv('THEDEMIANFF_KEYSTORE_PATH')
+            if (ksPath) {
+                storeFile file(ksPath)
+                storePassword System.getenv('THEDEMIANFF_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('THEDEMIANFF_KEY_ALIAS')
+                keyPassword System.getenv('THEDEMIANFF_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv('THEDEMIANFF_KEYSTORE_PATH')) {
+                signingConfig signingConfigs.persistentRelease
+            }
+        }
+    }
 }
 tasks.register('bundleThree') {
     def destination=file('src/main/assets/three.min.js')
