@@ -28,10 +28,10 @@ jobs:
           ASSETS=app/src/main/assets
           mkdir -p "$ASSETS"
           if grep -q 'src="three.min.js"' "$ASSETS/index.html" && [ ! -s "$ASSETS/three.min.js" ]; then
-            curl --fail --location --retry 3 --silent --show-error "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" -o "$ASSETS/three.min.js"
+            curl --fail --location --retry 3 --silent --show-error "https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js" -o "$ASSETS/three.min.js"
           fi
           if grep -q 'src="GLTFLoader.js"' "$ASSETS/index.html" && [ ! -s "$ASSETS/GLTFLoader.js" ]; then
-            curl --fail --location --retry 3 --silent --show-error "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" -o "$ASSETS/GLTFLoader.js"
+            curl --fail --location --retry 3 --silent --show-error "https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js" -o "$ASSETS/GLTFLoader.js"
           fi
           test -s "$ASSETS/index.html"
           test -s "$ASSETS/models/lila-operator.glb" || { echo "::error::Falta models/lila-operator.glb: no generar APK con Lila de respaldo"; exit 1; }
