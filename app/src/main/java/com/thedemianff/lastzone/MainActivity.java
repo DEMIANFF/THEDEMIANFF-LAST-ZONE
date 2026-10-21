@@ -1,6 +1,8 @@
 package com.thedemianff.lastzone;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.webkit.JavascriptInterface;
 import android.os.Bundle;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
@@ -15,6 +17,18 @@ import java.io.ByteArrayInputStream;
 
 public class MainActivity extends Activity {
   private WebView web;
+  public final class BackupBridge {
+    @JavascriptInterface public void shareBackup(String content) {
+      if(content==null || content.length()<10 || content.length()>1000000) return;
+      runOnUiThread(() -> {
+        Intent send=new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_SUBJECT,"THEDEMIANFF - Respaldo de progreso");
+        send.putExtra(Intent.EXTRA_TEXT,content);
+        startActivity(Intent.createChooser(send,"Guardar respaldo fuera del juego"));
+      });
+    }
+  }
   private void immersive() {
     getWindow().getDecorView().setSystemUiVisibility(
       View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
@@ -38,6 +52,7 @@ public class MainActivity extends Activity {
     settings.setJavaScriptCanOpenWindowsAutomatically(false);
     settings.setMediaPlaybackRequiresUserGesture(true);
     web.setWebChromeClient(new WebChromeClient());
+    web.addJavascriptInterface(new BackupBridge(),"THEDEMIANFFBackup");
     web.setWebViewClient(new WebViewClient() {
       @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request) {
         Uri uri=request.getUrl();
