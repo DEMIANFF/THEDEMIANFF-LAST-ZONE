@@ -428,11 +428,17 @@ function v22PrepareLila(){
  v22LilaRequested=true;
  const loader=new THREE.GLTFLoader();
  loader.load(v22LilaAsset,gltf=>{
-  if(!gltf||!gltf.scene)return;
+  if(!gltf||!gltf.scene){v22LilaRequested=false;console.warn('[V29] Modelo GLB sin escena');return;}
+  const names=['leftArm','rightArm','leftLeg','rightLeg'];
+  const missing=names.filter(n=>!gltf.scene.getObjectByName(n));
+  if(missing.length)console.warn('[V29] Articulaciones faltantes en Lila:',missing.join(', '));
+  let meshCount=0;gltf.scene.traverse(o=>{if(o.isMesh)meshCount++;});
+  if(!meshCount){v22LilaRequested=false;console.warn('[V29] Lila sin mallas renderizables');return;}
+  console.info('[V29] Lila cargada:',meshCount,'mallas; articulaciones:',4-missing.length,'/4');
   v22LilaTemplate=gltf.scene;
   if(running&&playerModel&&playerModel.isFemaleOperator)v22ApplyLilaModel(playerModel);
   if(v24Lobby.operator&&v24Lobby.skin===4)v22ApplyLilaModel(v24Lobby.operator);
- },undefined,e=>{console.warn('[V22] Lila GLB unavailable; procedural model retained',e)});
+ },undefined,e=>{v22LilaRequested=false;console.warn('[V29] Lila GLB no disponible; se conserva el personaje de respaldo',e)});
 }
 function v22ApplyLilaModel(character){
  if(!v22LilaTemplate||!character||character.v22Loaded)return;
@@ -1578,6 +1584,8 @@ document.addEventListener('lostpointercapture',v23PointerEnd,true);
 $('controls').style.touchAction='none';
 $('game').style.touchAction='none';
 window.addEventListener('blur',v23Clear);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)v23Clear();});
+window.addEventListener('pagehide',v23Clear);
 
 // V12: individually positioned controls, normalized to the visible play area.
 const hudIds=['stickBase','sprint','jump','fire','heal','reload','aimBtn','switchGun'];
