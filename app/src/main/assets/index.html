@@ -197,8 +197,9 @@
 <div id="v18Panel" class="v18Panel hidden" role="dialog" aria-modal="true" aria-labelledby="v18PanelTitle"><div class="v18PanelHeader"><div><small>THEDEMIANFF · CENTRO DE OPERACIONES</small><h2 id="v18PanelTitle">OPERADOR</h2></div><button id="v18Close" aria-label="Cerrar">✕</button></div><div id="v18PanelBody"></div></div>
 <div class="v18ModePick" id="v18ModePick"><label for="v18Mode">MODO</label><select id="v18Mode"><option value="royale">SUPERVIVENCIA · 20 IA</option><option value="training">ENTRENAMIENTO · 8 IA</option></select></div>
 </div><div id="end" class="hidden" style="z-index:50"><div class="menuCard"><div class="eyebrow" id="endEyebrow">OPERACIÓN FINALIZADA</div><h1 id="endTitle">FIN</h1><p id="endStats"></p><button class="primary" id="again">VOLVER A JUGAR ↻</button> <button class="secondary" id="toMenu">VOLVER AL MENÚ</button></div></div><div id="pausePanel" class="hidden"><div class="menuCard">
-<div class="eyebrow">THEDEMIANFF · CONFIGURACIÓN V18</div><h2>AJUSTES DEL JUEGO</h2>
-<div class="settingsTabs"><button class="secondary active" data-tab="video">GRÁFICOS</button><button class="secondary" data-tab="control">CONTROLES</button><button class="secondary" data-tab="hud">INTERFAZ</button></div>
+<div class="eyebrow">THEDEMIANFF · CONFIGURACIÓN V29</div><h2>AJUSTES DEL JUEGO</h2>
+<div class="settingsTabs"><button class="secondary active" data-tab="video">GRÁFICOS</button><button class="secondary" data-tab="control">CONTROLES</button><button class="secondary" data-tab="hud">INTERFAZ</button><button class="secondary" data-tab="progress">PROGRESO</button></div>
+<div class="settingsSection" data-section="progress"><h3>RESPALDO Y RECUPERACIÓN</h3><p class="muted">Guarda una copia de tus datos antes de cambiar de APK o de firma. Conserva el texto fuera del juego.</p><button type="button" id="v29BackupButton" class="secondary" style="display:block;width:100%;min-height:48px;margin:12px 0;padding:12px;touch-action:manipulation">💾 RESPALDAR / RESTAURAR PROGRESO</button><p class="muted">El respaldo no se envía automáticamente a ningún servidor.</p></div>
 <div class="settingsSection active" data-section="video">
 <label>Calidad gráfica <select id="quality"><option value="1">Alta</option><option value="0.75">Media</option><option value="0.55">Baja</option></select></label>
 <label>Resolución interna <input id="resolution" type="range" min=".45" max="1" step=".05" value=".75"></label>
@@ -1062,10 +1063,8 @@ function v29BackupPanel(){
 }
 function v29OpenBackup(){const panel=v29BackupPanel();panel.style.display='flex';panel.querySelector('#v29Export').click();}
 function v29InstallBackupButton(){
- const menu=document.getElementById('menu')||document.body;
- if(document.getElementById('v29BackupButton'))return;
- const btn=document.createElement('button');btn.id='v29BackupButton';btn.type='button';btn.textContent='💾 RESPALDAR / RESTAURAR PROGRESO';btn.style.cssText='position:fixed;right:12px;bottom:12px;z-index:100001;display:block;margin:0;padding:12px 16px;border-radius:9px;background:#253c58;color:#fff;border:2px solid #8bb6e4;font-weight:bold;font-size:12px;max-width:48vw;cursor:pointer;pointer-events:auto;touch-action:manipulation;box-shadow:0 4px 18px #000b';
- btn.onclick=v29OpenBackup;document.body.appendChild(btn);
+ const btn=document.getElementById('v29BackupButton');
+ if(btn)btn.addEventListener('click',v29OpenBackup);
 }
 v29InstallBackupButton();
 
