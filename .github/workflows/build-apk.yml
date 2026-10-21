@@ -3,7 +3,7 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, v28-html-upgrade]
 
 jobs:
   android:
@@ -22,9 +22,23 @@ jobs:
           gradle-version: '8.10.2'
       - name: Instalar SDK Android 35
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Preparar dependencias 3D para APK offline
+        run: |
+          set -euo pipefail
+          ASSETS=app/src/main/assets
+          mkdir -p "$ASSETS"
+          if grep -q 'src="three.min.js"' "$ASSETS/index.html"; then
+            curl --fail --location --retry 3 --silent --show-error "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" -o "$ASSETS/three.min.js"
+          fi
+          if grep -q 'src="GLTFLoader.js"' "$ASSETS/index.html"; then
+            curl --fail --location --retry 3 --silent --show-error "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" -o "$ASSETS/GLTFLoader.js"
+          fi
+          test -s "$ASSETS/index.html"
+          if grep -q 'src="three.min.js"' "$ASSETS/index.html"; then test -s "$ASSETS/three.min.js"; fi
+          if grep -q 'src="GLTFLoader.js"' "$ASSETS/index.html"; then test -s "$ASSETS/GLTFLoader.js"; fi
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIANFF-V20-APK-DEBUG
+          name: THEDEMIANFF-V28-APK-DEBUG
           path: app/build/outputs/apk/debug/app-debug.apk
