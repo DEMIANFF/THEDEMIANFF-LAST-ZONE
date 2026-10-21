@@ -35,6 +35,17 @@ jobs:
           if grep -q 'src="GLTFLoader.js"' "$ASSETS/index.html" && [ ! -s "$ASSETS/GLTFLoader.js" ]; then
             curl --fail --location --retry 3 --silent --show-error "https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js" -o "$ASSETS/GLTFLoader.js"
           fi
+          # V29: aceptar la subida móvil de Lila en la raíz de assets y normalizar la ruta.
+          mkdir -p "$ASSETS/models"
+          if [ ! -s "$ASSETS/models/lila-operator.glb" ]; then
+            for source in "$ASSETS/operador-lila.glb" "$ASSETS/lila-operator.glb" "$ASSETS/models/operador-lila.glb"; do
+              if [ -s "$source" ]; then
+                cp "$source" "$ASSETS/models/lila-operator.glb"
+                echo "Modelo Lila encontrado en $source; ruta normalizada."
+                break
+              fi
+            done
+          fi
           test -s "$ASSETS/index.html"
           test -s "$ASSETS/models/lila-operator.glb" || { echo "::error::Falta models/lila-operator.glb: no generar APK con Lila de respaldo"; exit 1; }
           echo "Recursos 3D presentes:"
