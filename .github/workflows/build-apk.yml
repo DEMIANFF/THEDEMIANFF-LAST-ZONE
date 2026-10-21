@@ -95,6 +95,17 @@ jobs:
           PY
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
+      - name: Verificar identidad y firma de APK debug
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 3
+          echo "::notice::La APK debug puede tener firma diferente en cada ejecución de GitHub Actions; no desinstalar una instalación existente sin respaldo."
+      - name: Informar estado de firma permanente
+        if: env.HAS_RELEASE_KEY != 'true'
+        run: echo "::warning::No hay keystore de release configurado. La APK debug no garantiza actualizaciones compatibles con la instalación anterior."
       - name: Compilar APK release con firma permanente
         if: env.HAS_RELEASE_KEY == 'true'
         env:
