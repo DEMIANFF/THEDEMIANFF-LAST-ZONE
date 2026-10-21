@@ -1029,6 +1029,46 @@ function v18Refresh(){
  $('v18Level').textContent='NV. '+(1+Math.floor(p.xp/350));
 }
 function v18Save(){try{localStorage.setItem(V18_STORAGE,JSON.stringify(v18Progress))}catch{}v18Refresh()}
+
+function v29ProgressBackup(){
+ const keys=[V18_STORAGE];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&/^thedemianff|^v(?:1[0-9]|2[0-9])_/i.test(k)&&!keys.includes(k))keys.push(k);}}catch{}
+ const values={};for(const key of keys){try{const value=localStorage.getItem(key);if(value!==null)values[key]=value;}catch{}}
+ return JSON.stringify({game:'THEDEMIANFF-LAST-ZONE',format:1,created:new Date().toISOString(),values},null,2);
+}
+function v29BackupPanel(){
+ let panel=document.getElementById('v29BackupPanel');
+ if(panel)return panel;
+ panel=document.createElement('div');panel.id='v29BackupPanel';
+ panel.style.cssText='position:fixed;inset:0;z-index:99999;background:#07101eeF;color:#fff;display:none;align-items:center;justify-content:center;padding:14px;font-family:Arial,sans-serif';
+ panel.innerHTML='<section style="width:min(95vw,620px);max-height:90vh;overflow:auto;background:#152438;border:1px solid #667b9a;border-radius:16px;padding:18px"><h2 style="margin:0 0 8px">RESPALDO DE PROGRESO · V29</h2><p style="font-size:13px;line-height:1.5">Antes de desinstalar o cambiar de firma, copia y guarda este respaldo fuera del juego. Para recuperar tu progreso, pega aquí el texto guardado y pulsa RESTAURAR.</p><textarea id="v29BackupText" spellcheck="false" style="box-sizing:border-box;width:100%;height:35vh;min-height:150px;background:#091321;color:#fff;border:1px solid #6d87a3;padding:10px"></textarea><p id="v29BackupStatus" role="status" style="min-height:20px;font-size:13px"></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="v29Export">GENERAR RESPALDO</button><button type="button" id="v29Select">SELECCIONAR TEXTO</button><button type="button" id="v29Import">RESTAURAR</button><button type="button" id="v29Close">CERRAR</button></div></section>';
+ document.body.appendChild(panel);
+ const field=panel.querySelector('#v29BackupText'),status=panel.querySelector('#v29BackupStatus');
+ panel.querySelector('#v29Export').onclick=()=>{field.value=v29ProgressBackup();field.focus();field.select();status.textContent='Copia el texto y guárdalo en Notas o en un archivo fuera de esta aplicación.';};
+ panel.querySelector('#v29Select').onclick=()=>{field.focus();field.select();status.textContent='Texto seleccionado. Usa Copiar en Android.';};
+ panel.querySelector('#v29Import').onclick=()=>{
+  try{
+   const backup=JSON.parse(field.value);
+   if(!backup||backup.game!=='THEDEMIANFF-LAST-ZONE'||backup.format!==1||!backup.values||typeof backup.values!=='object'||Array.isArray(backup.values))throw Error('Formato de respaldo incorrecto');
+   const entries=Object.entries(backup.values);
+   if(!entries.length||entries.length>80)throw Error('Respaldo vacío o demasiado grande');
+   for(const [k,v] of entries){if(typeof k!=='string'||!/^thedemianff|^v(?:1[0-9]|2[0-9])_/i.test(k)||typeof v!=='string'||v.length>300000)throw Error('Contenido no válido');}
+   if(!confirm('¿Restaurar este respaldo? Se reemplazará el progreso actual y se recargará el juego.'))return;
+   for(const [k,v] of entries)localStorage.setItem(k,v);
+   status.textContent='Respaldo restaurado. Reiniciando...';location.reload();
+  }catch(e){status.textContent='No se pudo restaurar: '+e.message;}
+ };
+ panel.querySelector('#v29Close').onclick=()=>{panel.style.display='none';};
+ return panel;
+}
+function v29OpenBackup(){const panel=v29BackupPanel();panel.style.display='flex';panel.querySelector('#v29Export').click();}
+function v29InstallBackupButton(){
+ const menu=document.getElementById('menu')||document.body;
+ if(document.getElementById('v29BackupButton'))return;
+ const btn=document.createElement('button');btn.id='v29BackupButton';btn.type='button';btn.textContent='💾 RESPALDAR / RESTAURAR PROGRESO';btn.style.cssText='display:block;margin:10px auto;padding:12px;border-radius:9px;background:#253c58;color:#fff;border:1px solid #8bb6e4;font-weight:bold;max-width:95%';
+ btn.onclick=v29OpenBackup;menu.appendChild(btn);
+}
+v29InstallBackupButton();
+
 function v18Esc(text){return String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function v18Open(name){
  const panel=$('v18Panel'),body=$('v18PanelBody');
