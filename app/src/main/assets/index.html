@@ -1104,7 +1104,7 @@ function v24InitLobby(){
   const ring=new THREE.Mesh(new THREE.TorusGeometry(1.55,.025,8,64),new THREE.MeshBasicMaterial({color:0x6ecde9}));
   ring.rotation.x=Math.PI/2;ring.position.y=-.025;l.scene.add(ring);
   l.renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'low-power'});
-  l.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));if('outputColorSpace' in l.renderer && THREE.SRGBColorSpace)l.renderer.outputColorSpace=THREE.SRGBColorSpace;else l.renderer.outputEncoding=THREE.sRGBEncoding;
+  l.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));if('outputColorSpace' in l.renderer && THREE.SRGBColorSpace)if('outputColorSpace' in l.renderer && THREE.SRGBColorSpace){l.renderer.outputColorSpace=THREE.SRGBColorSpace;}else{l.renderer.outputEncoding=THREE.sRGBEncoding;};else l.renderer.outputEncoding=THREE.sRGBEncoding;
   host.appendChild(l.renderer.domElement);
   v24RefreshLobbyCharacter();
  }catch(err){console.warn('[V24] Lobby 3D preview unavailable',err);host.textContent='VISTA 3D NO DISPONIBLE';}
