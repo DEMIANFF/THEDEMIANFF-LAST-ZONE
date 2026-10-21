@@ -8,6 +8,8 @@ on:
 jobs:
   android:
     runs-on: ubuntu-latest
+    env:
+      HAS_RELEASE_KEY: ${{ secrets.THEDEMIANFF_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -76,7 +78,7 @@ jobs:
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - name: Compilar APK release con firma permanente
-        if: ${{ secrets.THEDEMIANFF_KEYSTORE_BASE64 != '' }}
+        if: env.HAS_RELEASE_KEY == 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.THEDEMIANFF_KEYSTORE_BASE64 }}
           THEDEMIANFF_KEYSTORE_PASSWORD: ${{ secrets.THEDEMIANFF_KEYSTORE_PASSWORD }}
@@ -92,7 +94,7 @@ jobs:
           gradle --no-daemon assembleRelease
           test -s app/build/outputs/apk/release/app-release.apk
       - uses: actions/upload-artifact@v4
-        if: ${{ secrets.THEDEMIANFF_KEYSTORE_BASE64 != '' }}
+        if: env.HAS_RELEASE_KEY == 'true'
         with:
           name: THEDEMIANFF-V29-APK-RELEASE-FIRMA-PERMANENTE
           path: app/build/outputs/apk/release/app-release.apk
