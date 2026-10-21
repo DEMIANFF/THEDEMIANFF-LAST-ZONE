@@ -106,6 +106,13 @@ jobs:
       - name: Informar estado de firma permanente
         if: env.HAS_RELEASE_KEY != 'true'
         run: echo "::warning::No hay keystore de release configurado. La APK debug no garantiza actualizaciones compatibles con la instalación anterior."
+      - name: Mostrar identidad y certificado de APK debug
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 3
+          sha256sum "$APK"
       - name: Compilar APK release con firma permanente
         if: env.HAS_RELEASE_KEY == 'true'
         env:
