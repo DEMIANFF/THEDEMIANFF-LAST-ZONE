@@ -1253,7 +1253,7 @@ function cameraAllowedTarget(target){
  return true;
 }
 document.addEventListener('pointerdown',e=>{
- if(v23ControlsEnabled||e.pointerType==='mouse'||!cameraAllowedTarget(e.target))return;
+ if(v23ControlsEnabled||e.pointerType==='mouse'||e.clientX<window.innerWidth*0.5||!cameraAllowedTarget(e.target))return;
  if(cameraPointers.size)return; // one camera finger; other fingers remain independent
  cameraPointers.set(e.pointerId,{x:e.clientX,y:e.clientY,filteredX:0,filteredY:0});
  lookTouch=e.pointerId;
@@ -1514,7 +1514,7 @@ function v23PointerDown(e){
  let role=null;
  if(e.target.closest?.('#stickBase'))role='joystick';
  else if(id&&touchActionIds.has(id))role=id;
- else if(cameraAllowedTarget(e.target))role='look';
+ else if(e.clientX>=window.innerWidth*0.5&&cameraAllowedTarget(e.target))role='look';
  if(!role)return;
  // A second finger must never steal an existing joystick or firing channel.
  if((role==='joystick'||role==='fire')&&[...v23Touches.values()].some(t=>t.role===role))return;
@@ -1542,7 +1542,7 @@ function v23PointerMove(e){
  if(t.role==='joystick')v23Joy(t.x,t.y);
  else if(t.role==='look'||t.role==='fire'){
   if(t.role==='fire'){v23FireThumb(t);v22FireDragging=true;}
-  if(t.role==='look'||$('dragFire').checked){
+  if(t.role==='look'||(t.role==='fire'&&t.startX>=window.innerWidth*0.5&&$('dragFire').checked)){
    // Exactly one angular update per pointer delta, with no momentum or residual smoothing.
    const mode=t.role==='fire'?'fire':'free';
    if(t.role==='look'){
