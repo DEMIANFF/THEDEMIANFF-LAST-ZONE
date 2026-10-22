@@ -1041,7 +1041,7 @@ function v29BackupPanel(){
  if(panel)return panel;
  panel=document.createElement('div');panel.id='v29BackupPanel';
  panel.style.cssText='position:fixed;inset:0;z-index:99999;background:#07101eeF;color:#fff;display:none;align-items:center;justify-content:center;padding:14px;font-family:Arial,sans-serif';
- panel.innerHTML='<section style="width:min(95vw,620px);max-height:90vh;overflow:auto;background:#152438;border:1px solid #667b9a;border-radius:16px;padding:18px"><h2 style="margin:0 0 8px">RESPALDO DE PROGRESO · V30</h2><p style="font-size:13px;line-height:1.5">Antes de desinstalar o cambiar de firma, copia y guarda este respaldo fuera del juego. Para recuperar tu progreso, pega aquí el texto guardado y pulsa RESTAURAR.</p><textarea id="v29BackupText" spellcheck="false" style="box-sizing:border-box;width:100%;height:35vh;min-height:150px;background:#091321;color:#fff;border:1px solid #6d87a3;padding:10px"></textarea><p id="v29BackupStatus" role="status" style="min-height:20px;font-size:13px"></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="v29Export">GENERAR RESPALDO</button><button type="button" id="v29Share">GUARDAR / COMPARTIR</button><button type="button" id="v29Select">SELECCIONAR TEXTO</button><button type="button" id="v29Import">RESTAURAR</button><button type="button" id="v29Close">CERRAR</button></div></section>';
+ panel.innerHTML='<section style="width:min(95vw,620px);max-height:90vh;overflow:auto;background:#152438;border:1px solid #667b9a;border-radius:16px;padding:18px"><h2 style="margin:0 0 8px">RESPALDO DE PROGRESO · V30</h2><p style="font-size:13px;line-height:1.5">Antes de desinstalar o cambiar de firma, copia y guarda este respaldo fuera del juego. Para recuperar tu progreso, pega aquí el texto guardado y pulsa RESTAURAR.</p><textarea id="v29BackupText" spellcheck="false" style="box-sizing:border-box;width:100%;height:35vh;min-height:150px;background:#091321;color:#fff;border:1px solid #6d87a3;padding:10px"></textarea><p id="v29BackupStatus" role="status" style="min-height:20px;font-size:13px"></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="v29Export">GENERAR RESPALDO</button><button type="button" id="v29Share">GUARDAR / COMPARTIR</button><button type="button" id="v29Select">SELECCIONAR TEXTO</button><label style="display:inline-flex;align-items:center;gap:6px;padding:10px;background:#304864;border-radius:8px;cursor:pointer">📂 ELEGIR JSON<input type="file" id="v30BackupFile" accept=".json,application/json,text/plain" style="display:none"></label><button type="button" id="v29Import">RESTAURAR</button><button type="button" id="v29Close">CERRAR</button></div></section>';
  document.body.appendChild(panel);
  const field=panel.querySelector('#v29BackupText'),status=panel.querySelector('#v29BackupStatus');
  panel.querySelector('#v29Export').onclick=()=>{field.value=v29ProgressBackup();field.focus();field.select();status.textContent='Copia el texto y guárdalo en Notas o en un archivo fuera de esta aplicación.';};
@@ -1058,6 +1058,19 @@ function v29BackupPanel(){
   }catch(e){status.textContent='No se pudo preparar el respaldo: '+e.message;}
  };
  panel.querySelector('#v29Select').onclick=()=>{field.focus();field.select();status.textContent='Texto seleccionado. Usa Copiar en Android.';};
+ panel.querySelector('#v30BackupFile').addEventListener('change',async e=>{
+  const file=e.target.files&&e.target.files[0];
+  if(!file)return;
+  try{
+   if(file.size>1000000)throw Error('Archivo demasiado grande');
+   const content=await file.text();
+   const backup=JSON.parse(content);
+   if(backup.game!=='THEDEMIANFF-LAST-ZONE'||backup.format!==1||!backup.values||typeof backup.values!=='object'||Array.isArray(backup.values))throw Error('El JSON no es un respaldo THEDEMIANFF válido');
+   field.value=content;
+   status.textContent='Archivo '+file.name+' cargado. Revisa y pulsa RESTAURAR para confirmar.';
+  }catch(err){status.textContent='No se pudo abrir el respaldo: '+err.message;}
+  e.target.value='';
+ });
  panel.querySelector('#v29Import').onclick=()=>{
   try{
    const backup=JSON.parse(field.value);
