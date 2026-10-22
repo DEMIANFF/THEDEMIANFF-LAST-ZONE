@@ -140,7 +140,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: env.HAS_RELEASE_KEY == 'true'
         with:
-          name: THEDEMIANFF-V31-APK-RELEASE-FIRMA-PERMANENTE
+          name: THEDEMIANFF-V32-APK-RELEASE-FIRMA-PERMANENTE
           path: app/build/outputs/apk/release/app-release.apk
       - name: Aviso de compatibilidad de actualizaciones
         run: |
