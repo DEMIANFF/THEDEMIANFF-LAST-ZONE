@@ -15,12 +15,30 @@ import android.view.View;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import java.io.ByteArrayInputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
   private WebView web;
   private ValueCallback<Uri[]> backupFileCallback;
   private static final int BACKUP_FILE_REQUEST=3021;
+  private static final int BACKUP_SAVE_REQUEST=3022;
+  private String pendingBackupContent;
   public final class BackupBridge {
+    @JavascriptInterface public void saveBackup(String content) {
+      if(content==null || content.length()<10 || content.length()>1000000)return;
+      runOnUiThread(() -> {
+        try {
+          pendingBackupContent=content;
+          Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT);
+          intent.addCategory(Intent.CATEGORY_OPENABLE);
+          intent.setType("application/json");
+          intent.putExtra(Intent.EXTRA_TITLE,"THEDEMIANFF_INVITADO_RESPALDO.json");
+          startActivityForResult(intent,BACKUP_SAVE_REQUEST);
+        }catch(Exception ex){pendingBackupContent=null;}
+      });
+    }
+
     @JavascriptInterface public void shareBackup(String content) {
       if(content==null || content.length()<10 || content.length()>1000000) return;
       runOnUiThread(() -> {
@@ -92,6 +110,15 @@ public class MainActivity extends Activity {
   }
   @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
     super.onActivityResult(requestCode,resultCode,data);
+    if(requestCode==BACKUP_SAVE_REQUEST) {
+      String content=pendingBackupContent;
+      pendingBackupContent=null;
+      if(resultCode==RESULT_OK && data!=null && data.getData()!=null && content!=null) {
+        try(OutputStream out=getContentResolver().openOutputStream(data.getData())) {
+          if(out!=null)out.write(content.getBytes(StandardCharsets.UTF_8));
+        }catch(Exception ex){android.util.Log.e("THEDEMIANFF","No se pudo guardar el respaldo",ex);}
+      }
+    }
     if(requestCode==BACKUP_FILE_REQUEST) {
       ValueCallback<Uri[]> callback=backupFileCallback;
       backupFileCallback=null;
