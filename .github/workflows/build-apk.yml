@@ -142,7 +142,15 @@ jobs:
         with:
           name: THEDEMIANFF-V30-APK-RELEASE-FIRMA-PERMANENTE
           path: app/build/outputs/apk/release/app-release.apk
+      - name: Aviso de compatibilidad de actualizaciones
+        run: |
+          if [ "$HAS_RELEASE_KEY" = "true" ]; then
+            echo "::notice::Usa EXCLUSIVAMENTE app-release.apk para las próximas actualizaciones. Conserva el mismo keystore y aumenta versionCode."
+          else
+            echo "::warning::Solo se ha generado una APK de prueba con firma temporal. No sirve para actualizar instalaciones anteriores; NO desinstales una app con progreso sin exportarlo."
+          fi
       - uses: actions/upload-artifact@v4
+        if: env.HAS_RELEASE_KEY != 'true'
         with:
-          name: THEDEMIANFF-V30-PROGRESO-LILA-APK
+          name: THEDEMIANFF-PRUEBA-NO-ACTUALIZABLE-FIRMA-TEMPORAL
           path: app/build/outputs/apk/debug/app-debug.apk
