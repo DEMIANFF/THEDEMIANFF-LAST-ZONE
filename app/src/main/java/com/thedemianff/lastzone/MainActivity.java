@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.webkit.JavascriptInterface;
 import android.os.Bundle;
 import android.webkit.WebChromeClient;
+import android.webkit.ValueCallback;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebSettings;
@@ -17,6 +18,8 @@ import java.io.ByteArrayInputStream;
 
 public class MainActivity extends Activity {
   private WebView web;
+  private ValueCallback<Uri[]> backupFileCallback;
+  private static final int BACKUP_FILE_REQUEST=3021;
   public final class BackupBridge {
     @JavascriptInterface public void shareBackup(String content) {
       if(content==null || content.length()<10 || content.length()>1000000) return;
@@ -51,7 +54,24 @@ public class MainActivity extends Activity {
     settings.setAllowContentAccess(false);
     settings.setJavaScriptCanOpenWindowsAutomatically(false);
     settings.setMediaPlaybackRequiresUserGesture(true);
-    web.setWebChromeClient(new WebChromeClient());
+    web.setWebChromeClient(new WebChromeClient() {
+      @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+        if(backupFileCallback!=null) backupFileCallback.onReceiveValue(null);
+        backupFileCallback=callback;
+        try {
+          Intent intent=new Intent(Intent.ACTION_GET_CONTENT);
+          intent.addCategory(Intent.CATEGORY_OPENABLE);
+          intent.setType("application/json");
+          intent.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"application/json","text/plain","application/octet-stream"});
+          startActivityForResult(Intent.createChooser(intent,"Seleccionar respaldo THEDEMIANFF"),BACKUP_FILE_REQUEST);
+          return true;
+        } catch(Exception ex) {
+          backupFileCallback=null;
+          callback.onReceiveValue(null);
+          return false;
+        }
+      }
+    });
     web.addJavascriptInterface(new BackupBridge(),"THEDEMIANFFBackup");
     web.setWebViewClient(new WebViewClient() {
       @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request) {
@@ -69,6 +89,17 @@ public class MainActivity extends Activity {
     });
     setContentView(web);
     web.loadUrl("file:///android_asset/index.html");
+  }
+  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
+    super.onActivityResult(requestCode,resultCode,data);
+    if(requestCode==BACKUP_FILE_REQUEST) {
+      ValueCallback<Uri[]> callback=backupFileCallback;
+      backupFileCallback=null;
+      if(callback!=null) {
+        Uri uri=resultCode==RESULT_OK && data!=null?data.getData():null;
+        callback.onReceiveValue(uri!=null?new Uri[]{uri}:null);
+      }
+    }
   }
   @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(focused)immersive();}
   @Override public void onBackPressed(){
