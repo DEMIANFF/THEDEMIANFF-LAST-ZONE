@@ -1171,7 +1171,7 @@ let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Numbe
  if(sprintHeld&&mag<.01&&!fireHeld){mz=1;mag=1;}
  // V34.7: sprint cancels upon firing. Combat movement keeps the joystick live
  // so players can strafe and dodge without the full running pace.
- const spd=crouchHeld?3.0:fireHeld?6.8:sprint?14.5:6.8; // V38.7: walk 6.8, sprint unchanged 14.5.
+ const spd=crouchHeld?3.0:fireHeld?7.4:sprint?14.5:7.4; // V38.8: walk 7.4, sprint unchanged 14.5.
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
@@ -1452,10 +1452,10 @@ function v36StepFlight(dt){
  v362UpdateBotsInAir(dt);flushCamera(dt);
  // V38.3 parachute steering matches the camera-relative grounded joystick.
  // Horizontal travel is intentionally generous; descent slower for accurate landing.
- // V38.7: flight camera faces +Z, so rightward stick input must move toward camera-right (-world X at yaw 0).
- // joyX already incorporates the user's inversion preference in v23Joy; do not apply it twice.
- const flightX=joyX;
- const dx=flightX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=-flightX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
+ // V38.8: parachute-only reversal of BOTH axes based on device test: left/right and forward/back were inverted.
+ // v23Joy has already applied user joystick inversion preferences; avoid applying them twice.
+ const flightX=-joyX,flightY=-joyY;
+ const dx=flightX*Math.cos(camYaw)-flightY*Math.sin(camYaw),dz=-flightX*Math.sin(camYaw)-flightY*Math.cos(camYaw);
  const strength=Math.min(1,Math.hypot(joyX,joyY));
  const glideSpeed=11.8;
  const nx=clamp(player.position.x+dx*glideSpeed*dt,-HALF+9,HALF-9);
