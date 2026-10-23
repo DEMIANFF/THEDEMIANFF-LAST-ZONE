@@ -1101,7 +1101,20 @@ function blocked3D(ax,ay,az,bx,by,bz){
 }
 function blocked(ax,az,bx,bz){return blocked3D(ax,ground(ax,az)+1.5,az,bx,ground(bx,bz)+1.5,bz);}
 
-function shoot(){const w=weapons[weaponIndex];if(shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused)return;if(w.ammo<=0){if(reloadTimer<=0)reload();return;}w.ammo--;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+.65);playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const spread=w.spread*(adsHeld?.34:1)*(sprintHeld?1.25:1);direction.x+=rand(-spread,spread);direction.y+=rand(-spread,spread);direction.z+=rand(-spread,spread);direction.normalize();let target=null,best=w.range,headshot=false;
+// V39.1: bounded, testable spread for ADS and moving-fire precision.
+function v391Spread(base,ads,moving,sprinting){
+ const adsFactor=ads?.38:1;
+ const moveFactor=sprinting?1.48:moving?1.16:1;
+ return Math.max(0,base)*adsFactor*moveFactor;
+}
+window.THEDEMIANFF_COMBAT_TEST=(base,ads,moving,sprinting)=>v391Spread(base,ads,moving,sprinting);
+function shoot(){const w=weapons[weaponIndex];if(shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused)return;if(w.ammo<=0){if(reloadTimer<=0)reload();return;}w.ammo--;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+.65);playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
+const spread=v391Spread(w.spread,adsHeld,moving,sprintHeld);
+const jitterX=rand(-spread,spread),jitterY=rand(-spread,spread);
+// Perturb in camera local screen axes, never world axes; preserves aim under rotation.
+const right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
+const up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);
+direction.addScaledVector(right,jitterX).addScaledVector(up,jitterY).normalize();let target=null,best=w.range,headshot=false;
 for(const b of bots){
  if(!b.alive)continue;
  const center=b.root.position.clone().add(new THREE.Vector3(0,1.55,0));
@@ -2380,7 +2393,7 @@ function v23PointerMove(e){
  t.x=e.clientX;t.y=e.clientY;
  if(t.role==='joystick')v23Joy(t.x,t.y);
  else if(t.role==='look'||t.role==='fire'){
-  if(t.role==='fire'){v23FireThumb(t);v22FireDragging=true;}
+  if(t.role==='fire'){v23FireThumb(t);v22FireDragging=Math.hypot(t.x-t.startX,t.y-t.startY)>3;}
   if(t.role==='look'||(t.role==='fire'&&t.startX>=window.innerWidth*0.5&&$('dragFire').checked)){
    // Exactly one angular update per pointer delta, with no momentum or residual smoothing.
    const mode=t.role==='fire'?'fire':'free';
