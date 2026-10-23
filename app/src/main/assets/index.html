@@ -705,6 +705,33 @@ function v22FemaleOperator(){
  // Tactical leg straps and side utility pouch.
  for(const x of [-.25,.25]){box(.42,.075,.43,black,b,x,.72,.015);box(.42,.075,.43,black,b,x,.59,.015)}
  box(.25,.36,.23,black,b,-.47,.78,.05);
+ // V40 Lila fallback redesign: curved armor, shoulder plating and tactical pack.
+ // GLB model loading still takes precedence; these meshes belong only to the procedural fallback.
+ const armor=new THREE.MeshStandardMaterial({color:'#354b73',roughness:.43,metalness:.27});
+ const seam=new THREE.MeshStandardMaterial({color:'#8bd4e4',roughness:.35,metalness:.35,emissive:'#16424f',emissiveIntensity:.18});
+ const textile=new THREE.MeshStandardMaterial({color:'#34394f',roughness:.91,metalness:.02});
+ const chest=new THREE.Mesh(new THREE.SphereGeometry(.51,14,10),armor);
+ chest.scale.set(1,.58,.37);chest.position.set(0,1.7,.32);b.add(chest);
+ for(const side of [-1,1]){
+  const shoulder=new THREE.Mesh(new THREE.SphereGeometry(.29,12,8),armor);
+  shoulder.scale.set(1.05,.6,1.1);shoulder.position.set(side*.58,1.95,.025);b.add(shoulder);
+  const knee=new THREE.Mesh(new THREE.SphereGeometry(.21,10,8),armor);
+  knee.scale.set(1.1,.75,.7);knee.position.set(side*.25,.58,.27);b.add(knee);
+  const bracer=new THREE.Mesh(new THREE.CylinderGeometry(.185,.155,.42,10),textile);
+  bracer.position.set(side*.64,1.27,.07);b.add(bracer);
+  const buckle=new THREE.Mesh(new THREE.BoxGeometry(.14,.09,.07),seam);
+  buckle.position.set(side*.26,1.44,.52);b.add(buckle);
+ }
+ const backpack=new THREE.Mesh(new THREE.BoxGeometry(.7,.82,.3),textile);
+ backpack.position.set(0,1.49,-.51);b.add(backpack);
+ const packShell=new THREE.Mesh(new THREE.SphereGeometry(.37,12,8),armor);
+ packShell.scale.set(.98,1.15,.46);packShell.position.set(0,1.48,-.69);b.add(packShell);
+ for(const side of [-1,1]){
+  const strap=new THREE.Mesh(new THREE.BoxGeometry(.13,.85,.085),textile);
+  strap.position.set(side*.31,1.55,.38);b.add(strap);
+ }
+ const crest=new THREE.Mesh(new THREE.BoxGeometry(.27,.11,.035),seam);
+ crest.position.set(0,1.94,.53);b.add(crest);
  c.isFemaleOperator=true;v22ApplyLilaModel(c);return c;
 }
 function makeCharacter(color,enemy=false){const root=new THREE.Group(),body=new THREE.Group();root.add(body);const uniform=mat(color),vest=mat(enemy?'#4d3c3b':'#364b55'),skin=mat(enemy?'#b78c72':'#cba180');cyl(.36,.49,1.2,uniform,body,0,1.52,0).scale.z=.74;cyl(.43,.46,.7,vest,body,0,1.58,-.02).scale.z=.74;box(.75,.18,.6,mats.dark,body,0,1.98,0);sphere(.36,skin,body,0,2.43,0,10);box(.77,.2,.76,enemy?mats.red:mats.dark,body,0,2.73,0);cyl(.15,.18,.92,uniform,body,-.64,1.58,0);cyl(.15,.18,.92,uniform,body,.64,1.58,0);const left=cyl(.18,.21,.9,mats.pants,body,-.25,.47,0),right=cyl(.18,.21,.9,mats.pants,body,.25,.47,0);box(.38,.2,.66,mats.dark,body,-.25,.12,.15);box(.38,.2,.66,mats.dark,body,.25,.12,.15);const gun=new THREE.Group();body.add(gun);gun.position.set(.4,1.45,.55);box(.17,.2,1.4,mats.gun,gun,0,0,.4);box(.27,.38,.48,mats.dark,gun,0,-.14,.1);box(.12,.12,.42,mats.gold,gun,0,.16,.1);box(.08,.08,.5,mats.gun,gun,0,0,1.32);const backGun=new THREE.Group();body.add(backGun);
