@@ -1056,14 +1056,15 @@ v22ShoulderRig.height+=(height-v22ShoulderRig.height)*rigEase;
 if(!Number.isFinite(v22ShoulderRig.anchorY))v22ShoulderRig.anchorY=player.position.y;
 const anchorGoal=onGround?ground(player.position.x,player.position.z):player.position.y;
 const v26CameraSmooth=clamp(Number($('cameraSmooth').value)||0,0,.8);
-v22ShoulderRig.anchorY+=(anchorGoal-v22ShoulderRig.anchorY)*(1-Math.exp(-dt*(onGround?3.4:5.5)*(1-.65*v26CameraSmooth)));
+const anchorSpeed=onGround?2.2:4.5;
+v22ShoulderRig.anchorY+=(anchorGoal-v22ShoulderRig.anchorY)*(1-Math.exp(-dt*anchorSpeed*(1-.45*v26CameraSmooth)));
 const target=new THREE.Vector3(player.position.x+Math.cos(camYaw)*v22ShoulderRig.shoulder-Math.sin(camYaw)*v22ShoulderRig.back,v22ShoulderRig.anchorY+v22ShoulderRig.height,player.position.z-Math.sin(camYaw)*v22ShoulderRig.shoulder-Math.cos(camYaw)*v22ShoulderRig.back);
 // The camera must not lag behind rapid swipes or oscillate around the player.
 // Follow horizontal motion immediately; soften terrain-induced vertical oscillation.
 camera.position.x=target.x;
 camera.position.z=target.z;
 // Follow terrain elevation without abrupt downward camera snaps.
-camera.position.y+=(target.y-camera.position.y)*(1-Math.exp(-dt*6*(1-.6*v26CameraSmooth)));
+camera.position.y+=(target.y-camera.position.y)*(1-Math.exp(-dt*4.5*(1-.5*v26CameraSmooth)));
 const aimForward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
 camera.lookAt(camera.position.clone().addScaledVector(aimForward,100));
 // Fire after the camera has been aimed this frame, avoiding one-frame stale shots.
@@ -1194,19 +1195,37 @@ function v36BuildAircraft(){
  g.position.set(-120,95,-32);v36Aircraft=g;scene.add(g);
  camera.position.set(-145,106,-60);camera.lookAt(g.position);
 }
+let v372PlaneTouch=null,v372PlaneX=0,v372PlaneY=0;
+document.addEventListener('pointerdown',e=>{
+ if(window.v36FlightMode!=='aircraft'||!$('v36DropPanel').classList.contains('hidden'))return;
+ if(e.target.closest?.('button,#minimap,#v36DropPanel,#v37FlightHUD,#pausePanel'))return;
+ if(e.pointerType==='mouse'&&e.button!==0)return;
+ if(v372PlaneTouch!==null)return;
+ v372PlaneTouch=e.pointerId;v372PlaneX=e.clientX;v372PlaneY=e.clientY;
+},true);
+document.addEventListener('pointermove',e=>{
+ if(v372PlaneTouch!==e.pointerId||window.v36FlightMode!=='aircraft')return;
+ const dx=clamp(e.clientX-v372PlaneX,-55,55),dy=clamp(e.clientY-v372PlaneY,-55,55);
+ v372PlaneX=e.clientX;v372PlaneY=e.clientY;
+ camYaw-=dx*.004*Number($('sensitivity').value);
+ camPitch=clamp(camPitch+dy*.002*Number($('sensitivity').value),-.65,.85);
+ if(e.cancelable)e.preventDefault();
+},true);
+for(const type of ['pointerup','pointercancel'])document.addEventListener(type,e=>{if(e.pointerId===v372PlaneTouch)v372PlaneTouch=null;},true);
 function v36TickAircraft(dt){
  if(!v36Aircraft)return;
  v36Aircraft.position.x+=dt*8;
  if(v36Aircraft.position.x>140)v36Aircraft.position.x=-130;
- camera.position.set(v36Aircraft.position.x-24,v36Aircraft.position.y+11,v36Aircraft.position.z-25);
- camera.lookAt(v36Aircraft.position);
+ const radius=29,look=v36Aircraft.position;
+ camera.position.set(look.x-Math.sin(camYaw)*radius,look.y+9+Math.sin(camPitch)*17,look.z-Math.cos(camYaw)*radius);
+ camera.lookAt(look.x,look.y+1,look.z);
 }
 function v36Begin(){
  if($('v18Mode').value==='training'){window.v36FlightMode='landed';$('v36MapButton').classList.add('hidden');return;}
  window.v36FlightMode='aircraft';
  v36Destination=v36Safe(player.position.x,player.position.z);
  paused=true;$('controls').classList.add('hidden');
- v36BuildAircraft();player.visible=false;
+ v36BuildAircraft();camYaw=.75;camPitch=.15;v372PlaneTouch=null;player.visible=false;
  $('v36MapButton').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.remove('hidden');
  v36DrawMap('v36DropCanvas');
 }
@@ -1509,6 +1528,8 @@ $('v362Events').querySelectorAll('[data-v362mode]').forEach(button=>button.addEv
 document.querySelectorAll('[data-lobby]').forEach(button=>button.addEventListener('click',()=>{
  if(button.dataset.lobby==='EVENTOS')v362ShowEvents();else v18Open(button.dataset.lobby);
 }));
+const v372EventEntry=document.querySelector('[data-lobby="EVENTOS"]');
+v372EventEntry.addEventListener('pointerup',e=>{if(!running){e.preventDefault();e.stopImmediatePropagation();v362ShowEvents();}},true);
 function v18RecordMatch(win){
  const p=v18Progress;
  p.matches++;p.kills+=kills;p.wins+=win?1:0;p.best=Math.max(p.best,kills);
