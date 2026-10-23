@@ -595,6 +595,7 @@ function v22UpdateHolster(c,activeIndex){
  c.backGun.userData.weaponIndex=alternate;
  c.backGun.scale.setScalar(alternate===4?.87:1);
  c.gun.scale.setScalar(activeIndex===4?1.10:activeIndex===0?1:.92);
+ const accent=c.gun.userData.v38Accent;if(accent&&accent.material&&accent.material.color)accent.material.color.set(['#d6bd7a','#8bd4d6','#e39f67','#93a1bd','#d38dc2'][activeIndex]||'#d6bd7a');
  // Lila has a separate backpack mesh; place the holster slightly farther behind it.
  c.backGun.position.z=c.isFemaleOperator?-.70:-.56;
 }
@@ -652,7 +653,21 @@ function makeCharacter(color,enemy=false){const root=new THREE.Group(),body=new 
  box(.12,.12,.46,mats.gun,backGun,0,0,.81);
  box(.24,.17,.28,mats.dark,backGun,0,0,-.77);
  box(.06,.24,.11,mats.dark,backGun,.03,-.20,.05);
- backGun.visible=false;if(enemy){const m=new THREE.Mesh(new THREE.ConeGeometry(.34,.7,4),new THREE.MeshBasicMaterial({color:'#ff5a4d',depthTest:false,transparent:true,opacity:.95}));m.position.y=3.5;m.rotation.x=Math.PI;m.renderOrder=999;root.add(m);}return{root,body,left,right,gun,backGun,animPhase:0}}// audio context declared below by existing engine
+ // V38 attachments: optic, rails, magazine and weapon identity accent.
+const weaponTrim=mat(enemy?'#7791a1':'#cfab70',.42,.63);
+box(.11,.06,.72,weaponTrim,gun,0,.16,.52);
+box(.2,.13,.3,mats.dark,gun,0,.26,.35);
+box(.07,.08,.1,weaponTrim,gun,0,.33,.44);
+box(.25,.09,.25,mats.dark,gun,0,-.18,-.42);
+box(.25,.42,.25,mats.dark,gun,0,-.34,.10);
+box(.055,.11,.16,weaponTrim,gun,.14,.035,.06);
+const muzzle=cyl(.10,.10,.23,mats.gun,gun,0,.0,1.59);muzzle.rotation.x=Math.PI/2;
+const weaponEmblem=box(.15,.09,.035,weaponTrim,gun,.095,.025,.65);
+gun.userData.v38Accent=weaponEmblem;
+box(.44,.09,.11,mats.gold,body,0,1.96,.36);
+box(.20,.24,.07,mats.dark,body,-.34,1.58,.39);
+box(.20,.24,.07,mats.dark,body,.34,1.58,.39);
+backGun.visible=false;if(enemy){const m=new THREE.Mesh(new THREE.ConeGeometry(.34,.7,4),new THREE.MeshBasicMaterial({color:'#ff5a4d',depthTest:false,transparent:true,opacity:.95}));m.position.y=3.5;m.rotation.x=Math.PI;m.renderOrder=999;root.add(m);}return{root,body,left,right,gun,backGun,animPhase:0}}// audio context declared below by existing engine
 let audioContext=null;
 let audioMaster=null,audioReady=false;
 let ambientBus=null,windSource=null,windFilter=null,windGain=null;
