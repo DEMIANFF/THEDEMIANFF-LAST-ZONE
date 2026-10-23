@@ -240,7 +240,11 @@
 #v36DropPanel{background:#041827e8!important;z-index:88!important}
 #v36DropPanel.hidden{display:none!important}
 #v36DropPanel .v36Plane{display:none}
-.settingsSection[data-section=control] label.v37Advanced{display:none!important}
+.settingsSection[data-section=control] label.v37Advanced{display:flex!important}
+.settingsSection[data-section=control] label:has(#verticalSensitivity){display:none!important}
+#v37AdvancedControl{margin:8px 0;padding:7px;border:1px solid #4e859c77;border-radius:10px;background:#0d293d77}
+#v37AdvancedControl summary{font-size:12px;padding:8px;cursor:pointer;color:#e3c48c;font-weight:800}
+#v37AdvancedControl:not([open])>*:not(summary){display:none!important}
 .settingsSection[data-section=control] .v37Primary{border:1px solid #65a4bb88;border-radius:8px;padding:9px;margin:9px 0;background:#14334955}
 @media(max-width:650px){.v17Launch{width:45%!important}.v17Mode{padding:7px!important}}
 </style></head><body><div id="game"></div><div id="ui"><button id="v36MapButton" class="hidden" type="button">▧ MAPA</button>
@@ -1728,6 +1732,14 @@ window.addEventListener('blur',()=>{resetCameraPointers();fireHeld=false;fireTou
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused)pause()});
 
 // V4 user preferences, persistent controls, performance telemetry
+// Three headline sensitivities; other preferences stay available in a collapsed expert section.
+(function v37OrganizeControlSettings(){
+ const section=document.querySelector('.settingsSection[data-section="control"]');if(!section)return;
+ const details=document.createElement('details');details.id='v37AdvancedControl';
+ const summary=document.createElement('summary');summary.textContent='OTROS CONTROLES · AJUSTES AVANZADOS';details.append(summary);
+ for(const node of [...section.children])if(!node.classList.contains('v37Primary'))details.append(node);
+ section.append(details);
+})();
 const PREF_KEY='thedemianff-lastzone-v7';
 const CAMERA_TUNING_KEY='thedemianff-v131-camera-migration';
 const prefIds=['quality','resolution','showFps','soundEffects','ambientSound','dynamicWeather','weatherIntensity','masterVolume','ambientVolume','shadows','combatFx','sensitivity','verticalSensitivity','invertY','aimAssist','autoFire','alwaysSprint','vibration','joystickSize','buttonSize','hudOpacity','leftHanded','edgeSpacing','invertStickX','invertStickY','deadzone','cameraSmooth','cameraSpeed','joystickCurve','moveAcceleration','moveSmooth','batterySaver','dragFire','fireSensitivity','fireStability','adsSensitivity','autoSprintStick','sprintThreshold'];
