@@ -891,7 +891,7 @@ for(const b of bots){
  const closest=start.clone().addScaledVector(direction,dist);
  const error=closest.distanceTo(center);
  const radius=$('aimAssist').checked?.98:.75;
- if(error<radius&&!blocked(player.position.x,player.position.z,b.x,b.z)){
+ if(error<radius&&!blocked3D(start.x,start.y,start.z,closest.x,closest.y,closest.z)){
   best=dist;target=b;
   headshot=closest.distanceTo(b.root.position.clone().add(new THREE.Vector3(0,2.45,0)))<.40;
  }
@@ -1017,7 +1017,7 @@ playerModel.gun.position.y=1.45-v14Recoil*.045;
 $('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':fireHeld?'◉ MIRA DE COMBATE':'⊕ MIRA LIBRE';
 zoneTick+=dt;if($('v18Mode').value!=='training'&&zoneTick>45){zoneTick=0;zonePhase++;zoneCenter.x=clamp(zoneCenter.x+rand(-12,12),-40,40);zoneCenter.y=clamp(zoneCenter.y+rand(-12,12),-40,40);toast('⚠ LA ZONA SE ESTÁ CERRANDO');v9Event('⚠ NUEVA ZONA DE COMBATE')}const targetRadius=$('v18Mode').value==='training'?225:Math.max(13,225*Math.pow(.75,zonePhase+clamp(zoneTick/45,0,1)));zoneRadius+=(targetRadius-zoneRadius)*Math.min(1,dt*1.8);zoneRing.position.set(zoneCenter.x,ground(zoneCenter.x,zoneCenter.y)+.25,zoneCenter.y);zoneRing.scale.set(zoneRadius,zoneRadius,zoneRadius);if(Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y)>zoneRadius){damageFlash=Math.max(damageFlash,.05);hp-=dt*(2.5+zonePhase*.9);if(hp<=0){hp=0;finish(false);}}
 for(const b of bots){if(!b.alive)continue;const px=player.position.x-b.x,pz=player.position.z-b.z,d=Math.hypot(px,pz);
-const visible=d<58&&!blocked(b.x,b.z,player.position.x,player.position.z);
+const visible=d<58&&!blocked3D(b.x,ground(b.x,b.z)+1.55,b.z,player.position.x,ground(player.position.x,player.position.z)+(crouchHeld?.95:1.55),player.position.z);
 b.think-=dt;b.shoot-=dt;b.lastHit=Math.max(0,b.lastHit-dt);
 b.alert=clamp(b.alert+(visible?dt*2:-dt*.45),0,1);
 b.shotPose=Math.max(0,b.shotPose-dt*4);
