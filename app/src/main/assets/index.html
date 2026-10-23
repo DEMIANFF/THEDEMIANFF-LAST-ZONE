@@ -328,8 +328,8 @@ function v22BuildPlaza(){
  }
 }
 v22BuildPlaza();
-for(let i=0;i<62;i++){let x=rand(-HALF+12,HALF-12),z=rand(-HALF+12,HALF-12);if(Math.hypot(x,z)<16)continue;let scale=rand(.7,1.5);let g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%4===0){box(7*scale,3.8*scale,5.7*scale,mats.wall,g,0,1.9*scale,0);box(7.8*scale,.6*scale,6.4*scale,mats.roof,g,0,4.1*scale,0);box(1.3*scale,2.5*scale,.1,mats.dark,g,0,1.25*scale,2.9*scale);box(1.5*scale,1.2*scale,.12,mats.glass,g,2*scale,2.3*scale,2.9*scale);worldObjects.push({x,z,r:4.4*scale});}else if(i%4===1){box(5*scale,2.5*scale,3*scale,mats.wood,g,0,1.25*scale,0);box(5.5*scale,.3*scale,3.5*scale,mats.roof,g,0,2.65*scale,0);worldObjects.push({x,z,r:3.2*scale});}else{box(3.3*scale,1.5*scale,2.1*scale,mats.dark,g,0,.75*scale,0);box(3.5*scale,.15*scale,2.3*scale,mats.gold,g,0,1.55*scale,0);worldObjects.push({x,z,r:2.4*scale});}}
-for(let i=0;i<175;i++){let x=rand(-HALF+8,HALF-8),z=rand(-HALF+8,HALF-8);if(Math.hypot(x,z)<14||solid(x,z,3))continue;const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%7===0){sphere(rand(1.2,2.3),mats.rock,g,0,1,0);worldObjects.push({x,z,r:1.6,h:1.6});}else{let sc=rand(.75,1.5);cyl(.28*sc,.4*sc,3.2*sc,mats.trunk,g,0,1.6*sc,0);sphere(1.65*sc,i%3?mats.leaf:mats.leaf2,g,0,3.9*sc,0,7);sphere(1.2*sc,mats.leaf,g,.6*sc,3.1*sc,.35*sc,7);worldObjects.push({x,z,r:.7*sc});}}
+for(let i=0;i<62;i++){let x=rand(-HALF+12,HALF-12),z=rand(-HALF+12,HALF-12);if(Math.hypot(x,z)<16)continue;let scale=rand(.7,1.5);let g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%4===0){box(7*scale,3.8*scale,5.7*scale,mats.wall,g,0,1.9*scale,0);box(7.8*scale,.6*scale,6.4*scale,mats.roof,g,0,4.1*scale,0);box(1.3*scale,2.5*scale,.1,mats.dark,g,0,1.25*scale,2.9*scale);box(1.5*scale,1.2*scale,.12,mats.glass,g,2*scale,2.3*scale,2.9*scale);worldObjects.push({x,z,r:4.4*scale,h:4.4*scale});}else if(i%4===1){box(5*scale,2.5*scale,3*scale,mats.wood,g,0,1.25*scale,0);box(5.5*scale,.3*scale,3.5*scale,mats.roof,g,0,2.65*scale,0);worldObjects.push({x,z,r:3.2*scale,h:2.8*scale});}else{box(3.3*scale,1.5*scale,2.1*scale,mats.dark,g,0,.75*scale,0);box(3.5*scale,.15*scale,2.3*scale,mats.gold,g,0,1.55*scale,0);worldObjects.push({x,z,r:2.4*scale,h:1.7*scale});}}
+for(let i=0;i<175;i++){let x=rand(-HALF+8,HALF-8),z=rand(-HALF+8,HALF-8);if(Math.hypot(x,z)<14||solid(x,z,3))continue;const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%7===0){sphere(rand(1.2,2.3),mats.rock,g,0,1,0);worldObjects.push({x,z,r:1.6,h:1.6});}else{let sc=rand(.75,1.5);cyl(.28*sc,.4*sc,3.2*sc,mats.trunk,g,0,1.6*sc,0);sphere(1.65*sc,i%3?mats.leaf:mats.leaf2,g,0,3.9*sc,0,7);sphere(1.2*sc,mats.leaf,g,.6*sc,3.1*sc,.35*sc,7);worldObjects.push({x,z,r:.7*sc,h:5.2*sc});}}
 // V17: Puerto Aurora, compact coastal village inspired by supplied reference (original geometry).
 const v17Stucco=new THREE.MeshStandardMaterial({color:'#e4d8c4',roughness:.96});
 const v17White=new THREE.MeshStandardMaterial({color:'#f2eee2',roughness:.92});
@@ -402,7 +402,7 @@ for(let k=0;k<6;k++){
   box(.18,2.6,.18,mats.wood,stand,sx,1.3,sz);
  box(6,.23,4.8,k%2?mats.blue:mats.roof,stand,0,2.75,0);
  box(2.4,.9,1.1,mats.wood,stand,0,.5,-1.1);
- worldObjects.push({x,z:z-1.1,r:1.05});
+ worldObjects.push({x,z:z-1.1,r:1.05,h:1.05});
 }
 // Open garage-style interiors: roof and four posts, walk-through centers.
 for(let k=0;k<4;k++){
