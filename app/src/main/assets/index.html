@@ -1556,7 +1556,8 @@ function v397DetailAurora(){
    item.setMatrixAt(i,motifMatrix);
   }
   item.instanceMatrix.needsUpdate=true;
-  item.computeBoundingSphere();scene.add(item);motifMeshes.push(item);
+  if(typeof item.computeBoundingSphere==='function')item.computeBoundingSphere();
+  scene.add(item);motifMeshes.push(item);
  }
  window.v40DistrictMotifs=motifCounts.reduce((a,b)=>a+b,0);
  window.v40DistrictMotifTypes=motifMeshes.length;
