@@ -1077,12 +1077,46 @@ function v396ExpandAurora(){
  const accent=new THREE.MeshStandardMaterial({color:'#5ce6d2',emissive:'#127a76',emissiveIntensity:.45,roughness:.4});
  const roof=new THREE.MeshStandardMaterial({color:'#273e56',metalness:.42,roughness:.62});
  const districts=[{x:-83,z:-72,name:'HELIOS'},{x:87,z:66,name:'VÓRTEX'},{x:80,z:-91,name:'CRISTAL'},{x:-95,z:79,name:'ECOS'}];
+ // V40 texture pass: deterministic 128px offline maps shared across buildings.
+ // CanvasTexture avoids network dependencies and preserves the offline APK.
+ function v40Texture(kind){
+  const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
+  const ctx=canvas.getContext('2d');
+  if(!ctx)return null;
+  const base=kind==='metal'?'#657f8c':kind==='concrete'?'#b7c7cf':'#dce9ee';
+  ctx.fillStyle=base;ctx.fillRect(0,0,128,128);
+  let seed=kind==='metal'?73:kind==='concrete'?191:337;
+  function random(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
+  for(let i=0;i<1750;i++){
+   const x=random()*128,y=random()*128,r=.25+random()*2;
+   const v=Math.floor(random()*55);
+   ctx.fillStyle='rgba('+v+','+(v+9)+','+(v+15)+','+(kind==='snow'?.055:.12)+')';
+   ctx.fillRect(x,y,r,r);
+  }
+  if(kind==='metal'){
+   ctx.strokeStyle='rgba(12,30,43,.25)';ctx.lineWidth=1;
+   for(let y=4;y<128;y+=12){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(128,y);ctx.stroke();}
+   ctx.fillStyle='rgba(220,235,242,.38)';
+   for(let x=8;x<128;x+=28)for(let y=9;y<128;y+=24){ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill();}
+  }else if(kind==='concrete'){
+   ctx.strokeStyle='rgba(35,57,67,.12)';
+   for(let y=0;y<128;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(128,y);ctx.stroke();}
+  }else{
+   for(let i=0;i<65;i++){const x=random()*128,y=random()*128;ctx.fillStyle='rgba(255,255,255,.26)';ctx.fillRect(x,y,random()*9+2,1);}
+  }
+  const tex=new THREE.CanvasTexture(canvas);
+  tex.wrapS=THREE.RepeatWrapping;tex.wrapT=THREE.RepeatWrapping;
+  tex.colorSpace=THREE.SRGBColorSpace;
+  tex.anisotropy=2;
+  return tex;
+ }
+ const v40MetalMap=v40Texture('metal'),v40ConcreteMap=v40Texture('concrete'),v40SnowMap=v40Texture('snow');
  // V40: shared physically based facade palette; geometry is decorative and does not change colliders.
- const v40Concrete=new THREE.MeshStandardMaterial({color:'#8da6b2',roughness:.91,metalness:.04});
- const v40Frame=new THREE.MeshStandardMaterial({color:'#263c4b',roughness:.47,metalness:.68});
+ const v40Concrete=new THREE.MeshStandardMaterial({color:'#a9bac5',map:v40ConcreteMap,roughness:.91,metalness:.04});
+ const v40Frame=new THREE.MeshStandardMaterial({color:'#5c7b8c',map:v40MetalMap,roughness:.47,metalness:.68});
  const v40Glass=new THREE.MeshStandardMaterial({color:'#3d879b',roughness:.14,metalness:.54,emissive:'#0b2a38',emissiveIntensity:.18});
  const v40Door=new THREE.MeshStandardMaterial({color:'#31434d',roughness:.64,metalness:.42});
- const v40Snow=new THREE.MeshStandardMaterial({color:'#e1eef3',roughness:.96,metalness:0});
+ const v40Snow=new THREE.MeshStandardMaterial({color:'#ffffff',map:v40SnowMap,roughness:.96,metalness:0});
  const v40Warm=new THREE.MeshStandardMaterial({color:'#d6bd83',emissive:'#68562c',emissiveIntensity:.34,roughness:.55});
  let v40FacadePieces=0;
  function v40Panel(parent,w,h,d,m,x,y,z){
@@ -1179,9 +1213,10 @@ function v396ExpandAurora(){
  }
  window.v396StructuresPlaced=placed;
  window.v40FacadePieces=v40FacadePieces;
+ window.v40TextureCount=[v40MetalMap,v40ConcreteMap,v40SnowMap].filter(Boolean).length;
 }
 window.THEDEMIANFF_AURORA_TEST=()=>({structures:window.v396StructuresPlaced||0,colliders:worldObjects.length});
-window.THEDEMIANFF_V40_TEST=()=>({facadePieces:window.v40FacadePieces||0,structures:window.v396StructuresPlaced||0});
+window.THEDEMIANFF_V40_TEST=()=>({facadePieces:window.v40FacadePieces||0,textures:window.v40TextureCount||0,structures:window.v396StructuresPlaced||0});
 // V39.7: architectural trim and icy ground patches are purely decorative.
 // Existing V39.6 collision footprints and AI cover locations remain unchanged.
 function v397DetailAurora(){
