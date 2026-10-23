@@ -1901,28 +1901,43 @@ for(const id of ['v26CameraDistance','v26CameraShoulder','v26TouchDeadzone','v26
 const fireCameraFilter={x:0,y:0};
 let v22FireDragging=false;
 function resetFireCamera(){fireCameraFilter.x=0;fireCameraFilter.y=0;}
+// V38.2: same linear, memoryless touch response in FREE and ADS.
+// No velocity filtering, no ADS zoom jump, and a single camera owner.
+function v382AimDelta(dx,dy,context){
+ const finite=n=>Number.isFinite(n)?n:0;
+ const x=clamp(finite(dx),-55,55),y=clamp(finite(dy),-55,55);
+ const general=clamp(finite(context.general)||1,.2,3);
+ const ads=clamp(finite(context.ads)||1,.2,3);
+ const fire=clamp(finite(context.fire)||1,.2,3);
+ const speed=clamp(finite(context.speed)||1,.2,2.4);
+ const ratio=context.isADS?ads:1;
+ const modifier=context.mode==='fire'?fire:1;
+ // Subpixel sensor jitter is suppressed without a multi-pixel dead-zone.
+ const clean=v=>Math.abs(v)<.08?0:v;
+ return {x:clean(x)*general*ratio*modifier*speed,y:clean(y)*general*ratio*modifier*speed};
+}
 function aim(dx,dy,mode='free'){
- const speed=Number($('cameraSpeed').value);
- let mult=mode==='fire'?Number($('fireSensitivity').value):1;
- // V34.4: ADS uses the same touch response as the stable free-look camera.
- const deadzone=Number($('v26TouchDeadzone').value),curve=Number($('v26TouchCurve').value);
- const shape=d=>{const v=Math.abs(clamp(d,-45,45));if(v<=deadzone)return 0;return Math.sign(d)*45*Math.pow((v-deadzone)/(45-deadzone),curve);};
- const x=shape(dx)*speed*mult,y=shape(dy)*speed*mult;
- if(mobile){cameraDX+=x;cameraDY+=y;}
- else applyAim(x,y);
+ const delta=v382AimDelta(dx,dy,{
+  general:Number($('sensitivity').value),
+  ads:Number($('adsSensitivity').value),
+  fire:Number($('fireSensitivity').value),
+  speed:Number($('cameraSpeed').value),
+  isADS:adsHeld,mode
+ });
+ if(mobile){cameraDX+=delta.x;cameraDY+=delta.y;}
+ else applyAim(delta.x,delta.y);
 }
 function aimFromFire(dx,dy){
- const stability=Number($('fireStability').value);
- const response=1-stability*.45;
- fireCameraFilter.x+=(clamp(dx,-45,45)-fireCameraFilter.x)*response;
- fireCameraFilter.y+=(clamp(dy,-45,45)-fireCameraFilter.y)*response;
- if(Math.abs(fireCameraFilter.x)+Math.abs(fireCameraFilter.y)>.35)aim(fireCameraFilter.x,fireCameraFilter.y,'fire');
+ // No recursive low-pass memory or trailing movement after thumb release.
+ if(Math.abs(dx)+Math.abs(dy)>.12)aim(dx,dy,'fire');
 }
 function applyAim(dx,dy){
- // V21 reference orientation: right swipe decreases yaw, matching the camera's screen-right vector.
- camYaw-=dx*.003*Number($('sensitivity').value);
- camPitch=clamp(camPitch+dy*.00155*Number($('sensitivity').value)*($('invertY').checked?-1:1),-.85,1.18);
+ // Both modes use one stable orientation. Sensitivities are applied exactly once.
+ camYaw-=dx*.003;
+ camPitch=clamp(camPitch+dy*.00155*($('invertY').checked?-1:1),-.85,1.18);
 }
+// Regression hook exposes only numerical camera transform tests, no game state.
+window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>v382AimDelta(dx,dy,{general:1.25,ads:.85,fire:1.1,speed:1,isADS:ads,mode:fire?'fire':'free'});
 function aimAssistPull(dt){
  if(!running||paused||!player||adsHeld)return;
  if(!$('aimAssist').checked)return;
