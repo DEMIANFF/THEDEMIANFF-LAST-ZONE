@@ -774,7 +774,26 @@ function addWorldDetails(){
    worldObjects.push({x,z,r:1.6});
   }
  }
- // Two accessible tactical interiors; preserve the legacy map while migrating it.
+ // V36: original frosted pine forest instanced in two GPU draws for mobile performance.
+  const count=64;
+  const trunks=new THREE.InstancedMesh(new THREE.CylinderGeometry(.14,.23,2.6,5),new THREE.MeshStandardMaterial({color:'#46616a',roughness:1}),count);
+  const crowns=new THREE.InstancedMesh(new THREE.ConeGeometry(1.65,5.6,6),new THREE.MeshStandardMaterial({color:'#75b5b9',roughness:.95,flatShading:true}),count);
+  const obj=new THREE.Object3D();
+  let planted=0;
+  for(let k=0;k<200&&planted<count;k++){
+   const a=k*2.3999632,rad=106+(k*41)%52,x=Math.cos(a)*rad,z=Math.sin(a)*rad;
+   if(Math.abs(x)>HALF-10||Math.abs(z)>HALF-10||solid(x,z,2.5))continue;
+   if(auroraPoi.some(p=>Math.hypot(p.x-x,p.z-z)<19))continue;
+   const ht=.9+(k%4)*.14;
+   obj.position.set(x,ground(x,z)+1.2*ht,z);obj.scale.set(ht,ht,ht);obj.updateMatrix();trunks.setMatrixAt(planted,obj.matrix);
+   obj.position.y=ground(x,z)+3.5*ht;obj.updateMatrix();crowns.setMatrixAt(planted,obj.matrix);
+   worldObjects.push({x,z,r:.7});planted++;
+  }
+  trunks.count=planted;crowns.count=planted;
+  trunks.instanceMatrix.needsUpdate=true;crowns.instanceMatrix.needsUpdate=true;
+  trunks.castShadow=false;crowns.castShadow=false;
+  aurora.add(trunks,crowns);
+  // Two accessible tactical interiors; preserve the legacy map while migrating it.
  v27BuildInterior(-100,-105,'helios');
  v27BuildInterior(102,74,'vortex');
  const rockMat=new THREE.MeshStandardMaterial({color:'#3a5268',roughness:.96,flatShading:true});
