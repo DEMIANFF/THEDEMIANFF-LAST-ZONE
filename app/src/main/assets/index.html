@@ -398,7 +398,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 <label class="v37Primary">SENSIBILIDAD DE DISPARO <input id="fireSensitivity" type="range" min=".35" max="2.5" step=".05" value="1.10"></label>
 <label class="v37Advanced">Estabilidad al arrastrar DISPARO <input id="fireStability" type="range" min="0" max=".85" step=".05" value=".30"></label>
 <label class="v37Primary">SENSIBILIDAD CON LAS MIRAS · ADS <input id="adsSensitivity" type="range" min=".55" max="2.2" step=".05" value=".90"></label>
-<label>Correr al llevar joystick al máximo <input id="autoSprintStick" type="checkbox" checked></label>
+<label>Correr al llevar joystick al máximo <input id="autoSprintStick" type="checkbox" disabled></label>
 <label class="v37Advanced">Umbral para correr <input id="sprintThreshold" type="range" min=".65" max="1" step=".05" value=".9"></label>
 <label>Correr siempre <input id="alwaysSprint" type="checkbox"></label>
 <label>Vibración <input id="vibration" type="checkbox" checked></label>
@@ -1169,13 +1169,14 @@ function update(dt){if(window.v36FlightMode==='descending'){if($('pausePanel').c
   }
  }
 }// Automatic fire is evaluated after the current-frame camera orientation is applied.
-let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value));
+let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}// Sprint is explicit: joystick magnitude alone never triggers running.
+const sprint=Boolean(keys.ShiftLeft||keys.ShiftRight||sprintHeld);
 // Sprint is an independent toggle, but only translates the character while a movement input exists.
 // Tapping SPRINT starts forward auto-run immediately; joystick input takes priority.
  if(sprintHeld&&mag<.01&&!fireHeld){mz=1;mag=1;}
  // V34.7: sprint cancels upon firing. Combat movement keeps the joystick live
  // so players can strafe and dodge without the full running pace.
- const spd=crouchHeld?3.0:fireHeld?6.1:sprint?14.5:6.1;
+ const spd=crouchHeld?3.0:sprint&&!fireHeld?12.0:fireHeld?5.4:5.2;
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
@@ -1459,9 +1460,14 @@ function v36StepFlight(dt){
  // Parachute steering is independent of ground obstacles; aerial structures
  // must never lock the joystick. Normalize diagonals and retain full control.
  const axisLength=Math.max(1,Math.hypot(joyX,joyY));
- const axisX=joyX/axisLength,axisY=joyY/axisLength;
+ // Match the on-screen stick's left/right direction while gliding.
+ const axisX=-joyX/axisLength,axisY=joyY/axisLength;
  const dx=-axisX*Math.cos(camYaw)-axisY*Math.sin(camYaw);
  const dz=axisX*Math.sin(camYaw)-axisY*Math.cos(camYaw);
+ if(Math.hypot(dx,dz)>.025){
+  const facing=Math.atan2(dx,dz);
+  player.rotation.y+=Math.atan2(Math.sin(facing-player.rotation.y),Math.cos(facing-player.rotation.y))*(1-Math.exp(-dt*9));
+ }
  const steering=20;
  player.position.x=clamp(player.position.x+dx*steering*dt,-HALF+9,HALF-9);
  player.position.z=clamp(player.position.z+dz*steering*dt,-HALF+9,HALF-9);
@@ -2088,7 +2094,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!
 const PREF_KEY='thedemianff-lastzone-v7';
 const CAMERA_TUNING_KEY='thedemianff-v131-camera-migration';
 const prefIds=['quality','resolution','showFps','soundEffects','ambientSound','dynamicWeather','weatherIntensity','masterVolume','ambientVolume','shadows','combatFx','sensitivity','verticalSensitivity','invertY','aimAssist','autoFire','alwaysSprint','vibration','joystickSize','buttonSize','hudOpacity','leftHanded','edgeSpacing','invertStickX','invertStickY','deadzone','cameraSmooth','cameraSpeed','joystickCurve','moveAcceleration','moveSmooth','batterySaver','dragFire','fireSensitivity','fireStability','adsSensitivity','autoSprintStick','sprintThreshold'];
-const defaults={quality:'1',resolution:'1',showFps:false,soundEffects:true,ambientSound:true,dynamicWeather:true,weatherIntensity:'.5',masterVolume:'.70',ambientVolume:'.38',shadows:true,combatFx:true,batterySaver:false,sensitivity:'1.25',verticalSensitivity:'1.2',invertY:false,aimAssist:true,autoFire:false,alwaysSprint:false,vibration:true,joystickSize:'110',buttonSize:'49',hudOpacity:'.9',leftHanded:false,edgeSpacing:'20',invertStickX:false,invertStickY:false,deadzone:'.08',cameraSmooth:'.16',cameraSpeed:'1',joystickCurve:'dynamic',moveAcceleration:'16',moveSmooth:'.25',dragFire:true,fireSensitivity:'1.10',fireStability:'.30',adsSensitivity:'.90',autoSprintStick:true,sprintThreshold:'.9'};
+const defaults={quality:'1',resolution:'1',showFps:false,soundEffects:true,ambientSound:true,dynamicWeather:true,weatherIntensity:'.5',masterVolume:'.70',ambientVolume:'.38',shadows:true,combatFx:true,batterySaver:false,sensitivity:'1.25',verticalSensitivity:'1.2',invertY:false,aimAssist:true,autoFire:false,alwaysSprint:false,vibration:true,joystickSize:'110',buttonSize:'49',hudOpacity:'.9',leftHanded:false,edgeSpacing:'20',invertStickX:false,invertStickY:false,deadzone:'.08',cameraSmooth:'.16',cameraSpeed:'1',joystickCurve:'dynamic',moveAcceleration:'16',moveSmooth:'.25',dragFire:true,fireSensitivity:'1.10',fireStability:'.30',adsSensitivity:'.90',autoSprintStick:false,sprintThreshold:'.9'};
 function readPrefs(){try{
  const p={...defaults,...JSON.parse(localStorage.getItem(PREF_KEY)||'{}')};
  if(!localStorage.getItem(CAMERA_TUNING_KEY)){
