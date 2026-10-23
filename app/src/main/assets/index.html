@@ -1214,7 +1214,7 @@ if(!Number.isFinite(v22ShoulderRig.anchorY))v22ShoulderRig.anchorY=player.positi
 const anchorGoal=onGround?ground(player.position.x,player.position.z):player.position.y;
 const v26CameraSmooth=clamp(Number($('cameraSmooth').value)||0,0,.8);
 // ADS must settle its terrain anchor promptly, without a drifting follow tail.
-const anchorSpeed=onGround?(adsHeld?5.5:2.2):4.5;
+const anchorSpeed=onGround?(adsHeld?4.5:3.4):5.0;
 const anchorDelta=anchorGoal-v22ShoulderRig.anchorY;
 if(Math.abs(anchorDelta)>.012)
  v22ShoulderRig.anchorY+=anchorDelta*(1-Math.exp(-dt*anchorSpeed*(1-.45*v26CameraSmooth)));
@@ -1227,7 +1227,7 @@ camera.position.z=target.z;
 // Follow terrain elevation without abrupt downward camera snaps.
 const cameraAltitudeDelta=target.y-camera.position.y;
 if(Math.abs(cameraAltitudeDelta)>.012)
- camera.position.y+=cameraAltitudeDelta*(1-Math.exp(-dt*(adsHeld?7:4.5)*(1-.5*v26CameraSmooth)));
+ camera.position.y+=cameraAltitudeDelta*(1-Math.exp(-dt*(adsHeld?5.5:5.0)*(1-.4*v26CameraSmooth)));
 const aimForward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
 camera.lookAt(camera.position.clone().addScaledVector(aimForward,100));
 // Fire after the camera has been aimed this frame, avoiding one-frame stale shots.
@@ -1413,6 +1413,7 @@ function v36Jump(){
  $('v36MapButton').classList.add('hidden');
  if(mobile)$('controls').classList.remove('hidden');
  window.v36FlightMode='descending';paused=false;onGround=false;vertical=0;
+ camPitch=clamp(camPitch,-.20,.32);cameraDX=cameraDY=0;
  v36Chute=new THREE.Group();
  const canopy=new THREE.Mesh(new THREE.SphereGeometry(3.5,12,6,0,Math.PI*2,0,Math.PI*.5),new THREE.MeshStandardMaterial({color:'#e79c4b',side:THREE.DoubleSide}));
  canopy.position.y=6.2;canopy.scale.y=.5;v36Chute.add(canopy);
@@ -1472,9 +1473,13 @@ function v36StepFlight(dt){
   v22ShoulderRig.anchorY=NaN;moveVX=moveVZ=0;toast('ATERRIZAJE COMPLETADO');
  }else{
   $('v36ParachuteStatus').textContent='🪂 DESCENSO · '+Math.ceil(player.position.y-floor)+' m · JOYSTICK PARA DIRIGIR';
-  const d=Number($('v26CameraDistance').value);
-  camera.position.set(player.position.x-Math.sin(camYaw)*d,player.position.y+9,player.position.z-Math.cos(camYaw)*d);
-  const viewDirection=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));camera.lookAt(camera.position.clone().addScaledVector(viewDirection,60));
+  // Keep the falling operator in the center of frame at a stable chest-level anchor.
+  // The original +9m camera offset looked down past the character on every descent.
+  const d=clamp(Number($('v26CameraDistance').value)||6,4.5,11.5);
+  const fallPitch=clamp(camPitch,-.34,.40);
+  const centerY=player.position.y+2.05-clamp(fallPitch*3.8,-1.2,1.2);
+  camera.position.set(player.position.x-Math.sin(camYaw)*d,player.position.y+3.15,player.position.z-Math.cos(camYaw)*d);
+  camera.lookAt(player.position.x+Math.sin(camYaw)*4,centerY,player.position.z+Math.cos(camYaw)*4);
  }
 }
 function v36ChoosePoint(e,id){
@@ -1974,7 +1979,7 @@ function aimFromFire(dx,dy){
 function applyAim(dx,dy){
  // Both modes use one stable orientation. Sensitivities are applied exactly once.
  camYaw-=dx*.003;
- camPitch=clamp(camPitch+dy*.00155*($('invertY').checked?-1:1),-.85,1.18);
+ camPitch=clamp(camPitch+dy*.00135*($('invertY').checked?-1:1),-.64,.82);
 }
 // Regression hook exposes only numerical camera transform tests, no game state.
 window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>v382AimDelta(dx,dy,{general:1.25,ads:.85,fire:1.1,speed:1,isADS:ads,mode:fire?'fire':'free'});
