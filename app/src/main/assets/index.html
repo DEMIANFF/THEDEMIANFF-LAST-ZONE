@@ -1281,8 +1281,11 @@ function v18Open(name){
  const stat=`<div class="v18Stats"><span>◉ CRÉDITOS <b>${p.credits}</b></span><span>✧ XP <b>${p.xp}</b></span><span>◈ PARTIDAS <b>${p.matches}</b></span></div>`;
  const card=(title,desc,button='',action='')=>`<div class="v18Item"><b>${title}</b><small>${desc}</small>${button?`<button data-v18="${action}">${button}</button>`:''}</div>`;
  let html=stat;
- if(name==='PERSONAJE'||name==='TIENDA'){
-  html+='<div class="v18Grid">'+v18Skins.map((skin,i)=>card(skin.name,`Aspecto del personaje · ${skin.price?skin.price+' créditos':'Inicial'}`,p.skin===i?'EQUIPADO':(i===4||p.unlocked.includes(i))?'EQUIPAR':p.credits>=skin.price?'DESBLOQUEAR':'BLOQUEADO',`skin:${i}`)).join('')+'</div>';
+ if(name==='PERSONAJE'){
+   html+='<div class="v18Grid">'+v18Skins.map((skin,i)=>{const owned=i===4||p.unlocked.includes(i);return owned?card(skin.name,'Operador disponible · Apariencia original',p.skin===i?'EQUIPADO':'EQUIPAR','skin:'+i):'';}).join('')+'</div>';
+   html+='<p class="v18PanelNote">Elige entre los personajes adquiridos. Desbloquea más estilos en TIENDA.</p>';
+  }else if(name==='TIENDA'){
+  html+='<div class="v18Grid">'+v18Skins.map((skin,i)=>card(skin.name,`Oferta con créditos del juego · ${skin.price?skin.price+' créditos':'Gratis'}`,p.skin===i?'EQUIPADO':(i===4||p.unlocked.includes(i))?'EQUIPAR':p.credits>=skin.price?'DESBLOQUEAR':'BLOQUEADO',`skin:${i}`)).join('')+'</div>';
   html+='<p class="v18PanelNote">Las apariencias son originales y se desbloquean con créditos obtenidos jugando. No hay pagos reales.</p>';
  }else if(name==='INVENTARIO'){
    const owned=p.unlocked.filter(i=>v18Skins[i]).map(i=>v18Skins[i].name);
