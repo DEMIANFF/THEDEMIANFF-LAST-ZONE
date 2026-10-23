@@ -318,6 +318,26 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 #v10Reticle.v382ADS::before{width:1px;height:24px;left:4px;top:-8px}
 #v10Reticle.v382ADS::after{width:24px;height:1px;top:4px;left:-8px}
 #aimBtn.adsActive{background:#d7a458!important;border-color:#ffdb99!important;color:#142b3c!important}
+</style><style id="v383LobbyLayout">
+/* Keep every bottom action above the interactive 3D character viewport. */
+#menu .v17Bottom{z-index:210!important;position:absolute!important;pointer-events:auto!important;isolation:isolate!important}
+#menu .v17Quick{position:relative!important;z-index:211!important;display:flex!important;gap:7px!important;flex-wrap:nowrap!important;max-width:63%!important;pointer-events:auto!important}
+#menu .v17Quick button{z-index:212!important;position:relative!important;pointer-events:auto!important;touch-action:manipulation!important;min-height:42px!important;border:1px solid #9bc5d5a8!important;background:#0c2942f2!important;border-radius:9px!important;padding:9px 12px!important}
+#menu .v17Launch{z-index:212!important;position:relative!important;pointer-events:auto!important}
+#menu .v24Hero{z-index:30!important;bottom:19%!important;height:auto!important;top:16%!important;pointer-events:auto!important}
+#menu #v24LobbyStage{pointer-events:auto!important;touch-action:none!important}
+#menu .v17Left{z-index:220!important;position:absolute!important;pointer-events:auto!important}
+#menu .v17Nav{z-index:221!important}
+#menu .v17Nav button{min-height:41px!important;touch-action:manipulation!important}
+#menu .v18Panel:not(.hidden){z-index:250!important}
+@media(max-width:650px){
+ #menu .v17Quick{max-width:54%!important;gap:3px!important}
+ #menu .v17Quick button{min-height:39px!important;padding:7px 6px!important;font-size:8px!important;white-space:nowrap!important}
+ #menu .v17Launch{width:43%!important}
+ #menu .v24Hero{top:16%!important;bottom:24%!important;left:55%!important;width:41vw!important}
+ #menu .v17Left{width:26%!important}
+ #menu .v17Nav button{min-height:36px!important;padding:6px 5px!important;font-size:9px!important}
+}
 </style></head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de eventos y misiones">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
@@ -1434,11 +1454,16 @@ function v362UpdateBotsInAir(dt){
 }
 function v36StepFlight(dt){
  v362UpdateBotsInAir(dt);flushCamera(dt);
- const dx=-joyX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=joyX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
- const nx=clamp(player.position.x+dx*7*dt,-HALF+9,HALF-9);
- const nz=clamp(player.position.z+dz*7*dt,-HALF+9,HALF-9);
- if(!solid(nx,nz,2.5)){player.position.x=nx;player.position.z=nz;}
- player.position.y-=13*dt;
+ // Parachute steering is independent of ground obstacles; aerial structures
+ // must never lock the joystick. Normalize diagonals and retain full control.
+ const axisLength=Math.max(1,Math.hypot(joyX,joyY));
+ const axisX=joyX/axisLength,axisY=joyY/axisLength;
+ const dx=-axisX*Math.cos(camYaw)-axisY*Math.sin(camYaw);
+ const dz=axisX*Math.sin(camYaw)-axisY*Math.cos(camYaw);
+ const steering=20;
+ player.position.x=clamp(player.position.x+dx*steering*dt,-HALF+9,HALF-9);
+ player.position.z=clamp(player.position.z+dz*steering*dt,-HALF+9,HALF-9);
+ player.position.y-=11*dt;
  // Freefall pose: legs trail behind the canopy, body sways smoothly in the wind.
  if(playerModel){const swing=Math.sin(performance.now()*.003)*.12;
   playerModel.left.rotation.x+=((-.48+swing)-playerModel.left.rotation.x)*Math.min(1,dt*6);
