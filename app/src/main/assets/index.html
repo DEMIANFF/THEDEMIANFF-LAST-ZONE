@@ -513,16 +513,16 @@ function v22AnimateLila(dt){
  // Prevent unbounded animation angles when a GLB contains different rest rotations.
  if(!c.v29RestPose){c.v29RestPose={};for(const name of Object.keys(j)){const part=j[name];if(part)c.v29RestPose[name]={x:part.rotation.x,z:part.rotation.z};}}
  const poseFromRest=(name,x,z=0)=>{const part=j[name],rest=c.v29RestPose[name];if(!part||!rest)return;part.rotation.x+=(rest.x+x-part.rotation.x)*ease;part.rotation.z+=(rest.z+z-part.rotation.z)*ease;};
- poseFromRest('leftLeg',air?-.18:crouch?-.8:wave*.72*pace);
- poseFromRest('rightLeg',air?.28:crouch?-.8:-wave*.72*pace);
+ poseFromRest('leftLeg',air?-.18:crouch?-1.02:wave*.72*pace,crouch?-.20:0);
+ poseFromRest('rightLeg',air?.28:crouch?-1.02:-wave*.72*pace,crouch?.20:0);
  poseFromRest('leftArm',reload?-.95:aim?-1.05:air?-.3:-wave*.52*pace,-.12);
  poseFromRest('rightArm',reload?-.6:aim?-1.2:air?-.3:wave*.52*pace,.12);
  poseFromRest('leftHair',sway*.085+(speed>.5?.10:0));
  poseFromRest('rightHair',-sway*.085+(speed>.5?.10:0));
  if(c.v22BaseY===undefined)c.v22BaseY=model.position.y;
- const targetY=c.v22BaseY-(crouch?.42:0)+(shooting?.018*Math.sin(time*40):0);
+ const targetY=c.v22BaseY-(crouch?.63:0)+(shooting?.018*Math.sin(time*40):0);
  model.position.y+=(targetY-model.position.y)*ease;
- model.rotation.x+=((air?-.10:crouch?.10:0)-model.rotation.x)*ease;
+ model.rotation.x+=((air?-.10:crouch?.19:0)-model.rotation.x)*ease;
 }
 // V22: original playable 3D interpretation of the submitted lavender-haired operator.
 function v22FemaleOperator(){
@@ -993,11 +993,11 @@ playerModel.gun.rotation.x=-camPitch*.55-v14Recoil*.12;
 playerModel.body.rotation.x=onGround?(crouchHeld?.13:Math.sin(playerModel.animPhase)*.014*clamp(Math.hypot(moveVX,moveVZ)/10,0,1)):-.10;
 playerModel.gun.position.y=1.45-v14Recoil*.045;
  const pose=crouchHeld&&onGround?1:0,k=1-Math.exp(-dt*12);
- playerModel.body.position.y+=((playerModel.isFemaleOperator?-.12:-.38)*pose-playerModel.body.position.y)*k;
+ playerModel.body.position.y+=((playerModel.isFemaleOperator?-.10:-.48)*pose-playerModel.body.position.y)*k;
  if(!playerModel.isFemaleOperator){
-  playerModel.left.rotation.x+=(-.68*pose-playerModel.left.rotation.x)*k;
-  playerModel.right.rotation.x+=(.68*pose-playerModel.right.rotation.x)*k;
-  playerModel.body.scale.y+=((1-.16*pose)-playerModel.body.scale.y)*k;
+  playerModel.left.rotation.x+=(-.96*pose-playerModel.left.rotation.x)*k;
+  playerModel.right.rotation.x+=(.96*pose-playerModel.right.rotation.x)*k;
+  playerModel.body.scale.y+=((1-.21*pose)-playerModel.body.scale.y)*k;
  }
  v22AnimateLila(dt);
 $('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':fireHeld?'◉ MIRA DE COMBATE':'⊕ MIRA LIBRE';
