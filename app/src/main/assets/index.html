@@ -910,7 +910,7 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.27,0),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.96,depthWrite:false}));beacon.position.y=1.35;group.add(beacon);
  group.userData.v362Glow=beacon;
  scene.add(group);pickups.push({type,x,z,group,phase:rand(0,6)});}
-function reset(){window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+function reset(){window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(scene){
  const geometries=new Set();
  scene.traverse(obj=>{if(obj.geometry)geometries.add(obj.geometry);});
@@ -1194,7 +1194,7 @@ function v36Begin(){
  v36Destination=v36Safe(player.position.x,player.position.z);
  paused=true;$('controls').classList.add('hidden');
  v36BuildAircraft();player.visible=false;
- $('v36MapButton').classList.add('hidden');$('v36DropPanel').classList.remove('hidden');
+ $('v36MapButton').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.remove('hidden');
  v36DrawMap('v36DropCanvas');
 }
 $('v37OpenDropMap').addEventListener('click',e=>{e.preventDefault();if(window.v36FlightMode!=='aircraft')return;$('v36DropPanel').classList.remove('hidden');$('v37FlightHUD').classList.add('hidden');v36DrawMap('v36DropCanvas');});
@@ -1274,7 +1274,7 @@ function v36StepFlight(dt){
   $('v36ParachuteStatus').textContent='🪂 DESCENSO · '+Math.ceil(player.position.y-floor)+' m · JOYSTICK PARA DIRIGIR';
   const d=Number($('v26CameraDistance').value);
   camera.position.set(player.position.x-Math.sin(camYaw)*d,player.position.y+9,player.position.z-Math.cos(camYaw)*d);
-  camera.lookAt(player.position.x,player.position.y+2,player.position.z);
+  const viewDirection=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));camera.lookAt(camera.position.clone().addScaledVector(viewDirection,60));
  }
 }
 function v36ChoosePoint(e,id){
