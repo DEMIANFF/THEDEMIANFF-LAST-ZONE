@@ -656,7 +656,7 @@ function makeCharacter(color,enemy=false){const root=new THREE.Group(),body=new 
 let audioContext=null;
 let audioMaster=null,audioReady=false;
 let ambientBus=null,windSource=null,windFilter=null,windGain=null;
-let v15BirdClock=3,v15DistantClock=8,v15StepClock=0,v15ZoneAlert=false;
+let v15BirdClock=3,v15DistantClock=8,v15StepClock=0,v15ZoneAlert=false,v38LeavesClock=4,v38WildlifeClock=11;
 function ensureAmbience(){
  if(!audioContext||audioContext.state!=='running'||!audioMaster)return;
  if(!ambientBus){
@@ -694,6 +694,11 @@ function ambientTick(dt){
    v15DistantClock=rand(10,23);
    toneSound(rand(60,95),.36,.055,'triangle');
   }
+  v38LeavesClock-=dt;v38WildlifeClock-=dt;
+  if(v38LeavesClock<=0){v38LeavesClock=rand(3,7);v38NoiseBurst(rand(.12,.28),.022,800,2800);}
+  if(v38WildlifeClock<=0){v38WildlifeClock=rand(8,17);const call=rand(1600,2500);
+   toneSound(call,.11,.020,'sine');toneSound(call*1.12,.075,.010,'sine');toneSound(call*.69,.17,.014,'triangle');
+  }
  }
  const moving=Math.hypot(moveVX,moveVZ);
  if(onGround&&moving>1.7){
@@ -709,7 +714,9 @@ function ambientTick(dt){
 }
 function enemyShotSound(distance){
  if(!$('soundEffects').checked||distance>55)return;
- toneSound(90+rand(-14,14),.085,.08*(1-distance/70),'sawtooth');
+ const attenuation=Math.max(.04,1-distance/65);
+ toneSound(75+rand(-18,18),.10,.075*attenuation,'sawtooth');
+ if(distance<35)v38NoiseBurst(.075,.05*attenuation,280,3300);
 }
 function pickupSound(){toneSound(600,.12,.085,'sine');}
 function reloadSound(){toneSound(330,.09,.05,'triangle');}
