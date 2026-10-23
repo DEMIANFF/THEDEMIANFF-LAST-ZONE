@@ -1957,8 +1957,14 @@ function v382AimDelta(dx,dy,context){
  const speed=clamp(finite(context.speed)||1,.2,2.4);
  const ratio=context.isADS?ads:1;
  const modifier=context.mode==='fire'?fire:1;
- // Subpixel sensor jitter is suppressed without a multi-pixel dead-zone.
- const clean=v=>Math.abs(v)<.08?0:v;
+ // A gentle precision curve stabilizes micro-adjustments without inertia.
+ // Large deliberate swipes remain 1:1 in free look and ADS.
+ const clean=v=>{
+  const magnitude=Math.abs(v);
+  if(magnitude<.08)return 0;
+  const precision=magnitude<4?.8+.05*magnitude:1;
+  return v*precision;
+ };
  return {x:clean(x)*general*ratio*modifier*speed,y:clean(y)*general*ratio*modifier*speed};
 }
 function aim(dx,dy,mode='free'){
