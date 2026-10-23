@@ -1171,7 +1171,7 @@ let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Numbe
  if(sprintHeld&&mag<.01&&!fireHeld){mz=1;mag=1;}
  // V34.7: sprint cancels upon firing. Combat movement keeps the joystick live
  // so players can strafe and dodge without the full running pace.
- const spd=crouchHeld?3.0:fireHeld?7.4:sprint?14.5:7.4; // V38.8: walk 7.4, sprint unchanged 14.5.
+ const spd=crouchHeld?3.0:fireHeld?8.1:sprint?14.5:8.1; // V39.0: walk 8.1, sprint unchanged 14.5.
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
