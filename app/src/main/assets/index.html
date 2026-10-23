@@ -1468,7 +1468,7 @@ function v36StepFlight(dt){
  player.position.x=nx;player.position.z=nz;
  player.position.y-=(strength>.12?8.0:9.0)*dt;
  if(strength>.08){
-  const heading=Math.atan2(-dx,-dz);
+  const heading=Math.atan2(dx,dz); // V38.9: match ground-character heading; avoid visually reversed body rotation.
   const current=player.rotation.y;
   const turn=Math.atan2(Math.sin(heading-current),Math.cos(heading-current));
   player.rotation.y+=turn*(1-Math.exp(-dt*9));
