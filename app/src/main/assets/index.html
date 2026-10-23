@@ -1625,8 +1625,8 @@ function v23PointerDown(e){
  const button=e.target.closest?.('button');
  const id=button&&$('controls').contains(button)?button.id:null;
  let role=null;
- if(e.target.closest?.('#stickBase')||(e.clientX<window.innerWidth*.42&&e.clientY>window.innerHeight*.38&&!e.target.closest?.('button,#hudEditor,#pausePanel,#menu')))role='joystick';
- else if(id&&touchActionIds.has(id))role=id;
+ if(id&&touchActionIds.has(id))role=id;
+ else if(e.target.closest?.('#stickBase')||(e.clientX<window.innerWidth*.46&&e.clientY>window.innerHeight*.32&&!e.target.closest?.('button,#hudEditor,#pausePanel,#menu')))role='joystick';
  else if(e.clientX>=window.innerWidth*0.5&&cameraAllowedTarget(e.target))role='look';
  if(!role)return;
  // A second finger must never steal an existing joystick or firing channel.
