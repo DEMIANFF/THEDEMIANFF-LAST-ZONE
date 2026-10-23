@@ -1450,12 +1450,16 @@ function v362UpdateBotsInAir(dt){
 }
 function v36StepFlight(dt){
  v362UpdateBotsInAir(dt);flushCamera(dt);
- // V38.3 parachute steering matches the camera-relative grounded joystick.
- // Horizontal travel is intentionally generous; descent slower for accurate landing.
- // V38.8: parachute-only reversal of BOTH axes based on device test: left/right and forward/back were inverted.
- // v23Joy has already applied user joystick inversion preferences; avoid applying them twice.
- const flightX=-joyX,flightY=-joyY;
- const dx=flightX*Math.cos(camYaw)-flightY*Math.sin(camYaw),dz=-flightX*Math.sin(camYaw)-flightY*Math.cos(camYaw);
+ // V38.9: derive control directions from the ACTUAL rendered camera orientation.
+ // Do not guess yaw signs: joystick right = camera screen-right; up = camera view-forward.
+ // Camera quaternion is updated by lookAt at the end of the previous frame.
+ const cameraRight=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
+ const cameraForward=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+ cameraRight.y=0;cameraForward.y=0;
+ cameraRight.normalize();cameraForward.normalize();
+ // joyY is negative when the finger moves upward on the touchscreen.
+ const dx=joyX*cameraRight.x-joyY*cameraForward.x;
+ const dz=joyX*cameraRight.z-joyY*cameraForward.z;
  const strength=Math.min(1,Math.hypot(joyX,joyY));
  const glideSpeed=11.8;
  const nx=clamp(player.position.x+dx*glideSpeed*dt,-HALF+9,HALF-9);
