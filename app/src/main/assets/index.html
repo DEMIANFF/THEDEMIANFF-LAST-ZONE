@@ -891,8 +891,11 @@ function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather
 let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value));
 // Sprint is an independent toggle, but only translates the character while a movement input exists.
 // Tapping SPRINT starts forward auto-run immediately; joystick input takes priority.
- if(sprintHeld&&mag<.01){mz=1;mag=1;}
- const spd=sprint?14.5:6.1;
+ if(sprintHeld&&mag<.01&&!fireHeld){mz=1;mag=1;}
+ // V34.6: firing anchors the operator in a stable combat stance. Sprint remains toggled
+ // for release, but firing must not translate the character or animate running.
+ if(fireHeld){mx=0;mz=0;mag=0;moveVX=0;moveVZ=0;}
+ const spd=sprint&&!fireHeld?14.5:6.1;
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
