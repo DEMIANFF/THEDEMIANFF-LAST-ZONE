@@ -1287,9 +1287,45 @@ function v397DetailAurora(){
    const edge=new THREE.Mesh(edgeGeo,trim);edge.position.set(dx,.15,dz);edge.castShadow=false;g.add(edge);details+=2;
   }
  }
+ // V40 terrain dressing: shared instanced rocks and frozen vegetation around the outposts.
+ // No new worldObjects entries: movement, combat collision and AI cover remain unchanged.
+ const rockMat=new THREE.MeshStandardMaterial({color:'#708b9d',roughness:.86,metalness:.08,flatShading:false});
+ const frostMat=new THREE.MeshStandardMaterial({color:'#b8dce7',roughness:.72,metalness:.08});
+ const barkMat=new THREE.MeshStandardMaterial({color:'#4c6471',roughness:.94});
+ const rockGeo=new THREE.DodecahedronGeometry(1,0),treeGeo=new THREE.ConeGeometry(1,1,7),trunkGeo=new THREE.CylinderGeometry(.12,.2,1,7);
+ const rockCount=96,treeCount=48;
+ const rocks=new THREE.InstancedMesh(rockGeo,rockMat,rockCount);
+ const trees=new THREE.InstancedMesh(treeGeo,frostMat,treeCount);
+ const trunks=new THREE.InstancedMesh(trunkGeo,barkMat,treeCount);
+ const m=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new THREE.Vector3();
+ const locations=[];
+ for(const [cx,cz] of districts){
+  for(let j=0;j<24;j++){
+   const a=j*2.3999632297+cx*.017,dist=22+(j%5)*2.3;
+   const x=cx+Math.cos(a)*dist,z=cz+Math.sin(a)*dist;
+   if(Math.abs(x)>HALF-6||Math.abs(z)>HALF-6||solid(x,z,1.6))continue;
+   locations.push([x,z,j]);
+  }
+ }
+ for(let i=0;i<rockCount;i++){
+  const loc=locations[i%Math.max(1,locations.length)]||[0,0,i];
+  const x=loc[0],z=loc[1],a=i*2.3999632297;
+  q.setFromAxisAngle(new THREE.Vector3(0,1,0),a);
+  sc.set(.8+(i%4)*.28,.4+(i%3)*.2,.7+(i%5)*.17);
+  m.compose(new THREE.Vector3(x,ground(x,z)+.22,z),q,sc);rocks.setMatrixAt(i,m);
+ }
+ for(let i=0;i<treeCount;i++){
+  const loc=locations[(i*2+5)%Math.max(1,locations.length)]||[0,0,i];
+  const x=loc[0],z=loc[1],height=2.4+(i%5)*.43;
+  q.setFromAxisAngle(new THREE.Vector3(0,1,0),i*.83);
+  sc.set(.88,height,.88);m.compose(new THREE.Vector3(x,ground(x,z)+height*.65,z),q,sc);trees.setMatrixAt(i,m);
+  sc.set(.65,height*.72,.65);m.compose(new THREE.Vector3(x,ground(x,z)+height*.36,z),q,sc);trunks.setMatrixAt(i,m);
+ }
+ for(const mesh of [rocks,trees,trunks]){mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);}
+ window.v40EnvironmentInstances=rockCount+treeCount*2;
  window.v397VisualDetails=details+72;
 }
-window.THEDEMIANFF_VISUAL_TEST=()=>({details:window.v397VisualDetails||0,auroraCurtains:v27AuroraRibbons.length});
+window.THEDEMIANFF_VISUAL_TEST=()=>({details:window.v397VisualDetails||0,environmentInstances:window.v40EnvironmentInstances||0,auroraCurtains:v27AuroraRibbons.length});
 // V39.4: bounded cover search on AI decision ticks, not on every frame.
 function v394FindCover(b,px,pz){
  let best=null,score=Infinity,checked=0;
