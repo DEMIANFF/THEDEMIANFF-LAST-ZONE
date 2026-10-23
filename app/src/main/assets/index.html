@@ -1433,7 +1433,21 @@ function v18Open(name){
 v18Refresh();
 $('v18Mode').addEventListener('change',()=>{$('v18ModeLabel').textContent=$('v18Mode').value==='training'?'ENTRENAMIENTO':'SUPERVIVENCIA'});
 $('v18Profile').onclick=()=>v18Open('ESTADÍSTICAS');$('v18Close').onclick=()=>$('v18Panel').classList.add('hidden');
-document.querySelectorAll('[data-lobby]').forEach(button=>button.addEventListener('click',()=>v18Open(button.dataset.lobby)));
+function v362ShowEvents(){
+ $('v18Panel').classList.add('hidden');$('v362Events').classList.remove('hidden');
+ $('v362EventStatus').textContent='EVENTOS COMPLETADOS: '+(v18Progress.eventCompletions||0)+' · Progreso guardado en el dispositivo.';
+}
+function v362HideEvents(){$('v362Events').classList.add('hidden');}
+$('v362EventClose').addEventListener('click',v362HideEvents);
+$('v362Events').querySelectorAll('[data-v362mode]').forEach(button=>button.addEventListener('click',()=>{
+ const mode=button.dataset.v362mode;if(mode!=='royale'&&mode!=='training')return;
+ v18ActiveEvent=mode==='royale'?'survival':'training';$('v18Mode').value=mode;
+ $('v18Mode').dispatchEvent(new Event('change'));v362HideEvents();
+ try{start();}catch(error){v18ActiveEvent=null;v21Diagnostic('V36.2 EVENTO',error);$('menu').classList.remove('hidden');v362ShowEvents();}
+}));
+document.querySelectorAll('[data-lobby]').forEach(button=>button.addEventListener('click',()=>{
+ if(button.dataset.lobby==='EVENTOS')v362ShowEvents();else v18Open(button.dataset.lobby);
+}));
 function v18RecordMatch(win){
  const p=v18Progress;
  p.matches++;p.kills+=kills;p.wins+=win?1:0;p.best=Math.max(p.best,kills);
