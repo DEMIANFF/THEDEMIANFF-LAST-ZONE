@@ -892,16 +892,15 @@ let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Numbe
 // Sprint is an independent toggle, but only translates the character while a movement input exists.
 // Tapping SPRINT starts forward auto-run immediately; joystick input takes priority.
  if(sprintHeld&&mag<.01&&!fireHeld){mz=1;mag=1;}
- // V34.6: firing anchors the operator in a stable combat stance. Sprint remains toggled
- // for release, but firing must not translate the character or animate running.
- if(fireHeld){mx=0;mz=0;mag=0;moveVX=0;moveVZ=0;}
- const spd=sprint&&!fireHeld?14.5:6.1;
+ // V34.7: sprint cancels upon firing. Combat movement keeps the joystick live
+ // so players can strafe and dodge without the full running pace.
+ const spd=fireHeld?4.6:sprint?14.5:6.1;
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
 const acceleration=Number($('moveAcceleration').value);
 const smoothing=Number($('moveSmooth').value);
-const response=1-Math.exp(-dt*Math.max(10,acceleration)*(1-.32*smoothing));
+const response=1-Math.exp(-dt*Math.max(fireHeld?20:10,acceleration)*(1-.32*smoothing));
 moveVX+=(wantedX-moveVX)*response;
 moveVZ+=(wantedZ-moveVZ)*response;
 if(mag<.01&&Math.hypot(moveVX,moveVZ)<.025){moveVX=0;moveVZ=0;}
@@ -1541,10 +1540,10 @@ document.addEventListener('pointerdown',e=>{
  if(!button||!touchActionIds.has(button.id)||!$('controls').contains(button))return;
  e.preventDefault();e.stopImmediatePropagation();
  activeActionPointers.set(e.pointerId,{id:button.id,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY});
- if(button.id==='sprint'){sprintHeld=!sprintHeld;$('v124Debug').textContent=sprintHeld?'CORRER ACTIVADO · TURBO 14.5':'CORRER DESACTIVADO';}
+ if(button.id==='sprint'){sprintHeld=fireHeld?false:!sprintHeld;$('v124Debug').textContent=sprintHeld?'CORRER ACTIVADO · TURBO 14.5':'CORRER DESACTIVADO';}
  else if(button.id==='aimBtn'){adsHeld=!adsHeld;$('aimBtn').classList.toggle('adsActive',adsHeld);$('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':'⊕ MIRA LIBRE';$('v124Debug').textContent=adsHeld?'MIRA ACTIVADA':'MIRA DESACTIVADA';}
  else if(button.id==='jump'){jumpQueued=true;toneSound(300,.07,.045,'sine');}
- else if(button.id==='fire'){v22FireDragging=false;resetFireCamera();fireTouch=e.pointerId;fireHeld=true;fireLastX=e.clientX;fireLastY=e.clientY;}
+ else if(button.id==='fire'){v22FireDragging=false;resetFireCamera();fireTouch=e.pointerId;fireHeld=true;sprintHeld=false;$('sprint').classList.remove('sprintActive');fireLastX=e.clientX;fireLastY=e.clientY;}
  else if(button.id==='heal')heal();
  else if(button.id==='reload'){reload();toneSound(460,.085,.075,'triangle');}
  else if(button.id==='switchGun'){swap((weaponIndex+1)%weapons.length);toneSound(510,.08,.07,'triangle');}
@@ -1640,8 +1639,8 @@ function v23PointerDown(e){
  v23Touches.set(e.pointerId,t);
  if(role==='joystick'){stickTouch=e.pointerId;v342JoyOrigin={x:t.x,y:t.y};v23Joy(t.x,t.y);}
  else if(role==='look'){cameraPointers.set(e.pointerId,t);if(v26LookOwner===null){v26LookOwner=e.pointerId;lookTouch=e.pointerId;}}
- else if(role==='fire'){fireTouch=e.pointerId;fireHeld=true;v22FireDragging=false;v23FireThumb(t);}
- else if(role==='sprint'){sprintHeld=!sprintHeld;$('sprint').classList.toggle('sprintActive',sprintHeld);}
+ else if(role==='fire'){fireTouch=e.pointerId;fireHeld=true;sprintHeld=false;$('sprint').classList.remove('sprintActive');v22FireDragging=false;v23FireThumb(t);}
+ else if(role==='sprint'){sprintHeld=fireHeld?false:!sprintHeld;$('sprint').classList.toggle('sprintActive',sprintHeld);}
  else if(role==='aimBtn'){adsHeld=!adsHeld;$('aimBtn').classList.toggle('adsActive',adsHeld);$('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':'⊕ MIRA LIBRE';}
  else if(role==='jump')jumpQueued=true;
  else if(role==='heal')heal();
