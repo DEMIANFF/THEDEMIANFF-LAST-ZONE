@@ -1450,13 +1450,30 @@ function v362UpdateBotsInAir(dt){
 }
 function v36StepFlight(dt){
  v362UpdateBotsInAir(dt);flushCamera(dt);
+ // V38.3 parachute steering matches the camera-relative grounded joystick.
+ // Horizontal travel is intentionally generous; descent slower for accurate landing.
  const dx=-joyX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=joyX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
- const nx=clamp(player.position.x+dx*7*dt,-HALF+9,HALF-9);
- const nz=clamp(player.position.z+dz*7*dt,-HALF+9,HALF-9);
- if(!solid(nx,nz,2.5)){player.position.x=nx;player.position.z=nz;}
- player.position.y-=13*dt;
+ const strength=Math.min(1,Math.hypot(joyX,joyY));
+ const glideSpeed=11.8;
+ const nx=clamp(player.position.x+dx*glideSpeed*dt,-HALF+9,HALF-9);
+ const nz=clamp(player.position.z+dz*glideSpeed*dt,-HALF+9,HALF-9);
+ // Do not freeze air movement against terrain obstacles; collision resumes on landing.
+ player.position.x=nx;player.position.z=nz;
+ player.position.y-=(strength>.12?8.0:9.0)*dt;
+ if(strength>.08){
+  const heading=Math.atan2(-dx,-dz);
+  const current=player.rotation.y;
+  const turn=Math.atan2(Math.sin(heading-current),Math.cos(heading-current));
+  player.rotation.y+=turn*(1-Math.exp(-dt*9));
+ }
+ if(v36Chute){
+  v36Chute.rotation.z+=(joyX*.12-v36Chute.rotation.z)*(1-Math.exp(-dt*5));
+  v36Chute.rotation.x+=(-joyY*.08-v36Chute.rotation.x)*(1-Math.exp(-dt*5));
+ }
  // Freefall pose: legs trail behind the canopy, body sways smoothly in the wind.
  if(playerModel){const swing=Math.sin(performance.now()*.003)*.12;
+  playerModel.left.rotation.z+=(joyX*.13-playerModel.left.rotation.z)*Math.min(1,dt*7);
+  playerModel.right.rotation.z+=(-joyX*.13-playerModel.right.rotation.z)*Math.min(1,dt*7);
   playerModel.left.rotation.x+=((-.48+swing)-playerModel.left.rotation.x)*Math.min(1,dt*6);
   playerModel.right.rotation.x+=((-.48-swing)-playerModel.right.rotation.x)*Math.min(1,dt*6);
   playerModel.body.rotation.z+=((swing*.35)-playerModel.body.rotation.z)*Math.min(1,dt*6);
@@ -1871,7 +1888,7 @@ function start(){unlockAudio();v123ResetInputs();if(!renderer){renderer=new THRE
 $('v362Settings').addEventListener('click',e=>{
  e.preventDefault();e.stopPropagation();
  if(!running)return;
- if(window.v36FlightMode==='aircraft'){
+ if(window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending'){
   settingsFromMenu=true;
   v372RefreshSettingsContext();
   $('pausePanel').classList.remove('hidden');
@@ -2112,8 +2129,9 @@ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{
 });
 let settingsFromMenu=false;
 function v372RefreshSettingsContext(){
- $('leaveMatch').classList.toggle('hidden',!running||!paused||window.v36FlightMode!=='landed');
- $('v372ExitGame').classList.remove('hidden');
+ const inLobby=!running;
+ $('leaveMatch').classList.toggle('hidden',inLobby||window.v36FlightMode!=='landed');
+ $('v372ExitGame').classList.toggle('hidden',!inLobby);
 }
 $('menuSettings').onclick=()=>{settingsFromMenu=true;v372RefreshSettingsContext();$('pausePanel').classList.remove('hidden')};
 $('v372ExitGame').onclick=()=>{
