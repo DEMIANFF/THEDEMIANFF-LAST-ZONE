@@ -1453,8 +1453,8 @@ function v36StepFlight(dt){
  // V38.3 parachute steering matches the camera-relative grounded joystick.
  // Horizontal travel is intentionally generous; descent slower for accurate landing.
  // V38.7: flight camera faces +Z, so rightward stick input must move toward camera-right (-world X at yaw 0).
- // Apply horizontal axis exactly once, including the user's inversion preference.
- const flightX=joyX*($('invertStickX').checked?-1:1);
+ // joyX already incorporates the user's inversion preference in v23Joy; do not apply it twice.
+ const flightX=joyX;
  const dx=flightX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=-flightX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
  const strength=Math.min(1,Math.hypot(joyX,joyY));
  const glideSpeed=11.8;
