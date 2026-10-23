@@ -1761,6 +1761,7 @@ function v23Clear(){
  $('fire').style.setProperty('--fire-stick-y','0px');
 }
 function v23PointerDown(e){
+ if(e.target.closest?.('#minimap,#v36MapButton,#v36MapPanel,#v36DropPanel'))return;
  if(!v23Ready()||e.pointerType==='mouse')return;
  const button=e.target.closest?.('button');
  const id=button&&$('controls').contains(button)?button.id:null;
