@@ -3,7 +3,7 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite]
+    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite, v38-3-lobby-parachute-polish]
 
 jobs:
   android:
@@ -190,6 +190,27 @@ jobs:
           PY
           node --check /tmp/the-ads-test.js
           node /tmp/the-ads-test.js
+      - name: Verificar V38.3 lobby accesible y control del paracaidas
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          required=[
+           'id="v383LobbyLayout"',
+           'data-lobby="INVENTARIO"',
+           'data-lobby="ARMAS"',
+           'data-lobby="PRESET"',
+           'const glideSpeed=11.8;',
+           'player.rotation.y+=turn',
+           'player.position.y-=(strength>.12?8.0:9.0)*dt;',
+           "window.v36FlightMode==='descending'",
+           "const inLobby=!running;"
+          ]
+          for token in required:
+              if token not in h: raise SystemExit('V38.3 missing: '+token)
+          if 'OPERACIÓN<br>ÚLTIMA ZONA' in h: raise SystemExit('Old banner remains')
+          print('V38.3 static checks passed')
+          PY
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - name: Verificar identidad y firma de APK debug
@@ -236,7 +257,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: env.HAS_RELEASE_KEY == 'true'
         with:
-          name: THEDEMIANFF-V38-2-APK-RELEASE-FIRMA-PERMANENTE
+          name: THEDEMIANFF-V38-3-APK-RELEASE-FIRMA-PERMANENTE
           path: app/build/outputs/apk/release/app-release.apk
       - name: Aviso de compatibilidad de actualizaciones
         run: |
