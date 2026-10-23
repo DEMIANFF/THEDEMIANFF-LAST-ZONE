@@ -658,6 +658,9 @@ function v22UpdateHolster(c,activeIndex){
  c.backGun.scale.setScalar(alternate===4?.87:1);
  c.gun.scale.setScalar(activeIndex===4?1.10:activeIndex===0?1:.92);
  const accent=c.gun.userData.v38Accent;if(accent&&accent.material&&accent.material.color)accent.material.color.set(['#d6bd7a','#8bd4d6','#e39f67','#93a1bd','#d38dc2'][activeIndex]||'#d6bd7a');
+ const variants=c.gun.userData.v40Variants;
+ if(variants)for(let i=0;i<variants.length;i++)variants[i].visible=i===activeIndex;
+ c.gun.userData.v40ActiveIndex=activeIndex;
  // Lila has a separate backpack mesh; place the holster slightly farther behind it.
  c.backGun.position.z=c.isFemaleOperator?-.70:-.56;
 }
@@ -773,6 +776,42 @@ for(let j=0;j<3;j++){
  ring.position.set(0,0,1.26+j*.13);gun.add(ring);
 }
 gun.userData.v40WeaponDetail=true;
+// V40: five visually distinct, cosmetic weapon variants built only once per character.
+const v40Variants=[],v40Specs=[
+ ['AR-7',1.02,.13,.44,.48,.26,'#c8ad7a'],
+ ['DMR-9',1.39,.28,.30,.57,.54,'#8bd4d6'],
+ ['SMG-4',.65,.09,.42,.22,.12,'#e39f67'],
+ ['ESC-12',.92,.06,.23,.48,.32,'#93a1bd'],
+ ['LMG-60',1.25,.17,.61,.58,.48,'#d38dc2']
+];
+for(let i=0;i<v40Specs.length;i++){
+ const [name,len,optic,mag,stock,barrelLength,color]=v40Specs[i];
+ const group=new THREE.Group();gun.add(group);
+ const tint=new THREE.MeshStandardMaterial({color,metalness:.55,roughness:.4});
+ const rail=new THREE.Mesh(new THREE.BoxGeometry(.20,.17,len),v40GunMetal);
+ rail.position.set(0,.045,.82);group.add(rail);
+ const barrel=new THREE.Mesh(new THREE.CylinderGeometry(.067,.077,barrelLength+.28,10),v40GunMetal);
+ barrel.rotation.x=Math.PI/2;barrel.position.set(0,.025,1.25+barrelLength*.45);group.add(barrel);
+ const butt=new THREE.Mesh(new THREE.BoxGeometry(.24,.19,stock),v40GunGrip);
+ butt.position.set(0,-.03,-.49-stock*.3);group.add(butt);
+ const magazine=new THREE.Mesh(new THREE.BoxGeometry(i===4?.43:.23,mag,.25),v40GunGrip);
+ magazine.position.set(0,-.38-mag*.19,.10);magazine.rotation.x=i===2?-.25:.1;group.add(magazine);
+ const sight=new THREE.Mesh(new THREE.BoxGeometry(.19,.11+optic,.30),tint);
+ sight.position.set(0,.27+optic*.5,.38);group.add(sight);
+ if(i===1){
+  const scope=new THREE.Mesh(new THREE.CylinderGeometry(.16,.18,.55,12),v40GunMetal);
+  scope.rotation.x=Math.PI/2;scope.position.set(0,.48,.4);group.add(scope);
+ }else if(i===3){
+  for(let j=0;j<4;j++){const pump=new THREE.Mesh(new THREE.BoxGeometry(.24,.035,.075),v40GunGrip);pump.position.set(0,-.15,.56+j*.15);group.add(pump);}
+ }else if(i===4){
+  for(const side of [-1,1]){
+   const bipod=new THREE.Mesh(new THREE.CylinderGeometry(.025,.035,.45,7),v40GunMetal);
+   bipod.position.set(side*.19,-.25,1.03);bipod.rotation.z=side*.25;group.add(bipod);
+  }
+ }
+ group.visible=i===0;group.userData.v40WeaponName=name;v40Variants.push(group);
+}
+gun.userData.v40Variants=v40Variants;
 box(.44,.09,.11,mats.gold,body,0,1.96,.36);
 box(.20,.24,.07,mats.dark,body,-.34,1.58,.39);
 box(.20,.24,.07,mats.dark,body,.34,1.58,.39);
@@ -1763,6 +1802,7 @@ function v36BuildAircraft(){
  }
  const nose=new THREE.Mesh(new THREE.ConeGeometry(.75,2.3,12),paint);
  nose.rotation.z=-Math.PI/2;nose.position.x=6.25;g.add(nose);
+ const v40Propellers=[];
  for(const z of [-4,4]){
   const pod=new THREE.Mesh(new THREE.CylinderGeometry(.53,.64,2.65,12),paint);
   pod.rotation.z=Math.PI/2;pod.position.set(1.15,-.33,z);g.add(pod);
@@ -1770,15 +1810,15 @@ function v36BuildAircraft(){
   ring.rotation.y=Math.PI/2;ring.position.set(2.55,-.33,z);g.add(ring);
   const intakeDisk=new THREE.Mesh(new THREE.CircleGeometry(.36,12),intake);
   intakeDisk.rotation.y=Math.PI/2;intakeDisk.position.set(2.59,-.33,z);g.add(intakeDisk);
-  for(let k=0;k<4;k++){
-   const blade=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,1.55),intake);
-   blade.position.set(2.68,-.33,z);blade.rotation.x=k*Math.PI/4;g.add(blade);
-  }
+  const prop=new THREE.Group();prop.position.set(2.68,-.33,z);g.add(prop);
+  for(let k=0;k<4;k++){const blade=new THREE.Mesh(new THREE.BoxGeometry(.12,.11,1.55),intake);blade.rotation.x=k*Math.PI/4;prop.add(blade);}
+  v40Propellers.push(prop);
  }
  const dorsal=new THREE.Mesh(new THREE.BoxGeometry(4.8,.055,.12),stripe);
  dorsal.position.set(-.4,.79,0);g.add(dorsal);
  const tailStripe=new THREE.Mesh(new THREE.BoxGeometry(.85,.11,4.6),stripe);
  tailStripe.position.set(-4.7,.15,0);g.add(tailStripe);
+ g.userData.v40Propellers=v40Propellers;
  g.position.set(-HALF+14,115,0);v36Aircraft=g;scene.add(g);
  camera.position.set(g.position.x-25,125,-28);camera.lookAt(g.position);
 }
@@ -1801,6 +1841,7 @@ document.addEventListener('pointermove',e=>{
 for(const type of ['pointerup','pointercancel'])document.addEventListener(type,e=>{if(e.pointerId===v372PlaneTouch)v372PlaneTouch=null;},true);
 function v36TickAircraft(dt){
  if(!v36Aircraft)return;
+ if(v36Aircraft.userData.v40Propellers)for(const prop of v36Aircraft.userData.v40Propellers)prop.rotation.x=(prop.rotation.x+dt*19)%(Math.PI*2);
  v36Aircraft.position.x+=dt*15;
  if(v36Aircraft.position.x>HALF-12)v36Aircraft.position.x=-HALF+14;
  v398MapRefresh+=dt;
