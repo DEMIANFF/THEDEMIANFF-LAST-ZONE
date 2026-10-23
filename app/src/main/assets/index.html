@@ -1290,6 +1290,26 @@ function v396ExpandAurora(){
    v40Panel(g,.12,1.25,1.35,v40Frame,side*w/2+.09,wy,0);
    v40Panel(g,.13,1.02,1.1,v40Glass,side*w/2+.16,wy,0);
   }
+  // V40 architecture silhouette pass: pitched canopy, sculpted window hoods,
+  // vertical columns and structural braces; all are non-colliding decoration.
+  const roofRise=Math.min(1.7,Math.max(.65,w*.15));
+  const roofMat=v40Frame;
+  for(const side of [-1,1]){
+   const slope=new THREE.Mesh(new THREE.BoxGeometry(w*.56,.16,d+.7),roofMat);
+   slope.position.set(side*w*.245,h+roofRise*.55,0);
+   slope.rotation.z=-side*Math.atan2(roofRise,w*.5);
+   slope.receiveShadow=true;g.add(slope);v40FacadePieces++;
+   const cornerX=side*(w*.5-.19);
+   v40Panel(g,.27,Math.max(2.5,h-.2),.32,v40Concrete,cornerX,h*.5,d*.5+.08);
+   v40Panel(g,.27,Math.max(2.5,h-.2),.32,v40Concrete,cornerX,h*.5,-d*.5-.08);
+   const windowX=side*w*.31,windowY=Math.min(h-1.1,3.15);
+   v40Panel(g,1.65,.13,.52,v40Snow,windowX,windowY+.77,d*.5+.43);
+   const lintel=new THREE.Mesh(new THREE.BoxGeometry(.10,.85,.14),v40Frame);
+   lintel.position.set(windowX,windowY,d*.5+.35);g.add(lintel);v40FacadePieces++;
+  }
+  const ridge=new THREE.Mesh(new THREE.BoxGeometry(.24,.19,d+.85),v40Snow);
+  ridge.position.set(0,h+roofRise,0);g.add(ridge);v40FacadePieces++;
+  v40Panel(g,1.8,.22,.68,v40Frame,0,2.65,d*.5+.42);
   // V40 facade finishing: safety-striped entrance threshold and twin utility boxes.
   v40Panel(g,1.48,.065,.46,v40Warm,0,.09,d/2+.44);
   for(const side of [-1,1]){
