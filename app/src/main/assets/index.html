@@ -1409,6 +1409,8 @@ $('v36DropPanel').querySelector('.v36Buttons').prepend(v37FlightMapButton);
 v37FlightMapButton.addEventListener('click',()=>{$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.remove('hidden');});
 function v36Jump(){
  if(window.v36FlightMode!=='aircraft')return;
+ // Start descent with a level view rather than inheriting steep aircraft angles.
+ camPitch=clamp(camPitch,-.2,.2);cameraDX=0;cameraDY=0;
  const pos=v36Safe(v36Destination.x,v36Destination.z);
  if(v36Aircraft){scene.remove(v36Aircraft);v36Aircraft.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose();});v36Aircraft=null;}
  player.visible=true;
@@ -2129,7 +2131,7 @@ function v372RefreshSettingsContext(){
  // return-to-lobby, including aircraft and parachute phases.
  const inMatch=running;
  $('leaveMatch').classList.toggle('hidden',!inMatch);
- $('leaveMatch').textContent='⌂ SALIR DEL LOBBY DE PARTIDA';
+ $('leaveMatch').textContent='⌂ SALIR DEL OBBY';
  $('v372ExitGame').classList.toggle('hidden',inMatch);
 }
 $('menuSettings').onclick=()=>{settingsFromMenu=true;v372RefreshSettingsContext();$('pausePanel').classList.remove('hidden')};
