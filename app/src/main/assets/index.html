@@ -1077,6 +1077,48 @@ function v396ExpandAurora(){
  const accent=new THREE.MeshStandardMaterial({color:'#5ce6d2',emissive:'#127a76',emissiveIntensity:.45,roughness:.4});
  const roof=new THREE.MeshStandardMaterial({color:'#273e56',metalness:.42,roughness:.62});
  const districts=[{x:-83,z:-72,name:'HELIOS'},{x:87,z:66,name:'VÓRTEX'},{x:80,z:-91,name:'CRISTAL'},{x:-95,z:79,name:'ECOS'}];
+ // V40: shared physically based facade palette; geometry is decorative and does not change colliders.
+ const v40Concrete=new THREE.MeshStandardMaterial({color:'#8da6b2',roughness:.91,metalness:.04});
+ const v40Frame=new THREE.MeshStandardMaterial({color:'#263c4b',roughness:.47,metalness:.68});
+ const v40Glass=new THREE.MeshStandardMaterial({color:'#3d879b',roughness:.14,metalness:.54,emissive:'#0b2a38',emissiveIntensity:.18});
+ const v40Door=new THREE.MeshStandardMaterial({color:'#31434d',roughness:.64,metalness:.42});
+ const v40Snow=new THREE.MeshStandardMaterial({color:'#e1eef3',roughness:.96,metalness:0});
+ const v40Warm=new THREE.MeshStandardMaterial({color:'#d6bd83',emissive:'#68562c',emissiveIntensity:.34,roughness:.55});
+ let v40FacadePieces=0;
+ function v40Panel(parent,w,h,d,m,x,y,z){
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
+  mesh.position.set(x,y,z);mesh.castShadow=false;mesh.receiveShadow=true;parent.add(mesh);v40FacadePieces++;
+  return mesh;
+ }
+ function v40BuildingDetails(g,w,h,d){
+  // Facade entrance, recessed-looking glass and mullions; preserve original solid building footprint.
+  v40Panel(g,1.28,2.45,.11,v40Frame,0,1.225,d/2+.14);
+  v40Panel(g,.97,2.16,.12,v40Door,0,1.15,d/2+.22);
+  v40Panel(g,.07,1.82,.14,v40Warm,.36,1.16,d/2+.3);
+  for(const side of [-1,1]){
+   const wx=side*w*.31,wy=Math.min(h-1.1,3.15);
+   v40Panel(g,1.45,1.35,.12,v40Frame,wx,wy,d/2+.15);
+   v40Panel(g,1.22,1.11,.13,v40Glass,wx,wy,d/2+.22);
+   v40Panel(g,.085,1.17,.14,v40Concrete,wx,wy,d/2+.31);
+   v40Panel(g,1.45,.1,.15,v40Snow,wx,wy-.73,d/2+.25);
+   // Side elevations break the flat silhouette when viewed from the street.
+   v40Panel(g,.12,1.25,1.35,v40Frame,side*w/2+.09,wy,0);
+   v40Panel(g,.13,1.02,1.1,v40Glass,side*w/2+.16,wy,0);
+  }
+  // Parapet, stepped cornice, rooftop ventilation and antenna.
+  for(const z of [-d/2,d/2])v40Panel(g,w+.65,.45,.24,v40Concrete,0,h+.34,z);
+  for(const x of [-w/2,w/2])v40Panel(g,.24,.45,d+.65,v40Concrete,x,h+.34,0);
+  v40Panel(g,w*.48,.14,d*.34,v40Snow,0,h+.44,0);
+  v40Panel(g,1.35,.68,1.1,v40Frame,w*.2,h+.72,-d*.14);
+  const vent=new THREE.Mesh(new THREE.CylinderGeometry(.18,.22,1.05,10),v40Frame);
+  vent.position.set(-w*.24,h+.98,-d*.18);vent.castShadow=false;g.add(vent);v40FacadePieces++;
+  // Raised foundation and corner pilasters add scale and architectural hierarchy.
+  v40Panel(g,w+.22,.27,d+.22,v40Concrete,0,.12,0);
+  for(const x of [-w/2+.15,w/2-.15]){
+   v40Panel(g,.27,h-.42,.29,v40Concrete,x,h/2,d/2+.15);
+   v40Panel(g,.27,h-.42,.29,v40Concrete,x,h/2,-d/2-.15);
+  }
+ }
  let placed=0;
  function place(x,z,w,h,d,material,kind){
   if(Math.abs(x)>HALF-9||Math.abs(z)>HALF-9||Math.hypot(x,z)<21||solid(x,z,Math.max(w,d)*.58+1))return false;
@@ -1087,6 +1129,7 @@ function v396ExpandAurora(){
    const cap=new THREE.Mesh(new THREE.BoxGeometry(w+.65,.36,d+.65),roof);cap.position.y=h+.18;cap.castShadow=true;g.add(cap);
    const strip=new THREE.Mesh(new THREE.BoxGeometry(w*.62,.16,.12),accent);strip.position.set(0,h*.72,d*.5+.07);g.add(strip);
    const panel=new THREE.Mesh(new THREE.BoxGeometry(w*.34,.7,.1),frost);panel.position.set(0,h*.42,d*.5+.09);g.add(panel);
+   v40BuildingDetails(g,w,h,d);
   }else if(kind==='crate'){
    const band=new THREE.Mesh(new THREE.BoxGeometry(w+.04,.13,d+.04),frost);band.position.y=h*.72;g.add(band);
   }
@@ -1104,8 +1147,10 @@ function v396ExpandAurora(){
   }
  }
  window.v396StructuresPlaced=placed;
+ window.v40FacadePieces=v40FacadePieces;
 }
 window.THEDEMIANFF_AURORA_TEST=()=>({structures:window.v396StructuresPlaced||0,colliders:worldObjects.length});
+window.THEDEMIANFF_V40_TEST=()=>({facadePieces:window.v40FacadePieces||0,structures:window.v396StructuresPlaced||0});
 // V39.7: architectural trim and icy ground patches are purely decorative.
 // Existing V39.6 collision footprints and AI cover locations remain unchanged.
 function v397DetailAurora(){
