@@ -1197,13 +1197,18 @@ function v36Begin(){
  $('v36MapButton').classList.add('hidden');$('v36DropPanel').classList.remove('hidden');
  v36DrawMap('v36DropCanvas');
 }
+$('v37OpenDropMap').addEventListener('click',e=>{e.preventDefault();if(window.v36FlightMode!=='aircraft')return;$('v36DropPanel').classList.remove('hidden');$('v37FlightHUD').classList.add('hidden');v36DrawMap('v36DropCanvas');});
+$('v37FlightJump').addEventListener('click',e=>{e.preventDefault();v36Jump();});
+const v37FlightMapButton=document.createElement('button');v37FlightMapButton.type='button';v37FlightMapButton.id='v37FlightMapReturn';v37FlightMapButton.textContent='VOLVER A VER EL AVIÓN';
+$('v36DropPanel').querySelector('.v36Buttons').prepend(v37FlightMapButton);
+v37FlightMapButton.addEventListener('click',()=>{$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.remove('hidden');});
 function v36Jump(){
  if(window.v36FlightMode!=='aircraft')return;
  const pos=v36Safe(v36Destination.x,v36Destination.z);
  if(v36Aircraft){scene.remove(v36Aircraft);v36Aircraft.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose();});v36Aircraft=null;}
  player.visible=true;
  player.position.set(pos.x,ground(pos.x,pos.z)+85,pos.z);
- $('v36DropPanel').classList.add('hidden');
+ $('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');
  $('v36ParachuteStatus').classList.remove('hidden');
  $('v36MapButton').classList.add('hidden');
  if(mobile)$('controls').classList.remove('hidden');
