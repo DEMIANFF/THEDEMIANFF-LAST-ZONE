@@ -1072,7 +1072,7 @@ c.fillStyle='#00000020';c.fillRect(0,0,w,w);c.strokeStyle='#c3eaff';c.lineWidth=
 c.font='bold 14px sans-serif';c.fillStyle='#e8faff';c.fillText('N',w/2-5,17);
 const [x,z]=point(player.position.x,player.position.z);c.save();c.translate(x,z);c.rotate(-camYaw);c.fillStyle='#fff';c.beginPath();c.moveTo(0,7);c.lineTo(-6,-6);c.lineTo(6,-6);c.closePath();c.fill();c.restore();if(v36Waypoint){const [wx,wz]=point(v36Waypoint.x,v36Waypoint.z);c.strokeStyle='#ffaf46';c.lineWidth=3;c.beginPath();c.arc(wx,wz,6,0,Math.PI*2);c.stroke();}}
 
-window.v36FlightMode='idle';let v36Destination=null,v36Waypoint=null,v36MapPick=null,v36MapWasOpen=false,v36Chute=null;
+window.v36FlightMode='idle';let v36Destination=null,v36Waypoint=null,v36MapPick=null,v36MapWasOpen=false,v36Chute=null,v36Aircraft=null;
 function v36Safe(x,z){
  x=clamp(x,-HALF+9,HALF-9);z=clamp(z,-HALF+9,HALF-9);
  if(!solid(x,z,3))return{x,z};
