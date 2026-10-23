@@ -1753,15 +1753,24 @@ $('v381SelectMode').addEventListener('click',()=>{
  $('v38OpsStatus').textContent='MODO SELECCIONADO · INICIA DESDE EL LOBBY';
 });
 // Single immediate pointer action: no waiting for Android synthetic click.
-document.querySelectorAll('#menu [data-lobby]').forEach(button=>{
+// Single navigation router. Pointerdown provides immediate tactile response;
+// synthetic click after that pointer is deliberately ignored only for this button.
+const v383NavHandled=new WeakSet();
+document.querySelectorAll('#menu .v17Nav [data-lobby]').forEach(button=>{
+ const open=()=>{
+  if(running)return;
+  if(button.dataset.lobby==='EVENTOS')v38OpenHub('events');
+  else v18Open(button.dataset.lobby);
+ };
  button.addEventListener('pointerdown',e=>{
   if(e.pointerType!=='touch'&&e.pointerType!=='pen')return;
-  const action=button.dataset.lobby;
-  if(action==='EVENTOS'||action==='PERSONAJE'){
-   e.preventDefault();e.stopImmediatePropagation();
-   if(action==='EVENTOS')v38OpenHub('events');else v18Open('PERSONAJE');
-  }
- },true);
+  v383NavHandled.add(button);e.preventDefault();e.stopPropagation();
+  open();
+ },{capture:true,passive:false});
+ button.addEventListener('click',e=>{
+  if(v383NavHandled.has(button)){v383NavHandled.delete(button);e.preventDefault();e.stopPropagation();return;}
+  e.preventDefault();e.stopPropagation();open();
+ });
 });
 function v362ShowEvents(){v38OpenHub('events');}
 function v362HideEvents(){$('v362Events').classList.add('hidden');}
@@ -1772,9 +1781,7 @@ $('v362Events').querySelectorAll('[data-v362mode]').forEach(button=>button.addEv
  $('v18Mode').dispatchEvent(new Event('change'));v362HideEvents();
  try{start();}catch(error){v18ActiveEvent=null;v21Diagnostic('V36.2 EVENTO',error);$('menu').classList.remove('hidden');v362ShowEvents();}
 }));
-document.querySelectorAll('[data-lobby]').forEach(button=>button.addEventListener('click',()=>{
- if(button.dataset.lobby==='EVENTOS')v362ShowEvents();else v18Open(button.dataset.lobby);
-}));
+// V38.3 navigation is owned exclusively by the first-touch router above.
 // V38.1 removes the duplicate pointer-up handler; first-touch entry is handled above.
 function v18RecordMatch(win){
  const p=v18Progress;
