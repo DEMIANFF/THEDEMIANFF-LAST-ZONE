@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 39
-        versionName '34.7-combat-strafe'
+        versionCode 40
+        versionName '35.1-combat-spawn-lobby'
     }
     signingConfigs {
         persistentRelease {
