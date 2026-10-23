@@ -1755,7 +1755,7 @@ $('v381SelectMode').addEventListener('click',()=>{
 // Single immediate pointer action: no waiting for Android synthetic click.
 // Single navigation router. Pointerdown provides immediate tactile response;
 // synthetic click after that pointer is deliberately ignored only for this button.
-const v383NavHandled=new WeakSet();
+const v383NavHandled=new WeakMap();
 document.querySelectorAll('#menu .v17Nav [data-lobby]').forEach(button=>{
  const open=()=>{
   if(running)return;
@@ -1764,11 +1764,11 @@ document.querySelectorAll('#menu .v17Nav [data-lobby]').forEach(button=>{
  };
  button.addEventListener('pointerdown',e=>{
   if(e.pointerType!=='touch'&&e.pointerType!=='pen')return;
-  v383NavHandled.add(button);e.preventDefault();e.stopPropagation();
+  v383NavHandled.set(button,performance.now());e.preventDefault();e.stopPropagation();
   open();
  },{capture:true,passive:false});
  button.addEventListener('click',e=>{
-  if(v383NavHandled.has(button)){v383NavHandled.delete(button);e.preventDefault();e.stopPropagation();return;}
+  if(performance.now()-(v383NavHandled.get(button)||-1000)<350){e.preventDefault();e.stopPropagation();return;}
   e.preventDefault();e.stopPropagation();open();
  });
 });
