@@ -312,6 +312,12 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 #pausePanel:not(.hidden){z-index:121!important;position:fixed!important;inset:0!important;overflow:auto!important;touch-action:pan-y!important}
 #pausePanel .menuCard{max-height:94vh!important;overflow:auto!important}
 @media(max-width:620px){#v38Operations .v38OpsCard{width:94vw!important;max-height:78vh!important;padding:10px!important}#v38Operations .v38OpsTile{padding:9px!important}#v38Operations .v38OpsGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#v38Operations .v38OpsTile h3{font-size:12px!important}#v38Operations .v38OpsTile p{font-size:10px!important}#v38Operations .v38OpsTile strong{font-size:10px!important}}
+</style><style id="v382ADS">
+#v10Reticle.v382ADS{width:12px!important;height:12px!important;border:2px solid #aaf9dd!important;opacity:.96!important;box-shadow:0 0 0 1px #031721,0 0 12px #5edfc688!important;transition:width .13s ease,height .13s ease,opacity .13s ease!important}
+#v10Reticle.v382ADS::before,#v10Reticle.v382ADS::after{content:'';position:absolute;background:#aaf9dd;box-shadow:0 1px 3px #031721}
+#v10Reticle.v382ADS::before{width:1px;height:24px;left:4px;top:-8px}
+#v10Reticle.v382ADS::after{width:24px;height:1px;top:4px;left:-8px}
+#aimBtn.adsActive{background:#d7a458!important;border-color:#ffdb99!important;color:#142b3c!important}
 </style></head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de eventos y misiones">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
@@ -1122,7 +1128,13 @@ function reload(){
 function finish(win){if(gameOver)return;gameOver=true;const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 let moveVX=0,moveVZ=0,v14Recoil=0;
 function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);return;}v362UpdateBotsInAir(dt);flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
- if(camera){const targetFov=adsHeld?54:68;const nextFov=camera.fov+(targetFov-camera.fov)*(1-Math.exp(-dt*9));if(Math.abs(nextFov-camera.fov)>.008){camera.fov=nextFov;camera.updateProjectionMatrix();}}
+ if(camera){
+  // Zoom changes only FOV, never yaw, pitch or shoulder anchor.
+  const targetFov=adsHeld?54:68,settle=1-Math.exp(-dt*10);
+  const nextFov=camera.fov+(targetFov-camera.fov)*settle;
+  if(Math.abs(nextFov-camera.fov)>.001){camera.fov=nextFov;camera.updateProjectionMatrix();}
+  $('v10Reticle').classList.toggle('v382ADS',adsHeld);
+ }
  time+=dt;shootCooldown=Math.max(0,shootCooldown-dt);if(reloadTimer>0){
  reloadTimer-=dt;
  if(reloadTimer<=0){
@@ -2178,7 +2190,7 @@ function v123Feedback(){
  if(fireHeld)parts.push('● FUEGO');
  $('v123InputTest').textContent=parts.join('  ·  ');
  $('sprint').classList.toggle('sprintActive',sprintHeld);
- $('aimBtn').classList.toggle('adsActive',adsHeld);
+ $('aimBtn').classList.toggle('adsActive',adsHeld);$('v10Reticle').classList.toggle('v382ADS',adsHeld);
 }
 function v123ResetInputs(){
  if(v23ControlsEnabled)v23Clear();
@@ -2298,7 +2310,12 @@ function v23PointerDown(e){
  else if(role==='look'){cameraPointers.set(e.pointerId,t);if(v26LookOwner===null){v26LookOwner=e.pointerId;lookTouch=e.pointerId;}}
  else if(role==='fire'){fireTouch=e.pointerId;fireHeld=true;sprintHeld=false;$('sprint').classList.remove('sprintActive');v22FireDragging=false;v23FireThumb(t);}
  else if(role==='sprint'){sprintHeld=(fireHeld||crouchHeld)?false:!sprintHeld;$('sprint').classList.toggle('sprintActive',sprintHeld);}
- else if(role==='aimBtn'){adsHeld=!adsHeld;$('aimBtn').classList.toggle('adsActive',adsHeld);$('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':'⊕ MIRA LIBRE';}
+ else if(role==='aimBtn'){
+  adsHeld=!adsHeld;cameraDX=0;cameraDY=0;
+  $('aimBtn').classList.toggle('adsActive',adsHeld);
+  $('v10Reticle').classList.toggle('v382ADS',adsHeld);
+  $('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':'⊕ MIRA LIBRE';
+}
  else if(role==='crouchBtn'){crouchHeld=!crouchHeld;if(crouchHeld){sprintHeld=false;$('sprint').classList.remove('sprintActive');}$('crouchBtn').classList.toggle('crouchActive',crouchHeld);}
   else if(role==='jump'){crouchHeld=false;$('crouchBtn').classList.remove('crouchActive');jumpQueued=true;}
  else if(role==='heal')heal();
