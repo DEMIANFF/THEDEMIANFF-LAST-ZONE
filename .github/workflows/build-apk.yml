@@ -3,7 +3,7 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events]
+    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events]
 
 jobs:
   android:
@@ -16,7 +16,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           packages: ''
       - uses: gradle/actions/setup-gradle@v5
@@ -146,10 +146,10 @@ jobs:
           APK=app/build/outputs/apk/release/app-release.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 3
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         if: env.HAS_RELEASE_KEY == 'true'
         with:
-          name: THEDEMIANFF-V36-2-APK-RELEASE-FIRMA-PERMANENTE
+          name: THEDEMIANFF-V37-0-APK-RELEASE-FIRMA-PERMANENTE
           path: app/build/outputs/apk/release/app-release.apk
       - name: Aviso de compatibilidad de actualizaciones
         run: |
@@ -158,7 +158,7 @@ jobs:
           else
             echo "::warning::Solo se ha generado una APK de prueba con firma temporal. No sirve para actualizar instalaciones anteriores; NO desinstales una app con progreso sin exportarlo."
           fi
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         if: env.HAS_RELEASE_KEY != 'true'
         with:
           name: THEDEMIANFF-PRUEBA-NO-ACTUALIZABLE-FIRMA-TEMPORAL
