@@ -200,9 +200,11 @@ jobs:
            'data-lobby="INVENTARIO"',
            'data-lobby="ARMAS"',
            'data-lobby="PRESET"',
-           'const glideSpeed=11.8;',
+           'const glideSpeed=v398ChuteOpen?13.5:21;',
            'player.rotation.y+=turn',
-           'player.position.y-=(strength>.12?8.0:9.0)*dt;',
+           'player.position.y-=(v398ChuteOpen?(strength>.12?8.0:9.0):19.5)*dt;',
+           'const cameraRight=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);',
+           'const cameraForward=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);',
            "window.v36FlightMode==='descending'",
            "const inLobby=!running;"
           ]
