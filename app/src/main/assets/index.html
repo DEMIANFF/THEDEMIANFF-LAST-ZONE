@@ -753,6 +753,26 @@ box(.055,.11,.16,weaponTrim,gun,.14,.035,.06);
 const muzzle=cyl(.10,.10,.23,mats.gun,gun,0,.0,1.59);muzzle.rotation.x=Math.PI/2;
 const weaponEmblem=box(.15,.09,.035,weaponTrim,gun,.095,.025,.65);
 gun.userData.v38Accent=weaponEmblem;
+// V40 detailed weapon silhouette: layered handguard, barrel cooling fins,
+// angled grip and optic lens. Visual only: no changes to recoil or hit detection.
+const v40GunMetal=new THREE.MeshStandardMaterial({color:'#354957',roughness:.42,metalness:.62});
+const v40GunGrip=new THREE.MeshStandardMaterial({color:'#202c35',roughness:.85,metalness:.08});
+const v40GunGlass=new THREE.MeshStandardMaterial({color:'#5daebd',roughness:.15,metalness:.55,emissive:'#123744',emissiveIntensity:.16});
+for(const side of [-1,1]){
+ box(.075,.14,.85,v40GunMetal,gun,side*.115,.025,.77);
+ for(let j=0;j<4;j++)box(.09,.035,.09,v40GunGrip,gun,side*.14,.10,.51+j*.18);
+}
+const v40Optic=new THREE.Mesh(new THREE.CylinderGeometry(.145,.145,.34,12),v40GunMetal);
+v40Optic.rotation.x=Math.PI/2;v40Optic.position.set(0,.32,.43);gun.add(v40Optic);
+const v40Lens=new THREE.Mesh(new THREE.CircleGeometry(.116,12),v40GunGlass);
+v40Lens.position.set(0,.32,.612);gun.add(v40Lens);
+const v40Foregrip=new THREE.Mesh(new THREE.CylinderGeometry(.065,.075,.42,9),v40GunGrip);
+v40Foregrip.position.set(0,-.31,.82);v40Foregrip.rotation.x=-.16;gun.add(v40Foregrip);
+for(let j=0;j<3;j++){
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(.088,.022,6,10),v40GunMetal);
+ ring.position.set(0,0,1.26+j*.13);gun.add(ring);
+}
+gun.userData.v40WeaponDetail=true;
 box(.44,.09,.11,mats.gold,body,0,1.96,.36);
 box(.20,.24,.07,mats.dark,body,-.34,1.58,.39);
 box(.20,.24,.07,mats.dark,body,.34,1.58,.39);
