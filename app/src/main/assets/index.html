@@ -1344,7 +1344,17 @@ function v18Open(name){
    const skin=v18Skins[n];if(!skin)return;
    if(!p.unlocked.includes(n)){if(p.credits<skin.price)return;p.credits-=skin.price;p.unlocked.push(n)}p.skin=n;
   }else if(type==='weapon'){if(!weapons[n])return;p.weapon=n}
-  else if(type==='mission'){const names={first:'Completa una partida',hunter:'Consigue 10 bajas',veteran:'Completa 5 partidas',survivor:'Gana una partida'};const info=document.createElement('p');info.className='v18PanelNote';info.textContent='OBJETIVO: '+(names[index]||'Sigue jugando')+' · Las recompensas se activan al completarlo.';body.prepend(info);return;}
+  else if(type==='mission'){
+    const names={first:'Completa una partida',hunter:'Consigue 10 bajas',veteran:'Completa 5 partidas',survivor:'Gana una partida'};
+    if(!Object.prototype.hasOwnProperty.call(names,index))return;
+    const old=body.querySelector('#v361MissionDetail');if(old)old.remove();
+    const detail=document.createElement('div');detail.id='v361MissionDetail';detail.className='v18Item';
+    const title=document.createElement('b');title.textContent='OBJETIVO ACTIVO';
+    const text=document.createElement('small');text.textContent=names[index]+' · Juega una partida para avanzar. La recompensa se reclama al completar el objetivo.';
+    const play=document.createElement('button');play.type='button';play.textContent='INICIAR PARTIDA PARA AVANZAR';
+    play.addEventListener('click',()=>{$('v18Mode').value='royale';$('v18Mode').dispatchEvent(new Event('change'));v18ActiveEvent=null;panel.classList.add('hidden');try{start();}catch(error){v21Diagnostic('V36.1 MISIÓN',error);$('menu').classList.remove('hidden');}});
+    detail.append(title,text,play);body.prepend(detail);return;
+   }
    else if(type==='claim'){
    const missions={first:[p.matches,1,75],hunter:[p.kills,10,160],veteran:[p.matches,5,200],survivor:[p.wins,1,300]};
    const m=missions[index];if(!m||m[0]<m[1]||p.claimed.includes(index))return;
