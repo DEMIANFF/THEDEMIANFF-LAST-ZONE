@@ -419,7 +419,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 (()=>{'use strict';const $=id=>document.getElementById(id);if(!window.THREE){$('menu').querySelector('p').textContent='No se pudo cargar el motor 3D. Conéctate a Internet y vuelve a abrir el archivo.';return;}
 const THREE=window.THREE, mobile=matchMedia('(pointer:coarse)').matches, WORLD=340, HALF=WORLD/2, clock=new THREE.Clock();let renderer,scene,camera,player,playerModel,gunGroup,terrain,zoneRing,water,worldObjects=[],bots=[],pickups=[],effects=[],decor=[],running=false,paused=false,gameOver=false,time=0,zoneRadius=225,zoneCenter=new THREE.Vector2(0,0),zonePhase=0,zoneTick=0,kills=0,keys={},fireHeld=false,jumpQueued=false,sprintHeld=false,crouchHeld=false,reloadTimer=0,reloadWeapon=-1,shootCooldown=0,damageFlash=0,hitFlash=0,toastTime=0,footTime=0,camYaw=0,camPitch=.26,lookTouch=null,stickTouch=null,joyX=0,joyY=0,botSpawnTimer=0;let weapons=[{name:'AR-7 · ASALTO',damage:23,rate:.115,mag:30,ammo:30,reserve:180,reload:1.65,spread:.022,range:100},{name:'DMR-9 · PRECISIÓN',damage:58,rate:.52,mag:12,ammo:12,reserve:60,reload:2.15,spread:.007,range:145},{name:'SMG-4 · RÁFAGA',damage:15,rate:.072,mag:42,ammo:42,reserve:210,reload:1.35,spread:.038,range:65},{name:'ESC-12 · CORTA',damage:75,rate:.78,mag:6,ammo:6,reserve:36,reload:2.05,spread:.062,range:32},{name:'LMG-60 · APOYO',damage:20,rate:.085,mag:60,ammo:60,reserve:180,reload:2.9,spread:.034,range:105}],weaponIndex=0;let hp=100,armor=50,meds=2,vertical=0,onGround=true;const mapCanvas=$('minimap'),mctx=mapCanvas.getContext('2d');const mat=(c,r=1,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});const mats={grass:mat('#506c54'),grass2:mat('#637d55'),sand:mat('#b9a67e'),road:mat('#6b706e'),rock:mat('#697779'),trunk:mat('#635044'),leaf:mat('#365a48'),leaf2:mat('#57734b'),wall:mat('#8c9892'),roof:mat('#394954'),wood:mat('#8c7056'),dark:mat('#24313a'),blue:mat('#3e91a6'),gold:mat('#e5b56b'),red:mat('#bd5b4b'),skin:mat('#b88e6d'),pants:mat('#3b4a4c'),gun:mat('#1c252c',.4,.5),glass:mat('#84d9e7',.2,.3)};
 function rand(a,b){return a+Math.random()*(b-a)}function clamp(x,a,b){return Math.max(a,Math.min(b,x))}function h(x,z){const r=Math.hypot(x,z);const crater=2.8*Math.exp(-Math.pow((r-39)/15,2))-1.4*Math.exp(-Math.pow(r/18,2));const ridge=1.6*Math.sin(x*.025)*Math.cos(z*.038);return crater+ridge+.35*Math.sin(x*.11+z*.07)+.35*Math.cos(z*.081)}function ground(x,z){return h(x,z)}function box(w,hh,d,material,parent,x=0,y=0,z=0){const o=new THREE.Mesh(new THREE.BoxGeometry(w,hh,d),material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}function sphere(r,material,parent,x=0,y=0,z=0,segments=8){const o=new THREE.Mesh(new THREE.SphereGeometry(r,segments,6),material);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}function cyl(rt,rb,height,material,parent,x=0,y=0,z=0){const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,height,7),material);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}function solid(x,z,r){for(const o of worldObjects){const dx=x-o.x,dz=z-o.z,rr=r+o.r;if(Math.abs(dx)<rr&&Math.abs(dz)<rr&&dx*dx+dz*dz<rr*rr)return true;}return false}function safePos(min=12){for(let i=0;i<120;i++){let x=rand(-HALF+9,HALF-9),z=rand(-HALF+9,HALF-9);if((player&&Math.hypot(x-player.position.x,z-player.position.z)<min)||solid(x,z,2.2))continue;return {x,z}}return{x:rand(-35,35),z:rand(-35,35)}}
-function createWorld(){scene=new THREE.Scene();scene.background=new THREE.Color('#33566a');scene.fog=new THREE.FogExp2('#89b9c9',.0023);scene.add(new THREE.AmbientLight('#c5e5fa',0.46));v16Hemi=new THREE.HemisphereLight('#b0eeea','#405e75',1.35);scene.add(v16Hemi);const sun=new THREE.DirectionalLight('#e7edf4',1.85);sun.position.set(-72,62,42);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.normalBias=.025;sun.shadow.radius=2;sun.shadow.camera.left=-155;sun.shadow.camera.right=155;sun.shadow.camera.top=155;sun.shadow.camera.bottom=-155;sun.shadow.bias=-.0005;scene.add(sun);v16Sun=sun;let geo=new THREE.PlaneGeometry(WORLD,WORLD,120,120);geo.rotateX(-Math.PI/2);let pos=geo.attributes.position;for(let i=0;i<pos.count;i++)pos.setY(i,h(pos.getX(i),pos.getZ(i)));geo.computeVertexNormals();terrain=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:'#c5e5f3',roughness:.82,metalness:.08}));terrain.receiveShadow=true;scene.add(terrain);const sea=new THREE.Mesh(new THREE.PlaneGeometry(900,900),new THREE.MeshStandardMaterial({color:'#177fa3',metalness:.48,roughness:.18,transparent:true,opacity:.9}));sea.rotation.x=-Math.PI/2;sea.position.y=-1.8;scene.add(sea);water=sea;const coast=new THREE.Mesh(new THREE.RingGeometry(HALF-8,HALF+5,128),new THREE.MeshStandardMaterial({color:'#b2e2ee',roughness:.48}));coast.rotation.x=-Math.PI/2;coast.position.y=-.8;scene.add(coast);
+function createWorld(){scene=new THREE.Scene();scene.background=new THREE.Color('#22384f');scene.fog=new THREE.FogExp2('#6c9eb9',.0021);scene.add(new THREE.AmbientLight('#b9d6fa',0.53));v16Hemi=new THREE.HemisphereLight('#b0eeea','#405e75',1.35);scene.add(v16Hemi);const sun=new THREE.DirectionalLight('#e7edf4',1.85);sun.position.set(-72,62,42);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.normalBias=.025;sun.shadow.radius=2;sun.shadow.camera.left=-155;sun.shadow.camera.right=155;sun.shadow.camera.top=155;sun.shadow.camera.bottom=-155;sun.shadow.bias=-.0005;scene.add(sun);v16Sun=sun;let geo=new THREE.PlaneGeometry(WORLD,WORLD,120,120);geo.rotateX(-Math.PI/2);let pos=geo.attributes.position;for(let i=0;i<pos.count;i++)pos.setY(i,h(pos.getX(i),pos.getZ(i)));geo.computeVertexNormals();terrain=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:'#c1e2f0',roughness:.76,metalness:.12,flatShading:false}));terrain.receiveShadow=true;scene.add(terrain);const sea=new THREE.Mesh(new THREE.PlaneGeometry(900,900),new THREE.MeshStandardMaterial({color:'#177fa3',metalness:.48,roughness:.18,transparent:true,opacity:.9}));sea.rotation.x=-Math.PI/2;sea.position.y=-1.8;scene.add(sea);water=sea;const coast=new THREE.Mesh(new THREE.RingGeometry(HALF-8,HALF+5,128),new THREE.MeshStandardMaterial({color:'#b2e2ee',roughness:.48}));coast.rotation.x=-Math.PI/2;coast.position.y=-.8;scene.add(coast);
 // V22 Puerto Aurora: central coastal plaza, cover planters and street furniture.
 // Keep the middle navigable; register solid obstacles only for raised planters.
 function v22BuildPlaza(){
@@ -856,8 +856,10 @@ function v27AuroraTick(dt){
  for(let i=0;i<v27AuroraRibbons.length;i++){
   const ribbon=v27AuroraRibbons[i];
   ribbon.material.color.copy(color);
-  ribbon.material.opacity=.17+.13*(.5+.5*Math.sin(v27AuroraClock*.35+i));
-  ribbon.rotation.z=Math.sin(v27AuroraClock*.045+i*.8)*.07;
+  ribbon.material.opacity=.12+.16*(.5+.5*Math.sin(v27AuroraClock*.35+i));
+  ribbon.position.y+=Math.sin(v27AuroraClock*.4+i*.7)*dt*.13;
+  ribbon.rotation.z=Math.sin(v27AuroraClock*.045+i*.8)*.09;
+  ribbon.rotation.y=.18+i*.1+Math.sin(v27AuroraClock*.035+i)*.055;
  }
 }
 // Aurora V27: open-access interiors. Wall segments leave two traversable doorways.
@@ -894,12 +896,12 @@ function addWorldDetails(){
  const aurora=new THREE.Group();scene.add(aurora);
  v27AuroraRibbons=[];v27AuroraClock=0;
  // Lightweight translucent aurora curtains. Unlit, no shadow maps or texture downloads.
- for(let i=0;i<5;i++){
+ for(let i=0;i<7;i++){
   const ribbon=new THREE.Mesh(
-   new THREE.PlaneGeometry(110,18,12,1),
+   new THREE.PlaneGeometry(125,22,18,3),
    new THREE.MeshBasicMaterial({color:'#56e8c9',transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false})
   );
-  ribbon.position.set((i-2)*31,56+i*3,-90+i*14);
+  ribbon.position.set((i-3)*29,55+i*2.7,-90+i*12);
   ribbon.rotation.y=.18+i*.1;
   ribbon.renderOrder=2;aurora.add(ribbon);v27AuroraRibbons.push(ribbon);
  }
@@ -1104,6 +1106,34 @@ function v396ExpandAurora(){
  window.v396StructuresPlaced=placed;
 }
 window.THEDEMIANFF_AURORA_TEST=()=>({structures:window.v396StructuresPlaced||0,colliders:worldObjects.length});
+// V39.7: architectural trim and icy ground patches are purely decorative.
+// Existing V39.6 collision footprints and AI cover locations remain unchanged.
+function v397DetailAurora(){
+ const ice=new THREE.MeshStandardMaterial({color:'#83c8e3',metalness:.3,roughness:.27,transparent:true,opacity:.74,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
+ const snow=new THREE.MeshStandardMaterial({color:'#e6f3f7',metalness:0,roughness:.96,polygonOffset:true,polygonOffsetFactor:-2});
+ const trim=new THREE.MeshStandardMaterial({color:'#78cfd9',metalness:.65,roughness:.32,emissive:'#164f65',emissiveIntensity:.35});
+ const plateGeo=new THREE.CircleGeometry(1,9),edgeGeo=new THREE.BoxGeometry(2.6,.16,.2);
+ const patches=new THREE.InstancedMesh(plateGeo,ice,72);
+ const matrix=new THREE.Matrix4(),quat=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2),scale=new THREE.Vector3();
+ for(let i=0;i<72;i++){
+  const a=i*2.3999632297,r=28+(i*23)%122,x=Math.cos(a)*r,z=Math.sin(a)*r;
+  scale.set(2+(i%4)*.9,1.1+(i%3)*.5,1);
+  matrix.compose(new THREE.Vector3(x,ground(x,z)+.11,z),quat,scale);
+  patches.setMatrixAt(i,matrix);
+ }
+ patches.instanceMatrix.needsUpdate=true;patches.castShadow=false;scene.add(patches);
+ const districts=[[-83,-72],[87,66],[80,-91],[-95,79]];
+ let details=0;
+ for(const [x,z] of districts){
+  const g=new THREE.Group();g.position.set(x,ground(x,z)+.08,z);scene.add(g);
+  for(const [dx,dz] of [[-9,0],[9,0],[0,9],[0,-9]]){
+   const base=new THREE.Mesh(new THREE.BoxGeometry(2.9,.13,2.9),snow);base.position.set(dx,.02,dz);base.receiveShadow=true;g.add(base);
+   const edge=new THREE.Mesh(edgeGeo,trim);edge.position.set(dx,.15,dz);edge.castShadow=false;g.add(edge);details+=2;
+  }
+ }
+ window.v397VisualDetails=details+72;
+}
+window.THEDEMIANFF_VISUAL_TEST=()=>({details:window.v397VisualDetails||0,auroraCurtains:v27AuroraRibbons.length});
 // V39.4: bounded cover search on AI decision ticks, not on every frame.
 function v394FindCover(b,px,pz){
  let best=null,score=Infinity,checked=0;
@@ -1137,7 +1167,7 @@ if(scene){
  for(const geometry of geometries)geometry.dispose();
  while(scene.children.length)scene.remove(scene.children[0]);
 }
-createWorld();addWorldDetails();v396ExpandAurora();v8DecorateWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.10;v22ShoulderRig.back=NaN;v22ShoulderRig.shoulder=NaN;v22ShoulderRig.height=NaN;v22ShoulderRig.anchorY=NaN;camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
+createWorld();addWorldDetails();v396ExpandAurora();v397DetailAurora();v8DecorateWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.10;v22ShoulderRig.back=NaN;v22ShoulderRig.shoulder=NaN;v22ShoulderRig.height=NaN;v22ShoulderRig.anchorY=NaN;camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
 for(let i=2;i<weapons.length;i++){weapons[i].ammo=weapons[i].mag;weapons[i].reserve=[210,36,180][i-2];}for(let i=0;i<($('v18Mode').value==='training'?8:20);i++)spawnBot(Math.random()<.5?10:17);for(let i=0;i<55;i++){let p=safePos(5);spawnPickup(['ammo','ammo','med','armor'][i%4],p.x,p.z)}updateHud();}
 function updateHud(){
  const eventHud=$('v362EventHud');if(eventHud){eventHud.classList.toggle('hidden',!v18ActiveEvent);if(v18ActiveEvent)eventHud.textContent='EVENTO '+(v18ActiveEvent==='training'?'PRÁCTICA TÁCTICA':'SUPERVIVENCIA')+' · BAJAS '+kills+'/'+(v18ActiveEvent==='training'?2:3);}
