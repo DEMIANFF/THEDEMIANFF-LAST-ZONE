@@ -812,6 +812,7 @@ for(let i=0;i<v40Specs.length;i++){
  group.visible=i===0;group.userData.v40WeaponName=name;v40Variants.push(group);
 }
 gun.userData.v40Variants=v40Variants;
+gun.userData.v40VisualVersion='five-profiles';
 box(.44,.09,.11,mats.gold,body,0,1.96,.36);
 box(.20,.24,.07,mats.dark,body,-.34,1.58,.39);
 box(.20,.24,.07,mats.dark,body,.34,1.58,.39);
@@ -1268,14 +1269,16 @@ function v396ExpandAurora(){
  const v40DistrictNames=['HELIOS','VORTEX','CRISTAL','ECOS'];
  const v40DistrictColors=['#f2c56d','#63d7e8','#a8e4f8','#c4a5f5'];
  const v40Signs=[];
+ const v40SignCache=new Map();
  function v40SignTexture(name,color){
+  if(v40SignCache.has(name))return v40SignCache.get(name);
   const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;
   const ctx=canvas.getContext('2d');if(!ctx)return null;
   ctx.fillStyle='#122736';ctx.fillRect(0,0,512,128);
   ctx.fillStyle=color;ctx.fillRect(0,0,10,128);ctx.fillRect(0,0,512,5);
   ctx.fillStyle='#eaf5fc';ctx.font='bold 56px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText(name,256,63,460);
-  const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;
+  const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;v40SignCache.set(name,t);return t;
  }
  function v40DistrictEquipment(g,w,h,d,index){
   if(index===0){ // HELIOS: rooftop laboratory cooling stacks
@@ -1290,14 +1293,27 @@ function v396ExpandAurora(){
     m.position.set(x,h+1.52,-d*.17);g.add(m);v40FacadePieces++;
    }
    v40Panel(g,w*.58,.13,.3,v40Warm,0,h+2.58,-d*.17);
+   // Open-frame loading canopy reads as a hangar, not a stacked cuboid.
+   for(const side of [-1,1]){
+    const strut=new THREE.Mesh(new THREE.CylinderGeometry(.065,.075,2.2,8),v40Frame);
+    strut.position.set(side*w*.34,h+1.3,d*.5+.9);strut.rotation.z=side*.2;g.add(strut);v40FacadePieces++;
+   }
+   v40Panel(g,w*.83,.15,1.55,v40Frame,0,h+2.32,d*.5+.85);
   }else if(index===2){ // CRISTAL: glazed skylight
    v40Panel(g,w*.55,.17,d*.42,v40Glass,0,h+.78,0);
    for(const x of [-w*.27,0,w*.27])v40Panel(g,.09,.22,d*.45,v40Frame,x,h+.86,0);
+   // Glass gable: four-faced pavilion roof with visible triangular slopes.
+   const pavilion=new THREE.Mesh(new THREE.ConeGeometry(Math.min(w,d)*.34,1.2,4),v40Glass);
+   pavilion.rotation.y=Math.PI/4;pavilion.position.set(0,h+1.42,0);
+   pavilion.scale.set(1.25,1,.94);g.add(pavilion);v40FacadePieces++;
   }else{ // ECOS: elevated communications dish
    const dish=new THREE.Mesh(new THREE.ConeGeometry(.88,.44,16,1,true),v40Snow);
    dish.rotation.z=Math.PI;dish.position.set(0,h+1.48,0);g.add(dish);v40FacadePieces++;
    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,1.35,8),v40Frame);
    pole.position.set(0,h+.9,0);g.add(pole);v40FacadePieces++;
+   // Sloped snow-covered roof silhouette for the mountain communications station.
+   const slope=new THREE.Mesh(new THREE.ConeGeometry(Math.min(w,d)*.53,1.42,4),v40Snow);
+   slope.rotation.y=Math.PI/4;slope.position.set(0,h+1.04,0);g.add(slope);v40FacadePieces++;
   }
  }
  let v40DistrictIndex=0;
@@ -1345,9 +1361,10 @@ function v396ExpandAurora(){
  window.v40FacadePieces=v40FacadePieces;
  window.v40TextureCount=[v40MetalMap,v40ConcreteMap,v40SnowMap].filter(Boolean).length;
  window.v40DistrictSigns=v40Signs.length;
+ window.v40CachedSignTextures=v40SignCache.size;
 }
 window.THEDEMIANFF_AURORA_TEST=()=>({structures:window.v396StructuresPlaced||0,colliders:worldObjects.length});
-window.THEDEMIANFF_V40_TEST=()=>({facadePieces:window.v40FacadePieces||0,textures:window.v40TextureCount||0,signs:window.v40DistrictSigns||0,structures:window.v396StructuresPlaced||0});
+window.THEDEMIANFF_V40_TEST=()=>({facadePieces:window.v40FacadePieces||0,textures:window.v40TextureCount||0,signs:window.v40DistrictSigns||0,uniqueSigns:window.v40CachedSignTextures||0,structures:window.v396StructuresPlaced||0});
 // V39.7: architectural trim and icy ground patches are purely decorative.
 // Existing V39.6 collision footprints and AI cover locations remain unchanged.
 function v397DetailAurora(){
