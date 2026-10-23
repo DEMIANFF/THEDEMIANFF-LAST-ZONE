@@ -873,7 +873,7 @@ function reload(){
 function finish(win){if(gameOver)return;gameOver=true;const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 let moveVX=0,moveVZ=0,v14Recoil=0;
 function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
- if(camera){const targetFov=adsHeld?58:68;camera.fov+=(targetFov-camera.fov)*(1-Math.exp(-dt*9));camera.updateProjectionMatrix();}
+ if(camera){const targetFov=adsHeld?58:68;const nextFov=camera.fov+(targetFov-camera.fov)*(1-Math.exp(-dt*9));if(Math.abs(nextFov-camera.fov)>.008){camera.fov=nextFov;camera.updateProjectionMatrix();}}
  time+=dt;shootCooldown=Math.max(0,shootCooldown-dt);if(reloadTimer>0){
  reloadTimer-=dt;
  if(reloadTimer<=0){
@@ -890,7 +890,7 @@ function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather
 }// Automatic fire is evaluated after the current-frame camera orientation is applied.
 let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value));
 // Sprint is an independent toggle, but only translates the character while a movement input exists.
-const spd=sprint?10.1:6.1;
+const spd=sprint?(sprintHeld?14.5:10.1):6.1;
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
@@ -1245,13 +1245,15 @@ function v26TunePerformance(fps){
  if(fps<25){v26Performance.lowFrames++;v26Performance.highFrames=0;}
  else if(fps>48){v26Performance.highFrames++;v26Performance.lowFrames=0;}
  else {v26Performance.lowFrames=0;v26Performance.highFrames=0;}
- if(v26Performance.lowFrames>=3){v26Performance.scale=Math.max(adsHeld?.52:.65,v26Performance.scale-.1);v26Performance.lowFrames=0;v26ApplyPixelRatio();}
- if(v26Performance.highFrames>=16){v26Performance.scale=Math.min(1,v26Performance.scale+.05);v26Performance.highFrames=0;v26ApplyPixelRatio();}
+ if(v26Performance.lowFrames>=2){v26Performance.scale=Math.max(adsHeld?.48:.58,v26Performance.scale-.12);v26Performance.lowFrames=0;v26ApplyPixelRatio();}
+ if(v26Performance.highFrames>=24){v26Performance.scale=Math.min(1,v26Performance.scale+.04);v26Performance.highFrames=0;v26ApplyPixelRatio();}
 }
 function v26ApplyPixelRatio(){
  if(!renderer)return;
  const resolution=Number($('resolution').value)||.75;
- renderer.setPixelRatio(Math.min(devicePixelRatio,1.5)*resolution*v26Performance.scale);
+ const ratio=Math.max(.45,Math.min(devicePixelRatio,1.5)*resolution*v26Performance.scale);
+ if(Math.abs(renderer.getPixelRatio()-ratio)<.045)return;
+ renderer.setPixelRatio(ratio);
  renderer.setSize(innerWidth,innerHeight,false);
 }
 function frame(){
@@ -1301,7 +1303,7 @@ function aimAssistPull(dt){
  // Never let aim assistance fight a finger currently dragging the view.
  if((!fireHeld&&!adsHeld)||cameraPointers.size>0||v22FireDragging)return;
  // Avoid repeated line-of-sight scans every frame while aiming on mobile.
- if(mobile&&adsHeld&&++v342AdsFrame%3!==0)return;
+ if(mobile&&++v342AdsFrame%(adsHeld?6:3)!==0)return;
  let best=null,bestScore=Infinity;
  for(const b of bots){
   if(!b.alive)continue;
