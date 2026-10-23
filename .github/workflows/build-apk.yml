@@ -60,6 +60,9 @@ jobs:
           import re,struct,json,subprocess,tempfile
           root=Path("app/src/main/assets")
           html=(root/"index.html").read_text(encoding="utf-8")
+          # V34.1: camera look owner cannot be stolen by a moving second finger.
+          if "now-v26LastLookMove>85" in html: raise SystemExit("V34.1: cámara aún permite robo del puntero")
+          if "!v23Touches.has(v26LookOwner)" not in html: raise SystemExit("V34.1: falta control de dueño de cámara")
           # V33: prevent untrusted JSON from restoring competitive progression.
           if "const entries=v33ValidateSettingsBackup(backup)" not in html: raise SystemExit("V33: restauración no validada")
           if "format:2,type:'settings'" not in html: raise SystemExit("V33: exportación de configuraciones ausente")
@@ -146,7 +149,7 @@ jobs:
       - uses: actions/upload-artifact@v5
         if: env.HAS_RELEASE_KEY == 'true'
         with:
-          name: THEDEMIANFF-V33-APK-RELEASE-FIRMA-PERMANENTE
+          name: THEDEMIANFF-V34-1-APK-RELEASE-FIRMA-PERMANENTE
           path: app/build/outputs/apk/release/app-release.apk
       - name: Aviso de compatibilidad de actualizaciones
         run: |
