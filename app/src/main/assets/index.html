@@ -990,6 +990,20 @@ function v8DecorateWorld(){
  mesh.instanceMatrix.needsUpdate=true;
  mesh.castShadow=false;mesh.receiveShadow=false;
  scene.add(mesh);
+ // Small ice shards and snow stones: one more instanced draw call instead of hundreds.
+ const shardCount=280,shardGeo=new THREE.OctahedronGeometry(.28,0),shardMaterial=new THREE.MeshStandardMaterial({color:'#91adb8',roughness:.72,metalness:.12,flatShading:true});
+ const shardMesh=new THREE.InstancedMesh(shardGeo,shardMaterial,shardCount),shardMatrix=new THREE.Matrix4();
+ const shardQuat=new THREE.Quaternion(),shardScale=new THREE.Vector3();
+ for(let i=0;i<shardCount;i++){
+  const angle=i*2.3999632297,distance=18+(i*31)%170;
+  const x=Math.cos(angle)*distance,z=Math.sin(angle)*distance;
+  if(solid(x,z,.3)){shardScale.setScalar(.001);}
+  else shardScale.set(.3+(i%5)*.12,.18+(i%3)*.08,.42+(i%4)*.16);
+  shardQuat.setFromAxisAngle(new THREE.Vector3(0,1,0),angle);
+  shardMatrix.compose(new THREE.Vector3(x,ground(x,z)+.09,z),shardQuat,shardScale);
+  shardMesh.setMatrixAt(i,shardMatrix);
+ }
+ shardMesh.instanceMatrix.needsUpdate=true;shardMesh.castShadow=false;shardMesh.receiveShadow=false;scene.add(shardMesh);
 }
 function spawnBot(minR=17){const p=safePos(minR),c=makeCharacter(['#73604b','#59666c','#706b55','#72584e'][Math.floor(rand(0,4))],true);c.root.position.set(p.x,ground(p.x,p.z),p.z);scene.add(c.root);const roleIndex=bots.length%4;
 const role=['ASALTO','EXPLORADOR','DEFENSOR','FRANCOTIRADOR'][roleIndex];
