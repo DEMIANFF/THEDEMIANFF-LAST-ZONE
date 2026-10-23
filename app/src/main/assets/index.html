@@ -1550,10 +1550,66 @@ document.querySelectorAll('[data-v37mode]').forEach(button=>button.addEventListe
 $('v18Profile').onclick=()=>v18Open('ESTADÍSTICAS');$('v18Close').onclick=()=>$('v18Panel').classList.add('hidden');
 // Place the event dialog at the document root, above WebGL and all HUD layers.
 document.body.appendChild($('v362Events'));
-function v362ShowEvents(){
- $('v18Panel').classList.add('hidden');$('v362Events').classList.remove('hidden');
- $('v362EventStatus').textContent='EVENTOS COMPLETADOS: '+(v18Progress.eventCompletions||0)+' · Progreso guardado en el dispositivo.';
+// V38: one dependable operations hub with two independent views.
+let v38ActiveTab='events';
+const v38MissionList=[
+ {id:'first',title:'PRIMERA MISIÓN',goal:1,key:'matches',reward:75,desc:'Completa una partida'},
+ {id:'hunter',title:'CAZADOR',goal:10,key:'kills',reward:160,desc:'Consigue 10 bajas acumuladas'},
+ {id:'veteran',title:'VETERANO',goal:5,key:'matches',reward:200,desc:'Completa 5 partidas'},
+ {id:'survivor',title:'ÚLTIMO EN PIE',goal:1,key:'wins',reward:300,desc:'Gana una partida'}
+];
+function v38RenderMissions(){
+ const p=v18Progress;const target=$('v38MissionsContent');
+ target.replaceChildren();
+ for(const m of v38MissionList){
+  const count=Math.max(0,Number(p[m.key])||0),ready=count>=m.goal,claimed=Array.isArray(p.claimed)&&p.claimed.includes(m.id);
+  const article=document.createElement('article');article.className='v38OpsTile';
+  const title=document.createElement('h3');title.textContent=m.title;
+  const description=document.createElement('p');description.textContent=m.desc+' · '+Math.min(count,m.goal)+' / '+m.goal;
+  const track=document.createElement('div');track.className='v38OpsTrack';const fill=document.createElement('span');fill.style.width=Math.min(100,100*count/m.goal)+'%';track.append(fill);
+  const reward=document.createElement('strong');reward.textContent='+'+m.reward+' CRÉDITOS';
+  const button=document.createElement('button');button.type='button';button.textContent=claimed?'RECOMPENSA RECLAMADA':ready?'RECLAMAR RECOMPENSA':'JUGAR PARA AVANZAR';button.disabled=claimed;
+  button.addEventListener('click',()=>{
+   if(ready){if(!Array.isArray(p.claimed))p.claimed=[];if(p.claimed.includes(m.id))return;p.credits+=m.reward;p.claimed.push(m.id);v18Save();v38RenderMissions();$('v38OpsStatus').textContent='RECOMPENSA RECIBIDA: +'+m.reward+' CRÉDITOS';}
+   else{v18ActiveEvent=null;v38CloseHub();$('v18Mode').value='royale';$('v18Mode').dispatchEvent(new Event('change'));start();}
+  });
+  article.append(title,description,track,reward,button);target.append(article);
+ }
 }
+function v38SelectTab(tab){
+ v38ActiveTab=tab==='missions'?'missions':'events';
+ $('v38EventsView').classList.toggle('hidden',v38ActiveTab!=='events');
+ $('v38MissionsView').classList.toggle('hidden',v38ActiveTab!=='missions');
+ $('v38TabEvents').setAttribute('aria-selected',String(v38ActiveTab==='events'));
+ $('v38TabMissions').setAttribute('aria-selected',String(v38ActiveTab==='missions'));
+ if(v38ActiveTab==='missions')v38RenderMissions();
+ $('v38OpsStatus').textContent=v38ActiveTab==='events'?'DESAFÍOS COMPLETADOS: '+(Number(v18Progress.eventCompletions)||0):'PROGRESO GUARDADO LOCALMENTE';
+}
+function v38OpenHub(tab='events'){
+ if(running)return;
+ $('v18Panel').classList.add('hidden');$('v362Events').classList.add('hidden');
+ $('v38Operations').classList.remove('hidden');v38SelectTab(tab);
+}
+function v38CloseHub(){$('v38Operations').classList.add('hidden');}
+$('v38OpsClose').addEventListener('click',v38CloseHub);
+$('v38TabEvents').addEventListener('click',()=>v38SelectTab('events'));
+$('v38TabMissions').addEventListener('click',()=>v38SelectTab('missions'));
+$('v38Operations').querySelectorAll('[data-v38event]').forEach(button=>{
+ const launch=()=>{
+  if(running||$('v38Operations').classList.contains('hidden'))return;
+  const mode=button.dataset.v38event;if(!['royale','training'].includes(mode))return;
+  v18ActiveEvent=mode==='royale'?'survival':'training';
+  $('v18Mode').value=mode;$('v18Mode').dispatchEvent(new Event('change'));
+  v38CloseHub();
+  try{start();}catch(error){v18ActiveEvent=null;v21Diagnostic('V38 EVENTOS',error);v38OpenHub('events');}
+ };
+ button.addEventListener('click',launch);
+ button.addEventListener('pointerup',e=>{if(e.pointerType==='touch'){e.preventDefault();launch();}});
+});
+// Direct touch support for the top-left hub entry without relying on synthetic clicks.
+const v38OperationsEntry=document.querySelector('.v17Nav [data-lobby="EVENTOS"]');
+v38OperationsEntry.addEventListener('touchend',e=>{e.preventDefault();v38OpenHub('events');},{passive:false});
+function v362ShowEvents(){v38OpenHub('events');}
 function v362HideEvents(){$('v362Events').classList.add('hidden');}
 $('v362EventClose').addEventListener('click',v362HideEvents);
 $('v362Events').querySelectorAll('[data-v362mode]').forEach(button=>button.addEventListener('click',()=>{
