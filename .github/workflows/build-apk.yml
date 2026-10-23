@@ -86,6 +86,8 @@ jobs:
               "cached offline district signs": "v40SignCache.set(name,t)",
               "district roof variations": "v40DistrictEquipment(g,w,h,d,v40DistrictIndex)",
               "offline environmental instancing": "window.v40EnvironmentInstances=rockCount+treeCount*2",
+              "six Aurora district motif families": "window.v40DistrictMotifs=motifCounts.reduce((a,b)=>a+b,0)",
+              "district motif count exposed": "window.v40DistrictMotifTypes=motifMeshes.length",
               "camera-relative parachute": "cameraRight=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion)"
           }
           for check, marker in required_v40.items():
