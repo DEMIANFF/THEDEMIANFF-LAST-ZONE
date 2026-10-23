@@ -318,6 +318,21 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 #v10Reticle.v382ADS::before{width:1px;height:24px;left:4px;top:-8px}
 #v10Reticle.v382ADS::after{width:24px;height:1px;top:4px;left:-8px}
 #aimBtn.adsActive{background:#d7a458!important;border-color:#ffdb99!important;color:#142b3c!important}
+</style><style id="v383TouchPolish">
+/* Nav and dialogs must outrank the interactive character preview. */
+#menu .v17Left{position:absolute!important;z-index:90!important;pointer-events:auto!important}
+#menu .v17Nav{position:relative!important;z-index:91!important;pointer-events:auto!important}
+#menu .v17Nav button{position:relative!important;z-index:92!important;pointer-events:auto!important;touch-action:manipulation!important;min-height:44px!important;cursor:pointer!important;-webkit-tap-highlight-color:transparent}
+#menu .v24Hero{z-index:30!important;pointer-events:auto!important}
+#menu #v18Panel{position:absolute!important;z-index:210!important;pointer-events:auto!important;touch-action:pan-y!important}
+#menu #v18Panel.hidden{display:none!important}
+#menu #v18Panel button{min-height:44px!important;touch-action:manipulation!important}
+#menu .v17Nav button:active,#menu .v18Panel button:active{filter:brightness(1.32)!important;transform:scale(.985)}
+#v362Settings{z-index:132!important;touch-action:manipulation!important;pointer-events:auto!important;min-width:38px!important;min-height:38px!important;top:max(7px,env(safe-area-inset-top))!important;right:9px!important}
+#v36ParachuteStatus{pointer-events:none!important}
+#pausePanel:not(.hidden){z-index:190!important;position:fixed!important}
+#pausePanel #leaveMatch,#pausePanel #v372ExitGame{min-height:46px!important}
+#v38Operations .v38OpsTile button,#v38Operations .v38OpsTabs button{touch-action:manipulation!important}
 </style></head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de eventos y misiones">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
