@@ -934,7 +934,7 @@ function reload(){
 }function damage(amount,fromX,fromZ){let absorbed=Math.min(armor,amount*.55);armor-=absorbed;hp-=amount-absorbed;damageFlash=.25;if(fromX!==undefined&&player)showDmgDir(fromX,fromZ);if(hp<=0){hp=0;finish(false);}updateHud()}function showDmgDir(fx,fz){const ang=Math.atan2(fx-player.position.x,fz-player.position.z);let rel=ang-camYaw;rel=Math.atan2(Math.sin(rel),Math.cos(rel));const el=$('dmgDir');if(!el)return;el.style.transform=`translate(-50%,-50%) rotate(${rel}rad)`;el.style.opacity=.92;clearTimeout(showDmgDir.t);showDmgDir.t=setTimeout(()=>el.style.opacity=0,900);}
 function finish(win){if(gameOver)return;gameOver=true;const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 let moveVX=0,moveVZ=0,v14Recoil=0;
-function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);return;}flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
+function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);return;}v362UpdateBotsInAir(dt);flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
  if(camera){const targetFov=adsHeld?54:68;const nextFov=camera.fov+(targetFov-camera.fov)*(1-Math.exp(-dt*9));if(Math.abs(nextFov-camera.fov)>.008){camera.fov=nextFov;camera.updateProjectionMatrix();}}
  time+=dt;shootCooldown=Math.max(0,shootCooldown-dt);if(reloadTimer>0){
  reloadTimer-=dt;
@@ -1026,7 +1026,7 @@ playerModel.gun.position.y=1.45-v14Recoil*.045;
  v22AnimateLila(dt);
 $('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':fireHeld?'◉ MIRA DE COMBATE':'⊕ MIRA LIBRE';
 zoneTick+=dt;if($('v18Mode').value!=='training'&&zoneTick>45){zoneTick=0;zonePhase++;zoneCenter.x=clamp(zoneCenter.x+rand(-12,12),-40,40);zoneCenter.y=clamp(zoneCenter.y+rand(-12,12),-40,40);toast('⚠ LA ZONA SE ESTÁ CERRANDO');v9Event('⚠ NUEVA ZONA DE COMBATE')}const targetRadius=$('v18Mode').value==='training'?225:Math.max(13,225*Math.pow(.75,zonePhase+clamp(zoneTick/45,0,1)));zoneRadius+=(targetRadius-zoneRadius)*Math.min(1,dt*1.8);zoneRing.position.set(zoneCenter.x,ground(zoneCenter.x,zoneCenter.y)+.25,zoneCenter.y);zoneRing.scale.set(zoneRadius,zoneRadius,zoneRadius);if(Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y)>zoneRadius){damageFlash=Math.max(damageFlash,.05);hp-=dt*(2.5+zonePhase*.9);if(hp<=0){hp=0;finish(false);}}
-for(const b of bots){if(!b.alive)continue;const px=player.position.x-b.x,pz=player.position.z-b.z,d=Math.hypot(px,pz);
+for(const b of bots){if(!b.alive||b.airborne)continue;const px=player.position.x-b.x,pz=player.position.z-b.z,d=Math.hypot(px,pz);
 const visible=d<58&&!blocked3D(b.x,ground(b.x,b.z)+1.55,b.z,player.position.x,ground(player.position.x,player.position.z)+(crouchHeld?.95:1.55),player.position.z);
 b.think-=dt;b.shoot-=dt;b.lastHit=Math.max(0,b.lastHit-dt);
 b.alert=clamp(b.alert+(visible?dt*2:-dt*.45),0,1);
@@ -1171,7 +1171,7 @@ function v36Jump(){
   const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a*.14,2,0),new THREE.Vector3(a,6,-.6)]),new THREE.LineBasicMaterial({color:'#f2f3eb'}));
   v36Chute.add(line);
  }
- player.add(v36Chute);clock.getDelta();
+ player.add(v36Chute);v362DeployBots();clock.getDelta();
 }
 
 // Lightweight AI deployment uses the existing operators, not new CPU-heavy agents.
@@ -1199,7 +1199,7 @@ function v362UpdateBotsInAir(dt){
  }
 }
 function v36StepFlight(dt){
- flushCamera(dt);
+ v362UpdateBotsInAir(dt);flushCamera(dt);
  const dx=-joyX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=joyX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
  const nx=clamp(player.position.x+dx*7*dt,-HALF+9,HALF-9);
  const nz=clamp(player.position.z+dz*7*dt,-HALF+9,HALF-9);
