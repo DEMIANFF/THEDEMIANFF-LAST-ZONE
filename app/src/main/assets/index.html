@@ -890,7 +890,7 @@ function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather
 }// Automatic fire is evaluated after the current-frame camera orientation is applied.
 let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value));
 // Sprint is an independent toggle, but only translates the character while a movement input exists.
-const spd=sprint?(sprintHeld?14.5:10.1):6.1;
+const spd=sprint?14.5:6.1;
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
@@ -1303,7 +1303,7 @@ function aimAssistPull(dt){
  // Never let aim assistance fight a finger currently dragging the view.
  if((!fireHeld&&!adsHeld)||cameraPointers.size>0||v22FireDragging)return;
  // Avoid repeated line-of-sight scans every frame while aiming on mobile.
- if(mobile&&++v342AdsFrame%(adsHeld?6:3)!==0)return;
+ if(mobile&&++v342AdsFrame%(adsHeld?12:6)!==0)return;
  let best=null,bestScore=Infinity;
  for(const b of bots){
   if(!b.alive)continue;
