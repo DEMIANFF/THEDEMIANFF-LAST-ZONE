@@ -304,7 +304,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 #v381SelectMode{background:#bb9051!important;color:#0a2030!important}
 #menu .v17Nav,#menu .v17Nav button{z-index:4!important}
 #menu #v18Panel{z-index:190!important}
-#menu .v24Hero{z-index:30!important}
+#menu .v24Hero{z-index:30!important;pointer-events:auto!important;touch-action:none!important}
 #menu .v24HeroCaption{pointer-events:none!important}
 #v24LobbyStage{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;z-index:3!important;pointer-events:auto!important}
 #v24LobbyStage canvas{width:100%!important;height:100%!important;pointer-events:auto!important}
@@ -1678,6 +1678,7 @@ function v38SelectTab(tab){
  $('v38MissionsView').classList.toggle('hidden',v38ActiveTab!=='missions');
  $('v38TabEvents').setAttribute('aria-selected',String(v38ActiveTab==='events'));
  $('v38TabMissions').setAttribute('aria-selected',String(v38ActiveTab==='missions'));
+ $('v381EventDetail').classList.add('hidden');
  if(v38ActiveTab==='missions')v38RenderMissions();
  $('v38OpsStatus').textContent=v38ActiveTab==='events'?'DESAFÍOS COMPLETADOS: '+(Number(v18Progress.eventCompletions)||0):'PROGRESO GUARDADO LOCALMENTE';
 }
@@ -1686,25 +1687,47 @@ function v38OpenHub(tab='events'){
  $('v18Panel').classList.add('hidden');$('v362Events').classList.add('hidden');
  $('v38Operations').classList.remove('hidden');v38SelectTab(tab);
 }
-function v38CloseHub(){$('v38Operations').classList.add('hidden');}
+function v38CloseHub(){$('v38Operations').classList.add('hidden');$('v381EventDetail').classList.add('hidden');}
 $('v38OpsClose').addEventListener('click',v38CloseHub);
 $('v38TabEvents').addEventListener('click',()=>v38SelectTab('events'));
 $('v38TabMissions').addEventListener('click',()=>v38SelectTab('missions'));
-$('v38Operations').querySelectorAll('[data-v38event]').forEach(button=>{
- const launch=()=>{
-  if(running||$('v38Operations').classList.contains('hidden'))return;
-  const mode=button.dataset.v38event;if(!['royale','training'].includes(mode))return;
-  v18ActiveEvent=mode==='royale'?'survival':'training';
-  $('v18Mode').value=mode;$('v18Mode').dispatchEvent(new Event('change'));
-  v38CloseHub();
-  try{start();}catch(error){v18ActiveEvent=null;v21Diagnostic('V38 EVENTOS',error);v38OpenHub('events');}
- };
- button.addEventListener('click',launch);
- button.addEventListener('pointerup',e=>{if(e.pointerType==='touch'){e.preventDefault();launch();}});
+// Event browsing must never call start(). Selection only updates lobby mode.
+let v381SelectedEvent=null;
+function v381ShowEventDetails(mode){
+ if(!['royale','training'].includes(mode))return;
+ v381SelectedEvent=mode;
+ const training=mode==='training';
+ $('v381DetailTitle').textContent=training?'ENTRENAMIENTO TÁCTICO':'SUPERVIVENCIA DE ÉLITE';
+ $('v381DetailDescription').textContent=training?'OBJETIVO: 2 bajas contra 8 IA. Elige el modo cuando quieras; la partida únicamente comienza al pulsar INICIAR desde el lobby.':'OBJETIVO: 3 bajas contra 20 IA. Consulta el desafío y vuelve al lobby antes de empezar una partida.';
+ $('v381DetailReward').textContent=training?'+80 XP · +80 CRÉDITOS':'+120 XP · +120 CRÉDITOS';
+ $('v38EventsView').classList.add('hidden');
+ $('v381EventDetail').classList.remove('hidden');
+ $('v38OpsStatus').textContent='VISTA INFORMATIVA · NO INICIA PARTIDAS';
+}
+$('v38Operations').querySelectorAll('[data-v38event]').forEach(button=>button.addEventListener('click',()=>v381ShowEventDetails(button.dataset.v38event)));
+$('v381DetailClose').addEventListener('click',()=>{
+ $('v381EventDetail').classList.add('hidden');
+ if(v38ActiveTab==='events')$('v38EventsView').classList.remove('hidden');
 });
-// Direct touch support for the top-left hub entry without relying on synthetic clicks.
-const v38OperationsEntry=document.querySelector('.v17Nav [data-lobby="EVENTOS"]');
-v38OperationsEntry.addEventListener('touchend',e=>{e.preventDefault();v38OpenHub('events');},{passive:false});
+$('v381SelectMode').addEventListener('click',()=>{
+ const mode=v381SelectedEvent;if(!['royale','training'].includes(mode))return;
+ // Keep event reward eligibility when player later taps lobby START.
+ v18ActiveEvent=mode==='royale'?'survival':'training';
+ $('v18Mode').value=mode;$('v18Mode').dispatchEvent(new Event('change'));
+ v38CloseHub();
+ $('v38OpsStatus').textContent='MODO SELECCIONADO · INICIA DESDE EL LOBBY';
+});
+// Single immediate pointer action: no waiting for Android synthetic click.
+document.querySelectorAll('#menu [data-lobby]').forEach(button=>{
+ button.addEventListener('pointerdown',e=>{
+  if(e.pointerType!=='touch'&&e.pointerType!=='pen')return;
+  const action=button.dataset.lobby;
+  if(action==='EVENTOS'||action==='PERSONAJE'){
+   e.preventDefault();e.stopImmediatePropagation();
+   if(action==='EVENTOS')v38OpenHub('events');else v18Open('PERSONAJE');
+  }
+ },true);
+});
 function v362ShowEvents(){v38OpenHub('events');}
 function v362HideEvents(){$('v362Events').classList.add('hidden');}
 $('v362EventClose').addEventListener('click',v362HideEvents);
