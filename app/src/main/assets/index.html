@@ -1442,7 +1442,7 @@ function v18Open(name){
   const [type,index]=b.dataset.v18.split(':');const n=Number(index);
   if(type==='preset-save'){if(!Number.isInteger(n)||n<0||n>2)return;p.presets??=[null,null,null];p.presets[n]={skin:p.skin,weapon:p.weapon};v18Save();v18Open('PRESET');return;}
    if(type==='preset-load'){if(!Number.isInteger(n)||!p.presets?.[n])return;const set=p.presets[n];p.skin=set.skin;p.weapon=set.weapon;v18Save();v24RefreshLobbyCharacter();v18Open('PRESET');return;}
-   if(type==='event'){if(index!=='royale'&&index!=='training')return;v18ActiveEvent=index==='royale'?'survival':'training';$('v18Mode').value=index;$('v18Mode').dispatchEvent(new Event('change'));$('v18Panel').classList.add('hidden');try{start();}catch(error){v21Diagnostic('V36.1 EVENTO',error);$('menu').classList.remove('hidden');}return;}
+   if(type==='event'){v362ShowEvents();return;}
    if(type==='skin'){
    const skin=v18Skins[n];if(!skin)return;
    if(!p.unlocked.includes(n)){if(p.credits<skin.price)return;p.credits-=skin.price;p.unlocked.push(n)}p.skin=n;
@@ -1468,6 +1468,16 @@ function v18Open(name){
 }
 v18Refresh();
 $('v18Mode').addEventListener('change',()=>{$('v18ModeLabel').textContent=$('v18Mode').value==='training'?'ENTRENAMIENTO':'SUPERVIVENCIA'});
+$('v37ModeClose').addEventListener('click',()=> $('v37ModeOverlay').classList.add('hidden'));
+const v37ModeTrigger=document.querySelector('.v17Mode');
+v37ModeTrigger.setAttribute('role','button');v37ModeTrigger.setAttribute('tabindex','0');
+v37ModeTrigger.addEventListener('click',()=> $('v37ModeOverlay').classList.remove('hidden'));
+v37ModeTrigger.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('v37ModeOverlay').classList.remove('hidden')}});
+document.querySelectorAll('[data-v37mode]').forEach(button=>button.addEventListener('click',()=>{
+ const mode=button.dataset.v37mode;if(!['royale','training'].includes(mode))return;
+ $('v18Mode').value=mode;$('v18Mode').dispatchEvent(new Event('change'));$('v37ModeOverlay').classList.add('hidden');
+}));
+
 $('v18Profile').onclick=()=>v18Open('ESTADÍSTICAS');$('v18Close').onclick=()=>$('v18Panel').classList.add('hidden');
 function v362ShowEvents(){
  $('v18Panel').classList.add('hidden');$('v362Events').classList.remove('hidden');
