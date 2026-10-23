@@ -377,7 +377,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 <label>Arrastrar botón de disparo para apuntar <input id="dragFire" type="checkbox" checked></label>
 <label class="v37Primary">SENSIBILIDAD DE DISPARO <input id="fireSensitivity" type="range" min=".35" max="2.5" step=".05" value="1.10"></label>
 <label class="v37Advanced">Estabilidad al arrastrar DISPARO <input id="fireStability" type="range" min="0" max=".85" step=".05" value=".30"></label>
-<label class="v37Primary">SENSIBILIDAD CON LAS MIRAS <input id="adsSensitivity" type="range" min=".65" max="2.2" step=".05" value="1.25"></label>
+<label class="v37Primary">SENSIBILIDAD CON LAS MIRAS · ADS <input id="adsSensitivity" type="range" min=".55" max="2.2" step=".05" value=".90"></label>
 <label>Correr al llevar joystick al máximo <input id="autoSprintStick" type="checkbox" checked></label>
 <label class="v37Advanced">Umbral para correr <input id="sprintThreshold" type="range" min=".65" max="1" step=".05" value=".9"></label>
 <label>Correr siempre <input id="alwaysSprint" type="checkbox"></label>
@@ -1198,15 +1198,21 @@ v22ShoulderRig.height+=(height-v22ShoulderRig.height)*rigEase;
 if(!Number.isFinite(v22ShoulderRig.anchorY))v22ShoulderRig.anchorY=player.position.y;
 const anchorGoal=onGround?ground(player.position.x,player.position.z):player.position.y;
 const v26CameraSmooth=clamp(Number($('cameraSmooth').value)||0,0,.8);
-const anchorSpeed=onGround?2.2:4.5;
-v22ShoulderRig.anchorY+=(anchorGoal-v22ShoulderRig.anchorY)*(1-Math.exp(-dt*anchorSpeed*(1-.45*v26CameraSmooth)));
+// ADS must settle its terrain anchor promptly, without a drifting follow tail.
+const anchorSpeed=onGround?(adsHeld?5.5:2.2):4.5;
+const anchorDelta=anchorGoal-v22ShoulderRig.anchorY;
+if(Math.abs(anchorDelta)>.012)
+ v22ShoulderRig.anchorY+=anchorDelta*(1-Math.exp(-dt*anchorSpeed*(1-.45*v26CameraSmooth)));
+
 const target=new THREE.Vector3(player.position.x+Math.cos(camYaw)*v22ShoulderRig.shoulder-Math.sin(camYaw)*v22ShoulderRig.back,v22ShoulderRig.anchorY+v22ShoulderRig.height,player.position.z-Math.sin(camYaw)*v22ShoulderRig.shoulder-Math.cos(camYaw)*v22ShoulderRig.back);
 // The camera must not lag behind rapid swipes or oscillate around the player.
 // Follow horizontal motion immediately; soften terrain-induced vertical oscillation.
 camera.position.x=target.x;
 camera.position.z=target.z;
 // Follow terrain elevation without abrupt downward camera snaps.
-camera.position.y+=(target.y-camera.position.y)*(1-Math.exp(-dt*4.5*(1-.5*v26CameraSmooth)));
+const cameraAltitudeDelta=target.y-camera.position.y;
+if(Math.abs(cameraAltitudeDelta)>.012)
+ camera.position.y+=cameraAltitudeDelta*(1-Math.exp(-dt*(adsHeld?7:4.5)*(1-.5*v26CameraSmooth)));
 const aimForward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
 camera.lookAt(camera.position.clone().addScaledVector(aimForward,100));
 // Fire after the camera has been aimed this frame, avoiding one-frame stale shots.
@@ -2051,7 +2057,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!
 const PREF_KEY='thedemianff-lastzone-v7';
 const CAMERA_TUNING_KEY='thedemianff-v131-camera-migration';
 const prefIds=['quality','resolution','showFps','soundEffects','ambientSound','dynamicWeather','weatherIntensity','masterVolume','ambientVolume','shadows','combatFx','sensitivity','verticalSensitivity','invertY','aimAssist','autoFire','alwaysSprint','vibration','joystickSize','buttonSize','hudOpacity','leftHanded','edgeSpacing','invertStickX','invertStickY','deadzone','cameraSmooth','cameraSpeed','joystickCurve','moveAcceleration','moveSmooth','batterySaver','dragFire','fireSensitivity','fireStability','adsSensitivity','autoSprintStick','sprintThreshold'];
-const defaults={quality:'1',resolution:'1',showFps:false,soundEffects:true,ambientSound:true,dynamicWeather:true,weatherIntensity:'.5',masterVolume:'.70',ambientVolume:'.38',shadows:true,combatFx:true,batterySaver:false,sensitivity:'1.25',verticalSensitivity:'1.2',invertY:false,aimAssist:true,autoFire:false,alwaysSprint:false,vibration:true,joystickSize:'110',buttonSize:'49',hudOpacity:'.9',leftHanded:false,edgeSpacing:'20',invertStickX:false,invertStickY:false,deadzone:'.08',cameraSmooth:'.16',cameraSpeed:'1',joystickCurve:'dynamic',moveAcceleration:'16',moveSmooth:'.25',dragFire:true,fireSensitivity:'1.10',fireStability:'.30',adsSensitivity:'1.25',autoSprintStick:true,sprintThreshold:'.9'};
+const defaults={quality:'1',resolution:'1',showFps:false,soundEffects:true,ambientSound:true,dynamicWeather:true,weatherIntensity:'.5',masterVolume:'.70',ambientVolume:'.38',shadows:true,combatFx:true,batterySaver:false,sensitivity:'1.25',verticalSensitivity:'1.2',invertY:false,aimAssist:true,autoFire:false,alwaysSprint:false,vibration:true,joystickSize:'110',buttonSize:'49',hudOpacity:'.9',leftHanded:false,edgeSpacing:'20',invertStickX:false,invertStickY:false,deadzone:'.08',cameraSmooth:'.16',cameraSpeed:'1',joystickCurve:'dynamic',moveAcceleration:'16',moveSmooth:'.25',dragFire:true,fireSensitivity:'1.10',fireStability:'.30',adsSensitivity:'.90',autoSprintStick:true,sprintThreshold:'.9'};
 function readPrefs(){try{
  const p={...defaults,...JSON.parse(localStorage.getItem(PREF_KEY)||'{}')};
  if(!localStorage.getItem(CAMERA_TUNING_KEY)){
