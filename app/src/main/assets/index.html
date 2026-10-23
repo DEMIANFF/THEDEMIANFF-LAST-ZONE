@@ -1147,7 +1147,7 @@ function reload(){
 }function damage(amount,fromX,fromZ){let absorbed=Math.min(armor,amount*.55);armor-=absorbed;hp-=amount-absorbed;damageFlash=.25;if(fromX!==undefined&&player)showDmgDir(fromX,fromZ);if(hp<=0){hp=0;finish(false);}updateHud()}function showDmgDir(fx,fz){const ang=Math.atan2(fx-player.position.x,fz-player.position.z);let rel=ang-camYaw;rel=Math.atan2(Math.sin(rel),Math.cos(rel));const el=$('dmgDir');if(!el)return;el.style.transform=`translate(-50%,-50%) rotate(${rel}rad)`;el.style.opacity=.92;clearTimeout(showDmgDir.t);showDmgDir.t=setTimeout(()=>el.style.opacity=0,900);}
 function finish(win){if(gameOver)return;gameOver=true;const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 let moveVX=0,moveVZ=0,v14Recoil=0;
-function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);return;}v362UpdateBotsInAir(dt);flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
+function update(dt){if(window.v36FlightMode==='descending'){if($('pausePanel').classList.contains('hidden'))v36StepFlight(dt);return;}v362UpdateBotsInAir(dt);flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
  if(camera){
   // Zoom changes only FOV, never yaw, pitch or shoulder anchor.
   const targetFov=adsHeld?54:68,settle=1-Math.exp(-dt*10);
@@ -1484,7 +1484,10 @@ function v36StepFlight(dt){
   $('v36ParachuteStatus').textContent='🪂 DESCENSO · '+Math.ceil(player.position.y-floor)+' m · JOYSTICK PARA DIRIGIR';
   const d=Number($('v26CameraDistance').value);
   camera.position.set(player.position.x-Math.sin(camYaw)*d,player.position.y+9,player.position.z-Math.cos(camYaw)*d);
-  const viewDirection=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));camera.lookAt(camera.position.clone().addScaledVector(viewDirection,60));
+  // Keep horizon level while gliding: yaw steers view, no automatic downward tilt.
+  const safePitch=clamp(camPitch,-.35,.55);
+  const viewDirection=new THREE.Vector3(Math.sin(camYaw)*Math.cos(safePitch),-Math.sin(safePitch),Math.cos(camYaw)*Math.cos(safePitch));
+  camera.lookAt(camera.position.clone().addScaledVector(viewDirection,60));
  }
 }
 function v36ChoosePoint(e,id){
@@ -1880,14 +1883,15 @@ function start(){unlockAudio();v123ResetInputs();if(!renderer){renderer=new THRE
 $('v362Settings').addEventListener('click',e=>{
  e.preventDefault();e.stopPropagation();
  if(!running)return;
- if(window.v36FlightMode==='aircraft'){
-  settingsFromMenu=true;
-  v372RefreshSettingsContext();
-  $('pausePanel').classList.remove('hidden');
+ if(!$('pausePanel').classList.contains('hidden')){
+  settingsFromMenu=false;$('pausePanel').classList.add('hidden');
+  if(window.v36FlightMode==='landed'&&paused)resume();
   return;
  }
- if(paused&&window.v36FlightMode==='landed')resume();
- else if(window.v36FlightMode==='landed')pause();
+ if(window.v36FlightMode==='landed'){pause();return;}
+ settingsFromMenu=true;
+ v372RefreshSettingsContext();
+ $('pausePanel').classList.remove('hidden');
 });
 function resize(){if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);v26ApplyPixelRatio();}// V21: show runtime errors on Android instead of silently freezing on a black screen.
 let v21LastError='';
@@ -2017,7 +2021,7 @@ function flushCamera(dt){
  if(dx!==0||dy!==0)applyAim(dx,dy);
 }function pause(){if(!running||window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')return;if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);v123ResetInputs();$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');settingsFromMenu=false;paused=true;v372RefreshSettingsContext();fireHeld=false;fireTouch=null;adsHeld=false;sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)';$('pausePanel').classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();}function resume(){clock.getDelta();paused=false;$('pausePanel').classList.add('hidden');if(!mobile)renderer.domElement.requestPointerLock?.();}
 function v23LeaveMatch(){
- if(!running||!paused)return;
+ if(!running)return;
  if(!window.confirm('¿Abandonar la partida y volver al lobby?'))return;
  v123ResetInputs();running=false;paused=false;gameOver=true;
  fireHeld=false;adsHeld=false;sprintHeld=false;keys={};
@@ -2121,8 +2125,12 @@ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{
 });
 let settingsFromMenu=false;
 function v372RefreshSettingsContext(){
- $('leaveMatch').classList.toggle('hidden',!running||!paused||window.v36FlightMode!=='landed');
- $('v372ExitGame').classList.remove('hidden');
+ // App exit belongs exclusively to the lobby; active matches always show
+ // return-to-lobby, including aircraft and parachute phases.
+ const inMatch=running;
+ $('leaveMatch').classList.toggle('hidden',!inMatch);
+ $('leaveMatch').textContent='⌂ SALIR DEL LOBBY DE PARTIDA';
+ $('v372ExitGame').classList.toggle('hidden',inMatch);
 }
 $('menuSettings').onclick=()=>{settingsFromMenu=true;v372RefreshSettingsContext();$('pausePanel').classList.remove('hidden')};
 $('v372ExitGame').onclick=()=>{
