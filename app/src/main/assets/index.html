@@ -1171,7 +1171,7 @@ let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Numbe
  if(sprintHeld&&mag<.01&&!fireHeld){mz=1;mag=1;}
  // V34.7: sprint cancels upon firing. Combat movement keeps the joystick live
  // so players can strafe and dodge without the full running pace.
- const spd=crouchHeld?3.0:fireHeld?6.1:sprint?14.5:6.1; // V38.6: restored original 6.1 walking / 14.5 running.
+ const spd=crouchHeld?3.0:fireHeld?6.8:sprint?14.5:6.8; // V38.7: walk 6.8, sprint unchanged 14.5.
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
@@ -1452,8 +1452,10 @@ function v36StepFlight(dt){
  v362UpdateBotsInAir(dt);flushCamera(dt);
  // V38.3 parachute steering matches the camera-relative grounded joystick.
  // Horizontal travel is intentionally generous; descent slower for accurate landing.
- // V38.6: match the ground camera-space basis. Camera right at yaw=0 is world -X.
- const dx=-joyX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=joyX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
+ // V38.7: flight camera faces +Z, so rightward stick input must move toward camera-right (-world X at yaw 0).
+ // Apply horizontal axis exactly once, including the user's inversion preference.
+ const flightX=joyX*($('invertStickX').checked?-1:1);
+ const dx=flightX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=-flightX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
  const strength=Math.min(1,Math.hypot(joyX,joyY));
  const glideSpeed=11.8;
  const nx=clamp(player.position.x+dx*glideSpeed*dt,-HALF+9,HALF-9);
