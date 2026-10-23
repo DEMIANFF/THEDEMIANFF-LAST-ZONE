@@ -3,7 +3,7 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd]
+    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera]
 
 jobs:
   android:
@@ -113,7 +113,7 @@ jobs:
           for element in ids:
               count=len(re.findall(r'id="'+re.escape(element)+r'"',html))
               if count!=1: raise SystemExit(f'ID de interfaz ausente o duplicado: {element} ({count})')
-          required=['function v362ShowEvents()','v372EventEntry.addEventListener','function v36TickAircraft(dt)','v372PlaneTouch','function v372FlightMap()','THEDEMIANFFGame.exitGame()']
+          required=['function v362ShowEvents()','document.querySelectorAll('#menu [data-lobby]')','function v36TickAircraft(dt)','v372PlaneTouch','function v372FlightMap()','THEDEMIANFFGame.exitGame()']
           for marker in required:
               if marker not in html: raise SystemExit('Control crítico no conectado: '+marker)
           if 'id="v37OpenDropMap"' in html: raise SystemExit('Regresión: botón MAPA redundante reapareció')
@@ -137,11 +137,29 @@ jobs:
           for ident in ids:
               count=len(re.findall(r'id="'+re.escape(ident)+r'"',html))
               if count!=1: raise SystemExit(f'Interfaz faltante o duplicada: {ident} = {count}')
-          required=['function v38OpenHub(','function v38SelectTab(','function v38RenderMissions(','v38OperationsEntry.addEventListener','v38LobbyTouch.addEventListener','function v38FhdRatio()','function v38NoiseBurst(']
+          required=['function v38OpenHub(','function v38SelectTab(','function v38RenderMissions(','function v381ShowEventDetails(mode)','v38LobbyTouch.addEventListener','function v38FhdRatio()','function v38NoiseBurst(']
           for item in required:
               if item not in html: raise SystemExit('Control o función ausente: '+item)
           if html.count('data-v38event=')!=2: raise SystemExit('Se esperaban dos desafíos activos')
           print('V38 verificaciones estáticas: OK')
+          PY
+      - name: V38.1 comprobar consulta de eventos sin auto-inicio
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          for ident in ('v381EventDetail','v381SelectMode','v381DetailClose','v38Operations','v24LobbyStage'):
+              count=len(re.findall(r'id="'+ident+r'"',html))
+              if count!=1: raise SystemExit('Interfaz incorrecta: '+ident)
+          required=('v381ShowEventDetails(button.dataset.v38event)','document.querySelectorAll(\'#menu [data-lobby]\')',
+                    '#menu .v24Hero{z-index:30!important;pointer-events:auto!important',
+                    "window.v36FlightMode==='aircraft'",'v372RefreshSettingsContext()')
+          for token in required:
+              if token not in html: raise SystemExit('Falta función o control: '+token)
+          section=html[html.index("$('v38Operations').querySelectorAll('[data-v38event]')"):html.index("// Single immediate pointer action")]
+          if 'start()' in section: raise SystemExit('Eventos no deben iniciar partidas')
+          print('V38.1 interacciones estáticas OK')
           PY
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
@@ -189,7 +207,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: env.HAS_RELEASE_KEY == 'true'
         with:
-          name: THEDEMIANFF-V38-0-APK-RELEASE-FIRMA-PERMANENTE
+          name: THEDEMIANFF-V38-1-APK-RELEASE-FIRMA-PERMANENTE
           path: app/build/outputs/apk/release/app-release.apk
       - name: Aviso de compatibilidad de actualizaciones
         run: |
