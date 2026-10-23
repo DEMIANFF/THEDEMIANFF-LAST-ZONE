@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 60
-        versionName '39.3-impact-feedback-enemy-reaction'
+        versionCode 61
+        versionName '39.4-tactical-cover-ai'
     }
     signingConfigs {
         persistentRelease {
