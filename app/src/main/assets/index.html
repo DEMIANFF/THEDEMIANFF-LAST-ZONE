@@ -1165,13 +1165,13 @@ function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);re
   }
  }
 }// Automatic fire is evaluated after the current-frame camera orientation is applied.
-let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value));
+let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=!!(keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked); // V38.6: running requires an explicit sprint input.
 // Sprint is an independent toggle, but only translates the character while a movement input exists.
 // Tapping SPRINT starts forward auto-run immediately; joystick input takes priority.
  if(sprintHeld&&mag<.01&&!fireHeld){mz=1;mag=1;}
  // V34.7: sprint cancels upon firing. Combat movement keeps the joystick live
  // so players can strafe and dodge without the full running pace.
- const spd=crouchHeld?3.0:fireHeld?6.1:sprint?14.5:6.1;
+ const spd=crouchHeld?3.0:fireHeld?6.1:sprint?14.5:6.1; // V38.6: restored original 6.1 walking / 14.5 running.
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
@@ -1452,6 +1452,7 @@ function v36StepFlight(dt){
  v362UpdateBotsInAir(dt);flushCamera(dt);
  // V38.3 parachute steering matches the camera-relative grounded joystick.
  // Horizontal travel is intentionally generous; descent slower for accurate landing.
+ // V38.6: match the ground camera-space basis. Camera right at yaw=0 is world -X.
  const dx=-joyX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=joyX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
  const strength=Math.min(1,Math.hypot(joyX,joyY));
  const glideSpeed=11.8;
@@ -2090,7 +2091,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!
 const PREF_KEY='thedemianff-lastzone-v7';
 const CAMERA_TUNING_KEY='thedemianff-v131-camera-migration';
 const prefIds=['quality','resolution','showFps','soundEffects','ambientSound','dynamicWeather','weatherIntensity','masterVolume','ambientVolume','shadows','combatFx','sensitivity','verticalSensitivity','invertY','aimAssist','autoFire','alwaysSprint','vibration','joystickSize','buttonSize','hudOpacity','leftHanded','edgeSpacing','invertStickX','invertStickY','deadzone','cameraSmooth','cameraSpeed','joystickCurve','moveAcceleration','moveSmooth','batterySaver','dragFire','fireSensitivity','fireStability','adsSensitivity','autoSprintStick','sprintThreshold'];
-const defaults={quality:'1',resolution:'1',showFps:false,soundEffects:true,ambientSound:true,dynamicWeather:true,weatherIntensity:'.5',masterVolume:'.70',ambientVolume:'.38',shadows:true,combatFx:true,batterySaver:false,sensitivity:'1.25',verticalSensitivity:'1.2',invertY:false,aimAssist:true,autoFire:false,alwaysSprint:false,vibration:true,joystickSize:'110',buttonSize:'49',hudOpacity:'.9',leftHanded:false,edgeSpacing:'20',invertStickX:false,invertStickY:false,deadzone:'.08',cameraSmooth:'.16',cameraSpeed:'1',joystickCurve:'dynamic',moveAcceleration:'16',moveSmooth:'.25',dragFire:true,fireSensitivity:'1.10',fireStability:'.30',adsSensitivity:'.90',autoSprintStick:true,sprintThreshold:'.9'};
+const defaults={quality:'1',resolution:'1',showFps:false,soundEffects:true,ambientSound:true,dynamicWeather:true,weatherIntensity:'.5',masterVolume:'.70',ambientVolume:'.38',shadows:true,combatFx:true,batterySaver:false,sensitivity:'1.25',verticalSensitivity:'1.2',invertY:false,aimAssist:true,autoFire:false,alwaysSprint:false,vibration:true,joystickSize:'110',buttonSize:'49',hudOpacity:'.9',leftHanded:false,edgeSpacing:'20',invertStickX:false,invertStickY:false,deadzone:'.08',cameraSmooth:'.16',cameraSpeed:'1',joystickCurve:'dynamic',moveAcceleration:'16',moveSmooth:'.25',dragFire:true,fireSensitivity:'1.10',fireStability:'.30',adsSensitivity:'.90',autoSprintStick:false,sprintThreshold:'.9'};
 function readPrefs(){try{
  const p={...defaults,...JSON.parse(localStorage.getItem(PREF_KEY)||'{}')};
  if(!localStorage.getItem(CAMERA_TUNING_KEY)){
