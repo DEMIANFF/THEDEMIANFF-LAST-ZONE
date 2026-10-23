@@ -113,7 +113,7 @@ jobs:
           for element in ids:
               count=len(re.findall(r'id="'+re.escape(element)+r'"',html))
               if count!=1: raise SystemExit(f'ID de interfaz ausente o duplicado: {element} ({count})')
-          required=['function v362ShowEvents()','document.querySelectorAll('#menu [data-lobby]')','function v36TickAircraft(dt)','v372PlaneTouch','function v372FlightMap()','THEDEMIANFFGame.exitGame()']
+          required=['function v362ShowEvents()',"document.querySelectorAll('#menu [data-lobby]')",'function v36TickAircraft(dt)','v372PlaneTouch','function v372FlightMap()','THEDEMIANFFGame.exitGame()']
           for marker in required:
               if marker not in html: raise SystemExit('Control crítico no conectado: '+marker)
           if 'id="v37OpenDropMap"' in html: raise SystemExit('Regresión: botón MAPA redundante reapareció')
