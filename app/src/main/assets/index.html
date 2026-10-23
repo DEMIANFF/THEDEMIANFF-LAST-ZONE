@@ -1066,6 +1066,18 @@ function v36Safe(x,z){
 function v36DrawMap(id){
  if(!player)return;drawMap();
  const c=$(id).getContext('2d');c.clearRect(0,0,512,512);c.drawImage(mapCanvas,0,0,512,512);
+ c.font='bold 12px system-ui';c.textBaseline='bottom';
+ for(const poi of window.v27AuroraPOI||[]){
+  const px=(poi.x/WORLD+.5)*512,pz=(poi.z/WORLD+.5)*512;
+  c.fillStyle='#e7f7ff';c.strokeStyle='#06283b';c.lineWidth=3;
+  const name=poi.name.replace(' DE LOS ',' · ').replace(' DE ',' ');
+  const pxLabel=clamp(px-c.measureText(name).width/2,7,500-c.measureText(name).width);
+  c.strokeText(name,pxLabel,clamp(pz-8,16,505));
+  c.fillText(name,pxLabel,clamp(pz-8,16,505));
+ }
+ c.fillStyle='#fff6cf';c.font='bold 13px system-ui';
+ c.fillText('POSICIÓN X '+Math.round(player.position.x)+' · Z '+Math.round(player.position.z),12,500);
+
  const pos=id==='v36DropCanvas'?v36Destination:v36MapPick||v36Waypoint;
  if(pos){c.strokeStyle='#ffb14e';c.lineWidth=5;c.beginPath();c.arc((pos.x/WORLD+.5)*512,(pos.z/WORLD+.5)*512,12,0,Math.PI*2);c.stroke();}
 }
