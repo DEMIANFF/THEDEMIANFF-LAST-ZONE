@@ -1044,6 +1044,30 @@ for(const p of pickups){const [x,z]=point(p.x,p.z);c.fillStyle='#efce7a';c.fillR
 c.fillStyle='#00000020';c.fillRect(0,0,w,w);c.strokeStyle='#c3eaff';c.lineWidth=2;c.strokeRect(2,2,w-4,w-4);
 c.font='bold 14px sans-serif';c.fillStyle='#e8faff';c.fillText('N',w/2-5,17);
 const [x,z]=point(player.position.x,player.position.z);c.save();c.translate(x,z);c.rotate(-camYaw);c.fillStyle='#fff';c.beginPath();c.moveTo(0,7);c.lineTo(-6,-6);c.lineTo(6,-6);c.closePath();c.fill();c.restore();}
+
+window.v36FlightMode='idle';let v36Destination=null,v36Waypoint=null,v36MapPick=null,v36MapWasOpen=false,v36Chute=null;
+function v36Safe(x,z){
+ x=clamp(x,-HALF+9,HALF-9);z=clamp(z,-HALF+9,HALF-9);
+ if(!solid(x,z,3))return{x,z};
+ for(let r=6;r<85;r+=6)for(let i=0;i<24;i++){
+  const a=i*Math.PI/12,nx=clamp(x+r*Math.cos(a),-HALF+9,HALF-9),nz=clamp(z+r*Math.sin(a),-HALF+9,HALF-9);
+  if(!solid(nx,nz,3))return{x:nx,z:nz};
+ }
+ return safePos(20);
+}
+function v36DrawMap(id){
+ if(!player)return;drawMap();
+ const c=$(id).getContext('2d');c.clearRect(0,0,512,512);c.drawImage(mapCanvas,0,0,512,512);
+ const pos=id==='v36DropCanvas'?v36Destination:v36MapPick||v36Waypoint;
+ if(pos){c.strokeStyle='#ffb14e';c.lineWidth=5;c.beginPath();c.arc((pos.x/WORLD+.5)*512,(pos.z/WORLD+.5)*512,12,0,Math.PI*2);c.stroke();}
+}
+function v36ChoosePoint(e,id){
+ const bounds=$(id).getBoundingClientRect();
+ const pos=v36Safe(((e.clientX-bounds.left)/bounds.width-.5)*WORLD,((e.clientY-bounds.top)/bounds.height-.5)*WORLD);
+ if(id==='v36DropCanvas'){v36Destination=pos;$('v36DropLabel').textContent='ATERRIZAJE X '+Math.round(pos.x)+' · Z '+Math.round(pos.z);}
+ else{v36MapPick=pos;$('v36MapLabel').textContent='DESTINO X '+Math.round(pos.x)+' · Z '+Math.round(pos.z);}
+ v36DrawMap(id);
+}
 // V18 local progression and functioning lobby modules. No simulated online purchases.
 const V18_STORAGE='thedemianff_progress_v18';
 const v18Skins=[{name:'OPERADOR AZUL',color:'#556d72',price:0},{name:'CENTINELA ARENA',color:'#9a8465',price:180},{name:'SOMBRA NOCTURNA',color:'#333f57',price:260},{name:'GUARDIÁN CARMESÍ',color:'#8b4550',price:380},{name:'OPERADORA LILA · V22',color:'#d8c5ea',price:0}];
