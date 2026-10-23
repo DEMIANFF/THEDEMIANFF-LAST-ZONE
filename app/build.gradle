@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 64
-        versionName '39.7-aurora-cinematic-visuals'
+        versionCode 65
+        versionName '39.8-aircraft-drop-rework'
     }
     signingConfigs {
         persistentRelease {
