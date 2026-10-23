@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 53
-        versionName '38.6-lobby-polish-flight-controls'
+        versionCode 54
+        versionName '38.7-parachute-axis-walk-68'
     }
     signingConfigs {
         persistentRelease {
