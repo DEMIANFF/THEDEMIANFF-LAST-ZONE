@@ -1637,7 +1637,12 @@ function v18RecordMatch(win){
 
 // V24: Independent real-time 3D operator preview; the lobby skin selection
 // uses exactly the same character factories as the match.
-const v24Lobby={renderer:null,scene:null,camera:null,operator:null,skin:-1,last:0,phase:0};
+const v24Lobby={renderer:null,scene:null,camera:null,operator:null,skin:-1,last:0,phase:0,userYaw:0,dragging:false,dragPointer:null,lastX:0,angularVelocity:0};
+const v38LobbyTouch=$('v24LobbyStage');
+v38LobbyTouch.addEventListener('pointerdown',e=>{if(v24Lobby.dragPointer!==null)return;v24Lobby.dragPointer=e.pointerId;v24Lobby.dragging=true;v24Lobby.lastX=e.clientX;v24Lobby.angularVelocity=0;v38LobbyTouch.setPointerCapture?.(e.pointerId);e.preventDefault();});
+v38LobbyTouch.addEventListener('pointermove',e=>{if(v24Lobby.dragPointer!==e.pointerId)return;const dx=clamp(e.clientX-v24Lobby.lastX,-75,75);v24Lobby.lastX=e.clientX;v24Lobby.userYaw+=dx*.012;v24Lobby.angularVelocity=dx*.004;e.preventDefault();});
+for(const event of ['pointerup','pointercancel','lostpointercapture'])v38LobbyTouch.addEventListener(event,e=>{if(v24Lobby.dragPointer!==e.pointerId)return;v24Lobby.dragPointer=null;v24Lobby.dragging=false;});
+
 function v24RefreshLobbyCharacter(){
  const l=v24Lobby;if(!l.scene)return;
  const skin=clamp(Number(v18Progress.skin)||0,0,v18Skins.length-1);
@@ -1645,7 +1650,7 @@ function v24RefreshLobbyCharacter(){
  if(l.operator){l.scene.remove(l.operator.root);l.operator=null;}
  const c=skin===4?v22FemaleOperator():makeCharacter(v18Skins[skin].color);
  l.operator=c;l.skin=skin;
- c.root.position.set(0,0,0);c.root.rotation.y=Math.PI*.15;
+ c.root.position.set(0,0,0);c.root.rotation.y=Math.PI*.15+v24Lobby.userYaw;
  l.scene.add(c.root);
  if(skin===4){v22PrepareLila();v22ApplyLilaModel(c);}
  $('v24OperatorName').textContent=v18Skins[skin].name;
