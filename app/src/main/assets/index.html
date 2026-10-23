@@ -1178,6 +1178,43 @@ function v396ExpandAurora(){
    v40Panel(g,.27,h-.42,.29,v40Concrete,x,h/2,-d/2-.15);
   }
  }
+ // V40 district identity: offline-rendered signboards and distinct equipment silhouettes.
+ const v40DistrictNames=['HELIOS','VORTEX','CRISTAL','ECOS'];
+ const v40DistrictColors=['#f2c56d','#63d7e8','#a8e4f8','#c4a5f5'];
+ const v40Signs=[];
+ function v40SignTexture(name,color){
+  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;
+  const ctx=canvas.getContext('2d');if(!ctx)return null;
+  ctx.fillStyle='#122736';ctx.fillRect(0,0,512,128);
+  ctx.fillStyle=color;ctx.fillRect(0,0,10,128);ctx.fillRect(0,0,512,5);
+  ctx.fillStyle='#eaf5fc';ctx.font='bold 56px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(name,256,63,460);
+  const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t;
+ }
+ function v40DistrictEquipment(g,w,h,d,index){
+  if(index===0){ // HELIOS: rooftop laboratory cooling stacks
+   for(const x of [-w*.28,w*.28]){
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(.39,.49,1.35,12),v40Frame);
+    m.position.set(x,h+1.12,-d*.12);g.add(m);v40FacadePieces++;
+    v40Panel(g,1.05,.13,1.05,v40Snow,x,h+1.83,-d*.12);
+   }
+  }else if(index===1){ // VORTEX: industrial exhaust and maintenance gantry
+   for(const x of [-w*.22,w*.22]){
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(.24,.32,2.15,10),v40Frame);
+    m.position.set(x,h+1.52,-d*.17);g.add(m);v40FacadePieces++;
+   }
+   v40Panel(g,w*.58,.13,.3,v40Warm,0,h+2.58,-d*.17);
+  }else if(index===2){ // CRISTAL: glazed skylight
+   v40Panel(g,w*.55,.17,d*.42,v40Glass,0,h+.78,0);
+   for(const x of [-w*.27,0,w*.27])v40Panel(g,.09,.22,d*.45,v40Frame,x,h+.86,0);
+  }else{ // ECOS: elevated communications dish
+   const dish=new THREE.Mesh(new THREE.ConeGeometry(.88,.44,16,1,true),v40Snow);
+   dish.rotation.z=Math.PI;dish.position.set(0,h+1.48,0);g.add(dish);v40FacadePieces++;
+   const pole=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,1.35,8),v40Frame);
+   pole.position.set(0,h+.9,0);g.add(pole);v40FacadePieces++;
+  }
+ }
+ let v40DistrictIndex=0;
  let placed=0;
  function place(x,z,w,h,d,material,kind){
   if(Math.abs(x)>HALF-9||Math.abs(z)>HALF-9||Math.hypot(x,z)<21||solid(x,z,Math.max(w,d)*.58+1))return false;
@@ -1189,6 +1226,12 @@ function v396ExpandAurora(){
    const strip=new THREE.Mesh(new THREE.BoxGeometry(w*.62,.16,.12),accent);strip.position.set(0,h*.72,d*.5+.07);g.add(strip);
    const panel=new THREE.Mesh(new THREE.BoxGeometry(w*.34,.7,.1),frost);panel.position.set(0,h*.42,d*.5+.09);g.add(panel);
    v40BuildingDetails(g,w,h,d);
+   v40DistrictEquipment(g,w,h,d,v40DistrictIndex);
+   const name=v40DistrictNames[v40DistrictIndex],t=v40SignTexture(name,v40DistrictColors[v40DistrictIndex]);
+   if(t){
+    const sign=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w*.8,4.8),1.12),new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide}));
+    sign.position.set(0,Math.min(h-.66,3.7),d/2+.35);g.add(sign);v40Signs.push(t);
+   }
   }else if(kind==='crate'){
    const band=new THREE.Mesh(new THREE.BoxGeometry(w+.04,.13,d+.04),frost);band.position.y=h*.72;g.add(band);
    // Industrial freight detail: reinforced corner brackets, straps and serial markings.
@@ -1202,6 +1245,7 @@ function v396ExpandAurora(){
   placed++;return true;
  }
  for(const district of districts){
+  v40DistrictIndex=districts.indexOf(district);
   const {x,z}=district;
   for(const [dx,dz,w,h,d] of [[-14,-10,7,5.5,6],[13,10,8,6.5,6],[14,-12,5,4.4,5]]){
    place(x+dx,z+dz,w,h,d,steel,'building');
@@ -1214,9 +1258,10 @@ function v396ExpandAurora(){
  window.v396StructuresPlaced=placed;
  window.v40FacadePieces=v40FacadePieces;
  window.v40TextureCount=[v40MetalMap,v40ConcreteMap,v40SnowMap].filter(Boolean).length;
+ window.v40DistrictSigns=v40Signs.length;
 }
 window.THEDEMIANFF_AURORA_TEST=()=>({structures:window.v396StructuresPlaced||0,colliders:worldObjects.length});
-window.THEDEMIANFF_V40_TEST=()=>({facadePieces:window.v40FacadePieces||0,textures:window.v40TextureCount||0,structures:window.v396StructuresPlaced||0});
+window.THEDEMIANFF_V40_TEST=()=>({facadePieces:window.v40FacadePieces||0,textures:window.v40TextureCount||0,signs:window.v40DistrictSigns||0,structures:window.v396StructuresPlaced||0});
 // V39.7: architectural trim and icy ground patches are purely decorative.
 // Existing V39.6 collision footprints and AI cover locations remain unchanged.
 function v397DetailAurora(){
