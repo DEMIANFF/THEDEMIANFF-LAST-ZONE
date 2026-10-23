@@ -281,19 +281,19 @@
 <p class="muted">En teléfonos, comienza con calidad Media o Baja para mejorar la fluidez.</p>
 </div>
 <div class="settingsSection" data-section="control">
-<label>Sensibilidad horizontal <input id="sensitivity" type="range" min=".35" max="3" step=".05" value="1.25"></label>
-<label>Sensibilidad vertical <input id="verticalSensitivity" type="range" min=".35" max="3" step=".05" value="1.2"></label>
-<label>Distancia de cámara <input id="v26CameraDistance" type="range" min="6.5" max="12.5" step=".25" value="8.8"></label><label>Desplazamiento lateral <input id="v26CameraShoulder" type="range" min=".6" max="2.8" step=".1" value="1.65"></label><label>Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label>Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label>Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
-<label>Velocidad de cámara <input id="cameraSpeed" type="range" min=".6" max="1.8" step=".05" value="1"></label>
+<label class="v37Primary">SENSIBILIDAD GENERAL · CÁMARA 360° <input id="sensitivity" type="range" min=".35" max="3" step=".05" value="1.25"></label>
+<label class="v37Advanced">Sensibilidad vertical <input id="verticalSensitivity" type="range" min=".35" max="3" step=".05" value="1.2"></label>
+<label class="v37Advanced">Distancia de cámara <input id="v26CameraDistance" type="range" min="6.5" max="12.5" step=".25" value="8.8"></label><label class="v37Advanced">Desplazamiento lateral <input id="v26CameraShoulder" type="range" min=".6" max="2.8" step=".1" value="1.65"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
+<label class="v37Advanced">Velocidad de cámara <input id="cameraSpeed" type="range" min=".6" max="1.8" step=".05" value="1"></label>
 <label>Invertir cámara vertical <input id="invertY" type="checkbox"></label>
 <label>Ayuda de apuntado <input id="aimAssist" type="checkbox" checked></label>
 <label>Disparo automático (móvil) <input id="autoFire" type="checkbox"></label>
 <label>Arrastrar botón de disparo para apuntar <input id="dragFire" type="checkbox" checked></label>
-<label>Sensibilidad al arrastrar DISPARO <input id="fireSensitivity" type="range" min=".35" max="2.5" step=".05" value="1.10"></label>
-<label>Estabilidad al arrastrar DISPARO <input id="fireStability" type="range" min="0" max=".85" step=".05" value=".30"></label>
-<label>Sensibilidad de mira (ADS) <input id="adsSensitivity" type="range" min=".65" max="2.2" step=".05" value="1.25"></label>
+<label class="v37Primary">SENSIBILIDAD DE DISPARO <input id="fireSensitivity" type="range" min=".35" max="2.5" step=".05" value="1.10"></label>
+<label class="v37Advanced">Estabilidad al arrastrar DISPARO <input id="fireStability" type="range" min="0" max=".85" step=".05" value=".30"></label>
+<label class="v37Primary">SENSIBILIDAD CON LAS MIRAS <input id="adsSensitivity" type="range" min=".65" max="2.2" step=".05" value="1.25"></label>
 <label>Correr al llevar joystick al máximo <input id="autoSprintStick" type="checkbox" checked></label>
-<label>Umbral para correr <input id="sprintThreshold" type="range" min=".65" max="1" step=".05" value=".9"></label>
+<label class="v37Advanced">Umbral para correr <input id="sprintThreshold" type="range" min=".65" max="1" step=".05" value=".9"></label>
 <label>Correr siempre <input id="alwaysSprint" type="checkbox"></label>
 <label>Vibración <input id="vibration" type="checkbox" checked></label>
 </div>
@@ -1634,7 +1634,7 @@ function aimFromFire(dx,dy){
 function applyAim(dx,dy){
  // V21 reference orientation: right swipe decreases yaw, matching the camera's screen-right vector.
  camYaw-=dx*.003*Number($('sensitivity').value);
- camPitch=clamp(camPitch+dy*.00155*Number($('verticalSensitivity').value)*($('invertY').checked?-1:1),-.62,.98);
+ camPitch=clamp(camPitch+dy*.00155*Number($('sensitivity').value)*($('invertY').checked?-1:1),-.85,1.18);
 }
 function aimAssistPull(dt){
  if(!running||paused||!player||adsHeld)return;
