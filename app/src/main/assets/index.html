@@ -1521,13 +1521,52 @@ function v397DetailAurora(){
   }
   mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);detailMeshes.push(mesh);
  }
+ // V40 district identity set: six additional families of low-poly, instanced,
+ // terrain-aligned world details. Pure scenery; existing gameplay colliders untouched.
+ const motifGeos=[
+  new THREE.TorusGeometry(.58,.095,6,12),       // aurora energy coils
+  new THREE.CylinderGeometry(.075,.095,3.1,7),  // communication masts
+  new THREE.ConeGeometry(.82,1.8,5),           // translucent ice spires
+  new THREE.BoxGeometry(1.25,.11,.65),         // maintenance service decks
+  new THREE.CylinderGeometry(.32,.42,.55,8),   // industrial power couplers
+  new THREE.TorusGeometry(.35,.06,6,12)        // signal rings
+ ];
+ const motifColors=['#65c7c0','#809dad','#b1e5ed','#5c8795','#d2a36c','#94dfed'];
+ const motifHeights=[1.85,1.55,.9,.09,.28,2.65];
+ const motifCounts=[16,16,24,24,16,16],motifMeshes=[];
+ const motifAxis=new THREE.Vector3(0,1,0),motifQuat=new THREE.Quaternion(),motifScale=new THREE.Vector3(),motifMatrix=new THREE.Matrix4();
+ for(let type=0;type<motifGeos.length;type++){
+  const material=new THREE.MeshStandardMaterial({
+   color:motifColors[type],roughness:type===2?.23:.53,metalness:type===2?.12:.51,
+   emissive:type===0||type===5?'#153d47':'#000000',
+   emissiveIntensity:type===0||type===5?.4:0,
+   transparent:type===2,opacity:type===2?.78:1
+  });
+  const item=new THREE.InstancedMesh(motifGeos[type],material,motifCounts[type]);
+  item.castShadow=false;item.receiveShadow=false;
+  for(let i=0;i<motifCounts[type];i++){
+   const district=(i+type)%districts.length,[cx,cz]=districts[district];
+   const angle=i*2.3999632297+type*.91,rad=23+(i%6)*3.6;
+   const x=cx+Math.cos(angle)*rad,z=cz+Math.sin(angle)*rad;
+   const valid=Math.abs(x)<HALF-5&&Math.abs(z)<HALF-5&&!solid(x,z,.75);
+   motifQuat.setFromAxisAngle(motifAxis,angle);
+   // Coil and signal ring stand vertically; meshes default to XY, so no floor collision.
+   motifScale.setScalar(valid?1:.001);
+   motifMatrix.compose(new THREE.Vector3(x,ground(x,z)+motifHeights[type],z),motifQuat,motifScale);
+   item.setMatrixAt(i,motifMatrix);
+  }
+  item.instanceMatrix.needsUpdate=true;
+  item.computeBoundingSphere();scene.add(item);motifMeshes.push(item);
+ }
+ window.v40DistrictMotifs=motifCounts.reduce((a,b)=>a+b,0);
+ window.v40DistrictMotifTypes=motifMeshes.length;
  window.v40EnvironmentProps=detailCounts.reduce((a,b)=>a+b,0);
  window.v40EnvironmentPropTypes=detailMeshes.length;
  window.v40PathSegments=laneIndex;
  window.v40EnvironmentInstances=rockCount+treeCount*2;
  window.v397VisualDetails=details+72;
 }
-window.THEDEMIANFF_VISUAL_TEST=()=>({details:window.v397VisualDetails||0,environmentInstances:window.v40EnvironmentInstances||0,pathSegments:window.v40PathSegments||0,environmentProps:window.v40EnvironmentProps||0,propTypes:window.v40EnvironmentPropTypes||0,auroraCurtains:v27AuroraRibbons.length});
+window.THEDEMIANFF_VISUAL_TEST=()=>({details:window.v397VisualDetails||0,environmentInstances:window.v40EnvironmentInstances||0,pathSegments:window.v40PathSegments||0,environmentProps:window.v40EnvironmentProps||0,propTypes:window.v40EnvironmentPropTypes||0,districtMotifs:window.v40DistrictMotifs||0,motifTypes:window.v40DistrictMotifTypes||0,auroraCurtains:v27AuroraRibbons.length});
 // V39.4: bounded cover search on AI decision ticks, not on every frame.
 function v394FindCover(b,px,pz){
  let best=null,score=Infinity,checked=0;
