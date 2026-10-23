@@ -87,6 +87,9 @@ jobs:
               "district roof variations": "v40DistrictEquipment(g,w,h,d,v40DistrictIndex)",
               "offline environmental instancing": "window.v40EnvironmentInstances=rockCount+treeCount*2",
               "six Aurora district motif families": "window.v40DistrictMotifs=motifCounts.reduce((a,b)=>a+b,0)",
+              "visibility lighting": "visibilityLighting:true",
+              "loot halo": "v40PickupHalo=halo",
+              "enemy markers": "v40EnemyMark=new THREE.MeshBasicMaterial",
               "district motif count exposed": "window.v40DistrictMotifTypes=motifMeshes.length",
               "camera-relative parachute": "cameraRight=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion)"
           }
