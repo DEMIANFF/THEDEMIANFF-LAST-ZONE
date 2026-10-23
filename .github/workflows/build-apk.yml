@@ -60,6 +60,12 @@ jobs:
           import re,struct,json,subprocess,tempfile
           root=Path("app/src/main/assets")
           html=(root/"index.html").read_text(encoding="utf-8")
+          # V33: prevent untrusted JSON from restoring competitive progression.
+          if "const entries=v33ValidateSettingsBackup(backup)" not in html: raise SystemExit("V33: restauración no validada")
+          if "format:2,type:'settings'" not in html: raise SystemExit("V33: exportación de configuraciones ausente")
+          if "V33_BACKUP_KEYS" not in html or "v33IsSettingsKey(k)" not in html: raise SystemExit("V33: lista blanca ausente")
+          if "backup.format!==1" in html: raise SystemExit("V33: importación legacy insegura habilitada")
+          if "for(const [k,v] of entries)localStorage.setItem(k,v);" not in html: raise SystemExit("V33: importación de ajustes ausente")
           # Evitar que el respaldo vuelva a tapar JUGAR en el lobby.
           if html.count('id="v29BackupButton"')!=1: raise SystemExit("Debe existir un único botón de respaldo")
           if 'data-tab="progress"' not in html or 'data-section="progress"' not in html: raise SystemExit("Falta la pestaña PROGRESO en configuración")
