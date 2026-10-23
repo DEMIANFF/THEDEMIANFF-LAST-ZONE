@@ -1703,6 +1703,35 @@ function v36BuildAircraft(){
  const tail=new THREE.Mesh(new THREE.BoxGeometry(2,.15,5),paint);tail.position.x=-4.7;g.add(tail);
  const fin=new THREE.Mesh(new THREE.BoxGeometry(1.4,2.3,.22),light);fin.position.set(-4.4,1,0);g.add(fin);
  for(const z of [-4,4]){const engine=new THREE.Mesh(new THREE.CylinderGeometry(.43,.45,2.5,7),paint);engine.rotation.z=Math.PI/2;engine.position.set(1.2,-.28,z);g.add(engine);}
+ // V40 aircraft silhouette upgrade: cockpit glazing, articulated tailplanes,
+ // engine intakes and propeller hubs. All geometry remains parented to the original plane.
+ const canopy=new THREE.MeshStandardMaterial({color:'#3d758f',metalness:.45,roughness:.18,transparent:true,opacity:.88});
+ const stripe=new THREE.MeshStandardMaterial({color:'#d9e5e7',metalness:.3,roughness:.48});
+ const intake=new THREE.MeshStandardMaterial({color:'#1d3544',metalness:.58,roughness:.46});
+ const cockpit=new THREE.Mesh(new THREE.SphereGeometry(.81,12,8),canopy);
+ cockpit.scale.set(2.35,.73,.93);cockpit.position.set(3.1,.52,0);g.add(cockpit);
+ for(const z of [-1,1]){
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(.12,.75,.08),stripe);
+  frame.position.set(3.35,.73,z*.57);g.add(frame);
+ }
+ const nose=new THREE.Mesh(new THREE.ConeGeometry(.75,2.3,12),paint);
+ nose.rotation.z=-Math.PI/2;nose.position.x=6.25;g.add(nose);
+ for(const z of [-4,4]){
+  const pod=new THREE.Mesh(new THREE.CylinderGeometry(.53,.64,2.65,12),paint);
+  pod.rotation.z=Math.PI/2;pod.position.set(1.15,-.33,z);g.add(pod);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.41,.095,7,14),stripe);
+  ring.rotation.y=Math.PI/2;ring.position.set(2.55,-.33,z);g.add(ring);
+  const intakeDisk=new THREE.Mesh(new THREE.CircleGeometry(.36,12),intake);
+  intakeDisk.rotation.y=Math.PI/2;intakeDisk.position.set(2.59,-.33,z);g.add(intakeDisk);
+  for(let k=0;k<4;k++){
+   const blade=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,1.55),intake);
+   blade.position.set(2.68,-.33,z);blade.rotation.x=k*Math.PI/4;g.add(blade);
+  }
+ }
+ const dorsal=new THREE.Mesh(new THREE.BoxGeometry(4.8,.055,.12),stripe);
+ dorsal.position.set(-.4,.79,0);g.add(dorsal);
+ const tailStripe=new THREE.Mesh(new THREE.BoxGeometry(.85,.11,4.6),stripe);
+ tailStripe.position.set(-4.7,.15,0);g.add(tailStripe);
  g.position.set(-HALF+14,115,0);v36Aircraft=g;scene.add(g);
  camera.position.set(g.position.x-25,125,-28);camera.lookAt(g.position);
 }
