@@ -1164,13 +1164,13 @@ function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);re
   }
  }
 }// Automatic fire is evaluated after the current-frame camera orientation is applied.
-let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value));
+let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=!!(keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked); // V38.5: joystick alone never triggers running.
 // Sprint is an independent toggle, but only translates the character while a movement input exists.
 // Tapping SPRINT starts forward auto-run immediately; joystick input takes priority.
  if(sprintHeld&&mag<.01&&!fireHeld){mz=1;mag=1;}
  // V34.7: sprint cancels upon firing. Combat movement keeps the joystick live
  // so players can strafe and dodge without the full running pace.
- const spd=crouchHeld?3.0:fireHeld?6.1:sprint?14.5:6.1;
+ const spd=crouchHeld?2.7:fireHeld?4.2:sprint?12.8:4.2; // V38.5: distinct walking and sprint speed.
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
@@ -1450,7 +1450,8 @@ function v362UpdateBotsInAir(dt){
 }
 function v36StepFlight(dt){
  v362UpdateBotsInAir(dt);flushCamera(dt);
- const dx=-joyX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=joyX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
+ // V38.5: flight-only lateral inversion fix; terrestrial controls remain unchanged.
+ const dx=joyX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=-joyX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
  const nx=clamp(player.position.x+dx*7*dt,-HALF+9,HALF-9);
  const nz=clamp(player.position.z+dz*7*dt,-HALF+9,HALF-9);
  if(!solid(nx,nz,2.5)){player.position.x=nx;player.position.z=nz;}
