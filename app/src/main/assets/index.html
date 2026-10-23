@@ -324,7 +324,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 <label>Distancia al borde <input id="edgeSpacing" type="range" min="5" max="65" step="1" value="20"></label>
 <button type="button" class="primary" id="editHud" style="width:100%;margin:8px 0">✥ EDITAR POSICIÓN DE BOTONES</button><p class="muted">Arrastra cada botón por separado, modifica su tamaño y guarda el diseño. Se conservará en este navegador.</p><p class="muted">Los cambios se aplican en vivo y quedan guardados en este navegador.</p>
 </div>
-<div class="actions"><button class="secondary" id="defaults">RESTAURAR</button><button class="primary" id="resume">GUARDAR Y VOLVER ▶</button><button class="secondary" id="leaveMatch" type="button">⌂ SALIR AL LOBBY</button></div>
+<div class="actions"><button class="secondary" id="defaults">RESTAURAR</button><button class="primary" id="resume">GUARDAR Y VOLVER ▶</button><button class="secondary" id="leaveMatch" type="button">⌂ SALIR AL LOBBY</button><button id="v372ExitGame" type="button">⏻ SALIR DEL JUEGO</button></div>
 </div></div>
 <script src="three.min.js"></script><script src="GLTFLoader.js"></script><script>
 (()=>{'use strict';const $=id=>document.getElementById(id);if(!window.THREE){$('menu').querySelector('p').textContent='No se pudo cargar el motor 3D. Conéctate a Internet y vuelve a abrir el archivo.';return;}
@@ -1706,7 +1706,7 @@ function flushCamera(dt){
  const dx=cameraDX,dy=cameraDY;
  cameraDX=0;cameraDY=0;
  if(dx!==0||dy!==0)applyAim(dx,dy);
-}function pause(){if(!running||window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')return;if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);v123ResetInputs();$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');settingsFromMenu=false;paused=true;fireHeld=false;fireTouch=null;adsHeld=false;sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)';$('pausePanel').classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();}function resume(){clock.getDelta();paused=false;$('pausePanel').classList.add('hidden');if(!mobile)renderer.domElement.requestPointerLock?.();}
+}function pause(){if(!running||window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')return;if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);v123ResetInputs();$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');settingsFromMenu=false;paused=true;v372RefreshSettingsContext();fireHeld=false;fireTouch=null;adsHeld=false;sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)';$('pausePanel').classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();}function resume(){clock.getDelta();paused=false;$('pausePanel').classList.add('hidden');if(!mobile)renderer.domElement.requestPointerLock?.();}
 function v23LeaveMatch(){
  if(!running||!paused)return;
  if(!window.confirm('¿Abandonar la partida y volver al lobby?'))return;
@@ -1811,7 +1811,16 @@ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('[data-section]').forEach(x=>x.classList.toggle('active',x.dataset.section===b.dataset.tab));
 });
 let settingsFromMenu=false;
-$('menuSettings').onclick=()=>{settingsFromMenu=true;$('pausePanel').classList.remove('hidden')};
+function v372RefreshSettingsContext(){
+ $('leaveMatch').classList.toggle('hidden',!running||!paused);
+ $('v372ExitGame').classList.remove('hidden');
+}
+$('menuSettings').onclick=()=>{settingsFromMenu=true;v372RefreshSettingsContext();$('pausePanel').classList.remove('hidden')};
+$('v372ExitGame').onclick=()=>{
+ if(!window.confirm('¿Salir de THEDEMIANFF LAST ZONE? Se conservará el progreso guardado.'))return;
+ if(window.THEDEMIANFFGame&&typeof window.THEDEMIANFFGame.exitGame==='function')window.THEDEMIANFFGame.exitGame();
+ else alert('La opción SALIR DEL JUEGO funciona en la aplicación Android. En navegador, cierra esta pestaña.');
+};
 $('resume').onclick=()=>{if(settingsFromMenu){settingsFromMenu=false;$('pausePanel').classList.add('hidden')}else resume()};
 $('switchGun').onpointerdown=e=>{e.preventDefault();swap((weaponIndex+1)%weapons.length)};
 let fpsFrames=0,fpsElapsed=0;
