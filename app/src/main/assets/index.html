@@ -1224,6 +1224,12 @@ function v36StepFlight(dt){
  const nz=clamp(player.position.z+dz*7*dt,-HALF+9,HALF-9);
  if(!solid(nx,nz,2.5)){player.position.x=nx;player.position.z=nz;}
  player.position.y-=13*dt;
+ // Freefall pose: legs trail behind the canopy, body sways smoothly in the wind.
+ if(playerModel){const swing=Math.sin(performance.now()*.003)*.12;
+  playerModel.left.rotation.x+=((-.48+swing)-playerModel.left.rotation.x)*Math.min(1,dt*6);
+  playerModel.right.rotation.x+=((-.48-swing)-playerModel.right.rotation.x)*Math.min(1,dt*6);
+  playerModel.body.rotation.z+=((swing*.35)-playerModel.body.rotation.z)*Math.min(1,dt*6);
+ }
  const floor=ground(player.position.x,player.position.z);
  if(player.position.y<=floor){
   player.position.y=floor;window.v36FlightMode='landed';onGround=true;
