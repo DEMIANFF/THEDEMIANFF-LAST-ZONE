@@ -3,7 +3,7 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite]
+    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite, v38-3-lobby-touches-flight-settings-camera]
 
 jobs:
   android:
@@ -113,7 +113,7 @@ jobs:
           for element in ids:
               count=len(re.findall(r'id="'+re.escape(element)+r'"',html))
               if count!=1: raise SystemExit(f'ID de interfaz ausente o duplicado: {element} ({count})')
-          required=['function v362ShowEvents()',"document.querySelectorAll('#menu [data-lobby]')",'function v36TickAircraft(dt)','v372PlaneTouch','function v372FlightMap()','THEDEMIANFFGame.exitGame()']
+          required=['function v362ShowEvents()',"document.querySelectorAll('#menu .v17Nav [data-lobby]')",'function v36TickAircraft(dt)','v372PlaneTouch','function v372FlightMap()','THEDEMIANFFGame.exitGame()']
           for marker in required:
               if marker not in html: raise SystemExit('Control crítico no conectado: '+marker)
           if 'id="v37OpenDropMap"' in html: raise SystemExit('Regresión: botón MAPA redundante reapareció')
@@ -152,12 +152,12 @@ jobs:
           for ident in ('v381EventDetail','v381SelectMode','v381DetailClose','v38Operations','v24LobbyStage'):
               count=len(re.findall(r'id="'+ident+r'"',html))
               if count!=1: raise SystemExit('Interfaz incorrecta: '+ident)
-          required=('v381ShowEventDetails(button.dataset.v38event)','document.querySelectorAll(\'#menu [data-lobby]\')',
+          required=('v381ShowEventDetails(button.dataset.v38event)',"document.querySelectorAll('#menu .v17Nav [data-lobby]')",
                     '#menu .v24Hero{z-index:30!important;pointer-events:auto!important',
                     "window.v36FlightMode==='aircraft'",'v372RefreshSettingsContext()')
           for token in required:
               if token not in html: raise SystemExit('Falta función o control: '+token)
-          section=html[html.index("$('v38Operations').querySelectorAll('[data-v38event]')"):html.index("// Single immediate pointer action")]
+          section=html[html.index("$('v38Operations').querySelectorAll('[data-v38event]')"):html.index('// Single navigation router.')]
           if 'start()' in section: raise SystemExit('Eventos no deben iniciar partidas')
           print('V38.1 interacciones estáticas OK')
           PY
@@ -190,6 +190,28 @@ jobs:
           PY
           node --check /tmp/the-ads-test.js
           node /tmp/the-ads-test.js
+      - name: V38.3 controles de salida y cámara durante el descenso
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          html=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          keys=[
+              "const inMatch=!!running;",
+              "classList.toggle('hidden',inMatch)",
+              "window.v36FlightMode==='descending'||window.v36FlightMode==='landed'",
+              "camera.position.set(player.position.x-Math.sin(camYaw)*d,player.position.y+3.15",
+              "camera.lookAt(player.position.x+Math.sin(camYaw)*4,centerY",
+              "document.querySelectorAll('#menu .v17Nav [data-lobby]')",
+              "function v383",
+          ]
+          for key in keys[:-1]:
+              if key not in html: raise SystemExit('Regresión V38.3: '+key)
+          if html.count("document.querySelectorAll('#menu .v17Nav [data-lobby]')")!=1:
+              raise SystemExit('Hay múltiples rutas táctiles del lobby')
+          if "if(!running||window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')return;" in html:
+              raise SystemExit('Despliegue todavía bloquea pausa')
+          print('V38.3 verificación de fases, cámara y pulsaciones OK')
+          PY
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - name: Verificar identidad y firma de APK debug
@@ -236,7 +258,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: env.HAS_RELEASE_KEY == 'true'
         with:
-          name: THEDEMIANFF-V38-2-APK-RELEASE-FIRMA-PERMANENTE
+          name: THEDEMIANFF-V38-3-APK-RELEASE-FIRMA-PERMANENTE
           path: app/build/outputs/apk/release/app-release.apk
       - name: Aviso de compatibilidad de actualizaciones
         run: |
