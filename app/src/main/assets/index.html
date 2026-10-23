@@ -1087,6 +1087,31 @@ function v36Jump(){
  }
  player.add(v36Chute);clock.getDelta();
 }
+
+function v36StepFlight(dt){
+ flushCamera(dt);
+ const dx=-joyX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=joyX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
+ const nx=clamp(player.position.x+dx*7*dt,-HALF+9,HALF-9);
+ const nz=clamp(player.position.z+dz*7*dt,-HALF+9,HALF-9);
+ if(!solid(nx,nz,2.5)){player.position.x=nx;player.position.z=nz;}
+ player.position.y-=13*dt;
+ const floor=ground(player.position.x,player.position.z);
+ if(player.position.y<=floor){
+  player.position.y=floor;window.v36FlightMode='landed';onGround=true;
+  if(v36Chute){
+   player.remove(v36Chute);
+   v36Chute.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose();});
+   v36Chute=null;
+  }
+  $('v36ParachuteStatus').classList.add('hidden');
+  v22ShoulderRig.anchorY=NaN;moveVX=moveVZ=0;toast('ATERRIZAJE COMPLETADO');
+ }else{
+  $('v36ParachuteStatus').textContent='🪂 DESCENSO · '+Math.ceil(player.position.y-floor)+' m · JOYSTICK PARA DIRIGIR';
+  const d=Number($('v26CameraDistance').value);
+  camera.position.set(player.position.x-Math.sin(camYaw)*d,player.position.y+9,player.position.z-Math.cos(camYaw)*d);
+  camera.lookAt(player.position.x,player.position.y+2,player.position.z);
+ }
+}
 function v36ChoosePoint(e,id){
  const bounds=$(id).getBoundingClientRect();
  const pos=v36Safe(((e.clientX-bounds.left)/bounds.width-.5)*WORLD,((e.clientY-bounds.top)/bounds.height-.5)*WORLD);
