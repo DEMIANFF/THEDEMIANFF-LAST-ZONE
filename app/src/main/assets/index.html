@@ -1244,7 +1244,15 @@ function v18Open(name){
  if(name==='PERSONAJE'||name==='TIENDA'){
   html+='<div class="v18Grid">'+v18Skins.map((skin,i)=>card(skin.name,`Aspecto del personaje · ${skin.price?skin.price+' créditos':'Inicial'}`,p.skin===i?'EQUIPADO':(i===4||p.unlocked.includes(i))?'EQUIPAR':p.credits>=skin.price?'DESBLOQUEAR':'BLOQUEADO',`skin:${i}`)).join('')+'</div>';
   html+='<p class="v18PanelNote">Las apariencias son originales y se desbloquean con créditos obtenidos jugando. No hay pagos reales.</p>';
- }else if(name==='ARMAS'||name==='INVENTARIO'||name==='PRESET'){
+ }else if(name==='INVENTARIO'){
+   const owned=p.unlocked.filter(i=>v18Skins[i]).map(i=>v18Skins[i].name);
+   if(!owned.includes(v18Skins[4].name))owned.push(v18Skins[4].name);
+   html+='<div class="v18Grid">'+card('ASPECTOS EN PROPIEDAD',owned.join(' · '))+card('EQUIPO ACTUAL',v18Skins[p.skin]?.name||'OPERADOR')+card('ESTADÍSTICAS',p.matches+' partidas · '+p.wins+' victorias · '+p.kills+' bajas')+card('EQUIPO DE COMBATE','El botiquín, escudo y munición se obtienen y utilizan dentro de cada partida.')+'</div>';
+   html+='<p class="v18PanelNote">Este inventario muestra tus elementos adquiridos; no simula objetos o compras que todavía no existen.</p>';
+  }else if(name==='PRESET'){
+   if(!Array.isArray(p.presets))p.presets=[null,null,null];
+   html+='<div class="v18Grid">'+[0,1,2].map(i=>{const set=p.presets[i],info=set?'Personaje: '+(v18Skins[set.skin]?.name||'Operador')+' · '+(weapons[set.weapon]?.name||'Arma'):'Ranura sin guardar';return card('EQUIPAMIENTO '+(i+1),info,'GUARDAR','preset-save:'+i)+card('CARGAR EQUIPO '+(i+1),set?'Equipar personaje y arma guardados':'Primero guarda un equipamiento',set?'EQUIPAR':'VACÍO','preset-load:'+i)}).join('')+'</div>';
+  }else if(name==='ARMAS'){
   html+='<div class="v18Grid">'+weapons.map((w,i)=>card(w.name,`Daño ${w.damage} · Cargador ${w.mag} · Alcance ${w.range}m`,p.weapon===i?'EQUIPADA':'EQUIPAR',`weapon:${i}`)).join('')+'</div>';
   html+='<p class="v18PanelNote">Selecciona el arma inicial. Durante la partida puedes cambiar entre las cinco.</p>';
   }else if(name==='PASE'){
@@ -1263,7 +1271,9 @@ function v18Open(name){
  body.querySelectorAll('[data-v18]').forEach(b=>b.addEventListener('click',()=>{
   if(b.disabled)return;
   const [type,index]=b.dataset.v18.split(':');const n=Number(index);
-  if(type==='event'){if(index!=='royale'&&index!=='training')return;$('v18Mode').value=index;$('v18Mode').dispatchEvent(new Event('change'));$('v18Panel').classList.add('hidden');start();return;}
+  if(type==='preset-save'){if(!Number.isInteger(n)||n<0||n>2)return;p.presets??=[null,null,null];p.presets[n]={skin:p.skin,weapon:p.weapon};v18Save();v18Open('PRESET');return;}
+   if(type==='preset-load'){if(!Number.isInteger(n)||!p.presets?.[n])return;const set=p.presets[n];p.skin=set.skin;p.weapon=set.weapon;v18Save();v24RefreshLobbyCharacter();v18Open('PRESET');return;}
+   if(type==='event'){if(index!=='royale'&&index!=='training')return;$('v18Mode').value=index;$('v18Mode').dispatchEvent(new Event('change'));$('v18Panel').classList.add('hidden');start();return;}
    if(type==='skin'){
    const skin=v18Skins[n];if(!skin)return;
    if(!p.unlocked.includes(n)){if(p.credits<skin.price)return;p.credits-=skin.price;p.unlocked.push(n)}p.skin=n;
