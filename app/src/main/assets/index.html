@@ -1484,11 +1484,50 @@ function v397DetailAurora(){
  }
  lanes.instanceMatrix.needsUpdate=true;markers.instanceMatrix.needsUpdate=true;
  lanes.castShadow=false;markers.castShadow=false;scene.add(lanes,markers);
+ // V40 six-in-one environment pass: instanced bollards, warning posts,
+ // antenna beacons, fuel drums, ice ridges and solar field tiles.
+ // Decorative only: no collision/AI/loot objects are added.
+ const detailGeo=[
+  new THREE.CylinderGeometry(.13,.19,1.4,7),
+  new THREE.CylinderGeometry(.11,.13,2.1,7),
+  new THREE.SphereGeometry(.19,8,6),
+  new THREE.CylinderGeometry(.39,.39,.8,10),
+  new THREE.ConeGeometry(.72,1.55,5),
+  new THREE.BoxGeometry(1.35,.08,.85)
+ ];
+ const detailMats=[
+  new THREE.MeshStandardMaterial({color:'#809da7',roughness:.62,metalness:.55}),
+  new THREE.MeshStandardMaterial({color:'#dfaa61',roughness:.63,metalness:.33}),
+  new THREE.MeshStandardMaterial({color:'#82efff',emissive:'#2c9baf',emissiveIntensity:.7,roughness:.22}),
+  new THREE.MeshStandardMaterial({color:'#4b778b',roughness:.55,metalness:.48}),
+  new THREE.MeshStandardMaterial({color:'#c2e9f0',roughness:.82,metalness:.05}),
+  new THREE.MeshStandardMaterial({color:'#284e65',roughness:.28,metalness:.47})
+ ];
+ const detailCounts=[48,32,32,32,64,48],detailMeshes=[];
+ for(let type=0;type<6;type++){
+  const mesh=new THREE.InstancedMesh(detailGeo[type],detailMats[type],detailCounts[type]);
+  mesh.castShadow=false;mesh.receiveShadow=false;mesh.frustumCulled=false;
+  const transform=new THREE.Matrix4(),rotation=new THREE.Quaternion(),sz=new THREE.Vector3(1,1,1);
+  for(let i=0;i<detailCounts[type];i++){
+   const [cx,cz]=districts[(i+type)%districts.length];
+   const angle=(i*2.39996323+type*.73),distance=type===4?15+(i%9)*1.8:8+(i%7)*2.2;
+   const x=cx+Math.cos(angle)*distance,z=cz+Math.sin(angle)*distance;
+   const valid=Math.abs(x)<HALF-4&&Math.abs(z)<HALF-4&&!solid(x,z,.65);
+   const height=type===0?.7:type===1?1.05:type===2?2.32:type===3?.4:type===4?.78:.08;
+   rotation.setFromAxisAngle(new THREE.Vector3(0,1,0),angle);
+   sz.setScalar(valid?1:.001);
+   transform.compose(new THREE.Vector3(x,ground(x,z)+height,z),rotation,sz);
+   mesh.setMatrixAt(i,transform);
+  }
+  mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);detailMeshes.push(mesh);
+ }
+ window.v40EnvironmentProps=detailCounts.reduce((a,b)=>a+b,0);
+ window.v40EnvironmentPropTypes=detailMeshes.length;
  window.v40PathSegments=laneIndex;
  window.v40EnvironmentInstances=rockCount+treeCount*2;
  window.v397VisualDetails=details+72;
 }
-window.THEDEMIANFF_VISUAL_TEST=()=>({details:window.v397VisualDetails||0,environmentInstances:window.v40EnvironmentInstances||0,pathSegments:window.v40PathSegments||0,auroraCurtains:v27AuroraRibbons.length});
+window.THEDEMIANFF_VISUAL_TEST=()=>({details:window.v397VisualDetails||0,environmentInstances:window.v40EnvironmentInstances||0,pathSegments:window.v40PathSegments||0,environmentProps:window.v40EnvironmentProps||0,propTypes:window.v40EnvironmentPropTypes||0,auroraCurtains:v27AuroraRibbons.length});
 // V39.4: bounded cover search on AI decision ticks, not on every frame.
 function v394FindCover(b,px,pz){
  let best=null,score=Infinity,checked=0;
