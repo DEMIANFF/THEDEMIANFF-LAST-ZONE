@@ -1200,6 +1200,7 @@ $('v36MapClose').onclick=v36CloseMap;
 $('v36Mark').onclick=()=>{if(v36MapPick){v36Waypoint=v36MapPick;toast('DESTINO MARCADO EN MAPA');}v36CloseMap();};
 // V18 local progression and functioning lobby modules. No simulated online purchases.
 const V18_STORAGE='thedemianff_progress_v18';
+ let v18ActiveEvent=null;
 const v18Skins=[{name:'OPERADOR AZUL',color:'#556d72',price:0},{name:'CENTINELA ARENA',color:'#9a8465',price:180},{name:'SOMBRA NOCTURNA',color:'#333f57',price:260},{name:'GUARDIÁN CARMESÍ',color:'#8b4550',price:380},{name:'OPERADORA LILA · V22',color:'#d8c5ea',price:0}];
 let v18Progress={credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,unlocked:[0],weapon:0,claimed:[]};
 try{const stored=JSON.parse(localStorage.getItem(V18_STORAGE)||'null');if(stored&&typeof stored==='object')v18Progress={...v18Progress,...stored}}catch{}
@@ -1338,7 +1339,7 @@ function v18Open(name){
   const [type,index]=b.dataset.v18.split(':');const n=Number(index);
   if(type==='preset-save'){if(!Number.isInteger(n)||n<0||n>2)return;p.presets??=[null,null,null];p.presets[n]={skin:p.skin,weapon:p.weapon};v18Save();v18Open('PRESET');return;}
    if(type==='preset-load'){if(!Number.isInteger(n)||!p.presets?.[n])return;const set=p.presets[n];p.skin=set.skin;p.weapon=set.weapon;v18Save();v24RefreshLobbyCharacter();v18Open('PRESET');return;}
-   if(type==='event'){if(index!=='royale'&&index!=='training')return;$('v18Mode').value=index;$('v18Mode').dispatchEvent(new Event('change'));$('v18Panel').classList.add('hidden');start();return;}
+   if(type==='event'){if(index!=='royale'&&index!=='training')return;v18ActiveEvent=index==='royale'?'survival':'training';$('v18Mode').value=index;$('v18Mode').dispatchEvent(new Event('change'));$('v18Panel').classList.add('hidden');try{start();}catch(error){v21Diagnostic('V36.1 EVENTO',error);$('menu').classList.remove('hidden');}return;}
    if(type==='skin'){
    const skin=v18Skins[n];if(!skin)return;
    if(!p.unlocked.includes(n)){if(p.credits<skin.price)return;p.credits-=skin.price;p.unlocked.push(n)}p.skin=n;
