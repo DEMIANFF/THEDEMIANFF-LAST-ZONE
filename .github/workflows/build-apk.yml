@@ -3,7 +3,7 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera]
+    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd]
 
 jobs:
   android:
@@ -127,6 +127,22 @@ jobs:
           Path('/tmp/thedemianff-inline.js').write_text(html[start:end],encoding='utf-8')
           PY
           node --check /tmp/thedemianff-inline.js
+      - name: Verificar V38 interfaz eventos, personaje 360 y perfil FHD
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          ids=['v38Operations','v38TabEvents','v38TabMissions','v38EventsView','v38MissionsView','v38MissionsContent','v38OpsClose','v24LobbyStage']
+          for ident in ids:
+              count=len(re.findall(r'id="'+re.escape(ident)+r'"',html))
+              if count!=1: raise SystemExit(f'Interfaz faltante o duplicada: {ident} = {count}')
+          required=['function v38OpenHub(','function v38SelectTab(','function v38RenderMissions(','v38OperationsEntry.addEventListener','v38LobbyTouch.addEventListener','function v38FhdRatio()','function v38NoiseBurst(']
+          for item in required:
+              if item not in html: raise SystemExit('Control o función ausente: '+item)
+          if html.count('data-v38event=')!=2: raise SystemExit('Se esperaban dos desafíos activos')
+          print('V38 verificaciones estáticas: OK')
+          PY
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - name: Verificar identidad y firma de APK debug
@@ -173,7 +189,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: env.HAS_RELEASE_KEY == 'true'
         with:
-          name: THEDEMIANFF-V37-2-APK-RELEASE-FIRMA-PERMANENTE
+          name: THEDEMIANFF-V38-0-APK-RELEASE-FIRMA-PERMANENTE
           path: app/build/outputs/apk/release/app-release.apk
       - name: Aviso de compatibilidad de actualizaciones
         run: |
