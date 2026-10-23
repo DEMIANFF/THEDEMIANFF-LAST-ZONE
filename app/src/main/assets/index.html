@@ -1125,6 +1125,7 @@ function v36Begin(){
  window.v36FlightMode='aircraft';
  v36Destination=v36Safe(player.position.x,player.position.z);
  paused=true;$('controls').classList.add('hidden');
+ v36BuildAircraft();player.visible=false;
  $('v36MapButton').classList.add('hidden');$('v36DropPanel').classList.remove('hidden');
  v36DrawMap('v36DropCanvas');
 }
