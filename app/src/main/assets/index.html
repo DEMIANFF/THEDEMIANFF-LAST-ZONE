@@ -225,7 +225,7 @@
 </style><style id="v37UX">
 #v362Settings{width:31px!important;height:31px!important;right:9px!important;top:max(8px,env(safe-area-inset-top))!important;font-size:17px!important;border-width:1px!important;box-shadow:0 1px 5px #0018!important}
 #rightTop{margin-right:41px!important}
-#pingButton,#v362LootLegend{display:none!important}
+#pingButton,#v362LootLegend,#settings{display:none!important}
 #v36MapButton{top:37%!important;left:8px!important;width:36px!important;height:36px!important;border-radius:50%!important;font-size:0!important;padding:0!important;z-index:25!important}
 #v36MapButton::before{content:'▧';font-size:23px!important;color:#e9f9ff}
 #v18ModePick{position:static!important;inset:auto!important;padding:0!important;max-width:100%!important;background:transparent!important;border:none!important;display:none!important}
@@ -1479,6 +1479,8 @@ document.querySelectorAll('[data-v37mode]').forEach(button=>button.addEventListe
 }));
 
 $('v18Profile').onclick=()=>v18Open('ESTADÍSTICAS');$('v18Close').onclick=()=>$('v18Panel').classList.add('hidden');
+// Place the event dialog at the document root, above WebGL and all HUD layers.
+document.body.appendChild($('v362Events'));
 function v362ShowEvents(){
  $('v18Panel').classList.add('hidden');$('v362Events').classList.remove('hidden');
  $('v362EventStatus').textContent='EVENTOS COMPLETADOS: '+(v18Progress.eventCompletions||0)+' · Progreso guardado en el dispositivo.';
@@ -1487,7 +1489,7 @@ function v362HideEvents(){$('v362Events').classList.add('hidden');}
 $('v362EventClose').addEventListener('click',v362HideEvents);
 $('v362Events').querySelectorAll('[data-v362mode]').forEach(button=>button.addEventListener('click',()=>{
  const mode=button.dataset.v362mode;if(mode!=='royale'&&mode!=='training')return;
- v18ActiveEvent=mode==='royale'?'survival':'training';$('v18Mode').value=mode;
+ $('v362EventStatus').textContent='INICIANDO '+(mode==='royale'?'SUPERVIVENCIA':'ENTRENAMIENTO')+'...';v18ActiveEvent=mode==='royale'?'survival':'training';$('v18Mode').value=mode;
  $('v18Mode').dispatchEvent(new Event('change'));v362HideEvents();
  try{start();}catch(error){v18ActiveEvent=null;v21Diagnostic('V36.2 EVENTO',error);$('menu').classList.remove('hidden');v362ShowEvents();}
 }));
