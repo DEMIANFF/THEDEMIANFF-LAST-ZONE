@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 37
-        versionName '34.5-ads-button-fix'
+        versionCode 38
+        versionName '34.6-combat-stop'
     }
     signingConfigs {
         persistentRelease {
