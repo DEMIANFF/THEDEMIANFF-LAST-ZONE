@@ -1675,9 +1675,9 @@ document.addEventListener('pointerdown',e=>{
  if(!button||!touchActionIds.has(button.id)||!$('controls').contains(button))return;
  e.preventDefault();e.stopImmediatePropagation();
  activeActionPointers.set(e.pointerId,{id:button.id,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY});
- if(button.id==='sprint'){sprintHeld=fireHeld?false:!sprintHeld;$('v124Debug').textContent=sprintHeld?'CORRER ACTIVADO · TURBO 14.5':'CORRER DESACTIVADO';}
+ if(button.id==='sprint'){sprintHeld=(fireHeld||crouchHeld)?false:!sprintHeld;$('v124Debug').textContent=sprintHeld?'CORRER ACTIVADO · TURBO 14.5':'CORRER DESACTIVADO';}
  else if(button.id==='aimBtn'){adsHeld=!adsHeld;$('aimBtn').classList.toggle('adsActive',adsHeld);$('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':'⊕ MIRA LIBRE';$('v124Debug').textContent=adsHeld?'MIRA ACTIVADA':'MIRA DESACTIVADA';}
- else if(button.id==='crouchBtn'){crouchHeld=!crouchHeld;$('crouchBtn').classList.toggle('crouchActive',crouchHeld);}
+ else if(button.id==='crouchBtn'){crouchHeld=!crouchHeld;if(crouchHeld){sprintHeld=false;$('sprint').classList.remove('sprintActive');}$('crouchBtn').classList.toggle('crouchActive',crouchHeld);}
   else if(button.id==='jump'){crouchHeld=false;$('crouchBtn').classList.remove('crouchActive');jumpQueued=true;toneSound(300,.07,.045,'sine');}
  else if(button.id==='fire'){v22FireDragging=false;resetFireCamera();fireTouch=e.pointerId;fireHeld=true;sprintHeld=false;$('sprint').classList.remove('sprintActive');fireLastX=e.clientX;fireLastY=e.clientY;}
  else if(button.id==='heal')heal();
@@ -1776,9 +1776,9 @@ function v23PointerDown(e){
  if(role==='joystick'){stickTouch=e.pointerId;v342JoyOrigin={x:t.x,y:t.y};v23Joy(t.x,t.y);}
  else if(role==='look'){cameraPointers.set(e.pointerId,t);if(v26LookOwner===null){v26LookOwner=e.pointerId;lookTouch=e.pointerId;}}
  else if(role==='fire'){fireTouch=e.pointerId;fireHeld=true;sprintHeld=false;$('sprint').classList.remove('sprintActive');v22FireDragging=false;v23FireThumb(t);}
- else if(role==='sprint'){sprintHeld=fireHeld?false:!sprintHeld;$('sprint').classList.toggle('sprintActive',sprintHeld);}
+ else if(role==='sprint'){sprintHeld=(fireHeld||crouchHeld)?false:!sprintHeld;$('sprint').classList.toggle('sprintActive',sprintHeld);}
  else if(role==='aimBtn'){adsHeld=!adsHeld;$('aimBtn').classList.toggle('adsActive',adsHeld);$('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':'⊕ MIRA LIBRE';}
- else if(role==='crouchBtn'){crouchHeld=!crouchHeld;$('crouchBtn').classList.toggle('crouchActive',crouchHeld);}
+ else if(role==='crouchBtn'){crouchHeld=!crouchHeld;if(crouchHeld){sprintHeld=false;$('sprint').classList.remove('sprintActive');}$('crouchBtn').classList.toggle('crouchActive',crouchHeld);}
   else if(role==='jump'){crouchHeld=false;$('crouchBtn').classList.remove('crouchActive');jumpQueued=true;}
  else if(role==='heal')heal();
  else if(role==='reload')reload();
