@@ -76,6 +76,21 @@ jobs:
           settings=html.split('<div id="pausePanel"',1)[1].split('<div class="settingsSection"',1)[0]
           if 'data-tab="progress"' not in settings: raise SystemExit("PROGRESO no está en las pestañas de configuración")
           if 'document.body.appendChild(btn)' in html: raise SystemExit("Regresión: botón flotante de respaldo fuera de ajustes")
+          # V40 architecture/combat presentation smoke checks: preserve approved runtime API.
+          required_v40 = {
+              "five weapon profiles": "gun.userData.v40Variants=v40Variants",
+              "automatic weapon variant switch": "variants[i].visible=i===activeIndex",
+              "animated plane propellers": "v36Aircraft.userData.v40Propellers",
+              "airplane glide remains": "v36TickAircraft(dt)",
+              "four recognizable districts": "const v40DistrictNames=['HELIOS','VORTEX','CRISTAL','ECOS']",
+              "cached offline district signs": "v40SignCache.set(name,t)",
+              "district roof variations": "v40DistrictEquipment(g,w,h,d,v40DistrictIndex)",
+              "offline environmental instancing": "window.v40EnvironmentInstances=rockCount+treeCount*2",
+              "camera-relative parachute": "cameraRight=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion)"
+          }
+          for check, marker in required_v40.items():
+              if marker not in html: raise SystemExit(f"V40 regresión: {check}")
+          print(f"V40 comprobaciones estructurales: {len(required_v40)} OK")
           scripts=re.findall(r"<script\b[^>]*>([\s\S]*?)</script\s*>",html,re.I)
           count=0
           for script in scripts:
