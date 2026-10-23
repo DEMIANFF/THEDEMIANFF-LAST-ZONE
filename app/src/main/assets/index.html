@@ -1061,6 +1061,32 @@ function v36DrawMap(id){
  const pos=id==='v36DropCanvas'?v36Destination:v36MapPick||v36Waypoint;
  if(pos){c.strokeStyle='#ffb14e';c.lineWidth=5;c.beginPath();c.arc((pos.x/WORLD+.5)*512,(pos.z/WORLD+.5)*512,12,0,Math.PI*2);c.stroke();}
 }
+
+function v36Begin(){
+ window.v36FlightMode='aircraft';
+ v36Destination=v36Safe(player.position.x,player.position.z);
+ paused=true;$('controls').classList.add('hidden');
+ $('v36MapButton').classList.add('hidden');$('v36DropPanel').classList.remove('hidden');
+ v36DrawMap('v36DropCanvas');
+}
+function v36Jump(){
+ if(window.v36FlightMode!=='aircraft')return;
+ const pos=v36Safe(v36Destination.x,v36Destination.z);
+ player.position.set(pos.x,ground(pos.x,pos.z)+85,pos.z);
+ $('v36DropPanel').classList.add('hidden');
+ $('v36ParachuteStatus').classList.remove('hidden');
+ $('v36MapButton').classList.remove('hidden');
+ if(mobile)$('controls').classList.remove('hidden');
+ window.v36FlightMode='descending';paused=false;onGround=false;vertical=0;
+ v36Chute=new THREE.Group();
+ const canopy=new THREE.Mesh(new THREE.SphereGeometry(3.5,12,6,0,Math.PI*2,0,Math.PI*.5),new THREE.MeshStandardMaterial({color:'#e79c4b',side:THREE.DoubleSide}));
+ canopy.position.y=6.2;canopy.scale.y=.5;v36Chute.add(canopy);
+ for(const a of [-2.3,-1,1,2.3]){
+  const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a*.14,2,0),new THREE.Vector3(a,6,-.6)]),new THREE.LineBasicMaterial({color:'#f2f3eb'}));
+  v36Chute.add(line);
+ }
+ player.add(v36Chute);clock.getDelta();
+}
 function v36ChoosePoint(e,id){
  const bounds=$(id).getBoundingClientRect();
  const pos=v36Safe(((e.clientX-bounds.left)/bounds.width-.5)*WORLD,((e.clientY-bounds.top)/bounds.height-.5)*WORLD);
