@@ -1108,7 +1108,11 @@ function v391Spread(base,ads,moving,sprinting){
  return Math.max(0,base)*adsFactor*moveFactor;
 }
 window.THEDEMIANFF_COMBAT_TEST=(base,ads,moving,sprinting)=>v391Spread(base,ads,moving,sprinting);
-function shoot(){const w=weapons[weaponIndex];if(shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused)return;if(w.ammo<=0){if(reloadTimer<=0)reload();return;}w.ammo--;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+.65);playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
+// V39.2: weapon-specific visual kick; does not modify aim or camera input.
+const v392Kick=[.54,.95,.37,1.15,.46];
+function v392RecoilKick(index){return v392Kick[index]??.65;}
+window.THEDEMIANFF_RECOIL_TEST=(index)=>v392RecoilKick(index);
+function shoot(){const w=weapons[weaponIndex];if(shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused)return;if(w.ammo<=0){if(reloadTimer<=0)reload();return;}w.ammo--;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+v392RecoilKick(weaponIndex));playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
 const spread=v391Spread(w.spread,adsHeld,moving,sprintHeld);
 const jitterX=rand(-spread,spread),jitterY=rand(-spread,spread);
 // Perturb in camera local screen axes, never world axes; preserves aim under rotation.
@@ -1140,7 +1144,7 @@ function reload(){
  if(w.reserve<=0){toast('SIN MUNICIÓN DE RESERVA');return;}
  reloadWeapon=weaponIndex;
  reloadTimer=w.reload;
- toast('RECARGANDO '+w.name+'...');reloadSound();
+ toast('RECARGANDO '+w.name+' · '+w.reload.toFixed(2)+' s');reloadSound();
  updateHud();
 }function heal(){if(meds<=0||hp>=100){toast('No necesitas botiquín');return;}meds--;hp=Math.min(100,hp+55);toast('+55 VIDA · BOTIQUÍN');updateHud()}function swap(n){
  if(!running||paused)return;
@@ -1247,7 +1251,7 @@ camera.lookAt(camera.position.clone().addScaledVector(aimForward,100));
 // Fire after the camera has been aimed this frame, avoiding one-frame stale shots.
 if(fireHeld)shoot();
 else if(mobile&&$('autoFire').checked){for(const b of bots){if(!b.alive)continue;const dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);if(d<45&&Math.abs(Math.atan2(Math.sin(angle-camYaw),Math.cos(angle-camYaw)))<.075&&!blocked(player.position.x,player.position.z,b.x,b.z)){shoot();break;}}}
-v14Recoil=Math.max(0,v14Recoil-dt*8);
+v14Recoil=Math.max(0,v14Recoil-dt*(weaponIndex===1?6.5:weaponIndex===3?6:8.5));
 playerModel.gun.rotation.x=-camPitch*.55-v14Recoil*.12;
  const v38Pace=clamp(Math.hypot(moveVX,moveVZ)/10,0,1);
  playerModel.gun.rotation.z=Math.sin(playerModel.animPhase*.78)*.025*v38Pace+v14Recoil*.024;
