@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 34
-        versionName '34.1-camera-touch-stability'
+        versionCode 35
+        versionName '34.2-ads-floating-joystick'
     }
     signingConfigs {
         persistentRelease {
