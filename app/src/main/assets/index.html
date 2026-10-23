@@ -281,6 +281,12 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 .v24HeroCaption small{font-size:9px!important}
 #menu .v17Nav button{border-radius:9px;min-height:36px;background:linear-gradient(120deg,#0b1e32e9,#214359dc)}
 #menu .v17Quick{display:flex;justify-content:flex-start}
+#menu .v17Sky::after{content:'';position:absolute;inset:-15% -12%;pointer-events:none;opacity:.54;background:radial-gradient(ellipse 40% 12% at 35% 12%,#5ab6b94e,transparent 75%),radial-gradient(ellipse 38% 20% at 75% 24%,#817ae255,transparent 72%);animation:v38AuroraBreathe 13s ease-in-out infinite alternate}
+@keyframes v38AuroraBreathe{from{transform:translateX(-2%) scale(1);opacity:.35}to{transform:translateX(3%) scale(1.06);opacity:.69}}
+#menu .v24Hero::after{content:'';position:absolute;left:18%;right:18%;bottom:7%;height:12px;border-radius:100%;background:#82daee55;filter:blur(11px);pointer-events:none}
+#menu #v24LobbyStage{filter:drop-shadow(0 8px 13px #020e21b5)}
+#menu .v17Mode{border-color:#ddbc80bb;background:linear-gradient(120deg,#183a50,#34586b);box-shadow:inset 0 0 12px #65bbc41d}
+
 @media(max-width:630px){.v38OpsGrid{grid-template-columns:1fr}.v38OpsTile{padding:10px}.v38OpsTop small{font-size:8px}.v38OpsTabs{margin:8px 0}.v38OpsTile p{margin:3px 0}}
 </style></head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de eventos y misiones">
  <div class="v38OpsCard">
