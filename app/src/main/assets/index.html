@@ -307,7 +307,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 <div id="v22Edition">V38 · AURORA EVOLUTION</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer"><span class="v17Avatar">D</span><span><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small></span><span class="v17Rank">✦</span></div><div class="v17Currencies">◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Season"><small>TEMPORADA 01</small><strong>OPERACIÓN<br>ÚLTIMA ZONA</strong><span>LA BATALLA COMIENZA AQUÍ</span></div><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
-<div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>VISTA 3D · PERSONAJE EQUIPADO</small></div></div>
+<div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
 <div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V38</small></div>
 <div class="v17Friends"><strong>ESCUADRÓN</strong><span>◉ Operador local</span><span>◉ 20 rivales IA</span><span>◉ 5 armas</span></div>
 <div class="v17Bottom"><div class="v17Quick"><button data-lobby="INVENTARIO">▣ INVENTARIO</button><button data-lobby="ARMAS">⌖ ARMAS</button><button data-lobby="PRESET">☷ PRESET</button></div><div class="v17Launch"><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">INICIAR ▶</button></div></div>
@@ -1662,15 +1662,15 @@ function v24InitLobby(){
   l.scene.background=null;
   l.camera=new THREE.PerspectiveCamera(32,1,.1,60);
   l.camera.position.set(0,2.05,8.9);l.camera.lookAt(0,1.45,0);
-  l.scene.add(new THREE.HemisphereLight(0xd5ecff,0x213047,2.2));
-  const key=new THREE.DirectionalLight(0xffffff,3.1);key.position.set(-3,7,6);l.scene.add(key);
-  const rim=new THREE.DirectionalLight(0x8a8cff,2.4);rim.position.set(4,5,-4);l.scene.add(rim);
+  l.scene.add(new THREE.HemisphereLight(0xd5ecff,0x213047,1.6));
+  const key=new THREE.DirectionalLight(0xffffff,2.25);key.position.set(-3,7,6);l.scene.add(key);
+  const rim=new THREE.DirectionalLight(0x8a8cff,1.5);rim.position.set(4,5,-4);l.scene.add(rim);
   const platform=new THREE.Mesh(new THREE.CylinderGeometry(1.65,1.85,.18,48),new THREE.MeshStandardMaterial({color:0x142e48,metalness:.65,roughness:.3}));
   platform.position.y=-.13;l.scene.add(platform);
   const ring=new THREE.Mesh(new THREE.TorusGeometry(1.55,.025,8,64),new THREE.MeshBasicMaterial({color:0x6ecde9}));
   ring.rotation.x=Math.PI/2;ring.position.y=-.025;l.scene.add(ring);
   l.renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'low-power'});
-  l.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));if('outputColorSpace' in l.renderer && THREE.SRGBColorSpace){l.renderer.outputColorSpace=THREE.SRGBColorSpace;}else{l.renderer.outputEncoding=THREE.sRGBEncoding;}
+  l.renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));if('outputColorSpace' in l.renderer && THREE.SRGBColorSpace){l.renderer.outputColorSpace=THREE.SRGBColorSpace;}else{l.renderer.outputEncoding=THREE.sRGBEncoding;}
   host.appendChild(l.renderer.domElement);
   v24RefreshLobbyCharacter();
  }catch(err){console.warn('[V24] Lobby 3D preview unavailable',err);host.textContent='VISTA 3D NO DISPONIBLE';}
@@ -1690,7 +1690,15 @@ function v24LobbyTick(){
    if(l.renderer.domElement.width!==Math.round(w*l.renderer.getPixelRatio())||l.renderer.domElement.height!==Math.round(h*l.renderer.getPixelRatio())){
     l.renderer.setSize(w,h,false);l.camera.aspect=w/h;l.camera.updateProjectionMatrix();
    }
-   if(l.operator){l.phase+=.025;l.operator.root.rotation.y=Math.PI*.15+Math.sin(l.phase*.3)*.16;l.operator.root.position.y=Math.sin(l.phase)*.025;}
+   if(l.operator){
+ l.phase+=.035;
+ if(!l.dragging){l.userYaw+=l.angularVelocity;l.angularVelocity*=.91;if(Math.abs(l.angularVelocity)<.0003)l.angularVelocity=0;}
+ l.operator.root.rotation.y=Math.PI*.15+l.userYaw+Math.sin(l.phase*.15)*.024;
+ l.operator.root.position.y=.018*Math.sin(l.phase*.7);
+ if(l.operator.body)l.operator.body.rotation.z=Math.sin(l.phase*.33)*.015;
+ if(l.operator.left)l.operator.left.rotation.x=Math.sin(l.phase*.39)*.065;
+ if(l.operator.right)l.operator.right.rotation.x=-Math.sin(l.phase*.39)*.065;
+}
    l.renderer.render(l.scene,l.camera);
   }
  }
