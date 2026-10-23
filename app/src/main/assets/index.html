@@ -563,7 +563,17 @@ function v22ApplyLilaModel(character){
  if(!v22LilaTemplate||!character||character.v22Loaded)return;
  const model=v22LilaTemplate.clone(true);
  // V29: materials and geometry remain independent per character, preventing lobby/game visual conflicts.
- model.traverse(o=>{if(o.isMesh){o.frustumCulled=true;o.castShadow=true;o.receiveShadow=true;if(o.material&&Array.isArray(o.material))o.material=o.material.map(m=>m.clone());else if(o.material)o.material=o.material.clone();}});
+ model.traverse(o=>{if(o.isMesh){
+  o.frustumCulled=true;o.castShadow=true;o.receiveShadow=true;
+  if(o.material&&Array.isArray(o.material))o.material=o.material.map(m=>m.clone());
+  else if(o.material)o.material=o.material.clone();
+  const materials=Array.isArray(o.material)?o.material:[o.material];
+  for(const m of materials){if(!m)continue;
+   if(typeof m.roughness==='number')m.roughness=Math.max(.36,Math.min(.82,m.roughness));
+   if(typeof m.metalness==='number')m.metalness=Math.min(.48,m.metalness);
+   m.needsUpdate=true;
+  }
+ }});
  // Scale from model bounding box to player height, keeping feet at floor.
  model.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(model);
@@ -1751,6 +1761,15 @@ function v24LobbyTick(){
  if(l.operator.body)l.operator.body.rotation.z=Math.sin(l.phase*.33)*.015;
  if(l.operator.left)l.operator.left.rotation.x=Math.sin(l.phase*.39)*.065;
  if(l.operator.right)l.operator.right.rotation.x=-Math.sin(l.phase*.39)*.065;
+ if(l.operator.v22Model){
+  for(const jointName of ['leftHair','rightHair','leftArm','rightArm']){
+   const joint=l.operator.v22Model.getObjectByName(jointName);if(!joint)continue;
+   if(joint.userData.v38RestX===undefined)joint.userData.v38RestX=joint.rotation.x;
+   const pulse=Math.sin(l.phase*(jointName.includes('Hair')?.7:.21));
+   const salute=jointName==='rightArm'?-.25*Math.pow(Math.max(0,Math.sin(l.phase*.11)),12):0;
+   joint.rotation.x=joint.userData.v38RestX+pulse*(jointName.includes('Hair')?.07:.035)+salute;
+  }
+ }
 }
    l.renderer.render(l.scene,l.camera);
   }
