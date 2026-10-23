@@ -103,6 +103,30 @@ jobs:
           if not doc.get("meshes"): raise SystemExit("GLB sin mallas")
           print(f"Lila validada: {len(doc['meshes'])} mallas y {len(doc.get('nodes',[]))} nodos")
           PY
+      - name: Validar interfaz y controles críticos V37.2
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          ids=['v362Events','v362EventClose','v362EventStatus','v37ModeOverlay','v37ModeClose','v37FlightHUD','v37FlightJump','v36DropCanvas','v372ExitGame','minimap','leaveMatch']
+          for element in ids:
+              count=len(re.findall(r'id="'+re.escape(element)+r'"',html))
+              if count!=1: raise SystemExit(f'ID de interfaz ausente o duplicado: {element} ({count})')
+          required=['function v362ShowEvents()','v372EventEntry.addEventListener','function v36TickAircraft(dt)','v372PlaneTouch','function v372FlightMap()','THEDEMIANFFGame.exitGame()']
+          for marker in required:
+              if marker not in html: raise SystemExit('Control crítico no conectado: '+marker)
+          if 'id="v37OpenDropMap"' in html: raise SystemExit('Regresión: botón MAPA redundante reapareció')
+          print('Validación estática de controles: OK')
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          html=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          start=html.index('<script>')+len('<script>')
+          end=html.rindex('</script>')
+          Path('/tmp/thedemianff-inline.js').write_text(html[start:end],encoding='utf-8')
+          PY
+          node --check /tmp/thedemianff-inline.js
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - name: Verificar identidad y firma de APK debug
