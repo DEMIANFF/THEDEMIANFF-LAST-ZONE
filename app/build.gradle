@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 61
-        versionName '39.4-tactical-cover-ai'
+        versionCode 62
+        versionName '39.5-combat-animation-polish'
     }
     signingConfigs {
         persistentRelease {
