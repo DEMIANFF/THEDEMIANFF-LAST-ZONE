@@ -1329,7 +1329,7 @@ function v18Open(name){
   html+='<div class="v18Grid">'+missions.map(m=>{const done=p.claimed.includes(m.id),ready=m.current>=m.goal;return `<div class="v18Item"><b>${m.title}</b><small>${Math.min(m.current,m.goal)} / ${m.goal} · Premio ${m.reward} créditos</small><div class="v18Progress"><span style="width:${Math.min(100,m.current/m.goal*100)}%"></span></div><button data-v18="${ready?'claim':'mission'}:${m.id}" ${done?'disabled':''}>${done?'RECLAMADA':ready?'RECLAMAR RECOMPENSA':'VER OBJETIVO'}</button></div>`}).join('')+'</div>';
   html+='<p class="v18PanelNote">Las misiones registran progreso local tras terminar cada partida.</p>';
  }else if(name==='EVENTOS'){
-  html+=`<div class="v18Grid">${card('EVENTO: OPERACIÓN SUPERVIVENCIA','Combate disponible contra 20 rivales IA.','JUGAR EVENTO','event:royale')}${card('EVENTO: PRÁCTICA TÁCTICA','Entrenamiento disponible contra 8 rivales IA.','ENTRAR','event:training')}${card('PRÓXIMAMENTE: AURORA','Más desafíos cuando estén implementados.')}</div>`;
+  html+=`<div class="v18Grid">${card('OPERACIÓN SUPERVIVENCIA','Desafío: consigue 3 bajas en una partida contra 20 IA. Premio +120 créditos y +120 XP.','JUGAR DESAFÍO','event:royale')}${card('PRÁCTICA TÁCTICA','Desafío: consigue 2 bajas en entrenamiento contra 8 IA. Premio +80 créditos y +80 XP.','ENTRAR','event:training')}${card('EVENTOS COMPLETADOS',String(p.eventCompletions||0))}</div>`;
  }else{
   html+=`<div class="v18Grid">${card('VICTORIAS',String(p.wins))}${card('BAJAS TOTALES',String(p.kills))}${card('RÉCORD',String(p.best))}</div>`;
  }
@@ -1360,7 +1360,12 @@ document.querySelectorAll('[data-lobby]').forEach(button=>button.addEventListene
 function v18RecordMatch(win){
  const p=v18Progress;
  p.matches++;p.kills+=kills;p.wins+=win?1:0;p.best=Math.max(p.best,kills);
- const reward=30+kills*12+(win?150:0);p.credits+=reward;p.xp+=50+kills*25+(win?100:0);
+ let reward=30+kills*12+(win?150:0);p.credits+=reward;p.xp+=50+kills*25+(win?100:0);
+ if(v18ActiveEvent){
+  const qualified=v18ActiveEvent==='training'?kills>=2:kills>=3;
+  if(qualified){const bonus=v18ActiveEvent==='training'?80:120;p.credits+=bonus;p.xp+=bonus;reward+=bonus;p.eventCompletions=(p.eventCompletions||0)+1;}
+  v18ActiveEvent=null;
+ }
  v18Save();return reward;
 }
 
