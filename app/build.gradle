@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 59
-        versionName '39.2-arsenal-recoil-polish'
+        versionCode 60
+        versionName '39.3-impact-feedback-enemy-reaction'
     }
     signingConfigs {
         persistentRelease {
