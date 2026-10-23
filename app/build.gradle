@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 50
-        versionName '38.3-touch-flight-camera'
+        versionCode 52
+        versionName '38.5-lobby-recovery-controls'
     }
     signingConfigs {
         persistentRelease {
