@@ -334,6 +334,18 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 #menu .v17Sky{pointer-events:none!important}
 @media(max-width:740px){#menu .v17Left{top:20%!important;width:clamp(110px,22vw,158px)!important}#menu .v17Nav{gap:5px!important}#menu .v17Nav button{padding:8px 9px!important;min-height:37px!important;font-size:10px!important}#menu .v17Quick{gap:4px!important}#menu .v17Quick button{padding:8px 7px!important;min-height:42px!important;font-size:9px!important}#menu .v24Hero{height:59%!important;top:16%!important;max-width:34vw!important}}
 @media(max-height:440px){#menu .v17Left{top:23%!important}#menu .v17Nav button{min-height:32px!important;padding:5px 9px!important}#menu .v17Bottom{bottom:5px!important}#menu .v17Quick button{min-height:37px!important}#menu .v24Hero{height:59%!important}}
+</style><style id="v40ScreenshotHudCalibration">
+/* V40 portrait/landscape field visibility. User HUD editor inline positioning remains authoritative. */
+@media (pointer:coarse) and (orientation:landscape){
+ #controls #mobileBtns{right:2.1vw;bottom:9vh;grid-template-columns:repeat(3,clamp(42px,4.6vw,65px));gap:clamp(5px,.55vw,9px)}
+ #controls #mobileBtns button{width:clamp(42px,4.6vw,65px);height:clamp(42px,4.6vw,65px);font-size:clamp(9px,.87vw,12px);background:#132a3ab5;border-color:#adcfdd88}
+ #controls #mobileBtns #fire{width:clamp(66px,7.3vw,98px);height:clamp(66px,7.3vw,98px);background:#b65b30c4;border-color:#ffb66c}
+ #controls #mobileBtns #crouchBtn{width:clamp(49px,6vw,76px);height:clamp(38px,4.9vw,56px)}
+ #controls #stickBase{width:clamp(96px,10vw,135px);height:clamp(96px,10vw,135px);opacity:.66}
+ #controls #health{width:min(370px,35vw);padding:7px 10px;background:#142b39c9}
+ #controls #minimap{width:clamp(85px,9.8vw,135px);height:clamp(85px,9.8vw,135px);top:15vh}
+ #controls #zoneInfo{top:calc(15vh + clamp(85px,9.8vw,135px) + 8px);font-size:11px}
+}
 </style></head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de eventos y misiones">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
