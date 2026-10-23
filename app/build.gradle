@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 49
-        versionName '38.2-ads-camera-stability-suite'
+        versionCode 50
+        versionName '38.3-touch-flight-camera'
     }
     signingConfigs {
         persistentRelease {
