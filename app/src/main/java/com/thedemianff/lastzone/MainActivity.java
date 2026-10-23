@@ -50,6 +50,11 @@ public class MainActivity extends Activity {
       });
     }
   }
+  public final class GameBridge {
+    @JavascriptInterface public void exitGame() {
+      runOnUiThread(() -> { if(web!=null)web.stopLoading(); finish(); });
+    }
+  }
   private void immersive() {
     getWindow().getDecorView().setSystemUiVisibility(
       View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
@@ -91,6 +96,7 @@ public class MainActivity extends Activity {
       }
     });
     web.addJavascriptInterface(new BackupBridge(),"THEDEMIANFFBackup");
+    web.addJavascriptInterface(new GameBridge(),"THEDEMIANFFGame");
     web.setWebViewClient(new WebViewClient() {
       @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request) {
         Uri uri=request.getUrl();
