@@ -1102,6 +1102,7 @@ function v36DrawMap(id){
 }
 
 function v36Begin(){
+ if($('v18Mode').value==='training'){window.v36FlightMode='landed';$('v36MapButton').classList.remove('hidden');return;}
  window.v36FlightMode='aircraft';
  v36Destination=v36Safe(player.position.x,player.position.z);
  paused=true;$('controls').classList.add('hidden');
@@ -1114,7 +1115,7 @@ function v36Jump(){
  player.position.set(pos.x,ground(pos.x,pos.z)+85,pos.z);
  $('v36DropPanel').classList.add('hidden');
  $('v36ParachuteStatus').classList.remove('hidden');
- $('v36MapButton').classList.remove('hidden');
+ $('v36MapButton').classList.add('hidden');
  if(mobile)$('controls').classList.remove('hidden');
  window.v36FlightMode='descending';paused=false;onGround=false;vertical=0;
  v36Chute=new THREE.Group();
@@ -1142,7 +1143,7 @@ function v36StepFlight(dt){
    v36Chute.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose();});
    v36Chute=null;
   }
-  $('v36ParachuteStatus').classList.add('hidden');
+  $('v36ParachuteStatus').classList.add('hidden');$('v36MapButton').classList.remove('hidden');
   v22ShoulderRig.anchorY=NaN;moveVX=moveVZ=0;toast('ATERRIZAJE COMPLETADO');
  }else{
   $('v36ParachuteStatus').textContent='🪂 DESCENSO · '+Math.ceil(player.position.y-floor)+' m · JOYSTICK PARA DIRIGIR';
