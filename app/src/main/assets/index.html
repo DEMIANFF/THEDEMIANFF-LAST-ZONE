@@ -1459,6 +1459,13 @@ function v36DrawMap(id){
   c.strokeText(name,pxLabel,clamp(pz-8,16,505));
   c.fillText(name,pxLabel,clamp(pz-8,16,505));
  }
+ // V39.8: central aircraft corridor and live aircraft location on deployment map.
+ if(id==='v36DropCanvas'&&v36Aircraft){
+  const mapX=(v36Aircraft.position.x/WORLD+.5)*512;
+  c.save();c.strokeStyle='#67f0e0';c.lineWidth=3;c.setLineDash([11,8]);
+  c.beginPath();c.moveTo(8,256);c.lineTo(504,256);c.stroke();c.setLineDash([]);
+  c.fillStyle='#fff2bb';c.font='bold 18px system-ui';c.fillText('✈',clamp(mapX-9,8,485),251);c.restore();
+ }
  c.fillStyle='#fff6cf';c.font='bold 13px system-ui';
  c.fillText('POSICIÓN X '+Math.round(player.position.x)+' · Z '+Math.round(player.position.z),12,500);
 
@@ -1499,6 +1506,7 @@ function v36TickAircraft(dt){
  if(!v36Aircraft)return;
  v36Aircraft.position.x+=dt*15;
  if(v36Aircraft.position.x>HALF-12)v36Aircraft.position.x=-HALF+14;
+ if(!$('v36DropPanel').classList.contains('hidden'))v36DrawMap('v36DropCanvas');
  const radius=29,look=v36Aircraft.position;
  camera.position.set(look.x-Math.sin(camYaw)*radius,look.y+9+Math.sin(camPitch)*17,look.z-Math.cos(camYaw)*radius);
  camera.lookAt(look.x,look.y+1,look.z);
