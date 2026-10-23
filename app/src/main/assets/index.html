@@ -1883,8 +1883,8 @@ $('v362Settings').addEventListener('click',e=>{
   $('pausePanel').classList.remove('hidden');
   return;
  }
- if(paused&&window.v36FlightMode==='landed')resume();
- else if(window.v36FlightMode==='landed')pause();
+ if(paused){resume();return;}
+ if(window.v36FlightMode==='descending'||window.v36FlightMode==='landed')pause();
 });
 function resize(){if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);v26ApplyPixelRatio();}// V21: show runtime errors on Android instead of silently freezing on a black screen.
 let v21LastError='';
@@ -2012,11 +2012,16 @@ function flushCamera(dt){
  const dx=cameraDX,dy=cameraDY;
  cameraDX=0;cameraDY=0;
  if(dx!==0||dy!==0)applyAim(dx,dy);
-}function pause(){if(!running||window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')return;if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);v123ResetInputs();$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');settingsFromMenu=false;paused=true;v372RefreshSettingsContext();fireHeld=false;fireTouch=null;adsHeld=false;sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)';$('pausePanel').classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();}function resume(){clock.getDelta();paused=false;$('pausePanel').classList.add('hidden');if(!mobile)renderer.domElement.requestPointerLock?.();}
+}function pause(){if(!running||window.v36FlightMode==='aircraft')return;if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);v123ResetInputs();$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');settingsFromMenu=false;paused=true;v372RefreshSettingsContext();fireHeld=false;fireTouch=null;adsHeld=false;sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)';$('pausePanel').classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();}function resume(){clock.getDelta();paused=false;$('pausePanel').classList.add('hidden');if(!mobile)renderer.domElement.requestPointerLock?.();}
 function v23LeaveMatch(){
  if(!running||!paused)return;
  if(!window.confirm('¿Abandonar la partida y volver al lobby?'))return;
  v123ResetInputs();running=false;paused=false;gameOver=true;
+ window.v36FlightMode='idle';v36Waypoint=null;v36MapWasOpen=false;
+ $('v36DropPanel').classList.add('hidden');$('v36MapPanel').classList.add('hidden');
+ $('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');
+ if(v36Aircraft){scene.remove(v36Aircraft);v36Aircraft=null;}
+ if(player)player.visible=true;
  fireHeld=false;adsHeld=false;sprintHeld=false;keys={};
  if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);
  $('pausePanel').classList.add('hidden');$('controls').classList.add('hidden');$('end').classList.add('hidden');$('v18Panel').classList.add('hidden');$('v362Settings').classList.add('hidden');$('v362Events').classList.add('hidden');$('v362EventHud').classList.add('hidden');$('menu').classList.remove('hidden');
@@ -2117,12 +2122,17 @@ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('[data-section]').forEach(x=>x.classList.toggle('active',x.dataset.section===b.dataset.tab));
 });
 let settingsFromMenu=false;
+// Show native app-exit only in lobby; show return-to-lobby in every match phase.
 function v372RefreshSettingsContext(){
- $('leaveMatch').classList.toggle('hidden',!running||!paused||window.v36FlightMode!=='landed');
- $('v372ExitGame').classList.remove('hidden');
+ const inMatch=!!running;
+ $('leaveMatch').classList.toggle('hidden',!inMatch);
+ $('v372ExitGame').classList.toggle('hidden',inMatch);
+ $('leaveMatch').textContent='⌂ SALIR AL LOBBY';
 }
 $('menuSettings').onclick=()=>{settingsFromMenu=true;v372RefreshSettingsContext();$('pausePanel').classList.remove('hidden')};
 $('v372ExitGame').onclick=()=>{
+ if(running)return; // native exit can only be requested from the lobby
+
  if(!window.confirm('¿Salir de THEDEMIANFF LAST ZONE? Se conservará el progreso guardado.'))return;
  if(window.THEDEMIANFFGame&&typeof window.THEDEMIANFFGame.exitGame==='function')window.THEDEMIANFFGame.exitGame();
  else alert('La opción SALIR DEL JUEGO funciona en la aplicación Android. En navegador, cierra esta pestaña.');
