@@ -1647,7 +1647,7 @@ function v23PointerMove(e){
     // Only one moving look finger contributes per event, preventing doubled sensitivity.
     const movement=Math.hypot(dx,dy),now=performance.now();
     if(movement>.22){
-     if(v26LookOwner===null||v26LookOwner===e.pointerId||now-v26LastLookMove>85){v26LookOwner=e.pointerId;lookTouch=e.pointerId;}
+     if(v26LookOwner===null||!v23Touches.has(v26LookOwner)){v26LookOwner=e.pointerId;lookTouch=e.pointerId;}
      if(v26LookOwner===e.pointerId){v26LastLookMove=now;aim(dx,dy,mode);}
     }
    }else if(Math.abs(dx)+Math.abs(dy)>.12)aim(dx,dy,mode);
