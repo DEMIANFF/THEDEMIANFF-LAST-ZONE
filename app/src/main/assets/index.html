@@ -1229,12 +1229,33 @@ function v396ExpandAurora(){
   return tex;
  }
  const v40MetalMap=v40Texture('metal'),v40ConcreteMap=v40Texture('concrete'),v40SnowMap=v40Texture('snow');
+ // V40 procedural bump maps: grayscale micro-surface information complements
+ // the existing offline albedo textures without requiring external downloads.
+ function v40Bump(kind){
+  const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
+  const ctx=canvas.getContext('2d');if(!ctx)return null;
+  const image=ctx.createImageData(128,128);
+  let seed=kind==='metal'?17:kind==='concrete'?41:67;
+  for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+   seed=(seed*1664525+1013904223)>>>0;
+   const grain=(seed>>>24)-128;
+   const groove=kind==='metal'?(y%14<2?-27:0):kind==='concrete'?(x%31<2||y%29<2?-19:0):(x+y)%23<2?16:0;
+   const value=Math.max(0,Math.min(255,128+grain*.17+groove));
+   const i=(y*128+x)*4;
+   image.data[i]=image.data[i+1]=image.data[i+2]=value;image.data[i+3]=255;
+  }
+  ctx.putImageData(image,0,0);
+  const tex=new THREE.CanvasTexture(canvas);tex.wrapS=THREE.RepeatWrapping;tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=2;
+  return tex;
+ }
+ const v40MetalBump=v40Bump('metal'),v40ConcreteBump=v40Bump('concrete'),v40SnowBump=v40Bump('snow');
+
  // V40: shared physically based facade palette; geometry is decorative and does not change colliders.
- const v40Concrete=new THREE.MeshStandardMaterial({color:'#a9bac5',map:v40ConcreteMap,roughness:.91,metalness:.04});
- const v40Frame=new THREE.MeshStandardMaterial({color:'#5c7b8c',map:v40MetalMap,roughness:.47,metalness:.68});
+ const v40Concrete=new THREE.MeshStandardMaterial({color:'#a9bac5',map:v40ConcreteMap,bumpMap:v40ConcreteBump,bumpScale:.055,roughness:.91,metalness:.04});
+ const v40Frame=new THREE.MeshStandardMaterial({color:'#5c7b8c',map:v40MetalMap,bumpMap:v40MetalBump,bumpScale:.027,roughness:.47,metalness:.68});
  const v40Glass=new THREE.MeshStandardMaterial({color:'#3d879b',roughness:.14,metalness:.54,emissive:'#0b2a38',emissiveIntensity:.18});
  const v40Door=new THREE.MeshStandardMaterial({color:'#31434d',roughness:.64,metalness:.42});
- const v40Snow=new THREE.MeshStandardMaterial({color:'#ffffff',map:v40SnowMap,roughness:.96,metalness:0});
+ const v40Snow=new THREE.MeshStandardMaterial({color:'#ffffff',map:v40SnowMap,bumpMap:v40SnowBump,bumpScale:.042,roughness:.96,metalness:0});
  const v40Warm=new THREE.MeshStandardMaterial({color:'#d6bd83',emissive:'#68562c',emissiveIntensity:.34,roughness:.55});
  let v40FacadePieces=0;
  function v40Panel(parent,w,h,d,m,x,y,z){
@@ -1396,12 +1417,12 @@ function v396ExpandAurora(){
  }
  window.v396StructuresPlaced=placed;
  window.v40FacadePieces=v40FacadePieces;
- window.v40TextureCount=[v40MetalMap,v40ConcreteMap,v40SnowMap].filter(Boolean).length;
+ window.v40TextureCount=[v40MetalMap,v40ConcreteMap,v40SnowMap,v40MetalBump,v40ConcreteBump,v40SnowBump].filter(Boolean).length;
  window.v40DistrictSigns=v40Signs.length;
  window.v40CachedSignTextures=v40SignCache.size;
 }
 window.THEDEMIANFF_AURORA_TEST=()=>({structures:window.v396StructuresPlaced||0,colliders:worldObjects.length});
-window.THEDEMIANFF_V40_TEST=()=>({aircraftFinishing:!!(v36Aircraft&&v36Aircraft.userData.v40VisualFinishing),facadePieces:window.v40FacadePieces||0,textures:window.v40TextureCount||0,signs:window.v40DistrictSigns||0,uniqueSigns:window.v40CachedSignTextures||0,structures:window.v396StructuresPlaced||0});
+window.THEDEMIANFF_V40_TEST=()=>({aircraftFinishing:!!(v36Aircraft&&v36Aircraft.userData.v40VisualFinishing),facadePieces:window.v40FacadePieces||0,textures:window.v40TextureCount||0,bumpMaps:3,signs:window.v40DistrictSigns||0,uniqueSigns:window.v40CachedSignTextures||0,structures:window.v396StructuresPlaced||0});
 // V39.7: architectural trim and icy ground patches are purely decorative.
 // Existing V39.6 collision footprints and AI cover locations remain unchanged.
 function v397DetailAurora(){
