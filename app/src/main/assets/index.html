@@ -604,13 +604,19 @@ for(let i=0;i<10;i++){
 const ringGeo=new THREE.RingGeometry(.992,1,128);ringGeo.rotateX(-Math.PI/2);zoneRing=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:'#5bdce7',transparent:true,opacity:.75,side:THREE.DoubleSide,depthWrite:false}));zoneRing.position.y=2;scene.add(zoneRing);const grid=new THREE.GridHelper(12,6,'#7e968c','#647a70');grid.position.set(0,ground(0,0)+.03,0);grid.material.opacity=.1;grid.material.transparent=true;scene.add(grid);
 }
 // V22 optional external GLB model pipeline. Keeps the playable fallback if missing.
-const v22LilaAsset='models/lila-operator.glb';
+const v22LilaAssets=['models/LILA_V22_Operadora_Futurista.glb','models/lila-operator.glb'];
+const v22LilaAsset=v22LilaAssets[0];
+window.THEDEMIANFF_V40_ASSET_STATUS={lila:'pending',weapons:'pending'};
+
 let v22LilaTemplate=null,v22LilaRequested=false;
 function v22PrepareLila(){
  if(v22LilaRequested||!THREE.GLTFLoader)return;
  v22LilaRequested=true;
  const loader=new THREE.GLTFLoader();
- loader.load(v22LilaAsset,gltf=>{
+ let candidate=0;
+ const loadCandidate=()=>{
+ const assetPath=v22LilaAssets[candidate];
+ loader.load(assetPath,gltf=>{
   if(!gltf||!gltf.scene){v22LilaRequested=false;console.warn('[V29] Modelo GLB sin escena');return;}
   const names=['leftArm','rightArm','leftLeg','rightLeg'];
   const missing=names.filter(n=>!gltf.scene.getObjectByName(n));
@@ -621,7 +627,16 @@ function v22PrepareLila(){
   v22LilaTemplate=gltf.scene;
   if(running&&playerModel&&playerModel.isFemaleOperator)v22ApplyLilaModel(playerModel);
   if(v24Lobby.operator&&v24Lobby.skin===4)v22ApplyLilaModel(v24Lobby.operator);
- },undefined,e=>{v22LilaRequested=false;console.warn('[V29] Lila GLB no disponible; se conserva el personaje de respaldo',e)});
+  window.THEDEMIANFF_V40_ASSET_STATUS.lila='loaded: '+assetPath;
+ },undefined,e=>{
+  candidate++;
+  if(candidate<v22LilaAssets.length){loadCandidate();return;}
+  window.THEDEMIANFF_V40_ASSET_STATUS.lila='missing';
+  v22LilaRequested=false;
+  console.warn('[V40] GLB Lila no disponible; se conserva el personaje de respaldo',e);
+ });
+ };
+ loadCandidate();
 }
 function v22ApplyLilaModel(character){
  if(!v22LilaTemplate||!character||character.v22Loaded)return;
