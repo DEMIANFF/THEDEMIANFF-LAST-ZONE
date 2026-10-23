@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 62
-        versionName '39.5-combat-animation-polish'
+        versionCode 63
+        versionName '39.6-puerto-aurora-expansion'
     }
     signingConfigs {
         persistentRelease {
