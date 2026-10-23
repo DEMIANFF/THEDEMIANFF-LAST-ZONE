@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 42
-        versionName '36.1-events-missions-crouch'
+        versionCode 43
+        versionName '36.2-cover-loot-events'
     }
     signingConfigs {
         persistentRelease {
