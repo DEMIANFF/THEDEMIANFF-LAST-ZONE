@@ -888,7 +888,9 @@ function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather
   }
  }
 }// Automatic fire is evaluated after the current-frame camera orientation is applied.
-let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value)),spd=sprintHeld?14.5:(sprint?10.1:6.1);
+let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value));
+// Sprint is an independent toggle, but only translates the character while a movement input exists.
+const spd=sprint?10.1:6.1;
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
@@ -900,7 +902,8 @@ moveVZ+=(wantedZ-moveVZ)*response;
 if(mag<.01&&Math.hypot(moveVX,moveVZ)<.025){moveVX=0;moveVZ=0;}
 const dx=moveVX*dt,dz=moveVZ*dt;let nx=clamp(player.position.x+dx,-HALF+4,HALF-4),nz=clamp(player.position.z+dz,-HALF+4,HALF-4);if(!solid(nx,nz,.52)){player.position.x=nx;player.position.z=nz;}else{if(!solid(nx,player.position.z,.52))player.position.x=nx;if(!solid(player.position.x,nz,.52))player.position.z=nz;}if(Math.hypot(moveVX,moveVZ)>.25){
  const a=Math.atan2(moveVX,moveVZ),pace=Math.min(1,Math.hypot(moveVX,moveVZ)/9.2);
- const facing=(adsHeld||fireHeld)?camYaw:a;
+ // ADS is camera-driven; do not rotate the player merely because the sight is active.
+ const facing=fireHeld?camYaw:a;
  player.rotation.y+=Math.atan2(Math.sin(facing-player.rotation.y),Math.cos(facing-player.rotation.y))*(1-Math.exp(-dt*((adsHeld||fireHeld)?18:11)));
  playerModel.animPhase+=dt*(8+pace*7);
  playerModel.left.rotation.x=Math.sin(playerModel.animPhase)*.65*pace;
@@ -909,7 +912,7 @@ const dx=moveVX*dt,dz=moveVZ*dt;let nx=clamp(player.position.x+dx,-HALF+4,HALF-4
  playerModel.body.rotation.z=Math.sin(playerModel.animPhase*.5)*.025*pace;
 }else{
  // Free-look: rotating the camera alone must not rotate the character.
- if(adsHeld||fireHeld)player.rotation.y+=Math.atan2(Math.sin(camYaw-player.rotation.y),Math.cos(camYaw-player.rotation.y))*(1-Math.exp(-dt*16));
+ if(fireHeld)player.rotation.y+=Math.atan2(Math.sin(camYaw-player.rotation.y),Math.cos(camYaw-player.rotation.y))*(1-Math.exp(-dt*16));
  playerModel.left.rotation.x*=Math.exp(-dt*12);
  playerModel.right.rotation.x*=Math.exp(-dt*12);
  playerModel.body.position.y*=Math.exp(-dt*12);
@@ -1242,8 +1245,8 @@ function v26TunePerformance(fps){
  if(fps<25){v26Performance.lowFrames++;v26Performance.highFrames=0;}
  else if(fps>48){v26Performance.highFrames++;v26Performance.lowFrames=0;}
  else {v26Performance.lowFrames=0;v26Performance.highFrames=0;}
- if(v26Performance.lowFrames>=5){v26Performance.scale=Math.max(.65,v26Performance.scale-.1);v26Performance.lowFrames=0;v26ApplyPixelRatio();}
- if(v26Performance.highFrames>=12){v26Performance.scale=Math.min(1,v26Performance.scale+.05);v26Performance.highFrames=0;v26ApplyPixelRatio();}
+ if(v26Performance.lowFrames>=3){v26Performance.scale=Math.max(adsHeld?.52:.65,v26Performance.scale-.1);v26Performance.lowFrames=0;v26ApplyPixelRatio();}
+ if(v26Performance.highFrames>=16){v26Performance.scale=Math.min(1,v26Performance.scale+.05);v26Performance.highFrames=0;v26ApplyPixelRatio();}
 }
 function v26ApplyPixelRatio(){
  if(!renderer)return;
@@ -1296,7 +1299,9 @@ function aimAssistPull(dt){
  if(!running||paused||!player)return;
  if(!$('aimAssist').checked)return;
  // Never let aim assistance fight a finger currently dragging the view.
- if(!fireHeld&&!adsHeld||cameraPointers.size>0||v22FireDragging)return;
+ if((!fireHeld&&!adsHeld)||cameraPointers.size>0||v22FireDragging)return;
+ // Avoid repeated line-of-sight scans every frame while aiming on mobile.
+ if(mobile&&adsHeld&&++v342AdsFrame%3!==0)return;
  let best=null,bestScore=Infinity;
  for(const b of bots){
   if(!b.alive)continue;
@@ -1571,13 +1576,22 @@ document.addEventListener('pointercancel',v123Release,true);
 // V23: Single-owner touch router. Each pointer has exactly one role.
 // Legacy camera, joystick and action listeners above are intentionally disabled.
 const v23Touches=new Map();
+// V34.2 floating movement origin, isolated from camera and action pointers.
+let v342JoyOrigin=null;
+let v342AdsFrame=0;
 // V26: multiple independent view fingers; only the most recently moving view finger aims.
 let v26LookOwner=null;
 let v26LastLookMove=0;
 function v23Ready(){return mobile&&running&&!paused&&!hudEditing&&!$('controls').classList.contains('hidden');}
 function v23Joy(x,y){
  const r=stickBase.getBoundingClientRect(),radius=Math.max(18,r.width*.33);
- const vx=x-(r.left+r.width/2),vy=y-(r.top+r.height/2);
+ const centerX=v342JoyOrigin?v342JoyOrigin.x:r.left+r.width/2;
+ const centerY=v342JoyOrigin?v342JoyOrigin.y:r.top+r.height/2;
+ let vx=x-centerX,vy=y-centerY;
+ // Shift the virtual base when the thumb outruns the radius: no hard joystick edge.
+ const over=Math.hypot(vx,vy)-radius;
+ if(over>0&&v342JoyOrigin){const d=Math.hypot(vx,vy);v342JoyOrigin.x+=vx/d*over;v342JoyOrigin.y+=vy/d*over;vx=x-v342JoyOrigin.x;vy=y-v342JoyOrigin.y;}
+ if(v342JoyOrigin){stickBase.style.setProperty('--v342-origin-x',(v342JoyOrigin.x-(r.left+r.width/2)).toFixed(1)+'px');stickBase.style.setProperty('--v342-origin-y',(v342JoyOrigin.y-(r.top+r.height/2)).toFixed(1)+'px');}
  const dist=Math.hypot(vx,vy),fraction=Math.min(1,dist/radius);
  const dz=clamp(Number($('deadzone').value)||0,0,.8);
  let power=fraction<=dz?0:(fraction-dz)/(1-dz);
@@ -1598,7 +1612,7 @@ function v23FireThumb(t){
 function v23Clear(){
  v23Touches.clear();cameraPointers.clear();activeActionPointers.clear();
  v26LookOwner=null;v26LastLookMove=0;
- joyX=joyY=0;stickTouch=lookTouch=fireTouch=null;
+ joyX=joyY=0;stickTouch=lookTouch=fireTouch=null;v342JoyOrigin=null;stickBase.style.removeProperty('--v342-origin-x');stickBase.style.removeProperty('--v342-origin-y');
  fireHeld=false;v22FireDragging=false;cameraDX=cameraDY=0;
  stick.style.transform='translate(-50%,-50%)';
  $('fire').style.setProperty('--fire-stick-x','0px');
@@ -1609,7 +1623,7 @@ function v23PointerDown(e){
  const button=e.target.closest?.('button');
  const id=button&&$('controls').contains(button)?button.id:null;
  let role=null;
- if(e.target.closest?.('#stickBase'))role='joystick';
+ if(e.target.closest?.('#stickBase')||(e.clientX<window.innerWidth*.42&&e.clientY>window.innerHeight*.38&&!e.target.closest?.('button,#hudEditor,#pausePanel,#menu')))role='joystick';
  else if(id&&touchActionIds.has(id))role=id;
  else if(e.clientX>=window.innerWidth*0.5&&cameraAllowedTarget(e.target))role='look';
  if(!role)return;
@@ -1617,10 +1631,10 @@ function v23PointerDown(e){
  if((role==='joystick'||role==='fire')&&[...v23Touches.values()].some(t=>t.role===role))return;
  const t={role,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};
  v23Touches.set(e.pointerId,t);
- if(role==='joystick'){stickTouch=e.pointerId;v23Joy(t.x,t.y);}
+ if(role==='joystick'){stickTouch=e.pointerId;v342JoyOrigin={x:t.x,y:t.y};v23Joy(t.x,t.y);}
  else if(role==='look'){cameraPointers.set(e.pointerId,t);if(v26LookOwner===null){v26LookOwner=e.pointerId;lookTouch=e.pointerId;}}
  else if(role==='fire'){fireTouch=e.pointerId;fireHeld=true;v22FireDragging=false;v23FireThumb(t);}
- else if(role==='sprint')sprintHeld=!sprintHeld;
+ else if(role==='sprint'){sprintHeld=!sprintHeld;$('sprint').classList.toggle('sprintActive',sprintHeld);}
  else if(role==='aimBtn')adsHeld=!adsHeld;
  else if(role==='jump')jumpQueued=true;
  else if(role==='heal')heal();
@@ -1659,7 +1673,7 @@ function v23PointerMove(e){
 function v23PointerEnd(e){
  const t=v23Touches.get(e.pointerId);if(!t)return;
  v23Touches.delete(e.pointerId);
- if(t.role==='joystick'){stickTouch=null;joyX=joyY=0;stick.style.transform='translate(-50%,-50%)';}
+ if(t.role==='joystick'){stickTouch=null;v342JoyOrigin=null;stickBase.style.removeProperty('--v342-origin-x');stickBase.style.removeProperty('--v342-origin-y');joyX=joyY=0;stick.style.transform='translate(-50%,-50%)';}
  else if(t.role==='look'){cameraPointers.delete(e.pointerId);if(v26LookOwner===e.pointerId){v26LookOwner=null;lookTouch=null;v26LastLookMove=0;}}
  else if(t.role==='fire'){fireTouch=null;fireHeld=false;v22FireDragging=false;$('fire').style.setProperty('--fire-stick-x','0px');$('fire').style.setProperty('--fire-stick-y','0px');}
  v123Feedback();
