@@ -226,7 +226,7 @@
 #v362Settings{width:31px!important;height:31px!important;right:9px!important;top:max(8px,env(safe-area-inset-top))!important;font-size:17px!important;border-width:1px!important;box-shadow:0 1px 5px #0018!important}
 #rightTop{margin-right:41px!important}
 #pingButton,#v362LootLegend,#settings{display:none!important}
-#v36MapButton{top:37%!important;left:8px!important;width:36px!important;height:36px!important;border-radius:50%!important;font-size:0!important;padding:0!important;z-index:25!important}
+#v36MapButton{display:none!important}
 #v36MapButton::before{content:'▧';font-size:23px!important;color:#e9f9ff}
 #v18ModePick{position:static!important;inset:auto!important;padding:0!important;max-width:100%!important;background:transparent!important;border:none!important;display:none!important}
 .v17Mode{cursor:pointer;touch-action:manipulation}
@@ -247,6 +247,15 @@
 #v37AdvancedControl:not([open])>*:not(summary){display:none!important}
 .settingsSection[data-section=control] .v37Primary{border:1px solid #65a4bb88;border-radius:8px;padding:9px;margin:9px 0;background:#14334955}
 @media(max-width:650px){.v17Launch{width:45%!important}.v17Mode{padding:7px!important}}
+</style><style id="v372UX">
+#v36MapButton{display:none!important}
+#v37FlightHUD{pointer-events:auto}
+body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!important;left:12px!important;width:86px!important;height:86px!important;display:block!important;z-index:80!important;border:2px solid #e4d3a5!important;border-radius:9px!important;pointer-events:auto!important;box-shadow:0 3px 20px #000a!important}
+#v362Events{z-index:9999!important;pointer-events:auto!important}
+#menu .v17Nav{z-index:150!important;position:relative}
+#menu .v17Nav button{position:relative;z-index:151;pointer-events:auto!important}
+#v372ExitGame{display:block;width:100%;margin:13px 0 4px;min-height:44px;background:#963d3d;color:#fff;border-radius:9px;border:1px solid #eb9999}
+#v37ModeOverlay .v37ModeBox #v37ModeClose{display:none!important}
 </style></head><body><div id="game"></div><div id="ui"><button id="v36MapButton" class="hidden" type="button">▧ MAPA</button>
 <section id="v362Events" class="hidden" role="dialog" aria-modal="true" aria-labelledby="v362EventTitle">
  <div class="v362EventCard"><header><h2 id="v362EventTitle">EVENTOS · OPERACIÓN AURORA</h2><button id="v362EventClose" type="button">✕ CERRAR</button></header>
@@ -256,7 +265,7 @@
  <p id="v362EventStatus">Selecciona un desafío para participar.</p></div>
  </section>
 <div id="v36MapPanel" class="hidden"><h2>MAPA TÁCTICO · PUERTO AURORA</h2><div id="v36MapLabel">Toca un punto para marcar destino.</div><canvas id="v36MapCanvas" width="512" height="512"></canvas><div class="v36Buttons"><button id="v36Mark">MARCAR DESTINO</button><button id="v36MapClose">VOLVER AL COMBATE</button></div></div>
-<div id="v37FlightHUD" class="hidden"><button id="v37OpenDropMap" type="button">▧ MAPA</button><button id="v37FlightJump" type="button">🪂 SALTAR</button></div><div id="v36DropPanel" class="hidden"><h2>OPERACIÓN ÚLTIMA ZONA · DESPLIEGUE</h2><div class="v36Plane">✈</div><div id="v36DropLabel">Elige el punto donde quieres aterrizar tocando el mapa.</div><canvas id="v36DropCanvas" width="512" height="512"></canvas><div class="v36Buttons"><button id="v36Jump">SALTAR EN PARACAÍDAS</button></div></div>
+<div id="v37FlightHUD" class="hidden"><button id="v37FlightJump" type="button">🪂 SALTAR</button></div><div id="v36DropPanel" class="hidden"><h2>OPERACIÓN ÚLTIMA ZONA · DESPLIEGUE</h2><div class="v36Plane">✈</div><div id="v36DropLabel">Elige el punto donde quieres aterrizar tocando el mapa.</div><canvas id="v36DropCanvas" width="512" height="512"></canvas><div class="v36Buttons"><button id="v36Jump">SALTAR EN PARACAÍDAS</button></div></div>
 <div id="v36ParachuteStatus" class="hidden">🪂 DESCENSO EN PARACAÍDAS</div><div id="damageFlash"></div><div id="v124Debug"></div><div id="v123InputTest"></div><div id="v122ControlState"></div><div id="v10Hint"></div><div id="v10Reticle"></div><div id="v13AimMode">⊕ MIRA LIBRE</div><div id="v9Event"></div><div id="v9Status"></div><div id="v8Damage"></div><div id="v8Combat"></div><div id="v8Muzzle"></div><div id="v7Compass">N</div><div id="v7status">TEMPORADA 01 · OPERACIÓN ÚLTIMA ZONA</div><button id="v362Settings" class="hidden" type="button" aria-label="Pausar y abrir configuración">⚙</button><button id="pingButton" aria-label="Marcar enemigo">⌖ MARCAR</button><div id="v362LootLegend">✚ BOTIQUÍN &nbsp; ◈ ESCUDO<br>▰ MUNICIÓN · ACÉRCATE PARA RECOGER</div><div id="v362EventHud" class="hidden" aria-live="polite"></div><div id="v7Toast"></div><div id="combatFeed"></div><div id="missionHud">MISIÓN: SOBREVIVE · ELIMINA · RECOGE</div><div id="fpsCounter"></div><div id="orientationTip" class="glass">↻ Gira tu teléfono horizontalmente para jugar con mayor comodidad.</div><div class="top"><div class="glass"><div class="brand">THEDEMIANFF // LAST ZONE</div><div class="stat">VIVOS <b id="alive">21</b> &nbsp; BAJAS <b id="kills">0</b></div></div><div id="rightTop" class="glass"><div class="stat">RONDA <b id="round">01</b> · <span id="timer">00:00</span></div><div class="stat" id="zoneText">ZONA SEGURA</div></div></div><canvas id="minimap" width="256" height="256"></canvas><div id="zoneInfo" class="glass">◉ Zona: <span id="zoneRadius">190</span> m<br>⌛ Cierre: <span id="zoneCountdown">00:45</span></div><div id="health" class="glass"><div class="stat">VIDA <span id="hpText">100</span> &nbsp; · &nbsp; ESCUDO <span id="armorText">50</span></div><div class="bars"><div id="hpBar"></div></div><div class="bars shield"><div id="armorBar" style="width:50%"></div></div></div><div id="weapon" class="glass"><div class="brand" id="gunName">AR-7 · ASALTO</div><strong id="ammo">30</strong> <small id="reserve">/ 180</small><div class="stat">BOTIQUINES <span id="meds">2</span> · <span id="weaponMode">AUTO</span></div><div id="v15Loadout" style="font-size:9px;color:#ffe0a0;margin-top:3px">ARMA 1/5 · CAMBIAR: ARMA</div></div><div id="cross"></div><div id="dmgDir" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);opacity:0;transition:opacity .2s;pointer-events:none;z-index:9"><div style="width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:26px solid #ff4d4d;filter:drop-shadow(0 0 6px #ff2a2a)"></div></div><div id="hit">✕</div><div id="toast" class="glass"></div><button id="settings" class="glass">⚙ PAUSA</button><div id="desktopHint">WASD mover · Ratón apuntar · Clic disparar · Shift correr · Espacio saltar · R recargar · H curar · 1-5 armas · Esc pausa</div><div id="hudEditor" class="hidden"><div class="hudEditorBar"><strong>✥ EDITOR HUD V26</strong><button id="v26Hud2" type="button">2 DEDOS</button><button id="v26Hud3" type="button">3 DEDOS</button><button id="v26Hud4" type="button">4 DEDOS</button><button id="v26HudProfileSave" type="button">GUARDAR PERFIL</button><button id="v26HudProfileLoad" type="button">CARGAR PERFIL</button><span>Arrastra cualquier botón</span><label>Tamaño <input id="hudScale" type="range" min="60" max="180" value="100" step="5"></label><label>Opacidad <input id="hudAlpha" type="range" min="30" max="100" value="90" step="5"></label><button id="hudReset" type="button">RESTAURAR HUD</button><button id="hudSave" type="button">✓ GUARDAR</button><button id="hudCancel" type="button">CANCELAR</button></div></div><div id="controls" class="hidden"><div id="lookArea"></div><div id="stickBase"><div id="stick"></div></div><div id="mobileBtns"><button id="sprint">CORRER</button><button id="jump">SALTAR</button><button id="fire">FUEGO</button><button id="heal">CURAR</button><button id="reload">RECARGA</button><button id="aimBtn">MIRA</button><button id="crouchBtn">AGACHAR</button><button id="switchGun">ARMA</button></div></div><div id="menu" class="v17Lobby" style="z-index:50">
 <div id="v22Edition">V30 · OPERACIÓN NUEVA ERA</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer"><span class="v17Avatar">D</span><span><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small></span><span class="v17Rank">✦</span></div><div class="v17Currencies">◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
@@ -356,7 +365,7 @@ function v22BuildPlaza(){
 }
 v22BuildPlaza();
 for(let i=0;i<62;i++){let x=rand(-HALF+12,HALF-12),z=rand(-HALF+12,HALF-12);if(Math.hypot(x,z)<16)continue;let scale=rand(.7,1.5);let g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%4===0){box(7*scale,3.8*scale,5.7*scale,mats.wall,g,0,1.9*scale,0);box(7.8*scale,.6*scale,6.4*scale,mats.roof,g,0,4.1*scale,0);box(1.3*scale,2.5*scale,.1,mats.dark,g,0,1.25*scale,2.9*scale);box(1.5*scale,1.2*scale,.12,mats.glass,g,2*scale,2.3*scale,2.9*scale);worldObjects.push({x,z,r:4.4*scale,h:4.4*scale});}else if(i%4===1){box(5*scale,2.5*scale,3*scale,mats.wood,g,0,1.25*scale,0);box(5.5*scale,.3*scale,3.5*scale,mats.roof,g,0,2.65*scale,0);worldObjects.push({x,z,r:3.2*scale,h:2.8*scale});}else{box(3.3*scale,1.5*scale,2.1*scale,mats.dark,g,0,.75*scale,0);box(3.5*scale,.15*scale,2.3*scale,mats.gold,g,0,1.55*scale,0);worldObjects.push({x,z,r:2.4*scale,h:1.7*scale});}}
-for(let i=0;i<175;i++){let x=rand(-HALF+8,HALF-8),z=rand(-HALF+8,HALF-8);if(Math.hypot(x,z)<14||solid(x,z,3))continue;const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%7===0){sphere(rand(1.2,2.3),mats.rock,g,0,1,0);worldObjects.push({x,z,r:1.6,h:1.6});}else{let sc=rand(.75,1.5);cyl(.28*sc,.4*sc,3.2*sc,mats.trunk,g,0,1.6*sc,0);sphere(1.65*sc,i%3?mats.leaf:mats.leaf2,g,0,3.9*sc,0,7);sphere(1.2*sc,mats.leaf,g,.6*sc,3.1*sc,.35*sc,7);worldObjects.push({x,z,r:.7*sc,h:5.2*sc});}}
+for(let i=0;i<175;i++){let x=rand(-HALF+8,HALF-8),z=rand(-HALF+8,HALF-8);if(Math.hypot(x,z)<14||solid(x,z,3))continue;const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%7===0){const rockRadius=rand(1.2,2.3);sphere(rockRadius,mats.rock,g,0,rockRadius*.72,0);worldObjects.push({x,z,r:rockRadius*1.08,h:rockRadius*1.8});}else{let sc=rand(.75,1.5);cyl(.28*sc,.4*sc,3.2*sc,mats.trunk,g,0,1.6*sc,0);sphere(1.65*sc,i%3?mats.leaf:mats.leaf2,g,0,3.9*sc,0,7);sphere(1.2*sc,mats.leaf,g,.6*sc,3.1*sc,.35*sc,7);worldObjects.push({x,z,r:.7*sc,h:5.2*sc});}}
 // V17: Puerto Aurora, compact coastal village inspired by supplied reference (original geometry).
 const v17Stucco=new THREE.MeshStandardMaterial({color:'#e4d8c4',roughness:.96});
 const v17White=new THREE.MeshStandardMaterial({color:'#f2eee2',roughness:.92});
@@ -1193,7 +1202,7 @@ function v36TickAircraft(dt){
  camera.lookAt(v36Aircraft.position);
 }
 function v36Begin(){
- if($('v18Mode').value==='training'){window.v36FlightMode='landed';$('v36MapButton').classList.remove('hidden');return;}
+ if($('v18Mode').value==='training'){window.v36FlightMode='landed';$('v36MapButton').classList.add('hidden');return;}
  window.v36FlightMode='aircraft';
  v36Destination=v36Safe(player.position.x,player.position.z);
  paused=true;$('controls').classList.add('hidden');
@@ -1201,7 +1210,7 @@ function v36Begin(){
  $('v36MapButton').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.remove('hidden');
  v36DrawMap('v36DropCanvas');
 }
-$('v37OpenDropMap').addEventListener('click',e=>{e.preventDefault();if(window.v36FlightMode!=='aircraft')return;$('v36DropPanel').classList.remove('hidden');$('v37FlightHUD').classList.add('hidden');v36DrawMap('v36DropCanvas');});
+function v372FlightMap(){if(window.v36FlightMode!=='aircraft')return;$('v36DropPanel').classList.remove('hidden');$('v37FlightHUD').classList.add('hidden');v36DrawMap('v36DropCanvas');}
 $('v37FlightJump').addEventListener('click',e=>{e.preventDefault();v36Jump();});
 const v37FlightMapButton=document.createElement('button');v37FlightMapButton.type='button';v37FlightMapButton.id='v37FlightMapReturn';v37FlightMapButton.textContent='VOLVER A VER EL AVIÓN';
 $('v36DropPanel').querySelector('.v36Buttons').prepend(v37FlightMapButton);
@@ -1272,7 +1281,7 @@ function v36StepFlight(dt){
    v36Chute.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose();});
    v36Chute=null;
   }
-  $('v36ParachuteStatus').classList.add('hidden');$('v36MapButton').classList.remove('hidden');
+  $('v36ParachuteStatus').classList.add('hidden');$('v36MapButton').classList.add('hidden');
   v22ShoulderRig.anchorY=NaN;moveVX=moveVZ=0;toast('ATERRIZAJE COMPLETADO');
  }else{
   $('v36ParachuteStatus').textContent='🪂 DESCENSO · '+Math.ceil(player.position.y-floor)+' m · JOYSTICK PARA DIRIGIR';
@@ -1302,7 +1311,7 @@ $('v36DropCanvas').addEventListener('pointerdown',e=>{e.preventDefault();v36Choo
 $('v36MapCanvas').addEventListener('pointerdown',e=>{e.preventDefault();v36ChoosePoint(e,'v36MapCanvas');});
 $('v36Jump').onclick=v36Jump;
 $('v36MapButton').onclick=v36OpenMap;
-mapCanvas.addEventListener('pointerdown',e=>{e.stopPropagation();v36OpenMap();});
+mapCanvas.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(window.v36FlightMode==='aircraft')v372FlightMap();else v36OpenMap();});
 $('v36MapClose').onclick=v36CloseMap;
 $('v36Mark').onclick=()=>{if(v36MapPick){v36Waypoint=v36MapPick;toast('DESTINO MARCADO EN MAPA');}v36CloseMap();};
 // V18 local progression and functioning lobby modules. No simulated online purchases.
