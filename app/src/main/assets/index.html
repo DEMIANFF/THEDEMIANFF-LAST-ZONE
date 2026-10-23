@@ -765,6 +765,22 @@ function v22FemaleOperator(){
   const ear=new THREE.Mesh(new THREE.SphereGeometry(.16,10,8),black);
   ear.scale.set(.7,1,.5);ear.position.set(side*.42,2.43,0);b.add(ear);
  }
+ // V40 Lila fallback sculpting: curved jaw, neck, fitted waist and boot shells.
+ // These lightweight forms soften the silhouette until the full rigged GLB replaces it.
+ const faceMat=new THREE.MeshStandardMaterial({color:'#e6b2a7',roughness:.83,metalness:0});
+ const jaw=new THREE.Mesh(new THREE.SphereGeometry(.315,16,12),faceMat);
+ jaw.scale.set(1.06,1.25,.84);jaw.position.set(0,2.42,.065);b.add(jaw);
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.135,.165,.26,12),faceMat);
+ neck.position.set(0,2.13,.025);b.add(neck);
+ const waist=new THREE.Mesh(new THREE.SphereGeometry(.38,14,10),textile);
+ waist.scale.set(1.05,.8,.74);waist.position.set(0,1.16,.01);b.add(waist);
+ for(const side of [-1,1]){
+  const boot=new THREE.Mesh(new THREE.SphereGeometry(.225,12,8),black);
+  boot.scale.set(.96,.68,1.58);boot.position.set(side*.25,.17,.19);b.add(boot);
+  const cuff=new THREE.Mesh(new THREE.CylinderGeometry(.19,.215,.23,12),armor);
+  cuff.position.set(side*.25,.33,.03);b.add(cuff);
+ }
+ c.v40SilhouetteSculpted=true;
  const visor=new THREE.Mesh(new THREE.BoxGeometry(.44,.075,.11),seam);
  visor.position.set(0,2.55,.36);b.add(visor);
  const crest=new THREE.Mesh(new THREE.BoxGeometry(.27,.11,.035),seam);
