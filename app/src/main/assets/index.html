@@ -1136,12 +1136,15 @@ function v18Open(name){
  }else if(name==='ARMAS'||name==='INVENTARIO'||name==='PRESET'){
   html+='<div class="v18Grid">'+weapons.map((w,i)=>card(w.name,`Daño ${w.damage} · Cargador ${w.mag} · Alcance ${w.range}m`,p.weapon===i?'EQUIPADA':'EQUIPAR',`weapon:${i}`)).join('')+'</div>';
   html+='<p class="v18PanelNote">Selecciona el arma inicial. Durante la partida puedes cambiar entre las cinco.</p>';
- }else if(name==='MISIONES'||name==='PASE'){
+  }else if(name==='PASE'){
+  const tier=1+Math.floor(p.xp/350),progress=p.xp%350;
+  html+='<div class="v18Grid">'+card('PASE · NIVEL '+tier,'XP acumulada '+p.xp+' · '+progress+'/350 XP para el siguiente nivel')+card('RECOMPENSAS GRATUITAS','Gana XP al jugar. No existen compras reales.')+card('TEMPORADA 01','La ruta de recompensas exclusiva está en desarrollo. Tu progreso local sigue guardado.')+'</div>';
+ }else if(name==='MISIONES'){
   const missions=[{id:'first',title:'PRIMERA MISIÓN',goal:1,current:p.matches,reward:75},{id:'hunter',title:'CAZADOR',goal:10,current:p.kills,reward:160},{id:'veteran',title:'VETERANO',goal:5,current:p.matches,reward:200},{id:'survivor',title:'ÚLTIMO EN PIE',goal:1,current:p.wins,reward:300}];
   html+='<div class="v18Grid">'+missions.map(m=>{const done=p.claimed.includes(m.id),ready=m.current>=m.goal;return `<div class="v18Item"><b>${m.title}</b><small>${Math.min(m.current,m.goal)} / ${m.goal} · Premio ${m.reward} créditos</small><div class="v18Progress"><span style="width:${Math.min(100,m.current/m.goal*100)}%"></span></div><button data-v18="claim:${m.id}" ${!ready||done?'disabled':''}>${done?'RECLAMADA':ready?'RECLAMAR':'EN PROGRESO'}</button></div>`}).join('')+'</div>';
   html+='<p class="v18PanelNote">Las misiones registran progreso local tras terminar cada partida.</p>';
  }else if(name==='EVENTOS'){
-  html+=`<div class="v18Grid">${card('PUERTO AURORA','Explora el pueblo mediterráneo y sus puntos de cobertura.')}${card('OPERACIÓN SUPERVIVENCIA','Enfréntate a 20 rivales controlados por IA.')}${card('ENTRENAMIENTO','Practica el combate contra 8 rivales IA.')}</div>`;
+  html+=`<div class="v18Grid">${card('EVENTO: OPERACIÓN SUPERVIVENCIA','Combate disponible contra 20 rivales IA.','JUGAR EVENTO','event:royale')}${card('EVENTO: PRÁCTICA TÁCTICA','Entrenamiento disponible contra 8 rivales IA.','ENTRAR','event:training')}${card('PRÓXIMAMENTE: AURORA','Más desafíos cuando estén implementados.')}</div>`;
  }else{
   html+=`<div class="v18Grid">${card('VICTORIAS',String(p.wins))}${card('BAJAS TOTALES',String(p.kills))}${card('RÉCORD',String(p.best))}</div>`;
  }
@@ -1149,7 +1152,8 @@ function v18Open(name){
  body.querySelectorAll('[data-v18]').forEach(b=>b.addEventListener('click',()=>{
   if(b.disabled)return;
   const [type,index]=b.dataset.v18.split(':');const n=Number(index);
-  if(type==='skin'){
+  if(type==='event'){if(index!=='royale'&&index!=='training')return;$('v18Mode').value=index;$('v18Mode').dispatchEvent(new Event('change'));$('v18Panel').classList.add('hidden');start();return;}
+   if(type==='skin'){
    const skin=v18Skins[n];if(!skin)return;
    if(!p.unlocked.includes(n)){if(p.credits<skin.price)return;p.credits-=skin.price;p.unlocked.push(n)}p.skin=n;
   }else if(type==='weapon'){if(!weapons[n])return;p.weapon=n}
