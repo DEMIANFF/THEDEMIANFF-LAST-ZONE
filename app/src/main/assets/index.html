@@ -873,7 +873,7 @@ function reload(){
 function finish(win){if(gameOver)return;gameOver=true;const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 let moveVX=0,moveVZ=0,v14Recoil=0;
 function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
- if(camera){const targetFov=68;const nextFov=camera.fov+(targetFov-camera.fov)*(1-Math.exp(-dt*9));if(Math.abs(nextFov-camera.fov)>.008){camera.fov=nextFov;camera.updateProjectionMatrix();}}
+ if(camera){const targetFov=adsHeld?54:68;const nextFov=camera.fov+(targetFov-camera.fov)*(1-Math.exp(-dt*9));if(Math.abs(nextFov-camera.fov)>.008){camera.fov=nextFov;camera.updateProjectionMatrix();}}
  time+=dt;shootCooldown=Math.max(0,shootCooldown-dt);if(reloadTimer>0){
  reloadTimer-=dt;
  if(reloadTimer<=0){
@@ -1539,7 +1539,7 @@ document.addEventListener('pointerdown',e=>{
  e.preventDefault();e.stopImmediatePropagation();
  activeActionPointers.set(e.pointerId,{id:button.id,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY});
  if(button.id==='sprint'){sprintHeld=!sprintHeld;$('v124Debug').textContent=sprintHeld?'CORRER ACTIVADO · TURBO 14.5':'CORRER DESACTIVADO';}
- else if(button.id==='aimBtn'){adsHeld=!adsHeld;$('v124Debug').textContent=adsHeld?'MIRA ACTIVADA':'MIRA DESACTIVADA';}
+ else if(button.id==='aimBtn'){adsHeld=!adsHeld;$('aimBtn').classList.toggle('adsActive',adsHeld);$('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':'⊕ MIRA LIBRE';$('v124Debug').textContent=adsHeld?'MIRA ACTIVADA':'MIRA DESACTIVADA';}
  else if(button.id==='jump'){jumpQueued=true;toneSound(300,.07,.045,'sine');}
  else if(button.id==='fire'){v22FireDragging=false;resetFireCamera();fireTouch=e.pointerId;fireHeld=true;fireLastX=e.clientX;fireLastY=e.clientY;}
  else if(button.id==='heal')heal();
@@ -1639,7 +1639,7 @@ function v23PointerDown(e){
  else if(role==='look'){cameraPointers.set(e.pointerId,t);if(v26LookOwner===null){v26LookOwner=e.pointerId;lookTouch=e.pointerId;}}
  else if(role==='fire'){fireTouch=e.pointerId;fireHeld=true;v22FireDragging=false;v23FireThumb(t);}
  else if(role==='sprint'){sprintHeld=!sprintHeld;$('sprint').classList.toggle('sprintActive',sprintHeld);}
- else if(role==='aimBtn')adsHeld=!adsHeld;
+ else if(role==='aimBtn'){adsHeld=!adsHeld;$('aimBtn').classList.toggle('adsActive',adsHeld);$('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':'⊕ MIRA LIBRE';}
  else if(role==='jump')jumpQueued=true;
  else if(role==='heal')heal();
  else if(role==='reload')reload();
