@@ -1455,7 +1455,7 @@ function frame(){
  requestAnimationFrame(frame);
  try{
   const dt=Math.min(.045,clock.getDelta());v9RenderAccum+=dt;
-  if(running&&!paused){update(dt);v71Update(dt)}
+  if(running&&!paused){update(dt);v71Update(dt)}else if(running&&window.v36FlightMode==='aircraft')v36TickAircraft(dt);
   if(renderer&&scene&&camera&&(!$('batterySaver').checked||v9RenderAccum>=1/30)){
    renderer.render(scene,camera);v9RenderAccum=0;fpsFrames++;
   }
