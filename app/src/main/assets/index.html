@@ -1068,6 +1068,42 @@ function v8DecorateWorld(){
  }
  shardMesh.instanceMatrix.needsUpdate=true;shardMesh.castShadow=false;shardMesh.receiveShadow=false;scene.add(shardMesh);
 }
+// V39.6: distinct Aurora outposts with real collision and AI-visible tactical cover.
+function v396ExpandAurora(){
+ const steel=new THREE.MeshStandardMaterial({color:'#36526a',metalness:.62,roughness:.48});
+ const frost=new THREE.MeshStandardMaterial({color:'#a9d9e6',metalness:.18,roughness:.35});
+ const accent=new THREE.MeshStandardMaterial({color:'#5ce6d2',emissive:'#127a76',emissiveIntensity:.45,roughness:.4});
+ const roof=new THREE.MeshStandardMaterial({color:'#273e56',metalness:.42,roughness:.62});
+ const districts=[{x:-83,z:-72,name:'HELIOS'},{x:87,z:66,name:'VÓRTEX'},{x:80,z:-91,name:'CRISTAL'},{x:-95,z:79,name:'ECOS'}];
+ let placed=0;
+ function place(x,z,w,h,d,material,kind){
+  if(Math.abs(x)>HALF-9||Math.abs(z)>HALF-9||Math.hypot(x,z)<21||solid(x,z,Math.max(w,d)*.58+1))return false;
+  const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);
+  const main=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
+  main.position.y=h*.5;main.castShadow=true;main.receiveShadow=true;g.add(main);
+  if(kind==='building'){
+   const cap=new THREE.Mesh(new THREE.BoxGeometry(w+.65,.36,d+.65),roof);cap.position.y=h+.18;cap.castShadow=true;g.add(cap);
+   const strip=new THREE.Mesh(new THREE.BoxGeometry(w*.62,.16,.12),accent);strip.position.set(0,h*.72,d*.5+.07);g.add(strip);
+   const panel=new THREE.Mesh(new THREE.BoxGeometry(w*.34,.7,.1),frost);panel.position.set(0,h*.42,d*.5+.09);g.add(panel);
+  }else if(kind==='crate'){
+   const band=new THREE.Mesh(new THREE.BoxGeometry(w+.04,.13,d+.04),frost);band.position.y=h*.72;g.add(band);
+  }
+  worldObjects.push({x,z,r:Math.max(w,d)*.57,h:h+(kind==='building'?.36:0)});
+  placed++;return true;
+ }
+ for(const district of districts){
+  const {x,z}=district;
+  for(const [dx,dz,w,h,d] of [[-14,-10,7,5.5,6],[13,10,8,6.5,6],[14,-12,5,4.4,5]]){
+   place(x+dx,z+dz,w,h,d,steel,'building');
+  }
+  // Off-center short barriers and crates leave walkable lanes for player and AI.
+  for(const [dx,dz,w,h,d] of [[-4,10,3,1.9,2],[5,-5,3.6,2.3,2.3],[-15,6,4,1.65,2],[15,1,3,1.7,2],[-5,-14,2.6,2.1,2.6]]){
+   place(x+dx,z+dz,w,h,d,dx%2?steel:frost,'crate');
+  }
+ }
+ window.v396StructuresPlaced=placed;
+}
+window.THEDEMIANFF_AURORA_TEST=()=>({structures:window.v396StructuresPlaced||0,colliders:worldObjects.length});
 // V39.4: bounded cover search on AI decision ticks, not on every frame.
 function v394FindCover(b,px,pz){
  let best=null,score=Infinity,checked=0;
@@ -1101,7 +1137,7 @@ if(scene){
  for(const geometry of geometries)geometry.dispose();
  while(scene.children.length)scene.remove(scene.children[0]);
 }
-createWorld();addWorldDetails();v8DecorateWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.10;v22ShoulderRig.back=NaN;v22ShoulderRig.shoulder=NaN;v22ShoulderRig.height=NaN;v22ShoulderRig.anchorY=NaN;camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
+createWorld();addWorldDetails();v396ExpandAurora();v8DecorateWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.10;v22ShoulderRig.back=NaN;v22ShoulderRig.shoulder=NaN;v22ShoulderRig.height=NaN;v22ShoulderRig.anchorY=NaN;camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
 for(let i=2;i<weapons.length;i++){weapons[i].ammo=weapons[i].mag;weapons[i].reserve=[210,36,180][i-2];}for(let i=0;i<($('v18Mode').value==='training'?8:20);i++)spawnBot(Math.random()<.5?10:17);for(let i=0;i<55;i++){let p=safePos(5);spawnPickup(['ammo','ammo','med','armor'][i%4],p.x,p.z)}updateHud();}
 function updateHud(){
  const eventHud=$('v362EventHud');if(eventHud){eventHud.classList.toggle('hidden',!v18ActiveEvent);if(v18ActiveEvent)eventHud.textContent='EVENTO '+(v18ActiveEvent==='training'?'PRÁCTICA TÁCTICA':'SUPERVIVENCIA')+' · BAJAS '+kills+'/'+(v18ActiveEvent==='training'?2:3);}
