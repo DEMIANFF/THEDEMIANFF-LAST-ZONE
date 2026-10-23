@@ -1260,7 +1260,7 @@ function v18Open(name){
   html+='<div class="v18Grid">'+card('PASE · NIVEL '+tier,'XP acumulada '+p.xp+' · '+progress+'/350 XP para el siguiente nivel')+card('RECOMPENSAS GRATUITAS','Gana XP al jugar. No existen compras reales.')+card('TEMPORADA 01','La ruta de recompensas exclusiva está en desarrollo. Tu progreso local sigue guardado.')+'</div>';
  }else if(name==='MISIONES'){
   const missions=[{id:'first',title:'PRIMERA MISIÓN',goal:1,current:p.matches,reward:75},{id:'hunter',title:'CAZADOR',goal:10,current:p.kills,reward:160},{id:'veteran',title:'VETERANO',goal:5,current:p.matches,reward:200},{id:'survivor',title:'ÚLTIMO EN PIE',goal:1,current:p.wins,reward:300}];
-  html+='<div class="v18Grid">'+missions.map(m=>{const done=p.claimed.includes(m.id),ready=m.current>=m.goal;return `<div class="v18Item"><b>${m.title}</b><small>${Math.min(m.current,m.goal)} / ${m.goal} · Premio ${m.reward} créditos</small><div class="v18Progress"><span style="width:${Math.min(100,m.current/m.goal*100)}%"></span></div><button data-v18="claim:${m.id}" ${!ready||done?'disabled':''}>${done?'RECLAMADA':ready?'RECLAMAR':'EN PROGRESO'}</button></div>`}).join('')+'</div>';
+  html+='<div class="v18Grid">'+missions.map(m=>{const done=p.claimed.includes(m.id),ready=m.current>=m.goal;return `<div class="v18Item"><b>${m.title}</b><small>${Math.min(m.current,m.goal)} / ${m.goal} · Premio ${m.reward} créditos</small><div class="v18Progress"><span style="width:${Math.min(100,m.current/m.goal*100)}%"></span></div><button data-v18="${ready?'claim':'mission'}:${m.id}" ${done?'disabled':''}>${done?'RECLAMADA':ready?'RECLAMAR RECOMPENSA':'VER OBJETIVO'}</button></div>`}).join('')+'</div>';
   html+='<p class="v18PanelNote">Las misiones registran progreso local tras terminar cada partida.</p>';
  }else if(name==='EVENTOS'){
   html+=`<div class="v18Grid">${card('EVENTO: OPERACIÓN SUPERVIVENCIA','Combate disponible contra 20 rivales IA.','JUGAR EVENTO','event:royale')}${card('EVENTO: PRÁCTICA TÁCTICA','Entrenamiento disponible contra 8 rivales IA.','ENTRAR','event:training')}${card('PRÓXIMAMENTE: AURORA','Más desafíos cuando estén implementados.')}</div>`;
@@ -1278,7 +1278,8 @@ function v18Open(name){
    const skin=v18Skins[n];if(!skin)return;
    if(!p.unlocked.includes(n)){if(p.credits<skin.price)return;p.credits-=skin.price;p.unlocked.push(n)}p.skin=n;
   }else if(type==='weapon'){if(!weapons[n])return;p.weapon=n}
-  else if(type==='claim'){
+  else if(type==='mission'){const names={first:'Completa una partida',hunter:'Consigue 10 bajas',veteran:'Completa 5 partidas',survivor:'Gana una partida'};const info=document.createElement('p');info.className='v18PanelNote';info.textContent='OBJETIVO: '+(names[index]||'Sigue jugando')+' · Las recompensas se activan al completarlo.';body.prepend(info);return;}
+   else if(type==='claim'){
    const missions={first:[p.matches,1,75],hunter:[p.kills,10,160],veteran:[p.matches,5,200],survivor:[p.wins,1,300]};
    const m=missions[index];if(!m||m[0]<m[1]||p.claimed.includes(index))return;
    p.credits+=m[2];p.claimed.push(index);
