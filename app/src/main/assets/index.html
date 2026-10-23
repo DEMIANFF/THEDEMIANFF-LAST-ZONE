@@ -873,7 +873,7 @@ function reload(){
 function finish(win){if(gameOver)return;gameOver=true;const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 let moveVX=0,moveVZ=0,v14Recoil=0;
 function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
- if(camera){const targetFov=adsHeld?58:68;const nextFov=camera.fov+(targetFov-camera.fov)*(1-Math.exp(-dt*9));if(Math.abs(nextFov-camera.fov)>.008){camera.fov=nextFov;camera.updateProjectionMatrix();}}
+ if(camera){const targetFov=68;const nextFov=camera.fov+(targetFov-camera.fov)*(1-Math.exp(-dt*9));if(Math.abs(nextFov-camera.fov)>.008){camera.fov=nextFov;camera.updateProjectionMatrix();}}
  time+=dt;shootCooldown=Math.max(0,shootCooldown-dt);if(reloadTimer>0){
  reloadTimer-=dt;
  if(reloadTimer<=0){
@@ -890,7 +890,9 @@ function update(dt){flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather
 }// Automatic fire is evaluated after the current-frame camera orientation is applied.
 let mx=Number(!!keys.KeyD)-Number(!!keys.KeyA)+joyX,mz=Number(!!keys.KeyW)-Number(!!keys.KeyS)-joyY,mag=Math.hypot(mx,mz);if(mag>1){mx/=mag;mz/=mag;}const sprint=keys.ShiftLeft||keys.ShiftRight||sprintHeld||$('alwaysSprint').checked||($('autoSprintStick').checked&&Math.hypot(joyX,joyY)>=Number($('sprintThreshold').value));
 // Sprint is an independent toggle, but only translates the character while a movement input exists.
-const spd=sprint?14.5:6.1;
+// Tapping SPRINT starts forward auto-run immediately; joystick input takes priority.
+ if(sprintHeld&&mag<.01){mz=1;mag=1;}
+ const spd=sprint?14.5:6.1;
 // Restored V21 camera-space basis: Three.js camera faces +Z, so screen-right is world -X.
 const wantedX=(-mx*Math.cos(camYaw)+mz*Math.sin(camYaw))*spd;
 const wantedZ=(mx*Math.sin(camYaw)+mz*Math.cos(camYaw))*spd;
@@ -922,7 +924,7 @@ const dx=moveVX*dt,dz=moveVZ*dt;let nx=clamp(player.position.x+dx,-HALF+4,HALF-4
 // Firing must never teleport the shoulder camera. Only ADS changes its distance.
 // Keep Lila near the middle-left of the reticle, not at the extreme right.
 // Negative shoulder offsets the camera to screen-right so Lila appears LEFT of the reticle.
-const shoulder=-Number($('v26CameraShoulder').value)*(adsHeld?.62:1),back=Number($('v26CameraDistance').value)*(adsHeld?.66:1),height=adsHeld?2.65:3.35;
+const shoulder=-Number($('v26CameraShoulder').value),back=Number($('v26CameraDistance').value),height=3.35;
 // Smooth only the shoulder rig offsets; preserve instantaneous 360-degree yaw.
 if(!Number.isFinite(v22ShoulderRig.back)){v22ShoulderRig.back=back;v22ShoulderRig.shoulder=shoulder;v22ShoulderRig.height=height;}
 const rigEase=1-Math.exp(-dt*12);
@@ -1224,7 +1226,7 @@ function v24LobbyTick(){
  }
 }
 
-function start(){unlockAudio();v123ResetInputs();if(!renderer){renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;if('outputColorSpace' in renderer && THREE.SRGBColorSpace)renderer.outputColorSpace=THREE.SRGBColorSpace;else renderer.outputEncoding=THREE.sRGBEncoding;$('game').appendChild(renderer.domElement);camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,480);window.addEventListener('resize',resize);renderer.domElement.addEventListener('click',()=>{if(running&&!paused&&!mobile){const pl=renderer.domElement.requestPointerLock?.();if(pl&&pl.catch)pl.catch(()=>{})}});document.addEventListener('mousemove',e=>{if(running&&!paused&&!mobile)aim(e.movementX,e.movementY)});document.addEventListener('mousedown',e=>{if(e.button===0&&running&&!paused)fireHeld=true});document.addEventListener('mouseup',()=>fireHeld=false);requestAnimationFrame(frame);}reset();running=true;paused=false;$('v18Panel').classList.add('hidden');$('menu').classList.add('hidden');$('end').classList.add('hidden');$('pausePanel').classList.add('hidden');if(mobile)$('controls').classList.remove('hidden');else renderer.domElement.requestPointerLock?.();clock.getDelta();applyPrefs();}
+function start(){unlockAudio();v123ResetInputs();if(!renderer){renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!mobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;if('outputColorSpace' in renderer && THREE.SRGBColorSpace)renderer.outputColorSpace=THREE.SRGBColorSpace;else renderer.outputEncoding=THREE.sRGBEncoding;$('game').appendChild(renderer.domElement);camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,480);window.addEventListener('resize',resize);renderer.domElement.addEventListener('click',()=>{if(running&&!paused&&!mobile){const pl=renderer.domElement.requestPointerLock?.();if(pl&&pl.catch)pl.catch(()=>{})}});document.addEventListener('mousemove',e=>{if(running&&!paused&&!mobile)aim(e.movementX,e.movementY)});document.addEventListener('mousedown',e=>{if(e.button===0&&running&&!paused)fireHeld=true});document.addEventListener('mouseup',()=>fireHeld=false);requestAnimationFrame(frame);}reset();running=true;paused=false;$('v18Panel').classList.add('hidden');$('menu').classList.add('hidden');$('end').classList.add('hidden');$('pausePanel').classList.add('hidden');if(mobile)$('controls').classList.remove('hidden');else renderer.domElement.requestPointerLock?.();clock.getDelta();applyPrefs();}
 function resize(){if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}// V21: show runtime errors on Android instead of silently freezing on a black screen.
 let v21LastError='';
 function v21Diagnostic(stage,error){
@@ -1245,7 +1247,7 @@ function v26TunePerformance(fps){
  if(fps<25){v26Performance.lowFrames++;v26Performance.highFrames=0;}
  else if(fps>48){v26Performance.highFrames++;v26Performance.lowFrames=0;}
  else {v26Performance.lowFrames=0;v26Performance.highFrames=0;}
- if(v26Performance.lowFrames>=2){v26Performance.scale=Math.max(adsHeld?.48:.58,v26Performance.scale-.12);v26Performance.lowFrames=0;v26ApplyPixelRatio();}
+ if(v26Performance.lowFrames>=2){v26Performance.scale=Math.max(.48,v26Performance.scale-.12);v26Performance.lowFrames=0;v26ApplyPixelRatio();}
  if(v26Performance.highFrames>=24){v26Performance.scale=Math.min(1,v26Performance.scale+.04);v26Performance.highFrames=0;v26ApplyPixelRatio();}
 }
 function v26ApplyPixelRatio(){
@@ -1278,7 +1280,7 @@ function resetFireCamera(){fireCameraFilter.x=0;fireCameraFilter.y=0;}
 function aim(dx,dy,mode='free'){
  const speed=Number($('cameraSpeed').value);
  let mult=mode==='fire'?Number($('fireSensitivity').value):1;
- if(adsHeld)mult*=Number($('adsSensitivity').value);
+ // V34.4: ADS uses the same touch response as the stable free-look camera.
  const deadzone=Number($('v26TouchDeadzone').value),curve=Number($('v26TouchCurve').value);
  const shape=d=>{const v=Math.abs(clamp(d,-45,45));if(v<=deadzone)return 0;return Math.sign(d)*45*Math.pow((v-deadzone)/(45-deadzone),curve);};
  const x=shape(dx)*speed*mult,y=shape(dy)*speed*mult;
@@ -1298,7 +1300,7 @@ function applyAim(dx,dy){
  camPitch=clamp(camPitch+dy*.00155*Number($('verticalSensitivity').value)*($('invertY').checked?-1:1),-.62,.98);
 }
 function aimAssistPull(dt){
- if(!running||paused||!player)return;
+ if(!running||paused||!player||adsHeld)return;
  if(!$('aimAssist').checked)return;
  // Never let aim assistance fight a finger currently dragging the view.
  if((!fireHeld&&!adsHeld)||cameraPointers.size>0||v22FireDragging)return;
