@@ -1174,6 +1174,30 @@ function v36Jump(){
  player.add(v36Chute);clock.getDelta();
 }
 
+// Lightweight AI deployment uses the existing operators, not new CPU-heavy agents.
+function v362DeployBots(){
+ if($('v18Mode').value==='training')return;
+ for(const b of bots){
+  if(!b.alive)continue;
+  const pos=v36Safe(b.x+rand(-24,24),b.z+rand(-24,24));
+  b.x=pos.x;b.z=pos.z;b.airborne=true;b.dropSpeed=12+rand(-2,4);
+  b.root.position.set(b.x,ground(b.x,b.z)+75+rand(0,16),b.z);
+  const chute=new THREE.Mesh(new THREE.SphereGeometry(2.3,8,4,0,Math.PI*2,0,Math.PI*.5),new THREE.MeshBasicMaterial({color:'#72cfe0',side:THREE.DoubleSide,transparent:true,opacity:.86}));
+  chute.position.y=5.1;b.root.add(chute);b.v362Chute=chute;
+ }
+}
+function v362UpdateBotsInAir(dt){
+ for(const b of bots){
+  if(!b.airborne||!b.alive)continue;
+  const floor=ground(b.x,b.z);
+  b.root.position.y-=b.dropSpeed*dt;
+  if(b.root.position.y<=floor){
+   b.root.position.y=floor;b.airborne=false;
+   if(b.v362Chute){b.root.remove(b.v362Chute);b.v362Chute.geometry.dispose();b.v362Chute.material.dispose();b.v362Chute=null;}
+   b.shoot=Math.max(b.shoot,1.5);
+  }
+ }
+}
 function v36StepFlight(dt){
  flushCamera(dt);
  const dx=-joyX*Math.cos(camYaw)-joyY*Math.sin(camYaw),dz=joyX*Math.sin(camYaw)-joyY*Math.cos(camYaw);
