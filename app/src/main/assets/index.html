@@ -733,8 +733,20 @@ function v22FemaleOperator(){
   const strap=new THREE.Mesh(new THREE.BoxGeometry(.13,.85,.085),textile);
   strap.position.set(side*.31,1.55,.38);b.add(strap);
  }
+ const ponytail=new THREE.Group();ponytail.position.set(0,2.61,-.38);b.add(ponytail);
+ for(let j=0;j<5;j++){
+  const strand=new THREE.Mesh(new THREE.SphereGeometry(.15-j*.014,10,8),j%2?hairLight:hair);
+  strand.scale.set(.92,1.25,.85);strand.position.set(Math.sin(j*.45)*.12,-j*.19,-j*.055);ponytail.add(strand);
+ }
+ for(const side of [-1,1]){
+  const ear=new THREE.Mesh(new THREE.SphereGeometry(.16,10,8),black);
+  ear.scale.set(.7,1,.5);ear.position.set(side*.42,2.43,0);b.add(ear);
+ }
+ const visor=new THREE.Mesh(new THREE.BoxGeometry(.44,.075,.11),seam);
+ visor.position.set(0,2.55,.36);b.add(visor);
  const crest=new THREE.Mesh(new THREE.BoxGeometry(.27,.11,.035),seam);
  crest.position.set(0,1.94,.53);b.add(crest);
+ c.v40FallbackDetails=true;
  c.isFemaleOperator=true;v22ApplyLilaModel(c);return c;
 }
 function makeCharacter(color,enemy=false){const root=new THREE.Group(),body=new THREE.Group();root.add(body);const uniform=mat(color),vest=mat(enemy?'#4d3c3b':'#364b55'),skin=mat(enemy?'#b78c72':'#cba180');cyl(.36,.49,1.2,uniform,body,0,1.52,0).scale.z=.74;cyl(.43,.46,.7,vest,body,0,1.58,-.02).scale.z=.74;box(.75,.18,.6,mats.dark,body,0,1.98,0);sphere(.36,skin,body,0,2.43,0,10);box(.77,.2,.76,enemy?mats.red:mats.dark,body,0,2.73,0);cyl(.15,.18,.92,uniform,body,-.64,1.58,0);cyl(.15,.18,.92,uniform,body,.64,1.58,0);const left=cyl(.18,.21,.9,mats.pants,body,-.25,.47,0),right=cyl(.18,.21,.9,mats.pants,body,.25,.47,0);box(.38,.2,.66,mats.dark,body,-.25,.12,.15);box(.38,.2,.66,mats.dark,body,.25,.12,.15);const gun=new THREE.Group();body.add(gun);gun.position.set(.4,1.45,.55);box(.17,.2,1.4,mats.gun,gun,0,0,.4);box(.27,.38,.48,mats.dark,gun,0,-.14,.1);box(.12,.12,.42,mats.gold,gun,0,.16,.1);box(.08,.08,.5,mats.gun,gun,0,0,1.32);const backGun=new THREE.Group();body.add(backGun);
@@ -809,10 +821,17 @@ for(let i=0;i<v40Specs.length;i++){
    bipod.position.set(side*.19,-.25,1.03);bipod.rotation.z=side*.25;group.add(bipod);
   }
  }
+ const shroud=new THREE.Mesh(new THREE.CylinderGeometry(.105,.12,.17,10),v40GunMetal);
+ shroud.rotation.x=Math.PI/2;shroud.position.set(0,.025,1.39+barrelLength*.45);group.add(shroud);
+ const emblem=new THREE.Mesh(new THREE.BoxGeometry(.035,.105,.32),tint);
+ emblem.position.set(.145,.045,.52);group.add(emblem);
+ if(i===4){const boxFeed=new THREE.Mesh(new THREE.BoxGeometry(.42,.45,.4),v40GunGrip);boxFeed.position.set(.28,-.32,.16);group.add(boxFeed);}
+ if(i===2){const grip=new THREE.Mesh(new THREE.BoxGeometry(.15,.28,.18),v40GunGrip);grip.position.set(0,-.24,.75);group.add(grip);}
  group.visible=i===0;group.userData.v40WeaponName=name;v40Variants.push(group);
 }
 gun.userData.v40Variants=v40Variants;
 gun.userData.v40VisualVersion='five-profiles';
+gun.userData.v40WeaponNames=v40Specs.map(p=>p[0]);
 box(.44,.09,.11,mats.gold,body,0,1.96,.36);
 box(.20,.24,.07,mats.dark,body,-.34,1.58,.39);
 box(.20,.24,.07,mats.dark,body,.34,1.58,.39);
