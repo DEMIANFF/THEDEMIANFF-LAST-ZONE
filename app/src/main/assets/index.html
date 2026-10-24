@@ -1918,7 +1918,7 @@ v22ShoulderRig.shoulder+=(shoulder-v22ShoulderRig.shoulder)*rigEase;
 v22ShoulderRig.height+=(height-v22ShoulderRig.height)*rigEase;
 // Smooth the terrain anchor independently of the player's run and jump animation.
 if(!Number.isFinite(v22ShoulderRig.anchorY))v22ShoulderRig.anchorY=player.position.y;
-const anchorGoal=onGround?ground(player.position.x,player.position.z):player.position.y;
+const anchorGoal=player.position.y; // V40.3: preserve shoulder camera height on rooftops
 const v26CameraSmooth=clamp(Number($('cameraSmooth').value)||0,0,.8);
 // ADS must settle its terrain anchor promptly, without a drifting follow tail.
 const anchorSpeed=onGround?(adsHeld?5.5:2.2):4.5;
