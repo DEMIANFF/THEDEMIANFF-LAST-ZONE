@@ -2,6 +2,7 @@
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace TheDemianFF.Native.Editor
@@ -18,6 +19,26 @@ namespace TheDemianFF.Native.Editor
             var scenes=new[]{new EditorBuildSettingsScene("Assets/Scenes/V41_Test.unity",true)};
             EditorBuildSettings.scenes=scenes;
             Debug.Log("[V41] Saved native test scene; press Play. No HTML / WebView.");
+        }
+        [MenuItem("THEDEMIANFF/V41/Build Android APK (requires Android Support)")]
+        public static void BuildAndroid()
+        {
+            ConfigureAndroid();
+            if(!File.Exists("Assets/Scenes/V41_Test.unity"))CreateScene();
+            if(EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android)
+                throw new System.InvalidOperationException("Switch Unity Build Profile to Android before building.");
+            Directory.CreateDirectory("Builds");
+            string output="Builds/THEDEMIANFF-V41-native-test.apk";
+            var options=new BuildPlayerOptions {
+                scenes=new[]{"Assets/Scenes/V41_Test.unity"},
+                locationPathName=output,
+                target=BuildTarget.Android,
+                options=BuildOptions.None
+            };
+            BuildReport report=BuildPipeline.BuildPlayer(options);
+            if(report.summary.result!=BuildResult.Succeeded)
+                throw new System.Exception("V41 native APK build failed: "+report.summary.result);
+            Debug.Log("[V41] Native APK created: "+Path.GetFullPath(output));
         }
         [MenuItem("THEDEMIANFF/V41/Configure Android")]
         public static void ConfigureAndroid()
