@@ -607,6 +607,48 @@ const ringGeo=new THREE.RingGeometry(.992,1,128);ringGeo.rotateX(-Math.PI/2);zon
 const v22LilaAssets=['models/LILA_V22_Operadora_Futurista.glb','models/lila-operator.glb'];
 const v22LilaAsset=v22LilaAssets[0];
 window.THEDEMIANFF_V40_ASSET_STATUS={lila:'pending',weapons:'pending'};
+/* V40.1: load a genuine AK-74 GLB once, retain the procedural rifle as an offline fallback. */
+let v401AKTemplate=null,v401AKLoading=false;
+const v401AKTargets=new Set();
+function v401AttachAK(character){
+ if(!character||!character.gun||character.v401AKMounted)return;
+ v401AKTargets.add(character);
+ if(v401AKTemplate){
+  const group=character.gun,model=v401AKTemplate.clone(true);
+  model.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3());
+  const longest=Math.max(size.x,size.y,size.z);
+  if(!Number.isFinite(longest)||longest<.001)return;
+  const scale=1.95/longest;model.scale.setScalar(scale);
+  model.position.set(-(bounds.min.x+bounds.max.x)*scale*.5,-(bounds.min.y+bounds.max.y)*scale*.5, .45-(bounds.min.z+bounds.max.z)*scale*.5);
+  // Orient the model's longest axis along the game's forward (+Z) weapon axis.
+  if(size.x>size.y&&size.x>size.z){model.rotation.y=-Math.PI/2;}
+  else if(size.y>size.x&&size.y>size.z){model.rotation.x=Math.PI/2;}
+  model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  // Keep original meshes as a fallback for the other four weapons.
+  const fallback=group.children.slice();
+  const toggle=()=>{
+   const ak=group.userData.v40ActiveIndex===0;
+   model.visible=ak;
+   for(const child of fallback)child.visible=!ak && (!child.userData.v40WeaponName || child.userData.v40WeaponName===['AR-7','DMR-9','SMG-4','ESC-12','LMG-60'][group.userData.v40ActiveIndex]);
+  };
+  group.add(model);group.userData.v401AKModel=model;group.userData.v401AKFallback=fallback;
+  character.v401AKMounted=true;toggle();
+  return;
+ }
+ if(v401AKLoading||!THREE.GLTFLoader)return;
+ v401AKLoading=true;
+ new THREE.GLTFLoader().load('models/ak74-tactical.glb',gltf=>{
+  if(!gltf||!gltf.scene){window.THEDEMIANFF_V40_ASSET_STATUS.weapons='invalid AK-74 GLB';return;}
+  v401AKTemplate=gltf.scene;
+  window.THEDEMIANFF_V40_ASSET_STATUS.weapons='AK-74 GLB loaded';
+  for(const target of v401AKTargets)v401AttachAK(target);
+ },undefined,e=>{
+  window.THEDEMIANFF_V40_ASSET_STATUS.weapons='procedural fallback';
+  console.warn('[V40.1] AK-74 GLB unavailable; keeping original weapon',e);
+ });
+}
+
 
 let v22LilaTemplate=null,v22LilaRequested=false;
 function v22PrepareLila(){
@@ -688,6 +730,15 @@ function v22UpdateHolster(c,activeIndex){
  const variants=c.gun.userData.v40Variants;
  if(variants)for(let i=0;i<variants.length;i++)variants[i].visible=i===activeIndex;
  c.gun.userData.v40ActiveIndex=activeIndex;
+ if(c.gun.userData.v401AKModel){
+  const ak=activeIndex===0;
+  c.gun.userData.v401AKModel.visible=ak;
+  for(const child of c.gun.userData.v401AKFallback||[]){
+   const name=child.userData.v40WeaponName;
+   child.visible=!ak&&(!name||name===['AR-7','DMR-9','SMG-4','ESC-12','LMG-60'][activeIndex]);
+  }
+ }
+ if(!c.v401AKMounted)v401AttachAK(c);
  // Lila has a separate backpack mesh; place the holster slightly farther behind it.
  c.backGun.position.z=c.isFemaleOperator?-.70:-.56;
 }
