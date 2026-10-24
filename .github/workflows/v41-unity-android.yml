@@ -2,11 +2,6 @@ name: V41 Unity Native Android APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [v41-native-unity-rebuild]
-    paths:
-      - 'V41-Native/**'
-      - '.github/workflows/v41-unity-android.yml'
 
 jobs:
   unity-android:
@@ -19,6 +14,7 @@ jobs:
       - name: Checkout V41
         uses: actions/checkout@v4
 
+      # Manual-only while developing on Termux: avoid repeated red builds before Unity activation.
       - name: Verify Unity credentials
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
