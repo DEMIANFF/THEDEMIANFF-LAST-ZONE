@@ -17,7 +17,8 @@ namespace TheDemianFF.Native
         private readonly System.Random random=new System.Random(4101);
         private static Material Make(Color c,float metallic=0,float smooth=.18f)
         {
-            Shader shader=Shader.Find("Universal Render Pipeline/Lit");
+            Shader shader=GraphicsSettings.currentRenderPipeline!=null
+                ? Shader.Find("Universal Render Pipeline/Lit") : Shader.Find("Standard");
             if(shader==null)shader=Shader.Find("Standard");
             var m=new Material(shader);
             if(m.HasProperty("_BaseColor"))m.SetColor("_BaseColor",c);
@@ -36,7 +37,7 @@ namespace TheDemianFF.Native
         }
         private void Awake()
         {
-            Application.targetFrameRate=120; // requests max; actual FPS must be profiled
+            Application.targetFrameRate=60; // stable baseline; unlock 90/120 only after profiling
             QualitySettings.vSyncCount=0;
             Screen.sleepTimeout=SleepTimeout.NeverSleep;
             Physics.defaultContactOffset=.015f;
