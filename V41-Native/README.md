@@ -27,3 +27,13 @@ This is a **separate Unity 6 / C# native Android project**. It does not load the
 A Unity Android build requires an editor/build machine or properly provisioned CI runner **and Unity license activation**. Termux alone cannot run Unity Editor. No claim is made that this code has already been compiled or benchmarked. The objective is first to obtain a valid native APK, then measure stutter, collisions and responsiveness on the Motorola Edge 60 Fusion.
 
 The legacy `app/` and V40 GitHub Actions APK are unrelated to this native project's build output.
+
+## GitHub Actions native build (separate from V40)
+
+Workflow: `.github/workflows/v41-unity-android.yml` on branch `v41-native-unity-rebuild`.
+It uses Unity 6000.0.60f1 and game-ci. A valid Unity activation is required.
+Set the GitHub Actions repository secret `UNITY_LICENSE`, or the supported Unity account secrets `UNITY_EMAIL` and `UNITY_PASSWORD`. Never paste credentials in chat.
+Use Actions > **V41 Unity Native Android APK** > Run workflow. The job may fail until licensing, Unity packages and C# compilation are validated. Successful completion should upload `THEDEMIANFF-V41-UNITY-NATIVE-APK`.
+The legacy V40 workflow is not a native build.
+
+**First benchmark:** 60 FPS requested (not guaranteed). Test actual FPS, frame-time spikes, camera collisions, rooftop landings and Android touch controls. The native test package ID differs from V40 so both versions can coexist.
