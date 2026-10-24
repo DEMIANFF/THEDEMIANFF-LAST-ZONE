@@ -1,0 +1,39 @@
+name: V41 Native Source Validation
+
+on:
+  push:
+    branches: [v41-native-unity-rebuild]
+    paths:
+      - 'V41-Native/**'
+      - '.github/workflows/v41-native-source-check.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check native source structure and configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,pathlib,re,sys
+          p=pathlib.Path('V41-Native')
+          manifest=json.loads((p/'Packages/manifest.json').read_text())
+          assert 'com.unity.render-pipelines.universal' in manifest['dependencies']
+          version=(p/'ProjectSettings/ProjectVersion.txt').read_text()
+          assert re.search(r'm_EditorVersion:\s*6000\.',version)
+          files=['Assets/Scripts/V41Bootstrap.cs','Assets/Scripts/V41Player.cs','Assets/Scripts/V41Touch.cs','Assets/Editor/V41ProjectTools.cs']
+          for f in files:
+              src=(p/f).read_text()
+              assert src.count('{')==src.count('}'),f+' braces'
+              assert 'namespace TheDemianFF.Native' in src
+          boot=(p/files[0]).read_text()
+          assert 'CharacterController' in boot and 'BuildHouse' in boot
+          player=(p/files[1]).read_text()
+          assert 'SphereCastNonAlloc' in player and 'RaycastNonAlloc' in player
+          print('V41 source structure verified (NOT a Unity compile or APK build).')
+          PY
