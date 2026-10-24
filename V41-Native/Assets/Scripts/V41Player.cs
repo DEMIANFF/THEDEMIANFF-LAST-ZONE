@@ -16,7 +16,6 @@ namespace TheDemianFF.Native
         private readonly RaycastHit[] cameraHits=new RaycastHit[12];
         private readonly RaycastHit[] shotHits=new RaycastHit[16];
         private Transform cameraTransform;
-        private Material bodyMaterial;
         private void Awake()
         {
             motor=GetComponent<CharacterController>();
@@ -50,6 +49,7 @@ namespace TheDemianFF.Native
         }
         private void LateUpdate()
         {
+            if(cameraTransform==null) { viewCamera=Camera.main; if(viewCamera!=null)cameraTransform=viewCamera.transform; }
             if(cameraTransform==null) return;
             var touch=V41Touch.Instance;
             bool aiming=touch!=null&&touch.Aiming||Input.GetMouseButton(1);
