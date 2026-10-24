@@ -2668,8 +2668,8 @@ function v24InitLobby(){
   platform.position.y=-.13;l.scene.add(platform);
   const ring=new THREE.Mesh(new THREE.TorusGeometry(1.55,.025,8,64),new THREE.MeshBasicMaterial({color:0x6ecde9}));
   ring.rotation.x=Math.PI/2;ring.position.y=-.025;l.scene.add(ring);
-  l.renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'low-power'});
-  l.renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));if('outputColorSpace' in l.renderer && THREE.SRGBColorSpace){l.renderer.outputColorSpace=THREE.SRGBColorSpace;}else{l.renderer.outputEncoding=THREE.sRGBEncoding;}
+  l.renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'low-power',precision:'mediump'});
+  l.renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1:1.5));if('outputColorSpace' in l.renderer && THREE.SRGBColorSpace){l.renderer.outputColorSpace=THREE.SRGBColorSpace;}else{l.renderer.outputEncoding=THREE.sRGBEncoding;}
   host.appendChild(l.renderer.domElement);
   v24RefreshLobbyCharacter();
  }catch(err){console.warn('[V24] Lobby 3D preview unavailable',err);host.textContent='VISTA 3D NO DISPONIBLE';}
@@ -2683,7 +2683,7 @@ function v24LobbyTick(){
  if(!$('menu').classList.contains('hidden')){
   if(!v24Lobby.renderer)v24InitLobby();
   const l=v24Lobby,now=performance.now();
-  if(l.renderer&&now-l.last>45){
+  if(l.renderer&&now-l.last>(mobile?95:45)){
    l.last=now;
    const host=$('v24LobbyStage'),w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
    if(l.renderer.domElement.width!==Math.round(w*l.renderer.getPixelRatio())||l.renderer.domElement.height!==Math.round(h*l.renderer.getPixelRatio())){
@@ -2712,7 +2712,10 @@ function v24LobbyTick(){
  }
 }
 
-function start(){unlockAudio();v123ResetInputs();if(!renderer){renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:'high-performance'});renderer.setPixelRatio(v38FhdRatio());renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!mobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;// V40 screenshot-driven calibration: prevent blown-out white snow and preserve architecture edges.
+function start(){unlockAudio();v123ResetInputs();if(!renderer){renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:'high-performance',precision:mobile?'mediump':'highp',stencil:false});renderer.setPixelRatio(mobile?Math.min(v38FhdRatio(),1):v38FhdRatio());
+ // V40.5: controlled WebGL lifecycle for Android memory pressure.
+ renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();v405ContextLost=true;console.warn('[V40.5] WebGL context lost');},false);
+ renderer.domElement.addEventListener('webglcontextrestored',()=>{v405ContextLost=false;v405ContextRestores++;v26Performance.scale=Math.min(v26Performance.scale,.64);v26ApplyPixelRatio();},false);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!mobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;// V40 screenshot-driven calibration: prevent blown-out white snow and preserve architecture edges.
  renderer.toneMappingExposure=.72;if('outputColorSpace' in renderer && THREE.SRGBColorSpace)renderer.outputColorSpace=THREE.SRGBColorSpace;else renderer.outputEncoding=THREE.sRGBEncoding;$('game').appendChild(renderer.domElement);camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,480);window.addEventListener('resize',resize);renderer.domElement.addEventListener('click',()=>{if(running&&!paused&&!mobile){const pl=renderer.domElement.requestPointerLock?.();if(pl&&pl.catch)pl.catch(()=>{})}});document.addEventListener('mousemove',e=>{if(running&&!paused&&!mobile)aim(e.movementX,e.movementY)});document.addEventListener('mousedown',e=>{if(e.button===0&&running&&!paused)fireHeld=true});document.addEventListener('mouseup',()=>fireHeld=false);requestAnimationFrame(frame);}reset();running=true;paused=false;$('v18Panel').classList.add('hidden');$('menu').classList.add('hidden');$('end').classList.add('hidden');$('pausePanel').classList.add('hidden');if(mobile)$('controls').classList.remove('hidden');else renderer.domElement.requestPointerLock?.();clock.getDelta();applyPrefs();$('v362Settings').classList.remove('hidden');$('v362Events').classList.add('hidden');v36Begin();}
 $('v362Settings').addEventListener('click',e=>{
  e.preventDefault();e.stopPropagation();
@@ -2738,16 +2741,25 @@ function v21Diagnostic(stage,error){
  panel.textContent='THEDEMIANFF V21 - ERROR '+stage+'\\n'+message+'\\nToma una captura y enviala al chat.';
 }
 let v9RenderAccum=0;
+let v405ContextLost=false,v405ContextRestores=0,v405LastFrameAt=0,v405SlowFrames=0;
 // Adaptive internal resolution based on measured rendering throughput.
 // Device temperature is not exposed reliably to WebView; FPS is the safe proxy.
-const v26Performance={scale:1,lowFrames:0,highFrames:0};
+const v26Performance={scale:mobile?.76:1,lowFrames:0,highFrames:0};
+window.THEDEMIANFF_V405_PERFORMANCE=()=>({resolutionScale:v26Performance.scale,pixelRatio:renderer?.getPixelRatio()||0,drawCalls:renderer?.info?.render?.calls||0,triangles:renderer?.info?.render?.triangles||0,slowFrames:v405SlowFrames,contextRestores:v405ContextRestores,contextLost:v405ContextLost,targetFps:120});
 function v26TunePerformance(fps){
- if(!renderer||!running||paused)return;
- if(fps<25){v26Performance.lowFrames++;v26Performance.highFrames=0;}
- else if(fps>48){v26Performance.highFrames++;v26Performance.lowFrames=0;}
+ if(!renderer||!running||paused||v405ContextLost)return;
+ // Faster downshift on GPU pressure; slow recovery to prevent oscillation.
+ if(fps<30){v26Performance.lowFrames++;v26Performance.highFrames=0;}
+ else if(fps>57){v26Performance.highFrames++;v26Performance.lowFrames=0;}
  else {v26Performance.lowFrames=0;v26Performance.highFrames=0;}
- if(v26Performance.lowFrames>=2){v26Performance.scale=Math.max(.48,v26Performance.scale-.12);v26Performance.lowFrames=0;v26ApplyPixelRatio();}
- if(v26Performance.highFrames>=24){v26Performance.scale=Math.min(1,v26Performance.scale+.04);v26Performance.highFrames=0;v26ApplyPixelRatio();}
+ if(v26Performance.lowFrames>=2){
+  v26Performance.scale=Math.max(.45,v26Performance.scale-(fps<20?.16:.09));
+  v26Performance.lowFrames=0;v26ApplyPixelRatio();
+ }
+ if(v26Performance.highFrames>=18){
+  v26Performance.scale=Math.min(mobile?.9:1,v26Performance.scale+.025);
+  v26Performance.highFrames=0;v26ApplyPixelRatio();
+ }
 }
 // Native-looking FHD target (up to 1920x1080 real render pixels).
 // Existing user quality settings and adaptive FPS scale remain respected.
@@ -2757,21 +2769,31 @@ function v38FhdRatio(){
 function v26ApplyPixelRatio(){
  if(!renderer)return;
  const resolution=Number($('resolution').value)||.75;
- const ratio=Math.max(.45,v38FhdRatio()*resolution*Number($('quality').value)*v26Performance.scale);
+ const ratio=Math.max(.45,Math.min(mobile?1.15:2,v38FhdRatio()*resolution*Number($('quality').value)*v26Performance.scale));
  if(Math.abs(renderer.getPixelRatio()-ratio)<.045)return;
  renderer.setPixelRatio(ratio);
  renderer.setSize(innerWidth,innerHeight,false);
 }
-function frame(){
+function frame(now){
  requestAnimationFrame(frame);
  try{
-  const dt=Math.min(.045,clock.getDelta());v9RenderAccum+=dt;
-  if(running&&!paused){update(dt);v71Update(dt)}else if(running&&window.v36FlightMode==='aircraft'&&$('pausePanel').classList.contains('hidden'))v36TickAircraft(dt);
-  if(renderer&&scene&&camera&&(!$('batterySaver').checked||v9RenderAccum>=1/30)){
+  const realDt=Math.max(0,Math.min(.25,clock.getDelta()));
+  const dt=Math.min(.045,realDt);
+  if(realDt>.09)v405SlowFrames++;
+  v9RenderAccum+=realDt;
+  if(document.hidden)return;
+  if(running&&!paused){update(dt);v71Update(dt)}
+  else if(running&&window.v36FlightMode==='aircraft'&&$('pausePanel').classList.contains('hidden'))v36TickAircraft(dt);
+  if(renderer&&scene&&camera&&!v405ContextLost&&(!$('batterySaver').checked||v9RenderAccum>=1/30)){
    renderer.render(scene,camera);v9RenderAccum=0;fpsFrames++;
   }
-  fpsElapsed+=dt;
-  if(fpsElapsed>0.7){const measuredFps=fpsFrames/fpsElapsed;v26TunePerformance(measuredFps);$('fpsCounter').textContent=$('showFps').checked?Math.round(measuredFps)+' FPS':'';fpsFrames=0;fpsElapsed=0}
+  fpsElapsed+=realDt;
+  if(fpsElapsed>.85){
+   const measuredFps=fpsFrames/Math.max(.001,fpsElapsed);
+   v26TunePerformance(measuredFps);
+   $('fpsCounter').textContent=$('showFps').checked?Math.round(measuredFps)+' FPS':'';
+   fpsFrames=0;fpsElapsed=0;
+  }
  }catch(error){v21Diagnostic('GAME LOOP',error);paused=true}
 }let cameraDX=0,cameraDY=0,adsHeld=false,fireTouch=null,fireLastX=0,fireLastY=0;
 const v22ShoulderRig={back:NaN,shoulder:NaN,height:NaN,anchorY:NaN};
@@ -2947,7 +2969,7 @@ function applyPrefs(){
  $('controls').classList.toggle('leftHand',p.leftHanded);
  if(p.leftHanded){$('stickBase').style.left='auto';$('stickBase').style.right=space+'px';$('mobileBtns').style.right='auto';$('mobileBtns').style.left=space+'px'}
  } if(!$('controls').classList.contains('hudCustom')){$('stickBase').style.opacity=p.hudOpacity;$('mobileBtns').style.opacity=p.hudOpacity;}
- if(renderer){renderer.setPixelRatio(Math.max(.45,v38FhdRatio()*Number(p.resolution)*Number(p.quality)*v26Performance.scale));renderer.shadowMap.enabled=!!p.shadows;}
+ if(renderer){v26ApplyPixelRatio();renderer.shadowMap.enabled=!mobile&&!!p.shadows;}
  try{localStorage.setItem(PREF_KEY,JSON.stringify(p))}catch{}
 }
 for(const id of prefIds)$(id).addEventListener('input',applyPrefs);
