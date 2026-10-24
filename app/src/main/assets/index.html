@@ -688,7 +688,23 @@ function v22ApplyLilaModel(character){
   o.frustumCulled=true;o.castShadow=true;o.receiveShadow=true;
   if(o.material&&Array.isArray(o.material))o.material=o.material.map(m=>m.clone());
   else if(o.material)o.material=o.material.clone();
+  // V40.2: the bundled Lila GLB has no authored materials; give its meshes
+  // a lightweight, consistent operator palette without extra textures.
+  const part=(o.name||'').toLowerCase();
+  const palette=part.includes('hair')?'#b7a1dc':
+    part.includes('head')||part.includes('face')||part.includes('hand')?'#dba9a1':
+    part.includes('boot')||part.includes('shoe')?'#20283c':
+    part.includes('leg')||part.includes('pant')?'#313c59':
+    part.includes('arm')||part.includes('sleeve')?'#4366a1':
+    part.includes('vest')||part.includes('armor')||part.includes('chest')?'#e1e5f1':
+    '#7686a8';
   const materials=Array.isArray(o.material)?o.material:[o.material];
+  for(const m of materials){
+   if(m&&m.color&&!m.map&&!m.vertexColors){
+    m.color.set(palette);
+    if(m.emissive)m.emissive.set('#090c17');
+   }
+  }
   for(const m of materials){if(!m)continue;
    if(typeof m.roughness==='number')m.roughness=Math.max(.36,Math.min(.82,m.roughness));
    if(typeof m.metalness==='number')m.metalness=Math.min(.48,m.metalness);
