@@ -432,7 +432,44 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 const THREE=window.THREE, mobile=matchMedia('(pointer:coarse)').matches, WORLD=340, HALF=WORLD/2, clock=new THREE.Clock();let renderer,scene,camera,player,playerModel,gunGroup,terrain,zoneRing,water,worldObjects=[],bots=[],pickups=[],effects=[],decor=[],running=false,paused=false,gameOver=false,time=0,zoneRadius=225,zoneCenter=new THREE.Vector2(0,0),zonePhase=0,zoneTick=0,kills=0,keys={},fireHeld=false,jumpQueued=false,sprintHeld=false,crouchHeld=false,reloadTimer=0,reloadWeapon=-1,shootCooldown=0,damageFlash=0,hitFlash=0,toastTime=0,footTime=0,camYaw=0,camPitch=.26,lookTouch=null,stickTouch=null,joyX=0,joyY=0,botSpawnTimer=0;let weapons=[{name:'AR-7 · ASALTO',damage:23,rate:.115,mag:30,ammo:30,reserve:180,reload:1.65,spread:.022,range:100},{name:'DMR-9 · PRECISIÓN',damage:58,rate:.52,mag:12,ammo:12,reserve:60,reload:2.15,spread:.007,range:145},{name:'SMG-4 · RÁFAGA',damage:15,rate:.072,mag:42,ammo:42,reserve:210,reload:1.35,spread:.038,range:65},{name:'ESC-12 · CORTA',damage:75,rate:.78,mag:6,ammo:6,reserve:36,reload:2.05,spread:.062,range:32},{name:'LMG-60 · APOYO',damage:20,rate:.085,mag:60,ammo:60,reserve:180,reload:2.9,spread:.034,range:105}],weaponIndex=0;let hp=100,armor=50,meds=2,vertical=0,onGround=true;const mapCanvas=$('minimap'),mctx=mapCanvas.getContext('2d');const mat=(c,r=1,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});const mats={grass:mat('#506c54'),grass2:mat('#637d55'),sand:mat('#b9a67e'),road:mat('#6b706e'),rock:mat('#697779'),trunk:mat('#635044'),leaf:mat('#365a48'),leaf2:mat('#57734b'),wall:mat('#8c9892'),roof:mat('#394954'),wood:mat('#8c7056'),dark:mat('#24313a'),blue:mat('#3e91a6'),gold:mat('#e5b56b'),red:mat('#bd5b4b'),skin:mat('#b88e6d'),pants:mat('#3b4a4c'),gun:mat('#1c252c',.4,.5),glass:mat('#84d9e7',.2,.3)};
 function rand(a,b){return a+Math.random()*(b-a)}function clamp(x,a,b){return Math.max(a,Math.min(b,x))}function h(x,z){const r=Math.hypot(x,z);const crater=2.8*Math.exp(-Math.pow((r-39)/15,2))-1.4*Math.exp(-Math.pow(r/18,2));const ridge=1.6*Math.sin(x*.025)*Math.cos(z*.038);return crater+ridge+.35*Math.sin(x*.11+z*.07)+.35*Math.cos(z*.081)}function ground(x,z){return h(x,z)}function box(w,hh,d,material,parent,x=0,y=0,z=0){const o=new THREE.Mesh(new THREE.BoxGeometry(w,hh,d),material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}function sphere(r,material,parent,x=0,y=0,z=0,segments=8){const o=new THREE.Mesh(new THREE.SphereGeometry(r,segments,6),material);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}function cyl(rt,rb,height,material,parent,x=0,y=0,z=0){const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,height,7),material);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}function v403RoofAt(x,z){let best=-Infinity;for(const o of worldObjects){if(!o.v403Roof)continue;if(Math.abs(x-o.x)>o.v403HalfW-.38||Math.abs(z-o.z)>o.v403HalfD-.38)continue;best=Math.max(best,ground(o.x,o.z)+o.h);}return best;}
 function v403Floor(x,z,previousFeetY){const terrain=ground(x,z),roof=v403RoofAt(x,z);return roof>terrain&&previousFeetY>=roof-.45?roof:terrain;}
-function solid(x,z,r){for(const o of worldObjects){const dx=x-o.x,dz=z-o.z,rr=r+o.r;if(o.v403Roof&&player&&player.position.y>=ground(o.x,o.z)+o.h-.35)continue;if(Math.abs(dx)<rr&&Math.abs(dz)<rr&&dx*dx+dz*dz<rr*rr)return true;}return false}function safePos(min=12){for(let i=0;i<120;i++){let x=rand(-HALF+9,HALF-9),z=rand(-HALF+9,HALF-9);if((player&&Math.hypot(x-player.position.x,z-player.position.z)<min)||solid(x,z,2.2))continue;return {x,z}}return{x:rand(-35,35),z:rand(-35,35)}}
+function solid(x,z,r){for(const o of worldObjects){const dx=x-o.x,dz=z-o.z,rr=r+o.r;
+ // V40.4: only skip a building wall when physically standing ABOVE its roof.
+ if(o.v403Roof&&player&&player.position.y>=ground(o.x,o.z)+o.h-.35)continue;
+ if(dx*dx+dz*dz<rr*rr)return true;
+}return false}
+// Restore a safe playable spot if freefall lands inside a rock or a solid building.
+// Small nearest-neighbor search; run only at landing, not every frame.
+function v404ResolveLanding(){
+ if(!solid(player.position.x,player.position.z,.52))return;
+ const x=player.position.x,z=player.position.z;
+ for(let radius=1;radius<=12;radius+=1){
+  for(let step=0;step<16;step++){
+   const a=step*Math.PI/8,nx=clamp(x+Math.cos(a)*radius,-HALF+4,HALF-4),nz=clamp(z+Math.sin(a)*radius,-HALF+4,HALF-4);
+   if(!solid(nx,nz,.65)){player.position.x=nx;player.position.z=nz;player.position.y=ground(nx,nz);return;}
+  }
+ }
+}
+// Prevent close scenery from blocking the shoulder camera or filling the whole screen.
+function v404SafeCameraTarget(desired){
+ const eye=new THREE.Vector3(player.position.x,player.position.y+1.65,player.position.z);
+ const dx=desired.x-eye.x,dz=desired.z-eye.z,dy=desired.y-eye.y;
+ const length2=dx*dx+dz*dz;
+ if(length2<.01)return desired;
+ let maxT=1;
+ for(const o of worldObjects){
+  const r=Math.max(.5,o.r+.48),ox=eye.x-o.x,oz=eye.z-o.z;
+  const b=2*(ox*dx+oz*dz),c=ox*ox+oz*oz-r*r;
+  if(c<=0)continue;
+  const discr=b*b-4*length2*c;
+  if(discr<0)continue;
+  const t=(-b-Math.sqrt(discr))/(2*length2);
+  if(t<0||t>=maxT||t>1)continue;
+  const y=eye.y+dy*t,bottom=ground(o.x,o.z);
+  if(y<bottom-.3||y>bottom+(o.h||2.8)+.6)continue;
+  maxT=Math.max(.19,t-.055);
+ }
+ return maxT===1?desired:eye.addScaledVector(desired.clone().sub(eye),maxT);
+}function safePos(min=12){for(let i=0;i<120;i++){let x=rand(-HALF+9,HALF-9),z=rand(-HALF+9,HALF-9);if((player&&Math.hypot(x-player.position.x,z-player.position.z)<min)||solid(x,z,2.2))continue;return {x,z}}return{x:rand(-35,35),z:rand(-35,35)}}
 function createWorld(){scene=new THREE.Scene();scene.background=new THREE.Color('#49677b');scene.fog=new THREE.FogExp2('#7795a5',.0013);scene.add(new THREE.AmbientLight('#b5cfdf',.40));v16Hemi=new THREE.HemisphereLight('#bfdbe5','#526273',1.0);scene.add(v16Hemi);const sun=new THREE.DirectionalLight('#f1e6d6',1.32);sun.position.set(-72,62,42);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.normalBias=.025;sun.shadow.radius=2;sun.shadow.camera.left=-155;sun.shadow.camera.right=155;sun.shadow.camera.top=155;sun.shadow.camera.bottom=-155;sun.shadow.bias=-.0005;scene.add(sun);v16Sun=sun;let geo=new THREE.PlaneGeometry(WORLD,WORLD,120,120);geo.rotateX(-Math.PI/2);let pos=geo.attributes.position;for(let i=0;i<pos.count;i++)pos.setY(i,h(pos.getX(i),pos.getZ(i)));geo.computeVertexNormals();terrain=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:'#a2bcc7',roughness:.97,metalness:0,flatShading:false}));terrain.receiveShadow=true;scene.add(terrain);const sea=new THREE.Mesh(new THREE.PlaneGeometry(900,900),new THREE.MeshStandardMaterial({color:'#177fa3',metalness:.48,roughness:.18,transparent:true,opacity:.9}));sea.rotation.x=-Math.PI/2;sea.position.y=-1.8;scene.add(sea);water=sea;const coast=new THREE.Mesh(new THREE.RingGeometry(HALF-8,HALF+5,128),new THREE.MeshStandardMaterial({color:'#b2e2ee',roughness:.48}));coast.rotation.x=-Math.PI/2;coast.position.y=-.8;scene.add(coast);
 // V22 Puerto Aurora: central coastal plaza, cover planters and street furniture.
 // Keep the middle navigable; register solid obstacles only for raised planters.
@@ -1887,7 +1924,14 @@ const response=1-Math.exp(-dt*Math.max(fireHeld?20:10,acceleration)*(1-.32*smoot
 moveVX+=(wantedX-moveVX)*response;
 moveVZ+=(wantedZ-moveVZ)*response;
 if(mag<.01&&Math.hypot(moveVX,moveVZ)<.025){moveVX=0;moveVZ=0;}
-const dx=moveVX*dt,dz=moveVZ*dt;let nx=clamp(player.position.x+dx,-HALF+4,HALF-4),nz=clamp(player.position.z+dz,-HALF+4,HALF-4);if(!solid(nx,nz,.52)){player.position.x=nx;player.position.z=nz;}else{if(!solid(nx,player.position.z,.52))player.position.x=nx;if(!solid(player.position.x,nz,.52))player.position.z=nz;}if(Math.hypot(moveVX,moveVZ)>.25){
+const dx=moveVX*dt,dz=moveVZ*dt;let nx=clamp(player.position.x+dx,-HALF+4,HALF-4),nz=clamp(player.position.z+dz,-HALF+4,HALF-4);if(!solid(nx,nz,.52)){player.position.x=nx;player.position.z=nz;}else{
+ // Escape from an overlapping obstacle instead of becoming permanently trapped.
+ const wasBlocked=solid(player.position.x,player.position.z,.52);
+ if(wasBlocked){const before=worldObjects.reduce((sum,o)=>sum+Math.max(0,o.r+.52-Math.hypot(player.position.x-o.x,player.position.z-o.z)),0);
+ const after=worldObjects.reduce((sum,o)=>sum+Math.max(0,o.r+.52-Math.hypot(nx-o.x,nz-o.z)),0);
+ if(after<before){player.position.x=nx;player.position.z=nz;}}
+ else{if(!solid(nx,player.position.z,.52))player.position.x=nx;if(!solid(player.position.x,nz,.52))player.position.z=nz;}
+}if(Math.hypot(moveVX,moveVZ)>.25){
  const a=Math.atan2(moveVX,moveVZ),pace=Math.min(1,Math.hypot(moveVX,moveVZ)/9.2);
  // ADS is camera-driven; do not rotate the player merely because the sight is active.
  const facing=fireHeld?camYaw:a;
@@ -1926,7 +1970,7 @@ const anchorDelta=anchorGoal-v22ShoulderRig.anchorY;
 if(Math.abs(anchorDelta)>.012)
  v22ShoulderRig.anchorY+=anchorDelta*(1-Math.exp(-dt*anchorSpeed*(1-.45*v26CameraSmooth)));
 
-const target=new THREE.Vector3(player.position.x+Math.cos(camYaw)*v22ShoulderRig.shoulder-Math.sin(camYaw)*v22ShoulderRig.back,v22ShoulderRig.anchorY+v22ShoulderRig.height,player.position.z-Math.sin(camYaw)*v22ShoulderRig.shoulder-Math.cos(camYaw)*v22ShoulderRig.back);
+const target=v404SafeCameraTarget(new THREE.Vector3(player.position.x+Math.cos(camYaw)*v22ShoulderRig.shoulder-Math.sin(camYaw)*v22ShoulderRig.back,v22ShoulderRig.anchorY+v22ShoulderRig.height,player.position.z-Math.sin(camYaw)*v22ShoulderRig.shoulder-Math.cos(camYaw)*v22ShoulderRig.back));
 // The camera must not lag behind rapid swipes or oscillate around the player.
 // Follow horizontal motion immediately; soften terrain-induced vertical oscillation.
 camera.position.x=target.x;
@@ -2264,7 +2308,7 @@ function v36StepFlight(dt){
  }
  const floor=v403Floor(player.position.x,player.position.z,player.position.y+(v398ChuteOpen?(strength>.12?8.0:9.0):19.5)*dt);
  if(player.position.y<=floor){
-  player.position.y=floor;window.v36FlightMode='landed';onGround=true;
+  player.position.y=floor;window.v36FlightMode='landed';onGround=true;v404ResolveLanding();
   if(v36Chute){
    player.remove(v36Chute);
    v36Chute.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose();});
