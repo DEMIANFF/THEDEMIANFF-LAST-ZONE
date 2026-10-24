@@ -1,0 +1,63 @@
+name: V41 Unity Native Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [v41-native-unity-rebuild]
+    paths:
+      - 'V41-Native/**'
+      - '.github/workflows/v41-unity-android.yml'
+
+jobs:
+  unity-android:
+    name: Unity 6 native Android build
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout V41
+        uses: actions/checkout@v4
+
+      - name: Verify Unity credentials
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        run: |
+          if [ -z "$UNITY_LICENSE" ] && { [ -z "$UNITY_EMAIL" ] || [ -z "$UNITY_PASSWORD" ]; }; then
+            echo "::error::Unity build requires a valid Unity license activation: UNITY_LICENSE or UNITY_EMAIL + UNITY_PASSWORD secrets."
+            exit 1
+          fi
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: V41-Native/Library
+          key: v41-unity-library-${{ runner.os }}-${{ hashFiles('V41-Native/Packages/manifest.json', 'V41-Native/ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: |
+            v41-unity-library-${{ runner.os }}-
+
+      - name: Build native Android APK using Unity
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: V41-Native
+          unityVersion: 6000.0.60f1
+          targetPlatform: Android
+          buildMethod: TheDemianFF.Native.Editor.V41ProjectTools.BuildAndroid
+          versioning: None
+          androidExportType: androidPackage
+          allowDirtyBuild: true
+
+      - name: Upload native Unity APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: THEDEMIANFF-V41-UNITY-NATIVE-APK
+          path: V41-Native/Builds/*.apk
+          if-no-files-found: error
+          retention-days: 14
