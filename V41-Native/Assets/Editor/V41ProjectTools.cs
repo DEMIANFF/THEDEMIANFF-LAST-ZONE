@@ -30,7 +30,7 @@ namespace TheDemianFF.Native.Editor
             PlayerSettings.defaultInterfaceOrientation=UIOrientation.LandscapeLeft;
             PlayerSettings.runInBackground=false;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android,ScriptingImplementation.IL2CPP);
-            PlayerSettings.activeInputHandler=ActiveInputHandler.Both;
+            // In Project Settings > Player > Other Settings set Active Input Handling to Both.
             Debug.Log("[V41] Android native settings applied. Switch Build Profile to Android before building.");
         }
     }
