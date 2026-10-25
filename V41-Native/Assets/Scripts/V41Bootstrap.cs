@@ -87,6 +87,7 @@ namespace TheDemianFF.Native
             var script=player.AddComponent<V41Player>();
             script.Visual=visual;script.CameraPivot=visual;
             new GameObject("V41 Multitouch").AddComponent<V41Touch>();
+            new GameObject("V41 Frame Diagnostics").AddComponent<V41Performance>();
             var sun=new GameObject("Sun",typeof(Light)).GetComponent<Light>();
             sun.type=LightType.Directional;sun.intensity=1.18f;sun.color=new Color(1,.95f,.87f);
             sun.transform.rotation=Quaternion.Euler(48,-32,0);
