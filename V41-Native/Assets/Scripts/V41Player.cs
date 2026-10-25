@@ -49,13 +49,13 @@ namespace TheDemianFF.Native
             #endif
             float speed=keyboardSprint?SprintSpeed:WalkSpeed;
             if(motor.isGrounded && fallSpeed<0)fallSpeed=-1.2f;
-            if((touch!=null&&touch.ConsumeJump()||Input.GetKeyDown(KeyCode.Space))&&motor.isGrounded)fallSpeed=JumpSpeed;
+            if((touch!=null&&touch.ConsumeJump()||keyboardJump)&&motor.isGrounded)fallSpeed=JumpSpeed;
             fallSpeed-=Gravity*Time.deltaTime;
             motor.Move((direction*speed+Vector3.up*fallSpeed)*Time.deltaTime);
             if(direction.sqrMagnitude>.025f)Visual.rotation=Quaternion.Slerp(Visual.rotation,Quaternion.LookRotation(direction),Time.deltaTime*12);
-            if(touch!=null&&touch.ConsumeReload()||Input.GetKeyDown(KeyCode.R))Reload();
+            if(touch!=null&&touch.ConsumeReload()||keyboardReload)Reload();
             fireClock=Mathf.Max(0,fireClock-Time.deltaTime);
-            if(touch!=null&&touch.Firing||Input.GetMouseButton(0))Fire();
+            if(touch!=null&&touch.Firing||mouseFire)Fire();
             if(Health<=0) { Health=100; transform.position=new Vector3(0,9,0); }
         }
         private void LateUpdate()
