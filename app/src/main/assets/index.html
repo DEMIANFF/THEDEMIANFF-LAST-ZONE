@@ -459,7 +459,27 @@ function v404SafeCameraTarget(desired){
  for(const o of worldObjects){
   const r=Math.max(.5,o.r+.48),ox=eye.x-o.x,oz=eye.z-o.z;
   const b=2*(ox*dx+oz*dz),c=ox*ox+oz*oz-r*r;
-  if(c<=0)continue;
+  // V42.1: ignore enclosing volumes only when the
+  // camera destination is also inside that same volume.
+  // Otherwise constrain the camera before it crosses the wall.
+  if(c<=0){
+   const bottom=ground(o.x,o.z);
+   const top=bottom+(o.h??2.8);
+   const minY=Math.min(eye.y,desired.y);
+   const maxY=Math.max(eye.y,desired.y);
+
+   // V42.1: ignore obstacles entirely above or below
+   // the camera segment.
+   if(maxY<bottom-.3||minY>top+.6)continue;
+
+   const endX=desired.x-o.x,endZ=desired.z-o.z;
+   const endInside=endX*endX+endZ*endZ<r*r;
+
+   if(endInside)continue;
+
+   maxT=Math.min(maxT,.19);
+   continue;
+  }
   const discr=b*b-4*length2*c;
   if(discr<0)continue;
   const t=(-b-Math.sqrt(discr))/(2*length2);
