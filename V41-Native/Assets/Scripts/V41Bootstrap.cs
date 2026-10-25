@@ -37,9 +37,7 @@ namespace TheDemianFF.Native
         }
         private void Awake()
         {
-            Application.targetFrameRate=60; // stable baseline; unlock 90/120 only after profiling
-            QualitySettings.vSyncCount=0;
-            Screen.sleepTimeout=SleepTimeout.NeverSleep;
+            V41RenderRuntime.ApplyMobileDefaults();
             Physics.defaultContactOffset=.015f;
             var ice=Make(new Color(.45f,.68f,.75f)),snow=Make(new Color(.77f,.84f,.87f));
             var wall=Make(new Color(.34f,.49f,.58f),.12f),metal=Make(new Color(.14f,.28f,.36f),.65f);
