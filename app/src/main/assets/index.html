@@ -1420,8 +1420,8 @@ function v396ExpandAurora(){
  const v40MetalBump=v40Bump('metal'),v40ConcreteBump=v40Bump('concrete'),v40SnowBump=v40Bump('snow');
 
  // V40: shared physically based facade palette; geometry is decorative and does not change colliders.
- const v40Concrete=new THREE.MeshStandardMaterial({color:'#a9bac5',map:v40ConcreteMap,bumpMap:v40ConcreteBump,bumpScale:.055,roughness:.91,metalness:.04});
- const v40Frame=new THREE.MeshStandardMaterial({color:'#5c7b8c',map:v40MetalMap,bumpMap:v40MetalBump,bumpScale:.027,roughness:.47,metalness:.68});
+ const v40Concrete=new THREE.MeshStandardMaterial({color:'#ffffff',map:v40ConcreteMap,bumpMap:v40ConcreteBump,bumpScale:.055,roughness:.91,metalness:.04});
+ const v40Frame=new THREE.MeshStandardMaterial({color:'#dce6eb',map:v40MetalMap,bumpMap:v40MetalBump,bumpScale:.027,roughness:.47,metalness:.68});
  const v40Glass=new THREE.MeshStandardMaterial({color:'#3d879b',roughness:.14,metalness:.54,emissive:'#0b2a38',emissiveIntensity:.18});
  const v40Door=new THREE.MeshStandardMaterial({color:'#31434d',roughness:.64,metalness:.42});
  const v40Snow=new THREE.MeshStandardMaterial({color:'#ffffff',map:v40SnowMap,bumpMap:v40SnowBump,bumpScale:.042,roughness:.96,metalness:0});
@@ -1615,7 +1615,7 @@ window.THEDEMIANFF_V40_TEST=()=>({exposureCalibrated:true,visibilityLighting:tru
 // V39.7: architectural trim and icy ground patches are purely decorative.
 // Existing V39.6 collision footprints and AI cover locations remain unchanged.
 function v397DetailAurora(){
- const ice=new THREE.MeshStandardMaterial({color:'#83c8e3',metalness:.3,roughness:.27,transparent:true,opacity:.74,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
+ const ice=new THREE.MeshStandardMaterial({color:'#b8d6df',metalness:0,roughness:.92,transparent:false,depthWrite:true,polygonOffset:true,polygonOffsetFactor:-1});
  const snow=new THREE.MeshStandardMaterial({color:'#e6f3f7',metalness:0,roughness:.96,polygonOffset:true,polygonOffsetFactor:-2});
  const trim=new THREE.MeshStandardMaterial({color:'#78cfd9',metalness:.65,roughness:.32,emissive:'#164f65',emissiveIntensity:.35});
  const plateGeo=new THREE.CircleGeometry(1,9),edgeGeo=new THREE.BoxGeometry(2.6,.16,.2);
@@ -1639,7 +1639,7 @@ function v397DetailAurora(){
  }
  // V40 terrain dressing: shared instanced rocks and frozen vegetation around the outposts.
  // No new worldObjects entries: movement, combat collision and AI cover remain unchanged.
- const rockMat=new THREE.MeshStandardMaterial({color:'#708b9d',roughness:.86,metalness:.08,flatShading:false});
+ const rockMat=new THREE.MeshStandardMaterial({color:'#708b9d',roughness:.98,metalness:0,flatShading:true});
  const frostMat=new THREE.MeshStandardMaterial({color:'#b8dce7',roughness:.72,metalness:.08});
  const barkMat=new THREE.MeshStandardMaterial({color:'#4c6471',roughness:.94});
  const rockGeo=new THREE.DodecahedronGeometry(1,0),treeGeo=new THREE.ConeGeometry(1,1,7),trunkGeo=new THREE.CylinderGeometry(.12,.2,1,7);
