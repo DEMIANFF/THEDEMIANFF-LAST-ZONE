@@ -30,12 +30,12 @@ namespace TheDemianFF.Native
             var touch=V41Touch.Instance;
             Vector2 move=touch!=null ? touch.Move:Vector2.zero;
             #if ENABLE_LEGACY_INPUT_MANAGER
-            if(Input.touchCount==0)move=new Vector2(Input.GetAxisRaw("Horizontal"),Input.GetAxisRaw("Vertical"));
+            if((touch==null || !touch.HasTouches))move=new Vector2(Input.GetAxisRaw("Horizontal"),Input.GetAxisRaw("Vertical"));
             #endif
             move=Vector2.ClampMagnitude(move,1);
             Vector2 look=touch!=null?touch.LookDelta:Vector2.zero;
             #if ENABLE_LEGACY_INPUT_MANAGER
-            if(Input.touchCount==0 && Input.GetMouseButton(1))look=new Vector2(Input.GetAxis("Mouse X")*18, Input.GetAxis("Mouse Y")*18);
+            if((touch==null || !touch.HasTouches) && Input.GetMouseButton(1))look=new Vector2(Input.GetAxis("Mouse X")*18, Input.GetAxis("Mouse Y")*18);
             #endif
             yaw+=look.x*Sensitivity;pitch=Mathf.Clamp(pitch-look.y*Sensitivity,-55,65);
             Quaternion heading=Quaternion.Euler(0,yaw,0);
