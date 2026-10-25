@@ -13,11 +13,11 @@ namespace TheDemianFF.Native
         public bool Aiming { get; private set; }
         public bool JumpQueued { get; private set; }
         public bool ReloadQueued { get; private set; }
-        private int moveFinger = -1, lookFinger = -1;
+        private int moveFinger = -1, lookFinger = -1, fireFinger = -1, aimFinger = -1;
         private Vector2 moveOrigin, lastLook;
         private readonly Rect[] actions = new Rect[4];
         private void Awake() { Instance = this; }
-        private void OnDisable() { moveFinger = lookFinger = -1; Move = LookDelta = Vector2.zero; Firing = Aiming = false; }
+        private void OnDisable() { moveFinger = lookFinger = fireFinger = aimFinger = -1; Move = LookDelta = Vector2.zero; Firing = Aiming = false; JumpQueued = ReloadQueued = false; }
         private void Update()
         {
             LookDelta = Vector2.zero;
@@ -33,12 +33,14 @@ namespace TheDemianFF.Native
                 Vector2 p = t.position;
                 if (t.phase == TouchPhase.Began)
                 {
-                    if (t.fingerId != moveFinger && moveFinger == -1 && p.x < w*.40f && p.y < h*.65f)
+                    if (actions[0].Contains(p) && fireFinger == -1) fireFinger = t.fingerId;
+                    else if (actions[1].Contains(p) && aimFinger == -1) aimFinger = t.fingerId;
+                    else if (actions[2].Contains(p)) JumpQueued = true;
+                    else if (actions[3].Contains(p)) ReloadQueued = true;
+                    else if (t.fingerId != moveFinger && moveFinger == -1 && p.x < w*.40f && p.y < h*.65f)
                     { moveFinger = t.fingerId; moveOrigin = p; }
                     else if (t.fingerId != lookFinger && lookFinger == -1 && p.x >= w*.38f && !InAction(p))
                     { lookFinger = t.fingerId; lastLook = p; }
-                    else if (actions[2].Contains(p)) JumpQueued = true;
-                    else if (actions[3].Contains(p)) ReloadQueued = true;
                 }
                 if (t.fingerId == moveFinger)
                 {
@@ -50,10 +52,11 @@ namespace TheDemianFF.Native
                     if (Ended(t)) lookFinger = -1;
                     else { LookDelta += Vector2.ClampMagnitude(p - lastLook,unit*.15f); lastLook = p; }
                 }
-                if (!Ended(t)) { if (actions[0].Contains(p)) fire = true; if (actions[1].Contains(p)) aim = true; }
+                if (t.fingerId == fireFinger) { if (Ended(t)) fireFinger = -1; else fire = true; }
+                if (t.fingerId == aimFinger) { if (Ended(t)) aimFinger = -1; else aim = true; }
             }
             Firing = fire; Aiming = aim;
-            if (Input.touchCount == 0) { moveFinger = lookFinger = -1; Move = Vector2.zero; }
+            if (Input.touchCount == 0) { moveFinger = lookFinger = fireFinger = aimFinger = -1; Move = Vector2.zero; }
         }
         private bool InAction(Vector2 p) { foreach (Rect r in actions) if (r.Contains(p)) return true; return false; }
         private static bool Ended(Touch t) => t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled;
