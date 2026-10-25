@@ -24,6 +24,7 @@ jobs:
           p=pathlib.Path('V41-Native')
           manifest=json.loads((p/'Packages/manifest.json').read_text())
           assert 'com.unity.render-pipelines.universal' in manifest['dependencies']
+          assert 'com.unity.inputsystem' in manifest['dependencies']
           version=(p/'ProjectSettings/ProjectVersion.txt').read_text()
           assert re.search(r'm_EditorVersion:\s*6000\.',version)
           files=['Assets/Scripts/V41Bootstrap.cs','Assets/Scripts/V41Player.cs','Assets/Scripts/V41Touch.cs','Assets/Editor/V41ProjectTools.cs']
@@ -35,5 +36,13 @@ jobs:
           assert 'CharacterController' in boot and 'BuildHouse' in boot
           player=(p/files[1]).read_text()
           assert 'SphereCastNonAlloc' in player and 'RaycastNonAlloc' in player
+          assert 'fireRequested=firing' in player and 'if(fireRequested)Fire()' in player
+          assert 'AdsFov' in player and 'HipFov' in player
+          assert 'Input.touchCount' not in player
+          touch=(p/files[2]).read_text()
+          assert '#if ENABLE_INPUT_SYSTEM' in touch and '#elif ENABLE_LEGACY_INPUT_MANAGER' in touch
+          assert 'Touchscreen.current' in touch and 'touch.touchId.ReadValue()' in touch
+          assert 'fireFinger' in touch and 'aimFinger' in touch and 'moveFinger' in touch and 'lookFinger' in touch
+          assert 'Input.touches' in touch and 'HasTouches' in touch
           print('V41 source structure verified (NOT a Unity compile or APK build).')
           PY
