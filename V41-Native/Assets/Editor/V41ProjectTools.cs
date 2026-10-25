@@ -3,6 +3,7 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEditor.Build.Reporting;
+using UnityEditor.Build;
 using UnityEngine;
 
 namespace TheDemianFF.Native.Editor
