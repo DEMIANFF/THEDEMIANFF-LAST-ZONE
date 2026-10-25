@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 71
-        versionName '42.1-camera-test'
+        versionCode 72
+        versionName '42.2-graphics-test'
     }
     signingConfigs {
         persistentRelease {
