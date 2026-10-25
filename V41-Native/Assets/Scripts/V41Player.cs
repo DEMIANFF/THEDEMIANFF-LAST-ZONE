@@ -9,9 +9,11 @@ namespace TheDemianFF.Native
         public Transform Visual;
         public float WalkSpeed=6.2f, SprintSpeed=8.5f, JumpSpeed=6.5f, Gravity=20f;
         public float Sensitivity=.12f, CameraDistance=4.6f, Health=100;
+        public float HipFov=67f, AdsFov=49f, CameraSmooth=22f;
         private CharacterController motor;
         private Camera viewCamera;
         private float yaw, pitch=12, fallSpeed, fireClock;
+        private bool fireRequested;
         private int ammo=30, reserve=180, kills;
         private readonly RaycastHit[] cameraHits=new RaycastHit[12];
         private readonly RaycastHit[] shotHits=new RaycastHit[16];
@@ -47,7 +49,11 @@ namespace TheDemianFF.Native
             keyboardReload=Input.GetKeyDown(KeyCode.R);
             mouseFire=Input.GetMouseButton(0);
             #endif
-            float speed=keyboardSprint?SprintSpeed:WalkSpeed;
+            // Full joystick deflection sprints; shooting or ADS immediately cancels sprint.
+            bool aiming=touch!=null&&touch.Aiming;
+            bool firing=touch!=null&&touch.Firing||mouseFire;
+            bool sprinting=(keyboardSprint || (touch!=null&&touch.HasTouches&&move.sqrMagnitude>.86f)) && !aiming && !firing;
+            float speed=sprinting?SprintSpeed:WalkSpeed;
             if(motor.isGrounded && fallSpeed<0)fallSpeed=-1.2f;
             if((touch!=null&&touch.ConsumeJump()||keyboardJump)&&motor.isGrounded)fallSpeed=JumpSpeed;
             fallSpeed-=Gravity*Time.deltaTime;
@@ -55,18 +61,21 @@ namespace TheDemianFF.Native
             if(direction.sqrMagnitude>.025f)Visual.rotation=Quaternion.Slerp(Visual.rotation,Quaternion.LookRotation(direction),Time.deltaTime*12);
             if(touch!=null&&touch.ConsumeReload()||keyboardReload)Reload();
             fireClock=Mathf.Max(0,fireClock-Time.deltaTime);
-            if(touch!=null&&touch.Firing||mouseFire)Fire();
+            // Shoot after the current-frame camera rotation has been applied in LateUpdate.
+            fireRequested=firing;
             if(Health<=0) { Health=100; transform.position=new Vector3(0,9,0); }
         }
         private void LateUpdate()
         {
             if(cameraTransform==null) { viewCamera=Camera.main; if(viewCamera!=null)cameraTransform=viewCamera.transform; }
-            if(cameraTransform==null) return;
+            if(cameraTransform==null || viewCamera==null) return;
             var touch=V41Touch.Instance;
             bool aiming=touch!=null&&touch.Aiming;
             #if ENABLE_LEGACY_INPUT_MANAGER
             aiming=aiming||Input.GetMouseButton(1);
             #endif
+            // Smooth FOV change is visual only, never alters touch look sensitivity.
+            viewCamera.fieldOfView=Mathf.Lerp(viewCamera.fieldOfView,aiming?AdsFov:HipFov,1-Mathf.Exp(-12f*Time.deltaTime));
             Vector3 eye=transform.position+Vector3.up*1.72f;
             Quaternion rot=Quaternion.Euler(pitch,yaw,0);
             Vector3 back=rot*Vector3.back;
@@ -83,8 +92,9 @@ namespace TheDemianFF.Native
                         nearest=Mathf.Min(nearest,cameraHits[i].distance);
                 desired=eye+ray.normalized*Mathf.Max(.25f,nearest-.14f);
             }
-            cameraTransform.position=Vector3.Lerp(cameraTransform.position,desired,1-Mathf.Exp(-22*Time.deltaTime));
+            cameraTransform.position=Vector3.Lerp(cameraTransform.position,desired,1-Mathf.Exp(-CameraSmooth*Time.deltaTime));
             cameraTransform.rotation=rot;
+            if(fireRequested)Fire();
         }
         private void Fire()
         {
