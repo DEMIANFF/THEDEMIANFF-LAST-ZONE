@@ -29,14 +29,25 @@ namespace TheDemianFF.Native
         {
             var touch=V41Touch.Instance;
             Vector2 move=touch!=null ? touch.Move:Vector2.zero;
+            #if ENABLE_LEGACY_INPUT_MANAGER
             if(Input.touchCount==0)move=new Vector2(Input.GetAxisRaw("Horizontal"),Input.GetAxisRaw("Vertical"));
+            #endif
             move=Vector2.ClampMagnitude(move,1);
             Vector2 look=touch!=null?touch.LookDelta:Vector2.zero;
+            #if ENABLE_LEGACY_INPUT_MANAGER
             if(Input.touchCount==0 && Input.GetMouseButton(1))look=new Vector2(Input.GetAxis("Mouse X")*18, Input.GetAxis("Mouse Y")*18);
+            #endif
             yaw+=look.x*Sensitivity;pitch=Mathf.Clamp(pitch-look.y*Sensitivity,-55,65);
             Quaternion heading=Quaternion.Euler(0,yaw,0);
             Vector3 direction=heading*new Vector3(move.x,0,move.y);
-            float speed=(Input.GetKey(KeyCode.LeftShift)?SprintSpeed:WalkSpeed);
+            bool keyboardSprint=false, keyboardJump=false, keyboardReload=false, mouseFire=false;
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            keyboardSprint=Input.GetKey(KeyCode.LeftShift);
+            keyboardJump=Input.GetKeyDown(KeyCode.Space);
+            keyboardReload=Input.GetKeyDown(KeyCode.R);
+            mouseFire=Input.GetMouseButton(0);
+            #endif
+            float speed=keyboardSprint?SprintSpeed:WalkSpeed;
             if(motor.isGrounded && fallSpeed<0)fallSpeed=-1.2f;
             if((touch!=null&&touch.ConsumeJump()||Input.GetKeyDown(KeyCode.Space))&&motor.isGrounded)fallSpeed=JumpSpeed;
             fallSpeed-=Gravity*Time.deltaTime;
@@ -52,7 +63,10 @@ namespace TheDemianFF.Native
             if(cameraTransform==null) { viewCamera=Camera.main; if(viewCamera!=null)cameraTransform=viewCamera.transform; }
             if(cameraTransform==null) return;
             var touch=V41Touch.Instance;
-            bool aiming=touch!=null&&touch.Aiming||Input.GetMouseButton(1);
+            bool aiming=touch!=null&&touch.Aiming;
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            aiming=aiming||Input.GetMouseButton(1);
+            #endif
             Vector3 eye=transform.position+Vector3.up*1.72f;
             Quaternion rot=Quaternion.Euler(pitch,yaw,0);
             Vector3 back=rot*Vector3.back;
