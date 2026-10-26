@@ -697,8 +697,14 @@ $('v443RestoreFile').addEventListener('change',async e=>{
    let nativeRollbackFailed=false;
    if(v443Native){
     try{
-     if(prevNativeProgress&&v443Native.readProgress()!==prevNativeProgress&&!v443Native.saveProgress(prevNativeProgress))nativeRollbackFailed=true;
-     if(prevNativeGuest&&v443Native.readGuestId()!==prevNativeGuest&&!v443Native.saveGuestId(prevNativeGuest))nativeRollbackFailed=true;
+     if(v443Native.readProgress()!==(prevNativeProgress||'')){
+      if(prevNativeProgress){if(!v443Native.saveProgress(prevNativeProgress))nativeRollbackFailed=true;}
+      else if(!v443Native.clearProgress())nativeRollbackFailed=true;
+     }
+     if(v443Native.readGuestId()!==(prevNativeGuest||'')){
+      if(prevNativeGuest){if(!v443Native.saveGuestId(prevNativeGuest))nativeRollbackFailed=true;}
+      else if(!v443Native.clearGuestId())nativeRollbackFailed=true;
+     }
     }catch(e){nativeRollbackFailed=true;}
    }
    if(nativeRollbackFailed)throw Error('Restauración incompleta. No juegues nuevas partidas antes de revisar tu respaldo. '+error.message);
