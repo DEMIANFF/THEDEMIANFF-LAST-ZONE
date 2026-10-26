@@ -424,9 +424,9 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
  <p style="color:#d2e4f4;font-size:clamp(12px,1.8vw,16px)">Tu historia. Tu operador. Tu campo de batalla.</p>
  <div style="margin:20px auto;padding:18px;max-width:420px;background:#07111ddd;border:1px solid #5bd9ff55;border-radius:16px;box-shadow:0 15px 40px #0009">
  <h2 style="font-size:18px;margin:0 0 12px">CENTRO DE ACCESO</h2>
- <p id="v443AccountInfo" style="font-size:12px;color:#c7d5e1">Inicia como invitado para conservar tu perfil local.</p>
- <button id="v443Guest" type="button" style="display:block;width:100%;padding:13px;border:0;border-radius:8px;background:linear-gradient(90deg,#ffb42d,#ff792b);color:#17151a;font-weight:900">ENTRAR COMO INVITADO</button>
- <button id="v443Google" type="button" style="display:block;width:100%;margin-top:10px;padding:12px;border:1px solid #8298ad;border-radius:8px;background:#e9edf4;color:#1b2935;font-weight:800">INICIAR SESIÓN CON GOOGLE · PRUEBA</button>
+ <p id="v443AccountInfo" style="font-size:12px;color:#c7d5e1">Verificando si tu sesión de Google sigue activa…</p>
+ <button id="v443Guest" type="button" style="display:none;width:100%;padding:13px;border:0;border-radius:8px;background:linear-gradient(90deg,#ffb42d,#ff792b);color:#17151a;font-weight:900">ENTRAR COMO INVITADO</button>
+ <button id="v443Google" type="button" style="display:none;width:100%;margin-top:10px;padding:12px;border:1px solid #8298ad;border-radius:8px;background:#e9edf4;color:#1b2935;font-weight:800">INICIAR SESIÓN CON GOOGLE · PRUEBA</button>
  <button id="v443Backup" type="button" style="display:none;width:100%;margin-top:10px;padding:11px;border:1px solid #4b708b;border-radius:8px;background:#152b41;color:#e6f2fa">RESPALDAR PERFIL LOCAL</button>
  <button id="v443Restore" type="button" style="display:none;width:100%;margin-top:8px;padding:11px;border:1px solid #4b708b;border-radius:8px;background:#152b41;color:#e6f2fa">RECUPERAR PERFIL DESDE ARCHIVO</button><input id="v443RestoreFile" type="file" accept=".json,application/json" style="display:none">
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
@@ -493,6 +493,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 <script src="three.min.js"></script><script src="GLTFLoader.js"></script><script>
 (()=>{'use strict';const $=id=>document.getElementById(id);
 const entry=$('v443Entry'),guest=$('v443Guest'),info=$('v443AccountInfo'),message=$('v443Message');
+const v445GoogleBridge=!!window.THEDEMIANFFGoogle;
 const guestKey='thedemianff_v443_guest_id',progressKey='thedemianff_progress_v18';
 // Keep the WebView save and a second, native Android private save in sync.
 const v443Native=window.THEDEMIANFFGuestStore||null;
@@ -518,7 +519,13 @@ try{
  }
 }catch(e){console.warn('[V44.3.2] Native guest save recovery unavailable',e);}
 
-if(guestId){info.textContent='Invitado existente · ID '+guestId.slice(-8)+' · el progreso de este dispositivo se conserva';guest.textContent='CONTINUAR COMO INVITADO';}
+if(guestId){guest.textContent='CONTINUAR COMO INVITADO';}
+if(!v445GoogleBridge){
+ info.textContent=guestId?'Invitado existente · tu progreso local se conserva':'Ingresa como invitado para conservar el progreso local.';
+ guest.style.display='block';
+ $('v443Google').style.display='block';
+ message.textContent='Google está disponible únicamente en la aplicación Android.';
+}
 guest.addEventListener('click',()=>{try{
  if(!guestId){guestId='GUEST-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);localStorage.setItem(guestKey,guestId);}
  if(v443Native&&!v443Native.saveGuestId(guestId))throw Error('No se pudo guardar cuenta invitada en Android');
@@ -531,15 +538,16 @@ guest.addEventListener('click',()=>{try{
  entry.style.display='none';
 }catch(e){message.textContent='No se pudo activar cuenta invitada: '+e.message}});
 window.thedemianffGoogleResult=function(state,detail){
+ $('v443Google').disabled=false;
  if(state==='signed_in'){
    // Google becomes the visible login identity; do NOT delete the guest backup.
    guest.style.display='none';
    $('v443Google').style.display='none';
    $('v445SettingsLogout').disabled=false;
-   $('v445AccountStatus').textContent='Google conectado · progreso local en este dispositivo';
+   $('v445AccountStatus').textContent='Google conectado'+(detail?' · '+detail:'')+' · progreso local en este dispositivo';
    $('v443Google').textContent='GOOGLE CONECTADO';
-   $('v443AccountInfo').textContent='Sesión de Google activa · progreso guardado en este dispositivo';
-   message.textContent='Cuenta Google verificada. Continuando al juego…';
+   $('v443AccountInfo').textContent='Sesión Google verificada';
+   message.textContent='Acceso automático confirmado.';
    entry.style.display='none';
  }else if(state==='signed_out'){
    guest.style.display='';
@@ -548,14 +556,24 @@ window.thedemianffGoogleResult=function(state,detail){
    $('v445AccountStatus').textContent='No hay una sesión de Google activa';
    entry.style.display='flex';
    $('v443Google').textContent='INICIAR SESIÓN CON GOOGLE · PRUEBA';
+   info.textContent=guestId?'Invitado existente · puedes continuar con tu progreso local':'Elige cómo ingresar al juego.';
    message.textContent='Google no conectado. Puedes seguir jugando como invitado.';
- }else{message.textContent=detail||'No se completó el acceso con Google.';}
+ }else{
+   guest.style.display='block';
+   $('v443Google').style.display='block';
+   $('v445SettingsLogout').disabled=true;
+   $('v445AccountStatus').textContent='No se pudo verificar la sesión de Google';
+   info.textContent='Elige un modo de acceso para continuar.';
+   message.textContent=detail||'No se completó el acceso con Google.';
+   entry.style.display='flex';
+ }
 };
 $('v445SettingsLogout').addEventListener('click',()=>{if(!window.THEDEMIANFFGoogle?.signOut){alert('El cierre de sesión requiere la APK Android actualizada.');return;}if(confirm('¿Cerrar sesión de Google y volver al acceso? Tu progreso local se conservará.')){window.THEDEMIANFFGoogle.signOut();$('pausePanel').classList.add('hidden');}});
 $('v443Google').addEventListener('click',()=>{
  if(!window.THEDEMIANFFGoogle){message.textContent='Google requiere la APK Android V44.4; no disponible en Chrome.';return;}
  message.textContent='Abriendo selector de cuentas de Google…';
- try{window.THEDEMIANFFGoogle.signIn();}catch(e){message.textContent='No se pudo iniciar Google: '+e.message;}
+ $('v443Google').disabled=true;
+ try{window.THEDEMIANFFGoogle.signIn();}catch(e){message.textContent='No se pudo iniciar Google: '+e.message;$('v443Google').disabled=false;}
 });
 try{if(window.THEDEMIANFFGoogle)window.THEDEMIANFFGoogle.status();}catch(e){}
 
