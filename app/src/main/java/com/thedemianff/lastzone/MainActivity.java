@@ -1,6 +1,15 @@
 package com.thedemianff.lastzone;
 
 import android.app.Activity;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.auth.FirebaseUser;
+import org.json.JSONObject;
 import android.content.Intent;
 import android.webkit.JavascriptInterface;
 import android.os.Bundle;
@@ -24,6 +33,33 @@ import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
   private WebView web;
+  private static final int GOOGLE_LOGIN_REQUEST=4420;
+  private FirebaseAuth firebaseAuth;
+  private void authMessage(String state,String detail) {
+    runOnUiThread(() -> {
+      if(web==null)return;
+      String js="window.thedemianffGoogleResult&&window.thedemianffGoogleResult("+JSONObject.quote(state)+","+JSONObject.quote(detail)+")";
+      web.evaluateJavascript(js,null);
+    });
+  }
+  public final class GoogleAuthBridge {
+    @JavascriptInterface public void signIn() {
+      runOnUiThread(() -> {
+        try {
+          GoogleSignInOptions options=new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build();
+          startActivityForResult(GoogleSignIn.getClient(MainActivity.this,options).getSignInIntent(),GOOGLE_LOGIN_REQUEST);
+        } catch(Exception ex) {authMessage("error","No se pudo abrir Google: "+ex.getClass().getSimpleName());}
+      });
+    }
+    @JavascriptInterface public void status() {
+      runOnUiThread(() -> {
+        FirebaseUser user=firebaseAuth.getCurrentUser();
+        authMessage(user==null?"signed_out":"signed_in",user==null?"":user.getEmail());
+      });
+    }
+  }
+
   // Load bundled models via a secure HTTPS origin, matching browser HTTP semantics.
   private static final String GAME_ORIGIN="https://appassets.androidplatform.net";
   private static final String GAME_PREFIX="/assets/";
@@ -100,6 +136,7 @@ public class MainActivity extends Activity {
   }
   @Override public void onCreate(Bundle state) {
     super.onCreate(state);
+    firebaseAuth=FirebaseAuth.getInstance();
     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
     immersive();
     web=new WebView(this);
@@ -129,6 +166,7 @@ public class MainActivity extends Activity {
         }
       }
     });
+    web.addJavascriptInterface(new GoogleAuthBridge(),"THEDEMIANFFGoogle");
     web.addJavascriptInterface(new BackupBridge(),"THEDEMIANFFBackup");
     web.addJavascriptInterface(new GuestStorageBridge(),"THEDEMIANFFGuestStore");
     web.addJavascriptInterface(new GameBridge(),"THEDEMIANFFGame");
@@ -177,6 +215,21 @@ public class MainActivity extends Activity {
   }
   @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
     super.onActivityResult(requestCode,resultCode,data);
+    if(requestCode==GOOGLE_LOGIN_REQUEST) {
+      if(resultCode!=RESULT_OK) {authMessage("cancelled","Inicio de sesión cancelado.");return;}
+      Task<GoogleSignInAccount> task=GoogleSignIn.getSignedInAccountFromIntent(data);
+      try {
+        GoogleSignInAccount account=task.getResult(ApiException.class);
+        if(account==null||account.getIdToken()==null) {authMessage("error","Google no devolvió un token válido.");return;}
+        firebaseAuth.signInWithCredential(GoogleAuthProvider.getCredential(account.getIdToken(),null))
+          .addOnCompleteListener(this,result -> {
+            if(result.isSuccessful()&&firebaseAuth.getCurrentUser()!=null)
+              authMessage("signed_in",firebaseAuth.getCurrentUser().getEmail());
+            else authMessage("error","Firebase rechazó el acceso. Comprueba conexión y SHA-1.");
+          });
+      }catch(ApiException ex){authMessage("error","Google Sign-In falló (código "+ex.getStatusCode()+").");}
+      return;
+    }
     if(requestCode==BACKUP_SAVE_REQUEST) {
       String content=pendingBackupContent;
       pendingBackupContent=null;
