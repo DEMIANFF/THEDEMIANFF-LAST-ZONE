@@ -427,7 +427,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
  <p id="v443AccountInfo" style="font-size:12px;color:#c7d5e1">Inicia como invitado para conservar tu perfil local.</p>
  <button id="v443Guest" type="button" style="display:block;width:100%;padding:13px;border:0;border-radius:8px;background:linear-gradient(90deg,#ffb42d,#ff792b);color:#17151a;font-weight:900">ENTRAR COMO INVITADO</button>
  <button id="v443Google" type="button" style="display:block;width:100%;margin-top:10px;padding:12px;border:1px solid #8298ad;border-radius:8px;background:#e9edf4;color:#1b2935;font-weight:800">INICIAR SESIÓN CON GOOGLE · PRUEBA</button>
- <button id="v445Play" type="button" style="display:none;width:100%;margin-top:10px;padding:13px;border:0;border-radius:8px;background:linear-gradient(90deg,#ffb42d,#ff792b);font-weight:900">▶ INICIAR JUEGO</button><button id="v443Backup" type="button" style="display:none;width:100%;margin-top:10px;padding:11px;border:1px solid #4b708b;border-radius:8px;background:#152b41;color:#e6f2fa">RESPALDAR PERFIL LOCAL</button>
+ <button id="v443Backup" type="button" style="display:none;width:100%;margin-top:10px;padding:11px;border:1px solid #4b708b;border-radius:8px;background:#152b41;color:#e6f2fa">RESPALDAR PERFIL LOCAL</button>
  <button id="v443Restore" type="button" style="display:none;width:100%;margin-top:8px;padding:11px;border:1px solid #4b708b;border-radius:8px;background:#152b41;color:#e6f2fa">RECUPERAR PERFIL DESDE ARCHIVO</button><input id="v443RestoreFile" type="file" accept=".json,application/json" style="display:none">
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
@@ -535,17 +535,15 @@ window.thedemianffGoogleResult=function(state,detail){
    // Google becomes the visible login identity; do NOT delete the guest backup.
    guest.style.display='none';
    $('v443Google').style.display='none';
-   $('v445Play').style.display='block';
    $('v445SettingsLogout').disabled=false;
    $('v445AccountStatus').textContent='Google conectado · progreso local en este dispositivo';
    $('v443Google').textContent='GOOGLE CONECTADO';
    $('v443AccountInfo').textContent='Sesión de Google activa · progreso guardado en este dispositivo';
    message.textContent='Cuenta Google verificada. Continuando al juego…';
-   entry.style.display='flex';
+   entry.style.display='none';
  }else if(state==='signed_out'){
    guest.style.display='';
    $('v443Google').style.display='block';
-   $('v445Play').style.display='none';
    $('v445SettingsLogout').disabled=true;
    $('v445AccountStatus').textContent='No hay una sesión de Google activa';
    entry.style.display='flex';
@@ -553,7 +551,6 @@ window.thedemianffGoogleResult=function(state,detail){
    message.textContent='Google no conectado. Puedes seguir jugando como invitado.';
  }else{message.textContent=detail||'No se completó el acceso con Google.';}
 };
-$('v445Play').addEventListener('click',()=>{entry.style.display='none';});
 $('v445SettingsLogout').addEventListener('click',()=>{if(!window.THEDEMIANFFGoogle?.signOut){alert('El cierre de sesión requiere la APK Android actualizada.');return;}if(confirm('¿Cerrar sesión de Google y volver al acceso? Tu progreso local se conservará.')){window.THEDEMIANFFGoogle.signOut();$('pausePanel').classList.add('hidden');}});
 $('v443Google').addEventListener('click',()=>{
  if(!window.THEDEMIANFFGoogle){message.textContent='Google requiere la APK Android V44.4; no disponible en Chrome.';return;}
