@@ -495,9 +495,42 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 (()=>{'use strict';const $=id=>document.getElementById(id);
 const entry=$('v443Entry'),guest=$('v443Guest'),info=$('v443AccountInfo'),message=$('v443Message');
 const guestKey='thedemianff_v443_guest_id',progressKey='thedemianff_progress_v18';
+// Keep the WebView save and a second, native Android private save in sync.
+const v443Native=window.THEDEMIANFFGuestStore||null;
 let guestId=null;try{guestId=localStorage.getItem(guestKey)}catch{}
+try{
+ if(v443Native){
+  const nativeId=v443Native.readGuestId();
+  if(!guestId&&nativeId&&/^GUEST-[a-z0-9-]{4,80}$/.test(nativeId)){
+   guestId=nativeId;localStorage.setItem(guestKey,nativeId);
+  }
+  if(guestId)v443Native.saveGuestId(guestId);
+  const saved=v443Native.readProgress();
+  const local=localStorage.getItem(progressKey);
+  const nativeProgress=saved?JSON.parse(saved):null;
+  const localProgress=local?JSON.parse(local):null;
+  // Recover after WebView storage loss without replacing a more advanced local save.
+  const valid=p=>p&&typeof p==='object'&&Number.isSafeInteger(p.xp)&&p.xp>=0&&Number.isSafeInteger(p.matches)&&p.matches>=0&&Array.isArray(p.unlocked)&&Array.isArray(p.claimed);
+  if(valid(nativeProgress)&&(!valid(localProgress)||nativeProgress.xp>localProgress.xp||(nativeProgress.xp===localProgress.xp&&nativeProgress.matches>localProgress.matches))){
+   localStorage.setItem(progressKey,JSON.stringify(nativeProgress));
+  }else if(valid(localProgress)){
+   v443Native.saveProgress(JSON.stringify(localProgress));
+  }
+ }
+}catch(e){console.warn('[V44.3.2] Native guest save recovery unavailable',e);}
+
 if(guestId){info.textContent='Invitado existente · ID '+guestId.slice(-8)+' · el progreso de este dispositivo se conserva';guest.textContent='CONTINUAR COMO INVITADO';}
-guest.addEventListener('click',()=>{try{if(!guestId){guestId='GUEST-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);localStorage.setItem(guestKey,guestId)}entry.style.display='none';}catch{message.textContent='No se pudo guardar el identificador local; revisa el almacenamiento.'}});
+guest.addEventListener('click',()=>{try{
+ if(!guestId){guestId='GUEST-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);localStorage.setItem(guestKey,guestId);}
+ if(v443Native&&!v443Native.saveGuestId(guestId))throw Error('No se pudo guardar cuenta invitada en Android');
+ // Create a first real progress snapshot, not a fake export of an absent profile.
+ if(!localStorage.getItem(progressKey)){
+  const initial={credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,unlocked:[0],weapon:0,claimed:[]};
+  localStorage.setItem(progressKey,JSON.stringify(initial));
+  if(v443Native&&!v443Native.saveProgress(JSON.stringify(initial)))throw Error('No se pudo guardar progreso inicial en Android');
+ }
+ entry.style.display='none';
+}catch(e){message.textContent='No se pudo activar cuenta invitada: '+e.message}});
 $('v443Google').addEventListener('click',()=>{message.textContent='Google todavía no está conectado. No se creó ni vinculó ninguna cuenta.'});
 $('v443Account').addEventListener('click',()=>{entry.style.display='flex';message.textContent='Puedes exportar o restaurar tu progreso local antes de una actualización.'});
 // V44.3 guest backups are explicit local snapshots, NOT cloud identity or trusted ranked data.
@@ -556,7 +589,11 @@ $('v443RestoreFile').addEventListener('change',async e=>{
   const prevProgress=localStorage.getItem(progressKey),prevGuest=localStorage.getItem(guestKey);
   try{
    localStorage.setItem(progressKey,JSON.stringify(progress));
-   if(backup.guestId)localStorage.setItem(guestKey,backup.guestId);
+   if(v443Native&&!v443Native.saveProgress(JSON.stringify(progress)))throw Error('No se pudo guardar la recuperación en Android.');
+   if(backup.guestId){
+    localStorage.setItem(guestKey,backup.guestId);
+    if(v443Native&&!v443Native.saveGuestId(backup.guestId))throw Error('No se pudo guardar el identificador en Android.');
+   }
   }catch(error){
    try{if(prevProgress===null)localStorage.removeItem(progressKey);else localStorage.setItem(progressKey,prevProgress);if(prevGuest===null)localStorage.removeItem(guestKey);else localStorage.setItem(guestKey,prevGuest);}catch{}
    throw error;
@@ -2626,7 +2663,14 @@ function v18Refresh(){
  $('v18XP').textContent=p.xp.toLocaleString('es-CO');
  $('v18Level').textContent='NV. '+(1+Math.floor(p.xp/350));
 }
-function v18Save(){try{localStorage.setItem(V18_STORAGE,JSON.stringify(v18Progress))}catch{}v18Refresh()}
+function v18Save(){
+ try{
+  const snapshot=JSON.stringify(v18Progress);
+  localStorage.setItem(V18_STORAGE,snapshot);
+  if(v443Native&&!v443Native.saveProgress(snapshot))console.warn('[V44.3.2] No se pudo actualizar respaldo nativo');
+ }catch(e){console.warn('[V44.3.2] Error de guardado automático',e)}
+ v18Refresh();
+}
 
 // V33: allowlisted settings only. Competitive statistics are never imported from files.
 const V33_BACKUP_KEYS=new Set(['thedemianff-lastzone-v7','thedemianff-hud-v12','thedemianff-v26-hud-presets']);
