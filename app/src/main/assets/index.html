@@ -516,12 +516,16 @@ function v443ValidateProgress(p){
 }
 function v443BackupPayload(){
  const raw=JSON.parse(localStorage.getItem(progressKey)||'null');
- const data=raw?v443ValidateProgress(raw):{credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,weapon:0,unlocked:[0],claimed:[]};
+ if(!raw)throw Error('No hay progreso guardado en este dispositivo. No se creará un respaldo vacío. Juega una partida o recupera un respaldo anterior.');
+ const data=v443ValidateProgress(raw);
  return JSON.stringify({game:'THEDEMIANFF-LAST-ZONE',format:1,type:'local-guest-progress',guestId:guestId||null,created:new Date().toISOString(),progress:data},null,2);
 }
 $('v443Backup').addEventListener('click',()=>{
  try{
   const content=v443BackupPayload();
+  const snapshot=JSON.parse(content).progress;
+  const detail='Este respaldo contiene: '+snapshot.xp+' XP, '+snapshot.matches+' partidas, '+snapshot.credits+' créditos y '+snapshot.unlocked.length+' operadores.';
+  if(!confirm(detail+'\\n\\n¿Guardar esta copia del progreso?'))return;
   if(window.THEDEMIANFFBackup&&typeof window.THEDEMIANFFBackup.saveBackup==='function'){
    window.THEDEMIANFFBackup.saveBackup(content);
    message.textContent='Elige dónde guardar el respaldo en Android. No borres la aplicación antes de guardarlo.';
@@ -545,6 +549,9 @@ $('v443RestoreFile').addEventListener('change',async e=>{
   const present=JSON.parse(localStorage.getItem(progressKey)||'null');
   const summary='Archivo: '+progress.matches+' partidas, '+progress.xp+' XP, '+progress.credits+' créditos.\\n';
   if(!confirm(summary+(present?'Ya hay progreso en este dispositivo. ¿Reemplazarlo por el del respaldo?':'¿Restaurar este perfil de invitado?')))return;
+  if(present && (Number(present.xp)||0)>progress.xp){
+   if(!confirm('ATENCIÓN: este respaldo tiene MENOS XP que el perfil actual ('+progress.xp+' frente a '+present.xp+').\\nSi continúas, reemplazarás el progreso actual. ¿Confirmas?'))return;
+  }
   // Atomic rollback on quota/write failures; game reload only after confirmed persistence.
   const prevProgress=localStorage.getItem(progressKey),prevGuest=localStorage.getItem(guestKey);
   try{
