@@ -433,7 +433,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
  </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
 <div id="v22Edition">V38 · AURORA EVOLUTION</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
-<div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer"><span class="v17Avatar">D</span><span><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small></span><span class="v17Rank">✦</span></div><div class="v17Currencies"><button id="v443Account" type="button" aria-label="Cuenta y respaldos" style="background:#12334d;color:#f0e4bf;border:1px solid #5bcdf2;border-radius:7px;padding:7px 10px;margin-right:8px;font-weight:800">CUENTA / RESPALDO</button> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
+<div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer"><span class="v17Avatar">D</span><span><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
 <div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V38</small></div>
@@ -559,7 +559,7 @@ $('v443Google').addEventListener('click',()=>{
  try{window.THEDEMIANFFGoogle.signIn();}catch(e){message.textContent='No se pudo iniciar Google: '+e.message;}
 });
 try{if(window.THEDEMIANFFGoogle)window.THEDEMIANFFGoogle.status();}catch(e){}
-$('v443Account').addEventListener('click',()=>{entry.style.display='flex';message.textContent='Cuenta y respaldo local. Cierra sesión para cambiar de Google.';});
+
 // V44.3 guest backups are explicit local snapshots, NOT cloud identity or trusted ranked data.
 const v443Bounded=(n,max)=>Number.isSafeInteger(n)&&n>=0&&n<=max;
 function v443ValidateProgress(p){
