@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.webkit.JavascriptInterface;
 import android.os.Bundle;
+import android.content.SharedPreferences;
 import android.webkit.WebChromeClient;
 import android.webkit.ValueCallback;
 import android.webkit.WebView;
@@ -30,6 +31,33 @@ public class MainActivity extends Activity {
   private static final int BACKUP_FILE_REQUEST=3021;
   private static final int BACKUP_SAVE_REQUEST=3022;
   private String pendingBackupContent;
+  // Private on-device recovery slot survives ordinary in-place APK updates.
+  // It does NOT survive every uninstall, factory reset or data deletion.
+  private static final String GUEST_PREFS="thedemianff_guest_auto_v1";
+  public final class GuestStorageBridge {
+    @JavascriptInterface public String readProgress() {
+      return getSharedPreferences(GUEST_PREFS,MODE_PRIVATE).getString("progress","");
+    }
+    @JavascriptInterface public String readGuestId() {
+      return getSharedPreferences(GUEST_PREFS,MODE_PRIVATE).getString("guestId","");
+    }
+    @JavascriptInterface public boolean saveProgress(String json) {
+      if(json==null||json.length()<10||json.length()>100000)return false;
+      try{
+        org.json.JSONObject parsed=new org.json.JSONObject(json);
+        for(String key:new String[]{"credits","xp","matches","wins","kills","best","skin","weapon"}) {
+          if(!parsed.has(key)||parsed.optLong(key,-1)<0)return false;
+        }
+        if(!(parsed.opt("unlocked") instanceof org.json.JSONArray)||
+           !(parsed.opt("claimed") instanceof org.json.JSONArray))return false;
+        return getSharedPreferences(GUEST_PREFS,MODE_PRIVATE).edit().putString("progress",json).commit();
+      }catch(Exception e){return false;}
+    }
+    @JavascriptInterface public boolean saveGuestId(String id) {
+      if(id==null||!id.matches("GUEST-[a-z0-9-]{4,80}"))return false;
+      return getSharedPreferences(GUEST_PREFS,MODE_PRIVATE).edit().putString("guestId",id).commit();
+    }
+  }
   public final class BackupBridge {
     @JavascriptInterface public void saveBackup(String content) {
       if(content==null || content.length()<10 || content.length()>1000000)return;
@@ -102,6 +130,7 @@ public class MainActivity extends Activity {
       }
     });
     web.addJavascriptInterface(new BackupBridge(),"THEDEMIANFFBackup");
+    web.addJavascriptInterface(new GuestStorageBridge(),"THEDEMIANFFGuestStore");
     web.addJavascriptInterface(new GameBridge(),"THEDEMIANFFGame");
     web.setWebViewClient(new WebViewClient() {
       @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request) {
