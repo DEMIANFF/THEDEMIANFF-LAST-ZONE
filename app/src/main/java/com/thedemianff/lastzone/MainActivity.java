@@ -57,8 +57,10 @@ public class MainActivity extends Activity {
         firebaseAuth.signOut();
         GoogleSignInOptions options=new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
           .requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build();
-        GoogleSignIn.getClient(MainActivity.this,options).signOut().addOnCompleteListener(task ->
-          authMessage("signed_out","Sesión de Google cerrada."));
+        // Firebase is signed out locally even if Google Play Services cannot complete its cleanup.
+        authMessage("signed_out","Sesión local de Google cerrada.");
+        GoogleSignIn.getClient(MainActivity.this,options).signOut().addOnFailureListener(ex ->
+          android.util.Log.w("THEDEMIANFF","No se pudo completar la limpieza de Google Sign-In",ex));
       });
     }
     @JavascriptInterface public void status() {
