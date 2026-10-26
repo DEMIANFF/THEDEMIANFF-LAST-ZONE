@@ -12,7 +12,20 @@
           "package_name": "com.thedemianff.lastzone"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "662212064189-bhs65hso99qidvcbgt03pj6q0orh4rlo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.thedemianff.lastzone",
+            "certificate_hash": "c3b7439f5f49f19a55c8b6b5283eeaa1218acd16"
+          }
+        },
+        {
+          "client_id": "662212064189-7vfnqa554pl1237pqg86ceiq661ldnml.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCuO5oucBN7rvEg1Wf6AF5-vMGd-ZSQB-4"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "662212064189-7vfnqa554pl1237pqg86ceiq661ldnml.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
