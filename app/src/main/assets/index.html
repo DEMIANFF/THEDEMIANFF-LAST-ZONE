@@ -488,12 +488,13 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 <label>Distancia al borde <input id="edgeSpacing" type="range" min="5" max="65" step="1" value="20"></label>
 <button type="button" class="primary" id="editHud" style="width:100%;margin:8px 0">✥ EDITAR POSICIÓN DE BOTONES</button><p class="muted">Arrastra cada botón por separado, modifica su tamaño y guarda el diseño. Se conservará en este navegador.</p><p class="muted">Los cambios se aplican en vivo y quedan guardados en este navegador.</p>
 </div>
-<div class="settingsSection" data-section="account"><h3>CUENTA DE GOOGLE</h3><p id="v445AccountStatus" class="muted">Verificando sesión…</p><button type="button" id="v445SettingsLogout" class="secondary" style="width:100%;min-height:48px">CERRAR SESIÓN DE GOOGLE</button><p class="muted">Cerrar sesión no elimina el progreso local. La sincronización con la nube todavía no está disponible.</p></div><div class="actions"><button class="secondary" id="defaults">RESTAURAR</button><button class="primary" id="resume">GUARDAR Y VOLVER ▶</button><button class="secondary" id="leaveMatch" type="button">⌂ SALIR AL LOBBY</button><button id="v372ExitGame" type="button">⏻ SALIR DEL JUEGO</button></div>
+<div class="settingsSection" data-section="account"><h3>CUENTA Y PERFIL</h3><p id="v445AccountStatus" class="muted" aria-live="polite">Verificando sesión…</p><p id="v446LocalIdentity" class="muted">Perfil local del dispositivo</p><p id="v446LocalProgress" class="muted">Cargando estadísticas guardadas…</p><button type="button" id="v446AccountRefresh" class="secondary" style="width:100%;min-height:48px">↻ VERIFICAR CUENTA</button><button type="button" id="v445SettingsLogout" class="secondary" style="width:100%;min-height:48px" disabled>CERRAR SESIÓN DE GOOGLE</button><p class="muted">El progreso sigue siendo local a este dispositivo. La cuenta Google NO es todavía un respaldo en la nube. No desinstales ni borres datos de la app.</p></div><div class="actions"><button class="secondary" id="defaults">RESTAURAR</button><button class="primary" id="resume">GUARDAR Y VOLVER ▶</button><button class="secondary" id="leaveMatch" type="button">⌂ SALIR AL LOBBY</button><button id="v372ExitGame" type="button">⏻ SALIR DEL JUEGO</button></div>
 </div></div>
 <script src="three.min.js"></script><script src="GLTFLoader.js"></script><script>
 (()=>{'use strict';const $=id=>document.getElementById(id);
 const entry=$('v443Entry'),guest=$('v443Guest'),info=$('v443AccountInfo'),message=$('v443Message');
 const v445GoogleBridge=!!window.THEDEMIANFFGoogle;
+let v446AuthResolved=false,v446GoogleEmail='';
 const guestKey='thedemianff_v443_guest_id',progressKey='thedemianff_progress_v18';
 // Keep the WebView save and a second, native Android private save in sync.
 const v443Native=window.THEDEMIANFFGuestStore||null;
@@ -519,6 +520,17 @@ try{
  }
 }catch(e){console.warn('[V44.3.2] Native guest save recovery unavailable',e);}
 
+function v446UpdateAccountProfile(){
+ const identity=$('v446LocalIdentity'),summary=$('v446LocalProgress');
+ if(identity)identity.textContent=(v446GoogleEmail?'Google: '+v446GoogleEmail+' · ':'')+(guestId?'ID de invitado local: '+guestId:'Perfil local sin ID de invitado');
+ try{
+  const p=JSON.parse(localStorage.getItem(progressKey)||'null');
+  if(p&&Number.isSafeInteger(p.xp)&&Number.isSafeInteger(p.matches)&&Number.isSafeInteger(p.credits)&&p.xp>=0&&p.matches>=0&&p.credits>=0){
+   summary.textContent='Progreso en este equipo: '+p.xp+' XP · '+p.matches+' partidas · '+p.credits+' créditos · '+(Number.isSafeInteger(p.wins)?p.wins:0)+' victorias';
+  }else summary.textContent='No se encontró un progreso local válido para resumir.';
+ }catch(e){summary.textContent='No se pudieron leer las estadísticas locales.';}
+}
+v446UpdateAccountProfile();
 if(guestId){guest.textContent='CONTINUAR COMO INVITADO';}
 if(!v445GoogleBridge){
  info.textContent=guestId?'Invitado existente · tu progreso local se conserva':'Ingresa como invitado para conservar el progreso local.';
@@ -536,10 +548,13 @@ guest.addEventListener('click',()=>{try{
   if(v443Native&&!v443Native.saveProgress(JSON.stringify(initial)))throw Error('No se pudo guardar progreso inicial en Android');
  }
  entry.style.display='none';
+ v446UpdateAccountProfile();
 }catch(e){message.textContent='No se pudo activar cuenta invitada: '+e.message}});
 window.thedemianffGoogleResult=function(state,detail){
+ v446AuthResolved=true;
  $('v443Google').disabled=false;
  if(state==='signed_in'){
+   v446GoogleEmail=typeof detail==='string'?detail.slice(0,150):'';
    // Google becomes the visible login identity; do NOT delete the guest backup.
    guest.style.display='none';
    $('v443Google').style.display='none';
@@ -550,7 +565,8 @@ window.thedemianffGoogleResult=function(state,detail){
    message.textContent='Acceso automático confirmado.';
    entry.style.display='none';
  }else if(state==='signed_out'){
-   guest.style.display='';
+   v446GoogleEmail='';
+   guest.style.display='block';
    $('v443Google').style.display='block';
    $('v445SettingsLogout').disabled=true;
    $('v445AccountStatus').textContent='No hay una sesión de Google activa';
@@ -559,6 +575,7 @@ window.thedemianffGoogleResult=function(state,detail){
    info.textContent=guestId?'Invitado existente · puedes continuar con tu progreso local':'Elige cómo ingresar al juego.';
    message.textContent='Google no conectado. Puedes seguir jugando como invitado.';
  }else{
+   v446GoogleEmail='';
    guest.style.display='block';
    $('v443Google').style.display='block';
    $('v445SettingsLogout').disabled=true;
@@ -567,6 +584,7 @@ window.thedemianffGoogleResult=function(state,detail){
    message.textContent=detail||'No se completó el acceso con Google.';
    entry.style.display='flex';
  }
+ v446UpdateAccountProfile();
 };
 $('v445SettingsLogout').addEventListener('click',()=>{if(!window.THEDEMIANFFGoogle?.signOut){alert('El cierre de sesión requiere la APK Android actualizada.');return;}if(confirm('¿Cerrar sesión de Google y volver al acceso? Tu progreso local se conservará.')){window.THEDEMIANFFGoogle.signOut();$('pausePanel').classList.add('hidden');}});
 $('v443Google').addEventListener('click',()=>{
@@ -575,7 +593,26 @@ $('v443Google').addEventListener('click',()=>{
  $('v443Google').disabled=true;
  try{window.THEDEMIANFFGoogle.signIn();}catch(e){message.textContent='No se pudo iniciar Google: '+e.message;$('v443Google').disabled=false;}
 });
-try{if(window.THEDEMIANFFGoogle)window.THEDEMIANFFGoogle.status();}catch(e){}
+$('v446AccountRefresh').addEventListener('click',()=>{
+ if(!v445GoogleBridge){$('v445AccountStatus').textContent='Google solo está disponible en la aplicación Android.';return;}
+ $('v445AccountStatus').textContent='Comprobando sesión de Google…';
+ try{window.THEDEMIANFFGoogle.status();}catch(e){$('v445AccountStatus').textContent='Error de verificación: '+e.message;}
+});
+try{
+ if(window.THEDEMIANFFGoogle){
+  window.THEDEMIANFFGoogle.status();
+  setTimeout(()=>{
+   if(v446AuthResolved)return;
+   message.textContent='Google está tardando. Puedes elegir un acceso manual mientras se comprueba la sesión.';
+   info.textContent='Comprobación de cuenta pendiente.';
+   guest.style.display='block';
+   $('v443Google').style.display='block';
+   $('v445AccountStatus').textContent='Verificación lenta o sin respuesta';
+  },8000);
+ }
+}catch(e){
+ window.thedemianffGoogleResult('error','No se pudo verificar Google: '+e.message);
+}
 
 // V44.3 guest backups are explicit local snapshots, NOT cloud identity or trusted ranked data.
 const v443Bounded=(n,max)=>Number.isSafeInteger(n)&&n>=0&&n<=max;
