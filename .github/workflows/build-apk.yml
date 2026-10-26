@@ -258,6 +258,11 @@ jobs:
           assert "if(file.size>1000000)" in h, 'V44.7: falta límite de tamaño en la restauración'
           assert "v443ValidateProgress(backup.progress)" in h, 'V44.7: falta validación del respaldo'
           assert "v443Native.saveProgress(JSON.stringify(progress))" in h, 'V44.7: falta persistencia nativa al restaurar'
+          assert 'const prevNativeProgress=v443Native?v443Native.readProgress():null;' in h, 'V44.8: falta copia previa nativa'
+          assert 'const prevNativeGuest=v443Native?v443Native.readGuestId():null;' in h, 'V44.8: falta identidad previa nativa'
+          assert "backup.guestId!==guestId" in h, 'V44.8: falta aviso por cambio de invitado'
+          assert 'v443Native.saveProgress(prevNativeProgress)' in h, 'V44.8: falta rollback nativo'
+          assert 'v443Native.saveGuestId(prevNativeGuest)' in h, 'V44.8: falta rollback de identidad'
           assert 'id="v443Guest" type="button" style="display:none;' in h, 'V44.5: invitado visible durante validación Google'
           assert 'id="v443Google" type="button" style="display:none;' in h, 'V44.5: Google visible antes del estado de sesión'
           assert "if(!v445GoogleBridge){" in h, 'V44.5: Chrome sin recuperación de acceso'
@@ -290,14 +295,14 @@ jobs:
           assert "com.google.gms.google-services" in Path('app/build.gradle').read_text()
           print('Firebase Android config matches game package')
           PY
-      - name: V44.7 comprobar identidad y respaldo manual
+      - name: V44.8 comprobar protección de restauración y respaldo
         run: |
           python3 - <<'PY'
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 84' in gradle, 'La actualización requiere versionCode 82'
-          assert "versionName '44.7-local-backup-center'" in gradle, 'Versión Android incorrecta'
+          assert 'versionCode 85' in gradle, 'La actualización requiere versionCode 82'
+          assert "versionName '44.8-restore-guard'" in gradle, 'Versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
