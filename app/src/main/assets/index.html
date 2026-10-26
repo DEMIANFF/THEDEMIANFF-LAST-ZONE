@@ -677,8 +677,13 @@ $('v443RestoreFile').addEventListener('change',async e=>{
   if(present && (Number(present.xp)||0)>progress.xp){
    if(!confirm('ATENCIÓN: este respaldo tiene MENOS XP que el perfil actual ('+progress.xp+' frente a '+present.xp+').\\nSi continúas, reemplazarás el progreso actual. ¿Confirmas?'))return;
   }
-  // Atomic rollback on quota/write failures; game reload only after confirmed persistence.
+  // Preserve both WebView and Android-private snapshots before any replacement.
   const prevProgress=localStorage.getItem(progressKey),prevGuest=localStorage.getItem(guestKey);
+  const prevNativeProgress=v443Native?v443Native.readProgress():null;
+  const prevNativeGuest=v443Native?v443Native.readGuestId():null;
+  if(backup.guestId&&guestId&&backup.guestId!==guestId){
+   if(!confirm('Este archivo pertenece a OTRO ID de invitado. Se reemplazarán el progreso y el ID local actuales. ¿Continuar?'))return;
+  }
   try{
    localStorage.setItem(progressKey,JSON.stringify(progress));
    if(v443Native&&!v443Native.saveProgress(JSON.stringify(progress)))throw Error('No se pudo guardar la recuperación en Android.');
@@ -688,6 +693,15 @@ $('v443RestoreFile').addEventListener('change',async e=>{
    }
   }catch(error){
    try{if(prevProgress===null)localStorage.removeItem(progressKey);else localStorage.setItem(progressKey,prevProgress);if(prevGuest===null)localStorage.removeItem(guestKey);else localStorage.setItem(guestKey,prevGuest);}catch{}
+   // Native writes are independent: restore the original private snapshot when possible.
+   let nativeRollbackFailed=false;
+   if(v443Native){
+    try{
+     if(prevNativeProgress&&v443Native.readProgress()!==prevNativeProgress&&!v443Native.saveProgress(prevNativeProgress))nativeRollbackFailed=true;
+     if(prevNativeGuest&&v443Native.readGuestId()!==prevNativeGuest&&!v443Native.saveGuestId(prevNativeGuest))nativeRollbackFailed=true;
+    }catch(e){nativeRollbackFailed=true;}
+   }
+   if(nativeRollbackFailed)throw Error('Restauración incompleta. No juegues nuevas partidas antes de revisar tu respaldo. '+error.message);
    throw error;
   }
   v447BackupNotice('Respaldo restaurado. Reiniciando para cargar el perfil…');
