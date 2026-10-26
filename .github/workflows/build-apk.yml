@@ -249,6 +249,8 @@ jobs:
           assert 'id="v443Account"' not in h, 'V44.5: CUENTA / RESPALDO reapareció en lobby'
           assert 'data-tab="account"' in h, 'V44.5: falta ajustes de cuenta'
           assert 'id="v445Play"' not in h, 'V44.5: inicio Google exige clic innecesario'
+          for token in ('id="v446AccountRefresh"','id="v446LocalIdentity"','id="v446LocalProgress"','function v446UpdateAccountProfile()','v446AuthResolved','},8000);','v446GoogleEmail'):
+              assert token in h, 'V44.6: falta funcionalidad de cuenta/perfil: '+token
           assert 'id="v443Guest" type="button" style="display:none;' in h, 'V44.5: invitado visible durante validación Google'
           assert 'id="v443Google" type="button" style="display:none;' in h, 'V44.5: Google visible antes del estado de sesión'
           assert "if(!v445GoogleBridge){" in h, 'V44.5: Chrome sin recuperación de acceso'
@@ -281,17 +283,19 @@ jobs:
           assert "com.google.gms.google-services" in Path('app/build.gradle').read_text()
           print('Firebase Android config matches game package')
           PY
-      - name: V44.5.1 comprobar versionado y cierre de sesión
+      - name: V44.6 comprobar paquete de cuenta y recuperación
         run: |
           python3 - <<'PY'
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 82' in gradle, 'La actualización requiere versionCode 82'
-          assert "versionName '44.5.1-session-polish'" in gradle, 'Versión Android incorrecta'
+          assert 'versionCode 83' in gradle, 'La actualización requiere versionCode 82'
+          assert "versionName '44.6-profile-recovery'" in gradle, 'Versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
-          print('V44.5.1 Android upgrade and logout checks passed')
+          assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
+          assert 'if(parsed.optLong("wins")>parsed.optLong("matches"))return false;' in java, 'Falta validar estadísticas Android'
+          print('V44.6 Android version and logout checks passed')
           PY
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
