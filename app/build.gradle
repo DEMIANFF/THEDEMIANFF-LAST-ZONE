@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 77
-        versionName '44.3-guest-entry-preview'
+        versionCode 78
+        versionName '44.3.1-backup-integrity'
     }
     signingConfigs {
         persistentRelease {
