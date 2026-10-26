@@ -237,16 +237,18 @@ jobs:
           if 'OPERACIÓN<br>ÚLTIMA ZONA' in h: raise SystemExit('Old banner remains')
           print('V38.3 static checks passed')
           PY
-      - name: Validar entrada de invitado V44.3
+      - name: Validar entrada de invitado y acceso Google V44.5
         run: |
           python3 - <<'PY'
           from pathlib import Path
           h=Path('app/src/main/assets/index.html').read_text()
-          for token in ('id="v443Entry"','id="v443Guest"','id="v443Google"','id="v443Backup"','id="v443Restore"','id="v443RestoreFile"','id="v443Account"','thedemianff_v443_guest_id','thedemianff_progress_v18','v443ValidateProgress','localStorage.setItem(progressKey,JSON.stringify(progress))','window.THEDEMIANFFBackup.saveBackup(content)'):
+          for token in ('id="v443Entry"','id="v443Guest"','id="v443Google"','id="v443Backup"','id="v443Restore"','id="v443RestoreFile"','id="v445Play"','id="v445SettingsLogout"','thedemianff_v443_guest_id','thedemianff_progress_v18','v443ValidateProgress','localStorage.setItem(progressKey,JSON.stringify(progress))','window.THEDEMIANFFBackup.saveBackup(content)'):
               assert token in h, 'Missing V44.3 guest entry: '+token
           for token in ("if(!raw)throw Error('No hay progreso guardado", "const data=v443ValidateProgress(raw)", "Este respaldo contiene:", "este respaldo tiene MENOS XP"):
               assert token in h, 'V44.3.1 backup integrity missing: '+token
-          print('V44.3.1 guest backup integrity markers OK')
+          assert 'id="v443Account"' not in h, 'V44.5: CUENTA / RESPALDO reapareció en lobby'
+          assert 'data-tab="account"' in h, 'V44.5: falta ajustes de cuenta'
+          print('V44.5 login, guest backup integrity and clean lobby checks OK')
           PY
       - name: V44.3.2 verificar autoguardado de invitado en Android
         run: |
