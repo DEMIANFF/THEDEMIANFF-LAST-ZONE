@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // V44.5: deny all client writes until trusted registration backend is deployed.
+    // Player names, sequential IDs, and founder privileges must be issued server-side.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
