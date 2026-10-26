@@ -263,6 +263,12 @@ jobs:
           assert "backup.guestId!==guestId" in h, 'V44.8: falta aviso por cambio de invitado'
           assert 'v443Native.saveProgress(prevNativeProgress)' in h, 'V44.8: falta rollback nativo'
           assert 'v443Native.saveGuestId(prevNativeGuest)' in h, 'V44.8: falta rollback de identidad'
+          assert 'v443Native.clearProgress()' in h, 'V44.9: falta revertir progreso nativo inicialmente vacío'
+          assert 'v443Native.clearGuestId()' in h, 'V44.9: falta revertir ID nativo inicialmente vacío'
+          assert '@JavascriptInterface public boolean clearProgress()' in java, 'V44.9: falta puente nativo de rollback de progreso'
+          assert '@JavascriptInterface public boolean clearGuestId()' in java, 'V44.9: falta puente nativo de rollback de ID'
+          assert '.edit().remove("progress").commit()' in java, 'V44.9: borrado limitado al campo de progreso'
+          assert '.edit().remove("guestId").commit()' in java, 'V44.9: borrado limitado al campo de invitado'
           assert 'id="v443Guest" type="button" style="display:none;' in h, 'V44.5: invitado visible durante validación Google'
           assert 'id="v443Google" type="button" style="display:none;' in h, 'V44.5: Google visible antes del estado de sesión'
           assert "if(!v445GoogleBridge){" in h, 'V44.5: Chrome sin recuperación de acceso'
@@ -295,14 +301,14 @@ jobs:
           assert "com.google.gms.google-services" in Path('app/build.gradle').read_text()
           print('Firebase Android config matches game package')
           PY
-      - name: V44.8 comprobar protección de restauración y respaldo
+      - name: V44.9 comprobar restauración y rollback completo
         run: |
           python3 - <<'PY'
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 85' in gradle, 'La actualización requiere versionCode 82'
-          assert "versionName '44.8-restore-guard'" in gradle, 'Versión Android incorrecta'
+          assert 'versionCode 86' in gradle, 'La actualización requiere versionCode 82'
+          assert "versionName '44.9-restore-rollback'" in gradle, 'Versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
