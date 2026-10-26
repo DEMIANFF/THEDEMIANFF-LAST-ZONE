@@ -4,7 +4,7 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite, v38-3-lobby-parachute-polish, v38-6-lobby-polish-flight-controls, v38-7-parachute-axis-walk-68, v38-8-flight-axes-walk-74, v38-9-camera-relative-parachute, v39-0-walk-81-stable, v39-1-combat-precision-stability, v39-2-arsenal-recoil-polish, v39-3-impact-feedback-enemy-reaction, v39-4-tactical-cover-ai, v39-5-combat-animation-polish, v39-6-puerto-aurora-expansion, v39-7-aurora-cinematic-visuals, v39-8-aircraft-drop-rework, v40-architecture-reconstruction, v42-battle-royale-evolution, v42-2-graphics-recovery, v42-3-render-stability, v42-4-render-fix, v42-5-world-polish, v44-2-android-assets-fix, v44-3-account-entry-preview]
+    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite, v38-3-lobby-parachute-polish, v38-6-lobby-polish-flight-controls, v38-7-parachute-axis-walk-68, v38-8-flight-axes-walk-74, v38-9-camera-relative-parachute, v39-0-walk-81-stable, v39-1-combat-precision-stability, v39-2-arsenal-recoil-polish, v39-3-impact-feedback-enemy-reaction, v39-4-tactical-cover-ai, v39-5-combat-animation-polish, v39-6-puerto-aurora-expansion, v39-7-aurora-cinematic-visuals, v39-8-aircraft-drop-rework, v40-architecture-reconstruction, v42-battle-royale-evolution, v42-2-graphics-recovery, v42-3-render-stability, v42-4-render-fix, v42-5-world-polish, v44-2-android-assets-fix, v44-3-account-entry-preview, v44-3-1-backup-integrity]
 
 jobs:
   android:
@@ -244,7 +244,9 @@ jobs:
           h=Path('app/src/main/assets/index.html').read_text()
           for token in ('id="v443Entry"','id="v443Guest"','id="v443Google"','id="v443Backup"','id="v443Restore"','id="v443RestoreFile"','id="v443Account"','thedemianff_v443_guest_id','thedemianff_progress_v18','v443ValidateProgress','localStorage.setItem(progressKey,JSON.stringify(progress))','window.THEDEMIANFFBackup.saveBackup(content)'):
               assert token in h, 'Missing V44.3 guest entry: '+token
-          print('V44.3 guest entry / save / restore markers OK')
+          for token in ("if(!raw)throw Error('No hay progreso guardado", "const data=v443ValidateProgress(raw)", "Este respaldo contiene:", "este respaldo tiene MENOS XP"):
+              assert token in h, 'V44.3.1 backup integrity missing: '+token
+          print('V44.3.1 guest backup integrity markers OK')
           PY
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
