@@ -185,6 +185,15 @@
 .v17Lobby{background:radial-gradient(ellipse at 51% 40%,#31527488,transparent 52%),linear-gradient(145deg,#060e1c,#0b2032 54%,#050b15)}
 .v17Sky{opacity:.5}.v17Platform{opacity:.55}
 @media(max-width:600px){.v24Hero{left:52%;top:18%;width:48vw;height:62%}.v24HeroCaption{padding:6px 9px}.v24HeroCaption small{font-size:7px}}
+<style id="v4341ScopeVisibility">
+/* Selector fuera del HUD, visible solo durante la partida. */
+#v434ScopeButton{display:none!important;position:fixed!important;right:112px!important;
+ bottom:116px!important;top:auto!important;left:auto!important;z-index:80!important;
+ pointer-events:auto!important;touch-action:none!important;opacity:.95!important;
+ min-width:75px!important;padding:8px!important}
+
+@media(max-height:420px){#v434ScopeButton{right:105px!important;bottom:100px!important}}
+</style>
 </style><style id="v35CombatCSS">#controls #mobileBtns #crouchBtn{position:absolute;left:68%;bottom:18%;width:70px;height:43px;border-radius:12px;background:#24435bdc;border:2px solid #82bbd0;color:white;z-index:30;touch-action:none}#controls #mobileBtns #crouchBtn.crouchActive{background:#e0a54d;color:#112032}#v13AimMode{opacity:.8}#desktopHint{display:none!important}</style><style id="v22FireJoystickStyle">#fire{position:relative;touch-action:none;overflow:visible}#fire::after{content:'+';position:absolute;left:50%;top:50%;width:43%;height:43%;display:grid;place-items:center;transform:translate(calc(-50% + var(--fire-stick-x,0px)),calc(-50% + var(--fire-stick-y,0px)));border:2px solid rgba(255,255,255,.85);border-radius:50%;background:rgba(255,255,255,.16);color:white;font-size:18px;pointer-events:none;box-shadow:0 0 8px rgba(0,0,0,.35)}</style><style id="v36BattleStyle">
 #v36MapButton{position:absolute;left:14px;top:35%;z-index:31;background:#112d40e8;color:#e5fbff;border:2px solid #8ed9e3;border-radius:12px;padding:8px 12px;font-weight:900;touch-action:manipulation}
 #minimap{pointer-events:auto!important;cursor:pointer;z-index:22!important}
@@ -241,7 +250,7 @@
 #v36DropPanel.hidden{display:none!important}
 #v36DropPanel .v36Plane{display:none}
 .settingsSection[data-section=control] label.v37Advanced{display:flex!important}
-.settingsSection[data-section=control] label:has(#verticalSensitivity){display:none!important}
+/* V43.0: el ajuste vertical vuelve a estar disponible */
 #v37AdvancedControl{margin:8px 0;padding:7px;border:1px solid #4e859c77;border-radius:10px;background:#0d293d77}
 #v37AdvancedControl summary{font-size:12px;padding:8px;cursor:pointer;color:#e3c48c;font-weight:800}
 #v37AdvancedControl:not([open])>*:not(summary){display:none!important}
@@ -318,6 +327,32 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 #v10Reticle.v382ADS::before{width:1px;height:24px;left:4px;top:-8px}
 #v10Reticle.v382ADS::after{width:24px;height:1px;top:4px;left:-8px}
 #aimBtn.adsActive{background:#d7a458!important;border-color:#ffdb99!important;color:#142b3c!important}
+</style><style id="v434OpticsStyle">
+/* V43.4 OPTIC PROFILES: punto libre compacto y selector no invasivo. */
+#cross{width:10px!important;height:10px!important;opacity:.55!important}
+#cross:before{width:1px!important;height:10px!important;left:4.5px!important;top:0!important}
+#cross:after{height:1px!important;width:10px!important;top:4.5px!important;left:0!important}
+#v10Reticle:not(.v382ADS){width:8px!important;height:8px!important;border-width:1px!important;opacity:.55!important}
+#v434ScopeButton{position:absolute;right:15px;bottom:285px;z-index:20;pointer-events:auto;
+ touch-action:none;border:1px solid #7bd9dd99;border-radius:9px;padding:8px 10px;
+ background:#102c3ddd;color:#e8ffff;font:700 10px system-ui;min-width:80px}
+#v434ScopeLabel{position:absolute;left:50%;top:calc(50% + 28px);transform:translateX(-50%);
+ z-index:15;pointer-events:none;color:#c8ffeb;font:700 10px system-ui;letter-spacing:2px;
+ text-shadow:0 1px 3px #001;display:none}
+@media(max-height:500px){#v434ScopeButton{bottom:205px;right:7px;padding:6px;font-size:9px}}
+@media(pointer:fine){#v434ScopeButton{display:none}}
+</style>
+<style id='v433ADSVisibility'>/* V43.3 ADS VISIBILITY TUNING: retícula mínima, centro despejado. */
+#v10Reticle.v382ADS{
+ width:5px!important;height:5px!important;
+ border:1px solid #d7fff0!important;
+ border-radius:50%!important;opacity:.88!important;
+ background:transparent!important;
+ box-shadow:0 0 0 1px #09252199!important;
+}
+#v10Reticle.v382ADS::before,#v10Reticle.v382ADS::after{
+ content:none!important;display:none!important;
+}
 </style><style id="v383LobbyLayout">
 /* V38.3: keep the action bar free and all modules comfortably touchable. */
 #menu .v17Left{left:1.8%!important;top:22%!important;width:clamp(118px,18vw,200px)!important;bottom:auto!important;z-index:8!important;pointer-events:none!important}
@@ -346,7 +381,21 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
  #controls #minimap{width:clamp(85px,9.8vw,135px);height:clamp(85px,9.8vw,135px);top:15vh}
  #controls #zoneInfo{top:calc(15vh + clamp(85px,9.8vw,135px) + 8px);font-size:11px}
 }
-</style></head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de eventos y misiones">
+</style>
+<style id="v4342ADSScope">
+/* V43.4.2 ADS ONLY */
+#v434ScopeButton{
+ position:fixed!important;
+ right:15px!important;
+ bottom:34%!important;
+ display:none;
+ z-index:9999!important;
+}
+@media(pointer:fine){
+ #v434ScopeButton{display:none}
+}
+</style>
+</head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de eventos y misiones">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
   <div class="v38OpsTabs"><button type="button" id="v38TabEvents" aria-selected="true">★ EVENTOS</button><button type="button" id="v38TabMissions" aria-selected="false">▣ MISIONES</button></div>
@@ -430,7 +479,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 <script src="three.min.js"></script><script src="GLTFLoader.js"></script><script>
 (()=>{'use strict';const $=id=>document.getElementById(id);if(!window.THREE){$('menu').querySelector('p').textContent='No se pudo cargar el motor 3D. Conéctate a Internet y vuelve a abrir el archivo.';return;}
 const THREE=window.THREE, mobile=matchMedia('(pointer:coarse)').matches, WORLD=340, HALF=WORLD/2, clock=new THREE.Clock();let renderer,scene,camera,player,playerModel,gunGroup,terrain,zoneRing,water,worldObjects=[],bots=[],pickups=[],effects=[],decor=[],running=false,paused=false,gameOver=false,time=0,zoneRadius=225,zoneCenter=new THREE.Vector2(0,0),zonePhase=0,zoneTick=0,kills=0,keys={},fireHeld=false,jumpQueued=false,sprintHeld=false,crouchHeld=false,reloadTimer=0,reloadWeapon=-1,shootCooldown=0,damageFlash=0,hitFlash=0,toastTime=0,footTime=0,camYaw=0,camPitch=.26,lookTouch=null,stickTouch=null,joyX=0,joyY=0,botSpawnTimer=0;let weapons=[{name:'AR-7 · ASALTO',damage:23,rate:.115,mag:30,ammo:30,reserve:180,reload:1.65,spread:.022,range:100},{name:'DMR-9 · PRECISIÓN',damage:58,rate:.52,mag:12,ammo:12,reserve:60,reload:2.15,spread:.007,range:145},{name:'SMG-4 · RÁFAGA',damage:15,rate:.072,mag:42,ammo:42,reserve:210,reload:1.35,spread:.038,range:65},{name:'ESC-12 · CORTA',damage:75,rate:.78,mag:6,ammo:6,reserve:36,reload:2.05,spread:.062,range:32},{name:'LMG-60 · APOYO',damage:20,rate:.085,mag:60,ammo:60,reserve:180,reload:2.9,spread:.034,range:105}],weaponIndex=0;let hp=100,armor=50,meds=2,vertical=0,onGround=true;const mapCanvas=$('minimap'),mctx=mapCanvas.getContext('2d');const mat=(c,r=1,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});const mats={grass:mat('#506c54'),grass2:mat('#637d55'),sand:mat('#b9a67e'),road:mat('#6b706e'),rock:mat('#697779'),trunk:mat('#635044'),leaf:mat('#365a48'),leaf2:mat('#57734b'),wall:mat('#8c9892'),roof:mat('#394954'),wood:mat('#8c7056'),dark:mat('#24313a'),blue:mat('#3e91a6'),gold:mat('#e5b56b'),red:mat('#bd5b4b'),skin:mat('#b88e6d'),pants:mat('#3b4a4c'),gun:mat('#1c252c',.4,.5),glass:mat('#84d9e7',.2,.3)};
-function rand(a,b){return a+Math.random()*(b-a)}function clamp(x,a,b){return Math.max(a,Math.min(b,x))}function h(x,z){const r=Math.hypot(x,z);const crater=2.8*Math.exp(-Math.pow((r-39)/15,2))-1.4*Math.exp(-Math.pow(r/18,2));const ridge=1.6*Math.sin(x*.025)*Math.cos(z*.038);return crater+ridge+.35*Math.sin(x*.11+z*.07)+.35*Math.cos(z*.081)}function ground(x,z){return h(x,z)}
+function rand(a,b){return a+Math.random()*(b-a)}function clamp(x,a,b){return Math.max(a,Math.min(b,x))}function h(x,z){const r=Math.hypot(x,z);const crater=2.8*Math.exp(-Math.pow((r-39)/15,2))-1.4*Math.exp(-Math.pow(r/18,2));const ridge=1.6*Math.sin(x*.025)*Math.cos(z*.038);return crater+ridge+.35*Math.sin(x*.11+z*.07)+.35*Math.cos(z*.081)}function ground(x,z){return 0} // V42.8: piso plano de entrenamiento
 /* ===== V42.4 render fixes: helpers ===== */
 // Malla horizontal que SIGUE el terreno (vértices = ground()+lift). Sustituye planos planos sobre terreno ondulado.
 function v424TerrainQuad(w,d,cx,cz,sw,sd,lift){
@@ -498,6 +547,14 @@ window.v424Debug=function(mode){
 })();
 function box(w,hh,d,material,parent,x=0,y=0,z=0){const o=new THREE.Mesh(new THREE.BoxGeometry(w,hh,d),material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}function sphere(r,material,parent,x=0,y=0,z=0,segments=8){const o=new THREE.Mesh(new THREE.SphereGeometry(r,segments,6),material);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}function cyl(rt,rb,height,material,parent,x=0,y=0,z=0){const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,height,7),material);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}function v403RoofAt(x,z){let best=-Infinity;for(const o of worldObjects){if(!o.v403Roof)continue;if(Math.abs(x-o.x)>o.v403HalfW-.38||Math.abs(z-o.z)>o.v403HalfD-.38)continue;best=Math.max(best,ground(o.x,o.z)+o.h);}return best;}
 function v403Floor(x,z,previousFeetY){const terrain=ground(x,z),roof=v403RoofAt(x,z);return roof>terrain&&previousFeetY>=roof-.45?roof:terrain;}
+// V42.6: colisiones estaticas de decoracion.
+function v426DecorationBlocked(x,z,r){
+ for(const o of worldObjects){
+  const dx=x-o.x,dz=z-o.z,rr=r+o.r;
+  if(dx*dx+dz*dz<rr*rr)return true;
+ }
+ return false;
+}
 function solid(x,z,r){for(const o of worldObjects){const dx=x-o.x,dz=z-o.z,rr=r+o.r;
  // V40.4: only skip a building wall when physically standing ABOVE its roof.
  if(o.v403Roof&&player&&player.position.y>=ground(o.x,o.z)+o.h-.35)continue;
@@ -556,6 +613,33 @@ function v404SafeCameraTarget(desired){
  }
  return maxT===1?desired:eye.addScaledVector(desired.clone().sub(eye),maxT);
 }function safePos(min=12){for(let i=0;i<120;i++){let x=rand(-HALF+9,HALF-9),z=rand(-HALF+9,HALF-9);if((player&&Math.hypot(x-player.position.x,z-player.position.z)<min)||solid(x,z,2.2))continue;return {x,z}}return{x:rand(-35,35),z:rand(-35,35)}}
+// V42.8: escena de entrenamiento minima. Arquitectura previa intacta pero NO se instancia.
+function v428CreateTrainingWorld(){
+ scene=new THREE.Scene();
+ scene.background=new THREE.Color('#91b7cc');
+ scene.fog=new THREE.FogExp2('#91b7cc',.0009);
+ scene.add(new THREE.AmbientLight('#ffffff',.7));
+ v16Hemi=new THREE.HemisphereLight('#e8f7ff','#778a94',1.05);
+ scene.add(v16Hemi);
+ const sun=new THREE.DirectionalLight('#fff4df',1.1);
+ sun.position.set(-65,95,55);sun.castShadow=false;scene.add(sun);v16Sun=sun;
+ const floorMat=new THREE.MeshStandardMaterial({color:'#c4d7df',roughness:.94,metalness:0});
+ terrain=new THREE.Mesh(new THREE.PlaneGeometry(WORLD,WORLD,1,1),floorMat);
+ terrain.rotation.x=-Math.PI/2;terrain.position.y=0;
+ terrain.receiveShadow=true;scene.add(terrain);
+ // Se conserva el anillo necesario para el HUD y el cierre de zona.
+ const ringGeo=new THREE.RingGeometry(.992,1,128);
+ ringGeo.rotateX(-Math.PI/2);
+ zoneRing=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({
+  color:'#5bdce7',transparent:true,opacity:.75,
+  side:THREE.DoubleSide,depthWrite:false
+ }));
+ zoneRing.position.y=.09;scene.add(zoneRing);
+ water=null;
+ worldObjects=[]; // no obstáculos ni colisiones invisibles del antiguo mapa
+ window.v428TrainingBase=true;
+ console.info('[V42.8] Base plana: edificios, rocas y decoracion desactivados; combate activo');
+}
 function createWorld(){scene=new THREE.Scene();scene.background=new THREE.Color('#49677b');scene.fog=new THREE.FogExp2('#7795a5',.0013);scene.add(new THREE.AmbientLight('#b5cfdf',.40));v16Hemi=new THREE.HemisphereLight('#bfdbe5','#526273',1.0);scene.add(v16Hemi);const sun=new THREE.DirectionalLight('#f1e6d6',1.32);sun.position.set(-72,62,42);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.normalBias=.025;sun.shadow.radius=2;sun.shadow.camera.left=-155;sun.shadow.camera.right=155;sun.shadow.camera.top=155;sun.shadow.camera.bottom=-155;sun.shadow.bias=-.0005;scene.add(sun);v16Sun=sun;let geo=new THREE.PlaneGeometry(WORLD,WORLD,120,120);geo.rotateX(-Math.PI/2);let pos=geo.attributes.position;for(let i=0;i<pos.count;i++)pos.setY(i,h(pos.getX(i),pos.getZ(i)));geo.computeVertexNormals();terrain=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:'#a2bcc7',roughness:.97,metalness:0,flatShading:false}));terrain.receiveShadow=true;scene.add(terrain);const sea=new THREE.Mesh(new THREE.PlaneGeometry(900,900),new THREE.MeshStandardMaterial({color:'#177fa3',metalness:.05,roughness:.4,transparent:true,opacity:.9,depthWrite:false}));sea.rotation.x=-Math.PI/2;sea.position.y=-12;scene.add(sea);water=sea;const coastGeo=new THREE.RingGeometry(HALF-8,HALF+5,128,4);coastGeo.rotateX(-Math.PI/2);{const cp=coastGeo.attributes.position;for(let i=0;i<cp.count;i++)cp.setY(i,h(cp.getX(i),cp.getZ(i))+.05);coastGeo.computeVertexNormals();}const coast=new THREE.Mesh(coastGeo,new THREE.MeshStandardMaterial({color:'#b2e2ee',roughness:.48,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));scene.add(coast);
 // V22 Puerto Aurora: central coastal plaza, cover planters and street furniture.
 // Keep the middle navigable; register solid obstacles only for raised planters.
@@ -591,7 +675,7 @@ function v22BuildPlaza(){
 }
 v22BuildPlaza();
 for(let i=0;i<62;i++){let x=rand(-HALF+12,HALF-12),z=rand(-HALF+12,HALF-12);if(Math.hypot(x,z)<16)continue;let scale=rand(.7,1.5);let g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%4===0){box(7*scale,3.8*scale,5.7*scale,mats.wall,g,0,1.9*scale,0);box(7.8*scale,.6*scale,6.4*scale,mats.roof,g,0,4.1*scale,0);box(1.3*scale,2.5*scale,.1,mats.dark,g,0,1.25*scale,2.9*scale);box(1.5*scale,1.2*scale,.12,mats.glass,g,2*scale,2.3*scale,2.9*scale);worldObjects.push({x,z,r:4.4*scale,h:4.4*scale,v403Roof:true,v403HalfW:3.9*scale,v403HalfD:3.2*scale});}else if(i%4===1){box(5*scale,2.5*scale,3*scale,mats.wood,g,0,1.25*scale,0);box(5.5*scale,.3*scale,3.5*scale,mats.roof,g,0,2.65*scale,0);worldObjects.push({x,z,r:3.2*scale,h:2.8*scale,v403Roof:true,v403HalfW:2.75*scale,v403HalfD:1.75*scale});}else{box(3.3*scale,1.5*scale,2.1*scale,mats.dark,g,0,.75*scale,0);box(3.5*scale,.15*scale,2.3*scale,mats.gold,g,0,1.55*scale,0);worldObjects.push({x,z,r:2.4*scale,h:1.7*scale,v403Roof:true,v403HalfW:1.75*scale,v403HalfD:1.15*scale});}}
-for(let i=0;i<175;i++){let x=rand(-HALF+8,HALF-8),z=rand(-HALF+8,HALF-8);if(Math.hypot(x,z)<14||solid(x,z,3))continue;const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%7===0){const rockRadius=rand(1.2,2.3);v424Rock(rockRadius,mats.rock,g,0,rockRadius*.6,0);worldObjects.push({x,z,r:rockRadius*1.08,h:rockRadius*1.8});}else{let sc=rand(.75,1.5);cyl(.28*sc,.4*sc,3.2*sc,mats.trunk,g,0,1.6*sc,0);sphere(1.65*sc,i%3?mats.leaf:mats.leaf2,g,0,3.9*sc,0,7);sphere(1.2*sc,mats.leaf,g,.6*sc,3.1*sc,.35*sc,7);worldObjects.push({x,z,r:.7*sc,h:5.2*sc});}}
+for(let i=0;i<175;i++){let x=rand(-HALF+8,HALF-8),z=rand(-HALF+8,HALF-8);if(Math.hypot(x,z)<14||Math.hypot(x+100,z+105)<22||Math.hypot(x-102,z-74)<22||v426DecorationBlocked(x,z,4.5))continue;const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%7===0){const rockRadius=rand(1.2,2.3);/* V42.6: roca original oculta */worldObjects.push({x,z,r:rockRadius*1.08,h:rockRadius*1.8,v426Rock:true});}else{let sc=rand(.75,1.5);cyl(.28*sc,.4*sc,3.2*sc,mats.trunk,g,0,1.6*sc,0);sphere(1.65*sc,i%3?mats.leaf:mats.leaf2,g,0,3.9*sc,0,7);sphere(1.2*sc,mats.leaf,g,.6*sc,3.1*sc,.35*sc,7);worldObjects.push({x,z,r:.7*sc,h:5.2*sc});}}
 // V17: Puerto Aurora, compact coastal village inspired by supplied reference (original geometry).
 const v17Stucco=new THREE.MeshStandardMaterial({color:'#e4d8c4',roughness:.96});
 const v17White=new THREE.MeshStandardMaterial({color:'#f2eee2',roughness:.92});
@@ -729,7 +813,7 @@ for(let i=0;i<10;i++){
 const ringGeo=new THREE.RingGeometry(.992,1,128);ringGeo.rotateX(-Math.PI/2);zoneRing=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:'#5bdce7',transparent:true,opacity:.75,side:THREE.DoubleSide,depthWrite:false}));zoneRing.position.y=2;scene.add(zoneRing);const grid=new THREE.GridHelper(12,6,'#7e968c','#647a70');grid.position.set(0,ground(0,0)+.03,0);grid.material.opacity=.1;grid.material.transparent=true;scene.add(grid);
 }
 // V22 optional external GLB model pipeline. Keeps the playable fallback if missing.
-const v22LilaAssets=['models/LILA_V22_Operadora_Futurista.glb','models/lila-operator.glb'];
+const v22LilaAssets=['models/lila-v44-experimental.glb','models/lila-operator.glb'];
 const v22LilaAsset=v22LilaAssets[0];
 window.THEDEMIANFF_V40_ASSET_STATUS={lila:'pending',weapons:'pending'};
 /* V40.1: load a genuine AK-74 GLB once, retain the procedural rifle as an offline fallback. */
@@ -815,14 +899,22 @@ function v22ApplyLilaModel(character){
   else if(o.material)o.material=o.material.clone();
   // V40.2: the bundled Lila GLB has no authored materials; give its meshes
   // a lightweight, consistent operator palette without extra textures.
-  const part=(o.name||'').toLowerCase();
-  const palette=part.includes('hair')?'#b7a1dc':
-    part.includes('head')||part.includes('face')||part.includes('hand')?'#dba9a1':
-    part.includes('boot')||part.includes('shoe')?'#20283c':
-    part.includes('leg')||part.includes('pant')?'#313c59':
-    part.includes('vest')||part.includes('armor')||part.includes('chest')?'#e1e5f1':
-    part.includes('arm')||part.includes('sleeve')?'#4366a1':
-    '#7686a8';
+  const part=((o.parent&&o.parent.name)||o.name||'').toLowerCase();
+  const palette=part.includes('pupil')?'#5d318f':
+    part.includes('eye')?'#e9e5fa':
+    part.includes('hair')||part.includes('fringe')?'#c5a9ec':
+    part.includes('head')||part.includes('face')||part.includes('nose')||part.includes('neck')?'#e8b7ae':
+    part.includes('mouth')?'#ae657d':
+    part.includes('glove')?'#20263b':
+    part.includes('wrist_led')||part.includes('backpack_glow')?'#68d8f4':
+    part.includes('boot_blue')||part.includes('stripe')||part.includes('jacket_left_panel')||part.includes('jacket_right_panel')?'#3473d6':
+    part.includes('boot')||part.includes('sole')?'#20283c':
+    part.includes('shorts')||part.includes('belt')||part.includes('strap')||part.includes('pouch')?'#242b42':
+    part.includes('jacket')||part.includes('chest')?'#e8edf9':
+    part.includes('sleeve')?'#e3eaf6':
+    part.includes('thigh')||part.includes('shin')||part.includes('waist')?'#36425c':
+    part.includes('backpack')?'#34445d':
+    '#8294b4';
   const materials=Array.isArray(o.material)?o.material:[o.material];(window.__v424LilaLog=window.__v424LilaLog||[]).push({n:o.name||'(sin nombre)',skin:!!o.isSkinnedMesh,map:!!(materials[0]&&materials[0].map),vc:!!(materials[0]&&materials[0].vertexColors)});if(o.isSkinnedMesh)console.warn('[V42.4] Lila contiene SkinnedMesh: Object3D.clone no copia bien el esqueleto');
   for(const m of materials){
    if(m&&m.color&&!m.map&&!m.vertexColors){
@@ -1363,15 +1455,16 @@ function addWorldDetails(){
   mesh.position.set(x,ground(x,z)+(isRock?.17:.35),z);
   mesh.rotation.y=a;
   mesh.castShadow=false;mesh.receiveShadow=true;
-  detail.add(mesh);
+  if(!isRock)detail.add(mesh); // V42.6
  }
 }
 let v8HitTimer=0,v8FlashTimer=0,v8Combo=0,v8LastHitAt=0;
 let v10ReticleTimer=0;
 function v10ReticlePulse(){
- const el=$('v10Reticle');el.style.width='32px';el.style.height='32px';
+ // V43.4: feedback por opacidad, sin agrandar la reticula ni ocultar al enemigo.
+ const el=$('v10Reticle');el.style.opacity='.95';
  clearTimeout(v10ReticleTimer);
- v10ReticleTimer=setTimeout(()=>{el.style.width='18px';el.style.height='18px'},110);
+ v10ReticleTimer=setTimeout(()=>{el.style.opacity=''},90);
 }
 function v9Event(message){
  const el=$('v9Event');el.textContent=message;el.style.opacity='1';
@@ -1391,6 +1484,27 @@ function v8MuzzleFlash(){
  if(!$('combatFx').checked)return;
  const el=$('v8Muzzle');el.style.opacity='.9';
  clearTimeout(v8FlashTimer);v8FlashTimer=setTimeout(()=>el.style.opacity='0',65);
+}
+
+// V42.6: limpieza visual de rocas por geometria real.
+function v426RemoveRockMeshes(){
+ let removed=0;
+ const types={};
+ scene.traverse(function(obj){
+  if(!obj.isMesh||!obj.geometry)return;
+  const type=obj.geometry.type||'desconocido';
+  types[type]=(types[type]||0)+1;
+  if(type==='IcosahedronGeometry'||
+     type==='DodecahedronGeometry'){
+   obj.visible=false;
+   removed++;
+  }
+ });
+ // Las rocas originales se etiquetan por separado.
+ worldObjects=worldObjects.filter(o=>!o.v426Rock);
+ console.info('[V42.6] Rocas ocultas:',removed);
+ console.info('[V42.6] Tipos de geometria:',types);
+ window.v426RocksRemoved=removed;
 }
 function v8DecorateWorld(){
  // Decorative instanced ground details: one draw call, no collisions, no additional shadows.
@@ -1415,13 +1529,13 @@ function v8DecorateWorld(){
  for(let i=0;i<shardCount;i++){
   const angle=i*2.3999632297,distance=18+(i*31)%170;
   const x=Math.cos(angle)*distance,z=Math.sin(angle)*distance;
-  if(solid(x,z,.3)){shardScale.setScalar(.001);}
+  if(v426DecorationBlocked(x,z,1.5)){shardScale.setScalar(.001);}
   else shardScale.set(.3+(i%5)*.12,.18+(i%3)*.08,.42+(i%4)*.16);
   shardQuat.setFromAxisAngle(new THREE.Vector3(0,1,0),angle);
   shardMatrix.compose(new THREE.Vector3(x,ground(x,z)+.09,z),shardQuat,shardScale);
   shardMesh.setMatrixAt(i,shardMatrix);
  }
- shardMesh.instanceMatrix.needsUpdate=true;shardMesh.castShadow=false;shardMesh.receiveShadow=false;scene.add(shardMesh);
+ shardMesh.instanceMatrix.needsUpdate=true;shardMesh.castShadow=false;shardMesh.receiveShadow=false;shardMesh.visible=false;scene.add(shardMesh);
 }
 // V39.6: distinct Aurora outposts with real collision and AI-visible tactical cover.
 function v396ExpandAurora(){
@@ -1511,7 +1625,7 @@ function v396ExpandAurora(){
    v40Panel(g,1.45,.1,.15,v40Snow,wx,wy-.73,d/2+.25);
    // Side elevations break the flat silhouette when viewed from the street.
    v40Panel(g,.12,1.25,1.35,v40Frame,side*w/2+.09,wy,0);
-   v40Panel(g,.13,1.02,1.1,v40Glass,side*w/2+.16,wy,0);
+   v40Panel(g,.06,1.02,1.1,v40Glass,side*(w/2+.19),wy,0);
   }
   // V40 architecture silhouette pass: pitched canopy, sculpted window hoods,
   // vertical columns and structural braces; all are non-colliding decoration.
@@ -1553,24 +1667,7 @@ function v396ExpandAurora(){
    v40Panel(g,.15,.26,.12,v40Warm,side*1.05,2.33,d/2+.24);
    v40Panel(g,.13,h-.4,.13,v40Frame,side*(w/2-.4),h/2,-d/2-.2);
   }
-  // Parapet, stepped cornice, rooftop ventilation and antenna.
-  for(const z of [-d/2,d/2])v40Panel(g,w+.65,.45,.24,v40Concrete,0,h+.34,z);
-  for(const x of [-w/2,w/2])v40Panel(g,.24,.45,d+.65,v40Concrete,x,h+.34,0);
-  v40Panel(g,w*.48,.14,d*.34,v40Snow,0,h+.44,0);
-  v40Panel(g,1.35,.68,1.1,v40Frame,w*.2,h+.72,-d*.14);
-  // Low-profile rooftop solar panels, aerial mast and technical service hatches.
-  for(let j=0;j<2;j++){
-   const panel=v40Panel(g,w*.25,.065,d*.22,v40Glass,-w*.23+j*w*.27,h+.56,d*.18);
-   panel.rotation.x=-.19;
-   v40Panel(g,w*.27,.08,.1,v40Frame,-w*.23+j*w*.27,h+.48,d*.29);
-  }
-  const mast=new THREE.Mesh(new THREE.CylinderGeometry(.045,.075,1.8,8),v40Frame);
-  mast.position.set(w*.29,h+1.35,-d*.25);mast.castShadow=false;g.add(mast);v40FacadePieces++;
-  const antenna=new THREE.Mesh(new THREE.SphereGeometry(.14,8,6),v40Warm);
-  antenna.position.set(w*.29,h+2.26,-d*.25);g.add(antenna);v40FacadePieces++;
-  v40Panel(g,.8,.08,.8,v40Frame,-w*.18,h+.53,-d*.28);
-  const vent=new THREE.Mesh(new THREE.CylinderGeometry(.18,.22,1.05,10),v40Frame);
-  vent.position.set(-w*.24,h+.98,-d*.18);vent.castShadow=false;g.add(vent);v40FacadePieces++;
+  // V42.7 PILOTO ARQUITECTURA: se retiran parapetos y equipos que cruzaban el techo inclinado.
   // Raised foundation and corner pilasters add scale and architectural hierarchy.
   v40Panel(g,w+.22,.27,d+.22,v40Concrete,0,.12,0);
   for(const x of [-w/2+.15,w/2-.15]){
@@ -1635,11 +1732,12 @@ function v396ExpandAurora(){
   if(Math.abs(x)>HALF-9||Math.abs(z)>HALF-9||Math.hypot(x,z)<21||solid(x,z,Math.max(w,d)*.58+1))return false;
   const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);
   const main=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
-  main.position.y=h*.5;main.castShadow=true;main.receiveShadow=true;g.add(main);if(kind==='building'){const pl=new THREE.Mesh(new THREE.BoxGeometry(w+.06,1.6,d+.06),material);pl.position.y=-.7;pl.receiveShadow=true;g.add(pl);}
+  main.position.y=h*.5;main.castShadow=true;main.receiveShadow=true;g.add(main);if(kind==='building'){const pl=new THREE.Mesh(new THREE.BoxGeometry(w+.06,.35,d+.06),v40Concrete);pl.position.y=.13;pl.receiveShadow=true;g.add(pl);}
   if(kind==='building'){
-   const cap=new THREE.Mesh(new THREE.BoxGeometry(w+.65,.36,d+.65),roof);cap.position.y=h+.18;cap.castShadow=true;g.add(cap);
-   const strip=new THREE.Mesh(new THREE.BoxGeometry(w*.62,.16,.12),accent);strip.position.set(0,h*.72,d*.5+.07);g.add(strip);
-   const panel=new THREE.Mesh(new THREE.BoxGeometry(w*.34,.7,.1),frost);panel.position.set(0,h*.42,d*.5+.09);g.add(panel);
+   // V42.5 PRUEBA: cubierta plana desactivada temporalmente.
+   // const cap=new THREE.Mesh(new THREE.BoxGeometry(w+.65,.36,d+.65),roof);cap.position.y=h+.18;cap.castShadow=true;g.add(cap);
+   // V42.7: panel superpuesto retirado para liberar la fachada.
+   // V42.7: panel superpuesto retirado para liberar la fachada.
    v40BuildingDetails(g,w,h,d);
    v40DistrictEquipment(g,w,h,d,v40DistrictIndex);
    const name=v40DistrictNames[v40DistrictIndex],t=v40SignTexture(name,v40DistrictColors[v40DistrictIndex]);
@@ -1715,29 +1813,57 @@ function v397DetailAurora(){
  const trunks=new THREE.InstancedMesh(trunkGeo,barkMat,treeCount);
  const m=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new THREE.Vector3();
  const locations=[];
+ const occupied=[];
  for(const [cx,cz] of districts){
-  for(let j=0;j<24;j++){
-   const a=j*2.3999632297+cx*.017,dist=22+(j%5)*2.3;
-   const x=cx+Math.cos(a)*dist,z=cz+Math.sin(a)*dist;
-   if(Math.abs(x)>HALF-6||Math.abs(z)>HALF-6||solid(x,z,1.6))continue;
-   locations.push([x,z,j]);
+  for(let j=0;j<48;j++){
+   const a=j*2.3999632297+cx*.017;
+   const dist=22+(j%9)*3.1;
+   const x=cx+Math.cos(a)*dist;
+   const z=cz+Math.sin(a)*dist;
+   if(Math.abs(x)>HALF-7||Math.abs(z)>HALF-7)continue;
+   if(v426DecorationBlocked(x,z,6))continue;
+   if(occupied.some(p=>Math.hypot(x-p[0],z-p[1])<4.5))continue;
+   occupied.push([x,z]);
+   locations.push([x,z]);
   }
  }
- for(let i=0;i<rockCount;i++){
-  const loc=locations[i%Math.max(1,locations.length)]||[0,0,i];
-  const x=loc[0],z=loc[1],a=i*2.3999632297;
-  q.setFromAxisAngle(new THREE.Vector3(0,1,0),a);
-  sc.set(.8+(i%4)*.28,.4+(i%3)*.2,.7+(i%5)*.17);
-  m.compose(new THREE.Vector3(x,ground(x,z)+.22,z),q,sc);rocks.setMatrixAt(i,m);
+ let rockPlaced=0;
+ let treePlaced=0;
+ for(let i=0;i<locations.length;i++){
+  const [x,z]=locations[i];
+  if(i%3!==2 && rockPlaced<rockCount){
+   const n=rockPlaced++;
+   q.setFromAxisAngle(new THREE.Vector3(0,1,0),n*2.3999632297);
+   sc.set(.8+(n%4)*.28,.4+(n%3)*.2,.7+(n%5)*.17);
+   m.compose(new THREE.Vector3(x,ground(x,z)+.22,z),q,sc);
+   rocks.setMatrixAt(n,m);
+  }else if(treePlaced<treeCount){
+   const n=treePlaced++;
+   const height=2.4+(n%5)*.43;
+   q.setFromAxisAngle(new THREE.Vector3(0,1,0),n*.83);
+   sc.set(.88,height,.88);
+   m.compose(new THREE.Vector3(x,ground(x,z)+height*.65,z),q,sc);
+   trees.setMatrixAt(n,m);
+   sc.set(.65,height*.72,.65);
+   m.compose(new THREE.Vector3(x,ground(x,z)+height*.36,z),q,sc);
+   trunks.setMatrixAt(n,m);
+  }
  }
- for(let i=0;i<treeCount;i++){
-  const loc=locations[(i*2+5)%Math.max(1,locations.length)]||[0,0,i];
-  const x=loc[0],z=loc[1],height=2.4+(i%5)*.43;
-  q.setFromAxisAngle(new THREE.Vector3(0,1,0),i*.83);
-  sc.set(.88,height,.88);m.compose(new THREE.Vector3(x,ground(x,z)+height*.65,z),q,sc);trees.setMatrixAt(i,m);
-  sc.set(.65,height*.72,.65);m.compose(new THREE.Vector3(x,ground(x,z)+height*.36,z),q,sc);trunks.setMatrixAt(i,m);
+ rocks.count=0; // V42.6: rocas V40 ocultas
+ trees.count=treePlaced;
+ trunks.count=treePlaced;
+ for(const mesh of [rocks,trees,trunks]){
+  mesh.frustumCulled=false;
+  mesh.instanceMatrix.needsUpdate=true;
+  mesh.castShadow=false;
+  mesh.receiveShadow=false;
+  scene.add(mesh);
  }
- for(const mesh of [rocks,trees,trunks]){mesh.frustumCulled=false;mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);}
+ console.info('[V42.5] Decoracion segura', {
+  rocas:rockPlaced,
+  arboles:treePlaced,
+  posiciones:locations.length
+ });
  // V40 navigation readability: illuminated pedestrian lanes, four per district.
  // Thin strips follow terrain and stay decorative; they do not create impassable obstacles.
  const pathMaterial=new THREE.MeshStandardMaterial({color:'#426f83',roughness:.73,metalness:.2,emissive:'#123844',emissiveIntensity:.2,side:THREE.DoubleSide});
@@ -1891,7 +2017,7 @@ if(scene){
  for(const geometry of geometries)geometry.dispose();
  while(scene.children.length)scene.remove(scene.children[0]);
 }
-createWorld();addWorldDetails();v396ExpandAurora();v397DetailAurora();v8DecorateWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.10;v22ShoulderRig.back=NaN;v22ShoulderRig.shoulder=NaN;v22ShoulderRig.height=NaN;v22ShoulderRig.anchorY=NaN;camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
+v428CreateTrainingWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.10;v432Camera.reset();camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
 for(let i=2;i<weapons.length;i++){weapons[i].ammo=weapons[i].mag;weapons[i].reserve=[210,36,180][i-2];}for(let i=0;i<($('v18Mode').value==='training'?8:20);i++)spawnBot(Math.random()<.5?10:17);for(let i=0;i<55;i++){let p=safePos(5);spawnPickup(['ammo','ammo','med','armor'][i%4],p.x,p.z)}updateHud();}
 function updateHud(){
  const eventHud=$('v362EventHud');if(eventHud){eventHud.classList.toggle('hidden',!v18ActiveEvent);if(v18ActiveEvent)eventHud.textContent='EVENTO '+(v18ActiveEvent==='training'?'PRÁCTICA TÁCTICA':'SUPERVIVENCIA')+' · BAJAS '+kills+'/'+(v18ActiveEvent==='training'?2:3);}
@@ -1973,13 +2099,7 @@ function reload(){
 function finish(win){if(gameOver)return;gameOver=true;const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 let moveVX=0,moveVZ=0,v14Recoil=0,v395SwapTime=0,v395ReloadDuration=0;
 function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);return;}v362UpdateBotsInAir(dt);flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
- if(camera){
-  // Zoom changes only FOV, never yaw, pitch or shoulder anchor.
-  const targetFov=adsHeld?54:68,settle=1-Math.exp(-dt*10);
-  const nextFov=camera.fov+(targetFov-camera.fov)*settle;
-  if(Math.abs(nextFov-camera.fov)>.001){camera.fov=nextFov;camera.updateProjectionMatrix();}
-  $('v10Reticle').classList.toggle('v382ADS',adsHeld);
- }
+ // FOV y reticula ahora pertenecen exclusivamente al controlador V43.2.
  time+=dt;shootCooldown=Math.max(0,shootCooldown-dt);if(reloadTimer>0){
  reloadTimer-=dt;
  if(reloadTimer<=0){
@@ -2035,38 +2155,7 @@ const dx=moveVX*dt,dz=moveVZ*dt;let nx=clamp(player.position.x+dx,-HALF+4,HALF-4
  playerModel.body.position.y*=Math.exp(-dt*12);
  playerModel.body.rotation.z*=Math.exp(-dt*12);
 }if(jumpQueued){if(onGround){vertical=7.4;onGround=false;}jumpQueued=false;}vertical-=19*dt;player.position.y+=vertical*dt;const floor=v403Floor(player.position.x,player.position.z,player.position.y-vertical*dt);if(player.position.y<=floor){player.position.y=floor;vertical=0;onGround=true;}else onGround=false;
-// V13: shoulder camera and free center-screen aim. Player stays offset from reticle.
-// Firing must never teleport the shoulder camera. Only ADS changes its distance.
-// Keep Lila near the middle-left of the reticle, not at the extreme right.
-// Negative shoulder offsets the camera to screen-right so Lila appears LEFT of the reticle.
-const shoulder=-Number($('v26CameraShoulder').value),back=Number($('v26CameraDistance').value),height=2.9;
-// Smooth only the shoulder rig offsets; preserve instantaneous 360-degree yaw.
-if(!Number.isFinite(v22ShoulderRig.back)){v22ShoulderRig.back=back;v22ShoulderRig.shoulder=shoulder;v22ShoulderRig.height=height;}
-const rigEase=1-Math.exp(-dt*12);
-v22ShoulderRig.back+=(back-v22ShoulderRig.back)*rigEase;
-v22ShoulderRig.shoulder+=(shoulder-v22ShoulderRig.shoulder)*rigEase;
-v22ShoulderRig.height+=(height-v22ShoulderRig.height)*rigEase;
-// Smooth the terrain anchor independently of the player's run and jump animation.
-if(!Number.isFinite(v22ShoulderRig.anchorY))v22ShoulderRig.anchorY=player.position.y;
-const anchorGoal=player.position.y; // V40.3: preserve shoulder camera height on rooftops
-const v26CameraSmooth=clamp(Number($('cameraSmooth').value)||0,0,.8);
-// ADS must settle its terrain anchor promptly, without a drifting follow tail.
-const anchorSpeed=onGround?(adsHeld?5.5:2.2):4.5;
-const anchorDelta=anchorGoal-v22ShoulderRig.anchorY;
-if(Math.abs(anchorDelta)>.012)
- v22ShoulderRig.anchorY+=anchorDelta*(1-Math.exp(-dt*anchorSpeed*(1-.45*v26CameraSmooth)));
-
-const target=v404SafeCameraTarget(new THREE.Vector3(player.position.x+Math.cos(camYaw)*v22ShoulderRig.shoulder-Math.sin(camYaw)*v22ShoulderRig.back,v22ShoulderRig.anchorY+v22ShoulderRig.height,player.position.z-Math.sin(camYaw)*v22ShoulderRig.shoulder-Math.cos(camYaw)*v22ShoulderRig.back));
-// The camera must not lag behind rapid swipes or oscillate around the player.
-// Follow horizontal motion immediately; soften terrain-induced vertical oscillation.
-camera.position.x=target.x;
-camera.position.z=target.z;
-// Follow terrain elevation without abrupt downward camera snaps.
-const cameraAltitudeDelta=target.y-camera.position.y;
-if(Math.abs(cameraAltitudeDelta)>.012)
- camera.position.y+=cameraAltitudeDelta*(1-Math.exp(-dt*(adsHeld?7:4.5)*(1-.5*v26CameraSmooth)));
-const aimForward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
-camera.lookAt(camera.position.clone().addScaledVector(aimForward,100));
+v432Camera.update(dt);
 // Fire after the camera has been aimed this frame, avoiding one-frame stale shots.
 if(fireHeld)shoot();
 else if(mobile&&$('autoFire').checked){for(const b of bots){if(!b.alive)continue;const dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);if(d<45&&Math.abs(Math.atan2(Math.sin(angle-camYaw),Math.cos(angle-camYaw)))<.075&&!blocked(player.position.x,player.position.z,b.x,b.z)){shoot();break;}}}
@@ -2077,14 +2166,16 @@ const v395Swap= v395SwapTime>0?Math.sin(Math.PI*(1-v395SwapTime/.30)):0;
 const v395Reload=reloadTimer>0&&reloadWeapon===weaponIndex&&v395ReloadDuration>0?Math.sin(Math.PI*clamp(1-reloadTimer/v395ReloadDuration,0,1)):0;
 const v395Run=clamp(Math.hypot(moveVX,moveVZ)/14.5,0,1)*(sprintHeld?1:.35);
 window.THEDEMIANFF_ANIMATION_TEST=()=>({swap:v395Swap,reload:v395Reload,run:v395Run});
-playerModel.gun.rotation.x=-camPitch*.55-v14Recoil*.12+v395Reload*.24+v395Swap*.17;
+// V43.1: retroceso visual mas contenido en ADS; sin modificar trayectoria de bala.
+const v431VisualKick=v14Recoil*(adsHeld?.68:1);
+playerModel.gun.rotation.x=-camPitch*.55-v431VisualKick*.12+v395Reload*.24+v395Swap*.17;
  const v38Pace=clamp(Math.hypot(moveVX,moveVZ)/10,0,1);
- playerModel.gun.rotation.z=Math.sin(playerModel.animPhase*.78)*.025*v38Pace+v14Recoil*.024+v395Reload*.16-v395Swap*.12;
+ playerModel.gun.rotation.z=Math.sin(playerModel.animPhase*.78)*.025*v38Pace+v431VisualKick*.024+v395Reload*.16-v395Swap*.12;
  playerModel.gun.rotation.y=Math.sin(playerModel.animPhase*.43)*.019*v38Pace;
  playerModel.gun.position.x=.4+Math.sin(playerModel.animPhase*.6)*.018*v38Pace+v395Swap*.07;
- playerModel.gun.position.z=.55-v14Recoil*.09-v395Reload*.12;
+ playerModel.gun.position.z=.55-v431VisualKick*.09-v395Reload*.12;
 playerModel.body.rotation.x=onGround?(crouchHeld?.13:Math.sin(playerModel.animPhase)*.014*clamp(Math.hypot(moveVX,moveVZ)/10,0,1)):-.10;
-playerModel.gun.position.y=1.45-v14Recoil*.045-v395Reload*.22-v395Swap*.30+Math.sin(playerModel.animPhase)*.012*v395Run;
+playerModel.gun.position.y=1.45-v431VisualKick*.045-v395Reload*.22-v395Swap*.30+Math.sin(playerModel.animPhase)*.012*v395Run;
  const pose=crouchHeld&&onGround?1:0,k=1-Math.exp(-dt*12);
  playerModel.body.position.y+=((playerModel.isFemaleOperator?-.10:-.48)*pose-playerModel.body.position.y)*k;
  if(!playerModel.isFemaleOperator){
@@ -2886,46 +2977,143 @@ const v22ShoulderRig={back:NaN,shoulder:NaN,height:NaN,anchorY:NaN};
 for(const id of ['v26CameraDistance','v26CameraShoulder','v26TouchDeadzone','v26TouchCurve']){const el=$(id);try{const v=localStorage.getItem('v26-pref-'+id);if(v!==null)el.value=v}catch{}el.addEventListener('change',()=>{try{localStorage.setItem('v26-pref-'+id,el.value)}catch{}})}
 // Dual independent camera channels: screen swipe (FREE) and fire drag (FIRE).
 // Each pointer owns its own low-pass filter and never changes the other channel.
+// V43.4 OPTIC PROFILES: perfiles independientes y selector tactil.
+const v434Optics={
+ index:0,
+ profiles:[
+  {name:'PUNTO',fov:54,sensitivity:1},
+  {name:'2x',fov:40,sensitivity:.74},
+  {name:'4x',fov:26,sensitivity:.52},
+  {name:'8x',fov:15,sensitivity:.32}
+ ],
+ active(){return this.profiles[this.index];},
+ cycle(){
+  this.index=(this.index+1)%this.profiles.length;
+  this.updateHud(adsHeld);
+ },
+ updateHud(isADS){
+  const button=document.getElementById('v434ScopeButton');
+  const label=document.getElementById('v434ScopeLabel');
+  if(button){
+   const visible=!!(isADS && running && !paused && !gameOver &&
+     window.v36FlightMode!=='aircraft' &&
+     window.v36FlightMode!=='freefall' &&
+     window.v36FlightMode!=='parachute');
+   button.textContent='MIRA '+this.active().name;
+   button.style.setProperty(
+    'display',visible?'block':'none','important'
+   );
+  }
+  if(label){label.textContent=isADS?this.active().name:'';label.style.display=isADS?'block':'none';}
+ }
+};
+(function initV434Scope(){
+ const controls=document.getElementById('controls');
+ if(!controls)return;
+ const button=document.createElement('button');
+ button.id='v434ScopeButton';button.type='button';button.textContent='MIRA PUNTO';
+ button.setAttribute('aria-label','Cambiar aumento de mira');
+ button.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  if(!adsHeld||!running||paused||gameOver)return;
+  v434Optics.cycle();
+ });
+ document.body.appendChild(button); // V43.4.1 SCOPE BUTTON FIX
+ const label=document.createElement('div');
+ label.id='v434ScopeLabel';label.setAttribute('aria-live','off');
+ controls.appendChild(label);
+ document.addEventListener('keydown',e=>{
+  if(e.code==='KeyV'&&!e.repeat&&running&&!paused&&!gameOver)v434Optics.cycle();
+ });
+})();
+// V43.2 HYBRID CAMERA CORE: controlador ORIGINAL TPS/ADS independiente.
+// La entrada multitactil permanece en V42.9; este controlador es el UNICO dueño de la vista.
+const v432Camera={
+ mode:'FREE', blend:0, back:NaN, shoulder:NaN, height:NaN, anchorY:NaN,
+ input(dx,dy,mode){
+  const finite=n=>Number.isFinite(n)?n:0;
+  const c=n=>Math.max(0,Math.min(3,finite(n)));
+  const general=Math.max(.2,c(Number($('sensitivity').value)||1));
+  const zoom=c(Number($('adsSensitivity').value)||1);
+  const fire=c(Number($('fireSensitivity').value)||1);
+  const speed=Math.max(.2,Math.min(2.4,finite(Number($('cameraSpeed').value))||1));
+  const vertical=Math.max(.35,Math.min(3,finite(Number($('verticalSensitivity').value))||1.2))/1.2;
+  // V43.4 OPTIC PROFILES: multiplicador de sensibilidad por aumento.
+  const m=this.mode==='ADS'?zoom*v434Optics.active().sensitivity:1;
+  const f=mode==='fire'?fire:1;
+  // Sin inercia: el dedo dirige exactamente el cambio medido.
+  // V43.5 RAPID SWIPE DELTAS: conservar movimiento legítimo; descartar solo valores no finitos.
+  const clean=n=>Number.isFinite(n)&&Math.abs(n)>=.08?n:0;
+  return {x:clean(dx)*general*m*f*speed,y:clean(dy)*general*m*f*speed*vertical};
+ },
+ orient(dx,dy){
+  camYaw-=dx*.003;
+  camPitch=clamp(camPitch+dy*.00155*($('invertY').checked?-1:1),-.85,1.18);
+ },
+ reset(){this.mode='FREE';this.blend=0;this.back=NaN;this.shoulder=NaN;this.height=NaN;this.anchorY=NaN;},
+ update(dt){
+  if(!camera||!player)return;
+  const t=Math.max(0,Math.min(dt,.08));
+  this.mode=adsHeld?'ADS':'FREE';
+  const goal=this.mode==='ADS'?1:0;
+  this.blend+=(goal-this.blend)*(1-Math.exp(-t*11));
+  // Un solo blend gobierna hombro, distancia, altura y FOV.
+  const b=this.blend;
+  const baseBack=clamp(Number($('v26CameraDistance').value)||5,2.3,12);
+  const baseShoulder=-clamp(Number($('v26CameraShoulder').value)||.65,-3,3);
+  const back=baseBack*(1-b)+Math.max(2.45,baseBack*.80)*b;
+  const shoulder=baseShoulder*(1-b)+baseShoulder*.58*b;
+  const height=2.9-.16*b;
+  if(!Number.isFinite(this.back)){
+   this.back=back;this.shoulder=shoulder;this.height=height;this.anchorY=player.position.y;
+  }
+  const follow=1-Math.exp(-t*16);
+  this.back+=(back-this.back)*follow;
+  this.shoulder+=(shoulder-this.shoulder)*follow;
+  this.height+=(height-this.height)*follow;
+  const smooth=clamp(Number($('cameraSmooth').value)||0,0,.8);
+  this.anchorY+=(player.position.y-this.anchorY)*(1-Math.exp(-t*(this.mode==='ADS'?9:5)*(1-.4*smooth)));
+  const desired=new THREE.Vector3(
+   player.position.x+Math.cos(camYaw)*this.shoulder-Math.sin(camYaw)*this.back,
+   this.anchorY+this.height,
+   player.position.z-Math.sin(camYaw)*this.shoulder-Math.cos(camYaw)*this.back
+  );
+  const safe=v404SafeCameraTarget(desired);
+  camera.position.x=safe.x;camera.position.z=safe.z;
+  camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*12));
+  const forward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
+  camera.lookAt(camera.position.clone().addScaledVector(forward,100));
+  const fov=68+(v434Optics.active().fov-68)*b;
+  if(Math.abs(camera.fov-fov)>.01){camera.fov=fov;camera.updateProjectionMatrix();}
+  $('v10Reticle').classList.toggle('v382ADS',this.mode==='ADS');
+  v434Optics.updateHud(this.mode==='ADS');
+ }
+};
+window.THEDEMIANFF_HYBRID_CAMERA=()=>({mode:v432Camera.mode,blend:v432Camera.blend,fov:camera?.fov});
+
 const fireCameraFilter={x:0,y:0};
 let v22FireDragging=false;
 function resetFireCamera(){fireCameraFilter.x=0;fireCameraFilter.y=0;}
 // V38.2: same linear, memoryless touch response in FREE and ADS.
 // No velocity filtering, no ADS zoom jump, and a single camera owner.
-function v382AimDelta(dx,dy,context){
- const finite=n=>Number.isFinite(n)?n:0;
- const x=clamp(finite(dx),-55,55),y=clamp(finite(dy),-55,55);
- const general=clamp(finite(context.general)||1,.2,3);
- const ads=clamp(finite(context.ads)||1,.2,3);
- const fire=clamp(finite(context.fire)||1,.2,3);
- const speed=clamp(finite(context.speed)||1,.2,2.4);
- const ratio=context.isADS?ads:1;
- const modifier=context.mode==='fire'?fire:1;
- // Subpixel sensor jitter is suppressed without a multi-pixel dead-zone.
- const clean=v=>Math.abs(v)<.08?0:v;
- return {x:clean(x)*general*ratio*modifier*speed,y:clean(y)*general*ratio*modifier*speed};
-}
 function aim(dx,dy,mode='free'){
- const delta=v382AimDelta(dx,dy,{
-  general:Number($('sensitivity').value),
-  ads:Number($('adsSensitivity').value),
-  fire:Number($('fireSensitivity').value),
-  speed:Number($('cameraSpeed').value),
-  isADS:adsHeld,mode
- });
+ const delta=v432Camera.input(dx,dy,mode);
  if(mobile){cameraDX+=delta.x;cameraDY+=delta.y;}
- else applyAim(delta.x,delta.y);
+ else v432Camera.orient(delta.x,delta.y);
 }
 function aimFromFire(dx,dy){
  // No recursive low-pass memory or trailing movement after thumb release.
  if(Math.abs(dx)+Math.abs(dy)>.12)aim(dx,dy,'fire');
 }
-function applyAim(dx,dy){
- // Both modes use one stable orientation. Sensitivities are applied exactly once.
- camYaw-=dx*.003;
- camPitch=clamp(camPitch+dy*.00155*($('invertY').checked?-1:1),-.85,1.18);
-}
-// Regression hook exposes only numerical camera transform tests, no game state.
-window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>v382AimDelta(dx,dy,{general:1.25,ads:.85,fire:1.1,speed:1,isADS:ads,mode:fire?'fire':'free'});
+function applyAim(dx,dy){v432Camera.orient(dx,dy);}
+// Pruebas numericas sin modificar el estado real de la partida.
+window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>{
+ const previous=v432Camera.mode;
+ v432Camera.mode=ads?'ADS':'FREE';
+ try{return v432Camera.input(dx,dy,fire?'fire':'free');}
+ finally{v432Camera.mode=previous;}
+};
 function aimAssistPull(dt){
  if(!running||paused||!player||adsHeld)return;
  if(!$('aimAssist').checked)return;
@@ -3233,6 +3421,8 @@ let v342AdsFrame=0;
 // V26: multiple independent view fingers; only the most recently moving view finger aims.
 let v26LookOwner=null;
 let v26LastLookMove=0;
+// V42.9 MULTITOUCH CAMERA OWNER: permite pasar el control a un dedo que realmente se mueve.
+const v429LookIdleMs=170;
 function v23Ready(){return mobile&&running&&!paused&&!hudEditing&&!$('controls').classList.contains('hidden');}
 function v23Joy(x,y){
  const r=stickBase.getBoundingClientRect(),radius=Math.max(18,r.width*.33);
@@ -3284,7 +3474,7 @@ function v23PointerDown(e){
  const t={role,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};
  v23Touches.set(e.pointerId,t);
  if(role==='joystick'){stickTouch=e.pointerId;v342JoyOrigin={x:t.x,y:t.y};v23Joy(t.x,t.y);}
- else if(role==='look'){cameraPointers.set(e.pointerId,t);if(v26LookOwner===null){v26LookOwner=e.pointerId;lookTouch=e.pointerId;}}
+ else if(role==='look'){cameraPointers.set(e.pointerId,t);if(v26LookOwner===null){v26LookOwner=e.pointerId;lookTouch=e.pointerId;v26LastLookMove=performance.now();}}
  else if(role==='fire'){fireTouch=e.pointerId;fireHeld=true;sprintHeld=false;$('sprint').classList.remove('sprintActive');v22FireDragging=false;v23FireThumb(t);}
  else if(role==='sprint'){sprintHeld=(fireHeld||crouchHeld)?false:!sprintHeld;$('sprint').classList.toggle('sprintActive',sprintHeld);}
  else if(role==='aimBtn'){
@@ -3306,7 +3496,8 @@ function v23PointerMove(e){
  const t=v23Touches.get(e.pointerId);if(!t)return;
  if(!v23Ready()){v23PointerEnd(e);return;}
  // Clamp anomalous Android touch jumps caused by interrupted or resumed gestures.
- const dx=clamp(e.clientX-t.x,-55,55),dy=clamp(e.clientY-t.y,-55,55);
+ // V43.5: no recortar cada evento; usar desplazamiento real del dedo.
+ const dx=e.clientX-t.x,dy=e.clientY-t.y;
  t.x=e.clientX;t.y=e.clientY;
  if(t.role==='joystick')v23Joy(t.x,t.y);
  else if(t.role==='look'||t.role==='fire'){
@@ -3319,7 +3510,10 @@ function v23PointerMove(e){
     // Only one moving look finger contributes per event, preventing doubled sensitivity.
     const movement=Math.hypot(dx,dy),now=performance.now();
     if(movement>.22){
-     if(v26LookOwner===null||!v23Touches.has(v26LookOwner)){v26LookOwner=e.pointerId;lookTouch=e.pointerId;}
+     if(v26LookOwner===null||!v23Touches.has(v26LookOwner)||
+        (v26LookOwner!==e.pointerId&&now-v26LastLookMove>v429LookIdleMs)){
+      v26LookOwner=e.pointerId;lookTouch=e.pointerId;
+     }
      if(v26LookOwner===e.pointerId){v26LastLookMove=now;aim(dx,dy,mode);}
     }
    }else if(Math.abs(dx)+Math.abs(dy)>.12)aim(dx,dy,mode);
@@ -3338,6 +3532,15 @@ function v23PointerEnd(e){
  if(e.cancelable)e.preventDefault();
  e.stopImmediatePropagation();
 }
+// V43.4.3 SCOPE FIX
+document.addEventListener('pointerdown',e=>{
+ const target=e.target.closest?.('#v434ScopeButton');
+ if(!target)return;
+ e.preventDefault();
+ e.stopImmediatePropagation();
+ if(!running||paused||gameOver||!adsHeld)return;
+ v434Optics.cycle();
+},true);
 document.addEventListener('pointerdown',v23PointerDown,true);
 document.addEventListener('pointermove',v23PointerMove,true);
 document.addEventListener('pointerup',v23PointerEnd,true);
