@@ -84,12 +84,12 @@ jobs:
           if "backup.format!==1" not in guest_import or "v443ValidateProgress(backup.progress)" not in guest_import:
               raise SystemExit("V44.3: respaldo de invitado sin validación")
           if "for(const [k,v] of entries)localStorage.setItem(k,v);" not in html: raise SystemExit("V33: importación de ajustes ausente")
-          # Evitar que el respaldo vuelva a tapar JUGAR en el lobby.
-          if html.count('id="v29BackupButton"')!=1: raise SystemExit("Debe existir un único botón de respaldo")
-          if 'data-tab="progress"' not in html or 'data-section="progress"' not in html: raise SystemExit("Falta la pestaña PROGRESO en configuración")
-          # Validar el bloque de ajustes hasta la primera sección, no hasta el primer div cerrado.
-          settings=html.split('<div id="pausePanel"',1)[1].split('<div class="settingsSection"',1)[0]
-          if 'data-tab="progress"' not in settings: raise SystemExit("PROGRESO no está en las pestañas de configuración")
+          # V44.5: backup actions are no longer duplicated in the lobby or Settings.
+          if 'id="v29BackupButton"' in html: raise SystemExit("V44.5: respaldo antiguo sigue visible en ajustes")
+          if 'data-tab="progress"' in html or 'data-section="progress"' in html: raise SystemExit("V44.5: pestaña PROGRESO duplicada")
+          if 'id="v443Account"' in html: raise SystemExit("V44.5: botón CUENTA / RESPALDO sigue en lobby")
+          if html.count('id="v445SettingsLogout"')!=1 or 'data-tab="account"' not in html: raise SystemExit("V44.5: falta cerrar sesión en Ajustes > Cuenta")
+          if html.count('id="v443Backup"')!=1 or html.count('id="v443Restore"')!=1: raise SystemExit("V44.5: mecanismo de respaldo local eliminado")
           if 'document.body.appendChild(btn)' in html: raise SystemExit("Regresión: botón flotante de respaldo fuera de ajustes")
           # V40 architecture/combat presentation smoke checks: preserve approved runtime API.
           required_v40 = {
