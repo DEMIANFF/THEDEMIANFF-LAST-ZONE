@@ -281,6 +281,18 @@ jobs:
           assert "com.google.gms.google-services" in Path('app/build.gradle').read_text()
           print('Firebase Android config matches game package')
           PY
+      - name: V44.5.1 comprobar versionado y cierre de sesión
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          gradle=Path('app/build.gradle').read_text()
+          java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
+          assert 'versionCode 82' in gradle, 'La actualización requiere versionCode 82'
+          assert "versionName '44.5.1-session-polish'" in gradle, 'Versión Android incorrecta'
+          assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
+          assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
+          print('V44.5.1 Android upgrade and logout checks passed')
+          PY
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - name: Verificar identidad y firma de APK debug
