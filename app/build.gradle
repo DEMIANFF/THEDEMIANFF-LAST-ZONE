@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 82
-        versionName '44.5.1-session-polish'
+        versionCode 83
+        versionName '44.6-profile-recovery'
     }
     signingConfigs {
         persistentRelease {
