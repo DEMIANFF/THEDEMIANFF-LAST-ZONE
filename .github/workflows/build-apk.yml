@@ -251,6 +251,13 @@ jobs:
           assert 'id="v445Play"' not in h, 'V44.5: inicio Google exige clic innecesario'
           for token in ('id="v446AccountRefresh"','id="v446LocalIdentity"','id="v446LocalProgress"','function v446UpdateAccountProfile()','v446AuthResolved','},8000);','v446GoogleEmail'):
               assert token in h, 'V44.6: falta funcionalidad de cuenta/perfil: '+token
+          for token in ('id="v447ExportProgress"','id="v447ImportProgress"','id="v447BackupStatus"','id="v447RefreshProgress"','function v447BackupNotice(text)',"$('v447ExportProgress').addEventListener('click',()=>$('v443Backup').click())","$('v447ImportProgress').addEventListener('click',()=>$('v443Restore').click())"):
+              assert token in h, 'V44.7: falta respaldo manual en ajustes: '+token
+          assert h.count('id="v447ExportProgress"')==1 and h.count('id="v447ImportProgress"')==1, 'V44.7: controles de respaldo duplicados'
+          assert "if(!confirm(summary+(present?" in h, 'V44.7: falta advertencia antes de restaurar'
+          assert "if(file.size>1000000)" in h, 'V44.7: falta límite de tamaño en la restauración'
+          assert "v443ValidateProgress(backup.progress)" in h, 'V44.7: falta validación del respaldo'
+          assert "v443Native.saveProgress(JSON.stringify(progress))" in h, 'V44.7: falta persistencia nativa al restaurar'
           assert 'id="v443Guest" type="button" style="display:none;' in h, 'V44.5: invitado visible durante validación Google'
           assert 'id="v443Google" type="button" style="display:none;' in h, 'V44.5: Google visible antes del estado de sesión'
           assert "if(!v445GoogleBridge){" in h, 'V44.5: Chrome sin recuperación de acceso'
@@ -283,14 +290,14 @@ jobs:
           assert "com.google.gms.google-services" in Path('app/build.gradle').read_text()
           print('Firebase Android config matches game package')
           PY
-      - name: V44.6 comprobar paquete de cuenta y recuperación
+      - name: V44.7 comprobar identidad y respaldo manual
         run: |
           python3 - <<'PY'
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 83' in gradle, 'La actualización requiere versionCode 82'
-          assert "versionName '44.6-profile-recovery'" in gradle, 'Versión Android incorrecta'
+          assert 'versionCode 84' in gradle, 'La actualización requiere versionCode 82'
+          assert "versionName '44.7-local-backup-center'" in gradle, 'Versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
