@@ -488,7 +488,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 <label>Distancia al borde <input id="edgeSpacing" type="range" min="5" max="65" step="1" value="20"></label>
 <button type="button" class="primary" id="editHud" style="width:100%;margin:8px 0">✥ EDITAR POSICIÓN DE BOTONES</button><p class="muted">Arrastra cada botón por separado, modifica su tamaño y guarda el diseño. Se conservará en este navegador.</p><p class="muted">Los cambios se aplican en vivo y quedan guardados en este navegador.</p>
 </div>
-<div class="settingsSection" data-section="account"><h3>CUENTA Y PERFIL</h3><p id="v445AccountStatus" class="muted" aria-live="polite">Verificando sesión…</p><p id="v446LocalIdentity" class="muted">Perfil local del dispositivo</p><p id="v446LocalProgress" class="muted">Cargando estadísticas guardadas…</p><button type="button" id="v446AccountRefresh" class="secondary" style="width:100%;min-height:48px">↻ VERIFICAR CUENTA</button><button type="button" id="v445SettingsLogout" class="secondary" style="width:100%;min-height:48px" disabled>CERRAR SESIÓN DE GOOGLE</button><p class="muted">El progreso sigue siendo local a este dispositivo. La cuenta Google NO es todavía un respaldo en la nube. No desinstales ni borres datos de la app.</p></div><div class="actions"><button class="secondary" id="defaults">RESTAURAR</button><button class="primary" id="resume">GUARDAR Y VOLVER ▶</button><button class="secondary" id="leaveMatch" type="button">⌂ SALIR AL LOBBY</button><button id="v372ExitGame" type="button">⏻ SALIR DEL JUEGO</button></div>
+<div class="settingsSection" data-section="account"><h3>CUENTA Y PERFIL</h3><p id="v445AccountStatus" class="muted" aria-live="polite">Verificando sesión…</p><p id="v446LocalIdentity" class="muted">Perfil local del dispositivo</p><p id="v446LocalProgress" class="muted">Cargando estadísticas guardadas…</p><button type="button" id="v447RefreshProgress" class="secondary" style="width:100%;min-height:48px">↻ ACTUALIZAR ESTADÍSTICAS</button><h3>RESPALDO MANUAL DEL PROGRESO LOCAL</h3><p class="muted">Guarda una copia JSON fuera del juego. Es un respaldo local manual, no sincronización en la nube. Restaurar puede reemplazar el progreso actual.</p><button type="button" id="v447ExportProgress" class="secondary" style="width:100%;min-height:48px">⬇ GUARDAR COPIA DEL PROGRESO</button><button type="button" id="v447ImportProgress" class="secondary" style="width:100%;min-height:48px">⬆ RESTAURAR COPIA DEL PROGRESO</button><p id="v447BackupStatus" class="muted" role="status" aria-live="polite">Sin operaciones de respaldo recientes.</p><button type="button" id="v446AccountRefresh" class="secondary" style="width:100%;min-height:48px">↻ VERIFICAR CUENTA</button><button type="button" id="v445SettingsLogout" class="secondary" style="width:100%;min-height:48px" disabled>CERRAR SESIÓN DE GOOGLE</button><p class="muted">El progreso sigue siendo local a este dispositivo. La cuenta Google NO es todavía un respaldo en la nube. No desinstales ni borres datos de la app.</p></div><div class="actions"><button class="secondary" id="defaults">RESTAURAR</button><button class="primary" id="resume">GUARDAR Y VOLVER ▶</button><button class="secondary" id="leaveMatch" type="button">⌂ SALIR AL LOBBY</button><button id="v372ExitGame" type="button">⏻ SALIR DEL JUEGO</button></div>
 </div></div>
 <script src="three.min.js"></script><script src="GLTFLoader.js"></script><script>
 (()=>{'use strict';const $=id=>document.getElementById(id);
@@ -634,6 +634,17 @@ function v443BackupPayload(){
  const data=v443ValidateProgress(raw);
  return JSON.stringify({game:'THEDEMIANFF-LAST-ZONE',format:1,type:'local-guest-progress',guestId:guestId||null,created:new Date().toISOString(),progress:data},null,2);
 }
+function v447BackupNotice(text){
+ message.textContent=text;
+ const status=$('v447BackupStatus');
+ if(status)status.textContent=text;
+}
+$('v447RefreshProgress').addEventListener('click',()=>{
+ v446UpdateAccountProfile();
+ v447BackupNotice('Estadísticas locales actualizadas.');
+});
+$('v447ExportProgress').addEventListener('click',()=>$('v443Backup').click());
+$('v447ImportProgress').addEventListener('click',()=>$('v443Restore').click());
 $('v443Backup').addEventListener('click',()=>{
  try{
   const content=v443BackupPayload();
@@ -642,14 +653,14 @@ $('v443Backup').addEventListener('click',()=>{
   if(!confirm(detail+'\\n\\n¿Guardar esta copia del progreso?'))return;
   if(window.THEDEMIANFFBackup&&typeof window.THEDEMIANFFBackup.saveBackup==='function'){
    window.THEDEMIANFFBackup.saveBackup(content);
-   message.textContent='Elige dónde guardar el respaldo en Android. No borres la aplicación antes de guardarlo.';
+   v447BackupNotice('Elige una ubicación fuera de la aplicación y verifica que el archivo se haya guardado.');
   }else{
    const blob=new Blob([content],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
    a.href=url;a.download='THEDEMIANFF_INVITADO_PROGRESO.json';document.body.appendChild(a);a.click();a.remove();
    setTimeout(()=>URL.revokeObjectURL(url),5000);
-   message.textContent='Descarga solicitada. Verifica que el archivo exista antes de actualizar.';
+   v447BackupNotice('Descarga solicitada. Comprueba que el archivo JSON exista antes de desinstalar o borrar datos.');
   }
- }catch(e){message.textContent='No se pudo preparar el respaldo: '+e.message}
+ }catch(e){v447BackupNotice('No se pudo preparar el respaldo: '+e.message)}
 });
 $('v443Restore').addEventListener('click',()=>$('v443RestoreFile').click());
 $('v443RestoreFile').addEventListener('change',async e=>{
@@ -679,9 +690,9 @@ $('v443RestoreFile').addEventListener('change',async e=>{
    try{if(prevProgress===null)localStorage.removeItem(progressKey);else localStorage.setItem(progressKey,prevProgress);if(prevGuest===null)localStorage.removeItem(guestKey);else localStorage.setItem(guestKey,prevGuest);}catch{}
    throw error;
   }
-  message.textContent='Respaldo restaurado. Reiniciando para cargar el perfil...';
+  v447BackupNotice('Respaldo restaurado. Reiniciando para cargar el perfil…');
   location.reload();
- }catch(error){message.textContent='No se restauró el progreso: '+error.message}
+ }catch(error){v447BackupNotice('No se restauró el progreso: '+error.message)}
  finally{e.target.value=''}
 });
 
