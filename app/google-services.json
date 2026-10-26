@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "662212064189",
+    "project_id": "thedemianff-last-zone",
+    "storage_bucket": "thedemianff-last-zone.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:662212064189:android:e7122e562e73f9ad8318d4",
+        "android_client_info": {
+          "package_name": "com.thedemianff.lastzone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuO5oucBN7rvEg1Wf6AF5-vMGd-ZSQB-4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
