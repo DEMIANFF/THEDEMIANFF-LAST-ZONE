@@ -1,4 +1,5 @@
 name: Compilar APK offline THEDEMIANFF
+# V44.2: iniciar compilacion Android de prueba tras corregir assets WebView.
 
 on:
   workflow_dispatch:
