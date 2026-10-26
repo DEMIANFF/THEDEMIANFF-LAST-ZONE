@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 85
-        versionName '44.8-restore-guard'
+        versionCode 86
+        versionName '44.9-restore-rollback'
     }
     signingConfigs {
         persistentRelease {
