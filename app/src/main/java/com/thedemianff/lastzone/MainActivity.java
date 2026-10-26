@@ -52,6 +52,15 @@ public class MainActivity extends Activity {
         } catch(Exception ex) {authMessage("error","No se pudo abrir Google: "+ex.getClass().getSimpleName());}
       });
     }
+    @JavascriptInterface public void signOut() {
+      runOnUiThread(() -> {
+        firebaseAuth.signOut();
+        GoogleSignInOptions options=new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+          .requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build();
+        GoogleSignIn.getClient(MainActivity.this,options).signOut().addOnCompleteListener(task ->
+          authMessage("signed_out","Sesión de Google cerrada."));
+      });
+    }
     @JavascriptInterface public void status() {
       runOnUiThread(() -> {
         FirebaseUser user=firebaseAuth.getCurrentUser();
