@@ -15,11 +15,17 @@ import android.view.View;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.IOException;
+import java.net.URLConnection;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
   private WebView web;
+  // Load bundled models via a secure HTTPS origin, matching browser HTTP semantics.
+  private static final String GAME_ORIGIN="https://appassets.androidplatform.net";
+  private static final String GAME_PREFIX="/assets/";
   private ValueCallback<Uri[]> backupFileCallback;
   private static final int BACKUP_FILE_REQUEST=3021;
   private static final int BACKUP_SAVE_REQUEST=3022;
@@ -104,15 +110,41 @@ public class MainActivity extends Activity {
       }
       @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request) {
         Uri uri=request.getUrl();
-        if(!"file".equals(uri.getScheme())) {
-          return new WebResourceResponse("text/plain","UTF-8",
-             new ByteArrayInputStream(new byte[0]));
+        if ("https".equals(uri.getScheme()) &&
+            "appassets.androidplatform.net".equals(uri.getHost()) &&
+            uri.getPort()==-1 && uri.getPath()!=null &&
+            uri.getPath().startsWith(GAME_PREFIX)) {
+          String relative=uri.getPath().substring(GAME_PREFIX.length());
+          // Prevent dot-segment traversal; only serve bundled Android assets.
+          if(relative.isEmpty() || relative.startsWith("/") ||
+             relative.contains("..") || relative.contains("\\")) {
+            return new WebResourceResponse("text/plain","UTF-8",
+                new ByteArrayInputStream(new byte[0]));
+          }
+          try {
+            InputStream body=getAssets().open(relative);
+            String mime=URLConnection.guessContentTypeFromName(relative);
+            if(relative.endsWith(".js"))mime="application/javascript";
+            if(relative.endsWith(".glb"))mime="model/gltf-binary";
+            if(relative.endsWith(".html"))mime="text/html";
+            if(mime==null)mime="application/octet-stream";
+            WebResourceResponse response=new WebResourceResponse(mime,"UTF-8",body);
+            response.setStatusCodeAndReasonPhrase(200,"OK");
+            return response;
+          }catch(IOException e){
+            android.util.Log.e("THEDEMIANFF","Missing bundled asset: "+relative,e);
+            WebResourceResponse missing=new WebResourceResponse("text/plain","UTF-8",
+                new ByteArrayInputStream(new byte[0]));
+            missing.setStatusCodeAndReasonPhrase(404,"Not Found");
+            return missing;
+          }
         }
-        return super.shouldInterceptRequest(view,request);
+        return new WebResourceResponse("text/plain","UTF-8",
+            new ByteArrayInputStream(new byte[0]));
       }
     });
     setContentView(web);
-    web.loadUrl("file:///android_asset/index.html");
+    web.loadUrl(GAME_ORIGIN+GAME_PREFIX+"index.html");
   }
   @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
     super.onActivityResult(requestCode,resultCode,data);
