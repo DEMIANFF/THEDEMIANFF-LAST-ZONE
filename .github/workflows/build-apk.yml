@@ -3,7 +3,7 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite, v38-3-lobby-parachute-polish, v38-6-lobby-polish-flight-controls, v38-7-parachute-axis-walk-68, v38-8-flight-axes-walk-74, v38-9-camera-relative-parachute, v39-0-walk-81-stable, v39-1-combat-precision-stability, v39-2-arsenal-recoil-polish, v39-3-impact-feedback-enemy-reaction, v39-4-tactical-cover-ai, v39-5-combat-animation-polish, v39-6-puerto-aurora-expansion, v39-7-aurora-cinematic-visuals, v39-8-aircraft-drop-rework, v40-architecture-reconstruction, v42-battle-royale-evolution, v42-2-graphics-recovery, v42-3-render-stability, v42-4-render-fix, v42-5-world-polish]
+    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite, v38-3-lobby-parachute-polish, v38-6-lobby-polish-flight-controls, v38-7-parachute-axis-walk-68, v38-8-flight-axes-walk-74, v38-9-camera-relative-parachute, v39-0-walk-81-stable, v39-1-combat-precision-stability, v39-2-arsenal-recoil-polish, v39-3-impact-feedback-enemy-reaction, v39-4-tactical-cover-ai, v39-5-combat-animation-polish, v39-6-puerto-aurora-expansion, v39-7-aurora-cinematic-visuals, v39-8-aircraft-drop-rework, v40-architecture-reconstruction, v42-battle-royale-evolution, v42-2-graphics-recovery, v42-3-render-stability, v42-4-render-fix, v42-5-world-polish, v44-2-android-assets-fix]
 
 jobs:
   android:
@@ -48,6 +48,14 @@ jobs:
           fi
           test -s "$ASSETS/index.html"
           test -s "$ASSETS/models/lila-operator.glb" || { echo "::error::Falta models/lila-operator.glb: no generar APK con Lila de respaldo"; exit 1; }
+          # V44.2: verify the exact 3D assets used by the browser are packaged.
+          test -s "$ASSETS/models/lila-v44-experimental.glb" || { echo "::error::Falta Lila V44.1 en APK"; exit 1; }
+          test -s "$ASSETS/models/ak74-tactical.glb" || { echo "::error::Falta skin AK-74 en APK"; exit 1; }
+          grep -q "models/lila-v44-experimental.glb" "$ASSETS/index.html" || { echo "::error::HTML no selecciona Lila V44.1"; exit 1; }
+          grep -q "models/ak74-tactical.glb" "$ASSETS/index.html" || { echo "::error::HTML no selecciona AK-74"; exit 1; }
+          grep -q "web.loadUrl(GAME_ORIGIN+GAME_PREFIX" app/src/main/java/com/thedemianff/lastzone/MainActivity.java || { echo "::error::WebView no usa origen HTTPS local"; exit 1; }
+          grep -q 'getAssets().open(relative)' app/src/main/java/com/thedemianff/lastzone/MainActivity.java || { echo "::error::WebView no sirve modelos desde assets"; exit 1; }
+          echo "V44.2 Android assets / Lila / AK-74 OK"
           echo "Recursos 3D presentes:"
           ls -lh "$ASSETS/index.html" "$ASSETS/three.min.js" "$ASSETS/GLTFLoader.js" "$ASSETS/models/lila-operator.glb"
           if grep -q 'src="three.min.js"' "$ASSETS/index.html"; then test -s "$ASSETS/three.min.js"; fi
