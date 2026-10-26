@@ -249,6 +249,11 @@ jobs:
           assert 'id="v443Account"' not in h, 'V44.5: CUENTA / RESPALDO reapareció en lobby'
           assert 'data-tab="account"' in h, 'V44.5: falta ajustes de cuenta'
           assert 'id="v445Play"' not in h, 'V44.5: inicio Google exige clic innecesario'
+          assert 'id="v443Guest" type="button" style="display:none;' in h, 'V44.5: invitado visible durante validación Google'
+          assert 'id="v443Google" type="button" style="display:none;' in h, 'V44.5: Google visible antes del estado de sesión'
+          assert "if(!v445GoogleBridge){" in h, 'V44.5: Chrome sin recuperación de acceso'
+          assert "guest.style.display='block';" in h, 'V44.5: acceso manual no reaparece sin sesión'
+          assert "' · progreso local en este dispositivo'" in h, 'V44.5: estado de cuenta debe aclarar almacenamiento local'
           google=h.split('window.thedemianffGoogleResult=function(state,detail){',1)[1].split("}else if(state==='signed_out'){",1)[0]
           assert "entry.style.display='none';" in google, 'V44.5: Google no entra automáticamente al lobby'
           print('V44.5 login, guest backup integrity and clean lobby checks OK')
@@ -319,11 +324,15 @@ jobs:
           APK=app/build/outputs/apk/release/app-release.apk
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 3
+          unzip -t "$APK" | tail -n 1
+          sha256sum "$APK" | tee app/build/outputs/apk/release/SHA256SUMS.txt
       - uses: actions/upload-artifact@v7
         if: env.HAS_RELEASE_KEY == 'true'
         with:
           name: THEDEMIANFF-V40-APK-RELEASE-FIRMA-PERMANENTE
-          path: app/build/outputs/apk/release/app-release.apk
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/release/SHA256SUMS.txt
       - name: Aviso de compatibilidad de actualizaciones
         run: |
           if [ "$HAS_RELEASE_KEY" = "true" ]; then
