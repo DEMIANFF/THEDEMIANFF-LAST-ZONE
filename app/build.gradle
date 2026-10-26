@@ -1,4 +1,4 @@
-plugins { id 'com.android.application' }
+plugins { id 'com.android.application'; id 'com.google.gms.google-services' }
 android {
     namespace 'com.thedemianff.lastzone'
     compileSdk 35
@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 79
-        versionName '44.3.2-guest-autosave'
+        versionCode 80
+        versionName '44.4-firebase-foundation'
     }
     signingConfigs {
         persistentRelease {
@@ -56,3 +56,10 @@ tasks.register('bundleThree') {
     }
 }
 tasks.named('preBuild').configure { dependsOn(tasks.named('bundleThree')) }
+
+// V44.4: SDK installed only; Google login and cloud persistence are not enabled yet.
+dependencies {
+    implementation platform('com.google.firebase:firebase-bom:33.15.0')
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+}
