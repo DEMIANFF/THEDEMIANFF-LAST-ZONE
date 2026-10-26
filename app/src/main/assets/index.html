@@ -430,7 +430,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
  <button id="v443Backup" type="button" style="display:block;width:100%;margin-top:10px;padding:11px;border:1px solid #4b708b;border-radius:8px;background:#152b41;color:#e6f2fa">RESPALDAR PERFIL LOCAL</button>
  <button id="v443Restore" type="button" style="display:block;width:100%;margin-top:8px;padding:11px;border:1px solid #4b708b;border-radius:8px;background:#152b41;color:#e6f2fa">RECUPERAR PERFIL DESDE ARCHIVO</button><input id="v443RestoreFile" type="file" accept=".json,application/json" style="display:none">
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
- </div><small style="color:#a7b8c8">V44.4 · Google Auth experimental · Progreso solo local, sin sincronización</small></div></div>
+ </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
 <div id="v22Edition">V38 · AURORA EVOLUTION</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer"><span class="v17Avatar">D</span><span><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small></span><span class="v17Rank">✦</span></div><div class="v17Currencies"><button id="v443Account" type="button" aria-label="Cuenta y respaldos" style="background:#12334d;color:#f0e4bf;border:1px solid #5bcdf2;border-radius:7px;padding:7px 10px;margin-right:8px;font-weight:800">CUENTA / RESPALDO</button> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
@@ -533,9 +533,15 @@ guest.addEventListener('click',()=>{try{
 }catch(e){message.textContent='No se pudo activar cuenta invitada: '+e.message}});
 window.thedemianffGoogleResult=function(state,detail){
  if(state==='signed_in'){
-   message.textContent='Google conectado: '+(detail||'Cuenta verificada')+'. Tu progreso sigue guardado localmente; aún NO se sincroniza con la nube.';
-   $('v443AccountInfo').textContent='Google: '+(detail||'Sesión activa')+' · Progreso local sin sincronizar';
+   // Google becomes the visible login identity; do NOT delete the guest backup.
+   guest.style.display='none';
+   $('v443Google').textContent='GOOGLE CONECTADO';
+   $('v443AccountInfo').textContent='Sesión de Google activa · progreso guardado en este dispositivo';
+   message.textContent='Cuenta Google verificada. Continuando al juego…';
+   entry.style.display='none';
  }else if(state==='signed_out'){
+   guest.style.display='';
+   $('v443Google').textContent='INICIAR SESIÓN CON GOOGLE · PRUEBA';
    message.textContent='Google no conectado. Puedes seguir jugando como invitado.';
  }else{message.textContent=detail||'No se completó el acceso con Google.';}
 };
