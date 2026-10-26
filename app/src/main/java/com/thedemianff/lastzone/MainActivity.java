@@ -93,10 +93,25 @@ public class MainActivity extends Activity {
       try{
         org.json.JSONObject parsed=new org.json.JSONObject(json);
         for(String key:new String[]{"credits","xp","matches","wins","kills","best","skin","weapon"}) {
-          if(!parsed.has(key)||parsed.optLong(key,-1)<0)return false;
+          Object value=parsed.opt(key);
+          if(!(value instanceof Number))return false;
+          long num=((Number)value).longValue();
+          if(num<0||num>100000000L||((Number)value).doubleValue()!=num)return false;
         }
+        if(parsed.optLong("wins")>parsed.optLong("matches"))return false;
         if(!(parsed.opt("unlocked") instanceof org.json.JSONArray)||
            !(parsed.opt("claimed") instanceof org.json.JSONArray))return false;
+        org.json.JSONArray unlocked=parsed.optJSONArray("unlocked"),claimed=parsed.optJSONArray("claimed");
+        if(unlocked.length()>30||claimed.length()>100)return false;
+        for(int i=0;i<unlocked.length();i++) {
+          Object value=unlocked.opt(i);
+          if(!(value instanceof Number)||((Number)value).doubleValue()!=((Number)value).longValue())return false;
+          if(((Number)value).longValue()<0||((Number)value).longValue()>20)return false;
+        }
+        for(int i=0;i<claimed.length();i++) {
+          String item=claimed.optString(i,null);
+          if(!(claimed.opt(i) instanceof String)||item==null||item.length()>100)return false;
+        }
         return getSharedPreferences(GUEST_PREFS,MODE_PRIVATE).edit().putString("progress",json).commit();
       }catch(Exception e){return false;}
     }
