@@ -88,6 +88,13 @@ public class MainActivity extends Activity {
     @JavascriptInterface public String readGuestId() {
       return getSharedPreferences(GUEST_PREFS,MODE_PRIVATE).getString("guestId","");
     }
+    // Rollback helpers remove only the named native field; never clear all app data.
+    @JavascriptInterface public boolean clearProgress() {
+      return getSharedPreferences(GUEST_PREFS,MODE_PRIVATE).edit().remove("progress").commit();
+    }
+    @JavascriptInterface public boolean clearGuestId() {
+      return getSharedPreferences(GUEST_PREFS,MODE_PRIVATE).edit().remove("guestId").commit();
+    }
     @JavascriptInterface public boolean saveProgress(String json) {
       if(json==null||json.length()<10||json.length()>100000)return false;
       try{
