@@ -2375,7 +2375,7 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  group.userData.v40PickupHalo=halo;
  group.userData.v362Glow=beacon;
  scene.add(group);pickups.push({type,x,z,group,phase:rand(0,6)});}
-function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v474SupplyClock=28;v474SupplyCount=0;v474SupplyMarkers=[];window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(scene){
  const geometries=new Set();
  scene.traverse(obj=>{if(obj.geometry)geometries.add(obj.geometry);});
@@ -2539,13 +2539,13 @@ function v474RivalCombat(dt){
    const distance=Math.hypot(attacker.x-possible.x,attacker.z-possible.z);
    if(distance<nearest&&distance>4&&distance<38)nearest=distance,victim=possible;
   }
-  if(!victim)continue;
+  if(!victim||attacker.shoot>0)continue;
   const eyeA=ground(attacker.x,attacker.z)+1.55*attacker.root.scale.y;
   const eyeB=ground(victim.x,victim.z)+1.55*victim.root.scale.y;
   if(blocked3D(attacker.x,eyeA,attacker.z,victim.x,eyeB,victim.z))continue;
   attacker.alert=Math.max(attacker.alert,.8);
-  attacker.shotPose=1;
-  attacker.lastSeenX=victim.x;attacker.lastSeenZ=victim.z;
+  attacker.shotPose=1;attacker.shoot=Math.max(attacker.shoot,attacker.role==='FRANCOTIRADOR'?1.2:.55);
+  attacker.moveAngle=Math.atan2(victim.x-attacker.x,victim.z-attacker.z);
   victim.alert=Math.max(victim.alert,.85);
   victim.suppression=Math.min(1,(victim.suppression||0)+.24);
   victim.dodgeTime=Math.max(victim.dodgeTime,.3);
@@ -2569,6 +2569,53 @@ function v474RivalCombat(dt){
   break;
  }
 }
+// V47.4: Aurora relief packages follow the active safe zone and original POIs.
+let v474SupplyClock=28,v474SupplyCount=0,v474SupplyMarkers=[];
+function v474SupplyEvent(dt){
+ if(!running||paused||gameOver||window.v36FlightMode!=='landed'||$('v18Mode').value==='training')return;
+ v474SupplyClock-=dt;
+ for(const item of v474SupplyMarkers){
+  if(item.root.parent){
+   item.root.rotation.y+=dt*.45;
+   item.ring.rotation.z+=dt*.75;
+   item.beacon.material.opacity=.55+.25*Math.sin(time*2+item.x);
+  }
+ }
+ if(v474SupplyClock>0||v474SupplyCount>=4)return;
+ v474SupplyClock=85;
+ const pois=(window.v27AuroraPOI||[]).filter(p=>p.name!=='CRÁTER AURORA'&&
+ Math.hypot(p.x-zoneCenter.x,p.z-zoneCenter.y)<zoneRadius-7);
+ const pick=pois.length?pois[(v474SupplyCount*3+1)%pois.length]:null;
+ let x=pick?pick.x:zoneCenter.x+12,z=pick?pick.z:zoneCenter.y+12;
+ if(solid(x,z,2.5)){
+  let located=false;
+  for(let rad=6;rad<=21&&!located;rad+=5)for(let n=0;n<16;n++){
+   const theta=n*Math.PI/8,tx=clamp(x+Math.cos(theta)*rad,-HALF+8,HALF-8),
+         tz=clamp(z+Math.sin(theta)*rad,-HALF+8,HALF-8);
+   if(!solid(tx,tz,2.5)){x=tx;z=tz;located=true;break;}
+  }
+  if(!located)return;
+ }
+ const root=new THREE.Group();root.position.set(x,ground(x,z),z);
+ const container=new THREE.MeshStandardMaterial({color:'#476a7c',roughness:.55,metalness:.38});
+ const glow=new THREE.MeshBasicMaterial({color:'#70f8ea',transparent:true,opacity:.83,depthWrite:false});
+ box(1.9,1.55,1.5,container,root,0,.78,0);
+ box(1.95,.16,1.56,mats.gold,root,0,1.6,0);
+ const beacon=new THREE.Mesh(new THREE.CylinderGeometry(.10,.10,5,7),glow);
+ beacon.position.y=4;root.add(beacon);
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(1.65,.10,6,24),glow.clone());
+ ring.rotation.x=Math.PI/2;ring.position.y=.15;root.add(ring);
+ scene.add(root);v474SupplyMarkers.push({x,z,root,ring,beacon});
+ for(const [kind,ox,oz] of [['med',3,0],['armor',-3,0],['ammo',0,3],['ammo',0,-3]]){
+  const px=clamp(x+ox,-HALF+4,HALF-4),pz=clamp(z+oz,-HALF+4,HALF-4);
+  if(!solid(px,pz,.7))spawnPickup(kind,px,pz);
+ }
+ v474SupplyCount++;
+ toast('📦 SUMINISTROS AURORA · '+(pick?pick.name:'ZONA SEGURA'));
+ v9Event('📦 SUMINISTROS DE COMBATE · '+(pick?pick.name:'AURORA'));
+ toneSound(440,.32,.08,'sine');toneSound(660,.22,.044,'triangle');
+}
+window.THEDEMIANFF_V474_SUPPLIES=()=>({delivered:v474SupplyCount,markers:v474SupplyMarkers.length,remaining:Math.ceil(v474SupplyClock)});
 window.THEDEMIANFF_V474_RIVALS=()=>({exchanges:v474RivalRounds,eliminations:v474RivalEliminations});
 function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);return;}v362UpdateBotsInAir(dt);flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
  // FOV y reticula ahora pertenecen exclusivamente al controlador V43.2.
@@ -2782,7 +2829,7 @@ const hitChance=clamp((b.role==='FRANCOTIRADOR'?.70:.64)-d*.008-movingPenalty-cr
  enemyShotSound(d);
  impact(b.x+Math.sin(b.root.rotation.y)*.8,ground(b.x,b.z)+1.5*b.root.scale.y,b.z+Math.cos(b.root.rotation.y)*.8,'#ffbd66');
 }if(Math.hypot(b.x-zoneCenter.x,b.z-zoneCenter.y)>zoneRadius){b.hp-=dt*(2.8+zonePhase);if(b.hp<=0){b.alive=false;scene.remove(b.root);if(Math.random()<.45)spawnPickup('ammo',b.x,b.z);}}}
-v474RivalCombat(dt);
+v474RivalCombat(dt);v474SupplyEvent(dt);
 for(let i=pickups.length-1;i>=0;i--){const p=pickups[i];p.group.rotation.y+=dt*1.3;p.group.position.y=ground(p.x,p.z)+.7+Math.sin(time*3+p.phase)*.16;if(p.group.userData.v40PickupHalo)p.group.userData.v40PickupHalo.rotation.z+=dt*.85;if(Math.hypot(player.position.x-p.x,player.position.z-p.z)<2.1){
  // V47.2: supplies remain in the world if the inventory cannot accept them.
  let collected=false;
@@ -2822,6 +2869,7 @@ let v16Sun=null,v16Hemi=null;
 function drawMap(){const w=256,c=mctx;c.clearRect(0,0,w,w);c.fillStyle='#173a3b';c.fillRect(0,0,w,w);c.strokeStyle='#6c927e';c.lineWidth=1;for(let i=0;i<7;i++){let p=i*w/6;c.beginPath();c.moveTo(p,0);c.lineTo(p,w);c.moveTo(0,p);c.lineTo(w,p);c.stroke();}const point=(x,z)=>[(x/WORLD+.5)*w,(z/WORLD+.5)*w];let [cx,cz]=point(zoneCenter.x,zoneCenter.y);c.strokeStyle='#7eeef6';c.lineWidth=3;c.beginPath();c.arc(cx,cz,zoneRadius/WORLD*w,0,Math.PI*2);c.stroke();c.fillStyle='#bdc3b4';for(const o of worldObjects){const [x,z]=point(o.x,o.z);c.fillRect(x-2,z-2,4,4);}for(const poi of (window.v27AuroraPOI||[])){
  const [px,pz]=point(poi.x,poi.z);c.fillStyle='#77d6d8';c.fillRect(px-3,pz-3,6,6);
 }
+for(const crate of v474SupplyMarkers){const [sx,sz]=point(crate.x,crate.z);c.fillStyle='#5dfad9';c.strokeStyle='#0a2533';c.lineWidth=1;c.fillRect(sx-3,sz-3,6,6);c.strokeRect(sx-3,sz-3,6,6);}
 for(const p of pickups){const [x,z]=point(p.x,p.z);c.fillStyle='#efce7a';c.fillRect(x-2,z-2,4,4);}for(const b of bots)if(b.alive){const [x,z]=point(b.x,b.z);c.fillStyle='#e56d65';c.beginPath();c.arc(x,z,2.7,0,7);c.fill();}// Map readability: draw safe-zone overlay, compass and map frame.
 c.fillStyle='#00000020';c.fillRect(0,0,w,w);c.strokeStyle='#c3eaff';c.lineWidth=2;c.strokeRect(2,2,w-4,w-4);
 c.font='bold 14px sans-serif';c.fillStyle='#e8faff';c.fillText('N',w/2-5,17);
