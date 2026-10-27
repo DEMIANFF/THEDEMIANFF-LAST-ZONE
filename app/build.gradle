@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 116
-        versionName '48.3-mobile-combat'
+        versionCode 117
+        versionName '48.4-ammo-combat-cover'
     }
     signingConfigs {
         persistentRelease {
