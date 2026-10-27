@@ -2878,7 +2878,17 @@ function v18Open(name){
  const stat=`<div class="v18Stats"><span>◉ CRÉDITOS <b>${p.credits}</b></span><span>✧ XP <b>${p.xp}</b></span><span>◈ PARTIDAS <b>${p.matches}</b></span></div>`;
  const card=(title,desc,button='',action='')=>`<div class="v18Item"><b>${title}</b><small>${desc}</small>${button?`<button data-v18="${action}">${button}</button>`:''}</div>`;
  let html=stat;
- if(name==='PERSONAJE'){
+ if(name==='ESTADÍSTICAS'){
+  const games=Math.max(0,Number(p.matches)||0),wins=Math.max(0,Number(p.wins)||0),kills=Math.max(0,Number(p.kills)||0);
+  const xp=Math.max(0,Number(p.xp)||0),level=1+Math.floor(xp/350),remaining=350-(xp%350);
+  const rate=games?((wins/games)*100).toFixed(1)+'%':'0%';
+  const avg=games?(kills/games).toFixed(2):'0.00';
+  html+='<div class="v18Grid">'+[
+   ['NIVEL',level],['VICTORIAS',wins],['PARTIDAS',games],['BAJAS',kills],
+   ['PORCENTAJE DE VICTORIAS',rate],['BAJAS POR PARTIDA',avg],['MEJOR MARCA',Math.max(0,Number(p.best)||0)],['XP PARA SUBIR',remaining]
+  ].map(([label,value])=>card(label,String(value))).join('')+'</div>';
+  html+='<p class="v18PanelNote">Estadísticas locales del dispositivo. Google todavía no sincroniza este progreso en la nube.</p>';
+ }else if(name==='PERSONAJE'){
    html+='<div class="v18Grid">'+v18Skins.map((skin,i)=>{const owned=i===4||p.unlocked.includes(i);return owned?card(skin.name,'Operador disponible · Apariencia original',p.skin===i?'EQUIPADO':'EQUIPAR','skin:'+i):'';}).join('')+'</div>';
    html+='<p class="v18PanelNote">Elige entre los personajes adquiridos. Desbloquea más estilos en TIENDA.</p>';
   }else if(name==='TIENDA'){
