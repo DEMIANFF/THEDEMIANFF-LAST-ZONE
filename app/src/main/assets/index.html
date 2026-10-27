@@ -252,6 +252,36 @@
 #weapon.v461LastRounds{border-color:#ff9b47aa}
 #weapon.v461LastRounds strong{color:#ffd18b}
 #weapon.v461EmptyClip{border-color:#ff5555aa}
+/* V46.4 HUD legibility and visibility clean-up: 15 refinements */
+@media(pointer:coarse){
+ #missionHud,#v7status,#v8Combat,#v124Debug,#v122ControlState,#v362LootLegend{display:none!important}
+ #v123InputTest{display:none!important}
+ #v13AimMode{opacity:0!important}
+ #v10Reticle{width:13px!important;height:13px!important;border-width:1.5px!important;background:transparent!important;box-shadow:0 0 4px #60f8d655!important}
+ #v7Compass{font-size:10px!important;padding:3px 9px!important;top:max(6px,env(safe-area-inset-top))!important}
+ .top .brand{font-size:10px!important;letter-spacing:1px!important}
+ .top .glass{padding:5px 9px!important;background:#091a27a6!important}
+ .top .stat{font-size:10px!important}
+ #minimap{width:100px!important;height:100px!important;top:52px!important;left:max(8px,env(safe-area-inset-left))!important}
+ #zoneInfo{top:157px!important;left:max(8px,env(safe-area-inset-left))!important;font-size:10px!important;padding:5px 7px!important;background:#091a27ad!important}
+ #health{max-width:36vw!important;box-shadow:none!important;padding:5px 8px!important}
+ #health .bars{height:7px!important;margin-top:3px!important}
+ #health .stat{font-size:10px!important}
+ #weapon{box-shadow:none!important;padding:5px 8px!important;max-width:24vw!important}
+ #weapon strong{font-size:21px!important}
+ #weapon .stat{font-size:10px!important}
+ #v15Loadout{display:none!important}
+ #controls:not(.hudEditing) #mobileBtns button{opacity:.67!important}
+ #controls:not(.hudEditing) #mobileBtns #fire{opacity:.84!important}
+ #controls:not(.hudEditing) #stickBase{opacity:.42!important}
+ #controls:not(.hudEditing) #mobileBtns button:active{opacity:1!important}
+ #v7Toast,#combatFeed{max-width:70vw!important}
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:450px){
+ .top{top:max(5px,env(safe-area-inset-top))!important}
+ #health{bottom:max(5px,env(safe-area-inset-bottom))!important}
+ #weapon{bottom:max(5px,env(safe-area-inset-bottom))!important}
+}
 /* V46.2 landscape HUD: transparent edge controls and an unobstructed center */
 @media(pointer:coarse) and (orientation:landscape){
  #controls:not(.hudEditing) #stickBase{left:max(20px,env(safe-area-inset-left));bottom:24px;width:110px;height:110px;background:#ffffff0c;border-color:#d4f8ff3b}
@@ -2303,8 +2333,9 @@ window.THEDEMIANFF_COVER_TEST=(b,px,pz)=>v394FindCover(b,px,pz);
 function spawnBot(minR=17){const p=safePos(minR),c=makeCharacter(['#73604b','#59666c','#706b55','#72584e'][Math.floor(rand(0,4))],true);c.root.position.set(p.x,ground(p.x,p.z),p.z);scene.add(c.root);
  // V40 enemy readability: two emissive uniform markers, visible only with normal depth testing.
  const v40EnemyMark=new THREE.MeshBasicMaterial({color:'#ff8b62',depthTest:true,depthWrite:true});
- for(const x of [-.26,.26]){const marker=new THREE.Mesh(new THREE.BoxGeometry(.15,.20,.048),v40EnemyMark);marker.position.set(x,1.75,.48);c.body.add(marker);}
+ for(const x of [-.26,.26]){const marker=new THREE.Mesh(new THREE.BoxGeometry(.22,.25,.06),v40EnemyMark);marker.position.set(x,1.75,.48);c.body.add(marker);}
  const roleIndex=bots.length%4;
+v40EnemyMark.color.set(['#ff946d','#ffd16e','#ff7272','#9ce6ff'][roleIndex]);
 const role=['ASALTO','EXPLORADOR','DEFENSOR','FRANCOTIRADOR'][roleIndex];
 const roleHp=[100,78,145,85][roleIndex],roleSpeed=[1,1.28,.78,.9][roleIndex];
 c.root.scale.setScalar(1.24*[1,.92,1.1,1][roleIndex]);
