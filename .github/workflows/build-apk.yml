@@ -371,8 +371,8 @@ jobs:
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 99' in gradle, 'La actualización requiere versionCode 82'
-          assert "versionName '46.2-panoramic-camera'" in gradle, 'Versión Android incorrecta'
+          assert 'versionCode 100' in gradle, 'La actualización requiere versionCode 82'
+          assert "versionName '46.3-character-presence'" in gradle, 'Versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
