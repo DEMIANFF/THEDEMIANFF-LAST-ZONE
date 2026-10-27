@@ -3415,7 +3415,7 @@ function flushCamera(dt){
  const dx=cameraDX,dy=cameraDY;
  cameraDX=0;cameraDY=0;
  if(dx!==0||dy!==0)applyAim(dx,dy);
-}function pause(){if(!running||window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')return;if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);v123ResetInputs();$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');settingsFromMenu=false;paused=true;v372RefreshSettingsContext();fireHeld=false;fireTouch=null;adsHeld=false;sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)';$('pausePanel').classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();}function resume(){clock.getDelta();paused=false;$('pausePanel').classList.add('hidden');if(!mobile)renderer.domElement.requestPointerLock?.();}
+}function pause(){if(!running||window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')return;if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);v123ResetInputs();$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');settingsFromMenu=false;paused=true;v372RefreshSettingsContext();fireHeld=false;fireTouch=null;adsHeld=false;sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)';$('pausePanel').classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();}function resume(){v123ResetInputs();clock.getDelta();paused=false;$('pausePanel').classList.add('hidden');if(!mobile)renderer.domElement.requestPointerLock?.();}
 function v23LeaveMatch(){
  if(!running||!paused)return;
  if(!window.confirm('¿Abandonar la partida y volver al lobby?'))return;
@@ -3467,8 +3467,13 @@ document.addEventListener('pointerup',releaseCamera,true);
 document.addEventListener('pointercancel',releaseCamera,true);
 function resetCameraPointers(){cameraPointers.clear();lookTouch=null;}
 document.addEventListener('contextmenu',e=>e.preventDefault());
-window.addEventListener('blur',()=>{resetCameraPointers();fireHeld=false;fireTouch=null;adsHeld=false;sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)'});
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused)pause()});
+// V45.3: clear every simultaneous HUD pointer on Android app switch, including aircraft.
+window.addEventListener('blur',()=>{if(running){v123ResetInputs();keys={};stick.style.transform='translate(-50%,-50%)';}});
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden)return;
+ if(running){v123ResetInputs();keys={};stick.style.transform='translate(-50%,-50%)';}
+ if(running&&!paused)pause();
+});
 
 // V4 user preferences, persistent controls, performance telemetry
 // Three headline sensitivities; other preferences stay available in a collapsed expert section.
