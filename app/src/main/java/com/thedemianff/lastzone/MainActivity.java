@@ -9,6 +9,10 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FieldValue;
+import java.util.HashMap;
+import java.util.Map;
 import org.json.JSONObject;
 import android.content.Intent;
 import android.webkit.JavascriptInterface;
@@ -67,6 +71,60 @@ public class MainActivity extends Activity {
       runOnUiThread(() -> {
         FirebaseUser user=firebaseAuth.getCurrentUser();
         authMessage(user==null?"signed_out":"signed_in",user==null?"":user.getEmail());
+      });
+    }
+  }
+
+  // V49.4: explicit, per-Google-account cloud backups. No guest data is auto-uploaded.
+  private void cloudMessage(String state,String detail) {
+    runOnUiThread(() -> {
+      if(web==null)return;
+      web.evaluateJavascript("window.thedemianffCloudResult&&window.thedemianffCloudResult("+
+        JSONObject.quote(state)+","+JSONObject.quote(detail)+")",null);
+    });
+  }
+  private final class CloudBridge {
+    @JavascriptInterface public void save(String json) {
+      runOnUiThread(() -> {
+        FirebaseUser user=firebaseAuth.getCurrentUser();
+        if(user==null){cloudMessage("error","Inicia sesión con Google para guardar en la nube.");return;}
+        if(json==null||json.length()<10||json.length()>100000){cloudMessage("error","El progreso supera el tamaño permitido.");return;}
+        try {
+          JSONObject p=new JSONObject(json);
+          for(String key:new String[]{"credits","xp","matches","wins","kills","best","skin","weapon"}){
+            Object value=p.opt(key);
+            if(!(value instanceof Number)||((Number)value).doubleValue()!=((Number)value).longValue()||
+                ((Number)value).longValue()<0||((Number)value).longValue()>100000000L)
+              throw new IllegalArgumentException("Dato de progreso inválido.");
+          }
+          if(p.optLong("wins")>p.optLong("matches")||
+             !(p.opt("unlocked") instanceof org.json.JSONArray)||
+             !(p.opt("claimed") instanceof org.json.JSONArray))
+            throw new IllegalArgumentException("El perfil no es válido.");
+          if(p.optJSONArray("unlocked").length()>30||p.optJSONArray("claimed").length()>100)
+            throw new IllegalArgumentException("El perfil contiene demasiados elementos.");
+          Map<String,Object> data=new HashMap<>();
+          data.put("format",1);
+          data.put("progress",json);
+          data.put("updatedAt",FieldValue.serverTimestamp());
+          FirebaseFirestore.getInstance().collection("player_backups").document(user.getUid())
+            .set(data).addOnSuccessListener(ignored->cloudMessage("saved","Respaldo guardado en Firebase para tu cuenta Google."))
+            .addOnFailureListener(e->cloudMessage("error","No se pudo guardar en Firebase. Comprueba conexión y reglas de Firestore."));
+        }catch(Exception e){cloudMessage("error","Progreso inválido: "+e.getMessage());}
+      });
+    }
+    @JavascriptInterface public void load() {
+      runOnUiThread(() -> {
+        FirebaseUser user=firebaseAuth.getCurrentUser();
+        if(user==null){cloudMessage("error","Primero inicia sesión con tu cuenta Google.");return;}
+        FirebaseFirestore.getInstance().collection("player_backups").document(user.getUid())
+          .get().addOnSuccessListener(doc->{
+            String saved=doc.exists()?doc.getString("progress"):null;
+            if(saved==null||saved.length()<10||saved.length()>100000){
+              cloudMessage("missing","No hay un respaldo válido para esta cuenta Google.");return;
+            }
+            cloudMessage("loaded",saved);
+          }).addOnFailureListener(e->cloudMessage("error","No se pudo recuperar el respaldo de Firebase. Revisa conexión y permisos."));
       });
     }
   }
@@ -200,6 +258,7 @@ public class MainActivity extends Activity {
       }
     });
     web.addJavascriptInterface(new GoogleAuthBridge(),"THEDEMIANFFGoogle");
+    web.addJavascriptInterface(new CloudBridge(),"THEDEMIANFFCloud");
     web.addJavascriptInterface(new BackupBridge(),"THEDEMIANFFBackup");
     web.addJavascriptInterface(new GuestStorageBridge(),"THEDEMIANFFGuestStore");
     web.addJavascriptInterface(new GameBridge(),"THEDEMIANFFGame");
