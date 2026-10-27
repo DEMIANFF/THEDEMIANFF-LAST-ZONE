@@ -415,6 +415,9 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
 #v24LobbyStage{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;z-index:3!important;pointer-events:auto!important}
 #v24LobbyStage canvas{width:100%!important;height:100%!important;pointer-events:auto!important}
 #v362Settings{z-index:120!important}
+/* V47.1: match-only settings control; never float over the lobby. */
+#menu:not(.hidden)~#v362Settings{display:none!important}
+body:has(#menu:not(.hidden)) #v362Settings{display:none!important}
 #pausePanel:not(.hidden){z-index:121!important;position:fixed!important;inset:0!important;overflow:auto!important;touch-action:pan-y!important}
 #pausePanel .menuCard{max-height:94vh!important;overflow:auto!important}
 @media(max-width:620px){#v38Operations .v38OpsCard{width:94vw!important;max-height:78vh!important;padding:10px!important}#v38Operations .v38OpsTile{padding:9px!important}#v38Operations .v38OpsGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#v38Operations .v38OpsTile h3{font-size:12px!important}#v38Operations .v38OpsTile p{font-size:10px!important}#v38Operations .v38OpsTile strong{font-size:10px!important}}
@@ -1374,7 +1377,9 @@ function v22AnimateLila(dt){
  if(c.v22BaseY===undefined)c.v22BaseY=model.position.y;
  const targetY=c.v22BaseY-(crouch?.63:0)+(shooting?.018*Math.sin(time*40):0)-v470LandingPose*.07;
  model.position.y+=(targetY-model.position.y)*ease;
- model.rotation.x+=((air?-.10:crouch?.19:0)+(v469HealTimer>0?.12:0)+v470LandingPose*.08-model.rotation.x)*ease;
+ // Positive X tips Lila's upper body toward her forward (+Z) direction.
+ const v471ForwardLean=air?-.06:crouch?.20:sprintHeld&&speed>2?.17*Math.min(1,speed/10):speed>2?.045:0;
+ model.rotation.x+=(v471ForwardLean+(v469HealTimer>0?.12:0)+v470LandingPose*.08-model.rotation.x)*ease;
 }
 // V22: original playable 3D interpretation of the submitted lavender-haired operator.
 function v22FemaleOperator(){
@@ -3383,7 +3388,7 @@ function start(){unlockAudio();v123ResetInputs();if(!renderer){renderer=new THRE
  // V40.5: controlled WebGL lifecycle for Android memory pressure.
  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();v405ContextLost=true;console.warn('[V40.5] WebGL context lost');},false);
  renderer.domElement.addEventListener('webglcontextrestored',()=>{v405ContextLost=false;v405ContextRestores++;v26Performance.scale=Math.min(v26Performance.scale,.64);v26ApplyPixelRatio();},false);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!mobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;// V40 screenshot-driven calibration: prevent blown-out white snow and preserve architecture edges.
- renderer.toneMappingExposure=.72;if('outputColorSpace' in renderer && THREE.SRGBColorSpace)renderer.outputColorSpace=THREE.SRGBColorSpace;else renderer.outputEncoding=THREE.sRGBEncoding;$('game').appendChild(renderer.domElement);camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,480);window.addEventListener('resize',resize);renderer.domElement.addEventListener('click',()=>{if(running&&!paused&&!mobile){const pl=renderer.domElement.requestPointerLock?.();if(pl&&pl.catch)pl.catch(()=>{})}});document.addEventListener('mousemove',e=>{if(running&&!paused&&!mobile)aim(e.movementX,e.movementY)});document.addEventListener('mousedown',e=>{if(e.button===0&&running&&!paused)fireHeld=true});document.addEventListener('mouseup',()=>fireHeld=false);requestAnimationFrame(frame);}reset();v470StartSoundPending=true;running=true;paused=false;$('v18Panel').classList.add('hidden');$('menu').classList.add('hidden');$('end').classList.add('hidden');$('pausePanel').classList.add('hidden');if(mobile)$('controls').classList.remove('hidden');else renderer.domElement.requestPointerLock?.();clock.getDelta();applyPrefs();$('v362Settings').classList.remove('hidden');$('v362Events').classList.add('hidden');v36Begin();}
+ renderer.toneMappingExposure=.72;if('outputColorSpace' in renderer && THREE.SRGBColorSpace)renderer.outputColorSpace=THREE.SRGBColorSpace;else renderer.outputEncoding=THREE.sRGBEncoding;$('game').appendChild(renderer.domElement);camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,480);window.addEventListener('resize',resize);renderer.domElement.addEventListener('click',()=>{if(running&&!paused&&!mobile){const pl=renderer.domElement.requestPointerLock?.();if(pl&&pl.catch)pl.catch(()=>{})}});document.addEventListener('mousemove',e=>{if(running&&!paused&&!mobile)aim(e.movementX,e.movementY)});document.addEventListener('mousedown',e=>{if(e.button===0&&running&&!paused)fireHeld=true});document.addEventListener('mouseup',()=>fireHeld=false);requestAnimationFrame(frame);}reset();v470StartSoundPending=true;running=true;paused=false;$('v362Settings').classList.remove('hidden');$('v18Panel').classList.add('hidden');$('menu').classList.add('hidden');$('end').classList.add('hidden');$('pausePanel').classList.add('hidden');if(mobile)$('controls').classList.remove('hidden');else renderer.domElement.requestPointerLock?.();clock.getDelta();applyPrefs();$('v362Settings').classList.remove('hidden');$('v362Events').classList.add('hidden');v36Begin();}
 $('v362Settings').addEventListener('click',e=>{
  e.preventDefault();e.stopPropagation();
  if(!running)return;
