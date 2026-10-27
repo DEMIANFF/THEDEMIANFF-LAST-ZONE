@@ -353,7 +353,7 @@ jobs:
                         'RESPALDO LISTO',
                         'v489AutoSwaps=0',
                         'v489DryFires++',
-                        "V49.4 · MODELOS 3D Y GOOGLE"):
+                        "V49.6 · LOBBY Y NUBE GOOGLE"):
               assert token in h, 'V48.9: falta arsenal táctico '+token
           # V48.8: live zone guidance, safe parachute actions and bounded effects.
           for token in ("v488Outside=Math.max(0",
@@ -364,7 +364,7 @@ jobs:
                         "window.v36FlightMode!=='landed'",
                         "Number.isFinite(fx)",
                         "if(!Number.isFinite(x)||!Number.isFinite(z))return null",
-                        "V49.4 · MODELOS 3D Y GOOGLE"):
+                        "V49.6 · LOBBY Y NUBE GOOGLE"):
               assert token in h, 'V48.8: regresión combate o zona '+token
           # V49.0: anti-exploit weapon switching, robust rival targeting and match safety.
           for token in ('shootCooldown=Math.max(shootCooldown,.15)',
@@ -373,10 +373,10 @@ jobs:
                         "window.v36FlightMode!=='landed'",
                         'rival.x)||!Number.isFinite(rival.z)',
                         'b.hp>0&&b.hitStun<=0',
-                        'V49.4 · MODELOS 3D Y GOOGLE'):
+                        'V49.6 · LOBBY Y NUBE GOOGLE'):
               assert token in h, 'V49.0: regresión táctica '+token
           # V49.1: safe rival combat, loaded backup scoring, medkit feedback.
-          for token in ('V49.4 · MODELOS 3D Y GOOGLE',
+          for token in ('V49.6 · LOBBY Y NUBE GOOGLE',
                         'candidate.ammo/Math.max(1,candidate.mag',
                         'BOTIQUÍN INTERRUMPIDO POR DAÑO',
                         'v474RivalClock-=Math.min(dt,.1)',
@@ -388,12 +388,16 @@ jobs:
                         'v495CloudLastConfirmed=Date.now()',
                         'v495CloudSave(JSON.stringify(local))'):
               assert token in h, 'V49.5: regresión de guardado Google '+token
+          # V49.6: cloud backup state visible in lobby and sign-in not treated as saved.
+          for token in ('v496LobbyCloudStatus', 'Google conectado · respaldo remoto sin verificar',
+                        'Invitado · progreso solo en este dispositivo', 'V49.6 · LOBBY Y NUBE GOOGLE'):
+              assert token in h, 'V49.6: regresión estado de nube '+token
           # V49.4: Google sign-in is distinct from explicit Firestore backup/recovery.
           for token in ('v494CloudSave', 'v494CloudLoad',
                         'window.thedemianffCloudResult',
                         'v443ValidateProgress(JSON.parse(payload))',
                         'v494ModelStatus', "models/lila-operator.glb",
-                        'V49.4 · MODELOS 3D Y GOOGLE'):
+                        'V49.6 · LOBBY Y NUBE GOOGLE'):
               assert token in h, 'V49.4: falta nube / lobby '+token
           native = Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
           rules = Path('firestore.rules').read_text()
@@ -406,14 +410,14 @@ jobs:
           for token in ('const strafeLean=!air&&!crouch',
                         'const v493Gear=new THREE.Group()',
                         'const tracks=new THREE.InstancedMesh',
-                        'V49.4 · MODELOS 3D Y GOOGLE'):
+                        'V49.6 · LOBBY Y NUBE GOOGLE'):
               assert token in h, 'V49.3: regresión visual '+token
           # V49.2: GPU-instanced Aurora scenery and Lila strafe response.
           for token in ("new THREE.InstancedMesh(frostGeometry,frostMat,56)",
                         "new THREE.InstancedMesh(frostGeometry,frostGlowMat,16)",
                         "const strafeLean=",
                         "model.rotation.z+=(strafeLean-model.rotation.z)*ease",
-                        "V49.4 · MODELOS 3D Y GOOGLE"):
+                        "V49.6 · LOBBY Y NUBE GOOGLE"):
               assert token in h, 'V49.2: regresión visual '+token
           # V48.7: real combat warning, medkit/reload state and validated damage.
           for token in ("v487Closest=bots.reduce", "const v487Danger=bots.some", "18/WORLD*w",
@@ -425,7 +429,7 @@ jobs:
                         "ESPERA A TERMINAR LA RECARGA",
                         "Number.isFinite(amount)",
                         "Number.isInteger(n)",
-                        "V49.4 · MODELOS 3D Y GOOGLE"):
+                        "V49.6 · LOBBY Y NUBE GOOGLE"):
               assert token in h, 'V48.7: regresión de combate '+token
           # V48.6: safe-zone supply placement, guarded animation and battle diagnostics.
           for token in ('v477InZone(tx,tz,4)',
@@ -434,7 +438,7 @@ jobs:
                         'Number.isFinite(dt)',
                         'typeof mobile',
                         'visibleToPlayer&&effects.length<36',
-                        'V49.4 · MODELOS 3D Y GOOGLE'):
+                        'V49.6 · LOBBY Y NUBE GOOGLE'):
               assert token in h, 'V48.6: regresión estabilidad '+token
           # V48.5: combat clarity, rival AI suppression and low-ammo notices.
           for token in ('attacker.suppression>.92',
@@ -443,7 +447,7 @@ jobs:
                         'visibleToPlayer&&effects.length<36',
                         'depthWrite:false,depthTest:true',
                         'Math.min(10,v8Combo+1)',
-                        "V49.4 · MODELOS 3D Y GOOGLE"):
+                        "V49.6 · LOBBY Y NUBE GOOGLE"):
               assert token in h, 'V48.5: regresión de combate '+token
           # V48.4: ammunition alerts, obstacle hit validation and battle FX budget.
           for token in ("SIN MUNICIÓN · CAMBIA DE ARMA",
@@ -472,7 +476,7 @@ jobs:
                         "QUÉDATE QUIETO",
                         'v474RivalClock=.50',
                         'if(++checked>56)break',
-                        'V49.4 · MODELOS 3D Y GOOGLE'):
+                        'V49.6 · LOBBY Y NUBE GOOGLE'):
               assert token in h, 'V48.2: regresión combate '+token
           # V48.1: mobile sprint animation and airborne combat accuracy.
           for token in ('sprintHeld&&speed>5.5',
@@ -494,7 +498,7 @@ jobs:
                         "rival.airborne||rival.retreatTime>0",
                         "cache.remaining===0",
                         'v474SupplyCount>=5',
-                        "V49.4 · MODELOS 3D Y GOOGLE"):
+                        "V49.6 · LOBBY Y NUBE GOOGLE"):
               assert token in h, 'V48.0: regresión sistemas de batalla '+token
           # V47.7: tactical rivalry and supply signals in playable loop.
           for token in ('function v477FindRivalTarget(source,targets)',
@@ -529,7 +533,7 @@ jobs:
                         'window.THEDEMIANFF_V474_SUPPLIES',
                         'v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[]'):
               assert token in h, 'V47.4: falta rivalidad enemiga o suministros '+token
-          assert "versionCode 128" in Path('app/build.gradle').read_text(), 'V48.6: versionCode desfasado'
+          assert "versionCode 129" in Path('app/build.gradle').read_text(), 'V48.6: versionCode desfasado'
           assert "if(name==='ESTADÍSTICAS')" in h, 'V45: falta panel de estadísticas del jugador'
           for metric in ('PORCENTAJE DE VICTORIAS','BAJAS POR PARTIDA','MEJOR MARCA','XP PARA SUBIR'):
               assert metric in h, 'V45: falta métrica '+metric
@@ -572,8 +576,8 @@ jobs:
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 128' in gradle, 'V48.6 requiere versionCode 128'
-          assert "versionName '49.5-cloud-save-safety'" in gradle, 'V48.6: versión Android incorrecta'
+          assert 'versionCode 129' in gradle, 'V48.6 requiere versionCode 129'
+          assert "versionName '49.6-lobby-cloud-status'" in gradle, 'V48.6: versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
