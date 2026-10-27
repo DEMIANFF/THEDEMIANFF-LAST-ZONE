@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 102
-        versionName '46.5-enemy-tactics'
+        versionCode 103
+        versionName '46.6-enemy-combat'
     }
     signingConfigs {
         persistentRelease {
