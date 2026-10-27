@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 98
-        versionName '46.1-combat-alerts'
+        versionCode 99
+        versionName '46.2-panoramic-camera'
     }
     signingConfigs {
         persistentRelease {
