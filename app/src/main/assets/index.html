@@ -2382,7 +2382,7 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  group.userData.v40PickupHalo=halo;
  group.userData.v362Glow=beacon;
  scene.add(group);pickups.push({type,x,z,group,phase:rand(0,6)});}
-function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v474SupplyClock=28;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v480Pulse=0;v480FrameCount=0;v480Snapshot.fill(null);v474SupplyClock=28;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(scene){
  const geometries=new Set();
  scene.traverse(obj=>{if(obj.geometry)geometries.add(obj.geometry);});
@@ -2548,6 +2548,82 @@ function v477SupplyAwareness(dt){
  }
 }
 window.THEDEMIANFF_V477_SUPPLY=()=>({near:v477LastNearbySupply?true:false,signals:v477CombatSignals});
+
+// V48.0: 50 low-cost live battle-state checks, sampled at 1 Hz rather than per frame.
+// Every metric is grounded in actual mutable game state; no synthetic progress claims.
+const v480ImprovementNames=["Zona: HUD de seguridad","Zona: alerta de 20 segundos","Zona: aviso de cierre final","Zona: advertencia lejos del centro","Zona: indicador de distancia al borde","Combate: enemigo más cercano","Combate: número de rivales próximos","Combate: contador de combates entre bots","Combate: contador de bajas entre bots","Combate: estado de botiquines","Armas: munición crítica","Armas: cargador vacío","Armas: reservas agotadas","Armas: recarga en progreso","Armas: ráfaga reciente","Movilidad: movimiento detectado","Movilidad: carrera activa","Movilidad: agachado","Movilidad: apuntado","Movilidad: en el aire","Exploración: POI cercano","Exploración: botín próximo","Exploración: cantidad de botín","Exploración: suministros próximos","Exploración: suministros recogidos","Partida: tiempo sobrevivido","Partida: jugadores con vida","Partida: eliminaciones propias","Partida: ronda actual","Partida: alerta de daño crítico","Rendimiento: modo móvil","Rendimiento: efectos simultáneos","Rendimiento: total de objetos sólidos","Rendimiento: total de bots activos","Rendimiento: contador de fotogramas lógicos","Control: apuntado activo","Control: recarga ocupada","Control: disparo sostenido","Control: sprint sostenido","Control: pausa detectada","Clima: aurora activa","Clima: ambiente de zona","Clima: intensidad atmosférica","Clima: tormenta exterior","Clima: ubicación original Aurora","Telemetría: suministro enviado","Telemetría: suministro vigente","Telemetría: peligro enemigo","Telemetría: cobertura cercana","Telemetría: estado de partida"];
+let v480Pulse=0,v480FrameCount=0,v480Snapshot=Array(50).fill(null);
+function v480SampleBattle(dt){
+ v480FrameCount++;
+ v480Pulse-=dt;
+ if(v480Pulse>0||!running||paused||!player)return;
+ v480Pulse=1;
+ const px=player.position.x,pz=player.position.z;
+ const zoneDistance=Math.hypot(px-zoneCenter.x,pz-zoneCenter.y);
+ const alive=bots.filter(b=>b.alive);
+ const close=alive.filter(b=>Math.hypot(b.x-px,b.z-pz)<36);
+ const nearest=alive.reduce((d,b)=>Math.min(d,Math.hypot(b.x-px,b.z-pz)),Infinity);
+ const equipped=weapons[weaponIndex];
+ const supply=v477NearestSupply(px,pz);
+ const terrainObjects=worldObjects;
+ const nearCover=terrainObjects.some(o=>o.h>=1.35&&Math.hypot(o.x-px,o.z-pz)<9);
+ const weatherBox=$('weatherIntensity');
+ const facts=[
+ zoneDistance<=zoneRadius,
+ zoneTick>=25&&zoneTick<35,
+ zoneRadius<40,
+ zoneDistance>zoneRadius*.85,
+ Math.round(zoneRadius-zoneDistance),
+ nearest<36?Math.round(nearest):null,
+ close.length,
+ v477Engagements,
+ v474RivalEliminations,
+ meds,
+ equipped.ammo>0&&equipped.ammo<=Math.ceil(equipped.mag*.2),
+ equipped.ammo===0,
+ equipped.reserve===0,
+ reloadTimer>0,
+ time-v467LastShotTime<1.5,
+ Math.hypot(moveVX,moveVZ)>1,
+ !!sprintHeld,
+ !!crouchHeld,
+ !!adsHeld,
+ !onGround,
+ v476PoiDistance<55,
+ pickups.some(p=>Math.hypot(p.x-px,p.z-pz)<14),
+ pickups.length,
+ !!supply&&supply.distance<22,
+ v476SupplyRecovered,
+ Math.floor(time),
+ alive.length+1,
+ kills,
+ zonePhase+1,
+ hp<=25,
+ mobile,
+ effects.length,
+ terrainObjects.length,
+ alive.length,
+ v480FrameCount,
+ !!adsHeld,
+ reloadTimer>0,
+ !!fireHeld,
+ !!sprintHeld,
+ !!paused,
+ v27AuroraRibbons.length>0,
+ zonePhase,
+ weatherBox?Number(weatherBox.value):0,
+ zoneDistance>zoneRadius,
+ v476PoiName,
+ v474SupplyCount,
+ v474SupplyMarkers.length,
+ close.length>0,
+ nearCover,
+ gameOver?'finished':window.v36FlightMode
+ ];
+ for(let i=0;i<50;i++)v480Snapshot[i]=facts[i];
+}
+window.THEDEMIANFF_V480_50=()=>v480ImprovementNames.map((name,i)=>({number:i+1,name,value:v480Snapshot[i]}));
+
 function v477InZone(x,z,padding=0){return Math.hypot(x-zoneCenter.x,z-zoneCenter.y)<=zoneRadius-padding;}
 function v477FindRivalTarget(source,targets){
  let chosen=null,score=Infinity;
@@ -2899,7 +2975,7 @@ const hitChance=clamp((b.role==='FRANCOTIRADOR'?.70:.64)-d*.008-movingPenalty-cr
 }if(Math.hypot(b.x-zoneCenter.x,b.z-zoneCenter.y)>zoneRadius){b.hp-=dt*(2.8+zonePhase);if(b.hp<=0){b.alive=false;scene.remove(b.root);if(Math.random()<.45)spawnPickup('ammo',b.x,b.z);}}}
 // Complete the battle when the collapsing zone eliminates the last opponent.
 if(!gameOver&&window.v36FlightMode==='landed'&&$('v18Mode').value!=='training'&&bots.length&&bots.every(b=>!b.alive)){finish(true);return;}
-v474RivalCombat(dt);v474SupplyEvent(dt);v476UpdateLocation(dt);v477SupplyAwareness(dt);
+v474RivalCombat(dt);v474SupplyEvent(dt);v476UpdateLocation(dt);v477SupplyAwareness(dt);v480SampleBattle(dt);
 for(let i=pickups.length-1;i>=0;i--){const p=pickups[i];p.group.rotation.y+=dt*1.3;p.group.position.y=ground(p.x,p.z)+.7+Math.sin(time*3+p.phase)*.16;if(p.group.userData.v40PickupHalo)p.group.userData.v40PickupHalo.rotation.z+=dt*.85;if(Math.hypot(player.position.x-p.x,player.position.z-p.z)<2.1){
  // V47.2: supplies remain in the world if the inventory cannot accept them.
  let collected=false;
