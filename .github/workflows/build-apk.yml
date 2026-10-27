@@ -282,7 +282,7 @@ jobs:
           assert "window.addEventListener('blur',()=>{if(running){v123ResetInputs()" in h, 'V45.3: falta limpieza táctil en segundo plano'
           assert "if(running){v123ResetInputs();keys={};stick.style.transform" in h, 'V45.3: falta limpieza al ocultar ventana'
           assert "Math.hypot(dx,dy)>Math.max(180,Math.min(innerWidth,innerHeight)*.45)" in h, 'V45.4: falta filtro de salto táctil'
-          assert "if(t.role==='fire')v23FireThumb(t);" in h, 'V45.4: disparo debe mantener posición al descartar salto'
+          assert "t.startX=t.x;t.startY=t.y;v22FireDragging=false;v23FireThumb(t);" in h, 'V45.8: disparo debe recalibrar origen al descartar salto'
           assert "if(role!=='look'&&[...v23Touches.values()].some(t=>t.role===role))" in h, 'V45.5: acciones duplicadas por multitouch'
           assert "if(v23Touches.has(e.pointerId))return;" in h, 'V45.5: puntero registrado dos veces'
           # V45.6: multi-feature Android touch regression guards
@@ -306,6 +306,11 @@ jobs:
               "window.addEventListener('resize',()=>{if(running&&v23Touches.size)v123ResetInputs();});"
           ):
               assert token in h, 'V45.7: falta recuperación táctil '+token
+          for token in ('#v123InputTest.v458Multi','#v123InputTest.v458Firing',
+                        'env(safe-area-inset-bottom)','prefers-reduced-motion',
+                        "monitor.classList.toggle('v458Multi'",
+                        "monitor.classList.toggle('v458Firing'"):
+              assert token in h, 'V45.8: falta indicador de combate '+token
 
           assert "if(name==='ESTADÍSTICAS')" in h, 'V45: falta panel de estadísticas del jugador'
           for metric in ('PORCENTAJE DE VICTORIAS','BAJAS POR PARTIDA','MEJOR MARCA','XP PARA SUBIR'):
@@ -349,8 +354,8 @@ jobs:
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 94' in gradle, 'La actualización requiere versionCode 82'
-          assert "versionName '45.7-touch-recovery'" in gradle, 'Versión Android incorrecta'
+          assert 'versionCode 95' in gradle, 'La actualización requiere versionCode 82'
+          assert "versionName '45.8-combat-hud'" in gradle, 'Versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
