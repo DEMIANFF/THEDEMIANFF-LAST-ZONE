@@ -2922,7 +2922,6 @@ function v18Open(name){
  body.innerHTML=html;
  const v45AccountButton=body.querySelector('#v45OpenAccount');
  if(v45AccountButton)v45AccountButton.addEventListener('click',()=>{panel.classList.add('hidden');$('menuSettings').click();const accountTab=document.querySelector('[data-tab="account"]');if(accountTab)accountTab.click();v446UpdateAccountProfile();});
- body.innerHTML=html;
  body.querySelectorAll('[data-v18]').forEach(b=>b.addEventListener('click',()=>{
   if(b.disabled)return;
   const [type,index]=b.dataset.v18.split(':');const n=Number(index);
@@ -2964,7 +2963,7 @@ document.querySelectorAll('[data-v37mode]').forEach(button=>button.addEventListe
  $('v18Mode').value=mode;$('v18Mode').dispatchEvent(new Event('change'));$('v37ModeOverlay').classList.add('hidden');
 }));
 
-$('v18Profile').onclick=()=>v18Open('ESTADÍSTICAS');$('v18Profile').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();v18Open('ESTADÍSTICAS');}};$('v18Close').onclick=()=>$('v18Panel').classList.add('hidden');
+$('v18Profile').onclick=()=>v18Open('ESTADÍSTICAS');$('v18Profile').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();v18Open('ESTADÍSTICAS');}};$('v18Close').onclick=()=>{$('v18Panel').classList.add('hidden');$('v18Profile').focus();};
 // Place the event dialog at the document root, above WebGL and all HUD layers.
 document.body.appendChild($('v362Events'));
 // V38: one dependable operations hub with two independent views.
