@@ -3732,15 +3732,21 @@ function v23FireThumb(t){
 }
 function v23Clear(){
  v23Touches.clear();cameraPointers.clear();activeActionPointers.clear();
+ // V45.7: clear all held states on Android lifecycle interruptions.
+ sprintHeld=false;adsHeld=false;crouchHeld=false;jumpQueued=false;
+ $('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');
+ $('crouchBtn').classList.remove('crouchActive');$('v10Reticle').classList.remove('v382ADS');
+ $('v13AimMode').textContent='⊕ MIRA LIBRE';
  v26LookOwner=null;v26LastLookMove=0;
  joyX=joyY=0;stickTouch=lookTouch=fireTouch=null;v342JoyOrigin=null;stickBase.style.removeProperty('--v342-origin-x');stickBase.style.removeProperty('--v342-origin-y');
  fireHeld=false;v22FireDragging=false;cameraDX=cameraDY=0;
+ v123Feedback();
  stick.style.transform='translate(-50%,-50%)';
  $('fire').style.setProperty('--fire-stick-x','0px');
  $('fire').style.setProperty('--fire-stick-y','0px');
 }
 function v23PointerDown(e){
- if(!v23Ready()||e.pointerType==='mouse'||!v456InsideViewport(e.clientX,e.clientY)||v456OverlayTarget(e.target))return;
+ if(!v23Ready()||e.pointerType==='mouse'||!e.isPrimary&&e.pointerType==='pen'||!v456InsideViewport(e.clientX,e.clientY)||v456OverlayTarget(e.target))return;
  const button=e.target.closest?.('button');
  const id=button&&$('controls').contains(button)?button.id:null;
  let role=null;
@@ -3754,6 +3760,7 @@ function v23PointerDown(e){
  // V45.5: one owner per action. Extra fingers must not toggle ADS/crouch/sprint twice.
  // Multiple independent 'look' fingers remain allowed for seamless camera handoff.
  if(v23Touches.has(e.pointerId))return;
+ if(v23Touches.size>=6)return; // V45.7: bounded pointer registry for Android
  if(role!=='look'&&[...v23Touches.values()].some(t=>t.role===role)){
   if(e.cancelable)e.preventDefault();
   e.stopImmediatePropagation();
@@ -3785,19 +3792,22 @@ function v23PointerMove(e){
  if(!v23Ready()){v23PointerEnd(e);return;}
  // Clamp anomalous Android touch jumps caused by interrupted or resumed gestures.
  // V43.5: no recortar cada evento; usar desplazamiento real del dedo.
- if(!v456InsideViewport(e.clientX,e.clientY))return;
+ if(!v456InsideViewport(e.clientX,e.clientY)){
+  // Release a pointer that left the display; avoid a stuck trigger.
+  v23PointerEnd(e);return;
+ }
  const now=performance.now(),gap=now-t.lastAt;
  const dx=e.clientX-t.x,dy=e.clientY-t.y;
  t.x=e.clientX;t.y=e.clientY;t.lastAt=now;
  // Rebase pointer after a delayed Android move rather than rotating from stale coordinates.
  if(gap>320&&(t.role==='look'||t.role==='fire')){
-  if(t.role==='fire')v23FireThumb(t);
+  if(t.role==='fire'){t.startX=t.x;t.startY=t.y;v22FireDragging=false;v23FireThumb(t);}
   if(e.cancelable)e.preventDefault();e.stopImmediatePropagation();return;
  }
  // V45.4: Android may deliver a discontinuous pointer after an app interruption.
  // Drop only implausible single-event camera jumps; preserve ordinary fast swipes.
  if((t.role==='look'||t.role==='fire')&&Math.hypot(dx,dy)>Math.max(180,Math.min(innerWidth,innerHeight)*.45)){
-  if(t.role==='fire')v23FireThumb(t);
+  if(t.role==='fire'){t.startX=t.x;t.startY=t.y;v22FireDragging=false;v23FireThumb(t);}
   if(e.cancelable)e.preventDefault();
   e.stopImmediatePropagation();
   return;
@@ -3863,6 +3873,7 @@ window.addEventListener('blur',v23Clear);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)v23Clear();});
 window.addEventListener('pagehide',v23Clear);
 window.addEventListener('orientationchange',()=>{if(running)v123ResetInputs();});
+window.addEventListener('resize',()=>{if(running&&v23Touches.size)v123ResetInputs();});
 
 // V12: individually positioned controls, normalized to the visible play area.
 const hudIds=['stickBase','sprint','jump','fire','heal','reload','aimBtn','switchGun','crouchBtn'];
