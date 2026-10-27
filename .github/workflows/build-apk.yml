@@ -342,7 +342,8 @@ jobs:
                         'function v472FirstBulletImpact(start,direction,maxDistance)',
                         'const disc=beta*beta-flat*c',
                         'v473ZoneWarningIssued',
-                        'v473PoiAudioClock'):
+                        'v473PoiAudioClock',
+                        'const margin=o.r+Math.max(.95,.5*b.root.scale.x)'):
               assert token in h, 'V47.3: falta sistema Aurora '+token
           assert 'const v470Compound=new THREE.Group()' not in h, 'V47.3: reapareció infraestructura genérica'
           assert "versionCode 108" in Path('app/build.gradle').read_text(), 'V47.3: versionCode desfasado'
