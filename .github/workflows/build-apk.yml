@@ -297,6 +297,15 @@ jobs:
               "&&!gameOver&&!document.hidden"
           ):
               assert token in h, 'V45.6: falta mejora de controles '+token
+          for token in (
+              'sprintHeld=false;adsHeld=false;crouchHeld=false;jumpQueued=false;',
+              "classList.remove('v382ADS')",
+              'if(v23Touches.size>=6)return;',
+              'v23PointerEnd(e);return;',
+              't.startX=t.x;t.startY=t.y;v22FireDragging=false;',
+              "window.addEventListener('resize',()=>{if(running&&v23Touches.size)v123ResetInputs();});"
+          ):
+              assert token in h, 'V45.7: falta recuperación táctil '+token
 
           assert "if(name==='ESTADÍSTICAS')" in h, 'V45: falta panel de estadísticas del jugador'
           for metric in ('PORCENTAJE DE VICTORIAS','BAJAS POR PARTIDA','MEJOR MARCA','XP PARA SUBIR'):
@@ -340,8 +349,8 @@ jobs:
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 93' in gradle, 'La actualización requiere versionCode 82'
-          assert "versionName '45.6-mobile-control-pack'" in gradle, 'Versión Android incorrecta'
+          assert 'versionCode 94' in gradle, 'La actualización requiere versionCode 82'
+          assert "versionName '45.7-touch-recovery'" in gradle, 'Versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
