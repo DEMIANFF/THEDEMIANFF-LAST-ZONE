@@ -120,7 +120,12 @@
 #controls.hudCustom #mobileBtns button{pointer-events:auto!important;z-index:25!important;touch-action:none!important}
 #controls #mobileBtns #sprint.sprintActive,#controls #mobileBtns #aimBtn.adsActive{background:#fb923c!important;color:#102331!important;border:3px solid #fff!important;box-shadow:0 0 0 3px #f97316aa!important}
 #controls #mobileBtns button:active{filter:brightness(1.15)}
-#v123InputTest{position:absolute;left:50%;bottom:3px;transform:translateX(-50%);z-index:28;pointer-events:none;font:800 11px system-ui;color:#ffe8b7;text-shadow:0 1px 5px #000;white-space:nowrap}
+#v123InputTest{position:absolute;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:28;pointer-events:none;font:800 11px system-ui;color:#e5fff6;text-shadow:0 1px 5px #000;white-space:nowrap;padding:5px 11px;border:1px solid #79d9c455;background:#071d2aca;border-radius:999px;max-width:96vw;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(5px)}
+#v123InputTest:empty{display:none}
+#v123InputTest.v458Multi{color:#a7fff0;border-color:#5cf8d999}
+#v123InputTest.v458Firing{color:#ffe1ae;border-color:#ffb65eaa;background:#362014cf}
+@media(max-width:420px){#v123InputTest{font-size:9px;padding:4px 8px}}
+@media(prefers-reduced-motion:reduce){#v10Reticle,#mobileBtns button{transition:none!important}}
 
 /* V13.1: explicit HUD positioning and independent multitouch targets */
 #controls.hudCustom{position:fixed!important;inset:0!important;pointer-events:none!important;z-index:18!important}
@@ -3626,7 +3631,10 @@ function v123Feedback(){
  if(adsHeld)parts.push('◎ MIRA');
  if(fireHeld)parts.push('● FUEGO');
  if(v23Touches.size&&v23ControlsEnabled){const looks=[...v23Touches.values()].filter(t=>t.role==='look').length;parts.push('✋ '+v23Touches.size+' TOQUES'+(looks?' · 🎯 '+looks+' CÁMARA':''));}
- $('v123InputTest').textContent=parts.join('  ·  ');
+ const monitor=$('v123InputTest');
+ monitor.textContent=parts.join('  ·  ');
+ monitor.classList.toggle('v458Multi',v23ControlsEnabled&&v23Touches.size>=2);
+ monitor.classList.toggle('v458Firing',!!fireHeld);
  $('sprint').classList.toggle('sprintActive',sprintHeld);
  $('aimBtn').classList.toggle('adsActive',adsHeld);$('v10Reticle').classList.toggle('v382ADS',adsHeld);
 }
