@@ -346,6 +346,15 @@ jobs:
                         'const margin=o.r+Math.max(.95,.5*b.root.scale.x)'):
               assert token in h, 'V47.3: falta sistema Aurora '+token
           assert 'const v470Compound=new THREE.Group()' not in h, 'V47.3: reapareció infraestructura genérica'
+          # V48.9: automatic loaded backup, dry-fire throttling and readable ammo state.
+          for token in ('function v489BestLoadedBackup(exclude)',
+                        'window.THEDEMIANFF_V489_AMMO',
+                        'CAMBIO AUTOMÁTICO',
+                        'RESPALDO LISTO',
+                        'v489AutoSwaps=0',
+                        'v489DryFires++',
+                        "V48.9 · ARSENAL TÁCTICO"):
+              assert token in h, 'V48.9: falta arsenal táctico '+token
           # V48.8: live zone guidance, safe parachute actions and bounded effects.
           for token in ("v488Outside=Math.max(0",
                         "m HASTA SEGURIDAD",
@@ -355,7 +364,7 @@ jobs:
                         "window.v36FlightMode!=='landed'",
                         "Number.isFinite(fx)",
                         "if(!Number.isFinite(x)||!Number.isFinite(z))return null",
-                        "V48.8 · ZONA Y COMBATE"):
+                        "V48.9 · ARSENAL TÁCTICO"):
               assert token in h, 'V48.8: regresión combate o zona '+token
           # V48.7: real combat warning, medkit/reload state and validated damage.
           for token in ("v487Closest=bots.reduce", "const v487Danger=bots.some", "18/WORLD*w",
@@ -367,7 +376,7 @@ jobs:
                         "ESPERA A TERMINAR LA RECARGA",
                         "Number.isFinite(amount)",
                         "Number.isInteger(n)",
-                        "V48.8 · ZONA Y COMBATE"):
+                        "V48.9 · ARSENAL TÁCTICO"):
               assert token in h, 'V48.7: regresión de combate '+token
           # V48.6: safe-zone supply placement, guarded animation and battle diagnostics.
           for token in ('v477InZone(tx,tz,4)',
@@ -376,7 +385,7 @@ jobs:
                         'Number.isFinite(dt)',
                         'typeof mobile',
                         'visibleToPlayer&&effects.length<36',
-                        'V48.8 · ZONA Y COMBATE'):
+                        'V48.9 · ARSENAL TÁCTICO'):
               assert token in h, 'V48.6: regresión estabilidad '+token
           # V48.5: combat clarity, rival AI suppression and low-ammo notices.
           for token in ('attacker.suppression>.92',
@@ -385,7 +394,7 @@ jobs:
                         'visibleToPlayer&&effects.length<36',
                         'depthWrite:false,depthTest:true',
                         'Math.min(10,v8Combo+1)',
-                        "V48.8 · ZONA Y COMBATE"):
+                        "V48.9 · ARSENAL TÁCTICO"):
               assert token in h, 'V48.5: regresión de combate '+token
           # V48.4: ammunition alerts, obstacle hit validation and battle FX budget.
           for token in ("SIN MUNICIÓN · CAMBIA DE ARMA",
@@ -414,7 +423,7 @@ jobs:
                         "QUÉDATE QUIETO",
                         'v474RivalClock=.50',
                         'if(++checked>56)break',
-                        'V48.8 · ZONA Y COMBATE'):
+                        'V48.9 · ARSENAL TÁCTICO'):
               assert token in h, 'V48.2: regresión combate '+token
           # V48.1: mobile sprint animation and airborne combat accuracy.
           for token in ('sprintHeld&&speed>5.5',
@@ -436,7 +445,7 @@ jobs:
                         "rival.airborne||rival.retreatTime>0",
                         "cache.remaining===0",
                         'v474SupplyCount>=5',
-                        "V48.8 · ZONA Y COMBATE"):
+                        "V48.9 · ARSENAL TÁCTICO"):
               assert token in h, 'V48.0: regresión sistemas de batalla '+token
           # V47.7: tactical rivalry and supply signals in playable loop.
           for token in ('function v477FindRivalTarget(source,targets)',
@@ -471,7 +480,7 @@ jobs:
                         'window.THEDEMIANFF_V474_SUPPLIES',
                         'v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[]'):
               assert token in h, 'V47.4: falta rivalidad enemiga o suministros '+token
-          assert "versionCode 121" in Path('app/build.gradle').read_text(), 'V48.6: versionCode desfasado'
+          assert "versionCode 122" in Path('app/build.gradle').read_text(), 'V48.6: versionCode desfasado'
           assert "if(name==='ESTADÍSTICAS')" in h, 'V45: falta panel de estadísticas del jugador'
           for metric in ('PORCENTAJE DE VICTORIAS','BAJAS POR PARTIDA','MEJOR MARCA','XP PARA SUBIR'):
               assert metric in h, 'V45: falta métrica '+metric
@@ -514,8 +523,8 @@ jobs:
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 121' in gradle, 'V48.6 requiere versionCode 121'
-          assert "versionName '48.8-zone-combat'" in gradle, 'V48.6: versión Android incorrecta'
+          assert 'versionCode 122' in gradle, 'V48.6 requiere versionCode 122'
+          assert "versionName '48.9-tactical-arsenal'" in gradle, 'V48.6: versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
