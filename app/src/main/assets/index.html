@@ -547,11 +547,11 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V49.4 · MODELOS 3D Y GOOGLE</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
-<div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
+<div id="v22Edition">V49.6 · LOBBY Y NUBE GOOGLE</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
+<div id="v496LobbyCloud" role="status" aria-live="polite" style="position:absolute;z-index:7;top:13%;right:2%;max-width:45%;border:1px solid #87d8e877;background:#071b2bdd;color:#e2f8ff;border-radius:12px;padding:8px 11px;font-size:11px;line-height:1.35;pointer-events:none">☁ Progreso local · Google sin verificar</div><div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V38</small></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V49.6</small></div>
 <div class="v17Friends"><strong>ESCUADRÓN</strong><span>◉ Operador local</span><span>◉ 20 rivales IA</span><span>◉ 5 armas</span></div>
 <div class="v17Bottom"><div class="v17Quick"><button data-lobby="INVENTARIO">▣ INVENTARIO</button><button data-lobby="ARMAS">⌖ ARMAS</button><button data-lobby="PRESET">☷ PRESET</button></div><div class="v17Launch"><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">INICIAR ▶</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -673,7 +673,7 @@ guest.addEventListener('click',()=>{try{
 window.thedemianffGoogleResult=function(state,detail){
  v446AuthResolved=true;
  $('v443Google').disabled=false;
- if(state==='signed_in'){v495CloudSaveInFlight=false;
+ if(state==='signed_in'){v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v496LobbyCloudStatus('☁ Google conectado · respaldo remoto sin verificar');
    v446GoogleEmail=typeof detail==='string'?detail.slice(0,150):'';
    $('v494AutoCloud').checked=!!(v446GoogleEmail&&localStorage.getItem(v494OptKey(v446GoogleEmail))==='yes');
    // Google becomes the visible login identity; do NOT delete the guest backup.
@@ -686,7 +686,7 @@ window.thedemianffGoogleResult=function(state,detail){
    message.textContent='Acceso automático confirmado.';
    entry.style.display='none';
  }else if(state==='signed_out'){
-   v495CloudSaveInFlight=false;v446GoogleEmail='';$('v494AutoCloud').checked=false;
+   v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v446GoogleEmail='';v496LobbyCloudStatus('☁ Invitado · progreso solo en este dispositivo');$('v494AutoCloud').checked=false;
    guest.style.display='block';
    $('v443Google').style.display='block';
    $('v445SettingsLogout').disabled=true;
@@ -696,7 +696,7 @@ window.thedemianffGoogleResult=function(state,detail){
    info.textContent=guestId?'Invitado existente · puedes continuar con tu progreso local':'Elige cómo ingresar al juego.';
    message.textContent='Google no conectado. Puedes seguir jugando como invitado.';
  }else{
-   v446GoogleEmail='';
+   v446GoogleEmail='';v496LobbyCloudStatus('☁ Google no verificado · progreso local');
    guest.style.display='block';
    $('v443Google').style.display='block';
    $('v445SettingsLogout').disabled=true;
@@ -761,7 +761,8 @@ function v447BackupNotice(text){
  if(status)status.textContent=text;
 }
 // V49.4: recovery is NEVER automatic and NEVER merges guest IDs from other players.
-function v494CloudNotice(msg){const el=$('v494CloudStatus');if(el)el.textContent=msg;v447BackupNotice(msg);}
+function v496LobbyCloudStatus(msg,ok=false){const el=$('v496LobbyCloud');if(!el)return;el.textContent=msg;el.style.borderColor=ok?'#69edb5':'#87d8e877';el.style.color=ok?'#baffda':'#e2f8ff';}
+function v494CloudNotice(msg){const el=$('v494CloudStatus');if(el)el.textContent=msg;v496LobbyCloudStatus(msg,/Guardado confirmado|Respaldo guardado/.test(msg));v447BackupNotice(msg);}
 window.thedemianffCloudResult=(state,payload)=>{
  if(state==='saved'){v495CloudSaveInFlight=false;v495CloudLastConfirmed=Date.now();v494AutoSyncPending=false;v494CloudNotice('☁ '+payload+' · Guardado confirmado: '+new Date(v495CloudLastConfirmed).toLocaleTimeString()+'.');return;}
  if(state==='missing'||state==='error'){v495CloudSaveInFlight=false;if(v494AutoSyncPending){v494AutoSyncPending=false;$('v494AutoCloud').checked=false;if(v446GoogleEmail)localStorage.removeItem(v494OptKey(v446GoogleEmail));}v494CloudNotice('⚠ '+payload);return;}
