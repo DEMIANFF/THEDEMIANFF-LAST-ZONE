@@ -346,6 +346,18 @@ jobs:
                         'const margin=o.r+Math.max(.95,.5*b.root.scale.x)'):
               assert token in h, 'V47.3: falta sistema Aurora '+token
           assert 'const v470Compound=new THREE.Group()' not in h, 'V47.3: reapareció infraestructura genérica'
+          # V48.7: real combat warning, medkit/reload state and validated damage.
+          for token in ("v487Closest=bots.reduce",
+                        "v487Closest.role==='FRANCOTIRADOR'",
+                        "Advertencia táctica:",
+                        "v469HealTimer.toFixed(1)",
+                        "reloadTimer.toFixed(1)",
+                        "TERMINA EL BOTIQUÍN ANTES DE RECARGAR",
+                        "ESPERA A TERMINAR LA RECARGA",
+                        "Number.isFinite(amount)",
+                        "Number.isInteger(n)",
+                        "V48.7 · COMBATE Y ESTABILIDAD"):
+              assert token in h, 'V48.7: regresión de combate '+token
           # V48.6: safe-zone supply placement, guarded animation and battle diagnostics.
           for token in ('v477InZone(tx,tz,4)',
                         'v477InZone(px,pz,2)',
@@ -353,7 +365,7 @@ jobs:
                         'Number.isFinite(dt)',
                         'typeof mobile',
                         'visibleToPlayer&&effects.length<36',
-                        'V48.6 · AURORA STABILITY'):
+                        'V48.7 · COMBATE Y ESTABILIDAD'):
               assert token in h, 'V48.6: regresión estabilidad '+token
           # V48.5: combat clarity, rival AI suppression and low-ammo notices.
           for token in ('attacker.suppression>.92',
@@ -362,17 +374,17 @@ jobs:
                         'visibleToPlayer&&effects.length<36',
                         'depthWrite:false,depthTest:true',
                         'Math.min(10,v8Combo+1)',
-                        "V48.5 · AURORA COMBAT"):
+                        "V48.7 · COMBATE Y ESTABILIDAD"):
               assert token in h, 'V48.5: regresión de combate '+token
           # V48.4: ammunition alerts, obstacle hit validation and battle FX budget.
           for token in ("SIN MUNICIÓN · CAMBIA DE ARMA",
                         "MUNICIÓN BAJA",
                         'v484NoAmmoNotice=-10',
                         'center.x,center.y,center.z',
-                        'if(!victim||attacker.shoot>0||attacker.retreatTime>0)',
+                        'if(!victim||attacker.shoot>0||attacker.retreatTime>0||attacker.suppression>.92',
                         'visibleToPlayer&&effects.length<36',
-                        'battleDistance<46&&effects.length<38',
-                        'if(n<0||n>=weapons.length||n===weaponIndex)return'):
+                        'battleDistance<46&&effects.length<36',
+                        'if(!Number.isInteger(n)||n<0||n>=weapons.length||n===weaponIndex)return'):
               assert token in h, 'V48.4: regresión combate y munición '+token
           # V48.3: mobile HUD cadence, healing interruption and visual optimization.
           for token in ('if(hudUpdateClock>=.10)',
@@ -386,12 +398,12 @@ jobs:
           # V48.2: reload/heal mutual exclusion, reliable feedback and safe cover.
           for token in ("$('combatFx').checked||$('batterySaver').checked",
                         'Math.min(10,v8Combo+1)',
-                        'gameOver||reloadTimer>0||v469HealTimer>0',
+                        'gameOver||reloadTimer>0',
                         "SIN BOTIQUINES",
-                        "NO TE MUEVAS",
+                        "QUÉDATE QUIETO",
                         'v474RivalClock=.50',
                         'if(++checked>56)break',
-                        'V48.2 · COMBATE TÁCTICO'):
+                        'V48.7 · COMBATE Y ESTABILIDAD'):
               assert token in h, 'V48.2: regresión combate '+token
           # V48.1: mobile sprint animation and airborne combat accuracy.
           for token in ('sprintHeld&&speed>5.5',
@@ -401,7 +413,7 @@ jobs:
                         '!onGround?1.28:1',
                         'adsHeld&&onGround?.92:1',
                         'target.dodgeTime=.62',
-                        'target.shoot=Math.max(target.shoot,.29)'):
+                        'target.shoot=Math.max(target.shoot,.31)'):
               assert token in h, 'V48.1: regresión animación y combate '+token
           # V48.0: tactical minimap, safe loot, and 50 sampled diagnostics.
           for token in ('function v480SampleBattle(dt)',
@@ -410,10 +422,10 @@ jobs:
                         'v480Snapshot.fill(null)',
                         "p.type==='med'?'#ff7171'",
                         "zoneTick>35?'#ffc86b'",
-                        "rival.airborne)continue",
+                        "rival.airborne||rival.retreatTime>0",
                         "cache.remaining===0",
                         'v474SupplyCount>=5',
-                        "V48.0 · AURORA BATTLE SYSTEMS"):
+                        "V48.7 · COMBATE Y ESTABILIDAD"):
               assert token in h, 'V48.0: regresión sistemas de batalla '+token
           # V47.7: tactical rivalry and supply signals in playable loop.
           for token in ('function v477FindRivalTarget(source,targets)',
@@ -424,7 +436,7 @@ jobs:
                         'window.THEDEMIANFF_V477_COMBAT',
                         'window.THEDEMIANFF_V477_SUPPLY',
                         'visibleToPlayer',
-                        'scene.add(line);effects.push({mesh:line,t:.10'):
+                        'scene.add(line);effects.push({mesh:line,t:.085'):
               assert token in h, 'V47.7: regresión táctica '+token
           # V47.6: ensure Aurora supply caches and location systems remain bounded.
           for token in ('function v476UpdateLocation(dt)', 'function v474SupplyEvent(dt)',
@@ -446,9 +458,9 @@ jobs:
                         'v474RivalCombat(dt);v474SupplyEvent(dt);',
                         'attacker.shoot=Math.max',
                         'window.THEDEMIANFF_V474_SUPPLIES',
-                        'v474SupplyClock=28;v474SupplyCount=0;v474SupplyMarkers=[]'):
+                        'v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[]'):
               assert token in h, 'V47.4: falta rivalidad enemiga o suministros '+token
-          assert "versionCode 119" in Path('app/build.gradle').read_text(), 'V48.6: versionCode desfasado'
+          assert "versionCode 120" in Path('app/build.gradle').read_text(), 'V48.6: versionCode desfasado'
           assert "if(name==='ESTADÍSTICAS')" in h, 'V45: falta panel de estadísticas del jugador'
           for metric in ('PORCENTAJE DE VICTORIAS','BAJAS POR PARTIDA','MEJOR MARCA','XP PARA SUBIR'):
               assert metric in h, 'V45: falta métrica '+metric
@@ -491,8 +503,8 @@ jobs:
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 119' in gradle, 'V48.6 requiere versionCode 119'
-          assert "versionName '48.6-aurora-stability'" in gradle, 'V48.6: versión Android incorrecta'
+          assert 'versionCode 120' in gradle, 'V48.6 requiere versionCode 120'
+          assert "versionName '48.7-combat-stability'" in gradle, 'V48.6: versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
