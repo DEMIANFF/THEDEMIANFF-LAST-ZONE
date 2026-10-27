@@ -346,13 +346,19 @@ jobs:
                         'const margin=o.r+Math.max(.95,.5*b.root.scale.x)'):
               assert token in h, 'V47.3: falta sistema Aurora '+token
           assert 'const v470Compound=new THREE.Group()' not in h, 'V47.3: reapareció infraestructura genérica'
+          # V47.5: aim point must never appear over the lobby.
+          for token in ('#cross{display:none!important}',
+                        'body.v475InMatch #cross{display:block!important}',
+                        "document.body.classList.add('v475InMatch')",
+                        "document.body.classList.remove('v475InMatch')"):
+              assert token in h, 'V47.5: mira visible en lobby '+token
           for token in ('function v474RivalCombat(dt)', 'function v474SupplyEvent(dt)',
                         'v474RivalCombat(dt);v474SupplyEvent(dt);',
                         'attacker.shoot=Math.max',
                         'window.THEDEMIANFF_V474_SUPPLIES',
                         'v474SupplyClock=28;v474SupplyCount=0;v474SupplyMarkers=[]'):
               assert token in h, 'V47.4: falta rivalidad enemiga o suministros '+token
-          assert "versionCode 109" in Path('app/build.gradle').read_text(), 'V47.4: versionCode desfasado'
+          assert "versionCode 110" in Path('app/build.gradle').read_text(), 'V47.5: versionCode desfasado'
           assert "if(name==='ESTADÍSTICAS')" in h, 'V45: falta panel de estadísticas del jugador'
           for metric in ('PORCENTAJE DE VICTORIAS','BAJAS POR PARTIDA','MEJOR MARCA','XP PARA SUBIR'):
               assert metric in h, 'V45: falta métrica '+metric
@@ -395,8 +401,8 @@ jobs:
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 109' in gradle, 'V47.4 requiere versionCode 109'
-          assert "versionName '47.4-aurora-rivals'" in gradle, 'V47.4: versión Android incorrecta'
+          assert 'versionCode 110' in gradle, 'V47.5 requiere versionCode 110'
+          assert "versionName '47.5-lobby-reticle-fix'" in gradle, 'V47.5: versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
