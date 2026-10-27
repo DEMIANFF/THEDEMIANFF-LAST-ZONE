@@ -166,6 +166,8 @@
 /* V18 responsive functional lobby modules */
 .v18ModePick{position:absolute;right:1.6%;bottom:23%;z-index:4;display:flex;align-items:center;gap:8px;background:#091422df;border:1px solid #c9a76d99;padding:7px 9px;font-size:10px;font-weight:800}.v18ModePick select{max-width:190px;color:#f7dfaf;background:#142438;border:1px solid #bda36a;padding:5px;font-size:10px}
 .v18Panel{position:absolute;inset:11% 17% 13% 25%;z-index:20;background:linear-gradient(145deg,#0a1524f7,#18253bf7);border:1px solid #d8b675;box-shadow:0 20px 70px #000b;color:#fff;padding:16px;overflow-y:auto;overscroll-behavior:contain}.v18Panel.hidden{display:none!important}.v18PanelHeader{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #c3a67270;padding-bottom:10px;margin-bottom:12px}.v18PanelHeader small{font-size:9px;color:#d6b879;letter-spacing:2px}.v18PanelHeader h2{font-size:23px;margin:4px 0}.v18PanelHeader button{color:#fff;border:1px solid #ffffff55;background:#202b3d;font-size:18px;padding:5px 11px;cursor:pointer}.v18Grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px}.v18Item{background:#1c2a3b;border:1px solid #71819577;padding:12px;min-height:83px}.v18Item b{display:block;font-size:13px;color:#ffe0a2}.v18Item small{display:block;font-size:10px;color:#c7d3df;margin-top:6px}.v18Item button,.v18Panel button.v18Action{margin-top:10px;padding:8px 10px;border:1px solid #e8c582;background:#d7ab62;color:#14191f;font-weight:900;cursor:pointer}.v18Item button:disabled{opacity:.55;cursor:default}.v18Progress{height:7px;background:#273549;margin-top:8px}.v18Progress span{display:block;height:100%;background:#e7c078}.v18PanelNote{color:#aebdcc;font-size:11px;line-height:1.5;margin-top:12px}.v18Stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}.v18Stats span{padding:10px 14px;background:#1b2d3d;border:1px solid #ffffff22;font-size:12px}.v18Stats b{color:#ffdf9e}
+/* V45: light-weight player HUD and responsive local statistics, no extra 3D work */
+.v45ProfileName{min-width:110px}.v45ProfileName b{font-size:clamp(10px,1.5vw,14px)}#v45LobbyRecord{color:#95d8e9;letter-spacing:0;margin-top:3px}.v45XPTrack{display:block;width:100%;height:4px;background:#274052;margin-top:5px;border-radius:8px;overflow:hidden}.v45XPTrack span{display:block;height:100%;width:0;background:linear-gradient(90deg,#22d3ee,#f5cb75);transition:width .25s}.v45HeroCard{padding:14px;background:linear-gradient(115deg,#233a52,#101c2c);border:1px solid #b6dce466;margin-bottom:12px}.v45HeroTitle{font-size:clamp(16px,3vw,24px);color:#f5d596;font-weight:900}.v45HeroMeta{color:#c5d9e7;font-size:11px;margin-top:5px}.v45HeroProgress{background:#243a50;height:8px;border-radius:12px;overflow:hidden;margin:12px 0 5px}.v45HeroProgress span{display:block;background:linear-gradient(90deg,#21c6ed,#e6b75c);height:100%}.v45HeroStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.v45HeroStats>div{min-width:0;padding:10px 5px;text-align:center;border:1px solid #7299b258;background:#102337}.v45HeroStats strong{display:block;color:#f7d495;font-size:clamp(16px,3vw,24px)}.v45HeroStats small{font-size:9px;color:#ccdce8}.v45Action{border:1px solid #b8d8e2;background:#24465b;color:white;padding:10px 12px;font-weight:800;cursor:pointer;width:100%;min-height:43px}.v17Profile:focus-visible{outline:2px solid #22d3ee;outline-offset:3px}@media(max-width:650px){.v45ProfileName{min-width:88px}.v45HeroCard{padding:10px}.v45HeroStats{gap:5px}}
 @media(max-width:650px){.v18Panel{inset:7% 4% 12% 4%;padding:10px}.v18PanelHeader h2{font-size:17px}.v18Grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.v18Item{padding:8px;min-height:64px}.v18Item b{font-size:11px}.v18Item small{font-size:9px}.v18ModePick{bottom:28%;right:2%;padding:4px}.v18ModePick select{max-width:125px;font-size:8px}.v17Left{top:22%}}
 /* V22 - Battle Royale lobby polish, lightweight GPU-friendly effects */
 .v17Lobby{background:radial-gradient(ellipse at 68% 22%,#214b62 0%,#102638 47%,#08131f 100%)}
@@ -433,7 +435,7 @@ body:has(#v37FlightHUD:not(.hidden)) #minimap{position:fixed!important;top:12px!
  </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
 <div id="v22Edition">V38 · AURORA EVOLUTION</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
-<div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer"><span class="v17Avatar">D</span><span><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
+<div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
 <div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V38</small></div>
@@ -2773,7 +2775,7 @@ function v18Refresh(){
  const p=v18Progress;
  $('v18Credits').textContent=p.credits.toLocaleString('es-CO');
  $('v18XP').textContent=p.xp.toLocaleString('es-CO');
- $('v18Level').textContent='NV. '+(1+Math.floor(p.xp/350));
+ $('v18Level').textContent='NV. '+(1+Math.floor(p.xp/350));const v45Record=$('v45LobbyRecord'),v45Fill=$('v45XPFill');if(v45Record)v45Record.textContent=p.wins+' victorias · '+p.kills+' bajas';if(v45Fill)v45Fill.style.width=(p.xp%350/350*100).toFixed(1)+'%';
 }
 function v18Save(){
  try{
@@ -2903,8 +2905,13 @@ function v18Open(name){
  }else if(name==='EVENTOS'){
   html+=`<div class="v18Grid">${card('OPERACIÓN SUPERVIVENCIA','Desafío: consigue 3 bajas en una partida contra 20 IA. Premio +120 créditos y +120 XP.','JUGAR DESAFÍO','event:royale')}${card('PRÁCTICA TÁCTICA','Desafío: consigue 2 bajas en entrenamiento contra 8 IA. Premio +80 créditos y +80 XP.','ENTRAR','event:training')}${card('EVENTOS COMPLETADOS',String(p.eventCompletions||0))}</div>`;
  }else{
-  html+=`<div class="v18Grid">${card('VICTORIAS',String(p.wins))}${card('BAJAS TOTALES',String(p.kills))}${card('RÉCORD',String(p.best))}</div>`;
+  const level=1+Math.floor(p.xp/350),levelXP=p.xp%350,rate=p.matches?Math.round(p.wins/p.matches*100):0,kd=p.matches?(p.kills/p.matches).toFixed(2):'0.00';
+  const operator=v18Skins[p.skin]?.name||'OPERADOR';
+  html+=`<section class="v45HeroCard"><div class="v45HeroTitle">✦ PERFIL DE OPERADOR · NV. ${level}</div><div class="v45HeroMeta">Operador: ${operator} · Estadísticas almacenadas en este dispositivo</div><div class="v45HeroProgress" role="progressbar" aria-valuenow="${levelXP}" aria-valuemin="0" aria-valuemax="350"><span style="width:${Math.round(levelXP/350*100)}%"></span></div><div class="v45HeroMeta">${levelXP} / 350 XP para el próximo nivel</div><div class="v45HeroStats"><div><strong>${p.wins}</strong><small>VICTORIAS</small></div><div><strong>${p.kills}</strong><small>BAJAS</small></div><div><strong>${p.matches}</strong><small>PARTIDAS</small></div><div><strong>${rate}%</strong><small>VICTORIAS/PARTIDA</small></div><div><strong>${kd}</strong><small>BAJAS/PARTIDA</small></div><div><strong>${p.best}</strong><small>RÉCORD</small></div></div><button type="button" class="v45Action" id="v45OpenAccount">⚙ VER CUENTA Y RESPALDOS</button></section>`;
  }
+ body.innerHTML=html;
+ const v45AccountButton=body.querySelector('#v45OpenAccount');
+ if(v45AccountButton)v45AccountButton.addEventListener('click',()=>{panel.classList.add('hidden');$('menuSettings').click();const accountTab=document.querySelector('[data-tab="account"]');if(accountTab)accountTab.click();v446UpdateAccountProfile();});
  body.innerHTML=html;
  body.querySelectorAll('[data-v18]').forEach(b=>b.addEventListener('click',()=>{
   if(b.disabled)return;
@@ -2947,7 +2954,7 @@ document.querySelectorAll('[data-v37mode]').forEach(button=>button.addEventListe
  $('v18Mode').value=mode;$('v18Mode').dispatchEvent(new Event('change'));$('v37ModeOverlay').classList.add('hidden');
 }));
 
-$('v18Profile').onclick=()=>v18Open('ESTADÍSTICAS');$('v18Close').onclick=()=>$('v18Panel').classList.add('hidden');
+$('v18Profile').onclick=()=>v18Open('ESTADÍSTICAS');$('v18Profile').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();v18Open('ESTADÍSTICAS');}};$('v18Close').onclick=()=>$('v18Panel').classList.add('hidden');
 // Place the event dialog at the document root, above WebGL and all HUD layers.
 document.body.appendChild($('v362Events'));
 // V38: one dependable operations hub with two independent views.
