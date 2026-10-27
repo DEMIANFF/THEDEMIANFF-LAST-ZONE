@@ -972,9 +972,38 @@ function v428CreateTrainingWorld(){
  }));
  zoneRing.position.y=.09;scene.add(zoneRing);
  water=null;
- worldObjects=[]; // no obstáculos ni colisiones invisibles del antiguo mapa
+ worldObjects=[]; // Escenario nuevo con volúmenes de colisión correspondientes a las estructuras visibles.
+ // V47.0: compact, physical battle training compound (previously only an empty plane).
+ // All obstacles have matching collision volumes; keep the center clear for camera tests.
+ const v470Concrete=new THREE.MeshStandardMaterial({color:'#79878b',roughness:.88});
+ const v470Steel=new THREE.MeshStandardMaterial({color:'#41545f',roughness:.72,metalness:.18});
+ const v470Accent=new THREE.MeshStandardMaterial({color:'#d7a76a',roughness:.73});
+ const v470Runway=new THREE.MeshStandardMaterial({color:'#a7b8bd',roughness:.93,polygonOffset:true,polygonOffsetFactor:-1});
+ const v470Compound=new THREE.Group();scene.add(v470Compound);
+ // Painted cross-shaped approach paths, slightly raised to avoid z-fighting.
+ box(6,.025,126,v470Runway,v470Compound,0,.014,0);
+ box(126,.025,6,v470Runway,v470Compound,0,.015,0);
+ // Four recognizable low-cost structures placed away from player spawn center.
+ for(const [x,z] of [[-44,-44],[44,-44],[-44,44],[44,44]]){
+  const g=new THREE.Group();g.position.set(x,0,z);v470Compound.add(g);
+  box(11,4.3,8,v470Concrete,g,0,2.15,0);
+  box(12,.55,9,v470Steel,g,0,4.48,0);
+  box(2,2.8,.13,v470Steel,g,0,1.4,4.08);
+  for(const wx of [-3.1,3.1])box(1.65,1.25,.14,mats.glass,g,wx,2.7,4.1);
+  box(8,.16,.55,v470Accent,g,0,3.75,4.28);
+  worldObjects.push({x,z,r:6.45,h:4.85,v403Roof:true,v403HalfW:5.7,v403HalfD:4.3});
+ }
+ // Waist-height cover blocks: the player, projectiles and AI agree on their volumes.
+ for(const [x,z] of [[-26,-16],[26,-16],[-26,16],[26,16],[-16,-28],[16,-28],[-16,28],[16,28]]){
+  const g=new THREE.Group();g.position.set(x,0,z);v470Compound.add(g);
+  box(3.2,1.5,1.7,v470Concrete,g,0,.75,0);
+  box(3.35,.18,1.85,v470Steel,g,0,1.56,0);
+  box(2.6,.13,.08,v470Accent,g,0,1.18,.9);
+  worldObjects.push({x,z,r:2.05,h:1.68});
+ }
+ window.v470CompoundReady=true;
  window.v428TrainingBase=true;
- console.info('[V42.8] Base plana: edificios, rocas y decoracion desactivados; combate activo');
+ console.info('[V47.0] Complejo de entrenamiento con 4 estructuras y 8 coberturas físicas');
 }
 function createWorld(){scene=new THREE.Scene();scene.background=new THREE.Color('#49677b');scene.fog=new THREE.FogExp2('#7795a5',.0013);scene.add(new THREE.AmbientLight('#b5cfdf',.40));v16Hemi=new THREE.HemisphereLight('#bfdbe5','#526273',1.0);scene.add(v16Hemi);const sun=new THREE.DirectionalLight('#f1e6d6',1.32);sun.position.set(-72,62,42);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.normalBias=.025;sun.shadow.radius=2;sun.shadow.camera.left=-155;sun.shadow.camera.right=155;sun.shadow.camera.top=155;sun.shadow.camera.bottom=-155;sun.shadow.bias=-.0005;scene.add(sun);v16Sun=sun;let geo=new THREE.PlaneGeometry(WORLD,WORLD,120,120);geo.rotateX(-Math.PI/2);let pos=geo.attributes.position;for(let i=0;i<pos.count;i++)pos.setY(i,h(pos.getX(i),pos.getZ(i)));geo.computeVertexNormals();terrain=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:'#a2bcc7',roughness:.97,metalness:0,flatShading:false}));terrain.receiveShadow=true;scene.add(terrain);const sea=new THREE.Mesh(new THREE.PlaneGeometry(900,900),new THREE.MeshStandardMaterial({color:'#177fa3',metalness:.05,roughness:.4,transparent:true,opacity:.9,depthWrite:false}));sea.rotation.x=-Math.PI/2;sea.position.y=-12;scene.add(sea);water=sea;const coastGeo=new THREE.RingGeometry(HALF-8,HALF+5,128,4);coastGeo.rotateX(-Math.PI/2);{const cp=coastGeo.attributes.position;for(let i=0;i<cp.count;i++)cp.setY(i,h(cp.getX(i),cp.getZ(i))+.05);coastGeo.computeVertexNormals();}const coast=new THREE.Mesh(coastGeo,new THREE.MeshStandardMaterial({color:'#b2e2ee',roughness:.48,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));scene.add(coast);
 // V22 Puerto Aurora: central coastal plaza, cover planters and street furniture.
@@ -1336,16 +1365,16 @@ function v22AnimateLila(dt){
  // Prevent unbounded animation angles when a GLB contains different rest rotations.
  if(!c.v29RestPose){c.v29RestPose={};for(const name of Object.keys(j)){const part=j[name];if(part)c.v29RestPose[name]={x:part.rotation.x,z:part.rotation.z};}}
  const poseFromRest=(name,x,z=0)=>{const part=j[name],rest=c.v29RestPose[name];if(!part||!rest)return;part.rotation.x+=(rest.x+x-part.rotation.x)*ease;part.rotation.z+=(rest.z+z-part.rotation.z)*ease;};
- poseFromRest('leftLeg',air?-.18:crouch?-1.02:wave*.72*pace,crouch?-.20:0);
- poseFromRest('rightLeg',air?.28:crouch?-1.02:-wave*.72*pace,crouch?.20:0);
- poseFromRest('leftArm',reload?-.95:aim?-1.05:air?-.3:-wave*.52*pace,-.12);
- poseFromRest('rightArm',reload?-.6:aim?-1.2:air?-.3:wave*.52*pace,.12);
+ poseFromRest('leftLeg',air?-.18:crouch?-1.02:wave*(sprintHeld?.94:.72)*pace,crouch?-.20:0);
+ poseFromRest('rightLeg',air?.28:crouch?-1.02:-wave*(sprintHeld?.94:.72)*pace,crouch?.20:0);
+ poseFromRest('leftArm',v469HealTimer>0?-.75:reload?-.95:aim?-1.05:air?-.3:-wave*(sprintHeld?.70:.52)*pace,-.12);
+ poseFromRest('rightArm',v469HealTimer>0?-1.15:reload?-.6:aim?-1.2:air?-.3:wave*(sprintHeld?.70:.52)*pace,.12);
  poseFromRest('leftHair',sway*.085+(speed>.5?.10:0));
  poseFromRest('rightHair',-sway*.085+(speed>.5?.10:0));
  if(c.v22BaseY===undefined)c.v22BaseY=model.position.y;
- const targetY=c.v22BaseY-(crouch?.63:0)+(shooting?.018*Math.sin(time*40):0);
+ const targetY=c.v22BaseY-(crouch?.63:0)+(shooting?.018*Math.sin(time*40):0)-v470LandingPose*.07;
  model.position.y+=(targetY-model.position.y)*ease;
- model.rotation.x+=((air?-.10:crouch?.19:0)-model.rotation.x)*ease;
+ model.rotation.x+=((air?-.10:crouch?.19:0)+(v469HealTimer>0?.12:0)+v470LandingPose*.08-model.rotation.x)*ease;
 }
 // V22: original playable 3D interpretation of the submitted lavender-haired operator.
 function v22FemaleOperator(){
@@ -3350,11 +3379,11 @@ function v24LobbyTick(){
  }
 }
 
-function start(){unlockAudio();v470StartSoundPending=true;v123ResetInputs();if(!renderer){renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:'high-performance',precision:'highp',stencil:false});renderer.setPixelRatio(mobile?Math.min(v38FhdRatio(),1):v38FhdRatio());
+function start(){unlockAudio();v123ResetInputs();if(!renderer){renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:'high-performance',precision:'highp',stencil:false});renderer.setPixelRatio(mobile?Math.min(v38FhdRatio(),1):v38FhdRatio());
  // V40.5: controlled WebGL lifecycle for Android memory pressure.
  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();v405ContextLost=true;console.warn('[V40.5] WebGL context lost');},false);
  renderer.domElement.addEventListener('webglcontextrestored',()=>{v405ContextLost=false;v405ContextRestores++;v26Performance.scale=Math.min(v26Performance.scale,.64);v26ApplyPixelRatio();},false);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!mobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;// V40 screenshot-driven calibration: prevent blown-out white snow and preserve architecture edges.
- renderer.toneMappingExposure=.72;if('outputColorSpace' in renderer && THREE.SRGBColorSpace)renderer.outputColorSpace=THREE.SRGBColorSpace;else renderer.outputEncoding=THREE.sRGBEncoding;$('game').appendChild(renderer.domElement);camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,480);window.addEventListener('resize',resize);renderer.domElement.addEventListener('click',()=>{if(running&&!paused&&!mobile){const pl=renderer.domElement.requestPointerLock?.();if(pl&&pl.catch)pl.catch(()=>{})}});document.addEventListener('mousemove',e=>{if(running&&!paused&&!mobile)aim(e.movementX,e.movementY)});document.addEventListener('mousedown',e=>{if(e.button===0&&running&&!paused)fireHeld=true});document.addEventListener('mouseup',()=>fireHeld=false);requestAnimationFrame(frame);}reset();running=true;paused=false;$('v18Panel').classList.add('hidden');$('menu').classList.add('hidden');$('end').classList.add('hidden');$('pausePanel').classList.add('hidden');if(mobile)$('controls').classList.remove('hidden');else renderer.domElement.requestPointerLock?.();clock.getDelta();applyPrefs();$('v362Settings').classList.remove('hidden');$('v362Events').classList.add('hidden');v36Begin();}
+ renderer.toneMappingExposure=.72;if('outputColorSpace' in renderer && THREE.SRGBColorSpace)renderer.outputColorSpace=THREE.SRGBColorSpace;else renderer.outputEncoding=THREE.sRGBEncoding;$('game').appendChild(renderer.domElement);camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,480);window.addEventListener('resize',resize);renderer.domElement.addEventListener('click',()=>{if(running&&!paused&&!mobile){const pl=renderer.domElement.requestPointerLock?.();if(pl&&pl.catch)pl.catch(()=>{})}});document.addEventListener('mousemove',e=>{if(running&&!paused&&!mobile)aim(e.movementX,e.movementY)});document.addEventListener('mousedown',e=>{if(e.button===0&&running&&!paused)fireHeld=true});document.addEventListener('mouseup',()=>fireHeld=false);requestAnimationFrame(frame);}reset();v470StartSoundPending=true;running=true;paused=false;$('v18Panel').classList.add('hidden');$('menu').classList.add('hidden');$('end').classList.add('hidden');$('pausePanel').classList.add('hidden');if(mobile)$('controls').classList.remove('hidden');else renderer.domElement.requestPointerLock?.();clock.getDelta();applyPrefs();$('v362Settings').classList.remove('hidden');$('v362Events').classList.add('hidden');v36Begin();}
 $('v362Settings').addEventListener('click',e=>{
  e.preventDefault();e.stopPropagation();
  if(!running)return;
