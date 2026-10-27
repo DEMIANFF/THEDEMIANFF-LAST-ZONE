@@ -2339,7 +2339,7 @@ v40EnemyMark.color.set(['#ff946d','#ffd16e','#ff7272','#9ce6ff'][roleIndex]);
 const role=['ASALTO','EXPLORADOR','DEFENSOR','FRANCOTIRADOR'][roleIndex];
 const roleHp=[100,78,145,85][roleIndex],roleSpeed=[1,1.28,.78,.9][roleIndex];
 c.root.scale.setScalar(1.24*[1,.92,1.1,1][roleIndex]);
-bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),think:rand(0,3),shoot:rand(.5,2),speed:rand(3.2,4.6)*roleSpeed,velocityX:0,velocityZ:0,alive:true,strafe:rand(-1,1),phase:rand(0,6),lastHit:0,alert:0,burst:rand(.2,.65),tactic:rand(0,6.28),coverTimer:0,coverX:null,coverZ:null,shotPose:0});}function spawnPickup(type,x,z){const group=new THREE.Group();group.position.set(x,ground(x,z)+.65,z);const color=type==='med'?'#ff5959':type==='armor'?'#25dcff':'#ffd54c';box(.9,.45,.9,mat(color,.4,.2),group);box(.45,.08,.1,mats.dark,group,0,.24,0);if(type==='med'){box(.42,.08,.08,mats.wall,group,0,.25,.45);box(.08,.42,.08,mats.wall,group,0,.25,.45)}const glow=new THREE.Mesh(new THREE.CylinderGeometry(.84,.84,.08,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.86,depthWrite:false}));glow.position.y=-.5;group.add(glow);
+bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),think:rand(0,3),shoot:rand(.5,2),speed:rand(3.2,4.6)*roleSpeed,velocityX:0,velocityZ:0,alive:true,strafe:rand(-1,1),phase:rand(0,6),lastHit:0,alert:0,burst:rand(.2,.65),tactic:rand(0,6.28),coverTimer:0,coverX:null,coverZ:null,shotPose:0,lostSight:5,lastSeenAngle:0,stuckTime:0});}function spawnPickup(type,x,z){const group=new THREE.Group();group.position.set(x,ground(x,z)+.65,z);const color=type==='med'?'#ff5959':type==='armor'?'#25dcff':'#ffd54c';box(.9,.45,.9,mat(color,.4,.2),group);box(.45,.08,.1,mats.dark,group,0,.24,0);if(type==='med'){box(.42,.08,.08,mats.wall,group,0,.25,.45);box(.08,.42,.08,mats.wall,group,0,.25,.45)}const glow=new THREE.Mesh(new THREE.CylinderGeometry(.84,.84,.08,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.86,depthWrite:false}));glow.position.y=-.5;group.add(glow);
  const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.39,0),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.96,depthWrite:false,depthTest:true}));beacon.position.y=1.45;group.add(beacon);
  // V40 easy-to-identify medkits, ammunition and armor: visible pillar + floating ring.
  const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,1.85,8),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.54,depthWrite:false,depthTest:true}));pillar.position.y=.45;group.add(pillar);
@@ -2535,30 +2535,50 @@ playerModel.gun.position.y=1.45-v431VisualKick*.045-v395Reload*.22-v395Swap*.30+
 $('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':fireHeld?'◉ MIRA DE COMBATE':'⊕ MIRA LIBRE';
 zoneTick+=dt;if($('v18Mode').value!=='training'&&zoneTick>45){zoneTick=0;zonePhase++;zoneCenter.x=clamp(zoneCenter.x+rand(-12,12),-40,40);zoneCenter.y=clamp(zoneCenter.y+rand(-12,12),-40,40);toast('⚠ LA ZONA SE ESTÁ CERRANDO');v9Event('⚠ NUEVA ZONA DE COMBATE')}const targetRadius=$('v18Mode').value==='training'?225:Math.max(13,225*Math.pow(.75,zonePhase+clamp(zoneTick/45,0,1)));zoneRadius+=(targetRadius-zoneRadius)*Math.min(1,dt*1.8);zoneRing.position.set(zoneCenter.x,ground(zoneCenter.x,zoneCenter.y)+.25,zoneCenter.y);zoneRing.scale.set(zoneRadius,zoneRadius,zoneRadius);if(Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y)>zoneRadius){damageFlash=Math.max(damageFlash,.05);hp-=dt*(2.5+zonePhase*.9);if(hp<=0){hp=0;finish(false);}}
 for(const b of bots){if(!b.alive||b.airborne)continue;const px=player.position.x-b.x,pz=player.position.z-b.z,d=Math.hypot(px,pz);
-const visible=d<58&&!blocked3D(b.x,ground(b.x,b.z)+1.55,b.z,player.position.x,ground(player.position.x,player.position.z)+(crouchHeld?.95:1.55),player.position.z);
+// V46.5: line of sight from proportional eye height, not the old short model.
+const enemyEye=ground(b.x,b.z)+1.55*b.root.scale.y;
+const playerEye=ground(player.position.x,player.position.z)+(crouchHeld?1.10:1.75)*player.scale.y;
+const visible=d<58&&!blocked3D(b.x,enemyEye,b.z,player.position.x,playerEye,player.position.z);
 b.think-=dt;b.shoot-=dt;b.lastHit=Math.max(0,b.lastHit-dt);b.coverTimer=Math.max(0,b.coverTimer-dt);
+b.lostSight=Math.max(0,(b.lostSight||0)+(visible?-dt*3:dt));
+if(visible)b.lastSeenAngle=Math.atan2(px,pz);
+b.stuckTime=Math.max(0,(b.stuckTime||0)-dt*.5);
 b.alert=clamp(b.alert+(visible?dt*2:-dt*.45),0,1);
 b.shotPose=Math.max(0,b.shotPose-dt*4);
 if(b.think<=0){
- b.think=visible?rand(.35,.85):rand(1.0,2.3);
- if((visible||b.lastHit>.1)&&b.coverTimer<=0){const cover=v394FindCover(b,player.position.x,player.position.z);b.coverX=cover?.x??null;b.coverZ=cover?.z??null;b.coverTimer=rand(2.5,4.5);}
+ b.think=visible?rand(.33,.72):b.lostSight<2?rand(.45,.9):rand(1.0,2.3);
+ if((visible||b.lastHit>.1)&&b.coverTimer<=0){
+ const cover=v394FindCover(b,player.position.x,player.position.z);
+ b.coverX=cover?.x??null;b.coverZ=cover?.z??null;
+ b.coverTimer=rand(b.role==='DEFENSOR'?1.5:2.5,b.role==='DEFENSOR'?3:4.5);
+}
  if(visible){
   const pursue=Math.atan2(px,pz);
   const strafeDirection=b.strafe>=0?1:-1;
   const flank=(b.role==='FRANCOTIRADOR'?1.4:d<13?1.6:d<32?.85:.35)*strafeDirection;
   b.moveAngle=pursue+flank+rand(-.16,.16);
   if(d<(b.role==='FRANCOTIRADOR'?28:9))b.moveAngle=pursue+Math.PI+rand(-.35,.35);
-  if(Math.random()<.27)b.strafe*=-1;
+  if(Math.random()<(b.role==='EXPLORADOR'?.42:b.role==='FRANCOTIRADOR'?.15:.27))b.strafe*=-1;
   if(b.coverX!==null&&b.coverZ!==null){const cd=Math.hypot(b.coverX-b.x,b.coverZ-b.z);if(cd>1.3)b.moveAngle=Math.atan2(b.coverX-b.x,b.coverZ-b.z);else{b.coverX=null;b.coverZ=null;b.moveAngle=pursue+Math.PI*.5*b.strafe;}}
- }else b.moveAngle=rand(-Math.PI,Math.PI);
- if(Math.hypot(b.x-zoneCenter.x,b.z-zoneCenter.y)>zoneRadius-12)b.moveAngle=Math.atan2(zoneCenter.x-b.x,zoneCenter.y-b.z);
-}const tacticalSpeed=b.alert>.3?b.speed*(d<12?.82:1.08):b.speed*.75;
+ }else if(b.lostSight<2&&Number.isFinite(b.lastSeenAngle)){
+ b.moveAngle=b.lastSeenAngle+Math.sin(b.tactic)*.32;
+}else b.moveAngle=rand(-Math.PI,Math.PI);
+ if(Math.hypot(b.x-zoneCenter.x,b.z-zoneCenter.y)>zoneRadius-12){
+ b.moveAngle=Math.atan2(zoneCenter.x-b.x,zoneCenter.y-b.z);
+ b.coverX=null;b.coverZ=null; // Zone escape outranks taking cover.
+}
+if(b.stuckTime>1.1){b.moveAngle+=Math.PI*.5*(b.strafe||1);b.stuckTime=0;b.coverX=null;b.coverZ=null;}
+}const tacticalSpeed=b.alert>.3?b.speed*(d<12?.82:(b.role==='EXPLORADOR'?1.15:1.08)):b.speed*.75;
 const desiredVX=Math.sin(b.moveAngle)*tacticalSpeed,desiredVZ=Math.cos(b.moveAngle)*tacticalSpeed;
 const easing=1-Math.exp(-dt*6.5);
 b.velocityX+=(desiredVX-b.velocityX)*easing;b.velocityZ+=(desiredVZ-b.velocityZ)*easing;
 const vx=b.velocityX*dt,vz=b.velocityZ*dt;
 const bx=clamp(b.x+vx,-HALF+4,HALF-4),bz=clamp(b.z+vz,-HALF+4,HALF-4);
-if(!solid(bx,bz,.6)){b.x=bx;b.z=bz;}else{b.velocityX*=.35;b.velocityZ*=.35;b.think=0;}
+if(!solid(bx,bz,.7)){b.x=bx;b.z=bz;}else{
+ b.velocityX*=.35;b.velocityZ*=.35;b.think=0;
+ b.stuckTime=Math.min(2,(b.stuckTime||0)+dt*4);
+ b.strafe=-b.strafe;
+}
 b.root.position.set(b.x,ground(b.x,b.z),b.z);
 const facing=d<36?Math.atan2(px,pz):Math.atan2(b.velocityX,b.velocityZ);
 b.root.rotation.y+=Math.atan2(Math.sin(facing-b.root.rotation.y),Math.cos(facing-b.root.rotation.y))*(1-Math.exp(-dt*8));
