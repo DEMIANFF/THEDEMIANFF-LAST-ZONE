@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 126
-        versionName '49.3-lila-scenery'
+        versionCode 127
+        versionName '49.4-cloud-lobby-models'
     }
     signingConfigs {
         persistentRelease {
@@ -57,7 +57,7 @@ tasks.register('bundleThree') {
 }
 tasks.named('preBuild').configure { dependsOn(tasks.named('bundleThree')) }
 
-// V44.4: SDK installed only; Google login and cloud persistence are not enabled yet.
+// V49.4: Firebase Auth and Firestore support explicit user-approved per-account backups.
 dependencies {
     implementation platform('com.google.firebase:firebase-bom:33.15.0')
     implementation 'com.google.firebase:firebase-auth'
