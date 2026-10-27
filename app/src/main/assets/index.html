@@ -252,6 +252,26 @@
 #weapon.v461LastRounds{border-color:#ff9b47aa}
 #weapon.v461LastRounds strong{color:#ffd18b}
 #weapon.v461EmptyClip{border-color:#ff5555aa}
+/* V46.2 landscape HUD: transparent edge controls and an unobstructed center */
+@media(pointer:coarse) and (orientation:landscape){
+ #controls:not(.hudEditing) #stickBase{left:max(20px,env(safe-area-inset-left));bottom:24px;width:110px;height:110px;background:#ffffff0c;border-color:#d4f8ff3b}
+ #controls:not(.hudEditing) #stick{left:32px;top:32px;width:43px;height:43px;background:#d8faff77}
+ #controls:not(.hudEditing) #mobileBtns{right:max(10px,env(safe-area-inset-right));bottom:67px;gap:7px;grid-template-columns:repeat(3,52px)}
+ #controls:not(.hudEditing) #mobileBtns button{width:52px;height:52px;background:#071b2988;border-color:#d1f6ff60;font-size:10px}
+ #controls:not(.hudEditing) #mobileBtns #fire{width:68px;height:68px;background:#b34c1699;border-color:#ffb06bc5}
+ #health{bottom:max(10px,env(safe-area-inset-bottom));left:49%;width:min(330px,38vw);padding:7px 10px}
+ #weapon{bottom:max(9px,env(safe-area-inset-bottom));right:max(8px,env(safe-area-inset-right));padding:7px 10px}
+ #missionHud{top:max(8px,env(safe-area-inset-top));font-size:10px;padding:4px 9px}
+ #v362LootLegend{opacity:.8}
+}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:430px){
+ #controls:not(.hudEditing) #mobileBtns{bottom:54px;gap:5px}
+ #controls:not(.hudEditing) #mobileBtns button{width:46px;height:46px;font-size:9px}
+ #controls:not(.hudEditing) #mobileBtns #fire{width:61px;height:61px}
+ #controls:not(.hudEditing) #stickBase{width:98px;height:98px;bottom:19px}
+ #controls:not(.hudEditing) #stick{left:28px;top:28px;width:39px;height:39px}
+}
+
 #zoneInfo.v461ZoneDanger{border-color:#ff6b6b;background:#38111bdc;color:#ffe7e7}
 #v7Toast{max-width:min(520px,90vw);border-radius:12px;box-shadow:0 5px 18px #0009}
 #combatFeed{max-width:90vw;overflow-wrap:anywhere;letter-spacing:.5px;filter:drop-shadow(0 2px 7px #000a)}
