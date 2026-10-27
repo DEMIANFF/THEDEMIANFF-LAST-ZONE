@@ -2351,15 +2351,15 @@ function v394FindCover(b,px,pz){
  let best=null,score=Infinity,checked=0;
  for(const o of worldObjects){
   const dx=o.x-b.x,dz=o.z-b.z,dist=Math.hypot(dx,dz);
-  if(dist<2.5||dist>19||!o.r||!o.h||o.h<1.35)continue;
-  if(++checked>36)break;
+  if(dist<2.5||dist>23||!o.r||!o.h||o.h<1.35)continue;
+  if(++checked>52)break;
   const awayX=o.x-px,awayZ=o.z-pz,len=Math.hypot(awayX,awayZ)||1;
   // V47.3: cover points must stand OUTSIDE the source obstacle collision radius.
   const margin=o.r+Math.max(.95,.5*b.root.scale.x);
   const x=o.x+awayX/len*margin,z=o.z+awayZ/len*margin;
-  if(Math.abs(x)>HALF-4||Math.abs(z)>HALF-4||solid(x,z,.6))continue;
+  if(Math.abs(x)>HALF-6||Math.abs(z)>HALF-6||solid(x,z,.75))continue;
   if(!blocked3D(px,ground(px,pz)+1.5,pz,x,ground(x,z)+1.5,z))continue;
-  const cost=Math.hypot(x-b.x,z-b.z)+dist*.15+(o.h<2?.35:0);
+  const cost=Math.hypot(x-b.x,z-b.z)+dist*.11+(o.h<2?1.1:0)+(v477InZone(x,z)?0:7);
   if(cost<score){score=cost;best={x,z};}
  }
  return best;
@@ -2721,12 +2721,12 @@ function v474SupplyEvent(dt){
    item.beacon.material.opacity=.60+.20*Math.sin(time*2+item.x);
   }
  }
- if(v474SupplyClock>0||v474SupplyCount>=4)return;
- v474SupplyClock=85;
+ if(v474SupplyClock>0||v474SupplyCount>=5)return;
+ v474SupplyClock=79;
  const pois=(window.v27AuroraPOI||[]).filter(p=>p.name!=='CRÁTER AURORA'&&
- Math.hypot(p.x-zoneCenter.x,p.z-zoneCenter.y)<zoneRadius-7);
- const pick=pois.length?pois[(v474SupplyCount*3+1)%pois.length]:null;
- let x=pick?pick.x:zoneCenter.x+12,z=pick?pick.z:zoneCenter.y+12;
+ Math.hypot(p.x-zoneCenter.x,p.z-zoneCenter.y)<zoneRadius-10);
+ const pick=pois.length?pois[(v474SupplyCount*5+1)%pois.length]:null;
+ let x=pick?pick.x:clamp(zoneCenter.x+10,-HALF+9,HALF-9),z=pick?pick.z:clamp(zoneCenter.y+10,-HALF+9,HALF-9);
  if(solid(x,z,2.5)){
   let located=false;
   for(let rad=6;rad<=21&&!located;rad+=5)for(let n=0;n<16;n++){
@@ -2734,22 +2734,23 @@ function v474SupplyEvent(dt){
          tz=clamp(z+Math.sin(theta)*rad,-HALF+8,HALF-8);
    if(!solid(tx,tz,2.5)){x=tx;z=tz;located=true;break;}
   }
-  if(!located)return;
+  if(!located){v474SupplyClock=12;return;}
  }
  const root=new THREE.Group();root.position.set(x,ground(x,z),z);
  const container=new THREE.MeshStandardMaterial({color:'#476a7c',roughness:.55,metalness:.38});
- const glow=new THREE.MeshBasicMaterial({color:'#70f8ea',transparent:true,opacity:.83,depthWrite:false});
+ const glow=new THREE.MeshBasicMaterial({color:'#70f8ea',transparent:true,opacity:.83,depthWrite:false,depthTest:true});
  box(1.9,1.55,1.5,container,root,0,.78,0);
  box(1.95,.16,1.56,mats.gold,root,0,1.6,0);
- const beacon=new THREE.Mesh(new THREE.CylinderGeometry(.10,.10,5,7),glow);
- beacon.position.y=4;root.add(beacon);
- const ring=new THREE.Mesh(new THREE.TorusGeometry(1.65,.10,6,24),glow.clone());
- ring.rotation.x=Math.PI/2;ring.position.y=.15;root.add(ring);
- scene.add(root);const cache={x,z,root,ring,beacon,ownMaterials:[container,glow,ring.material],remaining:0,expires:time+145};v474SupplyMarkers.push(cache);
+ const beacon=new THREE.Mesh(new THREE.CylinderGeometry(.085,.085,5,7),glow);
+ beacon.position.y=3.65;root.add(beacon);
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(1.72,.085,6,24),glow.clone());
+ ring.rotation.x=Math.PI/2;ring.position.y=.21;root.add(ring);
+ scene.add(root);const cache={x,z,root,ring,beacon,ownMaterials:[container,glow,ring.material],remaining:0,expires:time+155};v474SupplyMarkers.push(cache);
  for(const [kind,ox,oz] of [['med',3,0],['armor',-3,0],['ammo',0,3],['ammo',0,-3]]){
-  const px=clamp(x+ox,-HALF+4,HALF-4),pz=clamp(z+oz,-HALF+4,HALF-4);
-  if(!solid(px,pz,.7)){spawnPickup(kind,px,pz);const spawned=pickups[pickups.length-1];spawned.v476Cache=cache;cache.remaining++;}
+  const px=clamp(x+ox,-HALF+5,HALF-5),pz=clamp(z+oz,-HALF+5,HALF-5);
+  if(!solid(px,pz,.9)){spawnPickup(kind,px,pz);const spawned=pickups[pickups.length-1];spawned.v476Cache=cache;cache.remaining++;}
  }
+ if(cache.remaining===0){scene.remove(root);root.traverse(o=>o.geometry?.dispose());for(const material of cache.ownMaterials)material.dispose();v474SupplyMarkers.pop();v474SupplyClock=15;return;}
  v474SupplyCount++;
  toast('📦 SUMINISTROS AURORA · '+(pick?pick.name:'ZONA SEGURA'));
  v9Event('📦 SUMINISTROS DE COMBATE · '+(pick?pick.name:'AURORA'));
