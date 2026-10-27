@@ -1331,8 +1331,8 @@ function v22AnimateLila(dt){
  // This runs even without the optional GLB; the GLB animation remains untouched.
  if(c.v40Ponytail&&!c.v22Loaded){
   const speed=Math.min(1,Math.hypot(moveVX,moveVZ)/11);
-  const targetX=(onGround?0:-.18)+Math.sin(c.animPhase*1.1)*(.035+.13*speed);
-  const targetZ=Math.sin(c.animPhase*.65)*(.04+.11*speed);
+  const targetX=(onGround?0:-.23)+Math.sin(c.animPhase*1.1)*(.035+.14*speed)+(sprintHeld?.05:0);
+  const targetZ=Math.sin(c.animPhase*.65)*(.04+.11*speed)+(adsHeld?-.04:0);
   const ease=1-Math.exp(-7*Math.max(0,Math.min(dt,.1)));
   c.v40Ponytail.rotation.x+=(targetX-c.v40Ponytail.rotation.x)*ease;
   c.v40Ponytail.rotation.z+=(targetZ-c.v40Ponytail.rotation.z)*ease;
@@ -1343,24 +1343,24 @@ function v22AnimateLila(dt){
  const j=c.v22Joints;const speed=Math.hypot(moveVX,moveVZ),pace=Math.min(1,speed/10),phase=c.animPhase;
  const air=!onGround,aim=adsHeld||fireHeld,shooting=fireHeld&&shootCooldown>0;
  const crouch=crouchHeld||!!(keys.ControlLeft||keys.ControlRight||keys.KeyC);
- const runningFast=!crouch&&onGround&&speed>10.2;
+ const runningFast=!crouch&&onGround&&(speed>10.2||(sprintHeld&&speed>5.5));
  const reload=reloadTimer>0&&reloadWeapon===weaponIndex;
- const ease=1-Math.exp(-13*Math.max(0,dt)),wave=Math.sin(phase),sway=Math.sin(phase*.6);
+ const ease=1-Math.exp(-(air?10:crouch?11:13)*Math.max(0,dt)),wave=Math.sin(phase),sway=Math.sin(phase*.6);
  const pose=(name,x,z=0)=>{const part=j[name];if(!part)return;part.rotation.x+=(x-part.rotation.x)*ease;part.rotation.z+=(z-part.rotation.z)*ease;};
  // Prevent unbounded animation angles when a GLB contains different rest rotations.
  if(!c.v29RestPose){c.v29RestPose={};for(const name of Object.keys(j)){const part=j[name];if(part)c.v29RestPose[name]={x:part.rotation.x,z:part.rotation.z};}}
  const poseFromRest=(name,x,z=0)=>{const part=j[name],rest=c.v29RestPose[name];if(!part||!rest)return;part.rotation.x+=(rest.x+x-part.rotation.x)*ease;part.rotation.z+=(rest.z+z-part.rotation.z)*ease;};
- poseFromRest('leftLeg',air?-.18:crouch?-1.02:wave*(runningFast?.94:.72)*pace,crouch?-.20:0);
- poseFromRest('rightLeg',air?.28:crouch?-1.02:-wave*(runningFast?.94:.72)*pace,crouch?.20:0);
- poseFromRest('leftArm',v469HealTimer>0?-.75:reload?-.95:aim?-1.05:air?-.3:-wave*(runningFast?.70:.52)*pace,-.12);
- poseFromRest('rightArm',v469HealTimer>0?-1.15:reload?-.6:aim?-1.2:air?-.3:wave*(runningFast?.70:.52)*pace,.12);
- poseFromRest('leftHair',sway*.085+(speed>.5?.10:0));
- poseFromRest('rightHair',-sway*.085+(speed>.5?.10:0));
+ poseFromRest('leftLeg',air?-.27:crouch?-.94:wave*(runningFast?1.02:.72)*pace,crouch?-.20:0);
+ poseFromRest('rightLeg',air?.34:crouch?-.94:-wave*(runningFast?1.02:.72)*pace,crouch?.20:0);
+ poseFromRest('leftArm',v469HealTimer>0?-.75:reload?-.95:aim?-1.05:air?-.4:-wave*(runningFast?.83:.52)*pace,-.12);
+ poseFromRest('rightArm',v469HealTimer>0?-1.15:reload?-.6:aim?-1.2:air?-.4:wave*(runningFast?.83:.52)*pace,.12);
+ poseFromRest('leftHair',sway*(runningFast?.14:.085)+(speed>.5?.10:0));
+ poseFromRest('rightHair',-sway*(runningFast?.14:.085)+(speed>.5?.10:0));
  if(c.v22BaseY===undefined)c.v22BaseY=model.position.y;
- const targetY=c.v22BaseY-(crouch?.63:0)+(shooting?.018*Math.sin(time*40):0)-v470LandingPose*.07;
+ const targetY=c.v22BaseY-(crouch?.59:0)+(shooting?.014*Math.sin(time*40):0)-v470LandingPose*.09+(runningFast?.025*Math.sin(phase*2):0);
  model.position.y+=(targetY-model.position.y)*ease;
  // Positive X tips Lila's upper body toward her forward (+Z) direction.
- const v471ForwardLean=air?-.06:crouch?.20:runningFast?.17*Math.min(1,speed/10):speed>2?.045:0;
+ const v471ForwardLean=air?-.09:crouch?.18:runningFast?.19*Math.min(1,speed/10):speed>2?.045:0;
  model.rotation.x+=(v471ForwardLean+(v469HealTimer>0?.12:0)+v470LandingPose*.08-model.rotation.x)*ease;
 }
 // V22: original playable 3D interpretation of the submitted lavender-haired operator.
@@ -1853,7 +1853,7 @@ function v8HitFeedback(damage,headshot=false){
 function v8MuzzleFlash(){
  if(!$('combatFx').checked)return;
  const el=$('v8Muzzle');el.style.opacity='.9';
- clearTimeout(v8FlashTimer);v8FlashTimer=setTimeout(()=>el.style.opacity='0',65);
+ clearTimeout(v8FlashTimer);v8FlashTimer=setTimeout(()=>el.style.opacity='0',58);
 }
 
 // V42.6: limpieza visual de rocas por geometria real.
@@ -2464,8 +2464,8 @@ function v472FirstBulletImpact(start,direction,maxDistance){
 window.THEDEMIANFF_V472_TEST=()=>({heat:v472ShotHeat.slice(),tracerFrequency:2,base:'Aurora',poIs:(window.v27AuroraPOI||[]).length,auroraReady:!!window.v473AuroraRestored});
 let v467LastShotTime=-100,v467LastShotX=0,v467LastShotZ=0;
 function shoot(){if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN CANCELADO');}const w=weapons[weaponIndex];if(shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused)return;if(w.ammo<=0){if(reloadTimer<=0)reload();return;}w.ammo--;v472ShotCounter++;v472ShotHeat[weaponIndex]=Math.min(1,v472ShotHeat[weaponIndex]+(weaponIndex===2?.095:weaponIndex===3?.35:.16));v467LastShotTime=time;v467LastShotX=player.position.x;v467LastShotZ=player.position.z;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+v392RecoilKick(weaponIndex));v470FirePose=Math.min(1,v470FirePose+.38);playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
-const v472StanceAccuracy=onGround&&crouchHeld?.74:1;
-const spread=v391Spread(w.spread,adsHeld,moving,sprintHeld)*v472StanceAccuracy*(1+.6*v472ShotHeat[weaponIndex]);
+const v472StanceAccuracy=onGround&&crouchHeld?.71:!onGround?1.24:1;
+const spread=v391Spread(w.spread,adsHeld,moving,sprintHeld)*v472StanceAccuracy*(1+.55*v472ShotHeat[weaponIndex])*(adsHeld&&onGround?.92:1);
 const jitterX=rand(-spread,spread),jitterY=rand(-spread,spread);
 // Perturb in camera local screen axes, never world axes; preserves aim under rotation.
 const right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
@@ -2486,11 +2486,11 @@ for(const b of bots){
 }
 if(target){
  const v472EffectiveRange=Math.max(1,w.range),v472Distance=Math.hypot(target.x-player.position.x,target.z-player.position.z);
- const v472RangeScale=1-.18*clamp((v472Distance/v472EffectiveRange-.45)/.55,0,1);
+ const v472RangeScale=1-.20*clamp((v472Distance/v472EffectiveRange-.45)/.55,0,1);
  const damageDone=Math.max(1,Math.round(w.damage*v472RangeScale*(headshot?1.55:1)));
  v8HitFeedback(damageDone,headshot);
  showCombat((headshot?'✦ CABEZA +':'+')+damageDone+' IMPACTO');
- target.hp-=damageDone;target.lastHit=1;target.suppression=Math.min(1,(target.suppression||0)+.55);target.hitStun=Math.min(.22,(target.hitStun||0)+.11);target.dodgeTime=.5;target.dodgeSign=Math.random()<.5?-1:1;target.burstLeft=0;target.shoot=Math.max(target.shoot,.24);target.cachedVisible=true;target.visionTime=0;target.investigateTime=Math.max(target.investigateTime||0,3);target.alert=1;target.think=0;target.coverTimer=0;impact(target.x,ground(target.x,target.z)+(headshot?2.4:1.5),target.z,headshot?'#ffd166':'#ff6b5d');hitFlash=.16;if(target.hp<=0){target.alive=false;scene.remove(target.root);kills++;showCombat('✦ ELIMINACIÓN CONFIRMADA');toast('✦ ENEMIGO ELIMINADO · +1 BAJA');if(Math.random()<.8)spawnPickup(['ammo','med','armor'][Math.floor(rand(0,3))],target.x,target.z);if(bots.every(b=>!b.alive))finish(true);}}else{const end=v472FirstBulletImpact(start,direction,Math.min(w.range,65));impact(end.x,end.y,end.z)}const muzzle=player.position.clone().add(new THREE.Vector3(Math.sin(camYaw)*.7,1.45,Math.cos(camYaw)*.7));impact(muzzle.x,muzzle.y,muzzle.z,'#ffe9a1');const shotEnd=target?target.root.position.clone().add(new THREE.Vector3(0,1.5*target.root.scale.y,0)):v472FirstBulletImpact(start,direction,Math.min(w.range,65));const tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([muzzle,shotEnd]),new THREE.LineBasicMaterial({color:'#ffde8d',transparent:true,opacity:.85,depthTest:false}));if(v472ShotCounter%2===0){scene.add(tracer);effects.push({mesh:tracer,t:.085,life:.085,streak:true});}else{tracer.geometry.dispose();tracer.material.dispose();}$('fire').classList.add('firing');setTimeout(()=>$('fire').classList.remove('firing'),80);updateHud();}
+ target.hp-=damageDone;target.lastHit=1;target.suppression=Math.min(1,(target.suppression||0)+.55);target.hitStun=Math.min(.22,(target.hitStun||0)+.11);target.dodgeTime=.58;target.dodgeSign=Math.random()<.5?-1:1;target.burstLeft=0;target.shoot=Math.max(target.shoot,.29);target.cachedVisible=true;target.visionTime=0;target.investigateTime=Math.max(target.investigateTime||0,3.5);target.alert=1;target.think=0;target.coverTimer=0;impact(target.x,ground(target.x,target.z)+(headshot?2.4:1.5),target.z,headshot?'#ffd166':'#ff6b5d');hitFlash=.16;if(target.hp<=0){target.alive=false;scene.remove(target.root);kills++;showCombat('✦ ELIMINACIÓN CONFIRMADA');toast('✦ ENEMIGO ELIMINADO · +1 BAJA');if(Math.random()<.8)spawnPickup(['ammo','med','armor'][Math.floor(rand(0,3))],target.x,target.z);if(bots.every(b=>!b.alive))finish(true);}}else{const end=v472FirstBulletImpact(start,direction,Math.min(w.range,65));impact(end.x,end.y,end.z)}const muzzle=player.position.clone().add(new THREE.Vector3(Math.sin(camYaw)*.7,1.45,Math.cos(camYaw)*.7));impact(muzzle.x,muzzle.y,muzzle.z,'#ffe9a1');const shotEnd=target?target.root.position.clone().add(new THREE.Vector3(0,1.5*target.root.scale.y,0)):v472FirstBulletImpact(start,direction,Math.min(w.range,65));const tracer=new THREE.Line(new THREE.BufferGeometry().setFromPoints([muzzle,shotEnd]),new THREE.LineBasicMaterial({color:'#ffde8d',transparent:true,opacity:.85,depthTest:false}));if(v472ShotCounter%2===0){scene.add(tracer);effects.push({mesh:tracer,t:.085,life:.085,streak:true});}else{tracer.geometry.dispose();tracer.material.dispose();}$('fire').classList.add('firing');setTimeout(()=>$('fire').classList.remove('firing'),80);updateHud();}
 function reload(){
  const w=weapons[weaponIndex];
  if(!running||paused||reloadTimer>0)return;
