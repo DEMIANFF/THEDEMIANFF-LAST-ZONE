@@ -2420,20 +2420,32 @@ let v472ShotHeat=[0,0,0,0,0],v472ShotCounter=0;
 // Trace a real bullet endpoint against the flat play surface and solid covers.
 // Used only when firing: no ray allocations or expensive work each animation frame.
 function v472FirstBulletImpact(start,direction,maxDistance){
- const limit=Math.max(1,Math.min(80,maxDistance)),step=.8;
- for(let travel=1;travel<=limit;travel+=step){
-  const x=start.x+direction.x*travel,y=start.y+direction.y*travel,z=start.z+direction.z*travel;
-  if(y<=ground(x,z)+.035)return new THREE.Vector3(x,ground(x,z)+.035,z);
-  for(const obstacle of worldObjects){
-   const top=ground(obstacle.x,obstacle.z)+(obstacle.h??2.8);
-   if(y<top&&y>ground(obstacle.x,obstacle.z)&&
-      (x-obstacle.x)**2+(z-obstacle.z)**2<Math.max(.25,obstacle.r*.9)**2)
-    return new THREE.Vector3(x,y,z);
+ // V47.3: analytic bullet ray vs. Aurora collision cylinders, O(obstacles) per shot.
+ const limit=Math.max(1,Math.min(80,maxDistance));
+ let first=limit;
+ const flat=direction.x*direction.x+direction.z*direction.z;
+ if(direction.y<-.00001){
+  const t=(ground(start.x,start.z)+.035-start.y)/direction.y;
+  if(t>=0&&t<first)first=t;
+ }
+ if(flat>.000001){
+  for(const o of worldObjects){
+   const rx=start.x-o.x,rz=start.z-o.z,radius=Math.max(.25,o.r*.9);
+   const beta=rx*direction.x+rz*direction.z,c=rx*rx+rz*rz-radius*radius;
+   const disc=beta*beta-flat*c;
+   if(disc<0)continue;
+   const root=Math.sqrt(disc);
+   const near=(-beta-root)/flat,far=(-beta+root)/flat;
+   if(far<0)continue;
+   const t=near>=.01?near:far;
+   if(t<.01||t>=first)continue;
+   const y=start.y+direction.y*t,floor=ground(o.x,o.z);
+   if(y>floor+.03&&y<floor+(o.h??2.8))first=t;
   }
  }
- return start.clone().addScaledVector(direction,limit);
+ return start.clone().addScaledVector(direction,first);
 }
-window.THEDEMIANFF_V472_TEST=()=>({heat:v472ShotHeat.slice(),tracerFrequency:2,base:'Aurora'});
+window.THEDEMIANFF_V472_TEST=()=>({heat:v472ShotHeat.slice(),tracerFrequency:2,base:'Aurora',poIs:(window.v27AuroraPOI||[]).length,auroraReady:!!window.v473AuroraRestored});
 let v467LastShotTime=-100,v467LastShotX=0,v467LastShotZ=0;
 function shoot(){if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN CANCELADO');}const w=weapons[weaponIndex];if(shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused)return;if(w.ammo<=0){if(reloadTimer<=0)reload();return;}w.ammo--;v472ShotCounter++;v472ShotHeat[weaponIndex]=Math.min(1,v472ShotHeat[weaponIndex]+(weaponIndex===2?.095:weaponIndex===3?.35:.16));v467LastShotTime=time;v467LastShotX=player.position.x;v467LastShotZ=player.position.z;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+v392RecoilKick(weaponIndex));v470FirePose=Math.min(1,v470FirePose+.38);playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
 const v472StanceAccuracy=onGround&&crouchHeld?.74:1;
