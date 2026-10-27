@@ -537,7 +537,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V49.1 · COMBATE REFINADO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
+<div id="v22Edition">V49.2 · LILA Y AURORA</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
@@ -1354,14 +1354,16 @@ function v22AnimateLila(dt){
  poseFromRest('rightLeg',air?.34:crouch?-.94:-wave*(runningFast?1.02:.72)*pace,crouch?.20:0);
  poseFromRest('leftArm',v469HealTimer>0?-.75:reload?-.95:aim?-1.05:air?-.4:-wave*(runningFast?.83:.52)*pace,-.12);
  poseFromRest('rightArm',v469HealTimer>0?-1.15:reload?-.6:aim?-1.2:air?-.4:wave*(runningFast?.83:.52)*pace,.12);
- poseFromRest('leftHair',sway*(runningFast?.14:.085)+(speed>.5?.10:0));
- poseFromRest('rightHair',-sway*(runningFast?.14:.085)+(speed>.5?.10:0));
+ poseFromRest('leftHair',sway*(runningFast?.14:.085)+(speed>.5?.10:0),strafeLean*.55);
+ poseFromRest('rightHair',-sway*(runningFast?.14:.085)+(speed>.5?.10:0),strafeLean*.55);
  if(c.v22BaseY===undefined)c.v22BaseY=model.position.y;
  const targetY=c.v22BaseY-(crouch?.59:0)+(shooting?.014*Math.sin(time*40):0)-v470LandingPose*.09+(runningFast?.025*Math.sin(phase*2):0);
  model.position.y+=(targetY-model.position.y)*ease;
  // Positive X tips Lila's upper body toward her forward (+Z) direction.
  const v471ForwardLean=air?-.09:crouch?.18:runningFast?.19*Math.min(1,speed/10):speed>2?.045:0;
+ const strafeLean=!air&&!crouch?Math.max(-.085,Math.min(.085,moveVX*.007)):0;
  model.rotation.x+=(v471ForwardLean+(v469HealTimer>0?.12:0)+v470LandingPose*.08-model.rotation.x)*ease;
+ model.rotation.z+=(strafeLean-model.rotation.z)*ease;
 }
 // V22: original playable 3D interpretation of the submitted lavender-haired operator.
 function v22FemaleOperator(){
@@ -1736,6 +1738,27 @@ function addWorldDetails(){
   else {for(let j=0;j<5;j++){const p=new THREE.Mesh(new THREE.BoxGeometry(3,3+j%3*2,3),darkIce);p.position.set((j-2)*4,2,Math.sin(j*2)*5);g.add(p);}}
  }
 
+ // V49.2: shared-geometry glacial markers. Instancing keeps 72 details to two draw calls.
+ const frostGeometry=new THREE.OctahedronGeometry(.72,0);
+ const frostMat=new THREE.MeshStandardMaterial({color:'#a7eaff',roughness:.38,metalness:.13});
+ const frostGlowMat=new THREE.MeshBasicMaterial({color:'#77f5dc'});
+ const frostStones=new THREE.InstancedMesh(frostGeometry,frostMat,56);
+ const frostLights=new THREE.InstancedMesh(frostGeometry,frostGlowMat,16);
+ const frostDummy=new THREE.Object3D();
+ for(let i=0;i<72;i++){
+  const angle=i*2.3999632297,radius=44+Math.sqrt(i/72)*116;
+  const fx=Math.cos(angle)*radius,fz=Math.sin(angle)*radius;
+  frostDummy.position.set(fx,ground(fx,fz)+.52,fz);
+  frostDummy.rotation.set(0,angle,0);
+  const size=i%9===0?1.85:.75+(i%5)*.19;
+  frostDummy.scale.set(size*.75,size*1.35,size*.75);
+  frostDummy.updateMatrix();
+  if(i<56)frostStones.setMatrixAt(i,frostDummy.matrix);
+  else frostLights.setMatrixAt(i-56,frostDummy.matrix);
+ }
+ frostStones.instanceMatrix.needsUpdate=true;frostLights.instanceMatrix.needsUpdate=true;
+ frostStones.frustumCulled=false;frostLights.frustumCulled=false;
+ aurora.add(frostStones,frostLights);
  // Aurora V27: navigable landmarks and identifiable POIs, built from low-poly geometry.
  const auroraPoi=[
   {name:'CRÁTER AURORA',x:0,z:0,tier:4},
