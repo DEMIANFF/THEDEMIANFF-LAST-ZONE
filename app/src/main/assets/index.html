@@ -1538,6 +1538,7 @@ function ensureAmbience(){
 }
 function ambientTick(dt){
  if(!audioContext||audioContext.state!=='running')return;
+ if(v470StartSoundPending&&running&&!paused){v470StartSoundPending=false;v470BattleStartSound();}
  audioMaster.gain.setTargetAtTime(Number($('masterVolume').value),audioContext.currentTime,.06);
  ensureAmbience();
  if(!running||paused||!$('soundEffects').checked)return;
@@ -1614,6 +1615,13 @@ function v38NoiseBurst(duration=.11,volume=.09,low=500,high=6500){
   amp.gain.setValueAtTime(.0001,t);amp.gain.linearRampToValueAtTime(Math.max(.0001,volume),t+.006);amp.gain.exponentialRampToValueAtTime(.0001,t+duration);
   src.connect(hp);hp.connect(lp);lp.connect(amp);amp.connect(audioMaster);src.start(t);src.stop(t+duration+.015);
  }catch(err){console.warn('[V38 AUDIO]',err);}
+}
+// V47.0 synthesized match-opening signal; respects sound toggles and browser audio unlock.
+let v470StartSoundPending=false,v470JumpPose=0,v470LandingPose=0,v470FirePose=0;
+function v470BattleStartSound(){
+ if(!$('soundEffects').checked||!audioContext||audioContext.state!=='running')return;
+ toneSound(260,.28,.085,'triangle');toneSound(390,.34,.065,'sine');toneSound(520,.5,.048,'sine');
+ v38NoiseBurst(.62,.032,80,1100);
 }
 function playShot(){
  const weapon=weaponIndex,bass=[95,68,130,48,77][weapon]||90,snap=[520,360,760,235,450][weapon]||520;
@@ -2347,7 +2355,7 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  group.userData.v40PickupHalo=halo;
  group.userData.v362Glow=beacon;
  scene.add(group);pickups.push({type,x,z,group,phase:rand(0,6)});}
-function reset(){v395SwapTime=0;v395ReloadDuration=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(scene){
  const geometries=new Set();
  scene.traverse(obj=>{if(obj.geometry)geometries.add(obj.geometry);});
@@ -2397,7 +2405,7 @@ const v392Kick=[.54,.95,.37,1.15,.46];
 function v392RecoilKick(index){return v392Kick[index]??.65;}
 window.THEDEMIANFF_RECOIL_TEST=(index)=>v392RecoilKick(index);
 let v467LastShotTime=-100,v467LastShotX=0,v467LastShotZ=0;
-function shoot(){if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN CANCELADO');}const w=weapons[weaponIndex];if(shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused)return;if(w.ammo<=0){if(reloadTimer<=0)reload();return;}w.ammo--;v467LastShotTime=time;v467LastShotX=player.position.x;v467LastShotZ=player.position.z;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+v392RecoilKick(weaponIndex));playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
+function shoot(){if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN CANCELADO');}const w=weapons[weaponIndex];if(shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused)return;if(w.ammo<=0){if(reloadTimer<=0)reload();return;}w.ammo--;v467LastShotTime=time;v467LastShotX=player.position.x;v467LastShotZ=player.position.z;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+v392RecoilKick(weaponIndex));v470FirePose=Math.min(1,v470FirePose+.38);playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
 const spread=v391Spread(w.spread,adsHeld,moving,sprintHeld);
 const jitterX=rand(-spread,spread),jitterY=rand(-spread,spread);
 // Perturb in camera local screen axes, never world axes; preserves aim under rotation.
@@ -2505,11 +2513,11 @@ const dx=moveVX*dt,dz=moveVZ*dt;let nx=clamp(player.position.x+dx,-HALF+4,HALF-4
  // ADS is camera-driven; do not rotate the player merely because the sight is active.
  const facing=fireHeld?camYaw:a;
  player.rotation.y+=Math.atan2(Math.sin(facing-player.rotation.y),Math.cos(facing-player.rotation.y))*(1-Math.exp(-dt*((adsHeld||fireHeld)?18:11)));
- playerModel.animPhase+=dt*(8+pace*7);
- playerModel.left.rotation.x=Math.sin(playerModel.animPhase)*.65*pace;
- playerModel.right.rotation.x=-Math.sin(playerModel.animPhase)*.65*pace;
- playerModel.body.position.y=Math.abs(Math.sin(playerModel.animPhase))*.075*pace;
- playerModel.body.rotation.z=Math.sin(playerModel.animPhase*.5)*.025*pace;
+ playerModel.animPhase+=dt*(crouchHeld?4.4:8+pace*(sprint?11:7));
+ playerModel.left.rotation.x=Math.sin(playerModel.animPhase)*(crouchHeld?.32:sprint?.85:.65)*pace;
+ playerModel.right.rotation.x=-Math.sin(playerModel.animPhase)*(crouchHeld?.32:sprint?.85:.65)*pace;
+ playerModel.body.position.y=Math.abs(Math.sin(playerModel.animPhase))*(crouchHeld?.025:sprint?.10:.075)*pace;
+ playerModel.body.rotation.z=Math.sin(playerModel.animPhase*.5)*(sprint?.045:.025)*pace;
 }else{
  // Free-look: rotating the camera alone must not rotate the character.
  if(fireHeld)player.rotation.y+=Math.atan2(Math.sin(camYaw-player.rotation.y),Math.cos(camYaw-player.rotation.y))*(1-Math.exp(-dt*16));
@@ -2517,7 +2525,11 @@ const dx=moveVX*dt,dz=moveVZ*dt;let nx=clamp(player.position.x+dx,-HALF+4,HALF-4
  playerModel.right.rotation.x*=Math.exp(-dt*12);
  playerModel.body.position.y*=Math.exp(-dt*12);
  playerModel.body.rotation.z*=Math.exp(-dt*12);
-}if(jumpQueued){if(onGround){vertical=7.4;onGround=false;}jumpQueued=false;}vertical-=19*dt;player.position.y+=vertical*dt;const floor=v403Floor(player.position.x,player.position.z,player.position.y-vertical*dt);if(player.position.y<=floor){player.position.y=floor;vertical=0;onGround=true;}else onGround=false;
+}if(jumpQueued){if(onGround){vertical=7.4;onGround=false;v470JumpPose=1;}jumpQueued=false;}
+const v470WasAirborne=!onGround;vertical-=19*dt;player.position.y+=vertical*dt;
+const floor=v403Floor(player.position.x,player.position.z,player.position.y-vertical*dt);
+if(player.position.y<=floor){player.position.y=floor;vertical=0;onGround=true;if(v470WasAirborne)v470LandingPose=1;}else onGround=false;
+v470JumpPose=Math.max(0,v470JumpPose-dt*2.0);v470LandingPose=Math.max(0,v470LandingPose-dt*3.3);v470FirePose=Math.max(0,v470FirePose-dt*7);
 v432Camera.update(dt);
 // Fire after the camera has been aimed this frame, avoiding one-frame stale shots.
 if(fireHeld)shoot();
@@ -2528,17 +2540,17 @@ v395SwapTime=Math.max(0,v395SwapTime-dt);
 const v395Swap= v395SwapTime>0?Math.sin(Math.PI*(1-v395SwapTime/.30)):0;
 const v395Reload=reloadTimer>0&&reloadWeapon===weaponIndex&&v395ReloadDuration>0?Math.sin(Math.PI*clamp(1-reloadTimer/v395ReloadDuration,0,1)):0;
 const v395Run=clamp(Math.hypot(moveVX,moveVZ)/14.5,0,1)*(sprintHeld?1:.35);
-window.THEDEMIANFF_ANIMATION_TEST=()=>({swap:v395Swap,reload:v395Reload,run:v395Run});
+window.THEDEMIANFF_ANIMATION_TEST=()=>({swap:v395Swap,reload:v395Reload,run:v395Run,heal:v469HealTimer>0,jump:v470JumpPose,land:v470LandingPose,shot:v470FirePose});
 // V43.1: retroceso visual mas contenido en ADS; sin modificar trayectoria de bala.
 const v431VisualKick=v14Recoil*(adsHeld?.68:1);
-playerModel.gun.rotation.x=-camPitch*.55-v431VisualKick*.12+v395Reload*.24+v395Swap*.17;
+playerModel.gun.rotation.x=-camPitch*.55-v431VisualKick*.12+v395Reload*.24+v395Swap*.17+v470FirePose*.075+(v469HealTimer>0?.52:0);
  const v38Pace=clamp(Math.hypot(moveVX,moveVZ)/10,0,1);
- playerModel.gun.rotation.z=Math.sin(playerModel.animPhase*.78)*.025*v38Pace+v431VisualKick*.024+v395Reload*.16-v395Swap*.12;
+ playerModel.gun.rotation.z=Math.sin(playerModel.animPhase*.78)*.025*v38Pace+v431VisualKick*.024+v395Reload*.16-v395Swap*.12+(v469HealTimer>0?.24:0);
  playerModel.gun.rotation.y=Math.sin(playerModel.animPhase*.43)*.019*v38Pace;
  playerModel.gun.position.x=.4+Math.sin(playerModel.animPhase*.6)*.018*v38Pace+v395Swap*.07;
- playerModel.gun.position.z=.55-v431VisualKick*.09-v395Reload*.12;
-playerModel.body.rotation.x=onGround?(crouchHeld?.13:Math.sin(playerModel.animPhase)*.014*clamp(Math.hypot(moveVX,moveVZ)/10,0,1)):-.10;
-playerModel.gun.position.y=1.45-v431VisualKick*.045-v395Reload*.22-v395Swap*.30+Math.sin(playerModel.animPhase)*.012*v395Run;
+ playerModel.gun.position.z=.55-v431VisualKick*.09-v395Reload*.12-v470FirePose*.055-(v469HealTimer>0?.22:0);
+playerModel.body.rotation.x=(onGround?(crouchHeld?.13:Math.sin(playerModel.animPhase)*.014*clamp(Math.hypot(moveVX,moveVZ)/10,0,1)):-.10)-v470JumpPose*.11+v470LandingPose*.17+(v469HealTimer>0?.10:0);
+playerModel.gun.position.y=1.45-v431VisualKick*.045-v395Reload*.22-v395Swap*.30+Math.sin(playerModel.animPhase)*.012*v395Run-(v469HealTimer>0?.32:0)-v470LandingPose*.10;
  const pose=crouchHeld&&onGround?1:0,k=1-Math.exp(-dt*12);
  playerModel.body.position.y+=((playerModel.isFemaleOperator?-.10:-.48)*pose-playerModel.body.position.y)*k;
  if(!playerModel.isFemaleOperator){
@@ -3338,7 +3350,7 @@ function v24LobbyTick(){
  }
 }
 
-function start(){unlockAudio();v123ResetInputs();if(!renderer){renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:'high-performance',precision:'highp',stencil:false});renderer.setPixelRatio(mobile?Math.min(v38FhdRatio(),1):v38FhdRatio());
+function start(){unlockAudio();v470StartSoundPending=true;v123ResetInputs();if(!renderer){renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:'high-performance',precision:'highp',stencil:false});renderer.setPixelRatio(mobile?Math.min(v38FhdRatio(),1):v38FhdRatio());
  // V40.5: controlled WebGL lifecycle for Android memory pressure.
  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();v405ContextLost=true;console.warn('[V40.5] WebGL context lost');},false);
  renderer.domElement.addEventListener('webglcontextrestored',()=>{v405ContextLost=false;v405ContextRestores++;v26Performance.scale=Math.min(v26Performance.scale,.64);v26ApplyPixelRatio();},false);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!mobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;// V40 screenshot-driven calibration: prevent blown-out white snow and preserve architecture edges.
