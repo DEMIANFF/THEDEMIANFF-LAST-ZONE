@@ -3771,6 +3771,14 @@ function v23PointerMove(e){
  // V43.5: no recortar cada evento; usar desplazamiento real del dedo.
  const dx=e.clientX-t.x,dy=e.clientY-t.y;
  t.x=e.clientX;t.y=e.clientY;
+ // V45.4: Android may deliver a discontinuous pointer after an app interruption.
+ // Drop only implausible single-event camera jumps; preserve ordinary fast swipes.
+ if((t.role==='look'||t.role==='fire')&&Math.hypot(dx,dy)>Math.max(180,Math.min(innerWidth,innerHeight)*.45)){
+  if(t.role==='fire')v23FireThumb(t);
+  if(e.cancelable)e.preventDefault();
+  e.stopImmediatePropagation();
+  return;
+ }
  if(t.role==='joystick')v23Joy(t.x,t.y);
  else if(t.role==='look'||t.role==='fire'){
   if(t.role==='fire'){v23FireThumb(t);v22FireDragging=Math.hypot(t.x-t.startX,t.y-t.startY)>3;}
