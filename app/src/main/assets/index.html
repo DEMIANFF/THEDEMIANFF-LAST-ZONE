@@ -975,11 +975,14 @@ function v428CreateTrainingWorld(){
  }));
  zoneRing.position.y=.09;scene.add(zoneRing);
  water=null;
- worldObjects=[]; // Base Aurora: conservar el escenario original sin agregar edificios genéricos.
- // V47.2: se retiró el complejo ajeno a la temática solicitado por el creador.
+ worldObjects=[]; // V47.3: use the authored Aurora biome, not generic structures.
+ // Reuse the existing Aurora landmarks, POIs, glacial lighting and accessible interiors.
+ // The original flat gameplay foundation remains intact for touch movement and camera.
+ addWorldDetails();
  window.v470CompoundReady=false;
  window.v428TrainingBase=true;
- console.info('[V47.2] Base Aurora: entorno despejado; pendiente recuperación artística del mapa original.');
+ window.v473AuroraRestored=true;
+ console.info('[V47.3] BASE AURORA original: POIs, auroras, cover and interiors restored.');
 }
 function createWorld(){scene=new THREE.Scene();scene.background=new THREE.Color('#49677b');scene.fog=new THREE.FogExp2('#7795a5',.0013);scene.add(new THREE.AmbientLight('#b5cfdf',.40));v16Hemi=new THREE.HemisphereLight('#bfdbe5','#526273',1.0);scene.add(v16Hemi);const sun=new THREE.DirectionalLight('#f1e6d6',1.32);sun.position.set(-72,62,42);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.normalBias=.025;sun.shadow.radius=2;sun.shadow.camera.left=-155;sun.shadow.camera.right=155;sun.shadow.camera.top=155;sun.shadow.camera.bottom=-155;sun.shadow.bias=-.0005;scene.add(sun);v16Sun=sun;let geo=new THREE.PlaneGeometry(WORLD,WORLD,120,120);geo.rotateX(-Math.PI/2);let pos=geo.attributes.position;for(let i=0;i<pos.count;i++)pos.setY(i,h(pos.getX(i),pos.getZ(i)));geo.computeVertexNormals();terrain=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:'#a2bcc7',roughness:.97,metalness:0,flatShading:false}));terrain.receiveShadow=true;scene.add(terrain);const sea=new THREE.Mesh(new THREE.PlaneGeometry(900,900),new THREE.MeshStandardMaterial({color:'#177fa3',metalness:.05,roughness:.4,transparent:true,opacity:.9,depthWrite:false}));sea.rotation.x=-Math.PI/2;sea.position.y=-12;scene.add(sea);water=sea;const coastGeo=new THREE.RingGeometry(HALF-8,HALF+5,128,4);coastGeo.rotateX(-Math.PI/2);{const cp=coastGeo.attributes.position;for(let i=0;i<cp.count;i++)cp.setY(i,h(cp.getX(i),cp.getZ(i))+.05);coastGeo.computeVertexNormals();}const coast=new THREE.Mesh(coastGeo,new THREE.MeshStandardMaterial({color:'#b2e2ee',roughness:.48,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));scene.add(coast);
 // V22 Puerto Aurora: central coastal plaza, cover planters and street furniture.
