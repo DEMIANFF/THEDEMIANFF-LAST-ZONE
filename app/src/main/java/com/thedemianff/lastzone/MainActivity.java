@@ -83,7 +83,7 @@ public class MainActivity extends Activity {
         JSONObject.quote(state)+","+JSONObject.quote(detail)+")",null);
     });
   }
-  private final class CloudBridge {
+  public final class CloudBridge {
     @JavascriptInterface public void save(String json) {
       runOnUiThread(() -> {
         FirebaseUser user=firebaseAuth.getCurrentUser();
@@ -118,7 +118,7 @@ public class MainActivity extends Activity {
         FirebaseUser user=firebaseAuth.getCurrentUser();
         if(user==null){cloudMessage("error","Primero inicia sesión con tu cuenta Google.");return;}
         FirebaseFirestore.getInstance().collection("player_backups").document(user.getUid())
-          .get().addOnSuccessListener(doc->{
+          .get(com.google.firebase.firestore.Source.SERVER).addOnSuccessListener(doc->{
             String saved=doc.exists()?doc.getString("progress"):null;
             if(saved==null||saved.length()<10||saved.length()>100000){
               cloudMessage("missing","No hay un respaldo válido para esta cuenta Google.");return;
