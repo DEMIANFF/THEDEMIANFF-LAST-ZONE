@@ -537,7 +537,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V49.2 · LILA Y AURORA</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
+<div id="v22Edition">V49.3 · LILA Y ESCENARIOS</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
@@ -1345,6 +1345,7 @@ function v22AnimateLila(dt){
  const crouch=crouchHeld||!!(keys.ControlLeft||keys.ControlRight||keys.KeyC);
  const runningFast=!crouch&&onGround&&(speed>10.2||(sprintHeld&&speed>5.5))&&!adsHeld&&!fireHeld;
  const reload=reloadTimer>0&&reloadWeapon===weaponIndex;
+ const strafeLean=!air&&!crouch?Math.max(-.085,Math.min(.085,moveVX*.007)):0;
  const ease=1-Math.exp(-(air?10:crouch?11:13)*Math.max(0,Math.min(dt,.1))),wave=Math.sin(phase),sway=Math.sin(phase*.6);
  const pose=(name,x,z=0)=>{const part=j[name];if(!part)return;part.rotation.x+=(x-part.rotation.x)*ease;part.rotation.z+=(z-part.rotation.z)*ease;};
  // Prevent unbounded animation angles when a GLB contains different rest rotations.
@@ -1361,7 +1362,6 @@ function v22AnimateLila(dt){
  model.position.y+=(targetY-model.position.y)*ease;
  // Positive X tips Lila's upper body toward her forward (+Z) direction.
  const v471ForwardLean=air?-.09:crouch?.18:runningFast?.19*Math.min(1,speed/10):speed>2?.045:0;
- const strafeLean=!air&&!crouch?Math.max(-.085,Math.min(.085,moveVX*.007)):0;
  model.rotation.x+=(v471ForwardLean+(v469HealTimer>0?.12:0)+v470LandingPose*.08-model.rotation.x)*ease;
  model.rotation.z+=(strafeLean-model.rotation.z)*ease;
 }
@@ -1759,6 +1759,16 @@ function addWorldDetails(){
  frostStones.instanceMatrix.needsUpdate=true;frostLights.instanceMatrix.needsUpdate=true;
  frostStones.frustumCulled=false;frostLights.frustumCulled=false;
  aurora.add(frostStones,frostLights);
+ // V49.3: visible ice-track clusters near landmarks; one instanced draw call.
+ const trackGeo=new THREE.BoxGeometry(.35,.06,1.25);
+ const trackMat=new THREE.MeshStandardMaterial({color:'#b8e2ec',roughness:.88});
+ const tracks=new THREE.InstancedMesh(trackGeo,trackMat,48),trackDummy=new THREE.Object3D();
+ for(let i=0;i<48;i++){const site=i%4,ang=(i*2.3999632297),radius=18+(Math.floor(i/4)%6)*3;
+  const cx=[-100,102,100,-115][site],cz=[-105,74,-95,65][site];
+  const tx=cx+Math.cos(ang)*radius,tz=cz+Math.sin(ang)*radius;
+  trackDummy.position.set(tx,ground(tx,tz)+.055,tz);trackDummy.rotation.set(0,ang,0);trackDummy.scale.set(1,1,1);trackDummy.updateMatrix();tracks.setMatrixAt(i,trackDummy.matrix);
+ }
+ tracks.instanceMatrix.needsUpdate=true;tracks.frustumCulled=false;aurora.add(tracks);
  // Aurora V27: navigable landmarks and identifiable POIs, built from low-poly geometry.
  const auroraPoi=[
   {name:'CRÁTER AURORA',x:0,z:0,tier:4},
@@ -2395,6 +2405,13 @@ function spawnBot(minR=17){const p=safePos(minR),c=makeCharacter(['#73604b','#59
  for(const x of [-.26,.26]){const marker=new THREE.Mesh(new THREE.BoxGeometry(.22,.25,.06),v40EnemyMark);marker.position.set(x,1.75,.48);c.body.add(marker);}
  const roleIndex=bots.length%4;
 v40EnemyMark.color.set(['#ff946d','#ffd16e','#ff7272','#9ce6ff'][roleIndex]);
+ // V49.3: role-specific visible silhouettes without textures or extra downloads.
+ const v493Gear=new THREE.Group();c.body.add(v493Gear);
+ const gearMat=new THREE.MeshStandardMaterial({color:['#875b44','#a68a42','#684b4c','#487a90'][roleIndex],roughness:.82});
+ if(roleIndex===0){box(.62,.24,.22,gearMat,v493Gear,0,1.51,-.38);box(.22,.38,.22,gearMat,v493Gear,-.54,1.43,0);}
+ else if(roleIndex===1){box(.46,.19,.25,gearMat,v493Gear,0,1.92,-.22);box(.18,.24,.18,gearMat,v493Gear,.48,1.12,0);}
+ else if(roleIndex===2){box(.88,.68,.22,gearMat,v493Gear,0,1.38,-.37);box(.22,.32,.22,gearMat,v493Gear,-.56,1.35,0);}
+ else {box(.65,.13,.34,gearMat,v493Gear,0,2.38,-.05);box(.20,.20,.20,gearMat,v493Gear,.45,1.67,0);}
 const role=['ASALTO','EXPLORADOR','DEFENSOR','FRANCOTIRADOR'][roleIndex];
 const roleHp=[100,78,145,85][roleIndex],roleSpeed=[1,1.28,.78,.9][roleIndex];
 c.root.scale.setScalar(1.24*[1,.92,1.1,1][roleIndex]);
