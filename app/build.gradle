@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 106
-        versionName '47.0-animation-compound'
+        versionCode 107
+        versionName '47.2-aurora-combat'
     }
     signingConfigs {
         persistentRelease {
