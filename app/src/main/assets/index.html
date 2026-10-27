@@ -3385,9 +3385,10 @@ const v432Camera={
   const b=this.blend;
   const baseBack=clamp(Number($('v26CameraDistance').value)||5,2.3,12);
   const baseShoulder=-clamp(Number($('v26CameraShoulder').value)||.65,-3,3);
-  const back=baseBack*(1-b)+Math.max(2.45,baseBack*.80)*b;
+  const tacticalBack=mobile?clamp(baseBack*1.18,3,12):baseBack;
+  const back=tacticalBack*(1-b)+Math.max(2.45,baseBack*.80)*b;
   const shoulder=baseShoulder*(1-b)+baseShoulder*.58*b;
-  const height=2.9-.16*b;
+  const height=(mobile?3.34:2.9)-(mobile?.48:.16)*b;
   if(!Number.isFinite(this.back)){
    this.back=back;this.shoulder=shoulder;this.height=height;this.anchorY=player.position.y;
   }
@@ -3407,7 +3408,7 @@ const v432Camera={
   camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*12));
   const forward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
   camera.lookAt(camera.position.clone().addScaledVector(forward,100));
-  const fov=68+(v434Optics.active().fov-68)*b;
+  const fov=(mobile?79:68)+(v434Optics.active().fov-(mobile?79:68))*b;
   if(Math.abs(camera.fov-fov)>.01){camera.fov=fov;camera.updateProjectionMatrix();}
   $('v10Reticle').classList.toggle('v382ADS',this.mode==='ADS');
   v434Optics.updateHud(this.mode==='ADS');
