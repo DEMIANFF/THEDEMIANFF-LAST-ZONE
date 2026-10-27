@@ -2382,7 +2382,7 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  group.userData.v40PickupHalo=halo;
  group.userData.v362Glow=beacon;
  scene.add(group);pickups.push({type,x,z,group,phase:rand(0,6)});}
-function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v474SupplyClock=28;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v474SupplyClock=28;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(scene){
  const geometries=new Set();
  scene.traverse(obj=>{if(obj.geometry)geometries.add(obj.geometry);});
@@ -2528,6 +2528,26 @@ let moveVX=0,moveVZ=0,v14Recoil=0,v395SwapTime=0,v395ReloadDuration=0;
 // Bounded to one tactical exchange per heartbeat for low-end mobile stability.
 let v474RivalClock=0,v474RivalRounds=0,v474RivalEliminations=0;
 let v477RivalThreatClock=0,v477RivalThreatPos=null,v477Engagements=0;
+let v477SupplyProximityClock=0,v477LastNearbySupply=null,v477CombatSignals=0;
+function v477NearestSupply(x,z){
+ let closest=null,distance=Infinity;
+ for(const entry of v474SupplyMarkers){if(entry.remaining<=0)continue;
+  const d=Math.hypot(entry.x-x,entry.z-z);
+  if(d<distance){distance=d;closest=entry;}
+ }
+ return closest?{cache:closest,distance}:null;
+}
+function v477SupplyAwareness(dt){
+ v477SupplyProximityClock-=dt;if(v477SupplyProximityClock>0||!player||!running||paused)return;
+ v477SupplyProximityClock=1.1;
+ const nearby=v477NearestSupply(player.position.x,player.position.z);
+ const current=nearby&&nearby.distance<22?nearby.cache:null;
+ if(current!==v477LastNearbySupply){
+  v477LastNearbySupply=current;
+  if(current){showCombat('📦 SUMINISTROS A '+Math.round(nearby.distance)+'m');v477CombatSignals++;}
+ }
+}
+window.THEDEMIANFF_V477_SUPPLY=()=>({near:v477LastNearbySupply?true:false,signals:v477CombatSignals});
 function v477InZone(x,z,padding=0){return Math.hypot(x-zoneCenter.x,z-zoneCenter.y)<=zoneRadius-padding;}
 function v477FindRivalTarget(source,targets){
  let chosen=null,score=Infinity;
@@ -2606,6 +2626,7 @@ function v474SupplyEvent(dt){
  for(let i=v474SupplyMarkers.length-1;i>=0;i--){
   const item=v474SupplyMarkers[i];
   if(item.remaining<=0||time>item.expires){
+   if(v477LastNearbySupply===item)v477LastNearbySupply=null;
    for(let j=pickups.length-1;j>=0;j--){if(pickups[j].v476Cache===item){scene.remove(pickups[j].group);pickups.splice(j,1);}}
    scene.remove(item.root);item.root.traverse(o=>o.geometry?.dispose());for(const material of item.ownMaterials)material.dispose();
    v474SupplyMarkers.splice(i,1);continue;
@@ -2870,7 +2891,7 @@ const hitChance=clamp((b.role==='FRANCOTIRADOR'?.70:.64)-d*.008-movingPenalty-cr
 }if(Math.hypot(b.x-zoneCenter.x,b.z-zoneCenter.y)>zoneRadius){b.hp-=dt*(2.8+zonePhase);if(b.hp<=0){b.alive=false;scene.remove(b.root);if(Math.random()<.45)spawnPickup('ammo',b.x,b.z);}}}
 // Complete the battle when the collapsing zone eliminates the last opponent.
 if(!gameOver&&window.v36FlightMode==='landed'&&$('v18Mode').value!=='training'&&bots.length&&bots.every(b=>!b.alive)){finish(true);return;}
-v474RivalCombat(dt);v474SupplyEvent(dt);v476UpdateLocation(dt);
+v474RivalCombat(dt);v474SupplyEvent(dt);v476UpdateLocation(dt);v477SupplyAwareness(dt);
 for(let i=pickups.length-1;i>=0;i--){const p=pickups[i];p.group.rotation.y+=dt*1.3;p.group.position.y=ground(p.x,p.z)+.7+Math.sin(time*3+p.phase)*.16;if(p.group.userData.v40PickupHalo)p.group.userData.v40PickupHalo.rotation.z+=dt*.85;if(Math.hypot(player.position.x-p.x,player.position.z-p.z)<2.1){
  // V47.2: supplies remain in the world if the inventory cannot accept them.
  let collected=false;
@@ -2886,7 +2907,7 @@ for(let i=pickups.length-1;i>=0;i--){const p=pickups[i];p.group.rotation.y+=dt*1
   if(collected)toast('+ MUNICIÓN DE RESERVA');
  }
  if(p.type==='armor'&&armor<100){const gained=Math.min(35,100-armor);armor+=gained;collected=gained>0;if(collected)toast('+'+Math.ceil(gained)+' ESCUDO');}
- if(collected){pickupSound();scene.remove(p.group);if(p.v476Cache){p.v476Cache.remaining=Math.max(0,p.v476Cache.remaining-1);v476SupplyRecovered++;}pickups.splice(i,1);}
+ if(collected){pickupSound();scene.remove(p.group);if(p.v476Cache){p.v476Cache.remaining=Math.max(0,p.v476Cache.remaining-1);v476SupplyRecovered++;if(p.v476Cache.remaining===0&&v477LastNearbySupply===p.v476Cache)v477LastNearbySupply=null;}pickups.splice(i,1);}
 }}
 for(let i=effects.length-1;i>=0;i--){let e=effects[i];e.t-=dt;if(!e.streak)e.mesh.scale.multiplyScalar(1+dt*4);e.mesh.material.opacity=Math.max(0,e.t/(e.life||.26));if(e.t<=0){scene.remove(e.mesh);e.mesh.geometry?.dispose();if(Array.isArray(e.mesh.material))e.mesh.material.forEach(m=>m.dispose());else e.mesh.material?.dispose();effects.splice(i,1);}}damageFlash=Math.max(0,damageFlash-dt);$('damageFlash').style.opacity=damageFlash*.7;hitFlash=Math.max(0,hitFlash-dt);$('hit').style.opacity=hitFlash/.16;toastTime-=dt;if(toastTime<=0)$('toast').style.opacity=0;hudUpdateClock+=dt;
 if(hudUpdateClock>=.065){hudUpdateClock=0;updateHud();}
