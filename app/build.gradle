@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 121
-        versionName '48.8-zone-combat'
+        versionCode 122
+        versionName '48.9-tactical-arsenal'
     }
     signingConfigs {
         persistentRelease {
