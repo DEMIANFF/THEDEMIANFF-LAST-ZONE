@@ -201,6 +201,16 @@
 
 @media(max-height:420px){#v434ScopeButton{right:105px!important;bottom:100px!important}}
 </style>
+</style><style id="v494LobbyLook">
+/* V49.4: modern cinematic hangar presentation; preserves third-person FOV and controls. */
+.v17Lobby{background:radial-gradient(ellipse at 50% 36%,#3c63855e,transparent 45%),linear-gradient(165deg,#050b15 1%,#102538 43%,#08111f 80%,#020710)}
+.v17Lobby::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 15.8%,#7bafe30d 16%,transparent 16.3%),linear-gradient(0deg,#0009,transparent 40%);mix-blend-mode:screen}
+.v17Lobby .v17Profile,.v17Lobby .v17Currencies{backdrop-filter:blur(8px);border-color:#92b7d178;box-shadow:0 8px 30px #0007}
+.v17Lobby .v17Nav button,.v17Lobby .v17Quick button{border-radius:7px;min-height:43px;background:linear-gradient(125deg,#0a1727ec,#1b3448de);transition:background .12s,border-color .12s}
+.v17Lobby .v17Nav button:active,.v17Lobby .v17Quick button:active{border-color:#70e0f9;background:#1a4253}
+#v494ModelStatus{position:absolute;left:50%;bottom:12%;transform:translateX(-50%);max-width:74vw;z-index:4;pointer-events:none;padding:6px 14px;border:1px solid #6abfda73;border-radius:5px;background:#071623cf;color:#bde9f5;font:700 10px system-ui;letter-spacing:1.3px;text-align:center;text-shadow:0 1px 5px #000}
+@media(max-width:650px){#v494ModelStatus{font-size:8px;bottom:9%;padding:4px 7px;max-width:54vw}.v17Lobby .v17Nav button{min-height:38px}}
+@media(prefers-reduced-motion:reduce){.v17Lobby .v17Nav button,.v17Lobby .v17Quick button{transition:none}}
 </style><style id="v35CombatCSS">#controls #mobileBtns #crouchBtn{position:absolute;left:68%;bottom:18%;width:70px;height:43px;border-radius:12px;background:#24435bdc;border:2px solid #82bbd0;color:white;z-index:30;touch-action:none}#controls #mobileBtns #crouchBtn.crouchActive{background:#e0a54d;color:#112032}#v13AimMode{opacity:.8}#desktopHint{display:none!important}</style><style id="v22FireJoystickStyle">#fire{position:relative;touch-action:none;overflow:visible}#fire::after{content:'+';position:absolute;left:50%;top:50%;width:43%;height:43%;display:grid;place-items:center;transform:translate(calc(-50% + var(--fire-stick-x,0px)),calc(-50% + var(--fire-stick-y,0px)));border:2px solid rgba(255,255,255,.85);border-radius:50%;background:rgba(255,255,255,.16);color:white;font-size:18px;pointer-events:none;box-shadow:0 0 8px rgba(0,0,0,.35)}</style><style id="v36BattleStyle">
 #v36MapButton{position:absolute;left:14px;top:35%;z-index:31;background:#112d40e8;color:#e5fbff;border:2px solid #8ed9e3;border-radius:12px;padding:8px 12px;font-weight:900;touch-action:manipulation}
 #minimap{pointer-events:auto!important;cursor:pointer;z-index:22!important}
@@ -537,7 +547,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V49.3 · LILA Y ESCENARIOS</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
+<div id="v22Edition">V49.4 · MODELOS 3D Y GOOGLE</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
@@ -1203,7 +1213,7 @@ for(let i=0;i<10;i++){
 const ringGeo=new THREE.RingGeometry(.992,1,128);ringGeo.rotateX(-Math.PI/2);zoneRing=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:'#5bdce7',transparent:true,opacity:.75,side:THREE.DoubleSide,depthWrite:false}));zoneRing.position.y=2;scene.add(zoneRing);const grid=new THREE.GridHelper(12,6,'#7e968c','#647a70');grid.position.set(0,ground(0,0)+.03,0);grid.material.opacity=.1;grid.material.transparent=true;scene.add(grid);
 }
 // V22 optional external GLB model pipeline. Keeps the playable fallback if missing.
-const v22LilaAssets=['models/lila-v44-experimental.glb','models/lila-operator.glb'];
+const v22LilaAssets=['models/lila-operator.glb','models/lila-v44-experimental.glb'];
 const v22LilaAsset=v22LilaAssets[0];
 window.THEDEMIANFF_V40_ASSET_STATUS={lila:'pending',weapons:'pending'};
 /* V40.1: load a genuine AK-74 GLB once, retain the procedural rifle as an offline fallback. */
@@ -1269,10 +1279,12 @@ function v22PrepareLila(){
   if(running&&playerModel&&playerModel.isFemaleOperator)v22ApplyLilaModel(playerModel);
   if(v24Lobby.operator&&v24Lobby.skin===4)v22ApplyLilaModel(v24Lobby.operator);
   window.THEDEMIANFF_V40_ASSET_STATUS.lila='loaded: '+assetPath;
+  const modelStatus=document.getElementById('v494ModelStatus');if(modelStatus)modelStatus.textContent='OPERADOR 3D · MODELO GLB CARGADO';
  },undefined,e=>{
   candidate++;
   if(candidate<v22LilaAssets.length){loadCandidate();return;}
   window.THEDEMIANFF_V40_ASSET_STATUS.lila='missing';
+  const modelStatus=document.getElementById('v494ModelStatus');if(modelStatus)modelStatus.textContent='OPERADOR 3D · MODO COMPATIBILIDAD';
   v22LilaRequested=false;
   console.warn('[V40] GLB Lila no disponible; se conserva el personaje de respaldo',e);
  });
