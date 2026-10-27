@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 124
-        versionName '49.1-combat-refined'
+        versionCode 125
+        versionName '49.2-lila-aurora'
     }
     signingConfigs {
         persistentRelease {
