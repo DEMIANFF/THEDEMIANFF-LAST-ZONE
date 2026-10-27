@@ -2773,8 +2773,8 @@ let v18Progress={credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,unlocked:
 try{const stored=JSON.parse(localStorage.getItem(V18_STORAGE)||'null');if(stored&&typeof stored==='object')v18Progress={...v18Progress,...stored}}catch{}
 function v18Refresh(){
  const p=v18Progress;
- $('v18Credits').textContent=p.credits.toLocaleString('es-CO');
- $('v18XP').textContent=p.xp.toLocaleString('es-CO');
+ $('v18Credits').textContent=(Number.isSafeInteger(p.credits)&&p.credits>=0?p.credits:0).toLocaleString('es-CO');
+ $('v18XP').textContent=(Number.isSafeInteger(p.xp)&&p.xp>=0?p.xp:0).toLocaleString('es-CO');
  const xp=Number.isSafeInteger(p.xp)&&p.xp>=0?p.xp:0;
  const wins=Number.isSafeInteger(p.wins)&&p.wins>=0?p.wins:0,kills=Number.isSafeInteger(p.kills)&&p.kills>=0?p.kills:0;
  $('v18Level').textContent='NV. '+(1+Math.floor(xp/350));
@@ -3625,6 +3625,7 @@ function v123Feedback(){
  if(sprintHeld)parts.push('🏃 CORRER');if(crouchHeld)parts.push('⬇ AGACHADO');
  if(adsHeld)parts.push('◎ MIRA');
  if(fireHeld)parts.push('● FUEGO');
+ if(v23Touches.size&&v23ControlsEnabled){const looks=[...v23Touches.values()].filter(t=>t.role==='look').length;parts.push('✋ '+v23Touches.size+' TOQUES'+(looks?' · 🎯 '+looks+' CÁMARA':''));}
  $('v123InputTest').textContent=parts.join('  ·  ');
  $('sprint').classList.toggle('sprintActive',sprintHeld);
  $('aimBtn').classList.toggle('adsActive',adsHeld);$('v10Reticle').classList.toggle('v382ADS',adsHeld);
@@ -3695,7 +3696,14 @@ let v26LookOwner=null;
 let v26LastLookMove=0;
 // V42.9 MULTITOUCH CAMERA OWNER: permite pasar el control a un dedo que realmente se mueve.
 const v429LookIdleMs=170;
-function v23Ready(){return mobile&&running&&!paused&&!hudEditing&&!$('controls').classList.contains('hidden');}
+function v23Ready(){return mobile&&running&&!paused&&!hudEditing&&!gameOver&&!document.hidden&&!$('controls').classList.contains('hidden');}
+const v456TouchFeatures={
+ guardCoordinates:true,guardEdges:true,guardOverlays:true,singleJoystick:true,singleFire:true,
+ exclusiveActions:true,twoLookFingers:true,lookHandoff:true,gapRebase:true,
+ joystickViewportClamp:true,indicator:true,cleanup:true,validProgress:true
+};
+function v456InsideViewport(x,y){return Number.isFinite(x)&&Number.isFinite(y)&&x>=0&&y>=0&&x<=innerWidth&&y<=innerHeight;}
+function v456OverlayTarget(target){return !!target.closest?.('#v18Panel,#v362Settings,#v362Events,#v36MapPanel,#v36DropPanel,#hudEditor,#pausePanel,#menu,#end,#v443Entry,#v434ScopeButton,#minimap');}
 function v23Joy(x,y){
  const r=stickBase.getBoundingClientRect(),radius=Math.max(18,r.width*.33);
  const centerX=v342JoyOrigin?v342JoyOrigin.x:r.left+r.width/2;
@@ -3703,7 +3711,7 @@ function v23Joy(x,y){
  let vx=x-centerX,vy=y-centerY;
  // Shift the virtual base when the thumb outruns the radius: no hard joystick edge.
  const over=Math.hypot(vx,vy)-radius;
- if(over>0&&v342JoyOrigin){const d=Math.hypot(vx,vy);v342JoyOrigin.x+=vx/d*over;v342JoyOrigin.y+=vy/d*over;vx=x-v342JoyOrigin.x;vy=y-v342JoyOrigin.y;}
+ if(over>0&&v342JoyOrigin){const d=Math.hypot(vx,vy);v342JoyOrigin.x=clamp(v342JoyOrigin.x+vx/d*over,r.left,r.right);v342JoyOrigin.y=clamp(v342JoyOrigin.y+vy/d*over,r.top,r.bottom);vx=x-v342JoyOrigin.x;vy=y-v342JoyOrigin.y;}
  if(v342JoyOrigin){stickBase.style.setProperty('--v342-origin-x',(v342JoyOrigin.x-(r.left+r.width/2)).toFixed(1)+'px');stickBase.style.setProperty('--v342-origin-y',(v342JoyOrigin.y-(r.top+r.height/2)).toFixed(1)+'px');}
  const dist=Math.hypot(vx,vy),fraction=Math.min(1,dist/radius);
  const dz=clamp(Number($('deadzone').value)||0,0,.8);
@@ -3732,15 +3740,17 @@ function v23Clear(){
  $('fire').style.setProperty('--fire-stick-y','0px');
 }
 function v23PointerDown(e){
- if(e.target.closest?.('#minimap,#v36MapButton,#v36MapPanel,#v36DropPanel'))return;
- if(!v23Ready()||e.pointerType==='mouse')return;
+ if(!v23Ready()||e.pointerType==='mouse'||!v456InsideViewport(e.clientX,e.clientY)||v456OverlayTarget(e.target))return;
  const button=e.target.closest?.('button');
  const id=button&&$('controls').contains(button)?button.id:null;
  let role=null;
  if(id&&touchActionIds.has(id))role=id;
- else if(e.target.closest?.('#stickBase')||(e.clientX<window.innerWidth*.46&&e.clientY>window.innerHeight*.32&&!e.target.closest?.('button,#hudEditor,#pausePanel,#menu')))role='joystick';
+ else if(e.target.closest?.('#stickBase')||(e.clientX<innerWidth*.46&&e.clientY>innerHeight*.32&&!e.target.closest?.('button,input,select,textarea,a,[role="button"],#hudEditor,#pausePanel,#menu')))role='joystick';
  else if(e.clientX>=window.innerWidth*0.5&&cameraAllowedTarget(e.target))role='look';
  if(!role)return;
+ // Keep camera and movement away from the wrong half of the display.
+ if(role==='look'&&e.target.closest?.('button,input,select,textarea,a,[role="button"]'))return;
+ if(role==='look'&&[...v23Touches.values()].filter(t=>t.role==='look').length>=2)return;
  // V45.5: one owner per action. Extra fingers must not toggle ADS/crouch/sprint twice.
  // Multiple independent 'look' fingers remain allowed for seamless camera handoff.
  if(v23Touches.has(e.pointerId))return;
@@ -3749,7 +3759,7 @@ function v23PointerDown(e){
   e.stopImmediatePropagation();
   return;
  }
- const t={role,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY};
+ const t={role,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,lastAt:performance.now()};
  v23Touches.set(e.pointerId,t);
  if(role==='joystick'){stickTouch=e.pointerId;v342JoyOrigin={x:t.x,y:t.y};v23Joy(t.x,t.y);}
  else if(role==='look'){cameraPointers.set(e.pointerId,t);if(v26LookOwner===null){v26LookOwner=e.pointerId;lookTouch=e.pointerId;v26LastLookMove=performance.now();}}
@@ -3775,8 +3785,15 @@ function v23PointerMove(e){
  if(!v23Ready()){v23PointerEnd(e);return;}
  // Clamp anomalous Android touch jumps caused by interrupted or resumed gestures.
  // V43.5: no recortar cada evento; usar desplazamiento real del dedo.
+ if(!v456InsideViewport(e.clientX,e.clientY))return;
+ const now=performance.now(),gap=now-t.lastAt;
  const dx=e.clientX-t.x,dy=e.clientY-t.y;
- t.x=e.clientX;t.y=e.clientY;
+ t.x=e.clientX;t.y=e.clientY;t.lastAt=now;
+ // Rebase pointer after a delayed Android move rather than rotating from stale coordinates.
+ if(gap>320&&(t.role==='look'||t.role==='fire')){
+  if(t.role==='fire')v23FireThumb(t);
+  if(e.cancelable)e.preventDefault();e.stopImmediatePropagation();return;
+ }
  // V45.4: Android may deliver a discontinuous pointer after an app interruption.
  // Drop only implausible single-event camera jumps; preserve ordinary fast swipes.
  if((t.role==='look'||t.role==='fire')&&Math.hypot(dx,dy)>Math.max(180,Math.min(innerWidth,innerHeight)*.45)){
@@ -3812,7 +3829,14 @@ function v23PointerEnd(e){
  const t=v23Touches.get(e.pointerId);if(!t)return;
  v23Touches.delete(e.pointerId);
  if(t.role==='joystick'){stickTouch=null;v342JoyOrigin=null;stickBase.style.removeProperty('--v342-origin-x');stickBase.style.removeProperty('--v342-origin-y');joyX=joyY=0;stick.style.transform='translate(-50%,-50%)';}
- else if(t.role==='look'){cameraPointers.delete(e.pointerId);if(v26LookOwner===e.pointerId){v26LookOwner=null;lookTouch=null;v26LastLookMove=0;}}
+ else if(t.role==='look'){
+  cameraPointers.delete(e.pointerId);
+  if(v26LookOwner===e.pointerId){
+   const next=[...v23Touches].find(([,p])=>p.role==='look');
+   v26LookOwner=next?next[0]:null;lookTouch=v26LookOwner;
+   v26LastLookMove=next?performance.now():0;
+  }
+ }
  else if(t.role==='fire'){fireTouch=null;fireHeld=false;v22FireDragging=false;$('fire').style.setProperty('--fire-stick-x','0px');$('fire').style.setProperty('--fire-stick-y','0px');}
  v123Feedback();
  if(e.cancelable)e.preventDefault();
@@ -3838,6 +3862,7 @@ $('game').style.touchAction='none';
 window.addEventListener('blur',v23Clear);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)v23Clear();});
 window.addEventListener('pagehide',v23Clear);
+window.addEventListener('orientationchange',()=>{if(running)v123ResetInputs();});
 
 // V12: individually positioned controls, normalized to the visible play area.
 const hudIds=['stickBase','sprint','jump','fire','heal','reload','aimBtn','switchGun','crouchBtn'];
