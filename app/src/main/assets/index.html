@@ -2590,6 +2590,14 @@ function v474RivalCombat(dt){
   victim.dodgeTime=Math.max(victim.dodgeTime,.3);
   victim.dodgeSign=Math.random()<.5?-1:1;
   const hitChance=clamp(.57-nearest*.008-(attacker.suppression||0)*.17,.16,.55);
+  const visibleToPlayer=Math.min(Math.hypot(attacker.x-player.position.x,attacker.z-player.position.z),Math.hypot(victim.x-player.position.x,victim.z-player.position.z))<52;
+  if(visibleToPlayer){
+   // V47.7: enemy-vs-enemy muzzle trace, depth-tested and GPU-cleaned by effects loop.
+   const muzzle=new THREE.Vector3(attacker.x,eyeA,attacker.z);
+   const end=new THREE.Vector3(victim.x+rand(-.32,.32),eyeB+rand(-.2,.2),victim.z+rand(-.32,.32));
+   const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([muzzle,end]),new THREE.LineBasicMaterial({color:0xffbf83,transparent:true,opacity:.69,depthTest:true}));
+   scene.add(line);effects.push({mesh:line,t:.10,life:.10,streak:true});
+  }
   if(Math.random()<hitChance){
    const amount=attacker.role==='FRANCOTIRADOR'?13:attacker.role==='DEFENSOR'?10:attacker.role==='EXPLORADOR'?7:9;
    victim.hp-=amount;
@@ -2605,7 +2613,7 @@ function v474RivalCombat(dt){
   // Avoid playing far-away sounds, but preserve visible fight reaction.
   const battleDistance=Math.hypot(attacker.x-player.position.x,attacker.z-player.position.z);
   if(battleDistance<65)enemyShotSound(battleDistance);
-  if(nearest<27&&battleDistance<52)
+  if(visibleToPlayer&&nearest<27&&battleDistance<52)
    impact(attacker.x,ground(attacker.x,attacker.z)+1.6,attacker.z,'#ffc57f');
   break;
  }
