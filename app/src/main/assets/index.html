@@ -537,7 +537,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V48.9 · ARSENAL TÁCTICO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
+<div id="v22Edition">V49.0 · COMBATE SEGURO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
@@ -2394,7 +2394,7 @@ v428CreateTrainingWorld();v22PrepareLila();const c=v18Progress.skin===4?v22Femal
 for(let i=2;i<weapons.length;i++){weapons[i].ammo=weapons[i].mag;weapons[i].reserve=[210,36,180][i-2];}for(let i=0;i<($('v18Mode').value==='training'?8:20);i++)spawnBot(Math.random()<.5?10:17);for(let i=0;i<55;i++){let p=safePos(5);spawnPickup(['ammo','ammo','med','armor'][i%4],p.x,p.z)}updateHud();}
 function updateHud(){
  const eventHud=$('v362EventHud');if(eventHud){eventHud.classList.toggle('hidden',!v18ActiveEvent);if(v18ActiveEvent)eventHud.textContent='EVENTO '+(v18ActiveEvent==='training'?'PRÁCTICA TÁCTICA':'SUPERVIVENCIA')+' · BAJAS '+kills+'/'+(v18ActiveEvent==='training'?2:3);}
- $('v122ControlState').textContent=(v469HealTimer>0?'✚ CURANDO '+v469HealTimer.toFixed(1)+'s  ':'')+(reloadTimer>0&&reloadWeapon===weaponIndex?'↻ RECARGA '+reloadTimer.toFixed(1)+'s  ':'')+(sprintHeld?'🏃 CORRER ACTIVO  ':'')+(adsHeld?'◎ MIRA ACTIVA':'');$('alive').textContent=bots.filter(b=>b.alive).length+1;updateV7Hud();const v487Closest=bots.reduce((best,b)=>{if(!b.alive||b.airborne)return best;const d=Math.hypot(b.x-player.position.x,b.z-player.position.z);return d<best.distance?{distance:d,role:b.role}:best;},{distance:Infinity,role:''});const v487Near=v487Closest.distance;const v487Threat=v487Near<18?'⚠ '+(v487Closest.role==='FRANCOTIRADOR'?'FRANCOTIRADOR':'RIVAL')+' '+Math.round(v487Near)+'m':v487Near<34?'◉ CONTACTO '+Math.round(v487Near)+'m':'';const combatHud=$('v8Combat');combatHud.textContent='BAJAS '+kills+' · ARMA '+(weaponIndex+1)+(v487Threat?' · '+v487Threat:'');combatHud.style.color=v487Near<18?'#ffbb91':'';combatHud.setAttribute('aria-label',v487Threat?'Advertencia táctica: '+v487Threat:'Estado del combate');$('missionHud').textContent='ÚLTIMOS '+(bots.filter(b=>b.alive).length+1)+' · BAJAS '+kills+' · ZONA '+Math.round(zoneRadius)+'m'+' · '+v476PoiName;$('kills').textContent=kills;$('hpText').textContent=Math.ceil(hp);$('armorText').textContent=Math.ceil(armor);$('hpBar').style.width=clamp(hp,0,100)+'%';$('armorBar').style.width=clamp(armor,0,100)+'%';
+ $('v122ControlState').textContent=(v469HealTimer>0?'✚ CURANDO '+v469HealTimer.toFixed(1)+'s  ':'')+(reloadTimer>0&&reloadWeapon===weaponIndex?'↻ RECARGA '+reloadTimer.toFixed(1)+'s  ':'')+(sprintHeld?'🏃 CORRER ACTIVO  ':'')+(adsHeld?'◎ MIRA ACTIVA':'');$('alive').textContent=bots.filter(b=>b.alive).length+1;updateV7Hud();const v487Closest=bots.reduce((best,b)=>{if(!b.alive||b.airborne||b.hp<=0)return best;const d=Math.hypot(b.x-player.position.x,b.z-player.position.z);return d<best.distance?{distance:d,role:b.role}:best;},{distance:Infinity,role:''});const v487Near=v487Closest.distance;const v487Threat=v487Near<18?'⚠ '+(v487Closest.role==='FRANCOTIRADOR'?'FRANCOTIRADOR':'RIVAL')+' '+Math.round(v487Near)+'m':v487Near<34?'◉ CONTACTO '+Math.round(v487Near)+'m':'';const combatHud=$('v8Combat');combatHud.textContent='BAJAS '+kills+' · ARMA '+(weaponIndex+1)+(v487Threat?' · '+v487Threat:'');combatHud.style.color=v487Near<18?'#ffbb91':'';combatHud.setAttribute('aria-label',v487Threat?'Advertencia táctica: '+v487Threat:'Estado del combate');$('missionHud').textContent='ÚLTIMOS '+(bots.filter(b=>b.alive).length+1)+' · BAJAS '+kills+' · ZONA '+Math.round(zoneRadius)+'m'+' · '+v476PoiName;$('kills').textContent=kills;$('hpText').textContent=Math.ceil(hp);$('armorText').textContent=Math.ceil(armor);$('hpBar').style.width=clamp(hp,0,100)+'%';$('armorBar').style.width=clamp(armor,0,100)+'%';
  // Healing progress is communicated in the existing unobtrusive HUD.
 const healthPanel=$('health');
  healthPanel.classList.toggle('v460Low',hp>0&&hp<=30);
@@ -2466,7 +2466,7 @@ window.THEDEMIANFF_V472_TEST=()=>({heat:v472ShotHeat.slice(),tracerFrequency:2,b
 let v467LastShotTime=-100,v467LastShotX=0,v467LastShotZ=0;
 let v484NoAmmoNotice=-10;
 let v489AutoSwaps=0,v489DryFires=0,v489LastDryFire=-10;
-function v489BestLoadedBackup(exclude){let chosen=-1,score=-Infinity;for(let i=0;i<weapons.length;i++){if(i===exclude)continue;const candidate=weapons[i];if(!candidate||candidate.ammo<=0)continue;const value=candidate.ammo+Math.min(20,candidate.reserve||0)*.05;if(value>score){score=value;chosen=i;}}return chosen;}
+function v489BestLoadedBackup(exclude){let chosen=-1,score=-Infinity;for(let i=0;i<weapons.length;i++){if(i===exclude||reloadTimer>0&&reloadWeapon===i)continue;const candidate=weapons[i];if(!candidate||!Number.isFinite(candidate.ammo)||candidate.ammo<=0)continue;const value=candidate.ammo+Math.min(20,candidate.reserve||0)*.05+(candidate.range||0)*.005;if(value>score){score=value;chosen=i;}}return chosen;}
 window.THEDEMIANFF_V489_AMMO=()=>({autoSwaps:v489AutoSwaps,dryFires:v489DryFires,armed:weapons.filter(w=>w&&w.ammo>0).length});
 function shoot(){const w=weapons[weaponIndex];if(!w||shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused||gameOver||window.v36FlightMode!=='landed')return;if(w.ammo<=0){if(reloadTimer<=0&&w.reserve>0){if(v469HealTimer<=0)reload();return;}if(time-v489LastDryFire>.35){v489DryFires++;v489LastDryFire=time;}if(w.reserve<=0&&v469HealTimer<=0){const backup=v489BestLoadedBackup(weaponIndex);if(backup>=0){swap(backup);v489AutoSwaps++;shootCooldown=Math.max(shootCooldown,.20);toast('CAMBIO AUTOMÁTICO · '+weapons[backup].name);return;}}if(time-v484NoAmmoNotice>2.5){v484NoAmmoNotice=time;toast(v469HealTimer>0?'BOTIQUÍN EN PROCESO':'SIN MUNICIÓN · CAMBIA DE ARMA');}return;}if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN CANCELADO AL DISPARAR');updateHud();}w.ammo--;if(w.ammo===0&&w.reserve===0)showCombat(v489BestLoadedBackup(weaponIndex)>=0?'⚠ ARMA VACÍA · SIGUIENTE DISPARO CAMBIA':'⚠ SIN MUNICIÓN · CAMBIA DE ARMA');else if(w.ammo===Math.max(2,Math.floor(w.mag*.18)))showCombat('⚠ MUNICIÓN BAJA');v472ShotCounter++;v472ShotHeat[weaponIndex]=Math.min(1,v472ShotHeat[weaponIndex]+(weaponIndex===2?.095:weaponIndex===3?.35:.16));v467LastShotTime=time;v467LastShotX=player.position.x;v467LastShotZ=player.position.z;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+v392RecoilKick(weaponIndex));v470FirePose=Math.min(1,v470FirePose+.38);playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
 const v472StanceAccuracy=onGround&&crouchHeld?.71:!onGround?1.28:1;
@@ -2513,7 +2513,7 @@ if(v469HealTimer>0)return;
 if(reloadTimer>0&&reloadWeapon===weaponIndex){toast('ESPERA A TERMINAR LA RECARGA');return;}
 v469HealTimer=2.3;toast('APLICANDO BOTIQUÍN · QUÉDATE QUIETO');updateHud()}
 let v469HealTimer=0;function swap(n){
- if(!running||paused||gameOver)return;
+ if(!running||paused||gameOver||window.v36FlightMode!=='landed')return;
  if(!Number.isInteger(n)||n<0||n>=weapons.length||n===weaponIndex)return;
  if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN CANCELADO');updateHud();}
  // Switching is always permitted, even during a reload.
@@ -2522,10 +2522,10 @@ let v469HealTimer=0;function swap(n){
  v395SwapTime=.30;
  // V22: visible holstered rifle during weapon swap. Full GLB attachment follows.
  if(playerModel)v22UpdateHolster(playerModel,n);
- shootCooldown=0;
+ shootCooldown=Math.max(shootCooldown,.15);
  toast(weapons[n].name);
  updateHud();
-}function damage(amount,fromX,fromZ){if(!running||gameOver||!Number.isFinite(amount)||amount<=0)return;
+}function damage(amount,fromX,fromZ){if(!running||gameOver||!Number.isFinite(amount)||amount<=0||hp<=0)return;
 if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN INTERRUMPIDO');}
 amount=Math.min(amount,250);let absorbed=Math.max(0,Math.min(armor,amount*.55));armor=Math.max(0,armor-absorbed);hp=Math.max(0,hp-(amount-absorbed));damageFlash=.25;if(Number.isFinite(fromX)&&Number.isFinite(fromZ)&&player)showDmgDir(fromX,fromZ);if(hp<=0){hp=0;finish(false);}updateHud()}function showDmgDir(fx,fz){if(!player||!Number.isFinite(fx)||!Number.isFinite(fz))return;const ang=Math.atan2(fx-player.position.x,fz-player.position.z);let rel=ang-camYaw;rel=Math.atan2(Math.sin(rel),Math.cos(rel));const el=$('dmgDir');if(!el)return;el.style.transform=`translate(-50%,-50%) rotate(${rel}rad)`;el.style.opacity=.92;clearTimeout(showDmgDir.t);showDmgDir.t=setTimeout(()=>el.style.opacity=0,900);}
 function finish(win){if(gameOver)return;gameOver=true;document.body.classList.remove('v475InMatch');const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;v469HealTimer=0;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
@@ -2633,8 +2633,9 @@ window.THEDEMIANFF_V480_50=()=>v480ImprovementNames.map((name,i)=>({number:i+1,n
 
 function v477InZone(x,z,padding=0){return Math.hypot(x-zoneCenter.x,z-zoneCenter.y)<=zoneRadius-padding;}
 function v477FindRivalTarget(source,targets){
+ if(!source||!source.alive||!Number.isFinite(source.x)||!Number.isFinite(source.z))return null;
  let chosen=null,score=Infinity;
- for(const rival of targets){if(rival===source||!rival.alive)continue;
+ for(const rival of targets){if(rival===source||!rival.alive||!Number.isFinite(rival.x)||!Number.isFinite(rival.z))continue;
   const dx=rival.x-source.x,dz=rival.z-source.z,d=Math.hypot(dx,dz);
   if(d<=4.5||d>=39||rival.airborne||rival.retreatTime>0||rival.hp<=0)continue;
   const weighted=d+(v477InZone(rival.x,rival.z)?0:6)+(rival.role==='FRANCOTIRADOR'?-2:0)+(rival.hp<35?-4:0)+(rival.hitStun>0?-1:0)+(rival.role==='DEFENSOR'?2.5:0)+(rival.suppression>.65?-1.3:0)+(rival.dodgeTime>0?1.2:0);
@@ -2649,7 +2650,7 @@ function v474RivalCombat(dt){
  if(v474RivalClock>0)return;
  v474RivalClock=.50;
  if(time<5.5)return;
- const candidates=bots.filter(b=>b.alive&&!b.airborne&&b.hitStun<=0);
+ const candidates=bots.filter(b=>b.alive&&!b.airborne&&b.hp>0&&b.hitStun<=0&&Number.isFinite(b.x)&&Number.isFinite(b.z));
  if(candidates.length<2)return;
  const startIndex=(v474RivalRounds++*7)%candidates.length;
  for(let k=0;k<candidates.length;k++){
