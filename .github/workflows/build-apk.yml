@@ -562,7 +562,10 @@ jobs:
               assert metric in h, 'V45: falta métrica '+metric
           assert 'p.matches?Math.round(p.wins/p.matches*100):0' in h, 'V45: estadística de victorias debe evitar división por cero'
           assert 'id="v443Guest" type="button" style="display:none;' in h, 'V44.5: invitado visible durante validación Google'
-          assert 'id="v443Google" type="button" style="display:none;' in h, 'V44.5: Google visible antes del estado de sesión'
+          # Google is intentionally available in Settings > Account; it starts hidden on the entry screen via the authenticated-state flow.
+          assert 'id="v443Google" type="button" style="display:block;' in h, 'V49: falta botón Google en Ajustes > Cuenta'
+          assert "if(!v445GoogleBridge){" in h and "$('v443Google').style.display='block';" in h, 'V44.5: acceso Google sin recuperación manual'
+          assert "if(state==='signed_in')" in h and "$('v443Google').style.display='none';" in h, 'V44.5: falta ocultar acceso tras iniciar sesión'
           assert "if(!v445GoogleBridge){" in h, 'V44.5: Chrome sin recuperación de acceso'
           assert "guest.style.display='block';" in h, 'V44.5: acceso manual no reaparece sin sesión'
           assert "' · progreso local en este dispositivo'" in h, 'V44.5: estado de cuenta debe aclarar almacenamiento local'
