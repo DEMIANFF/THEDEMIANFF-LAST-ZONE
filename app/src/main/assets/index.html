@@ -226,6 +226,17 @@
 #v7status{opacity:.7;font-size:10px!important}
 #v362EventHud{position:fixed;left:50%;top:15%;transform:translateX(-50%);background:#16364bda;border:1px solid #ffcd80;color:#ffe4b2;border-radius:9px;padding:5px 12px;font-weight:800;font-size:11px;pointer-events:none;z-index:6;white-space:nowrap}
 #v362LootLegend{position:absolute;left:10px;top:56%;background:#092739dc;color:#eaf7ff;border:1px solid #9dc9d06b;border-radius:11px;padding:6px 9px;font-size:10px;pointer-events:none;z-index:4;line-height:1.55}
+/* V45.9: readable combat overlays, no new WebGL draw calls */
+#v7Compass{top:max(8px,env(safe-area-inset-top));padding:5px 13px;border-radius:999px;background:#061b2bc9;border:1px solid #74e5d055;letter-spacing:1.3px;box-shadow:0 3px 12px #0007}
+#v362LootLegend{border-left:3px solid #68e9c9;box-shadow:0 4px 18px #0008;backdrop-filter:blur(4px);max-width:min(210px,52vw);white-space:normal}
+#missionHud{max-width:92vw;text-align:center;overflow:hidden;text-overflow:ellipsis}
+#v13AimMode{padding:3px 8px;border-radius:7px;background:#06192399;white-space:nowrap}
+#v10Reticle{box-shadow:0 0 9px #6cf9d644}
+#v7Toast,#combatFeed{max-width:90vw;overflow-wrap:anywhere;text-align:center}
+@media(max-width:520px){#v362LootLegend{font-size:9px;padding:5px 7px}#v7Compass{font-size:11px}#v13AimMode{font-size:9px}}
+@media(orientation:portrait){#v362LootLegend{top:60%;max-width:42vw}#v7Compass{top:max(12px,env(safe-area-inset-top))}}
+@media(prefers-reduced-motion:reduce){#v7Toast,#combatFeed{transition:none!important}}
+
 </style><style id="v362EventCSS">
 #v362Events{position:fixed;inset:0;background:#041522f2;z-index:100;display:grid;place-items:center;padding:14px;pointer-events:auto;overflow:auto;touch-action:pan-y}
 #v362Events.hidden{display:none!important}
