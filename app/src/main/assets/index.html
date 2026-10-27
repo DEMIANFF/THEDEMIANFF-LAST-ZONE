@@ -2339,7 +2339,7 @@ v40EnemyMark.color.set(['#ff946d','#ffd16e','#ff7272','#9ce6ff'][roleIndex]);
 const role=['ASALTO','EXPLORADOR','DEFENSOR','FRANCOTIRADOR'][roleIndex];
 const roleHp=[100,78,145,85][roleIndex],roleSpeed=[1,1.28,.78,.9][roleIndex];
 c.root.scale.setScalar(1.24*[1,.92,1.1,1][roleIndex]);
-bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),think:rand(0,3),shoot:rand(.5,2),speed:rand(3.2,4.6)*roleSpeed,velocityX:0,velocityZ:0,alive:true,strafe:rand(-1,1),phase:rand(0,6),lastHit:0,alert:0,burst:rand(.2,.65),tactic:rand(0,6.28),coverTimer:0,coverX:null,coverZ:null,shotPose:0,lostSight:5,lastSeenAngle:0,stuckTime:0,lastSeenX:null,lastSeenZ:null,investigateTime:0,suppression:0,burstLeft:0,retreatTime:0,initialHp:roleHp,previousX:p.x,previousZ:p.z,visionTime:rand(0,.12),cachedVisible:false,hitStun:0,dodgeTime:0,dodgeSign:1,rangePreference:role==='FRANCOTIRADOR'?30:role==='DEFENSOR'?18:role==='EXPLORADOR'?11:16});}function spawnPickup(type,x,z){const group=new THREE.Group();group.position.set(x,ground(x,z)+.65,z);const color=type==='med'?'#ff5959':type==='armor'?'#25dcff':'#ffd54c';box(.9,.45,.9,mat(color,.4,.2),group);box(.45,.08,.1,mats.dark,group,0,.24,0);if(type==='med'){box(.42,.08,.08,mats.wall,group,0,.25,.45);box(.08,.42,.08,mats.wall,group,0,.25,.45)}const glow=new THREE.Mesh(new THREE.CylinderGeometry(.84,.84,.08,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.86,depthWrite:false}));glow.position.y=-.5;group.add(glow);
+bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),think:rand(0,3),shoot:rand(.5,2),speed:rand(3.2,4.6)*roleSpeed,velocityX:0,velocityZ:0,alive:true,strafe:rand(-1,1),phase:rand(0,6),lastHit:0,alert:0,burst:rand(.2,.65),tactic:rand(0,6.28),coverTimer:0,coverX:null,coverZ:null,shotPose:0,lostSight:5,lastSeenAngle:0,stuckTime:0,lastSeenX:null,lastSeenZ:null,investigateTime:0,heardShotStamp:-100,suppression:0,burstLeft:0,retreatTime:0,initialHp:roleHp,previousX:p.x,previousZ:p.z,visionTime:rand(0,.12),cachedVisible:false,hitStun:0,dodgeTime:0,dodgeSign:1,rangePreference:role==='FRANCOTIRADOR'?30:role==='DEFENSOR'?18:role==='EXPLORADOR'?11:16});}function spawnPickup(type,x,z){const group=new THREE.Group();group.position.set(x,ground(x,z)+.65,z);const color=type==='med'?'#ff5959':type==='armor'?'#25dcff':'#ffd54c';box(.9,.45,.9,mat(color,.4,.2),group);box(.45,.08,.1,mats.dark,group,0,.24,0);if(type==='med'){box(.42,.08,.08,mats.wall,group,0,.25,.45);box(.08,.42,.08,mats.wall,group,0,.25,.45)}const glow=new THREE.Mesh(new THREE.CylinderGeometry(.84,.84,.08,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.86,depthWrite:false}));glow.position.y=-.5;group.add(glow);
  const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.39,0),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.96,depthWrite:false,depthTest:true}));beacon.position.y=1.45;group.add(beacon);
  // V40 easy-to-identify medkits, ammunition and armor: visible pillar + floating ring.
  const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,1.85,8),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.54,depthWrite:false,depthTest:true}));pillar.position.y=.45;group.add(pillar);
@@ -2359,7 +2359,8 @@ for(let i=2;i<weapons.length;i++){weapons[i].ammo=weapons[i].mag;weapons[i].rese
 function updateHud(){
  const eventHud=$('v362EventHud');if(eventHud){eventHud.classList.toggle('hidden',!v18ActiveEvent);if(v18ActiveEvent)eventHud.textContent='EVENTO '+(v18ActiveEvent==='training'?'PRÁCTICA TÁCTICA':'SUPERVIVENCIA')+' · BAJAS '+kills+'/'+(v18ActiveEvent==='training'?2:3);}
  $('v122ControlState').textContent=(sprintHeld?'🏃 CORRER ACTIVO  ':'')+(adsHeld?'◎ MIRA ACTIVA':'');$('alive').textContent=bots.filter(b=>b.alive).length+1;updateV7Hud();$('v8Combat').textContent='BAJAS '+kills+'  ·  ARMA '+(weaponIndex+1);$('missionHud').textContent='ÚLTIMOS '+(bots.filter(b=>b.alive).length+1)+' · BAJAS '+kills+' · ZONA '+Math.round(zoneRadius)+'m';$('kills').textContent=kills;$('hpText').textContent=Math.ceil(hp);$('armorText').textContent=Math.ceil(armor);$('hpBar').style.width=clamp(hp,0,100)+'%';$('armorBar').style.width=clamp(armor,0,100)+'%';
- const healthPanel=$('health');
+ // Healing progress is communicated in the existing unobtrusive HUD.
+const healthPanel=$('health');
  healthPanel.classList.toggle('v460Low',hp>0&&hp<=30);
  healthPanel.classList.toggle('v460NoShield',armor<=0);
  healthPanel.classList.toggle('v461Critical',hp>0&&hp<=15);
@@ -2396,7 +2397,7 @@ const v392Kick=[.54,.95,.37,1.15,.46];
 function v392RecoilKick(index){return v392Kick[index]??.65;}
 window.THEDEMIANFF_RECOIL_TEST=(index)=>v392RecoilKick(index);
 let v467LastShotTime=-100,v467LastShotX=0,v467LastShotZ=0;
-function shoot(){const w=weapons[weaponIndex];if(shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused)return;if(w.ammo<=0){if(reloadTimer<=0)reload();return;}w.ammo--;v467LastShotTime=time;v467LastShotX=player.position.x;v467LastShotZ=player.position.z;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+v392RecoilKick(weaponIndex));playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
+function shoot(){if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN CANCELADO');}const w=weapons[weaponIndex];if(shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused)return;if(w.ammo<=0){if(reloadTimer<=0)reload();return;}w.ammo--;v467LastShotTime=time;v467LastShotX=player.position.x;v467LastShotZ=player.position.z;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+v392RecoilKick(weaponIndex));playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
 const spread=v391Spread(w.spread,adsHeld,moving,sprintHeld);
 const jitterX=rand(-spread,spread),jitterY=rand(-spread,spread);
 // Perturb in camera local screen axes, never world axes; preserves aim under rotation.
@@ -2431,8 +2432,13 @@ function reload(){
  v395ReloadDuration=w.reload;
  toast('RECARGANDO '+w.name+' · '+w.reload.toFixed(2)+' s');reloadSound();
  updateHud();
-}function heal(){if(meds<=0||hp>=100){toast('No necesitas botiquín');return;}meds--;hp=Math.min(100,hp+55);toast('+55 VIDA · BOTIQUÍN');updateHud()}function swap(n){
+}function heal(){if(!running||paused||gameOver)return;if(meds<=0||hp>=100){toast('No necesitas botiquín');return;}
+// V46.9 healing uses a short channel; damage interrupts the application.
+if(v469HealTimer>0)return;
+v469HealTimer=2.3;toast('APLICANDO BOTIQUÍN · 2.3 s');updateHud()}
+let v469HealTimer=0;function swap(n){
  if(!running||paused)return;
+ if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN CANCELADO');}
  if(n<0||n>=weapons.length)return;
  // Switching is always permitted, even during a reload.
  // The reload belongs to its original weapon and completes independently.
@@ -2444,12 +2450,20 @@ function reload(){
  shootCooldown=0;
  toast(weapons[n].name);
  updateHud();
-}function damage(amount,fromX,fromZ){let absorbed=Math.min(armor,amount*.55);armor-=absorbed;hp-=amount-absorbed;damageFlash=.25;if(fromX!==undefined&&player)showDmgDir(fromX,fromZ);if(hp<=0){hp=0;finish(false);}updateHud()}function showDmgDir(fx,fz){const ang=Math.atan2(fx-player.position.x,fz-player.position.z);let rel=ang-camYaw;rel=Math.atan2(Math.sin(rel),Math.cos(rel));const el=$('dmgDir');if(!el)return;el.style.transform=`translate(-50%,-50%) rotate(${rel}rad)`;el.style.opacity=.92;clearTimeout(showDmgDir.t);showDmgDir.t=setTimeout(()=>el.style.opacity=0,900);}
-function finish(win){if(gameOver)return;gameOver=true;const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
+}function damage(amount,fromX,fromZ){if(!running||gameOver)return;
+if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN INTERRUMPIDO');}
+let absorbed=Math.min(armor,amount*.55);armor-=absorbed;hp-=amount-absorbed;damageFlash=.25;if(fromX!==undefined&&player)showDmgDir(fromX,fromZ);if(hp<=0){hp=0;finish(false);}updateHud()}function showDmgDir(fx,fz){const ang=Math.atan2(fx-player.position.x,fz-player.position.z);let rel=ang-camYaw;rel=Math.atan2(Math.sin(rel),Math.cos(rel));const el=$('dmgDir');if(!el)return;el.style.transform=`translate(-50%,-50%) rotate(${rel}rad)`;el.style.opacity=.92;clearTimeout(showDmgDir.t);showDmgDir.t=setTimeout(()=>el.style.opacity=0,900);}
+function finish(win){if(gameOver)return;gameOver=true;const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;v469HealTimer=0;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 let moveVX=0,moveVZ=0,v14Recoil=0,v395SwapTime=0,v395ReloadDuration=0;
 function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);return;}v362UpdateBotsInAir(dt);flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
  // FOV y reticula ahora pertenecen exclusivamente al controlador V43.2.
- time+=dt;shootCooldown=Math.max(0,shootCooldown-dt);if(reloadTimer>0){
+ time+=dt;
+if(v469HealTimer>0){
+ const activeMove=Math.hypot(moveVX,moveVZ)>1.0;
+ if(activeMove||fireHeld){v469HealTimer=0;toast('BOTIQUÍN CANCELADO AL MOVERTE');}
+ else{v469HealTimer-=dt;if(v469HealTimer<=0){v469HealTimer=0;if(meds>0&&hp>0&&hp<100){meds--;hp=Math.min(100,hp+55);toast('+55 VIDA · BOTIQUÍN');updateHud();}}}
+}
+shootCooldown=Math.max(0,shootCooldown-dt);if(reloadTimer>0){
  reloadTimer-=dt;
  if(reloadTimer<=0){
   const index=reloadWeapon;
@@ -2547,7 +2561,7 @@ b.hitStun=Math.max(0,b.hitStun-dt);b.dodgeTime=Math.max(0,b.dodgeTime-dt);
 // V46.7: a gunshot is audible even when the shooter is behind cover; perception is bounded.
 const heardShot=time-v467LastShotTime<1.1&&Math.hypot(v467LastShotX-b.x,v467LastShotZ-b.z)<(b.role==='EXPLORADOR'?65:46);
 if(visible){b.lastSeenX=player.position.x;b.lastSeenZ=player.position.z;b.investigateTime=4.5;}
-else if(heardShot&&b.investigateTime<=0){b.lastSeenX=v467LastShotX;b.lastSeenZ=v467LastShotZ;b.investigateTime=3.5;}
+else if(heardShot&&b.heardShotStamp!==v467LastShotTime){b.lastSeenX=v467LastShotX;b.lastSeenZ=v467LastShotZ;b.investigateTime=3.5;b.heardShotStamp=v467LastShotTime;}
 b.investigateTime=Math.max(0,b.investigateTime-dt);
 b.suppression=Math.max(0,b.suppression-dt*.7);
 b.retreatTime=Math.max(0,b.retreatTime-dt);
@@ -2560,7 +2574,9 @@ b.shotPose=Math.max(0,b.shotPose-dt*4);
 if(b.think<=0){
  b.think=visible?rand(.33,.72):b.lostSight<2?rand(.45,.9):rand(1.0,2.3);
  if((visible||b.lastHit>.1||b.suppression>.15)&&b.coverTimer<=0){
- const cover=v394FindCover(b,player.position.x,player.position.z);
+ const threatX=visible?player.position.x:(Number.isFinite(b.lastSeenX)?b.lastSeenX:player.position.x);
+ const threatZ=visible?player.position.z:(Number.isFinite(b.lastSeenZ)?b.lastSeenZ:player.position.z);
+ const cover=v394FindCover(b,threatX,threatZ);
  b.coverX=cover?.x??null;b.coverZ=cover?.z??null;
  b.coverTimer=rand(b.role==='DEFENSOR'?1.5:2.5,b.role==='DEFENSOR'?3:4.5);
 }
@@ -2570,8 +2586,9 @@ if(b.think<=0){
   const flank=(b.role==='FRANCOTIRADOR'?1.4:d<13?1.6:d<32?.85:.35)*strafeDirection;
   b.moveAngle=pursue+flank+rand(-.16,.16);
   if(d<b.rangePreference)b.moveAngle=pursue+Math.PI+rand(-.35,.35);
-  if(Math.random()<(b.role==='EXPLORADOR'?.42:b.role==='FRANCOTIRADOR'?.15:.27))b.strafe*=-1;if(b.dodgeTime>0)b.moveAngle=pursue+b.dodgeSign*Math.PI*.5;
+  if(Math.random()<(b.role==='EXPLORADOR'?.42:b.role==='FRANCOTIRADOR'?.15:.27))b.strafe*=-1;
   if(b.coverX!==null&&b.coverZ!==null){const cd=Math.hypot(b.coverX-b.x,b.coverZ-b.z);if(cd>1.3)b.moveAngle=Math.atan2(b.coverX-b.x,b.coverZ-b.z);else{b.coverX=null;b.coverZ=null;b.moveAngle=pursue+Math.PI*.5*b.strafe;}}
+  if(b.dodgeTime>0)b.moveAngle=pursue+b.dodgeSign*Math.PI*.5;
  }else if(b.investigateTime>0&&Number.isFinite(b.lastSeenX)&&Number.isFinite(b.lastSeenZ)){
  // Search the last confirmed location instead of tracking the player through walls.
  const searchDist=Math.hypot(b.lastSeenX-b.x,b.lastSeenZ-b.z);
@@ -2589,7 +2606,10 @@ if(b.stuckTime>1.1){b.moveAngle+=Math.PI*.5*(b.strafe||1);b.stuckTime=0;b.coverX
  }
 }const tacticalSpeed=b.alert>.3?b.speed*(d<12?.82:(b.role==='EXPLORADOR'?1.15:1.08)):b.speed*.75;
 // V46.6: avoid enemies charging straight into melee range while reloading their attack.
-if(visible&&d<5&&b.shoot>0)b.moveAngle=Math.atan2(-px,-pz)+Math.sin(b.tactic)*.25;if(visible&&d<2.3)b.moveAngle=Math.atan2(-px,-pz);
+if(visible&&d<5&&b.shoot>0&&b.dodgeTime<=0)b.moveAngle=Math.atan2(-px,-pz)+Math.sin(b.tactic)*.25;
+if(visible&&d<2.3)b.moveAngle=Math.atan2(-px,-pz);
+// Evade the collapsing ring immediately rather than waiting for the next AI decision.
+if(Math.hypot(b.x-zoneCenter.x,b.z-zoneCenter.y)>zoneRadius-7)b.moveAngle=Math.atan2(zoneCenter.x-b.x,zoneCenter.y-b.z);
 const tacticalPace=b.hitStun>0?tacticalSpeed*.18:b.retreatTime>0?tacticalSpeed*1.13:b.suppression>.35?tacticalSpeed*.79:tacticalSpeed;
 const desiredVX=Math.sin(b.moveAngle)*tacticalPace,desiredVZ=Math.cos(b.moveAngle)*tacticalPace;
 const easing=1-Math.exp(-dt*6.5);
@@ -2598,6 +2618,7 @@ const vx=b.velocityX*dt,vz=b.velocityZ*dt;
 const bx=clamp(b.x+vx,-HALF+4,HALF-4),bz=clamp(b.z+vz,-HALF+4,HALF-4);
 if(!solid(bx,bz,.7*b.root.scale.x)){b.x=bx;b.z=bz;}else{
  b.velocityX*=.35;b.velocityZ*=.35;b.think=0;
+ b.coverX=null;b.coverZ=null;
  b.stuckTime=Math.min(2,(b.stuckTime||0)+dt*4);
  b.investigateTime=Math.max(b.investigateTime,.65);
  b.strafe=-b.strafe;
@@ -2616,7 +2637,8 @@ b.body.rotation.z=Math.sin(b.animPhase*.5+b.phase)*.024*stride+Math.sin((1-b.las
 b.body.rotation.x=-.09*b.lastHit-.14*(b.hitStun>0?1:0);
  b.body.rotation.y=Math.sin(b.animPhase*.3+b.phase)*.02*stride;
 b.gun.rotation.x=-b.shotPose*.14+.10*(b.hitStun>0?1:0);
-if(visible&&d<(b.role==='FRANCOTIRADOR'?55:44)&&b.shoot<=0&&time>3&&b.alert>.12&&b.retreatTime<.8&&b.hitStun<=0){
+if(visible&&d<(b.role==='FRANCOTIRADOR'?55:44)&&b.shoot<=0&&time>3&&b.alert>.12&&b.retreatTime<.8&&b.hitStun<=0&&
+ !blocked3D(b.x,enemyEye,b.z,player.position.x,playerEye,player.position.z)){
  // Short bursts for scouts/assault units; defenders and snipers favor deliberate fire.
 if(b.burstLeft>0){b.burstLeft--;b.shoot=rand(.16,.28);}else{
  b.burstLeft=b.role==='EXPLORADOR'?2:b.role==='ASALTO'?1:0;
@@ -2632,7 +2654,7 @@ const hitChance=clamp((b.role==='FRANCOTIRADOR'?.70:.64)-d*.008-movingPenalty-cr
  const shotPower=b.role==='FRANCOTIRADOR'?rand(8,13):b.role==='DEFENSOR'?rand(6,11):b.role==='EXPLORADOR'?rand(4,8):rand(5,11);if(Math.random()<hitChance)damage(shotPower,b.x,b.z);
  enemyShotSound(d);
  impact(b.x+Math.sin(b.root.rotation.y)*.8,ground(b.x,b.z)+1.5*b.root.scale.y,b.z+Math.cos(b.root.rotation.y)*.8,'#ffbd66');
-}if(Math.hypot(b.x-zoneCenter.x,b.z-zoneCenter.y)>zoneRadius){b.hp-=dt*(2.8+zonePhase);if(b.hp<=0){b.alive=false;scene.remove(b.root);}}}
+}if(Math.hypot(b.x-zoneCenter.x,b.z-zoneCenter.y)>zoneRadius){b.hp-=dt*(2.8+zonePhase);if(b.hp<=0){b.alive=false;scene.remove(b.root);if(Math.random()<.45)spawnPickup('ammo',b.x,b.z);}}}
 for(let i=pickups.length-1;i>=0;i--){const p=pickups[i];p.group.rotation.y+=dt*1.3;p.group.position.y=ground(p.x,p.z)+.7+Math.sin(time*3+p.phase)*.16;if(p.group.userData.v40PickupHalo)p.group.userData.v40PickupHalo.rotation.z+=dt*.85;if(Math.hypot(player.position.x-p.x,player.position.z-p.z)<2.1){if(p.type==='med'){meds++;toast('+1 BOTIQUÍN')}if(p.type==='ammo'){weapons.forEach((w,i)=>w.reserve+=i===3?6:i===1?12:Math.round(w.mag*1.2));toast('+ MUNICIÓN')}if(p.type==='armor'){armor=Math.min(100,armor+35);toast('+35 ESCUDO')}pickupSound();scene.remove(p.group);pickups.splice(i,1);}}
 for(let i=effects.length-1;i>=0;i--){let e=effects[i];e.t-=dt;e.mesh.scale.multiplyScalar(1+dt*4);e.mesh.material.opacity=Math.max(0,e.t/.26);if(e.t<=0){scene.remove(e.mesh);e.mesh.geometry?.dispose();if(Array.isArray(e.mesh.material))e.mesh.material.forEach(m=>m.dispose());else e.mesh.material?.dispose();effects.splice(i,1);}}damageFlash=Math.max(0,damageFlash-dt);$('damageFlash').style.opacity=damageFlash*.7;hitFlash=Math.max(0,hitFlash-dt);$('hit').style.opacity=hitFlash/.16;toastTime-=dt;if(toastTime<=0)$('toast').style.opacity=0;hudUpdateClock+=dt;
 if(hudUpdateClock>=.065){hudUpdateClock=0;updateHud();}
