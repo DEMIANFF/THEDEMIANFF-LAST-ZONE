@@ -361,9 +361,9 @@ jobs:
                         'runningFast?1.02:.72',
                         'runningFast?.83:.52',
                         'runningFast?.025*Math.sin(phase*2)',
-                        '!onGround?1.24:1',
+                        '!onGround?1.28:1',
                         'adsHeld&&onGround?.92:1',
-                        'target.dodgeTime=.58',
+                        'target.dodgeTime=.62',
                         'target.shoot=Math.max(target.shoot,.29)'):
               assert token in h, 'V48.1: regresión animación y combate '+token
           # V48.0: tactical minimap, safe loot, and 50 sampled diagnostics.
@@ -394,9 +394,9 @@ jobs:
                         'item.remaining<=0||time>item.expires', 'v476Cache=cache',
                         "if(p.v476Cache){p.v476Cache.remaining",
                         "const cache={x,z,root,ring,beacon,ownMaterials:",
-                        'v476AuroraRefresh<.08',
+                        'v476AuroraRefresh<.09',
                         "bots.every(b=>!b.alive)){finish(true);return;",
-                        "v476PoiName=nearest&&dist<55",
+                        "v476PoiName=nearest&&dist<56",
                         "zoneRing.material.color.setHex(danger?"):
               assert token in h, 'V47.6: regresión Aurora '+token
           # V47.5: aim point must never appear over the lobby.
