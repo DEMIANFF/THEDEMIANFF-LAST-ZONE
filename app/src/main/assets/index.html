@@ -537,7 +537,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V48.0 · AURORA BATTLE SYSTEMS</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
+<div id="v22Edition">V48.2 · COMBATE TÁCTICO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
@@ -2351,15 +2351,15 @@ function v394FindCover(b,px,pz){
  let best=null,score=Infinity,checked=0;
  for(const o of worldObjects){
   const dx=o.x-b.x,dz=o.z-b.z,dist=Math.hypot(dx,dz);
-  if(dist<2.5||dist>23||!o.r||!o.h||o.h<1.35)continue;
-  if(++checked>52)break;
+  if(dist<2.7||dist>23||!o.r||!o.h||o.h<1.35)continue;
+  if(++checked>56)break;
   const awayX=o.x-px,awayZ=o.z-pz,len=Math.hypot(awayX,awayZ)||1;
   // V47.3: cover points must stand OUTSIDE the source obstacle collision radius.
   const margin=o.r+Math.max(.95,.5*b.root.scale.x);
   const x=o.x+awayX/len*margin,z=o.z+awayZ/len*margin;
   if(Math.abs(x)>HALF-6||Math.abs(z)>HALF-6||solid(x,z,.75))continue;
   if(!blocked3D(px,ground(px,pz)+1.5,pz,x,ground(x,z)+1.5,z))continue;
-  const cost=Math.hypot(x-b.x,z-b.z)+dist*.11+(o.h<2?1.1:0)+(v477InZone(x,z)?0:7);
+  const cost=Math.hypot(x-b.x,z-b.z)+dist*.11+(o.h<2?1.3:0)+(v477InZone(x,z)?0:9);
   if(cost<score){score=cost;best={x,z};}
  }
  return best;
@@ -2539,9 +2539,9 @@ function v477NearestSupply(x,z){
 }
 function v477SupplyAwareness(dt){
  v477SupplyProximityClock-=dt;if(v477SupplyProximityClock>0||!player||!running||paused)return;
- v477SupplyProximityClock=.9;
+ v477SupplyProximityClock=1;
  const nearby=v477NearestSupply(player.position.x,player.position.z);
- const current=nearby&&nearby.distance<25?nearby.cache:null;
+ const current=nearby&&nearby.distance<24?nearby.cache:null;
  if(current!==v477LastNearbySupply){
   v477LastNearbySupply=current;
   if(current){showCombat('📦 SUMINISTROS A '+Math.round(nearby.distance)+'m');v477CombatSignals++;}
@@ -2629,8 +2629,8 @@ function v477FindRivalTarget(source,targets){
  let chosen=null,score=Infinity;
  for(const rival of targets){if(rival===source||!rival.alive)continue;
   const dx=rival.x-source.x,dz=rival.z-source.z,d=Math.hypot(dx,dz);
-  if(d<=4||d>=40||rival.airborne)continue;
-  const weighted=d+(v477InZone(rival.x,rival.z)?0:6)+(rival.role==='FRANCOTIRADOR'?-2:0)+(rival.hp<35?-4:0)+(rival.hitStun>0?-1:0)+(rival.role==='DEFENSOR'?2:0);
+  if(d<=4.5||d>=39||rival.airborne)continue;
+  const weighted=d+(v477InZone(rival.x,rival.z)?0:6)+(rival.role==='FRANCOTIRADOR'?-2:0)+(rival.hp<35?-4:0)+(rival.hitStun>0?-1:0)+(rival.role==='DEFENSOR'?2.5:0);
   if(weighted<score){score=weighted;chosen=rival;}
  }
  return chosen;
@@ -2640,8 +2640,8 @@ function v474RivalCombat(dt){
  if(!running||paused||window.v36FlightMode!=='landed'||gameOver)return;
  v474RivalClock-=dt;
  if(v474RivalClock>0)return;
- v474RivalClock=.48;
- if(time<5)return;
+ v474RivalClock=.50;
+ if(time<5.5)return;
  const candidates=bots.filter(b=>b.alive&&!b.airborne&&b.hitStun<=0);
  if(candidates.length<2)return;
  const startIndex=(v474RivalRounds++*7)%candidates.length;
@@ -2699,9 +2699,9 @@ let v474SupplyClock=28,v474SupplyCount=0,v474SupplyMarkers=[];
 let v476PoiName='EXPLORACIÓN',v476PoiDistance=Infinity,v476PoiCheck=0,v476SupplyRecovered=0;
 function v476UpdateLocation(dt){
  v476PoiCheck-=dt;if(v476PoiCheck>0||!player||!running)return;
- v476PoiCheck=.75;let nearest=null,dist=Infinity;
+ v476PoiCheck=.8;let nearest=null,dist=Infinity;
  for(const p of window.v27AuroraPOI||[]){const d=Math.hypot(player.position.x-p.x,player.position.z-p.z);if(d<dist){dist=d;nearest=p;}}
- v476PoiDistance=dist;const old=v476PoiName;v476PoiName=nearest&&dist<58?nearest.name:'TERRENO AURORA';if(old!==v476PoiName&&running&&!paused){updateHud();if(nearest&&dist<48)showCombat('📍 '+nearest.name);}
+ v476PoiDistance=dist;const old=v476PoiName;v476PoiName=nearest&&dist<56?nearest.name:'TERRENO AURORA';if(old!==v476PoiName&&running&&!paused){updateHud();if(nearest&&dist<48)showCombat('📍 '+nearest.name);}
 }
 window.THEDEMIANFF_V476_STATUS=()=>({location:v476PoiName,distance:Math.round(v476PoiDistance),supplyRecovered:v476SupplyRecovered});
 function v474SupplyEvent(dt){
