@@ -1525,6 +1525,7 @@ let audioContext=null;
 let audioMaster=null,audioReady=false;
 let ambientBus=null,windSource=null,windFilter=null,windGain=null;
 let v15BirdClock=3,v15DistantClock=8,v15StepClock=0,v15ZoneAlert=false,v38LeavesClock=4,v38WildlifeClock=11;
+let v473PoiAudioClock=6,v473ZoneWarningIssued=false;
 function ensureAmbience(){
  if(!audioContext||audioContext.state!=='running'||!audioMaster)return;
  if(!ambientBus){
@@ -1555,8 +1556,8 @@ function ambientTick(dt){
  if($('ambientSound').checked){
   v15BirdClock-=dt;v15DistantClock-=dt;
   if(v15BirdClock<=0){
-   v15BirdClock=rand(6,15);
-   const f=rand(1200,2250);toneSound(f,.11,.025,'sine');
+   v15BirdClock=rand(9,19);
+   const f=rand(980,1650);toneSound(f,.11,.025,'sine');
    toneSound(f*.78,.17,.014,'sine');
   }
   if(v15DistantClock<=0){
@@ -1565,8 +1566,15 @@ function ambientTick(dt){
   }
   v38LeavesClock-=dt;v38WildlifeClock-=dt;
   if(v38LeavesClock<=0){v38LeavesClock=rand(3,7);v38NoiseBurst(rand(.12,.28),.022,800,2800);}
-  if(v38WildlifeClock<=0){v38WildlifeClock=rand(8,17);const call=rand(1600,2500);
+  if(v38WildlifeClock<=0){v38WildlifeClock=rand(11,22);const call=rand(900,1450);
    toneSound(call,.11,.020,'sine');toneSound(call*1.12,.075,.010,'sine');toneSound(call*.69,.17,.014,'triangle');
+  }
+  // Aurora: distant industrial station resonance near the authored Helios/Vortex POIs.
+  v473PoiAudioClock-=dt;
+  if(v473PoiAudioClock<=0){
+   v473PoiAudioClock=rand(8,16);
+   const station=(window.v27AuroraPOI||[]).find(p=>(p.name==='COMPLEJO HELIOS'||p.name==='PUERTO VÓRTEX')&&Math.hypot(player.position.x-p.x,player.position.z-p.z)<43);
+   if(station){toneSound(170,.34,.029,'triangle');toneSound(85,.53,.025,'sine');}
   }
  }
  const moving=Math.hypot(moveVX,moveVZ);
@@ -2366,7 +2374,7 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  group.userData.v40PickupHalo=halo;
  group.userData.v362Glow=beacon;
  scene.add(group);pickups.push({type,x,z,group,phase:rand(0,6)});}
-function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v472ShotHeat.fill(0);v472ShotCounter=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(scene){
  const geometries=new Set();
  scene.traverse(obj=>{if(obj.geometry)geometries.add(obj.geometry);});
@@ -2607,7 +2615,9 @@ playerModel.gun.position.y=1.45-v431VisualKick*.045-v395Reload*.22-v395Swap*.30+
  }
  v22AnimateLila(dt);
 $('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':fireHeld?'◉ MIRA DE COMBATE':'⊕ MIRA LIBRE';
-zoneTick+=dt;if($('v18Mode').value!=='training'&&zoneTick>45){zoneTick=0;zonePhase++;zoneCenter.x=clamp(zoneCenter.x+rand(-12,12),-40,40);zoneCenter.y=clamp(zoneCenter.y+rand(-12,12),-40,40);toast('⚠ LA ZONA SE ESTÁ CERRANDO');v9Event('⚠ NUEVA ZONA DE COMBATE')}const targetRadius=$('v18Mode').value==='training'?225:Math.max(13,225*Math.pow(.75,zonePhase+clamp(zoneTick/45,0,1)));zoneRadius+=(targetRadius-zoneRadius)*Math.min(1,dt*1.8);zoneRing.position.set(zoneCenter.x,ground(zoneCenter.x,zoneCenter.y)+.25,zoneCenter.y);zoneRing.scale.set(zoneRadius,zoneRadius,zoneRadius);if(Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y)>zoneRadius){damageFlash=Math.max(damageFlash,.05);hp-=dt*(2.5+zonePhase*.9);if(hp<=0){hp=0;finish(false);}}
+zoneTick+=dt;
+if($('v18Mode').value!=='training'&&zoneTick>=35&&!v473ZoneWarningIssued){v473ZoneWarningIssued=true;toast('⚠ ZONA: 10 SEGUNDOS PARA NUEVA FASE');toneSound(620,.22,.06,'triangle');}
+if($('v18Mode').value!=='training'&&zoneTick>45){zoneTick=0;v473ZoneWarningIssued=false;zonePhase++;zoneCenter.x=clamp(zoneCenter.x+rand(-12,12),-40,40);zoneCenter.y=clamp(zoneCenter.y+rand(-12,12),-40,40);toast('⚠ LA ZONA SE ESTÁ CERRANDO');v9Event('⚠ NUEVA ZONA DE COMBATE')}const targetRadius=$('v18Mode').value==='training'?225:Math.max(13,225*Math.pow(.75,zonePhase+clamp(zoneTick/45,0,1)));zoneRadius+=(targetRadius-zoneRadius)*Math.min(1,dt*1.8);zoneRing.position.set(zoneCenter.x,ground(zoneCenter.x,zoneCenter.y)+.25,zoneCenter.y);zoneRing.scale.set(zoneRadius,zoneRadius,zoneRadius);if(Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y)>zoneRadius){damageFlash=Math.max(damageFlash,.05);hp-=dt*(2.5+zonePhase*.9);if(hp<=0){hp=0;finish(false);}}
 for(const b of bots){if(!b.alive||b.airborne)continue;const px=player.position.x-b.x,pz=player.position.z-b.z,d=Math.hypot(px,pz);
 // V46.5: line of sight from proportional eye height, not the old short model.
 const enemyEye=ground(b.x,b.z)+1.55*b.root.scale.y;
