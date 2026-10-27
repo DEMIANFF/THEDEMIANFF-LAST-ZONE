@@ -1664,14 +1664,14 @@ let v27AuroraRibbons=[],v27AuroraClock=0,v476AuroraRefresh=0;
 function v27AuroraTick(dt){
  if(!scene||!v27AuroraRibbons.length)return;
  v27AuroraClock+=dt;
- v476AuroraRefresh+=dt;if(v476AuroraRefresh<.08)return;v476AuroraRefresh=0;
+ v476AuroraRefresh+=dt;if(v476AuroraRefresh<.09)return;v476AuroraRefresh=0;
  // Cycle through green, blue and purple every five simulated minutes.
  const phase=(v27AuroraClock%300)/300;
  const color=new THREE.Color().setHSL((.43+phase*.31)%1,.8,.58);
  for(let i=0;i<v27AuroraRibbons.length;i++){
   const ribbon=v27AuroraRibbons[i];
   ribbon.material.color.copy(color);
-  ribbon.material.opacity=.12+.16*(.5+.5*Math.sin(v27AuroraClock*.35+i));
+  ribbon.material.opacity=.14+.14*(.5+.5*Math.sin(v27AuroraClock*.35+i));
   ribbon.position.y+=Math.sin(v27AuroraClock*.4+i*.7)*dt*.13;
   ribbon.rotation.z=Math.sin(v27AuroraClock*.045+i*.8)*.09;
   ribbon.rotation.y=.18+i*.1+Math.sin(v27AuroraClock*.035+i)*.055;
@@ -2539,9 +2539,9 @@ function v477NearestSupply(x,z){
 }
 function v477SupplyAwareness(dt){
  v477SupplyProximityClock-=dt;if(v477SupplyProximityClock>0||!player||!running||paused)return;
- v477SupplyProximityClock=1.1;
+ v477SupplyProximityClock=.85;
  const nearby=v477NearestSupply(player.position.x,player.position.z);
- const current=nearby&&nearby.distance<22?nearby.cache:null;
+ const current=nearby&&nearby.distance<26?nearby.cache:null;
  if(current!==v477LastNearbySupply){
   v477LastNearbySupply=current;
   if(current){showCombat('📦 SUMINISTROS A '+Math.round(nearby.distance)+'m');v477CombatSignals++;}
@@ -2629,8 +2629,8 @@ function v477FindRivalTarget(source,targets){
  let chosen=null,score=Infinity;
  for(const rival of targets){if(rival===source||!rival.alive)continue;
   const dx=rival.x-source.x,dz=rival.z-source.z,d=Math.hypot(dx,dz);
-  if(d<=4||d>=40)continue;
-  const weighted=d+(v477InZone(rival.x,rival.z)?0:4)+(rival.role==='FRANCOTIRADOR'?-2:0);
+  if(d<=4||d>=40||rival.airborne)continue;
+  const weighted=d+(v477InZone(rival.x,rival.z)?0:6)+(rival.role==='FRANCOTIRADOR'?-2:0)+(rival.hp<35?-4:0)+(rival.hitStun>0?-1:0);
   if(weighted<score){score=weighted;chosen=rival;}
  }
  return chosen;
@@ -2640,7 +2640,7 @@ function v474RivalCombat(dt){
  if(!running||paused||window.v36FlightMode!=='landed'||gameOver)return;
  v474RivalClock-=dt;
  if(v474RivalClock>0)return;
- v474RivalClock=.52;
+ v474RivalClock=.48;
  if(time<5)return;
  const candidates=bots.filter(b=>b.alive&&!b.airborne&&b.hitStun<=0);
  if(candidates.length<2)return;
@@ -2648,7 +2648,7 @@ function v474RivalCombat(dt){
  for(let k=0;k<candidates.length;k++){
   const attacker=candidates[(startIndex+k)%candidates.length];
   // Visible nearby player remains the highest-priority tactical target.
-  if(attacker.cachedVisible&&Math.hypot(attacker.x-player.position.x,attacker.z-player.position.z)<25)continue;
+  if(attacker.cachedVisible&&Math.hypot(attacker.x-player.position.x,attacker.z-player.position.z)<29)continue;
   const victim=v477FindRivalTarget(attacker,candidates);
   if(!victim||attacker.shoot>0)continue;
   const nearest=Math.hypot(attacker.x-victim.x,attacker.z-victim.z);
@@ -2656,16 +2656,16 @@ function v474RivalCombat(dt){
   const eyeB=ground(victim.x,victim.z)+1.55*victim.root.scale.y;
   if(blocked3D(attacker.x,eyeA,attacker.z,victim.x,eyeB,victim.z))continue;
   attacker.alert=Math.max(attacker.alert,.8);
-  victim.rivalThreatX=attacker.x;victim.rivalThreatZ=attacker.z;victim.rivalThreatTimer=2.5;
-  attacker.rivalThreatX=victim.x;attacker.rivalThreatZ=victim.z;attacker.rivalThreatTimer=1.3;
+  victim.rivalThreatX=attacker.x;victim.rivalThreatZ=attacker.z;victim.rivalThreatTimer=3.1;
+  attacker.rivalThreatX=victim.x;attacker.rivalThreatZ=victim.z;attacker.rivalThreatTimer=1.7;
   v477RivalThreatPos={x:attacker.x,z:attacker.z};v477RivalThreatClock=2.5;v477Engagements++;
   attacker.shotPose=1;attacker.shoot=Math.max(attacker.shoot,attacker.role==='FRANCOTIRADOR'?1.2:.55);
   attacker.moveAngle=Math.atan2(victim.x-attacker.x,victim.z-attacker.z);
   victim.alert=Math.max(victim.alert,.85);
-  victim.suppression=Math.min(1,(victim.suppression||0)+.24);
-  victim.dodgeTime=Math.max(victim.dodgeTime,.3);
+  victim.suppression=Math.min(1,(victim.suppression||0)+.28);
+  victim.dodgeTime=Math.max(victim.dodgeTime,.43);
   victim.dodgeSign=Math.random()<.5?-1:1;
-  const hitChance=clamp(.57-nearest*.008-(attacker.suppression||0)*.17,.16,.55);
+  const hitChance=clamp(.57-nearest*.008-(attacker.suppression||0)*.17-(victim.dodgeTime>0?.06:0)+(attacker.role==='FRANCOTIRADOR'?.04:0),.14,.56);
   const visibleToPlayer=Math.min(Math.hypot(attacker.x-player.position.x,attacker.z-player.position.z),Math.hypot(victim.x-player.position.x,victim.z-player.position.z))<52;
   if(visibleToPlayer){
    // V47.7: enemy-vs-enemy muzzle trace, depth-tested and GPU-cleaned by effects loop.
@@ -2678,7 +2678,7 @@ function v474RivalCombat(dt){
    const amount=attacker.role==='FRANCOTIRADOR'?13:attacker.role==='DEFENSOR'?10:attacker.role==='EXPLORADOR'?7:9;
    victim.hp-=amount;
    victim.lastHit=Math.max(victim.lastHit,.45);
-   victim.hitStun=Math.max(victim.hitStun,.07);
+   victim.hitStun=Math.max(victim.hitStun,.085);
    if(victim.hp<=0){
     victim.alive=false;scene.remove(victim.root);v474RivalEliminations++;
     if(Math.hypot(victim.x-player.position.x,victim.z-player.position.z)<54)v9Event('⚔ RIVAL ELIMINADO · '+victim.role);
@@ -2698,10 +2698,10 @@ function v474RivalCombat(dt){
 let v474SupplyClock=28,v474SupplyCount=0,v474SupplyMarkers=[];
 let v476PoiName='EXPLORACIÓN',v476PoiDistance=Infinity,v476PoiCheck=0,v476SupplyRecovered=0;
 function v476UpdateLocation(dt){
- v476PoiCheck-=dt;if(v476PoiCheck>0||!player)return;
- v476PoiCheck=.6;let nearest=null,dist=Infinity;
+ v476PoiCheck-=dt;if(v476PoiCheck>0||!player||!running)return;
+ v476PoiCheck=.75;let nearest=null,dist=Infinity;
  for(const p of window.v27AuroraPOI||[]){const d=Math.hypot(player.position.x-p.x,player.position.z-p.z);if(d<dist){dist=d;nearest=p;}}
- v476PoiDistance=dist;const old=v476PoiName;v476PoiName=nearest&&dist<55?nearest.name:'TERRENO AURORA';if(old!==v476PoiName&&running&&!paused){updateHud();if(nearest&&dist<48)showCombat('📍 '+nearest.name);}
+ v476PoiDistance=dist;const old=v476PoiName;v476PoiName=nearest&&dist<58?nearest.name:'TERRENO AURORA';if(old!==v476PoiName&&running&&!paused){updateHud();if(nearest&&dist<48)showCombat('📍 '+nearest.name);}
 }
 window.THEDEMIANFF_V476_STATUS=()=>({location:v476PoiName,distance:Math.round(v476PoiDistance),supplyRecovered:v476SupplyRecovered});
 function v474SupplyEvent(dt){
@@ -2716,9 +2716,9 @@ function v474SupplyEvent(dt){
    v474SupplyMarkers.splice(i,1);continue;
   }
   if(item.root.parent){
-   item.root.rotation.y+=dt*.45;
-   item.ring.rotation.z+=dt*.75;
-   item.beacon.material.opacity=.55+.25*Math.sin(time*2+item.x);
+   item.root.rotation.y+=dt*.37;
+   item.ring.rotation.z+=dt*.60;
+   item.beacon.material.opacity=.60+.20*Math.sin(time*2+item.x);
   }
  }
  if(v474SupplyClock>0||v474SupplyCount>=4)return;
