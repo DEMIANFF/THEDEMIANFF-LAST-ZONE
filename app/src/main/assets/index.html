@@ -2382,7 +2382,7 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  group.userData.v40PickupHalo=halo;
  group.userData.v362Glow=beacon;
  scene.add(group);pickups.push({type,x,z,group,phase:rand(0,6)});}
-function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v474SupplyClock=28;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v474SupplyClock=28;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(scene){
  const geometries=new Set();
  scene.traverse(obj=>{if(obj.geometry)geometries.add(obj.geometry);});
@@ -2527,6 +2527,19 @@ let moveVX=0,moveVZ=0,v14Recoil=0,v395SwapTime=0,v395ReloadDuration=0;
 // V47.4: rival squads fight one another, not just the human player.
 // Bounded to one tactical exchange per heartbeat for low-end mobile stability.
 let v474RivalClock=0,v474RivalRounds=0,v474RivalEliminations=0;
+let v477RivalThreatClock=0,v477RivalThreatPos=null,v477Engagements=0;
+function v477InZone(x,z,padding=0){return Math.hypot(x-zoneCenter.x,z-zoneCenter.y)<=zoneRadius-padding;}
+function v477FindRivalTarget(source,targets){
+ let chosen=null,score=Infinity;
+ for(const rival of targets){if(rival===source||!rival.alive)continue;
+  const dx=rival.x-source.x,dz=rival.z-source.z,d=Math.hypot(dx,dz);
+  if(d<=4||d>=40)continue;
+  const weighted=d+(v477InZone(rival.x,rival.z)?0:4)+(rival.role==='FRANCOTIRADOR'?-2:0);
+  if(weighted<score){score=weighted;chosen=rival;}
+ }
+ return chosen;
+}
+window.THEDEMIANFF_V477_COMBAT=()=>({rivalExchanges:v474RivalRounds,engagements:v477Engagements,eliminations:v474RivalEliminations});
 function v474RivalCombat(dt){
  if(!running||paused||window.v36FlightMode!=='landed'||gameOver)return;
  v474RivalClock-=dt;
@@ -2540,17 +2553,16 @@ function v474RivalCombat(dt){
   const attacker=candidates[(startIndex+k)%candidates.length];
   // Visible nearby player remains the highest-priority tactical target.
   if(attacker.cachedVisible&&Math.hypot(attacker.x-player.position.x,attacker.z-player.position.z)<25)continue;
-  let victim=null,nearest=Infinity;
-  for(const possible of candidates){
-   if(possible===attacker||!possible.alive)continue;
-   const distance=Math.hypot(attacker.x-possible.x,attacker.z-possible.z);
-   if(distance<nearest&&distance>4&&distance<38)nearest=distance,victim=possible;
-  }
+  const victim=v477FindRivalTarget(attacker,candidates);
   if(!victim||attacker.shoot>0)continue;
+  const nearest=Math.hypot(attacker.x-victim.x,attacker.z-victim.z);
   const eyeA=ground(attacker.x,attacker.z)+1.55*attacker.root.scale.y;
   const eyeB=ground(victim.x,victim.z)+1.55*victim.root.scale.y;
   if(blocked3D(attacker.x,eyeA,attacker.z,victim.x,eyeB,victim.z))continue;
   attacker.alert=Math.max(attacker.alert,.8);
+  victim.rivalThreatX=attacker.x;victim.rivalThreatZ=attacker.z;victim.rivalThreatTimer=2.5;
+  attacker.rivalThreatX=victim.x;attacker.rivalThreatZ=victim.z;attacker.rivalThreatTimer=1.3;
+  v477RivalThreatPos={x:attacker.x,z:attacker.z};v477RivalThreatClock=2.5;v477Engagements++;
   attacker.shotPose=1;attacker.shoot=Math.max(attacker.shoot,attacker.role==='FRANCOTIRADOR'?1.2:.55);
   attacker.moveAngle=Math.atan2(victim.x-attacker.x,victim.z-attacker.z);
   victim.alert=Math.max(victim.alert,.85);
@@ -2571,8 +2583,9 @@ function v474RivalCombat(dt){
    }
   }
   // Avoid playing far-away sounds, but preserve visible fight reaction.
-  enemyShotSound(Math.hypot(attacker.x-player.position.x,attacker.z-player.position.z));
-  if(nearest<27&&Math.hypot(attacker.x-player.position.x,attacker.z-player.position.z)<52)
+  const battleDistance=Math.hypot(attacker.x-player.position.x,attacker.z-player.position.z);
+  if(battleDistance<65)enemyShotSound(battleDistance);
+  if(nearest<27&&battleDistance<52)
    impact(attacker.x,ground(attacker.x,attacker.z)+1.6,attacker.z,'#ffc57f');
   break;
  }
@@ -2759,7 +2772,7 @@ b.hitStun=Math.max(0,b.hitStun-dt);b.dodgeTime=Math.max(0,b.dodgeTime-dt);
 const heardShot=time-v467LastShotTime<1.1&&Math.hypot(v467LastShotX-b.x,v467LastShotZ-b.z)<(b.role==='EXPLORADOR'?65:46);
 if(visible){b.lastSeenX=player.position.x;b.lastSeenZ=player.position.z;b.investigateTime=4.5;}
 else if(heardShot&&b.heardShotStamp!==v467LastShotTime){b.lastSeenX=v467LastShotX;b.lastSeenZ=v467LastShotZ;b.investigateTime=3.5;b.heardShotStamp=v467LastShotTime;}
-b.investigateTime=Math.max(0,b.investigateTime-dt);
+b.investigateTime=Math.max(0,b.investigateTime-dt);b.rivalThreatTimer=Math.max(0,(b.rivalThreatTimer||0)-dt);
 b.suppression=Math.max(0,b.suppression-dt*.7);
 b.retreatTime=Math.max(0,b.retreatTime-dt);
 b.think-=dt;b.shoot-=dt;b.lastHit=Math.max(0,b.lastHit-dt);b.coverTimer=Math.max(0,b.coverTimer-dt);
@@ -2786,7 +2799,10 @@ if(b.think<=0){
   if(Math.random()<(b.role==='EXPLORADOR'?.42:b.role==='FRANCOTIRADOR'?.15:.27))b.strafe*=-1;
   if(b.coverX!==null&&b.coverZ!==null){const cd=Math.hypot(b.coverX-b.x,b.coverZ-b.z);if(cd>1.3)b.moveAngle=Math.atan2(b.coverX-b.x,b.coverZ-b.z);else{b.coverX=null;b.coverZ=null;b.moveAngle=pursue+Math.PI*.5*b.strafe;}}
   if(b.dodgeTime>0)b.moveAngle=pursue+b.dodgeSign*Math.PI*.5;
- }else if(b.investigateTime>0&&Number.isFinite(b.lastSeenX)&&Number.isFinite(b.lastSeenZ)){
+ }else if(b.rivalThreatTimer>0&&Number.isFinite(b.rivalThreatX)&&Number.isFinite(b.rivalThreatZ)){
+ const rivalDist=Math.hypot(b.rivalThreatX-b.x,b.rivalThreatZ-b.z);
+ b.moveAngle=Math.atan2(b.rivalThreatX-b.x,b.rivalThreatZ-b.z)+(rivalDist<10?Math.PI*.5*(b.strafe||1):0);
+}else if(b.investigateTime>0&&Number.isFinite(b.lastSeenX)&&Number.isFinite(b.lastSeenZ)){
  // Search the last confirmed location instead of tracking the player through walls.
  const searchDist=Math.hypot(b.lastSeenX-b.x,b.lastSeenZ-b.z);
  b.moveAngle=Math.atan2(b.lastSeenX-b.x,b.lastSeenZ-b.z)+(searchDist<3?Math.sin(time*2+b.tactic)*1.2:0);
