@@ -547,7 +547,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V49.6 · LOBBY Y NUBE GOOGLE</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
+<div id="v22Edition">V49.7 · NUBE SEGURA Y LOBBY</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div id="v496LobbyCloud" role="status" aria-live="polite" style="position:absolute;z-index:7;top:13%;right:2%;max-width:45%;border:1px solid #87d8e877;background:#071b2bdd;color:#e2f8ff;border-radius:12px;padding:8px 11px;font-size:11px;line-height:1.35;pointer-events:none">☁ Progreso local · Google sin verificar</div><div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
@@ -613,7 +613,23 @@ const v494CloudBridge=window.THEDEMIANFFCloud||null;
 const v494OptKey=email=>'thedemianff_cloud_auto_'+email.toLowerCase();
 let v494AutoSyncPending=false;
 let v495CloudSaveInFlight=false,v495CloudLastConfirmed=0;
-function v495CloudSave(json){if(v495CloudSaveInFlight)throw Error('Ya hay un guardado en Google pendiente. Espera la confirmación.');v495CloudSaveInFlight=true;try{v494CloudBridge.save(json);}catch(e){v495CloudSaveInFlight=false;throw e;}}
+let v497QueuedCloudSave=null,v497CloudSentSnapshot=null,v497CloudActiveAccount='';
+function v495CloudSave(json){
+ if(!v494CloudBridge||!v446GoogleEmail)throw Error('Conecta tu cuenta Google antes de guardar.');
+ const valid=JSON.stringify(v443ValidateProgress(JSON.parse(json)));
+ if(v495CloudSaveInFlight){
+  v497QueuedCloudSave={json:valid,account:v446GoogleEmail};
+  v496LobbyCloudStatus('☁ Guardado nuevo en cola · esperando confirmación anterior');
+  return;
+ }
+ v495CloudSaveInFlight=true;
+ v497CloudActiveAccount=v446GoogleEmail;
+ v497CloudSentSnapshot=valid;
+ try{v494CloudBridge.save(valid);}catch(e){v495CloudSaveInFlight=false;throw e;}
+}
+function v497ResetCloudQueue(){
+ v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;v497CloudActiveAccount='';
+}
 let v446AuthResolved=false,v446GoogleEmail='';
 const guestKey='thedemianff_v443_guest_id',progressKey='thedemianff_progress_v18';
 // Keep the WebView save and a second, native Android private save in sync.
@@ -672,8 +688,9 @@ guest.addEventListener('click',()=>{try{
 }catch(e){message.textContent='No se pudo activar cuenta invitada: '+e.message}});
 window.thedemianffGoogleResult=function(state,detail){
  v446AuthResolved=true;
+ if(state==='signed_out'||state==='error'||state==='cancelled')v497ResetCloudQueue();
  $('v443Google').disabled=false;
- if(state==='signed_in'){v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v496LobbyCloudStatus('☁ Google conectado · respaldo remoto sin verificar');
+ if(state==='signed_in'){v497ResetCloudQueue();v495CloudLastConfirmed=0;v496LobbyCloudStatus('☁ Google conectado · respaldo remoto sin verificar');
    v446GoogleEmail=typeof detail==='string'?detail.slice(0,150):'';
    $('v494AutoCloud').checked=!!(v446GoogleEmail&&localStorage.getItem(v494OptKey(v446GoogleEmail))==='yes');
    // Google becomes the visible login identity; do NOT delete the guest backup.
@@ -762,10 +779,20 @@ function v447BackupNotice(text){
 }
 // V49.4: recovery is NEVER automatic and NEVER merges guest IDs from other players.
 function v496LobbyCloudStatus(msg,ok=false){const el=$('v496LobbyCloud');if(!el)return;el.textContent=msg;el.style.borderColor=ok?'#69edb5':'#87d8e877';el.style.color=ok?'#baffda':'#e2f8ff';}
-function v494CloudNotice(msg){const el=$('v494CloudStatus');if(el)el.textContent=msg;v496LobbyCloudStatus(msg,/Guardado confirmado|Respaldo guardado/.test(msg));v447BackupNotice(msg);}
+function v494CloudNotice(msg){const el=$('v494CloudStatus');if(el)el.textContent=msg;v496LobbyCloudStatus(msg,/Guardado confirmado|Respaldo guardado|Último progreso confirmado/.test(msg));v447BackupNotice(msg);}
 window.thedemianffCloudResult=(state,payload)=>{
- if(state==='saved'){v495CloudSaveInFlight=false;v495CloudLastConfirmed=Date.now();v494AutoSyncPending=false;v494CloudNotice('☁ '+payload+' · Guardado confirmado: '+new Date(v495CloudLastConfirmed).toLocaleTimeString()+'.');return;}
- if(state==='missing'||state==='error'){v495CloudSaveInFlight=false;if(v494AutoSyncPending){v494AutoSyncPending=false;$('v494AutoCloud').checked=false;if(v446GoogleEmail)localStorage.removeItem(v494OptKey(v446GoogleEmail));}v494CloudNotice('⚠ '+payload);return;}
+ if(state==='saved'){
+  if(!v495CloudSaveInFlight||v497CloudActiveAccount!==v446GoogleEmail){v496LobbyCloudStatus('☁ Cambió la sesión · comprueba el respaldo de Google');return;}
+  v495CloudSaveInFlight=false;v495CloudLastConfirmed=Date.now();
+  const queued=v497QueuedCloudSave;v497QueuedCloudSave=null;
+  if(queued&&queued.account===v446GoogleEmail&&queued.json!==v497CloudSentSnapshot){
+   v494CloudNotice('☁ Respaldo anterior confirmado · subiendo progreso más reciente…');
+   try{v495CloudSave(queued.json);}catch(e){v494CloudNotice('⚠ El guardado reciente no se pudo enviar: '+e.message);}
+   return;
+  }
+  v494AutoSyncPending=false;v494CloudNotice('☁ '+payload+' · Último progreso confirmado en Google: '+new Date(v495CloudLastConfirmed).toLocaleTimeString()+'.');return;
+ }
+ if(state==='missing'||state==='error'){v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending){v494AutoSyncPending=false;$('v494AutoCloud').checked=false;if(v446GoogleEmail)localStorage.removeItem(v494OptKey(v446GoogleEmail));}v494CloudNotice('⚠ '+payload);return;}
  if(state!=='loaded')return;
  try{
   const saved=v443ValidateProgress(JSON.parse(payload));
@@ -3427,7 +3454,7 @@ function v18Save(){
   const snapshot=JSON.stringify(v18Progress);
   localStorage.setItem(V18_STORAGE,snapshot);
   if(v443Native&&!v443Native.saveProgress(snapshot))console.warn('[V44.3.2] No se pudo actualizar respaldo nativo');
-  if(v494CloudBridge&&v446GoogleEmail&&!v495CloudSaveInFlight&&localStorage.getItem(v494OptKey(v446GoogleEmail))==='yes'){
+  if(v494CloudBridge&&v446GoogleEmail&&localStorage.getItem(v494OptKey(v446GoogleEmail))==='yes'){
    try{v495CloudSave(JSON.stringify(v443ValidateProgress(v18Progress)));}catch(e){console.warn('[V49.4] Sincronización pendiente',e)}
   }
  }catch(e){console.warn('[V44.3.2] Error de guardado automático',e)}
