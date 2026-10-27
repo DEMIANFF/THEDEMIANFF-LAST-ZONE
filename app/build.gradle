@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 97
-        versionName '46.0-combat-vitals'
+        versionCode 98
+        versionName '46.1-combat-alerts'
     }
     signingConfigs {
         persistentRelease {
