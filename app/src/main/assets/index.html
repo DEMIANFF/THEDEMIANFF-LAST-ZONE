@@ -2583,7 +2583,7 @@ function v476UpdateLocation(dt){
  v476PoiCheck-=dt;if(v476PoiCheck>0||!player)return;
  v476PoiCheck=.6;let nearest=null,dist=Infinity;
  for(const p of window.v27AuroraPOI||[]){const d=Math.hypot(player.position.x-p.x,player.position.z-p.z);if(d<dist){dist=d;nearest=p;}}
- v476PoiDistance=dist;v476PoiName=nearest&&dist<55?nearest.name:'TERRENO AURORA';
+ v476PoiDistance=dist;const old=v476PoiName;v476PoiName=nearest&&dist<55?nearest.name:'TERRENO AURORA';if(old!==v476PoiName&&running&&!paused)updateHud();
 }
 window.THEDEMIANFF_V476_STATUS=()=>({location:v476PoiName,distance:Math.round(v476PoiDistance),supplyRecovered:v476SupplyRecovered});
 function v474SupplyEvent(dt){
@@ -2593,7 +2593,7 @@ function v474SupplyEvent(dt){
   const item=v474SupplyMarkers[i];
   if(item.remaining<=0||time>item.expires){
    for(let j=pickups.length-1;j>=0;j--){if(pickups[j].v476Cache===item){scene.remove(pickups[j].group);pickups.splice(j,1);}}
-   scene.remove(item.root);item.root.traverse(o=>{o.geometry?.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});
+   scene.remove(item.root);item.root.traverse(o=>o.geometry?.dispose());for(const material of item.ownMaterials)material.dispose();
    v474SupplyMarkers.splice(i,1);continue;
   }
   if(item.root.parent){
@@ -2626,7 +2626,7 @@ function v474SupplyEvent(dt){
  beacon.position.y=4;root.add(beacon);
  const ring=new THREE.Mesh(new THREE.TorusGeometry(1.65,.10,6,24),glow.clone());
  ring.rotation.x=Math.PI/2;ring.position.y=.15;root.add(ring);
- scene.add(root);const cache={x,z,root,ring,beacon,remaining:0,expires:time+145};v474SupplyMarkers.push(cache);
+ scene.add(root);const cache={x,z,root,ring,beacon,ownMaterials:[container,glow,ring.material],remaining:0,expires:time+145};v474SupplyMarkers.push(cache);
  for(const [kind,ox,oz] of [['med',3,0],['armor',-3,0],['ammo',0,3],['ammo',0,-3]]){
   const px=clamp(x+ox,-HALF+4,HALF-4),pz=clamp(z+oz,-HALF+4,HALF-4);
   if(!solid(px,pz,.7)){spawnPickup(kind,px,pz);const spawned=pickups[pickups.length-1];spawned.v476Cache=cache;cache.remaining++;}
