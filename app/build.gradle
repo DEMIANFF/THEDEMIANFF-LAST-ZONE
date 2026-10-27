@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 91
-        versionName '45.4-aim-jump-guard'
+        versionCode 92
+        versionName '45.5-multitouch-actions'
     }
     signingConfigs {
         persistentRelease {
