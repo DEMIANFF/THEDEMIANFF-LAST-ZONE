@@ -347,7 +347,7 @@ jobs:
               assert token in h, 'V47.3: falta sistema Aurora '+token
           assert 'const v470Compound=new THREE.Group()' not in h, 'V47.3: reapareció infraestructura genérica'
           # V48.7: real combat warning, medkit/reload state and validated damage.
-          for token in ("v487Closest=bots.reduce",
+          for token in ("v487Closest=bots.reduce", "const v487Danger=bots.some", "18/WORLD*w",
                         "v487Closest.role==='FRANCOTIRADOR'",
                         "Advertencia táctica:",
                         "v469HealTimer.toFixed(1)",
