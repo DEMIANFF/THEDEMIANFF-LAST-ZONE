@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 89
-        versionName '45.2-profile-accessibility'
+        versionCode 90
+        versionName '45.3-touch-lifecycle'
     }
     signingConfigs {
         persistentRelease {
