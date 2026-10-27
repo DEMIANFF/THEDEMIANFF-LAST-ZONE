@@ -2347,11 +2347,12 @@ function v394FindCover(b,px,pz){
   if(dist<2.5||dist>19||!o.r||!o.h||o.h<1.35)continue;
   if(++checked>36)break;
   const awayX=o.x-px,awayZ=o.z-pz,len=Math.hypot(awayX,awayZ)||1;
-  const margin=Math.max(.8,o.r*.85);
+  // V47.3: cover points must stand OUTSIDE the source obstacle collision radius.
+  const margin=o.r+Math.max(.95,.5*b.root.scale.x);
   const x=o.x+awayX/len*margin,z=o.z+awayZ/len*margin;
   if(Math.abs(x)>HALF-4||Math.abs(z)>HALF-4||solid(x,z,.6))continue;
   if(!blocked3D(px,ground(px,pz)+1.5,pz,x,ground(x,z)+1.5,z))continue;
-  const cost=dist+Math.hypot(x-b.x,z-b.z)*.35;
+  const cost=Math.hypot(x-b.x,z-b.z)+dist*.15+(o.h<2?.35:0);
   if(cost<score){score=cost;best={x,z};}
  }
  return best;
