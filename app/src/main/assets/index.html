@@ -2699,7 +2699,23 @@ const hitChance=clamp((b.role==='FRANCOTIRADOR'?.70:.64)-d*.008-movingPenalty-cr
  enemyShotSound(d);
  impact(b.x+Math.sin(b.root.rotation.y)*.8,ground(b.x,b.z)+1.5*b.root.scale.y,b.z+Math.cos(b.root.rotation.y)*.8,'#ffbd66');
 }if(Math.hypot(b.x-zoneCenter.x,b.z-zoneCenter.y)>zoneRadius){b.hp-=dt*(2.8+zonePhase);if(b.hp<=0){b.alive=false;scene.remove(b.root);if(Math.random()<.45)spawnPickup('ammo',b.x,b.z);}}}
-for(let i=pickups.length-1;i>=0;i--){const p=pickups[i];p.group.rotation.y+=dt*1.3;p.group.position.y=ground(p.x,p.z)+.7+Math.sin(time*3+p.phase)*.16;if(p.group.userData.v40PickupHalo)p.group.userData.v40PickupHalo.rotation.z+=dt*.85;if(Math.hypot(player.position.x-p.x,player.position.z-p.z)<2.1){if(p.type==='med'){meds++;toast('+1 BOTIQUÍN')}if(p.type==='ammo'){weapons.forEach((w,i)=>w.reserve+=i===3?6:i===1?12:Math.round(w.mag*1.2));toast('+ MUNICIÓN')}if(p.type==='armor'){armor=Math.min(100,armor+35);toast('+35 ESCUDO')}pickupSound();scene.remove(p.group);pickups.splice(i,1);}}
+for(let i=pickups.length-1;i>=0;i--){const p=pickups[i];p.group.rotation.y+=dt*1.3;p.group.position.y=ground(p.x,p.z)+.7+Math.sin(time*3+p.phase)*.16;if(p.group.userData.v40PickupHalo)p.group.userData.v40PickupHalo.rotation.z+=dt*.85;if(Math.hypot(player.position.x-p.x,player.position.z-p.z)<2.1){
+ // V47.2: supplies remain in the world if the inventory cannot accept them.
+ let collected=false;
+ if(p.type==='med'&&meds<5){meds++;collected=true;toast('+1 BOTIQUÍN · '+meds+'/5');}
+ if(p.type==='ammo'){
+  const caps=[300,96,360,72,300];
+  for(let j=0;j<weapons.length;j++){
+   const weapon=weapons[j],maximum=caps[j]??weapon.mag*10;
+   const portion=j===3?6:j===1?12:Math.round(weapon.mag*1.2);
+   const added=Math.max(0,Math.min(portion,maximum-weapon.reserve));
+   if(added>0){weapon.reserve+=added;collected=true;}
+  }
+  if(collected)toast('+ MUNICIÓN DE RESERVA');
+ }
+ if(p.type==='armor'&&armor<100){const gained=Math.min(35,100-armor);armor+=gained;collected=gained>0;if(collected)toast('+'+Math.ceil(gained)+' ESCUDO');}
+ if(collected){pickupSound();scene.remove(p.group);pickups.splice(i,1);}
+}}
 for(let i=effects.length-1;i>=0;i--){let e=effects[i];e.t-=dt;if(!e.streak)e.mesh.scale.multiplyScalar(1+dt*4);e.mesh.material.opacity=Math.max(0,e.t/(e.life||.26));if(e.t<=0){scene.remove(e.mesh);e.mesh.geometry?.dispose();if(Array.isArray(e.mesh.material))e.mesh.material.forEach(m=>m.dispose());else e.mesh.material?.dispose();effects.splice(i,1);}}damageFlash=Math.max(0,damageFlash-dt);$('damageFlash').style.opacity=damageFlash*.7;hitFlash=Math.max(0,hitFlash-dt);$('hit').style.opacity=hitFlash/.16;toastTime-=dt;if(toastTime<=0)$('toast').style.opacity=0;hudUpdateClock+=dt;
 if(hudUpdateClock>=.065){hudUpdateClock=0;updateHud();}
 mapUpdateClock+=dt;if(mapUpdateClock>=.09){mapUpdateClock=0;drawMap();}if(bots.every(b=>!b.alive))finish(true);}
