@@ -353,7 +353,9 @@ jobs:
                         'b.rivalThreatTimer=Math.max(0,',
                         'victim.rivalThreatX=attacker.x',
                         'window.THEDEMIANFF_V477_COMBAT',
-                        'window.THEDEMIANFF_V477_SUPPLY'):
+                        'window.THEDEMIANFF_V477_SUPPLY',
+                        'visibleToPlayer',
+                        'scene.add(line);effects.push({mesh:line,t:.10'):
               assert token in h, 'V47.7: regresión táctica '+token
           # V47.6: ensure Aurora supply caches and location systems remain bounded.
           for token in ('function v476UpdateLocation(dt)', 'function v474SupplyEvent(dt)',
