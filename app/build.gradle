@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 94
-        versionName '45.7-touch-recovery'
+        versionCode 95
+        versionName '45.8-combat-hud'
     }
     signingConfigs {
         persistentRelease {
