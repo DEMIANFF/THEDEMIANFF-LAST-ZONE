@@ -537,7 +537,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">V44.5 · Google persistente · Progreso solo local, sin sincronización</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V47.6 · AURORA EN EXPANSIÓN</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
+<div id="v22Edition">V48.0 · AURORA BATTLE SYSTEMS</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
@@ -2382,7 +2382,7 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  group.userData.v40PickupHalo=halo;
  group.userData.v362Glow=beacon;
  scene.add(group);pickups.push({type,x,z,group,phase:rand(0,6)});}
-function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v480Pulse=0;v480FrameCount=0;v480Snapshot.fill(null);v474SupplyClock=28;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v480Pulse=0;v480FrameCount=0;v480Snapshot.fill(null);v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(scene){
  const geometries=new Set();
  scene.traverse(obj=>{if(obj.geometry)geometries.add(obj.geometry);});
@@ -2539,9 +2539,9 @@ function v477NearestSupply(x,z){
 }
 function v477SupplyAwareness(dt){
  v477SupplyProximityClock-=dt;if(v477SupplyProximityClock>0||!player||!running||paused)return;
- v477SupplyProximityClock=.85;
+ v477SupplyProximityClock=.9;
  const nearby=v477NearestSupply(player.position.x,player.position.z);
- const current=nearby&&nearby.distance<26?nearby.cache:null;
+ const current=nearby&&nearby.distance<25?nearby.cache:null;
  if(current!==v477LastNearbySupply){
   v477LastNearbySupply=current;
   if(current){showCombat('📦 SUMINISTROS A '+Math.round(nearby.distance)+'m');v477CombatSignals++;}
@@ -2630,7 +2630,7 @@ function v477FindRivalTarget(source,targets){
  for(const rival of targets){if(rival===source||!rival.alive)continue;
   const dx=rival.x-source.x,dz=rival.z-source.z,d=Math.hypot(dx,dz);
   if(d<=4||d>=40||rival.airborne)continue;
-  const weighted=d+(v477InZone(rival.x,rival.z)?0:6)+(rival.role==='FRANCOTIRADOR'?-2:0)+(rival.hp<35?-4:0)+(rival.hitStun>0?-1:0);
+  const weighted=d+(v477InZone(rival.x,rival.z)?0:6)+(rival.role==='FRANCOTIRADOR'?-2:0)+(rival.hp<35?-4:0)+(rival.hitStun>0?-1:0)+(rival.role==='DEFENSOR'?2:0);
   if(weighted<score){score=weighted;chosen=rival;}
  }
  return chosen;
@@ -2665,7 +2665,7 @@ function v474RivalCombat(dt){
   victim.suppression=Math.min(1,(victim.suppression||0)+.28);
   victim.dodgeTime=Math.max(victim.dodgeTime,.43);
   victim.dodgeSign=Math.random()<.5?-1:1;
-  const hitChance=clamp(.57-nearest*.008-(attacker.suppression||0)*.17-(victim.dodgeTime>0?.06:0)+(attacker.role==='FRANCOTIRADOR'?.04:0),.14,.56);
+  const hitChance=clamp(.57-nearest*.008-(attacker.suppression||0)*.17-(victim.dodgeTime>0?.06:0)+(attacker.role==='FRANCOTIRADOR'?.04:0)-(victim.role==='EXPLORADOR'?.025:0),.14,.56);
   const visibleToPlayer=Math.min(Math.hypot(attacker.x-player.position.x,attacker.z-player.position.z),Math.hypot(victim.x-player.position.x,victim.z-player.position.z))<52;
   if(visibleToPlayer){
    // V47.7: enemy-vs-enemy muzzle trace, depth-tested and GPU-cleaned by effects loop.
@@ -2722,7 +2722,7 @@ function v474SupplyEvent(dt){
   }
  }
  if(v474SupplyClock>0||v474SupplyCount>=5)return;
- v474SupplyClock=79;
+ v474SupplyClock=78;
  const pois=(window.v27AuroraPOI||[]).filter(p=>p.name!=='CRÁTER AURORA'&&
  Math.hypot(p.x-zoneCenter.x,p.z-zoneCenter.y)<zoneRadius-10);
  const pick=pois.length?pois[(v474SupplyCount*5+1)%pois.length]:null;
