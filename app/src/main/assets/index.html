@@ -547,7 +547,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">Configura Google y la recuperación en Ajustes → Cuenta. Confirma el respaldo antes de reinstalar.</small></div></div>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V49.9 · LOBBY LIMPIO</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
+<div id="v22Edition">V50.0 · LOBBY Y NUBE</div><div id="v500CloudBadge" role="status" aria-live="polite" style="position:absolute;top:calc(5% + 34px);left:50%;transform:translateX(-50%);z-index:5;padding:5px 11px;border:1px solid #91a6b477;border-radius:9px;background:#091d2be6;color:#e0f0fa;font:700 11px system-ui;white-space:nowrap;pointer-events:none">☁ RESPALDO GOOGLE SIN CONFIRMAR</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
@@ -625,6 +625,7 @@ function v495CloudSave(json){
   return;
  }
  v495CloudSaveInFlight=true;
+ v496LobbyCloudStatus('☁ Guardando progreso en Google…');
  v497CloudActiveAccount=v446GoogleEmail;
  v497CloudSentSnapshot=valid;
  try{v494CloudBridge.save(valid);}catch(e){v495CloudSaveInFlight=false;throw e;}
@@ -781,7 +782,7 @@ function v447BackupNotice(text){
  if(status)status.textContent=text;
 }
 // V49.4: recovery is NEVER automatic and NEVER merges guest IDs from other players.
-function v496LobbyCloudStatus(msg,ok=false){const el=$('v494CloudStatus');if(!el)return;el.textContent=msg;el.style.color=ok?'#baffda':'#e2f8ff';}
+function v496LobbyCloudStatus(msg,ok=false){const el=$('v494CloudStatus');if(el){el.textContent=msg;el.style.color=ok?'#baffda':'#e2f8ff';}const badge=$('v500CloudBadge');if(badge){badge.textContent=ok?'☁ RESPALDO GOOGLE CONFIRMADO':v495CloudSaveInFlight?'☁ SINCRONIZANDO GOOGLE…':v446GoogleEmail?'☁ GOOGLE CONECTADO · RESPALDO SIN CONFIRMAR':'☁ RESPALDO GOOGLE SIN CONFIRMAR';badge.style.color=ok?'#baffda':'#e0f0fa';}}
 function v494CloudNotice(msg){const el=$('v494CloudStatus');if(el)el.textContent=msg;v496LobbyCloudStatus(msg,/Guardado confirmado|Respaldo guardado|Último progreso confirmado/.test(msg));v447BackupNotice(msg);}
 window.thedemianffCloudResult=(state,payload)=>{
  if(state==='saved'){
