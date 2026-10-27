@@ -270,6 +270,10 @@ jobs:
           assert '@JavascriptInterface public boolean clearGuestId()' in java, 'V44.9: falta puente nativo de rollback de ID'
           assert '.edit().remove("progress").commit()' in java, 'V44.9: borrado limitado al campo de progreso'
           assert '.edit().remove("guestId").commit()' in java, 'V44.9: borrado limitado al campo de invitado'
+          for token in ('id="v45LobbyRecord"','id="v45XPFill"','v45ProfileName','v45HeroCard','v45HeroStats','id="v45OpenAccount"','v45OpenAccount','v45Record.textContent','v45Fill.style.width',"v18Open('ESTADÍSTICAS')"):
+              assert token in h, 'V45: falta panel de operador/lobby: '+token
+          assert 'aria-valuemax="350"' in h, 'V45: falta progreso de nivel accesible'
+          assert 'p.matches?Math.round(p.wins/p.matches*100):0' in h, 'V45: estadística de victorias debe evitar división por cero'
           assert 'id="v443Guest" type="button" style="display:none;' in h, 'V44.5: invitado visible durante validación Google'
           assert 'id="v443Google" type="button" style="display:none;' in h, 'V44.5: Google visible antes del estado de sesión'
           assert "if(!v445GoogleBridge){" in h, 'V44.5: Chrome sin recuperación de acceso'
@@ -302,14 +306,14 @@ jobs:
           assert "com.google.gms.google-services" in Path('app/build.gradle').read_text()
           print('Firebase Android config matches game package')
           PY
-      - name: V44.9 comprobar restauración y rollback completo
+      - name: V45.0 comprobar perfil de operador y rollback
         run: |
           python3 - <<'PY'
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 86' in gradle, 'La actualización requiere versionCode 82'
-          assert "versionName '44.9-restore-rollback'" in gradle, 'Versión Android incorrecta'
+          assert 'versionCode 87' in gradle, 'La actualización requiere versionCode 82'
+          assert "versionName '45.0-operator-profile'" in gradle, 'Versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
