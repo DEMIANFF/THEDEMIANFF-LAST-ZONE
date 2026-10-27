@@ -376,8 +376,8 @@ jobs:
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
-          assert 'versionCode 107' in gradle, 'V47.2 requiere versionCode 107'
-          assert "versionName '47.2-aurora-combat'" in gradle, 'V47.2: versión Android incorrecta'
+          assert 'versionCode 108' in gradle, 'V47.3 requiere versionCode 108'
+          assert "versionName '47.3-base-aurora'" in gradle, 'V47.3: versión Android incorrecta'
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
