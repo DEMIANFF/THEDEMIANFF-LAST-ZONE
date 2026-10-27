@@ -2775,7 +2775,12 @@ function v18Refresh(){
  const p=v18Progress;
  $('v18Credits').textContent=p.credits.toLocaleString('es-CO');
  $('v18XP').textContent=p.xp.toLocaleString('es-CO');
- $('v18Level').textContent='NV. '+(1+Math.floor(p.xp/350));const v45Record=$('v45LobbyRecord'),v45Fill=$('v45XPFill');if(v45Record)v45Record.textContent=p.wins+' victorias · '+p.kills+' bajas';if(v45Fill)v45Fill.style.width=(p.xp%350/350*100).toFixed(1)+'%';
+ const xp=Number.isSafeInteger(p.xp)&&p.xp>=0?p.xp:0;
+ const wins=Number.isSafeInteger(p.wins)&&p.wins>=0?p.wins:0,kills=Number.isSafeInteger(p.kills)&&p.kills>=0?p.kills:0;
+ $('v18Level').textContent='NV. '+(1+Math.floor(xp/350));
+ const v45Record=$('v45LobbyRecord'),v45Fill=$('v45XPFill');
+ if(v45Record)v45Record.textContent=wins+' victorias · '+kills+' bajas';
+ if(v45Fill){const levelXP=xp%350;v45Fill.style.width=(levelXP/350*100).toFixed(1)+'%';const track=v45Fill.parentElement;if(track){track.setAttribute('role','progressbar');track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax','350');track.setAttribute('aria-valuenow',String(levelXP));track.setAttribute('aria-label','Experiencia para el siguiente nivel');}}
 }
 function v18Save(){
  try{
