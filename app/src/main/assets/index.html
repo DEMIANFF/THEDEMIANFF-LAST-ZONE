@@ -2569,18 +2569,20 @@ if(b.think<=0){
 }
 if(b.stuckTime>1.1){b.moveAngle+=Math.PI*.5*(b.strafe||1);b.stuckTime=0;b.coverX=null;b.coverZ=null;}
 }const tacticalSpeed=b.alert>.3?b.speed*(d<12?.82:(b.role==='EXPLORADOR'?1.15:1.08)):b.speed*.75;
+// V46.6: avoid enemies charging straight into melee range while reloading their attack.
+if(visible&&d<5&&b.shoot>0)b.moveAngle=Math.atan2(-px,-pz)+Math.sin(b.tactic)*.25;
 const desiredVX=Math.sin(b.moveAngle)*tacticalSpeed,desiredVZ=Math.cos(b.moveAngle)*tacticalSpeed;
 const easing=1-Math.exp(-dt*6.5);
 b.velocityX+=(desiredVX-b.velocityX)*easing;b.velocityZ+=(desiredVZ-b.velocityZ)*easing;
 const vx=b.velocityX*dt,vz=b.velocityZ*dt;
 const bx=clamp(b.x+vx,-HALF+4,HALF-4),bz=clamp(b.z+vz,-HALF+4,HALF-4);
-if(!solid(bx,bz,.7)){b.x=bx;b.z=bz;}else{
+if(!solid(bx,bz,.7*b.root.scale.x)){b.x=bx;b.z=bz;}else{
  b.velocityX*=.35;b.velocityZ*=.35;b.think=0;
  b.stuckTime=Math.min(2,(b.stuckTime||0)+dt*4);
  b.strafe=-b.strafe;
 }
 b.root.position.set(b.x,ground(b.x,b.z),b.z);
-const facing=d<36?Math.atan2(px,pz):Math.atan2(b.velocityX,b.velocityZ);
+const facing=visible&&d<48?Math.atan2(px,pz):Math.atan2(b.velocityX,b.velocityZ);
 b.root.rotation.y+=Math.atan2(Math.sin(facing-b.root.rotation.y),Math.cos(facing-b.root.rotation.y))*(1-Math.exp(-dt*8));
 const stride=clamp(Math.hypot(b.velocityX,b.velocityZ)/4.6,0,1);
 b.animPhase+=dt*(5+stride*7);
@@ -2589,16 +2591,18 @@ b.right.rotation.x=-Math.sin(b.animPhase+b.phase)*.53*stride;
 b.body.position.y=Math.abs(Math.sin(b.animPhase+b.phase))*.055*stride;
 b.body.rotation.z=Math.sin(b.animPhase*.5+b.phase)*.024*stride+Math.sin((1-b.lastHit)*13)*.11*b.lastHit;
 b.body.rotation.x=-.09*b.lastHit;
+ b.body.rotation.y=Math.sin(b.animPhase*.3+b.phase)*.02*stride;
 b.gun.rotation.x=-b.shotPose*.14;
-if(visible&&d<(b.role==='FRANCOTIRADOR'?55:44)&&b.shoot<=0&&time>3){
- b.shoot=b.role==='FRANCOTIRADOR'?rand(1.8,2.6):b.role==='EXPLORADOR'?rand(.65,1.1):rand(.8,1.6);
+if(visible&&d<(b.role==='FRANCOTIRADOR'?55:44)&&b.shoot<=0&&time>3&&b.alert>.12){
+ b.shoot=b.role==='FRANCOTIRADOR'?rand(1.8,2.6):b.role==='EXPLORADOR'?rand(.65,1.1):b.role==='DEFENSOR'?rand(1.05,1.8):rand(.8,1.6);
  b.shotPose=1;
  // Hit probability falls with distance and movement, and is blocked by cover.
  const movingPenalty=clamp(Math.hypot(moveVX,moveVZ)/18,0,.24);
- const hitChance=clamp((b.role==='FRANCOTIRADOR'?.70:.64)-d*.008-movingPenalty,.12,.62);
+ const crouchPenalty=crouchHeld?.06:0;
+ const hitChance=clamp((b.role==='FRANCOTIRADOR'?.70:.64)-d*.008-movingPenalty-crouchPenalty,.12,.62);
  if(Math.random()<hitChance)damage(rand(5,12),b.x,b.z);
  enemyShotSound(d);
- impact(b.x+Math.sin(b.root.rotation.y)*.8,ground(b.x,b.z)+1.5,b.z+Math.cos(b.root.rotation.y)*.8,'#ffbd66');
+ impact(b.x+Math.sin(b.root.rotation.y)*.8,ground(b.x,b.z)+1.5*b.root.scale.y,b.z+Math.cos(b.root.rotation.y)*.8,'#ffbd66');
 }if(Math.hypot(b.x-zoneCenter.x,b.z-zoneCenter.y)>zoneRadius){b.hp-=dt*(2.8+zonePhase);if(b.hp<=0){b.alive=false;scene.remove(b.root);}}}
 for(let i=pickups.length-1;i>=0;i--){const p=pickups[i];p.group.rotation.y+=dt*1.3;p.group.position.y=ground(p.x,p.z)+.7+Math.sin(time*3+p.phase)*.16;if(p.group.userData.v40PickupHalo)p.group.userData.v40PickupHalo.rotation.z+=dt*.85;if(Math.hypot(player.position.x-p.x,player.position.z-p.z)<2.1){if(p.type==='med'){meds++;toast('+1 BOTIQUÍN')}if(p.type==='ammo'){weapons.forEach((w,i)=>w.reserve+=i===3?6:i===1?12:Math.round(w.mag*1.2));toast('+ MUNICIÓN')}if(p.type==='armor'){armor=Math.min(100,armor+35);toast('+35 ESCUDO')}pickupSound();scene.remove(p.group);pickups.splice(i,1);}}
 for(let i=effects.length-1;i>=0;i--){let e=effects[i];e.t-=dt;e.mesh.scale.multiplyScalar(1+dt*4);e.mesh.material.opacity=Math.max(0,e.t/.26);if(e.t<=0){scene.remove(e.mesh);e.mesh.geometry?.dispose();if(Array.isArray(e.mesh.material))e.mesh.material.forEach(m=>m.dispose());else e.mesh.material?.dispose();effects.splice(i,1);}}damageFlash=Math.max(0,damageFlash-dt);$('damageFlash').style.opacity=damageFlash*.7;hitFlash=Math.max(0,hitFlash-dt);$('hit').style.opacity=hitFlash/.16;toastTime-=dt;if(toastTime<=0)$('toast').style.opacity=0;hudUpdateClock+=dt;
