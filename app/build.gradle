@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 86
-        versionName '44.9-restore-rollback'
+        versionCode 87
+        versionName '45.0-operator-profile'
     }
     signingConfigs {
         persistentRelease {
