@@ -2307,7 +2307,7 @@ function spawnBot(minR=17){const p=safePos(minR),c=makeCharacter(['#73604b','#59
  const roleIndex=bots.length%4;
 const role=['ASALTO','EXPLORADOR','DEFENSOR','FRANCOTIRADOR'][roleIndex];
 const roleHp=[100,78,145,85][roleIndex],roleSpeed=[1,1.28,.78,.9][roleIndex];
-c.root.scale.setScalar([1,.92,1.1,1][roleIndex]);
+c.root.scale.setScalar(1.24*[1,.92,1.1,1][roleIndex]);
 bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),think:rand(0,3),shoot:rand(.5,2),speed:rand(3.2,4.6)*roleSpeed,velocityX:0,velocityZ:0,alive:true,strafe:rand(-1,1),phase:rand(0,6),lastHit:0,alert:0,burst:rand(.2,.65),tactic:rand(0,6.28),coverTimer:0,coverX:null,coverZ:null,shotPose:0});}function spawnPickup(type,x,z){const group=new THREE.Group();group.position.set(x,ground(x,z)+.65,z);const color=type==='med'?'#ff5959':type==='armor'?'#25dcff':'#ffd54c';box(.9,.45,.9,mat(color,.4,.2),group);box(.45,.08,.1,mats.dark,group,0,.24,0);if(type==='med'){box(.42,.08,.08,mats.wall,group,0,.25,.45);box(.08,.42,.08,mats.wall,group,0,.25,.45)}const glow=new THREE.Mesh(new THREE.CylinderGeometry(.84,.84,.08,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.86,depthWrite:false}));glow.position.y=-.5;group.add(glow);
  const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.39,0),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.96,depthWrite:false,depthTest:true}));beacon.position.y=1.45;group.add(beacon);
  // V40 easy-to-identify medkits, ammunition and armor: visible pillar + floating ring.
@@ -2323,7 +2323,7 @@ if(scene){
  for(const geometry of geometries)geometry.dispose();
  while(scene.children.length)scene.remove(scene.children[0]);
 }
-v428CreateTrainingWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.10;v432Camera.reset();camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
+v428CreateTrainingWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;player.scale.setScalar(1.24);const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.10;v432Camera.reset();camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
 for(let i=2;i<weapons.length;i++){weapons[i].ammo=weapons[i].mag;weapons[i].reserve=[210,36,180][i-2];}for(let i=0;i<($('v18Mode').value==='training'?8:20);i++)spawnBot(Math.random()<.5?10:17);for(let i=0;i<55;i++){let p=safePos(5);spawnPickup(['ammo','ammo','med','armor'][i%4],p.x,p.z)}updateHud();}
 function updateHud(){
  const eventHud=$('v362EventHud');if(eventHud){eventHud.classList.toggle('hidden',!v18ActiveEvent);if(v18ActiveEvent)eventHud.textContent='EVENTO '+(v18ActiveEvent==='training'?'PRÁCTICA TÁCTICA':'SUPERVIVENCIA')+' · BAJAS '+kills+'/'+(v18ActiveEvent==='training'?2:3);}
@@ -2373,15 +2373,15 @@ const up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);
 direction.addScaledVector(right,jitterX).addScaledVector(up,jitterY).normalize();let target=null,best=w.range,headshot=false;
 for(const b of bots){
  if(!b.alive)continue;
- const center=b.root.position.clone().add(new THREE.Vector3(0,1.55,0));
+ const center=b.root.position.clone().add(new THREE.Vector3(0,1.55*b.root.scale.y,0));
  const to=center.clone().sub(start),dist=to.dot(direction);
  if(dist<0||dist>best)continue;
  const closest=start.clone().addScaledVector(direction,dist);
  const error=closest.distanceTo(center);
- const radius=$('aimAssist').checked?.98:.75;
+ const radius=($('aimAssist').checked?.98:.75)*b.root.scale.x;
  if(error<radius&&!blocked3D(start.x,start.y,start.z,closest.x,closest.y,closest.z)){
   best=dist;target=b;
-  headshot=closest.distanceTo(b.root.position.clone().add(new THREE.Vector3(0,2.45,0)))<.40;
+  headshot=closest.distanceTo(b.root.position.clone().add(new THREE.Vector3(0,2.45*b.root.scale.y,0)))<.40*b.root.scale.x;
  }
 }
 if(target){
