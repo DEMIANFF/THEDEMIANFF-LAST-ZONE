@@ -860,27 +860,32 @@ window.thedemianffCloudResult=(state,payload)=>{
   }
   v494AutoSyncPending=false;v494CloudNotice('☁ '+payload+' · Último progreso confirmado en Google: '+new Date(v495CloudLastConfirmed).toLocaleTimeString()+'.');return;
  }
- if(state==='missing'||state==='error'){if(v498CloudLoadPending){v498CloudLoadPending=false;v498CloudLoadAccount='';}v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending){v494AutoSyncPending=false;$('v494AutoCloud').checked=false;if(v446GoogleEmail)localStorage.removeItem(v494OptKey(v446GoogleEmail));}v494CloudNotice('⚠ '+payload);return;}
+ if(state==='missing'||state==='error'){const wasRestoring=v504Restoring;v504Restoring=false;if(v498CloudLoadPending){v498CloudLoadPending=false;v498CloudLoadAccount='';}
+  if(state==='missing'&&wasRestoring&&v446GoogleEmail){try{v504CloudReady=true;localStorage.setItem(v504AccountProgress(v446GoogleEmail),localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v495CloudSave(localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v494CloudNotice('☁ Creando progreso nuevo en Google…');return;}catch(e){v504CloudReady=false;v494CloudNotice('⚠ No fue posible guardar: '+e.message);return;}}
+  if(wasRestoring){v504CloudReady=false;v494CloudNotice('⚠ Google sin conexión. No se sobrescribirá tu nube. Intenta nuevamente con Internet.');return;}v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending){v494AutoSyncPending=false;$('v494AutoCloud').checked=false;if(v446GoogleEmail)localStorage.removeItem(v494OptKey(v446GoogleEmail));}v494CloudNotice('⚠ '+payload);return;}
  if(state!=='loaded')return;
  if(!v498CloudLoadPending||!v498CloudLoadAccount||v498CloudLoadAccount!==v446GoogleEmail){v494CloudNotice('⚠ Recuperación ignorada: la cuenta Google cambió o no solicitaste una restauración.');return;}
  v498CloudLoadPending=false;v498CloudLoadAccount='';
+ const autoRestore=v504Restoring;v504Restoring=false;
  try{
   const saved=v443ValidateProgress(JSON.parse(payload));
   const currentRaw=localStorage.getItem(progressKey);
   const current=currentRaw?JSON.parse(currentRaw):null;
   const summary='Google: '+saved.matches+' partidas, '+saved.xp+' XP, '+saved.credits+' créditos y '+saved.unlocked.length+' operadores.';
-  if(!confirm(summary+'\\n\\n¿Recuperar este progreso en este dispositivo? El progreso actual será reemplazado.')){v494CloudNotice('Recuperación cancelada; no se cambió ningún progreso.');return;}
-  if(current&&Number(current.xp||0)>saved.xp&&!confirm('ATENCIÓN: el respaldo en Google tiene MENOS XP que el progreso local. ¿Seguro que deseas reemplazarlo?'))return;
+  if(!autoRestore&&!confirm(summary+'\\n\\n¿Recuperar este progreso en este dispositivo? El progreso actual será reemplazado.')){v494CloudNotice('Recuperación cancelada; no se cambió ningún progreso.');return;}
+  if(!autoRestore&&current&&Number(current.xp||0)>saved.xp&&!confirm('ATENCIÓN: el respaldo en Google tiene MENOS XP que el progreso local. ¿Seguro que deseas reemplazarlo?'))return;
   const oldNative=v443Native?v443Native.readProgress():null;
   try{
    localStorage.setItem(progressKey,JSON.stringify(saved));
    if(v443Native&&!v443Native.saveProgress(JSON.stringify(saved)))throw Error('Android no confirmó el guardado local.');
+   if(v446GoogleEmail)localStorage.setItem(v504AccountProgress(v446GoogleEmail),JSON.stringify(saved));
+   v504CloudReady=true;
   }catch(e){
    if(currentRaw===null)localStorage.removeItem(progressKey);else localStorage.setItem(progressKey,currentRaw);
    if(v443Native){if(oldNative)v443Native.saveProgress(oldNative);else v443Native.clearProgress();}
    throw e;
   }
-  v494CloudNotice('☁ Perfil recuperado y validado. Reiniciando el juego…');
+  v494CloudNotice('☁ Progreso recuperado automáticamente de Google.');
   location.reload();
  }catch(e){v494CloudNotice('No se pudo recuperar el perfil: '+e.message);}
 };
