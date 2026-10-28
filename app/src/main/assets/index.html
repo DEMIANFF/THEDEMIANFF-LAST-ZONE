@@ -672,7 +672,7 @@ const v504AccountKey='thedemianff_v504_account';
 const v504AccountProgress=email=>'thedemianff_v504_progress_'+encodeURIComponent(email.toLowerCase());
 const v504PendingGuest=email=>'thedemianff_v504_guest_transfer_'+encodeURIComponent(email.toLowerCase());
 const v504Blank=()=>({credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,unlocked:[0],weapon:0,claimed:[]});
-function v504SetLocalProgress(data){const serialized=JSON.stringify(v443ValidateProgress(data));localStorage.setItem(progressKey,serialized);if(v443Native&&!v443Native.saveProgress(serialized))throw Error('No se pudo guardar el progreso del dispositivo.');}
+function v504SetLocalProgress(data){const serialized=JSON.stringify(v443ValidateProgress(data));localStorage.setItem(progressKey,serialized);if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(serialized))throw Error('No se pudo guardar el progreso invitado del dispositivo.');}
 function v504StartCloudRestore(){if(!v494CloudBridge||!v446GoogleEmail)return;v504CloudReady=false;v504Restoring=true;v498CloudLoadPending=true;v498CloudLoadAccount=v446GoogleEmail;v496LobbyCloudStatus('☁ Recuperando automáticamente desde Google…');try{v494CloudBridge.load();}catch(e){v504Restoring=false;v498CloudLoadPending=false;v494CloudNotice('⚠ Sin conexión. No se sobrescribirá el respaldo: '+e.message);}}
 
 let v495CloudSaveInFlight=false,v495CloudLastConfirmed=0;
@@ -744,9 +744,9 @@ try{
   const localProgress=local?JSON.parse(local):null;
   // Recover after WebView storage loss without replacing a more advanced local save.
   const valid=p=>p&&typeof p==='object'&&Number.isSafeInteger(p.xp)&&p.xp>=0&&Number.isSafeInteger(p.matches)&&p.matches>=0&&Array.isArray(p.unlocked)&&Array.isArray(p.claimed);
-  if(valid(nativeProgress)&&(!valid(localProgress)||nativeProgress.xp>localProgress.xp||(nativeProgress.xp===localProgress.xp&&nativeProgress.matches>localProgress.matches))){
+  if(!localStorage.getItem(v504AccountKey)&&valid(nativeProgress)&&(!valid(localProgress)||nativeProgress.xp>localProgress.xp||(nativeProgress.xp===localProgress.xp&&nativeProgress.matches>localProgress.matches))){
    localStorage.setItem(progressKey,JSON.stringify(nativeProgress));
-  }else if(valid(localProgress)){
+  }else if(!localStorage.getItem(v504AccountKey)&&valid(localProgress)){
    v443Native.saveProgress(JSON.stringify(localProgress));
   }
  }
@@ -963,13 +963,14 @@ window.thedemianffCloudResult=(state,payload)=>{
   const oldNative=v443Native?v443Native.readProgress():null;
   try{
    localStorage.setItem(progressKey,JSON.stringify(saved));
-   if(v443Native&&!v443Native.saveProgress(JSON.stringify(saved)))throw Error('Android no confirmó el guardado local.');
+   // Google account progress lives in its own WebView key; do not overwrite the
+   // private native guest backup with a Google profile.
    if(v446GoogleEmail){localStorage.setItem(v504AccountProgress(v446GoogleEmail),JSON.stringify(saved));localStorage.removeItem(v504PendingGuest(v446GoogleEmail));}
    v504CloudReady=true;
    if(autoRestore){v495CloudLastConfirmed=Date.now();v496LobbyCloudStatus('☁ Progreso recuperado y confirmado en Google',true);}
   }catch(e){
    if(currentRaw===null)localStorage.removeItem(progressKey);else localStorage.setItem(progressKey,currentRaw);
-   if(v443Native){if(oldNative)v443Native.saveProgress(oldNative);else v443Native.clearProgress();}
+   // Native guest backup was not modified by this Google restore.
    throw e;
   }
   v494CloudNotice('☁ Progreso recuperado automáticamente de Google.');
@@ -3621,7 +3622,7 @@ function v18Save(){
   const snapshot=JSON.stringify(v18Progress);
   localStorage.setItem(V18_STORAGE,snapshot);
   if(v446GoogleEmail&&v504CloudReady)localStorage.setItem(v504AccountProgress(v446GoogleEmail),snapshot);
-  if(v443Native&&!v443Native.saveProgress(snapshot))console.warn('[V44.3.2] No se pudo actualizar respaldo nativo');
+  if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(snapshot))console.warn('[V52.0] No se pudo actualizar respaldo nativo invitado');
   if(v494CloudBridge&&v446GoogleEmail&&v504CloudReady){
    try{v495CloudSave(JSON.stringify(v443ValidateProgress(v18Progress)));}catch(e){console.warn('[V49.4] Sincronización pendiente',e)}
   }
