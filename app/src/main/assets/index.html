@@ -705,13 +705,17 @@ function v507RetryPendingCloud(){
     !v504CloudReady||v504Restoring||v498CloudLoadPending||v495CloudSaveInFlight||
     !navigator.onLine||localStorage.getItem(v494OptKey(v446GoogleEmail))!=='yes'||
     !localStorage.getItem(v508DirtyKey(v446GoogleEmail)))return;
+ const scheduledAccount=v446GoogleEmail;
  v507RetryScheduled=true;
  setTimeout(()=>{
   v507RetryScheduled=false;
-  if(!v446GoogleEmail||!v504CloudReady||v504Restoring||v498CloudLoadPending||
-     v495CloudSaveInFlight||!navigator.onLine)return;
+  // Never retry a pending write under a different Google identity.
+  if(!scheduledAccount||scheduledAccount!==v446GoogleEmail||
+     !v504CloudReady||v504Restoring||v498CloudLoadPending||
+     v495CloudSaveInFlight||!navigator.onLine||
+     localStorage.getItem(v494OptKey(scheduledAccount))!=='yes')return;
   try{
-   const progress=localStorage.getItem(v508DirtyKey(v446GoogleEmail));
+   const progress=localStorage.getItem(v508DirtyKey(scheduledAccount));
    if(progress)v495CloudSave(progress);
   }catch(e){v494CloudNotice('⚠ Reintento de sincronización pendiente: '+e.message);}
  },1500);
