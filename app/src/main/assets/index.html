@@ -832,7 +832,7 @@ window.thedemianffGoogleResult=function(state,detail){
  }
  v446UpdateAccountProfile();
 };
-$('v445SettingsLogout').addEventListener('click',()=>{if(!window.THEDEMIANFFGoogle?.signOut){alert('El cierre de sesión requiere la APK Android actualizada.');return;}if(v495CloudSaveInFlight||v498CloudLoadPending||!v504CloudReady){alert('No se puede cerrar sesión mientras el progreso de Google está pendiente. Comprueba tu conexión.');return;}if(confirm('¿Cerrar sesión de Google? Tu progreso confirmado permanecerá vinculado a esta cuenta.')){window.THEDEMIANFFGoogle.signOut();$('pausePanel').classList.add('hidden');}});
+$('v445SettingsLogout').addEventListener('click',()=>{if(!window.THEDEMIANFFGoogle?.signOut){alert('El cierre de sesión requiere la APK Android actualizada.');return;}const unresolved=v495CloudSaveInFlight||v498CloudLoadPending||!v504CloudReady||(v446GoogleEmail&&!!localStorage.getItem(v508DirtyKey(v446GoogleEmail)));const warning=unresolved?'ATENCIÓN: hay progreso sin confirmar en Google. Se conservará una copia local para esta cuenta, pero podría no estar disponible después de desinstalar. ¿Cerrar sesión de todos modos?':'¿Cerrar sesión de Google? Tu progreso confirmado permanecerá vinculado a esta cuenta.';if(confirm(warning)){window.THEDEMIANFFGoogle.signOut();$('pausePanel').classList.add('hidden');}});
 $('v504GoogleEntry').addEventListener('click',()=>{if(v446GoogleEmail&&!v504CloudReady){$('v504GoogleEntry').style.display='none';v504StartCloudRestore();}else $('v443Google').click();});
 $('v443Google').addEventListener('click',()=>{
  if(!window.THEDEMIANFFGoogle){message.textContent='Google requiere la APK Android V44.4; no disponible en Chrome.';return;}
