@@ -559,14 +559,46 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 @media(max-width:640px){#menu .v17Launch .primary{min-height:54px}#menu .v17Brand{letter-spacing:.025em}#menu #v500CloudBadge{font-size:10px!important;top:calc(3% + 29px)!important}}
 @media(prefers-reduced-motion:reduce){#menu .v17Launch .primary,#menu .v17Nav button,#menu .v17Quick button{transition:none}}
 </style>
+
+<style id="v502CinematicLobby">
+/* V50.2 — Aurora cinematic lobby. Pure CSS scenery: no network dependency or new GPU textures. */
+#menu.v17Lobby{isolation:isolate;background:radial-gradient(ellipse at 49% 53%,#446d8677,transparent 52%),linear-gradient(175deg,#061020 0%,#112b3b 48%,#07111d 100%)}
+#menu .v17Sky{opacity:1;overflow:hidden;background:linear-gradient(180deg,#061524 0%,#16364e 34%,#507a87 55%,#163447 74%,#081522 100%)}
+#menu .v17Sun{top:20%;left:71%;width:clamp(55px,8vw,145px);background:#e9fbff;box-shadow:0 0 70px 28px #87d6f565;opacity:.82}
+#menu .v17Skyline{opacity:.35;filter:hue-rotate(140deg)}
+#menu .v17Sea{opacity:.38}
+#menu .v502AuroraMountains{position:absolute;inset:24% -5% 14%;background:linear-gradient(160deg,#6598a0a6 0%,#17354b 47%,#071724 100%);clip-path:polygon(0 58%,7% 47%,15% 57%,23% 33%,32% 50%,43% 24%,52% 46%,61% 20%,71% 43%,81% 23%,89% 48%,100% 30%,100% 100%,0 100%);opacity:.85;filter:drop-shadow(0 -5px 8px #a0e6ef34)}
+#menu .v502AuroraMist{position:absolute;inset:28% -15% 10%;background:radial-gradient(ellipse at 47% 35%,#61d7d747,transparent 50%),radial-gradient(ellipse at 78% 60%,#66c8dc2e,transparent 45%);filter:blur(22px);animation:v502Mist 13s ease-in-out infinite alternate;pointer-events:none}
+#menu .v502HangarLight{position:absolute;inset:0;pointer-events:none;background:linear-gradient(111deg,transparent 0 42%,#94e4eb08 49%,transparent 56%),linear-gradient(0deg,#030b16a8 0%,transparent 42%),repeating-linear-gradient(90deg,transparent 0 24.75%,#a7e4f011 25%,transparent 25.25%);mix-blend-mode:screen}
+#menu .v17Platform{opacity:.84;bottom:-8%;height:34%;background:repeating-linear-gradient(95deg,#a8ecff16 0 2px,transparent 3px 85px),repeating-linear-gradient(0deg,#b9edff16 0 2px,transparent 3px 47px),linear-gradient(180deg,#385467,#071521);border-top:3px solid #b7ebff9c;box-shadow:0 -19px 45px #78e5fa22}
+#menu .v17Brand{text-shadow:0 4px 20px #000b,0 0 30px #5cb0e04f}
+#menu .v17Brand span{color:#c8eeff}
+#menu .v502BrandSubtitle{margin-top:9px;text-align:right;color:#cff4ff;font:800 clamp(8px,1vw,12px) system-ui;letter-spacing:.12em}
+#menu .v502BrandSubtitle span{color:#f5cc85}
+#menu .v17Profile,#menu .v17Currencies,#menu .v17Friends,#menu .v17Mode{border:1px solid #9edfe57a;background:linear-gradient(135deg,#071827ed,#12314bdc);box-shadow:0 12px 28px #0007,inset 0 1px #eaffff1f;border-radius:11px}
+#menu .v17Friends{gap:9px;backdrop-filter:blur(8px)}
+#menu .v17Friends strong{color:#d8f7ff;letter-spacing:.08em}
+#menu #v502CloudAccess{min-height:43px;padding:9px;border:1px solid #8bdfdf;background:linear-gradient(110deg,#123e54,#205e69);color:#e8fdff;font:800 11px system-ui;border-radius:8px;cursor:pointer}
+#menu #v502CloudAccess:active{transform:scale(.98);background:#28747c}
+#menu #v502BackupHint{font:600 10px/1.4 system-ui;color:#b8d3db}
+#menu .v502ReadyBanner{padding:6px 10px;margin-bottom:5px;border-radius:7px;background:#073329e8;border:1px solid #75e8ad9c;color:#aaf6cb;font:800 10px system-ui;letter-spacing:.04em;display:flex;align-items:center;justify-content:space-between;gap:8px}
+#menu .v502ReadyBanner span{font-size:9px;color:#d1e5e8}
+#menu #start{border-radius:10px;background:linear-gradient(115deg,#ffe7a5,#ffb951 58%,#e28d36);box-shadow:0 5px 0 #724a20,0 11px 29px #f3aa4b55;min-height:60px}
+#menu .v17Nav button,#menu .v17Quick button{border-color:#80c7da73;background:linear-gradient(120deg,#071724ef,#1d4059e7);box-shadow:inset 3px 0 #4bd1e855}
+#menu #v24LobbyStage{filter:drop-shadow(0 0 17px #a2e5ff4a)}
+@keyframes v502Mist{from{transform:translateX(-1.8%);opacity:.65}to{transform:translateX(1.8%);opacity:.9}}
+@media(max-width:800px){#menu .v17Friends{top:34%;right:1%;width:clamp(118px,19%,160px);padding:8px;gap:6px;font-size:10px}#menu #v502CloudAccess{font-size:9px;padding:6px;min-height:37px}#menu #v502BackupHint{font-size:9px}#menu .v502BrandSubtitle{font-size:8px}#menu .v502ReadyBanner span{display:none}}
+@media(max-width:540px){#menu .v17Friends{top:38%;max-height:41%;overflow:auto}#menu .v17Brand{top:15%;right:2%}#menu .v502BrandSubtitle{display:none}}
+@media(prefers-reduced-motion:reduce){#menu .v502AuroraMist{animation:none}}
+</style>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V50.1 · LOBBY Y RESPALDOS</div><div id="v500CloudBadge" role="status" aria-live="polite" style="position:absolute;top:calc(5% + 34px);left:50%;transform:translateX(-50%);z-index:5;padding:5px 11px;border:1px solid #91a6b477;border-radius:9px;background:#091d2be6;color:#e0f0fa;font:700 11px system-ui;white-space:nowrap;pointer-events:none">☁ RESPALDO GOOGLE SIN CONFIRMAR</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
+<div id="v22Edition">V50.2 · AURORA CINEMATIC</div><div id="v500CloudBadge" role="status" aria-live="polite" style="position:absolute;top:calc(5% + 34px);left:50%;transform:translateX(-50%);z-index:5;padding:5px 11px;border:1px solid #91a6b477;border-radius:9px;background:#091d2be6;color:#e0f0fa;font:700 11px system-ui;white-space:nowrap;pointer-events:none">☁ RESPALDO GOOGLE SIN CONFIRMAR</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V50.1</small></div>
-<div class="v17Friends"><strong>ESCUADRÓN</strong><span>◉ Operador local</span><span>◉ 20 rivales IA</span><span>◉ 5 armas</span></div>
-<div class="v17Bottom"><div class="v17Quick"><button data-lobby="INVENTARIO">▣ INVENTARIO</button><button data-lobby="ARMAS">⌖ ARMAS</button><button data-lobby="PRESET">☷ PRESET</button></div><div class="v17Launch"><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">INICIAR ▶</button></div></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V50.2</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
+<div class="v17Friends"><strong>◈ INFORME TÁCTICO</strong><span>◉ OPERADOR LISTO</span><span>⚔ 20 RIVALES IA · AURORA</span><span>▰ 5 ARMAS · SUPERVIVENCIA</span><button id="v502CloudAccess" type="button" aria-label="Abrir cuenta y respaldos de Google">☁ CUENTA Y RESPALDOS</button><small id="v502BackupHint">Comprueba tu respaldo antes de reinstalar.</small></div>
+<div class="v17Bottom"><div class="v17Quick"><button data-lobby="INVENTARIO">▣ INVENTARIO</button><button data-lobby="ARMAS">⌖ ARMAS</button><button data-lobby="PRESET">☷ PRESET</button></div><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
 <div id="v18Panel" class="v18Panel hidden" role="dialog" aria-modal="true" aria-labelledby="v18PanelTitle"><div class="v18PanelHeader"><div><small>THEDEMIANFF · CENTRO DE OPERACIONES</small><h2 id="v18PanelTitle">OPERADOR</h2></div><button id="v18Close" aria-label="Cerrar">✕</button></div><div id="v18PanelBody"></div></div>
 <div id="v37ModeOverlay" class="hidden"><div class="v37ModeBox"><h2>ESCOGER MODO</h2><button type="button" data-v37mode="royale">SUPERVIVENCIA · 20 IA · AVIÓN</button><button type="button" data-v37mode="training">ENTRENAMIENTO · 8 IA</button><button type="button" id="v37ModeClose">VOLVER AL LOBBY</button></div></div><div class="v18ModePick" id="v18ModePick"><label for="v18Mode">MODO</label><select id="v18Mode"><option value="royale">SUPERVIVENCIA · 20 IA</option><option value="training">ENTRENAMIENTO · 8 IA</option></select></div>
@@ -4226,6 +4258,7 @@ function v372RefreshSettingsContext(){
  $('v372ExitGame').classList.toggle('hidden',!inLobby);
 }
 $('menuSettings').onclick=()=>{settingsFromMenu=true;v372RefreshSettingsContext();$('pausePanel').classList.remove('hidden')};
+$('v502CloudAccess').onclick=()=>{if(running)return;$('menuSettings').click();const tab=document.querySelector('[data-tab="account"]');if(tab)tab.click();};
 
 $('v372ExitGame').onclick=()=>{
  if(!window.confirm('¿Salir de THEDEMIANFF LAST ZONE? Se conservará el progreso guardado.'))return;
