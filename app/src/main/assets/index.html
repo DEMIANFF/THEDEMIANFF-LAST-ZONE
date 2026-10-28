@@ -772,13 +772,18 @@ window.thedemianffGoogleResult=function(state,detail){
    message.textContent='Acceso automático confirmado.';
    if(incoming){entry.style.display='flex';$('v504GoogleEntry').style.display='none';guest.style.display='none';info.textContent='Recuperando tu progreso de Google…';v504StartCloudRestore();}else entry.style.display='flex';
  }else if(state==='signed_out'){
+   if(v446GoogleEmail){try{const outgoing=localStorage.getItem(progressKey);if(outgoing)localStorage.setItem(v504AccountProgress(v446GoogleEmail),outgoing);}catch(e){console.warn('No se pudo cachear la cuenta saliente',e)}}
    v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v504CloudReady=false;v504Restoring=false;v446GoogleEmail='';v496LobbyCloudStatus('☁ Invitado · progreso solo en este dispositivo');$('v494AutoCloud').checked=false;
    guest.style.display='block';
    $('v443Google').style.display='block';
    $('v445SettingsLogout').disabled=true;
    $('v445AccountStatus').textContent='No hay una sesión de Google activa';
    entry.style.display='flex';
+   try{v504SetLocalProgress(v504Blank());localStorage.removeItem(v504AccountKey);}catch(e){console.warn('No se pudo aislar el perfil anterior',e)}
+   $('v504GoogleEntry').style.display=v445GoogleBridge?'block':'none';
+   guest.style.display=v445GoogleBridge?'none':'block';
    $('v443Google').textContent='INICIAR SESIÓN CON GOOGLE';
+   location.reload();
    info.textContent=guestId?'Invitado existente · puedes continuar con tu progreso local':'Elige cómo ingresar al juego.';
    message.textContent='Google no conectado. Puedes seguir jugando como invitado.';
  }else{
@@ -860,11 +865,12 @@ window.thedemianffCloudResult=(state,payload)=>{
    try{v495CloudSave(queued.json);}catch(e){v494CloudNotice('⚠ El guardado reciente no se pudo enviar: '+e.message);}
    return;
   }
-  v494AutoSyncPending=false;v494CloudNotice('☁ '+payload+' · Último progreso confirmado en Google: '+new Date(v495CloudLastConfirmed).toLocaleTimeString()+'.');return;
+  v494AutoSyncPending=false;v494CloudNotice('☁ '+payload+' · Último progreso confirmado en Google: '+new Date(v495CloudLastConfirmed).toLocaleTimeString()+'.');
+  if(v504CloudReady&&typeof v18Progress!=='undefined'&&JSON.stringify(v18Progress)!==localStorage.getItem(progressKey)){location.reload();}return;
  }
  if(state==='missing'||state==='error'){const wasRestoring=v504Restoring;v504Restoring=false;if(v498CloudLoadPending){v498CloudLoadPending=false;v498CloudLoadAccount='';}
   if(state==='missing'&&wasRestoring&&v446GoogleEmail){try{v504CloudReady=true;entry.style.display='none';localStorage.setItem(v504AccountProgress(v446GoogleEmail),localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v495CloudSave(localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v494CloudNotice('☁ Creando progreso nuevo en Google…');return;}catch(e){v504CloudReady=false;v494CloudNotice('⚠ No fue posible guardar: '+e.message);return;}}
-  if(wasRestoring){v504CloudReady=false;v494CloudNotice('⚠ Google sin conexión. No se sobrescribirá tu nube. Intenta nuevamente con Internet.');return;}v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending){v494AutoSyncPending=false;$('v494AutoCloud').checked=false;if(v446GoogleEmail)localStorage.removeItem(v494OptKey(v446GoogleEmail));}v494CloudNotice('⚠ '+payload);return;}
+  if(wasRestoring){v504CloudReady=false;entry.style.display='flex';$('v504GoogleEntry').style.display='block';$('v504GoogleEntry').textContent='REINTENTAR CON GOOGLE';$('v504GoogleEntry').onclick=()=>{if(v446GoogleEmail){$('v504GoogleEntry').style.display='none';v504StartCloudRestore();}else $('v443Google').click()};v494CloudNotice('⚠ Google sin conexión. No se sobrescribirá tu nube. Intenta nuevamente con Internet.');return;}v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending){v494AutoSyncPending=false;$('v494AutoCloud').checked=false;if(v446GoogleEmail)localStorage.removeItem(v494OptKey(v446GoogleEmail));}v494CloudNotice('⚠ '+payload);return;}
  if(state!=='loaded')return;
  if(!v498CloudLoadPending||!v498CloudLoadAccount||v498CloudLoadAccount!==v446GoogleEmail){v494CloudNotice('⚠ Recuperación ignorada: la cuenta Google cambió o no solicitaste una restauración.');return;}
  v498CloudLoadPending=false;v498CloudLoadAccount='';
