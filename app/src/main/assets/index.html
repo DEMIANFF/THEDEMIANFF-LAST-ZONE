@@ -1238,7 +1238,7 @@ function v404ResolveLanding(){
 }
 // Prevent close scenery from blocking the shoulder camera or filling the whole screen.
 function v404SafeCameraTarget(desired){
- const eye=new THREE.Vector3(player.position.x,player.position.y+1.65,player.position.z);
+ const eye=new THREE.Vector3(player.position.x,player.position.y+2.05,player.position.z);
  const dx=desired.x-eye.x,dz=desired.z-eye.z,dy=desired.y-eye.y;
  const length2=dx*dx+dz*dz;
  if(length2<.01)return desired;
@@ -4215,7 +4215,7 @@ const v432Camera={
  },
  orient(dx,dy){
   camYaw-=dx*.003;
-  camPitch=clamp(camPitch+dy*.00155*($('invertY').checked?-1:1),-.85,1.18);
+  camPitch=clamp(camPitch+dy*.00155*($('invertY').checked?-1:1),-.70,.90);
  },
  reset(){this.mode='FREE';this.blend=0;this.back=NaN;this.shoulder=NaN;this.height=NaN;this.anchorY=NaN;},
  update(dt){
@@ -4231,7 +4231,7 @@ const v432Camera={
   const tacticalBack=mobile?clamp(baseBack*1.18,3,12):baseBack;
   const back=tacticalBack*(1-b)+Math.max(2.45,baseBack*.80)*b;
   const shoulder=baseShoulder*(1-b)+baseShoulder*.58*b;
-  const height=(mobile?3.34:2.9)-(mobile?.48:.16)*b;
+  // V52.9: lift the over-shoulder camera without shortening its distance.\n  const height=(mobile?4.05:3.55)-(mobile?.72:.42)*b;
   if(!Number.isFinite(this.back)){
    this.back=back;this.shoulder=shoulder;this.height=height;this.anchorY=player.position.y;
   }
@@ -4248,7 +4248,7 @@ const v432Camera={
   );
   const safe=v404SafeCameraTarget(desired);
   camera.position.x=safe.x;camera.position.z=safe.z;
-  camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*12));
+  // Prevent a low-angle spawn frame; smooth vertical movement thereafter.\n  if(!Number.isFinite(camera.position.y)||Math.abs(camera.position.y-safe.y)>5)camera.position.y=safe.y;\n  else camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*15));
   const forward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
   camera.lookAt(camera.position.clone().addScaledVector(forward,100));
   const fov=(mobile?79:68)+(v434Optics.active().fov-(mobile?79:68))*b;
