@@ -89,6 +89,31 @@ public class MainActivity extends Activity {
     FirebaseUser current=firebaseAuth==null?null:firebaseAuth.getCurrentUser();
     return current!=null && current.getUid().equals(uid);
   }
+  // Provide actionable, non-sensitive failure categories. Never claim a remote backup
+  // succeeded unless Firestore has acknowledged the server write.
+  private String cloudFailureDetail(Exception e, boolean saving) {
+    String action=saving?"guardar":"recuperar";
+    if(e instanceof com.google.firebase.firestore.FirebaseFirestoreException) {
+      com.google.firebase.firestore.FirebaseFirestoreException.Code code=
+        ((com.google.firebase.firestore.FirebaseFirestoreException)e).getCode();
+      switch(code) {
+        case PERMISSION_DENIED:
+          return "Firebase rechazó el acceso al intentar "+action+
+            ". Revisa que Firestore esté creado y las reglas player_backups estén publicadas.";
+        case UNAUTHENTICATED:
+          return "La sesión de Firebase caducó. Vuelve a iniciar sesión con Google.";
+        case UNAVAILABLE:
+        case DEADLINE_EXCEEDED:
+          return "Firebase no está disponible. Conservamos el progreso local; comprueba Internet y reintenta.";
+        case RESOURCE_EXHAUSTED:
+          return "Firebase alcanzó un límite de servicio. Conservamos el progreso local; reintenta después.";
+        default:
+          return "Falló "+action+" en Firebase (código "+code.name()+
+            "). El progreso local no se ha borrado.";
+      }
+    }
+    return "No se pudo "+action+" en Firebase. Conserva el progreso local y comprueba la conexión.";
+  }
   public final class CloudBridge {
     @JavascriptInterface public void save(String json) {
       runOnUiThread(() -> {
@@ -137,7 +162,7 @@ public class MainActivity extends Activity {
               else cloudMessage("error","Cambió la cuenta Google durante el guardado. Verifica la cuenta y el respaldo.");
             }).addOnFailureListener(e->{
               if(cloudAccountUnchanged(requestUid))
-                cloudMessage("error","No se pudo guardar en Firebase. Comprueba conexión y reglas de Firestore.");
+                cloudMessage("error",cloudFailureDetail(e,true));
             });
         }catch(Exception e){cloudMessage("error","Progreso inválido: "+e.getMessage());}
       });
@@ -165,7 +190,7 @@ public class MainActivity extends Activity {
             cloudMessage("loaded",saved);
           }).addOnFailureListener(e->{
             if(cloudAccountUnchanged(requestUid))
-              cloudMessage("error","No se pudo recuperar el respaldo de Firebase. Revisa conexión y permisos.");
+              cloudMessage("error",cloudFailureDetail(e,false));
           });
       });
     }
