@@ -510,6 +510,43 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  #v434ScopeButton{display:none}
 }
 </style>
+<style id="v528LobbyReorganization">
+/* V52.8: clean, original battle-royale lobby hierarchy; preserves every action. */
+#menu .v17Top{top:max(8px,env(safe-area-inset-top))!important;left:1.6%!important;right:1.6%!important;align-items:center!important;z-index:42!important}
+#menu .v17Profile,#menu .v17Currencies{border:1px solid #7cd9e555!important;border-radius:13px!important;background:linear-gradient(120deg,#07121feF,#12283bdE)!important;box-shadow:0 8px 24px #0006!important}
+#menu .v17Left{top:24%!important;left:1.6%!important;width:clamp(110px,17vw,200px)!important}
+#menu .v17Nav{gap:8px!important;max-height:calc(100dvh - 200px)!important}
+#menu .v17Nav button{border-radius:11px!important;border:1px solid #79aebd60!important;background:linear-gradient(100deg,#091725ed,#183347dd)!important;box-shadow:inset 3px 0 #4bcbd87a!important}
+#menu .v17Nav button:active,#menu .v17Quick button:active{transform:scale(.97)}
+#menu .v17Brand{top:14%!important;right:2.2%!important;font-size:clamp(17px,3vw,38px)!important;text-align:right!important;max-width:36%!important;line-height:1.04!important;letter-spacing:1px!important}
+#menu .v17Brand small{line-height:1.4!important;letter-spacing:.4px!important}
+#menu .v17Friends{top:37%!important;right:1.6%!important;width:clamp(120px,17vw,200px)!important;gap:8px!important;padding:11px!important;border-radius:13px!important;background:#091a2bde!important;border-color:#71c6d35a!important;pointer-events:auto!important}
+#menu .v17Friends span{padding-top:5px!important}
+#menu .v17Bottom{bottom:max(9px,env(safe-area-inset-bottom))!important;gap:10px!important}
+#menu .v17Quick{max-width:62%!important;gap:5px!important}
+#menu .v17Quick button{border-radius:11px!important;background:#0a1b2fe8!important;border:1px solid #70b6c766!important}
+#menu .v17Launch{width:clamp(175px,27%,350px)!important}
+#menu .v17Launch #start{border-radius:12px!important;background:linear-gradient(110deg,#ffdc73,#f5a83c)!important;box-shadow:0 0 23px #ffa63552,0 8px 22px #0009!important}
+#menu .v24Hero{top:16%!important;height:62%!important;left:49%!important;max-width:38vw!important}
+@media(max-width:740px){
+ #menu .v17Brand{top:15%!important;right:2%!important;font-size:clamp(15px,3vw,22px)!important;max-width:36%!important}
+ #menu .v17Left{top:23%!important;width:clamp(102px,20vw,155px)!important}
+ #menu .v17Nav{gap:5px!important}
+ #menu .v17Nav button{min-height:36px!important;padding:7px 8px!important}
+ #menu .v17Quick{max-width:61%!important;gap:4px!important}
+ #menu .v17Quick button{min-height:39px!important;padding:7px 6px!important}
+ #menu .v17Friends{display:none!important}
+ #menu .v24Hero{top:18%!important;height:59%!important;max-width:37vw!important}
+}
+@media(max-height:440px){
+ #menu .v17Left{top:24%!important}
+ #menu .v17Nav{max-height:calc(100dvh - 130px)!important}
+ #menu .v17Nav button{min-height:31px!important;padding:5px 8px!important}
+ #menu .v17Brand{top:16%!important}
+ #menu .v17Quick button{min-height:35px!important}
+ #menu .v24Hero{top:17%!important;height:59%!important}
+}
+</style>
 </head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de eventos y misiones">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
