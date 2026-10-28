@@ -668,6 +668,7 @@ let v494AutoSyncPending=false;
 let v504CloudReady=false,v504Restoring=false;
 const v504AccountKey='thedemianff_v504_account';
 const v504AccountProgress=email=>'thedemianff_v504_progress_'+encodeURIComponent(email.toLowerCase());
+const v504PendingGuest=email=>'thedemianff_v504_guest_transfer_'+encodeURIComponent(email.toLowerCase());
 const v504Blank=()=>({credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,unlocked:[0],weapon:0,claimed:[]});
 function v504SetLocalProgress(data){const serialized=JSON.stringify(v443ValidateProgress(data));localStorage.setItem(progressKey,serialized);if(v443Native&&!v443Native.saveProgress(serialized))throw Error('No se pudo guardar el progreso del dispositivo.');}
 function v504StartCloudRestore(){if(!v494CloudBridge||!v446GoogleEmail)return;v504CloudReady=false;v504Restoring=true;v498CloudLoadPending=true;v498CloudLoadAccount=v446GoogleEmail;v496LobbyCloudStatus('☁ Recuperando automáticamente desde Google…');try{v494CloudBridge.load();}catch(e){v504Restoring=false;v498CloudLoadPending=false;v494CloudNotice('⚠ Sin conexión. No se sobrescribirá el respaldo: '+e.message);}}
@@ -758,6 +759,7 @@ window.thedemianffGoogleResult=function(state,detail){
  if(state==='signed_in'){const incoming=typeof detail==='string'?detail.slice(0,150):'';const previous=localStorage.getItem(v504AccountKey)||'';const sameAccount=incoming&&incoming===previous;if(sameAccount&&v446GoogleEmail===incoming&&(v504Restoring||v504CloudReady))return;v497ResetCloudQueue();v495CloudLastConfirmed=0;
    v446GoogleEmail=incoming;
    if(incoming&&previous&&previous!==incoming){try{const old=localStorage.getItem(progressKey);if(old)localStorage.setItem(v504AccountProgress(previous),old);}catch(e){console.warn('No se pudo archivar progreso anterior',e)}}
+   if(incoming&&!previous&&guestId){try{const guestProgress=localStorage.getItem(progressKey);if(guestProgress)localStorage.setItem(v504PendingGuest(incoming),JSON.stringify(v443ValidateProgress(JSON.parse(guestProgress))));}catch(e){console.warn('Perfil invitado no transferible',e)}}
    if(incoming&&!sameAccount){try{const own=localStorage.getItem(v504AccountProgress(incoming));v504SetLocalProgress(own?v443ValidateProgress(JSON.parse(own)):v504Blank());localStorage.setItem(v504AccountKey,incoming);}catch(e){v494CloudNotice('⚠ No se pudo aislar el perfil local: '+e.message);}}
    if(incoming&&sameAccount)localStorage.setItem(v504AccountKey,incoming);
    v496LobbyCloudStatus('☁ Google conectado · respaldo remoto sin verificar');
@@ -862,6 +864,7 @@ window.thedemianffCloudResult=(state,payload)=>{
  if(state==='saved'){
   if(!v495CloudSaveInFlight||v497CloudActiveAccount!==v446GoogleEmail){v496LobbyCloudStatus('☁ Cambió la sesión · comprueba el respaldo de Google');return;}
   v495CloudSaveInFlight=false;v495CloudLastConfirmed=Date.now();
+  if(v446GoogleEmail)localStorage.removeItem(v504PendingGuest(v446GoogleEmail));
   const queued=v497QueuedCloudSave;v497QueuedCloudSave=null;
   if(queued&&queued.account===v446GoogleEmail&&queued.json!==v497CloudSentSnapshot){
    v494CloudNotice('☁ Respaldo anterior confirmado · subiendo progreso más reciente…');
@@ -872,7 +875,7 @@ window.thedemianffCloudResult=(state,payload)=>{
   if(v504CloudReady&&typeof v18Progress!=='undefined'&&JSON.stringify(v18Progress)!==localStorage.getItem(progressKey)){location.reload();}return;
  }
  if(state==='missing'||state==='error'){const wasRestoring=v504Restoring;v504Restoring=false;if(v498CloudLoadPending){v498CloudLoadPending=false;v498CloudLoadAccount='';}
-  if(state==='missing'&&wasRestoring&&v446GoogleEmail){try{v504CloudReady=true;entry.style.display='none';localStorage.setItem(v504AccountProgress(v446GoogleEmail),localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v495CloudSave(localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v494CloudNotice('☁ Creando progreso nuevo en Google…');return;}catch(e){v504CloudReady=false;v494CloudNotice('⚠ No fue posible guardar: '+e.message);return;}}
+  if(state==='missing'&&wasRestoring&&v446GoogleEmail){try{const pending=localStorage.getItem(v504PendingGuest(v446GoogleEmail));if(pending)v504SetLocalProgress(v443ValidateProgress(JSON.parse(pending)));v504CloudReady=true;entry.style.display='none';localStorage.setItem(v504AccountProgress(v446GoogleEmail),localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v495CloudSave(localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v494CloudNotice('☁ Creando progreso nuevo en Google…');return;}catch(e){v504CloudReady=false;v494CloudNotice('⚠ No fue posible guardar: '+e.message);return;}}
   if(wasRestoring){v504CloudReady=false;entry.style.display='flex';$('v504GoogleEntry').style.display='block';$('v504GoogleEntry').textContent='REINTENTAR CON GOOGLE';v494CloudNotice('⚠ Google sin conexión. No se sobrescribirá tu nube. Intenta nuevamente con Internet.');return;}v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending){v494AutoSyncPending=false;$('v494AutoCloud').checked=false;if(v446GoogleEmail)localStorage.removeItem(v494OptKey(v446GoogleEmail));}v494CloudNotice('⚠ '+payload);return;}
  if(state!=='loaded')return;
  if(!v498CloudLoadPending||!v498CloudLoadAccount||v498CloudLoadAccount!==v446GoogleEmail){v494CloudNotice('⚠ Recuperación ignorada: la cuenta Google cambió o no solicitaste una restauración.');return;}
@@ -889,7 +892,7 @@ window.thedemianffCloudResult=(state,payload)=>{
   try{
    localStorage.setItem(progressKey,JSON.stringify(saved));
    if(v443Native&&!v443Native.saveProgress(JSON.stringify(saved)))throw Error('Android no confirmó el guardado local.');
-   if(v446GoogleEmail)localStorage.setItem(v504AccountProgress(v446GoogleEmail),JSON.stringify(saved));
+   if(v446GoogleEmail){localStorage.setItem(v504AccountProgress(v446GoogleEmail),JSON.stringify(saved));localStorage.removeItem(v504PendingGuest(v446GoogleEmail));}
    v504CloudReady=true;
    if(autoRestore){v495CloudLastConfirmed=Date.now();v496LobbyCloudStatus('☁ Progreso recuperado y confirmado en Google',true);}
   }catch(e){
