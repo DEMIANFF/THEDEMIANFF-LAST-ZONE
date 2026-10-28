@@ -83,12 +83,19 @@ public class MainActivity extends Activity {
         JSONObject.quote(state)+","+JSONObject.quote(detail)+")",null);
     });
   }
+  // A cloud response must never be attributed to a Google account that signed out
+  // or changed while Firestore was completing an asynchronous request.
+  private boolean cloudAccountUnchanged(String uid) {
+    FirebaseUser current=firebaseAuth==null?null:firebaseAuth.getCurrentUser();
+    return current!=null && current.getUid().equals(uid);
+  }
   public final class CloudBridge {
     @JavascriptInterface public void save(String json) {
       runOnUiThread(() -> {
         FirebaseUser user=firebaseAuth.getCurrentUser();
         if(user==null){cloudMessage("error","Inicia sesión con Google para guardar en la nube.");return;}
         if(json==null||json.length()<10||json.length()>100000){cloudMessage("error","El progreso supera el tamaño permitido.");return;}
+        final String requestUid=user.getUid();
         try {
           JSONObject p=new JSONObject(json);
           for(String key:new String[]{"credits","xp","matches","wins","kills","best","skin","weapon"}){
@@ -101,15 +108,37 @@ public class MainActivity extends Activity {
              !(p.opt("unlocked") instanceof org.json.JSONArray)||
              !(p.opt("claimed") instanceof org.json.JSONArray))
             throw new IllegalArgumentException("El perfil no es válido.");
-          if(p.optJSONArray("unlocked").length()>30||p.optJSONArray("claimed").length()>100)
-            throw new IllegalArgumentException("El perfil contiene demasiados elementos.");
+          if(p.optLong("best")>p.optLong("kills") ||
+             p.optJSONArray("unlocked").length()>30 || p.optJSONArray("claimed").length()>100)
+            throw new IllegalArgumentException("El perfil contiene estadísticas inconsistentes.");
+          org.json.JSONArray unlocked=p.optJSONArray("unlocked"),claimed=p.optJSONArray("claimed");
+          boolean baseUnlocked=false;
+          for(int i=0;i<unlocked.length();i++) {
+            Object v=unlocked.opt(i);
+            if(!(v instanceof Number)||((Number)v).doubleValue()!=((Number)v).longValue()||
+               ((Number)v).longValue()<0||((Number)v).longValue()>20)
+              throw new IllegalArgumentException("Operador desbloqueado inválido.");
+            if(((Number)v).longValue()==0)baseUnlocked=true;
+          }
+          if(!baseUnlocked)throw new IllegalArgumentException("Falta el operador inicial.");
+          for(int i=0;i<claimed.length();i++) {
+            Object v=claimed.opt(i);
+            if(!(v instanceof String)||((String)v).length()>100)
+              throw new IllegalArgumentException("Recompensa inválida.");
+          }
           Map<String,Object> data=new HashMap<>();
           data.put("format",1);
           data.put("progress",json);
           data.put("updatedAt",FieldValue.serverTimestamp());
-          FirebaseFirestore.getInstance().collection("player_backups").document(user.getUid())
-            .set(data).addOnSuccessListener(ignored->cloudMessage("saved","Respaldo guardado en Firebase para tu cuenta Google."))
-            .addOnFailureListener(e->cloudMessage("error","No se pudo guardar en Firebase. Comprueba conexión y reglas de Firestore."));
+          FirebaseFirestore.getInstance().collection("player_backups").document(requestUid)
+            .set(data).addOnSuccessListener(ignored->{
+              if(cloudAccountUnchanged(requestUid))
+                cloudMessage("saved","Respaldo guardado en Firebase para tu cuenta Google.");
+              else cloudMessage("error","Cambió la cuenta Google durante el guardado. Verifica la cuenta y el respaldo.");
+            }).addOnFailureListener(e->{
+              if(cloudAccountUnchanged(requestUid))
+                cloudMessage("error","No se pudo guardar en Firebase. Comprueba conexión y reglas de Firestore.");
+            });
         }catch(Exception e){cloudMessage("error","Progreso inválido: "+e.getMessage());}
       });
     }
@@ -117,14 +146,22 @@ public class MainActivity extends Activity {
       runOnUiThread(() -> {
         FirebaseUser user=firebaseAuth.getCurrentUser();
         if(user==null){cloudMessage("error","Primero inicia sesión con tu cuenta Google.");return;}
-        FirebaseFirestore.getInstance().collection("player_backups").document(user.getUid())
+        final String requestUid=user.getUid();
+        FirebaseFirestore.getInstance().collection("player_backups").document(requestUid)
           .get(com.google.firebase.firestore.Source.SERVER).addOnSuccessListener(doc->{
+            if(!cloudAccountUnchanged(requestUid)){
+              cloudMessage("error","Cambió la cuenta Google durante la recuperación. No se restauró nada.");return;
+            }
             String saved=doc.exists()?doc.getString("progress"):null;
-            if(saved==null||saved.length()<10||saved.length()>100000){
+            Long format=doc.exists()?doc.getLong("format"):null;
+            if(saved==null||saved.length()<10||saved.length()>100000||format==null||format!=1L){
               cloudMessage("missing","No hay un respaldo válido para esta cuenta Google.");return;
             }
             cloudMessage("loaded",saved);
-          }).addOnFailureListener(e->cloudMessage("error","No se pudo recuperar el respaldo de Firebase. Revisa conexión y permisos."));
+          }).addOnFailureListener(e->{
+            if(cloudAccountUnchanged(requestUid))
+              cloudMessage("error","No se pudo recuperar el respaldo de Firebase. Revisa conexión y permisos.");
+          });
       });
     }
   }
