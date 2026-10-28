@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 133
-        versionName '50.0-lobby-cloud-status'
+        versionCode 134
+        versionName '50.1-lobby-cloud-safety'
     }
     signingConfigs {
         persistentRelease {
