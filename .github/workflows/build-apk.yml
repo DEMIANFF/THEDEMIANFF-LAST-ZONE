@@ -614,6 +614,7 @@ jobs:
           from pathlib import Path
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
           assert 'versionCode 136' in gradle, 'V48.6 requiere versionCode 136'
           assert "versionName '50.3-cloud-account-safety'" in gradle, 'V48.6: versión Android incorrecta'
           # V50.2 cinematic Aurora lobby and direct Google backup navigation.
