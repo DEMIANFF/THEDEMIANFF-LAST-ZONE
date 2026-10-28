@@ -906,7 +906,11 @@ window.thedemianffCloudResult=(state,payload)=>{
    const pendingKey=v508DirtyKey(v446GoogleEmail);
    if(localStorage.getItem(pendingKey)===v497CloudSentSnapshot)localStorage.removeItem(pendingKey);
   }
-  v494AutoSyncPending=false;v494CloudNotice('☁ '+payload+' · Último progreso confirmado en Google: '+new Date(v495CloudLastConfirmed).toLocaleTimeString()+'.');
+  v494AutoSyncPending=false;
+  if(v446GoogleEmail&&localStorage.getItem(v508DirtyKey(v446GoogleEmail))){
+   v494CloudNotice('☁ Respaldo anterior confirmado; aún hay progreso reciente pendiente.');
+   v507RetryPendingCloud();
+  }else v494CloudNotice('☁ '+payload+' · Último progreso confirmado en Google: '+new Date(v495CloudLastConfirmed).toLocaleTimeString()+'.');
   if(v504CloudReady&&typeof v18Progress!=='undefined'&&JSON.stringify(v18Progress)!==localStorage.getItem(progressKey)){location.reload();}return;
  }
  if(state==='missing'||state==='error'){if(state==='error'&&v504NewProfilePending){v504NewProfilePending=false;v504CloudReady=false;entry.style.display='flex';$('v504GoogleEntry').style.display='block';$('v504GoogleEntry').textContent='REINTENTAR';}const wasRestoring=v504Restoring;v504Restoring=false;if(v498CloudLoadPending){v498CloudLoadPending=false;v498CloudLoadAccount='';}
