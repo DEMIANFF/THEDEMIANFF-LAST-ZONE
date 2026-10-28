@@ -4240,7 +4240,8 @@ const v432Camera={
   const tacticalBack=mobile?clamp(baseBack*1.18,3,12):baseBack;
   const back=tacticalBack*(1-b)+Math.max(2.45,baseBack*.80)*b;
   const shoulder=baseShoulder*(1-b)+baseShoulder*.58*b;
-  // V52.9: lift the over-shoulder camera without shortening its distance.\n  const height=(mobile?4.05:3.55)-(mobile?.72:.42)*b;
+  // V52.9: lift the over-shoulder camera without shortening its distance.
+  const height=(mobile?4.05:3.55)-(mobile?.72:.42)*b;
   if(!Number.isFinite(this.back)){
    this.back=back;this.shoulder=shoulder;this.height=height;this.anchorY=player.position.y;
   }
@@ -4256,7 +4257,17 @@ const v432Camera={
    player.position.z-Math.sin(camYaw)*this.shoulder-Math.cos(camYaw)*this.back
   );
   const safe=v404SafeCameraTarget(desired);
-  camera.position.x=safe.x;camera.position.z=safe.z;
+  // V53.1: damp small horizontal follow jitter while keeping collision
+  // responses immediate to prevent the view entering scenery.
+  const obstructed=Math.abs(safe.x-desired.x)+Math.abs(safe.z-desired.z)>.02;
+  const followXZ=1-Math.exp(-t*20);
+  if(obstructed||!Number.isFinite(camera.position.x)||!Number.isFinite(camera.position.z)||
+     Math.hypot(camera.position.x-safe.x,camera.position.z-safe.z)>8){
+   camera.position.x=safe.x;camera.position.z=safe.z;
+  }else{
+   camera.position.x+=(safe.x-camera.position.x)*followXZ;
+   camera.position.z+=(safe.z-camera.position.z)*followXZ;
+  }
   // Prevent a low-angle spawn frame; smooth vertical movement thereafter.\n  if(!Number.isFinite(camera.position.y)||Math.abs(camera.position.y-safe.y)>5)camera.position.y=safe.y;\n  else camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*15));
   const forward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
   camera.lookAt(camera.position.clone().addScaledVector(forward,100));
