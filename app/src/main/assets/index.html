@@ -546,6 +546,12 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <button id="v443Restore" type="button" style="display:none;width:100%;margin-top:8px;padding:11px;border:1px solid #4b708b;border-radius:8px;background:#152b41;color:#e6f2fa">RECUPERAR PERFIL DESDE ARCHIVO</button><input id="v443RestoreFile" type="file" accept=".json,application/json" style="display:none">
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">Configura Google y la recuperación en Ajustes → Cuenta. Confirma el respaldo antes de reinstalar.</small></div></div>
+<style id="v504SimpleAccount">
+/* Minimal player account screen: advanced recovery remains wired but is not part of normal flow. */
+.settingsSection[data-section="account"] > :not(h3:first-child):not(p:nth-child(2)):not(#v445AccountStatus):not(#v494CloudStatus):not(#v445SettingsLogout){display:none!important}
+#v502CloudAccess,#v502BackupHint{display:none!important}
+#v443Entry #v443Backup,#v443Entry #v443Restore{display:none!important}
+</style>
 <style id="v501LobbyPolish">
 /* V50.1: visible lobby hierarchy without altering the gameplay camera. */
 #menu .v17Brand{letter-spacing:.065em;text-shadow:0 3px 18px #000c,0 0 28px #4c9bca55}
@@ -648,7 +654,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 <label>Distancia al borde <input id="edgeSpacing" type="range" min="5" max="65" step="1" value="20"></label>
 <button type="button" class="primary" id="editHud" style="width:100%;margin:8px 0">✥ EDITAR POSICIÓN DE BOTONES</button><p class="muted">Arrastra cada botón por separado, modifica su tamaño y guarda el diseño. Se conservará en este navegador.</p><p class="muted">Los cambios se aplican en vivo y quedan guardados en este navegador.</p>
 </div>
-<div class="settingsSection" data-section="account"><h3>CUENTA Y PERFIL</h3><button id="v443Google" type="button" style="display:block;width:100%;margin-top:10px;padding:12px;border:1px solid #8298ad;border-radius:8px;background:#e9edf4;color:#1b2935;font-weight:800">INICIAR SESIÓN CON GOOGLE</button><p class="muted">Conecta Google aquí. Antes de reinstalar, verifica que el respaldo remoto esté confirmado.</p><p id="v445AccountStatus" class="muted" aria-live="polite">Verificando sesión…</p><p id="v446LocalIdentity" class="muted">Perfil local del dispositivo</p><p id="v446LocalProgress" class="muted">Cargando estadísticas guardadas…</p><button type="button" id="v447RefreshProgress" class="secondary" style="width:100%;min-height:48px">↻ ACTUALIZAR ESTADÍSTICAS</button><h3>RESPALDO MANUAL DEL PROGRESO LOCAL</h3><p class="muted">Guarda una copia JSON fuera del juego. Es un respaldo local manual, no sincronización en la nube. Restaurar puede reemplazar el progreso actual.</p><button type="button" id="v447ExportProgress" class="secondary" style="width:100%;min-height:48px">⬇ GUARDAR COPIA DEL PROGRESO</button><button type="button" id="v447ImportProgress" class="secondary" style="width:100%;min-height:48px">⬆ RESTAURAR COPIA DEL PROGRESO</button><p id="v447BackupStatus" class="muted" role="status" aria-live="polite">Sin operaciones de respaldo recientes.</p><h3 style="margin:15px 0 5px">RESPALDO GOOGLE · FIREBASE</h3><p class="muted">Requiere iniciar sesión con Google y conexión a Internet. Antes de desinstalar, verifica que el guardado indique éxito. La restauración requiere confirmación.</p><button type="button" id="v494CloudSave" class="secondary" style="width:100%;min-height:48px">☁ GUARDAR PROGRESO EN GOOGLE</button><button type="button" id="v494CloudLoad" class="secondary" style="width:100%;min-height:48px;margin-top:7px">↙ RECUPERAR PROGRESO DE GOOGLE</button><label style="display:flex;gap:10px;align-items:center;margin-top:9px;font-size:12px"><input id="v494AutoCloud" type="checkbox"> Sincronizar automáticamente mis próximas partidas y compras con esta cuenta Google</label><p id="v494CloudStatus" class="muted" role="status" aria-live="polite">Sin sincronización confirmada en esta sesión.</p><button type="button" id="v446AccountRefresh" class="secondary" style="width:100%;min-height:48px">↻ VERIFICAR CUENTA</button><button type="button" id="v445SettingsLogout" class="secondary" style="width:100%;min-height:48px" disabled>CERRAR SESIÓN DE GOOGLE</button><p class="muted">Los perfiles invitados permanecen locales salvo que exportes su respaldo. El progreso de Google solo queda en la nube después de confirmar un guardado exitoso; compruébalo antes de desinstalar.</p></div><div class="actions"><button class="secondary" id="defaults">RESTAURAR</button><button class="primary" id="resume">GUARDAR Y VOLVER ▶</button><button class="secondary" id="leaveMatch" type="button">⌂ SALIR AL LOBBY</button><button id="v372ExitGame" type="button">⏻ SALIR DEL JUEGO</button></div>
+<div class="settingsSection" data-section="account"><h3>CUENTA GOOGLE</h3><p class="muted">Tu progreso se sincroniza automáticamente al iniciar sesión con Google cuando existe conexión.</p><button id="v443Google" type="button" style="display:block;width:100%;margin-top:10px;padding:12px;border:1px solid #8298ad;border-radius:8px;background:#e9edf4;color:#1b2935;font-weight:800">INICIAR SESIÓN CON GOOGLE</button><p class="muted">Conecta Google aquí. Antes de reinstalar, verifica que el respaldo remoto esté confirmado.</p><p id="v445AccountStatus" class="muted" aria-live="polite">Verificando sesión…</p><p id="v446LocalIdentity" class="muted">Perfil local del dispositivo</p><p id="v446LocalProgress" class="muted">Cargando estadísticas guardadas…</p><button type="button" id="v447RefreshProgress" class="secondary" style="width:100%;min-height:48px">↻ ACTUALIZAR ESTADÍSTICAS</button><h3>RESPALDO MANUAL DEL PROGRESO LOCAL</h3><p class="muted">Guarda una copia JSON fuera del juego. Es un respaldo local manual, no sincronización en la nube. Restaurar puede reemplazar el progreso actual.</p><button type="button" id="v447ExportProgress" class="secondary" style="width:100%;min-height:48px">⬇ GUARDAR COPIA DEL PROGRESO</button><button type="button" id="v447ImportProgress" class="secondary" style="width:100%;min-height:48px">⬆ RESTAURAR COPIA DEL PROGRESO</button><p id="v447BackupStatus" class="muted" role="status" aria-live="polite">Sin operaciones de respaldo recientes.</p><h3 style="margin:15px 0 5px">RESPALDO GOOGLE · FIREBASE</h3><p class="muted">Requiere iniciar sesión con Google y conexión a Internet. Antes de desinstalar, verifica que el guardado indique éxito. La restauración requiere confirmación.</p><button type="button" id="v494CloudSave" class="secondary" style="width:100%;min-height:48px">☁ GUARDAR PROGRESO EN GOOGLE</button><button type="button" id="v494CloudLoad" class="secondary" style="width:100%;min-height:48px;margin-top:7px">↙ RECUPERAR PROGRESO DE GOOGLE</button><label style="display:flex;gap:10px;align-items:center;margin-top:9px;font-size:12px"><input id="v494AutoCloud" type="checkbox"> Sincronizar automáticamente mis próximas partidas y compras con esta cuenta Google</label><p id="v494CloudStatus" class="muted" role="status" aria-live="polite">Sin sincronización confirmada en esta sesión.</p><button type="button" id="v446AccountRefresh" class="secondary" style="width:100%;min-height:48px">↻ VERIFICAR CUENTA</button><button type="button" id="v445SettingsLogout" class="secondary" style="width:100%;min-height:48px" disabled>CERRAR SESIÓN DE GOOGLE</button><p class="muted">Los perfiles invitados permanecen locales salvo que exportes su respaldo. El progreso de Google solo queda en la nube después de confirmar un guardado exitoso; compruébalo antes de desinstalar.</p></div><div class="actions"><button class="secondary" id="defaults">RESTAURAR</button><button class="primary" id="resume">GUARDAR Y VOLVER ▶</button><button class="secondary" id="leaveMatch" type="button">⌂ SALIR AL LOBBY</button><button id="v372ExitGame" type="button">⏻ SALIR DEL JUEGO</button></div>
 </div></div>
 <script src="three.min.js"></script><script src="GLTFLoader.js"></script><script>
 (()=>{'use strict';const $=id=>document.getElementById(id);
@@ -657,12 +663,19 @@ const v445GoogleBridge=!!window.THEDEMIANFFGoogle;
 const v494CloudBridge=window.THEDEMIANFFCloud||null;
 const v494OptKey=email=>'thedemianff_cloud_auto_'+email.toLowerCase();
 let v494AutoSyncPending=false;
+let v504CloudReady=false,v504Restoring=false;
+const v504AccountKey='thedemianff_v504_account';
+const v504AccountProgress=email=>'thedemianff_v504_progress_'+encodeURIComponent(email.toLowerCase());
+const v504Blank=()=>({credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,unlocked:[0],weapon:0,claimed:[]});
+function v504SetLocalProgress(data){const serialized=JSON.stringify(v443ValidateProgress(data));localStorage.setItem(progressKey,serialized);if(v443Native&&!v443Native.saveProgress(serialized))throw Error('No se pudo guardar el progreso del dispositivo.');}
+function v504StartCloudRestore(){if(!v494CloudBridge||!v446GoogleEmail)return;v504CloudReady=false;v504Restoring=true;v498CloudLoadPending=true;v498CloudLoadAccount=v446GoogleEmail;v496LobbyCloudStatus('☁ Recuperando automáticamente desde Google…');try{v494CloudBridge.load();}catch(e){v504Restoring=false;v498CloudLoadPending=false;v494CloudNotice('⚠ Sin conexión. No se sobrescribirá el respaldo: '+e.message);}}
+
 let v495CloudSaveInFlight=false,v495CloudLastConfirmed=0;
 let v497QueuedCloudSave=null,v497CloudSentSnapshot=null,v497CloudActiveAccount='';
 // V49.8: bind cloud restore requests to the Google identity that initiated them.
 let v498CloudLoadAccount='',v498CloudLoadPending=false;
 function v495CloudSave(json){
- if(!v494CloudBridge||!v446GoogleEmail)throw Error('Conecta tu cuenta Google antes de guardar.');
+ if(!v494CloudBridge||!v446GoogleEmail||!v504CloudReady)throw Error('Espera a que se recupere el perfil de Google antes de sincronizar.');
  if(v498CloudLoadPending)throw Error('Espera a que termine la recuperación antes de guardar.');
  const valid=JSON.stringify(v443ValidateProgress(JSON.parse(json)));
  if(v495CloudSaveInFlight){
@@ -740,21 +753,25 @@ window.thedemianffGoogleResult=function(state,detail){
  v446AuthResolved=true;
  if(state==='signed_out'||state==='error'||state==='cancelled')v497ResetCloudQueue();
  $('v443Google').disabled=false;
- if(state==='signed_in'){v497ResetCloudQueue();v495CloudLastConfirmed=0;
-   v446GoogleEmail=typeof detail==='string'?detail.slice(0,150):'';
+ if(state==='signed_in'){const incoming=typeof detail==='string'?detail.slice(0,150):'';const previous=localStorage.getItem(v504AccountKey)||'';const sameAccount=incoming&&incoming===previous;v497ResetCloudQueue();v495CloudLastConfirmed=0;
+   v446GoogleEmail=incoming;
+   if(incoming&&previous&&previous!==incoming){try{const old=localStorage.getItem(progressKey);if(old)localStorage.setItem(v504AccountProgress(previous),old);}catch(e){console.warn('No se pudo archivar progreso anterior',e)}}
+   if(incoming&&!sameAccount){try{const own=localStorage.getItem(v504AccountProgress(incoming));v504SetLocalProgress(own?v443ValidateProgress(JSON.parse(own)):v504Blank());localStorage.setItem(v504AccountKey,incoming);}catch(e){v494CloudNotice('⚠ No se pudo aislar el perfil local: '+e.message);}}
+   if(incoming&&sameAccount)localStorage.setItem(v504AccountKey,incoming);
    v496LobbyCloudStatus('☁ Google conectado · respaldo remoto sin verificar');
-   $('v494AutoCloud').checked=!!(v446GoogleEmail&&localStorage.getItem(v494OptKey(v446GoogleEmail))==='yes');
+   $('v494AutoCloud').checked=true;
    // Google becomes the visible login identity; do NOT delete the guest backup.
    guest.style.display='none';
    $('v443Google').style.display='none';
    $('v445SettingsLogout').disabled=false;
-   $('v445AccountStatus').textContent='Google conectado'+(detail?' · '+detail:'')+' · usa GUARDAR EN GOOGLE para crear el respaldo remoto';
+   $('v445AccountStatus').textContent='Google: '+incoming+' · guardado automático';
    $('v443Google').textContent='GOOGLE CONECTADO';
    $('v443AccountInfo').textContent='Sesión Google verificada';
    message.textContent='Acceso automático confirmado.';
    entry.style.display='none';
+   if(incoming)v504StartCloudRestore();
  }else if(state==='signed_out'){
-   v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v446GoogleEmail='';v496LobbyCloudStatus('☁ Invitado · progreso solo en este dispositivo');$('v494AutoCloud').checked=false;
+   v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v504CloudReady=false;v504Restoring=false;v446GoogleEmail='';v496LobbyCloudStatus('☁ Invitado · progreso solo en este dispositivo');$('v494AutoCloud').checked=false;
    guest.style.display='block';
    $('v443Google').style.display='block';
    $('v445SettingsLogout').disabled=true;
@@ -3509,8 +3526,9 @@ function v18Save(){
  try{
   const snapshot=JSON.stringify(v18Progress);
   localStorage.setItem(V18_STORAGE,snapshot);
+  if(v446GoogleEmail&&v504CloudReady)localStorage.setItem(v504AccountProgress(v446GoogleEmail),snapshot);
   if(v443Native&&!v443Native.saveProgress(snapshot))console.warn('[V44.3.2] No se pudo actualizar respaldo nativo');
-  if(v494CloudBridge&&v446GoogleEmail&&localStorage.getItem(v494OptKey(v446GoogleEmail))==='yes'){
+  if(v494CloudBridge&&v446GoogleEmail&&v504CloudReady){
    try{v495CloudSave(JSON.stringify(v443ValidateProgress(v18Progress)));}catch(e){console.warn('[V49.4] Sincronización pendiente',e)}
   }
  }catch(e){console.warn('[V44.3.2] Error de guardado automático',e)}
