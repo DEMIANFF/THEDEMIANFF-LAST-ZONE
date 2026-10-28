@@ -585,6 +585,28 @@ jobs:
           assert "v504StartCloudRestore();" in google and "entry.style.display='flex';" in google and "$('v504GoogleEntry').style.display='none';" in google, 'V50.4: Google debe iniciar recuperación protegida antes de mostrar lobby'
           print('V44.5 login, guest backup integrity and clean lobby checks OK')
           PY
+      - name: V51.0 verificar respaldo pendiente y protección contra conflictos
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          for token in (
+              'const v508DirtyKey=email=>',
+              'const v510ConflictKey=email=>',
+              'localStorage.setItem(v508DirtyKey(v446GoogleEmail),valid);',
+              'if(localStorage.getItem(pendingKey)===v497CloudSentSnapshot)',
+              'window.addEventListener(\'online\',v507RetryPendingCloud)',
+              "if(autoRestore&&v446GoogleEmail){",
+              "localStorage.setItem(v510ConflictKey(v446GoogleEmail),dirtyRaw)",
+              'v504StartCloudRestore();',
+          ):
+              assert token in h, 'V51.0 falta protección de progreso: '+token
+          for control in ('v447ExportProgress','v447ImportProgress',
+                          'v494CloudSave','v494CloudLoad'):
+              assert 'id="'+control+'" hidden' in h, 'V51.0 respaldo manual visible: '+control
+          assert "if(incoming)localStorage.setItem(v494OptKey(incoming),'yes');" in h
+          print('V51.0 cloud progress safeguards passed')
+          PY
       - name: V44.3.2 verificar autoguardado de invitado en Android
         run: |
           python3 - <<'PY'
