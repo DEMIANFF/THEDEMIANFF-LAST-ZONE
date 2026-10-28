@@ -722,6 +722,10 @@ function v507RetryPendingCloud(){
 }
 window.addEventListener('online',v507RetryPendingCloud);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)v507RetryPendingCloud();});
+// V52.6: periodically retry an already-persisted Google snapshot when an
+// Android network request fails without firing a browser 'online' event.
+// v507RetryPendingCloud validates identity, cloud readiness and connectivity.
+setInterval(()=>{if(!document.hidden)v507RetryPendingCloud();},30000);
 function v497ResetCloudQueue(){
  v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;v497CloudActiveAccount='';
  v498CloudLoadAccount='';v498CloudLoadPending=false;
