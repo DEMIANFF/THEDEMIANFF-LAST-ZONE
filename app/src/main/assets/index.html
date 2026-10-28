@@ -772,6 +772,7 @@ window.thedemianffGoogleResult=function(state,detail){
    message.textContent='Acceso automático confirmado.';
    if(incoming){entry.style.display='flex';$('v504GoogleEntry').style.display='none';guest.style.display='none';info.textContent='Recuperando tu progreso de Google…';v504StartCloudRestore();}else entry.style.display='flex';
  }else if(state==='signed_out'){
+   const v504WasGoogle=!!(v446GoogleEmail||localStorage.getItem(v504AccountKey));
    if(v446GoogleEmail){try{const outgoing=localStorage.getItem(progressKey);if(outgoing)localStorage.setItem(v504AccountProgress(v446GoogleEmail),outgoing);}catch(e){console.warn('No se pudo cachear la cuenta saliente',e)}}
    v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v504CloudReady=false;v504Restoring=false;v446GoogleEmail='';v496LobbyCloudStatus('☁ Invitado · progreso solo en este dispositivo');$('v494AutoCloud').checked=false;
    guest.style.display='block';
@@ -779,16 +780,17 @@ window.thedemianffGoogleResult=function(state,detail){
    $('v445SettingsLogout').disabled=true;
    $('v445AccountStatus').textContent='No hay una sesión de Google activa';
    entry.style.display='flex';
-   try{v504SetLocalProgress(v504Blank());localStorage.removeItem(v504AccountKey);}catch(e){console.warn('No se pudo aislar el perfil anterior',e)}
+   if(v504WasGoogle)try{v504SetLocalProgress(v504Blank());localStorage.removeItem(v504AccountKey);}catch(e){console.warn('No se pudo aislar el perfil anterior',e)}
    $('v504GoogleEntry').style.display=v445GoogleBridge?'block':'none';
    guest.style.display=v445GoogleBridge?'none':'block';
    $('v443Google').textContent='INICIAR SESIÓN CON GOOGLE';
-   location.reload();
+   if(v504WasGoogle){location.reload();return;}
    info.textContent=guestId?'Invitado existente · puedes continuar con tu progreso local':'Elige cómo ingresar al juego.';
    message.textContent='Google no conectado. Puedes seguir jugando como invitado.';
  }else{
    v446GoogleEmail='';v496LobbyCloudStatus('☁ Google no verificado · progreso local');
-   guest.style.display='block';
+   guest.style.display=v445GoogleBridge?'none':'block';
+   $('v504GoogleEntry').style.display=v445GoogleBridge?'block':'none';
    $('v443Google').style.display='block';
    $('v445SettingsLogout').disabled=true;
    $('v445AccountStatus').textContent='No se pudo verificar la sesión de Google';
