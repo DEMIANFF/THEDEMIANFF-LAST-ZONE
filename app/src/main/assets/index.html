@@ -4210,8 +4210,17 @@ const v432Camera={
   const f=mode==='fire'?fire:1;
   // Sin inercia: el dedo dirige exactamente el cambio medido.
   // V43.5 RAPID SWIPE DELTAS: conservar movimiento legítimo; descartar solo valores no finitos.
-  const clean=n=>Number.isFinite(n)&&Math.abs(n)>=.08?n:0;
-  return {x:clean(dx)*general*m*f*speed,y:clean(dy)*general*m*f*speed*vertical};
+  // V53.0 precision: retain tiny real finger movements (no sticky dead zone).
+  // Fine ADS adjustments receive a continuous, bounded sensitivity curve;
+  // fast swipes retain their original travel, with no trailing inertia.
+  const clean=n=>Number.isFinite(n)?Math.max(-120,Math.min(120,n)):0;
+  const fine=n=>{
+   const a=Math.abs(n);
+   if(this.mode!=='ADS'||a>=8)return n;
+   const ratio=.70+.30*(a/8);
+   return n*ratio;
+  };
+  return {x:fine(clean(dx))*general*m*f*speed,y:fine(clean(dy))*general*m*f*speed*vertical};
  },
  orient(dx,dy){
   camYaw-=dx*.003;
