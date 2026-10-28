@@ -235,11 +235,17 @@ public class MainActivity extends Activity {
            !(parsed.opt("claimed") instanceof org.json.JSONArray))return false;
         org.json.JSONArray unlocked=parsed.optJSONArray("unlocked"),claimed=parsed.optJSONArray("claimed");
         if(unlocked.length()>30||claimed.length()>100)return false;
+        boolean hasBase=false,hasSelected=false;
+        int selected=parsed.optInt("skin",-1);
         for(int i=0;i<unlocked.length();i++) {
           Object value=unlocked.opt(i);
           if(!(value instanceof Number)||((Number)value).doubleValue()!=((Number)value).longValue())return false;
           if(((Number)value).longValue()<0||((Number)value).longValue()>20)return false;
+          if(((Number)value).intValue()==0)hasBase=true;
+          if(((Number)value).intValue()==selected)hasSelected=true;
         }
+        // Keep the native emergency slot consistent with the JavaScript validator.
+        if(!hasBase||!hasSelected||parsed.optLong("best")>parsed.optLong("kills"))return false;
         for(int i=0;i<claimed.length();i++) {
           String item=claimed.optString(i,null);
           if(!(claimed.opt(i) instanceof String)||item==null||item.length()>100)return false;
