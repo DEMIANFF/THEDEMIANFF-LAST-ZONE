@@ -764,6 +764,9 @@ window.thedemianffGoogleResult=function(state,detail){
    if(incoming&&sameAccount)localStorage.setItem(v504AccountKey,incoming);
    v496LobbyCloudStatus('☁ Google conectado · respaldo remoto sin verificar');
    $('v494AutoCloud').checked=true;
+   // V50.6: auto-sync is enabled for authenticated accounts without a manual toggle.
+   // Cloud restore must complete first; never upload an unverified local snapshot.
+   if(incoming)localStorage.setItem(v494OptKey(incoming),'yes');
    // Google becomes the visible login identity; do NOT delete the guest backup.
    guest.style.display='none';
    $('v443Google').style.display='none';
@@ -877,7 +880,10 @@ window.thedemianffCloudResult=(state,payload)=>{
  }
  if(state==='missing'||state==='error'){if(state==='error'&&v504NewProfilePending){v504NewProfilePending=false;v504CloudReady=false;entry.style.display='flex';$('v504GoogleEntry').style.display='block';$('v504GoogleEntry').textContent='REINTENTAR';}const wasRestoring=v504Restoring;v504Restoring=false;if(v498CloudLoadPending){v498CloudLoadPending=false;v498CloudLoadAccount='';}
   if(state==='missing'&&wasRestoring&&v446GoogleEmail){try{const pending=localStorage.getItem(v504PendingGuest(v446GoogleEmail));if(pending)v504SetLocalProgress(v443ValidateProgress(JSON.parse(pending)));v504CloudReady=true;v504NewProfilePending=true;entry.style.display='flex';info.textContent='Creando tu progreso de Google…';localStorage.setItem(v504AccountProgress(v446GoogleEmail),localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v495CloudSave(localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v494CloudNotice('☁ Creando progreso nuevo en Google…');return;}catch(e){v504CloudReady=false;v494CloudNotice('⚠ No fue posible guardar: '+e.message);return;}}
-  if(wasRestoring){v504CloudReady=false;entry.style.display='flex';$('v504GoogleEntry').style.display='block';$('v504GoogleEntry').textContent='REINTENTAR CON GOOGLE';v494CloudNotice('⚠ Google sin conexión. No se sobrescribirá tu nube. Intenta nuevamente con Internet.');return;}v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending){v494AutoSyncPending=false;$('v494AutoCloud').checked=false;if(v446GoogleEmail)localStorage.removeItem(v494OptKey(v446GoogleEmail));}v494CloudNotice('⚠ '+payload);return;}
+  if(wasRestoring){v504CloudReady=false;entry.style.display='flex';$('v504GoogleEntry').style.display='block';$('v504GoogleEntry').textContent='REINTENTAR CON GOOGLE';v494CloudNotice('⚠ Google sin conexión. No se sobrescribirá tu nube. Intenta nuevamente con Internet.');return;}v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending)v494AutoSyncPending=false;
+  // Preserve the user's auto-sync preference after transient server/network errors.
+  // The latest on-device progress remains available for a later safe retry.
+  v494CloudNotice('⚠ '+payload+' · Guardado automático pendiente; progreso local conservado.');return;}
  if(state!=='loaded')return;
  if(!v498CloudLoadPending||!v498CloudLoadAccount||v498CloudLoadAccount!==v446GoogleEmail){v494CloudNotice('⚠ Recuperación ignorada: la cuenta Google cambió o no solicitaste una restauración.');return;}
  v498CloudLoadPending=false;v498CloudLoadAccount='';
