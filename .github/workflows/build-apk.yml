@@ -620,7 +620,10 @@ jobs:
           assert "if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(serialized))" in h
           assert "if(v443Native&&!v443Native.saveProgress(JSON.stringify(saved)))" not in h
           assert "if(oldNative)v443Native.saveProgress(oldNative)" not in h
-          print('V52.0 native guest isolation checks OK')
+          java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text(encoding='utf-8')
+          assert 'if(!hasBase||!hasSelected||parsed.optLong("best")>parsed.optLong("kills"))return false;' in java
+          assert 'if(!selectedUnlocked)throw new IllegalArgumentException("Operador seleccionado no desbloqueado.");' in java
+          print('V52.2 native guest isolation and cloud validation checks OK')
           PY
       - name: V44.3.2 verificar autoguardado de invitado en Android
         run: |
