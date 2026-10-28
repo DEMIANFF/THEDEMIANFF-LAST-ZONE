@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 136
-        versionName '50.3-cloud-account-safety'
+        versionCode 137
+        versionName '50.4-google-auto-sync'
     }
     signingConfigs {
         persistentRelease {
