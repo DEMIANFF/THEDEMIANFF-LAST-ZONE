@@ -920,7 +920,7 @@ window.thedemianffCloudResult=(state,payload)=>{
  }
  if(state==='missing'||state==='error'){if(state==='error'&&v504NewProfilePending){v504NewProfilePending=false;v504CloudReady=false;entry.style.display='flex';$('v504GoogleEntry').style.display='block';$('v504GoogleEntry').textContent='REINTENTAR';}const wasRestoring=v504Restoring;v504Restoring=false;if(v498CloudLoadPending){v498CloudLoadPending=false;v498CloudLoadAccount='';}
   if(state==='missing'&&wasRestoring&&v446GoogleEmail){try{const pending=localStorage.getItem(v504PendingGuest(v446GoogleEmail));if(pending)v504SetLocalProgress(v443ValidateProgress(JSON.parse(pending)));v504CloudReady=true;v504NewProfilePending=true;entry.style.display='flex';info.textContent='Creando tu progreso de Google…';localStorage.setItem(v504AccountProgress(v446GoogleEmail),localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v495CloudSave(localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v494CloudNotice('☁ Creando progreso nuevo en Google…');return;}catch(e){v504CloudReady=false;v494CloudNotice('⚠ No fue posible guardar: '+e.message);return;}}
-  if(wasRestoring){v504CloudReady=false;entry.style.display='flex';$('v504GoogleEntry').style.display='block';$('v504GoogleEntry').textContent='REINTENTAR CON GOOGLE';v494CloudNotice('⚠ Google sin conexión. No se sobrescribirá tu nube. Intenta nuevamente con Internet.');return;}v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending)v494AutoSyncPending=false;
+  if(wasRestoring){v504CloudReady=false;entry.style.display='flex';$('v504GoogleEntry').style.display='block';$('v504GoogleEntry').textContent='REINTENTAR CON GOOGLE';v494CloudNotice('⚠ No se recuperó el respaldo remoto: '+(payload||'Comprueba conexión y permisos.')+' No se sobrescribirá tu progreso.');return;}v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending)v494AutoSyncPending=false;
   // Preserve the user's auto-sync preference after transient server/network errors.
   // The latest on-device progress remains available for a later safe retry.
   v494CloudNotice('⚠ '+payload+' · Guardado automático pendiente; progreso local conservado.');return;}
@@ -938,6 +938,7 @@ window.thedemianffCloudResult=(state,payload)=>{
   if(autoRestore&&v446GoogleEmail){
    const dirtyKey=v508DirtyKey(v446GoogleEmail);
    const dirtyRaw=localStorage.getItem(dirtyKey);
+   if(dirtyRaw===JSON.stringify(saved))localStorage.removeItem(dirtyKey);
    if(dirtyRaw&&dirtyRaw!==JSON.stringify(saved)){
     const dirty=v443ValidateProgress(JSON.parse(dirtyRaw));
     const useLocal=confirm('Hay progreso local pendiente de Google: '+dirty.matches+
