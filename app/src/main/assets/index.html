@@ -546,12 +546,25 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <button id="v443Restore" type="button" style="display:none;width:100%;margin-top:8px;padding:11px;border:1px solid #4b708b;border-radius:8px;background:#152b41;color:#e6f2fa">RECUPERAR PERFIL DESDE ARCHIVO</button><input id="v443RestoreFile" type="file" accept=".json,application/json" style="display:none">
  <p id="v443Message" aria-live="polite" style="min-height:18px;font-size:12px;color:#ffdf9c;margin:10px 0 0"></p>
  </div><small style="color:#a7b8c8">Configura Google y la recuperación en Ajustes → Cuenta. Confirma el respaldo antes de reinstalar.</small></div></div>
+<style id="v501LobbyPolish">
+/* V50.1: visible lobby hierarchy without altering the gameplay camera. */
+#menu .v17Brand{letter-spacing:.065em;text-shadow:0 3px 18px #000c,0 0 28px #4c9bca55}
+#menu .v17Top{filter:drop-shadow(0 4px 12px #0007)}
+#menu .v17Launch .primary{min-height:58px;box-shadow:0 0 0 1px #fff3,0 8px 28px #f9731640;transition:filter .16s,transform .16s}
+#menu .v17Launch .primary:active{transform:scale(.975);filter:brightness(1.14)}
+#menu .v17Nav button,#menu .v17Quick button{transition:background .16s,border-color .16s,transform .16s}
+#menu .v17Nav button:active,#menu .v17Quick button:active{transform:scale(.97)}
+#menu #v500CloudBadge{max-width:min(90vw,360px);overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 16px #0008}
+#menu button:focus-visible{outline:2px solid #9be8ff;outline-offset:3px}
+@media(max-width:640px){#menu .v17Launch .primary{min-height:54px}#menu .v17Brand{letter-spacing:.025em}#menu #v500CloudBadge{font-size:10px!important;top:calc(3% + 29px)!important}}
+@media(prefers-reduced-motion:reduce){#menu .v17Launch .primary,#menu .v17Nav button,#menu .v17Quick button{transition:none}}
+</style>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V50.0 · LOBBY Y NUBE</div><div id="v500CloudBadge" role="status" aria-live="polite" style="position:absolute;top:calc(5% + 34px);left:50%;transform:translateX(-50%);z-index:5;padding:5px 11px;border:1px solid #91a6b477;border-radius:9px;background:#091d2be6;color:#e0f0fa;font:700 11px system-ui;white-space:nowrap;pointer-events:none">☁ RESPALDO GOOGLE SIN CONFIRMAR</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
+<div id="v22Edition">V50.1 · LOBBY Y RESPALDOS</div><div id="v500CloudBadge" role="status" aria-live="polite" style="position:absolute;top:calc(5% + 34px);left:50%;transform:translateX(-50%);z-index:5;padding:5px 11px;border:1px solid #91a6b477;border-radius:9px;background:#091d2be6;color:#e0f0fa;font:700 11px system-ui;white-space:nowrap;pointer-events:none">☁ RESPALDO GOOGLE SIN CONFIRMAR</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V49.8</small></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V50.1</small></div>
 <div class="v17Friends"><strong>ESCUADRÓN</strong><span>◉ Operador local</span><span>◉ 20 rivales IA</span><span>◉ 5 armas</span></div>
 <div class="v17Bottom"><div class="v17Quick"><button data-lobby="INVENTARIO">▣ INVENTARIO</button><button data-lobby="ARMAS">⌖ ARMAS</button><button data-lobby="PRESET">☷ PRESET</button></div><div class="v17Launch"><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">INICIAR ▶</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -618,6 +631,7 @@ let v497QueuedCloudSave=null,v497CloudSentSnapshot=null,v497CloudActiveAccount='
 let v498CloudLoadAccount='',v498CloudLoadPending=false;
 function v495CloudSave(json){
  if(!v494CloudBridge||!v446GoogleEmail)throw Error('Conecta tu cuenta Google antes de guardar.');
+ if(v498CloudLoadPending)throw Error('Espera a que termine la recuperación antes de guardar.');
  const valid=JSON.stringify(v443ValidateProgress(JSON.parse(json)));
  if(v495CloudSaveInFlight){
   v497QueuedCloudSave={json:valid,account:v446GoogleEmail};
@@ -631,7 +645,7 @@ function v495CloudSave(json){
  try{v494CloudBridge.save(valid);}catch(e){v495CloudSaveInFlight=false;throw e;}
 }
 function v497ResetCloudQueue(){
- v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;v497CloudActiveAccount='';
+ v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;v497CloudActiveAccount='';
  v498CloudLoadAccount='';v498CloudLoadPending=false;
 }
 let v446AuthResolved=false,v446GoogleEmail='';
@@ -694,8 +708,9 @@ window.thedemianffGoogleResult=function(state,detail){
  v446AuthResolved=true;
  if(state==='signed_out'||state==='error'||state==='cancelled')v497ResetCloudQueue();
  $('v443Google').disabled=false;
- if(state==='signed_in'){v497ResetCloudQueue();v495CloudLastConfirmed=0;v496LobbyCloudStatus('☁ Google conectado · respaldo remoto sin verificar');
+ if(state==='signed_in'){v497ResetCloudQueue();v495CloudLastConfirmed=0;
    v446GoogleEmail=typeof detail==='string'?detail.slice(0,150):'';
+   v496LobbyCloudStatus('☁ Google conectado · respaldo remoto sin verificar');
    $('v494AutoCloud').checked=!!(v446GoogleEmail&&localStorage.getItem(v494OptKey(v446GoogleEmail))==='yes');
    // Google becomes the visible login identity; do NOT delete the guest backup.
    guest.style.display='none';
@@ -782,7 +797,7 @@ function v447BackupNotice(text){
  if(status)status.textContent=text;
 }
 // V49.4: recovery is NEVER automatic and NEVER merges guest IDs from other players.
-function v496LobbyCloudStatus(msg,ok=false){const el=$('v494CloudStatus');if(el){el.textContent=msg;el.style.color=ok?'#baffda':'#e2f8ff';}const badge=$('v500CloudBadge');if(badge){badge.textContent=ok?'☁ RESPALDO GOOGLE CONFIRMADO':v495CloudSaveInFlight?'☁ SINCRONIZANDO GOOGLE…':v446GoogleEmail?'☁ GOOGLE CONECTADO · RESPALDO SIN CONFIRMAR':'☁ RESPALDO GOOGLE SIN CONFIRMAR';badge.style.color=ok?'#baffda':'#e0f0fa';}}
+function v496LobbyCloudStatus(msg,ok=false){const confirmed=!!(ok&&v446GoogleEmail&&v495CloudLastConfirmed>0&&!v495CloudSaveInFlight);const el=$('v494CloudStatus');if(el){el.textContent=msg;el.style.color=confirmed?'#baffda':'#e2f8ff';}const badge=$('v500CloudBadge');if(badge){badge.textContent=confirmed?'☁ RESPALDO GOOGLE CONFIRMADO':v495CloudSaveInFlight?'☁ SINCRONIZANDO GOOGLE…':v446GoogleEmail?'☁ GOOGLE CONECTADO · RESPALDO SIN CONFIRMAR':'☁ RESPALDO GOOGLE SIN CONFIRMAR';badge.style.color=confirmed?'#baffda':'#e0f0fa';badge.setAttribute('aria-label',confirmed?'Respaldo de Google confirmado en esta sesión':v495CloudSaveInFlight?'Sincronización Google en curso':'Respaldo de Google no confirmado');}}
 function v494CloudNotice(msg){const el=$('v494CloudStatus');if(el)el.textContent=msg;v496LobbyCloudStatus(msg,/Guardado confirmado|Respaldo guardado|Último progreso confirmado/.test(msg));v447BackupNotice(msg);}
 window.thedemianffCloudResult=(state,payload)=>{
  if(state==='saved'){
@@ -839,6 +854,7 @@ $('v494CloudSave').addEventListener('click',()=>{
 });
 $('v494CloudLoad').addEventListener('click',()=>{
  if(!v494CloudBridge||!v446GoogleEmail){v494CloudNotice('Conecta primero tu cuenta Google en la APK Android.');return;}
+ if(v495CloudSaveInFlight){v494CloudNotice('Hay un guardado pendiente. Espera la confirmación antes de recuperar.');return;}
  if(v498CloudLoadPending){v494CloudNotice('Ya hay una recuperación en curso. Comprueba la conexión y su resultado.');return;}
  v498CloudLoadPending=true;v498CloudLoadAccount=v446GoogleEmail;
  v494CloudNotice('Consultando el respaldo de Google; el progreso local sigue intacto…');
