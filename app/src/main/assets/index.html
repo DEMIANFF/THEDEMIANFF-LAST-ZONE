@@ -981,7 +981,20 @@ window.thedemianffCloudResult=(state,payload)=>{
   }
   v494CloudNotice('☁ Progreso recuperado automáticamente de Google.');
   if(autoRestore)v496LobbyCloudStatus('☁ Progreso recuperado y confirmado en Google',true);
-  if(autoRestore){const live=typeof v18Progress!=='undefined'?JSON.stringify(v18Progress):null;if(live!==JSON.stringify(saved)){location.reload();return;}entry.style.display='none';return;}
+  if(autoRestore){
+   // V52.5: applying the authenticated server snapshot in-place avoids an
+   // endless reload loop caused by comparing JSON strings with different
+   // property insertion orders (default object vs validated Firestore data).
+   // Do not auto-upload during restore or overwrite the remote document.
+   if(typeof v18Progress!=='undefined'){
+    Object.assign(v18Progress,saved);
+    if(typeof v18Refresh==='function')v18Refresh();
+   }
+   info.textContent='Tu progreso de Google fue recuperado correctamente.';
+   message.textContent='☁ Progreso recuperado. ¡Bienvenido de nuevo!';
+   entry.style.display='none';
+   return;
+  }
   location.reload();
  }catch(e){v494CloudNotice('No se pudo recuperar el perfil: '+e.message);}
 };
