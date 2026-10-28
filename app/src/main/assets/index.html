@@ -755,7 +755,7 @@ window.thedemianffGoogleResult=function(state,detail){
  v446AuthResolved=true;
  if(state==='signed_out'||state==='error'||state==='cancelled')v497ResetCloudQueue();
  $('v443Google').disabled=false;
- if(state==='signed_in'){const incoming=typeof detail==='string'?detail.slice(0,150):'';const previous=localStorage.getItem(v504AccountKey)||'';const sameAccount=incoming&&incoming===previous;v497ResetCloudQueue();v495CloudLastConfirmed=0;
+ if(state==='signed_in'){const incoming=typeof detail==='string'?detail.slice(0,150):'';const previous=localStorage.getItem(v504AccountKey)||'';const sameAccount=incoming&&incoming===previous;if(sameAccount&&v446GoogleEmail===incoming&&(v504Restoring||v504CloudReady))return;v497ResetCloudQueue();v495CloudLastConfirmed=0;
    v446GoogleEmail=incoming;
    if(incoming&&previous&&previous!==incoming){try{const old=localStorage.getItem(progressKey);if(old)localStorage.setItem(v504AccountProgress(previous),old);}catch(e){console.warn('No se pudo archivar progreso anterior',e)}}
    if(incoming&&!sameAccount){try{const own=localStorage.getItem(v504AccountProgress(incoming));v504SetLocalProgress(own?v443ValidateProgress(JSON.parse(own)):v504Blank());localStorage.setItem(v504AccountKey,incoming);}catch(e){v494CloudNotice('⚠ No se pudo aislar el perfil local: '+e.message);}}
@@ -770,10 +770,11 @@ window.thedemianffGoogleResult=function(state,detail){
    $('v443Google').textContent='GOOGLE CONECTADO';
    $('v443AccountInfo').textContent='Sesión Google verificada';
    message.textContent='Acceso automático confirmado.';
-   if(incoming){entry.style.display='flex';$('v504GoogleEntry').style.display='none';guest.style.display='none';info.textContent='Recuperando tu progreso de Google…';v504StartCloudRestore();}else entry.style.display='flex';
+   if(incoming){entry.style.display='flex';$('v504GoogleEntry').style.display='none';$('v504GoogleEntry').textContent='CONTINUAR CON GOOGLE';$('v504GoogleEntry').onclick=null;guest.style.display='none';info.textContent='Recuperando tu progreso de Google…';v504StartCloudRestore();}else entry.style.display='flex';
  }else if(state==='signed_out'){
-   const v504WasGoogle=!!(v446GoogleEmail||localStorage.getItem(v504AccountKey));
-   if(v446GoogleEmail){try{const outgoing=localStorage.getItem(progressKey);if(outgoing)localStorage.setItem(v504AccountProgress(v446GoogleEmail),outgoing);}catch(e){console.warn('No se pudo cachear la cuenta saliente',e)}}
+   const v504PriorOwner=v446GoogleEmail||localStorage.getItem(v504AccountKey)||'';
+   const v504WasGoogle=!!v504PriorOwner;
+   if(v504PriorOwner){try{const outgoing=localStorage.getItem(progressKey);if(outgoing)localStorage.setItem(v504AccountProgress(v504PriorOwner),outgoing);}catch(e){console.warn('No se pudo cachear la cuenta saliente',e)}}
    v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v504CloudReady=false;v504Restoring=false;v446GoogleEmail='';v496LobbyCloudStatus('☁ Invitado · progreso solo en este dispositivo');$('v494AutoCloud').checked=false;
    guest.style.display='block';
    $('v443Google').style.display='block';
@@ -897,6 +898,7 @@ window.thedemianffCloudResult=(state,payload)=>{
    throw e;
   }
   v494CloudNotice('☁ Progreso recuperado automáticamente de Google.');
+  if(autoRestore)v496LobbyCloudStatus('☁ Progreso recuperado y confirmado en Google',true);
   if(autoRestore){const live=typeof v18Progress!=='undefined'?JSON.stringify(v18Progress):null;if(live!==JSON.stringify(saved)){location.reload();return;}entry.style.display='none';return;}
   location.reload();
  }catch(e){v494CloudNotice('No se pudo recuperar el perfil: '+e.message);}
