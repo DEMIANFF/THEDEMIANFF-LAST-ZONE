@@ -154,8 +154,13 @@ public class MainActivity extends Activity {
             }
             String saved=doc.exists()?doc.getString("progress"):null;
             Long format=doc.exists()?doc.getLong("format"):null;
+            // A missing document is a new account; an invalid existing document is
+            // an ERROR and must NEVER trigger creation that overwrites saved data.
+            if(!doc.exists()){
+              cloudMessage("missing","Esta cuenta Google todavía no tiene progreso guardado.");return;
+            }
             if(saved==null||saved.length()<10||saved.length()>100000||format==null||format!=1L){
-              cloudMessage("missing","No hay un respaldo válido para esta cuenta Google.");return;
+              cloudMessage("error","El respaldo remoto existe pero no es válido. No se sobrescribirá.");return;
             }
             cloudMessage("loaded",saved);
           }).addOnFailureListener(e->{
