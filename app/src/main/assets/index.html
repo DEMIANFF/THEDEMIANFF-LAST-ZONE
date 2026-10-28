@@ -540,6 +540,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  <div style="margin:20px auto;padding:18px;max-width:420px;background:#07111ddd;border:1px solid #5bd9ff55;border-radius:16px;box-shadow:0 15px 40px #0009">
  <h2 style="font-size:18px;margin:0 0 12px">CENTRO DE ACCESO</h2>
  <p id="v443AccountInfo" style="font-size:12px;color:#c7d5e1">Verificando si tu sesión de Google sigue activa…</p>
+ <button id="v504GoogleEntry" type="button" style="display:none;width:100%;padding:14px;border:0;border-radius:9px;background:#e8f5ff;color:#182b3b;font-weight:900;margin-bottom:10px">CONTINUAR CON GOOGLE</button>
  <button id="v443Guest" type="button" style="display:none;width:100%;padding:13px;border:0;border-radius:8px;background:linear-gradient(90deg,#ffb42d,#ff792b);color:#17151a;font-weight:900">ENTRAR COMO INVITADO</button>
  
  <button id="v443Backup" type="button" style="display:none;width:100%;margin-top:10px;padding:11px;border:1px solid #4b708b;border-radius:8px;background:#152b41;color:#e6f2fa">RESPALDAR PERFIL LOCAL</button>
@@ -660,6 +661,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 (()=>{'use strict';const $=id=>document.getElementById(id);
 const entry=$('v443Entry'),guest=$('v443Guest'),info=$('v443AccountInfo'),message=$('v443Message');
 const v445GoogleBridge=!!window.THEDEMIANFFGoogle;
+$('v504GoogleEntry').style.display=v445GoogleBridge?'block':'none';
 const v494CloudBridge=window.THEDEMIANFFCloud||null;
 const v494OptKey=email=>'thedemianff_cloud_auto_'+email.toLowerCase();
 let v494AutoSyncPending=false;
@@ -768,8 +770,7 @@ window.thedemianffGoogleResult=function(state,detail){
    $('v443Google').textContent='GOOGLE CONECTADO';
    $('v443AccountInfo').textContent='Sesión Google verificada';
    message.textContent='Acceso automático confirmado.';
-   entry.style.display='none';
-   if(incoming)v504StartCloudRestore();
+   if(incoming){entry.style.display='flex';$('v504GoogleEntry').style.display='none';guest.style.display='none';info.textContent='Recuperando tu progreso de Google…';v504StartCloudRestore();}else entry.style.display='flex';
  }else if(state==='signed_out'){
    v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v504CloudReady=false;v504Restoring=false;v446GoogleEmail='';v496LobbyCloudStatus('☁ Invitado · progreso solo en este dispositivo');$('v494AutoCloud').checked=false;
    guest.style.display='block';
@@ -793,6 +794,7 @@ window.thedemianffGoogleResult=function(state,detail){
  v446UpdateAccountProfile();
 };
 $('v445SettingsLogout').addEventListener('click',()=>{if(!window.THEDEMIANFFGoogle?.signOut){alert('El cierre de sesión requiere la APK Android actualizada.');return;}if(confirm('¿Cerrar sesión de Google y volver al acceso? Tu progreso local se conservará.')){window.THEDEMIANFFGoogle.signOut();$('pausePanel').classList.add('hidden');}});
+$('v504GoogleEntry').addEventListener('click',()=>$('v443Google').click());
 $('v443Google').addEventListener('click',()=>{
  if(!window.THEDEMIANFFGoogle){message.textContent='Google requiere la APK Android V44.4; no disponible en Chrome.';return;}
  message.textContent='Abriendo selector de cuentas de Google…';
@@ -861,7 +863,7 @@ window.thedemianffCloudResult=(state,payload)=>{
   v494AutoSyncPending=false;v494CloudNotice('☁ '+payload+' · Último progreso confirmado en Google: '+new Date(v495CloudLastConfirmed).toLocaleTimeString()+'.');return;
  }
  if(state==='missing'||state==='error'){const wasRestoring=v504Restoring;v504Restoring=false;if(v498CloudLoadPending){v498CloudLoadPending=false;v498CloudLoadAccount='';}
-  if(state==='missing'&&wasRestoring&&v446GoogleEmail){try{v504CloudReady=true;localStorage.setItem(v504AccountProgress(v446GoogleEmail),localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v495CloudSave(localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v494CloudNotice('☁ Creando progreso nuevo en Google…');return;}catch(e){v504CloudReady=false;v494CloudNotice('⚠ No fue posible guardar: '+e.message);return;}}
+  if(state==='missing'&&wasRestoring&&v446GoogleEmail){try{v504CloudReady=true;entry.style.display='none';localStorage.setItem(v504AccountProgress(v446GoogleEmail),localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v495CloudSave(localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v494CloudNotice('☁ Creando progreso nuevo en Google…');return;}catch(e){v504CloudReady=false;v494CloudNotice('⚠ No fue posible guardar: '+e.message);return;}}
   if(wasRestoring){v504CloudReady=false;v494CloudNotice('⚠ Google sin conexión. No se sobrescribirá tu nube. Intenta nuevamente con Internet.');return;}v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending){v494AutoSyncPending=false;$('v494AutoCloud').checked=false;if(v446GoogleEmail)localStorage.removeItem(v494OptKey(v446GoogleEmail));}v494CloudNotice('⚠ '+payload);return;}
  if(state!=='loaded')return;
  if(!v498CloudLoadPending||!v498CloudLoadAccount||v498CloudLoadAccount!==v446GoogleEmail){v494CloudNotice('⚠ Recuperación ignorada: la cuenta Google cambió o no solicitaste una restauración.');return;}
@@ -886,6 +888,7 @@ window.thedemianffCloudResult=(state,payload)=>{
    throw e;
   }
   v494CloudNotice('☁ Progreso recuperado automáticamente de Google.');
+  if(autoRestore){const live=typeof v18Progress!=='undefined'?JSON.stringify(v18Progress):null;if(live!==JSON.stringify(saved)){location.reload();return;}entry.style.display='none';return;}
   location.reload();
  }catch(e){v494CloudNotice('No se pudo recuperar el perfil: '+e.message);}
 };
