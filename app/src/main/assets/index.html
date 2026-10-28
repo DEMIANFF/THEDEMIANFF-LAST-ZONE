@@ -665,6 +665,7 @@ $('v504GoogleEntry').style.display=v445GoogleBridge?'block':'none';
 const v494CloudBridge=window.THEDEMIANFFCloud||null;
 const v494OptKey=email=>'thedemianff_cloud_auto_'+email.toLowerCase();
 const v508DirtyKey=email=>'thedemianff_cloud_pending_'+encodeURIComponent(email.toLowerCase());
+const v510ConflictKey=email=>'thedemianff_cloud_conflict_'+encodeURIComponent(email.toLowerCase());
 let v494AutoSyncPending=false;
 let v504CloudReady=false,v504Restoring=false,v504NewProfilePending=false;
 const v504AccountKey='thedemianff_v504_account';
@@ -928,6 +929,30 @@ window.thedemianffCloudResult=(state,payload)=>{
   const currentRaw=localStorage.getItem(progressKey);
   const current=currentRaw?JSON.parse(currentRaw):null;
   const summary='Google: '+saved.matches+' partidas, '+saved.xp+' XP, '+saved.credits+' créditos y '+saved.unlocked.length+' operadores.';
+  // V51.0: never silently discard an unacknowledged local save when the
+  // cloud contains a different snapshot. Keep a separate recoverable copy.
+  if(autoRestore&&v446GoogleEmail){
+   const dirtyKey=v508DirtyKey(v446GoogleEmail);
+   const dirtyRaw=localStorage.getItem(dirtyKey);
+   if(dirtyRaw&&dirtyRaw!==JSON.stringify(saved)){
+    const dirty=v443ValidateProgress(JSON.parse(dirtyRaw));
+    const useLocal=confirm('Hay progreso local pendiente de Google: '+dirty.matches+
+     ' partidas, '+dirty.xp+' XP. El respaldo remoto tiene '+saved.matches+
+     ' partidas y '+saved.xp+' XP.\\n\\nAceptar: conservar el progreso local y sincronizarlo. Cancelar: usar el respaldo de Google. Se guardará una copia del progreso local anterior.');
+    if(useLocal){
+     v504SetLocalProgress(dirty);
+     v504CloudReady=true;
+     v504NewProfilePending=true;
+     entry.style.display='flex';
+     info.textContent='Confirmando el progreso local con Google…';
+     v495CloudSave(JSON.stringify(dirty));
+     return;
+    }
+    localStorage.setItem(v510ConflictKey(v446GoogleEmail),dirtyRaw);
+    localStorage.removeItem(dirtyKey);
+    v494CloudNotice('Se recuperará Google; el progreso local anterior quedó archivado en este dispositivo.');
+   }
+  }
   if(!autoRestore&&!confirm(summary+'\\n\\n¿Recuperar este progreso en este dispositivo? El progreso actual será reemplazado.')){v494CloudNotice('Recuperación cancelada; no se cambió ningún progreso.');return;}
   if(!autoRestore&&current&&Number(current.xp||0)>saved.xp&&!confirm('ATENCIÓN: el respaldo en Google tiene MENOS XP que el progreso local. ¿Seguro que deseas reemplazarlo?'))return;
   const oldNative=v443Native?v443Native.readProgress():null;
