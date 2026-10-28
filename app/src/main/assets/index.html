@@ -664,6 +664,7 @@ const v445GoogleBridge=!!window.THEDEMIANFFGoogle;
 $('v504GoogleEntry').style.display=v445GoogleBridge?'block':'none';
 const v494CloudBridge=window.THEDEMIANFFCloud||null;
 const v494OptKey=email=>'thedemianff_cloud_auto_'+email.toLowerCase();
+const v508DirtyKey=email=>'thedemianff_cloud_pending_'+encodeURIComponent(email.toLowerCase());
 let v494AutoSyncPending=false;
 let v504CloudReady=false,v504Restoring=false,v504NewProfilePending=false;
 const v504AccountKey='thedemianff_v504_account';
@@ -681,6 +682,9 @@ function v495CloudSave(json){
  if(!v494CloudBridge||!v446GoogleEmail||!v504CloudReady)throw Error('Espera a que se recupere el perfil de Google antes de sincronizar.');
  if(v498CloudLoadPending)throw Error('Espera a que termine la recuperación antes de guardar.');
  const valid=JSON.stringify(v443ValidateProgress(JSON.parse(json)));
+ // Persist the dirty marker before dispatching an async request. A failed write
+ // must not be mistaken for confirmed remote progress after an app restart.
+ localStorage.setItem(v508DirtyKey(v446GoogleEmail),valid);
  if(v495CloudSaveInFlight){
   v497QueuedCloudSave={json:valid,account:v446GoogleEmail};
   v496LobbyCloudStatus('☁ Guardado nuevo en cola · esperando confirmación anterior');
@@ -698,14 +702,15 @@ let v507RetryScheduled=false;
 function v507RetryPendingCloud(){
  if(v507RetryScheduled||!v494CloudBridge||!v446GoogleEmail||
     !v504CloudReady||v504Restoring||v498CloudLoadPending||v495CloudSaveInFlight||
-    !navigator.onLine||localStorage.getItem(v494OptKey(v446GoogleEmail))!=='yes')return;
+    !navigator.onLine||localStorage.getItem(v494OptKey(v446GoogleEmail))!=='yes'||
+    !localStorage.getItem(v508DirtyKey(v446GoogleEmail)))return;
  v507RetryScheduled=true;
  setTimeout(()=>{
   v507RetryScheduled=false;
   if(!v446GoogleEmail||!v504CloudReady||v504Restoring||v498CloudLoadPending||
      v495CloudSaveInFlight||!navigator.onLine)return;
   try{
-   const progress=localStorage.getItem(progressKey);
+   const progress=localStorage.getItem(v508DirtyKey(v446GoogleEmail));
    if(progress)v495CloudSave(progress);
   }catch(e){v494CloudNotice('⚠ Reintento de sincronización pendiente: '+e.message);}
  },1500);
@@ -894,6 +899,12 @@ window.thedemianffCloudResult=(state,payload)=>{
    v494CloudNotice('☁ Respaldo anterior confirmado · subiendo progreso más reciente…');
    try{v495CloudSave(queued.json);}catch(e){v494CloudNotice('⚠ El guardado reciente no se pudo enviar: '+e.message);}
    return;
+  }
+  // Clear pending only when the acknowledged snapshot still matches the current
+  // local version. A newer change must remain scheduled for upload.
+  if(v446GoogleEmail){
+   const pendingKey=v508DirtyKey(v446GoogleEmail);
+   if(localStorage.getItem(pendingKey)===v497CloudSentSnapshot)localStorage.removeItem(pendingKey);
   }
   v494AutoSyncPending=false;v494CloudNotice('☁ '+payload+' · Último progreso confirmado en Google: '+new Date(v495CloudLastConfirmed).toLocaleTimeString()+'.');
   if(v504CloudReady&&typeof v18Progress!=='undefined'&&JSON.stringify(v18Progress)!==localStorage.getItem(progressKey)){location.reload();}return;
