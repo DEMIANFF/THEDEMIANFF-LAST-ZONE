@@ -692,6 +692,26 @@ function v495CloudSave(json){
  v497CloudSentSnapshot=valid;
  try{v494CloudBridge.save(valid);}catch(e){v495CloudSaveInFlight=false;throw e;}
 }
+// V50.7: Retry only after the account's remote profile was successfully loaded.
+// Never send guest data or overwrite an unverified remote document.
+let v507RetryScheduled=false;
+function v507RetryPendingCloud(){
+ if(v507RetryScheduled||!v494CloudBridge||!v446GoogleEmail||
+    !v504CloudReady||v504Restoring||v498CloudLoadPending||v495CloudSaveInFlight||
+    !navigator.onLine||localStorage.getItem(v494OptKey(v446GoogleEmail))!=='yes')return;
+ v507RetryScheduled=true;
+ setTimeout(()=>{
+  v507RetryScheduled=false;
+  if(!v446GoogleEmail||!v504CloudReady||v504Restoring||v498CloudLoadPending||
+     v495CloudSaveInFlight||!navigator.onLine)return;
+  try{
+   const progress=localStorage.getItem(progressKey);
+   if(progress)v495CloudSave(progress);
+  }catch(e){v494CloudNotice('⚠ Reintento de sincronización pendiente: '+e.message);}
+ },1500);
+}
+window.addEventListener('online',v507RetryPendingCloud);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)v507RetryPendingCloud();});
 function v497ResetCloudQueue(){
  v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;v497CloudActiveAccount='';
  v498CloudLoadAccount='';v498CloudLoadPending=false;
