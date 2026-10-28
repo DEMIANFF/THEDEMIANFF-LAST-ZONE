@@ -661,7 +661,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 (()=>{'use strict';const $=id=>document.getElementById(id);
 const entry=$('v443Entry'),guest=$('v443Guest'),info=$('v443AccountInfo'),message=$('v443Message');
 const v445GoogleBridge=!!window.THEDEMIANFFGoogle;
-$('v504GoogleEntry').style.display=v445GoogleBridge?'block':'none';
+$('v504GoogleEntry').style.display='block';
 const v494CloudBridge=window.THEDEMIANFFCloud||null;
 const v494OptKey=email=>'thedemianff_cloud_auto_'+email.toLowerCase();
 const v508DirtyKey=email=>'thedemianff_cloud_pending_'+encodeURIComponent(email.toLowerCase());
@@ -812,21 +812,23 @@ window.thedemianffGoogleResult=function(state,detail){
    if(v504PriorOwner){try{const outgoing=localStorage.getItem(progressKey);if(outgoing)localStorage.setItem(v504AccountProgress(v504PriorOwner),outgoing);}catch(e){console.warn('No se pudo cachear la cuenta saliente',e)}}
    v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v504CloudReady=false;v504Restoring=false;v504NewProfilePending=false;v446GoogleEmail='';v496LobbyCloudStatus('☁ Invitado · progreso solo en este dispositivo');$('v494AutoCloud').checked=false;
    guest.style.display='block';
+   $('v504GoogleEntry').style.display='block';
+   $('v504GoogleEntry').textContent='INICIAR SESIÓN CON GOOGLE';
    $('v443Google').style.display='block';
    $('v445SettingsLogout').disabled=true;
    $('v445AccountStatus').textContent='No hay una sesión de Google activa';
    entry.style.display='flex';
    if(v504WasGoogle)try{v504SetLocalProgress(v504Blank());localStorage.removeItem(v504AccountKey);}catch(e){console.warn('No se pudo aislar el perfil anterior',e)}
-   $('v504GoogleEntry').style.display=v445GoogleBridge?'block':'none';
-   guest.style.display=v445GoogleBridge?'none':'block';
+   $('v504GoogleEntry').style.display='block';
+   guest.style.display='block';
    $('v443Google').textContent='INICIAR SESIÓN CON GOOGLE';
    if(v504WasGoogle){location.reload();return;}
    info.textContent=guestId?'Invitado existente · puedes continuar con tu progreso local':'Elige cómo ingresar al juego.';
    message.textContent='Google no conectado. Puedes seguir jugando como invitado.';
  }else{
    v446GoogleEmail='';v496LobbyCloudStatus('☁ Google no verificado · progreso local');
-   guest.style.display=v445GoogleBridge?'none':'block';
-   $('v504GoogleEntry').style.display=v445GoogleBridge?'block':'none';
+   guest.style.display='block';
+   $('v504GoogleEntry').style.display='block';
    $('v443Google').style.display='block';
    $('v445SettingsLogout').disabled=true;
    $('v445AccountStatus').textContent='No se pudo verificar la sesión de Google';
@@ -837,7 +839,7 @@ window.thedemianffGoogleResult=function(state,detail){
  v446UpdateAccountProfile();
 };
 $('v445SettingsLogout').addEventListener('click',()=>{if(!window.THEDEMIANFFGoogle?.signOut){alert('El cierre de sesión requiere la APK Android actualizada.');return;}const unresolved=v495CloudSaveInFlight||v498CloudLoadPending||!v504CloudReady||(v446GoogleEmail&&!!localStorage.getItem(v508DirtyKey(v446GoogleEmail)));const warning=unresolved?'ATENCIÓN: hay progreso sin confirmar en Google. Se conservará una copia local para esta cuenta, pero podría no estar disponible después de desinstalar. ¿Cerrar sesión de todos modos?':'¿Cerrar sesión de Google? Tu progreso confirmado permanecerá vinculado a esta cuenta.';if(confirm(warning)){window.THEDEMIANFFGoogle.signOut();$('pausePanel').classList.add('hidden');}});
-$('v504GoogleEntry').addEventListener('click',()=>{if(v446GoogleEmail&&!v504CloudReady){$('v504GoogleEntry').style.display='none';v504StartCloudRestore();}else $('v443Google').click();});
+$('v504GoogleEntry').addEventListener('click',()=>{if(!v445GoogleBridge){message.textContent='El acceso con Google requiere la APK Android con servicios de Google. No se modificó tu respaldo de Firebase.';return;}if(v446GoogleEmail&&!v504CloudReady){$('v504GoogleEntry').style.display='none';v504StartCloudRestore();}else $('v443Google').click();});
 $('v443Google').addEventListener('click',()=>{
  if(!window.THEDEMIANFFGoogle){message.textContent='Google requiere la APK Android V44.4; no disponible en Chrome.';return;}
  message.textContent='Abriendo selector de cuentas de Google…';
