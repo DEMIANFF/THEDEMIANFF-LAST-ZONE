@@ -137,15 +137,18 @@ public class MainActivity extends Activity {
              p.optJSONArray("unlocked").length()>30 || p.optJSONArray("claimed").length()>100)
             throw new IllegalArgumentException("El perfil contiene estadísticas inconsistentes.");
           org.json.JSONArray unlocked=p.optJSONArray("unlocked"),claimed=p.optJSONArray("claimed");
-          boolean baseUnlocked=false;
+          boolean baseUnlocked=false,selectedUnlocked=false;
+          int selectedSkin=p.optInt("skin",-1);
           for(int i=0;i<unlocked.length();i++) {
             Object v=unlocked.opt(i);
             if(!(v instanceof Number)||((Number)v).doubleValue()!=((Number)v).longValue()||
                ((Number)v).longValue()<0||((Number)v).longValue()>20)
               throw new IllegalArgumentException("Operador desbloqueado inválido.");
             if(((Number)v).longValue()==0)baseUnlocked=true;
+            if(((Number)v).longValue()==selectedSkin)selectedUnlocked=true;
           }
           if(!baseUnlocked)throw new IllegalArgumentException("Falta el operador inicial.");
+          if(!selectedUnlocked)throw new IllegalArgumentException("Operador seleccionado no desbloqueado.");
           for(int i=0;i<claimed.length();i++) {
             Object v=claimed.opt(i);
             if(!(v instanceof String)||((String)v).length()>100)
