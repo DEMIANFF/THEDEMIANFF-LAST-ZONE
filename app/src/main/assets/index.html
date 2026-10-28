@@ -856,6 +856,10 @@ try{
    if(v446AuthResolved)return;
    message.textContent='Google está tardando. Puedes elegir un acceso manual mientras se comprueba la sesión.';
    info.textContent='Comprobación de cuenta pendiente.';
+   // V52.3: a slow native status callback must never strand a returning
+   // Google player with guest-only access after reinstalling.
+   $('v504GoogleEntry').style.display='block';
+   $('v504GoogleEntry').textContent='INICIAR SESIÓN CON GOOGLE';
    guest.style.display='block';
    $('v443Google').style.display='block';
    $('v445AccountStatus').textContent='Verificación lenta o sin respuesta';
