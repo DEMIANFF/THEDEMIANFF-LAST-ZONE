@@ -609,6 +609,19 @@ jobs:
           assert "if(incoming)localStorage.setItem(v494OptKey(incoming),'yes');" in h
           print('V51.0 cloud progress safeguards passed')
           PY
+      - name: V52.0 comprobar aislamiento Google e invitado
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          assert "if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(snapshot))" in h
+          assert "if(!localStorage.getItem(v504AccountKey)&&valid(nativeProgress)" in h
+          assert "else if(!localStorage.getItem(v504AccountKey)&&valid(localProgress))" in h
+          assert "if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(serialized))" in h
+          assert "if(v443Native&&!v443Native.saveProgress(JSON.stringify(saved)))" not in h
+          assert "if(oldNative)v443Native.saveProgress(oldNative)" not in h
+          print('V52.0 native guest isolation checks OK')
+          PY
       - name: V44.3.2 verificar autoguardado de invitado en Android
         run: |
           python3 - <<'PY'
