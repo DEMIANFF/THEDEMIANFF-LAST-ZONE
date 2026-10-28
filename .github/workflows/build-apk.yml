@@ -599,6 +599,8 @@ jobs:
               "if(autoRestore&&v446GoogleEmail){",
               "localStorage.setItem(v510ConflictKey(v446GoogleEmail),dirtyRaw)",
               'v504StartCloudRestore();',
+              'const scheduledAccount=v446GoogleEmail;',
+              'scheduledAccount!==v446GoogleEmail',
           ):
               assert token in h, 'V51.0 falta protección de progreso: '+token
           for control in ('v447ExportProgress','v447ImportProgress',
