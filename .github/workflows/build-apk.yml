@@ -79,6 +79,13 @@ jobs:
           for token in ('const v536IdPattern=', 'const v536NamePattern=', 'result.playerId=p.playerId', 'result.playerName=p.playerName', 'v536EnsureIdentity()', 'id="v536LobbyName"', 'id="v536LobbyId"', 'data-lobby="CUENTA DE JUGADOR"', 'id="v536SaveName"', 'id="v536CopyId"'):
               assert token in html, 'V53.8: player ID/name persistence regression: '+token
           assert "trim().replace(/\\s+/g,' ')" in html, 'V53.8: nickname whitespace validation missing'
+          # V54.5: numeric IDs must come from the native Firebase bridge, never local random generation.
+          for token in ('const v536IdPattern=/^[0-9]{5}$/', 'function v540RequestId()', 'window.thedemianffIdentityResult=', 'id="v544RetryId"', 'THEDEMIANFFIdentity'):
+              assert token in html, 'V54.5: sequential public ID integration missing: '+token
+          assert 'function v536NewId()' not in html, 'V54.5: local-generated fake public IDs forbidden'
+          java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text(encoding='utf-8')
+          for token in ('class IdentityBridge', 'db.runTransaction(transaction ->', 'collection("player_identities")', 'collection("system_counters")', 'web.addJavascriptInterface(new IdentityBridge()'):
+              assert token in java, 'V54.5: Android identity transaction missing: '+token
           # V34.1: camera look owner cannot be stolen by a moving second finger.
           if "now-v26LastLookMove>85" in html: raise SystemExit("V34.1: cámara aún permite robo del puntero")
           if "!v23Touches.has(v26LookOwner)" not in html: raise SystemExit("V34.1: falta control de dueño de cámara")
