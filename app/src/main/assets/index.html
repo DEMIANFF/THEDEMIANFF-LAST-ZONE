@@ -673,7 +673,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="v533AccountShortcut" type="button" aria-label="Abrir cuenta y respaldo de Google" title="Cuenta Google y respaldos">☁</button> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button><button data-lobby="MISIONES">✓ &nbsp; MISIONES</button><button data-lobby="LOGROS">★ &nbsp; LOGROS</button><button data-lobby="CUENTA DE JUGADOR">◈ &nbsp; MI ID Y NOMBRE</button><button data-lobby="ESTADÍSTICAS">▤ &nbsp; ESTADÍSTICAS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V53.6</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V54.2</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
 <div class="v17Friends"><strong>◈ INFORME TÁCTICO</strong><span>◉ OPERADOR LISTO</span><span>⚔ 20 RIVALES IA · AURORA</span><span>▰ 5 ARMAS · SUPERVIVENCIA</span><button id="v502CloudAccess" type="button" aria-label="Abrir cuenta y respaldos de Google">☁ CUENTA Y RESPALDOS</button><small id="v502BackupHint">Google: progreso recuperable tras reinstalar · confirma el último guardado en Cuenta.</small></div>
 <div class="v17Bottom"><div class="v17Quick"><button data-lobby="INVENTARIO">▣ INVENTARIO</button><button data-lobby="ARMAS">⌖ ARMAS</button><button data-lobby="PRESET">☷ PRESET</button></div><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -958,14 +958,25 @@ try{
 const v443Bounded=(n,max)=>Number.isSafeInteger(n)&&n>=0&&n<=max;
 // V53.6: public player identity travels inside the validated cloud progress.
 // A public ID is never an authentication credential.
-const v536IdPattern=/^LZ-[A-F0-9]{24}$/;
+const v536IdPattern=/^[0-9]{5}$/;
+const v536LegacyIdPattern=/^LZ-[A-F0-9]{24}$/;
 const v536NamePattern=/^[A-Za-z0-9_ÁÉÍÓÚÜÑáéíóúüñ ]{3,18}$/;
-function v536NewId(){
- const bytes=new Uint8Array(12);
- if(!window.crypto?.getRandomValues)throw Error('Este dispositivo no ofrece un generador seguro de identificadores.');
- window.crypto.getRandomValues(bytes);
- return 'LZ-'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+// The server, not the phone, assigns consecutive public IDs.
+function v540RequestId(){
+ if(!v446GoogleEmail||!v504CloudReady||v498CloudLoadPending)return;
+ if(v536IdPattern.test(v18Progress.playerId||''))return;
+ try{window.THEDEMIANFFIdentity?.ensure();}catch(e){console.warn('ID numérico pendiente',e);}
 }
+window.thedemianffIdentityResult=(state,value)=>{
+ if(state==='assigned'&&v536IdPattern.test(value)&&v446GoogleEmail&&v504CloudReady&&!v498CloudLoadPending){
+  if(v18Progress.playerId===value)return;
+  v18Progress.playerId=value;
+  v18Save();
+  v18Refresh();
+  const panel=$('v18Panel');
+  if(panel&&!panel.classList.contains('hidden')&&$('v18PanelTitle')?.textContent==='CUENTA DE JUGADOR')v18Open('CUENTA DE JUGADOR');
+ }else if(state==='error')console.warn('ID pendiente: '+value);
+};
 function v536CleanName(raw){
  const name=String(raw||'').trim().replace(/\s+/g,' ');
  if(!v536NamePattern.test(name))throw Error('Nombre: 3 a 18 caracteres; letras, números, espacios o guion bajo.');
@@ -974,7 +985,7 @@ function v536CleanName(raw){
 function v536EnsureIdentity(){
  if(v446GoogleEmail&&(!v504CloudReady||v498CloudLoadPending))return false;
  let changed=false;
- if(!v536IdPattern.test(v18Progress.playerId||'')){v18Progress.playerId=v536NewId();changed=true;}
+ // IDs are issued only by Firebase; guest profiles must not invent numbers.
  if(!v536NamePattern.test(v18Progress.playerName||'')){v18Progress.playerName='OPERADOR';changed=true;}
  return changed;
 }
@@ -987,7 +998,7 @@ function v443ValidateProgress(p){
  if(!Array.isArray(p.claimed)||p.claimed.length>100||!p.claimed.every(v=>typeof v==='string'&&v.length<=100))throw Error('Misiones del respaldo incorrectas.');
  const result={};for(const k of fields)result[k]=p[k];
  result.unlocked=[...new Set(p.unlocked)];result.claimed=[...new Set(p.claimed)];
- if(p.playerId!==undefined&&p.playerId!==null){if(typeof p.playerId!=='string'||!v536IdPattern.test(p.playerId))throw Error('ID de jugador inválido.');result.playerId=p.playerId;}
+ if(p.playerId!==undefined&&p.playerId!==null){if(typeof p.playerId!=='string'||!(v536IdPattern.test(p.playerId)||v536LegacyIdPattern.test(p.playerId)))throw Error('ID de jugador inválido.');result.playerId=p.playerId;}
  if(p.playerName!==undefined&&p.playerName!==null){if(typeof p.playerName!=='string'||!v536NamePattern.test(p.playerName))throw Error('Nombre de jugador inválido.');result.playerName=p.playerName;}
  if(!result.unlocked.includes(result.skin))throw Error('Operador seleccionado no está desbloqueado.');
  return result;
@@ -1011,6 +1022,7 @@ window.thedemianffCloudResult=(state,payload)=>{
   if(!v495CloudSaveInFlight||v497CloudActiveAccount!==v446GoogleEmail){v496LobbyCloudStatus('☁ Cambió la sesión · comprueba el respaldo de Google');return;}
   v495CloudSaveInFlight=false;v495CloudLastConfirmed=Date.now();
   if(v504NewProfilePending){v504NewProfilePending=false;entry.style.display='none';}
+  v540RequestId();
   if(v446GoogleEmail)localStorage.removeItem(v504PendingGuest(v446GoogleEmail));
   const queued=v497QueuedCloudSave;v497QueuedCloudSave=null;
   if(queued&&queued.account===v446GoogleEmail&&queued.json!==v497CloudSentSnapshot){
@@ -1096,6 +1108,7 @@ window.thedemianffCloudResult=(state,payload)=>{
    if(typeof v18Progress!=='undefined'){
     Object.assign(v18Progress,saved);
     if(typeof v18Refresh==='function')v18Refresh();
+    v540RequestId();
    }
    info.textContent='Tu progreso de Google fue recuperado correctamente.';
    message.textContent='☁ Progreso recuperado. ¡Bienvenido de nuevo!';
@@ -3847,9 +3860,7 @@ v29InstallBackupButton();
 function v18Esc(text){return String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function v18Open(name){
  const panel=$('v18Panel'),body=$('v18PanelBody');
- if(name==='CUENTA DE JUGADOR'){
-  try{if(v536EnsureIdentity())v18Save();}catch(e){console.warn('[V53.7] ID pendiente hasta tener un generador seguro',e);}
- }
+ if(name==='CUENTA DE JUGADOR'){if(v536EnsureIdentity())v18Save();v540RequestId();}
  $('v18PanelTitle').textContent=name;panel.classList.remove('hidden');
  const p=v18Progress;
  const stat=`<div class="v18Stats"><span>◉ CRÉDITOS <b>${p.credits}</b></span><span>✧ XP <b>${p.xp}</b></span><span>◈ PARTIDAS <b>${p.matches}</b></span></div>`;
@@ -3858,7 +3869,7 @@ function v18Open(name){
  if(name==='CUENTA DE JUGADOR'){
   html+='<div class="v18Grid">'+card('ID PÚBLICO',v18Esc(p.playerId||'Pendiente de asignación'))+card('NOMBRE ACTUAL',v18Esc(p.playerName||'OPERADOR'))+'</div>';
   html+='<div class="v536Editor"><label for="v536PlayerName">NOMBRE DEL OPERADOR</label><input id="v536PlayerName" type="text" maxlength="18" autocomplete="off" spellcheck="false" value="'+v18Esc(p.playerName||'OPERADOR')+'"><button type="button" id="v536SaveName">GUARDAR NOMBRE</button><button type="button" id="v536CopyId">COPIAR ID</button><small id="v536NameStatus" role="status">Nombre de 3 a 18 caracteres. El ID permanece al cambiar de nombre.</small></div>';
-  html+='<p class="v18PanelNote">Tu ID es público, no una contraseña. Para recuperarlo tras reinstalar, confirma el respaldo de Google. Los nombres todavía no son exclusivos entre jugadores.</p>';
+  html+='<p class="v18PanelNote">Tu ID es público, no una contraseña. Para recuperarlo tras reinstalar, confirma el respaldo de Google. Los números se asignan desde Firebase al vincular Google. Los invitados sin vincular todavía no reciben ID global.</p>';
  }else if(name==='ESTADÍSTICAS'){
   const games=Math.max(0,Number(p.matches)||0),wins=Math.max(0,Number(p.wins)||0),kills=Math.max(0,Number(p.kills)||0);
   const xp=Math.max(0,Number(p.xp)||0),level=1+Math.floor(xp/350),remaining=350-(xp%350);
