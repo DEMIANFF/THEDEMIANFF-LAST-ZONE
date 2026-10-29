@@ -980,6 +980,15 @@ function v540RequestId(){
   v544DisplayIdStatus();return;
  }
  v544IdRequestPending=true;v544IdRequestAccount=v446GoogleEmail;
+ const requestingAccount=v446GoogleEmail;
+ // Missing native callbacks must not permanently disable Retry.
+ setTimeout(()=>{
+  if(v544IdRequestPending&&v544IdRequestAccount===requestingAccount){
+   v544IdRequestPending=false;
+   v544IdStatus='La consulta tardó demasiado. Pulsa REINTENTAR ID.';
+   v544DisplayIdStatus();
+  }
+ },18000);
  v544IdStatus='Consultando el número único en Firebase…';v544DisplayIdStatus();
  try{window.THEDEMIANFFIdentity.ensure();}catch(e){
   v544IdRequestPending=false;v544IdStatus='No se pudo solicitar el ID. Puedes reintentar.';v544DisplayIdStatus();
