@@ -855,6 +855,13 @@ guest.addEventListener('click',()=>{try{
   localStorage.setItem(progressKey,JSON.stringify(initial));
   if(v443Native&&!v443Native.saveProgress(JSON.stringify(initial)))throw Error('No se pudo guardar progreso inicial en Android');
  }
+ // Provision the guest identity from the validated local snapshot only.
+ // Do not touch a Google-linked profile while its cloud recovery is pending.
+ if(!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)){
+  const guestProgress=v443ValidateProgress(JSON.parse(localStorage.getItem(progressKey)));
+  Object.assign(v18Progress,guestProgress);
+  if(v536EnsureIdentity())v18Save();else v18Refresh();
+ }
  entry.style.display='none';
  v446UpdateAccountProfile();
 }catch(e){message.textContent='No se pudo activar cuenta invitada: '+e.message}});
