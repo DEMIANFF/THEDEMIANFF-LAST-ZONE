@@ -3867,7 +3867,7 @@ function v18Open(name){
  const card=(title,desc,button='',action='')=>`<div class="v18Item"><b>${title}</b><small>${desc}</small>${button?`<button data-v18="${action}">${button}</button>`:''}</div>`;
  let html=stat;
  if(name==='CUENTA DE JUGADOR'){
-  html+='<div class="v18Grid">'+card('ID PÚBLICO',v18Esc(p.playerId||'Pendiente de asignación'))+card('NOMBRE ACTUAL',v18Esc(p.playerName||'OPERADOR'))+'</div>';
+  html+='<div class="v18Grid">'+card('ID PÚBLICO',v18Esc(v536IdPattern.test(p.playerId||'')?p.playerId:'PENDIENTE DE FIREBASE'))+card('NOMBRE ACTUAL',v18Esc(p.playerName||'OPERADOR'))+'</div>';
   html+='<div class="v536Editor"><label for="v536PlayerName">NOMBRE DEL OPERADOR</label><input id="v536PlayerName" type="text" maxlength="18" autocomplete="off" spellcheck="false" value="'+v18Esc(p.playerName||'OPERADOR')+'"><button type="button" id="v536SaveName">GUARDAR NOMBRE</button><button type="button" id="v536CopyId">COPIAR ID</button><small id="v536NameStatus" role="status">Nombre de 3 a 18 caracteres. El ID permanece al cambiar de nombre.</small></div>';
   html+='<p class="v18PanelNote">Tu ID es público, no una contraseña. Para recuperarlo tras reinstalar, confirma el respaldo de Google. Los números se asignan desde Firebase al vincular Google. Los invitados sin vincular todavía no reciben ID global.</p>';
  }else if(name==='ESTADÍSTICAS'){
@@ -3940,7 +3940,7 @@ function v18Open(name){
  });
  if(copyId)copyId.addEventListener('click',async()=>{
   const status=body.querySelector('#v536NameStatus');
-  if(!v536IdPattern.test(p.playerId||'')){if(status)status.textContent='ID pendiente: recupera primero tu cuenta.';return;}
+  if(!v536IdPattern.test(p.playerId||'')){v540RequestId();if(status)status.textContent='ID pendiente: conecta Google y verifica la asignación en Firebase.';return;}
   try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(p.playerId);else{const input=body.querySelector('#v536PlayerName');input.value=p.playerId;input.select();document.execCommand('copy');input.value=p.playerName||'OPERADOR';}if(status)status.textContent='ID copiado: '+p.playerId;}catch(e){if(status)status.textContent='Copia el ID mostrado arriba: '+p.playerId;}
  });
  const v45AccountButton=body.querySelector('#v45OpenAccount');
