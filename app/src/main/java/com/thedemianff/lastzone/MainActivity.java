@@ -199,6 +199,51 @@ public class MainActivity extends Activity {
     }
   }
 
+  // V54: Firebase transaction issues one immutable, globally sequential public ID.
+  // Guest profiles without Firebase authentication show PENDING, not a duplicate ID.
+  private void identityMessage(String state,String detail) {
+    runOnUiThread(() -> {
+      if(web==null)return;
+      web.evaluateJavascript("window.thedemianffIdentityResult&&window.thedemianffIdentityResult("+
+        JSONObject.quote(state)+","+JSONObject.quote(detail)+")",null);
+    });
+  }
+  public final class IdentityBridge {
+    @JavascriptInterface public void ensure() {
+      runOnUiThread(() -> {
+        FirebaseUser user=firebaseAuth.getCurrentUser();
+        if(user==null){identityMessage("pending","Conecta Google para recibir un ID numérico único.");return;}
+        final String uid=user.getUid();
+        FirebaseFirestore db=FirebaseFirestore.getInstance();
+        com.google.firebase.firestore.DocumentReference identity=db.collection("player_identities").document(uid);
+        com.google.firebase.firestore.DocumentReference counter=db.collection("system_counters").document("players");
+        db.runTransaction(transaction -> {
+          com.google.firebase.firestore.DocumentSnapshot existing=transaction.get(identity);
+          if(existing.exists()){
+            Long assigned=existing.getLong("number");
+            if(assigned==null||assigned<1||assigned>99999L)throw new IllegalStateException("ID registrado fuera de rango.");
+            return assigned;
+          }
+          com.google.firebase.firestore.DocumentSnapshot current=transaction.get(counter);
+          Long previous=current.exists()?current.getLong("next"):0L;
+          if(previous==null||previous<0||previous>=99999L)throw new IllegalStateException("Se agotó el rango de IDs de cinco cifras.");
+          long next=previous+1L;
+          Map<String,Object> counterData=new HashMap<>();counterData.put("next",next);
+          transaction.set(counter,counterData);
+          Map<String,Object> identityData=new HashMap<>();
+          identityData.put("number",next);
+          identityData.put("createdAt",FieldValue.serverTimestamp());
+          transaction.set(identity,identityData);
+          return next;
+        }).addOnSuccessListener(number->{
+          if(cloudAccountUnchanged(uid))identityMessage("assigned",String.format(java.util.Locale.US,"%05d",number));
+        }).addOnFailureListener(e->{
+          if(cloudAccountUnchanged(uid))identityMessage("error",cloudFailureDetail(e,false));
+        });
+      });
+    }
+  }
+
   // Load bundled models via a secure HTTPS origin, matching browser HTTP semantics.
   private static final String GAME_ORIGIN="https://appassets.androidplatform.net";
   private static final String GAME_PREFIX="/assets/";
@@ -335,6 +380,7 @@ public class MainActivity extends Activity {
     });
     web.addJavascriptInterface(new GoogleAuthBridge(),"THEDEMIANFFGoogle");
     web.addJavascriptInterface(new CloudBridge(),"THEDEMIANFFCloud");
+    web.addJavascriptInterface(new IdentityBridge(),"THEDEMIANFFIdentity");
     web.addJavascriptInterface(new BackupBridge(),"THEDEMIANFFBackup");
     web.addJavascriptInterface(new GuestStorageBridge(),"THEDEMIANFFGuestStore");
     web.addJavascriptInterface(new GameBridge(),"THEDEMIANFFGame");
