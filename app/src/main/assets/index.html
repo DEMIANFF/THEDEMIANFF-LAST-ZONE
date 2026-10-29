@@ -960,7 +960,7 @@ function v536NewId(){
  return 'LZ-'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
 }
 function v536CleanName(raw){
- const name=String(raw||'').trim().replace(/\\s+/g,' ');
+ const name=String(raw||'').trim().replace(/\s+/g,' ');
  if(!v536NamePattern.test(name))throw Error('Nombre: 3 a 18 caracteres; letras, números, espacios o guion bajo.');
  return name;
 }
@@ -3840,7 +3840,9 @@ v29InstallBackupButton();
 function v18Esc(text){return String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function v18Open(name){
  const panel=$('v18Panel'),body=$('v18PanelBody');
- if(name==='CUENTA DE JUGADOR'&&v536EnsureIdentity())v18Save();
+ if(name==='CUENTA DE JUGADOR'){
+  try{if(v536EnsureIdentity())v18Save();}catch(e){console.warn('[V53.7] ID pendiente hasta tener un generador seguro',e);}
+ }
  $('v18PanelTitle').textContent=name;panel.classList.remove('hidden');
  const p=v18Progress;
  const stat=`<div class="v18Stats"><span>◉ CRÉDITOS <b>${p.credits}</b></span><span>✧ XP <b>${p.xp}</b></span><span>◈ PARTIDAS <b>${p.matches}</b></span></div>`;
