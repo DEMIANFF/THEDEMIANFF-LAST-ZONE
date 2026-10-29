@@ -238,7 +238,18 @@ public class MainActivity extends Activity {
         }).addOnSuccessListener(number->{
           if(cloudAccountUnchanged(uid))identityMessage("assigned",String.format(java.util.Locale.US,"%05d",number));
         }).addOnFailureListener(e->{
-          if(cloudAccountUnchanged(uid))identityMessage("error",cloudFailureDetail(e,false));
+          if(cloudAccountUnchanged(uid)) {
+            String detail="No se pudo asignar el ID numérico. Comprueba la conexión y las reglas de Firebase para player_identities y system_counters.";
+            if(e instanceof com.google.firebase.firestore.FirebaseFirestoreException) {
+              com.google.firebase.firestore.FirebaseFirestoreException.Code code=
+                ((com.google.firebase.firestore.FirebaseFirestoreException)e).getCode();
+              if(code==com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED)
+                detail="Firebase no autorizó el ID numérico: faltan permisos para el contador y el registro de identidades.";
+              if(code==com.google.firebase.firestore.FirebaseFirestoreException.Code.UNAVAILABLE)
+                detail="Sin conexión con Firebase: pulsa REINTENTAR ID cuando tengas Internet.";
+            }
+            identityMessage("error",detail);
+          }
         });
       });
     }
