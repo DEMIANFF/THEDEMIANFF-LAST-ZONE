@@ -4155,6 +4155,7 @@ const v434Optics={
  active(){return this.profiles[this.index];},
  cycle(){
   this.index=(this.index+1)%this.profiles.length;
+  try{localStorage.setItem('v534_scope_index',String(this.index));}catch(e){}
   this.updateHud(adsHeld);
  },
  updateHud(isADS){
@@ -4173,6 +4174,8 @@ const v434Optics={
   if(label){label.textContent=isADS?this.active().name:'';label.style.display=isADS?'block':'none';}
  }
 };
+// V53.2: restore the player's preferred sight magnification after relaunch.
+try{const savedScope=Number(localStorage.getItem('v534_scope_index'));if(Number.isInteger(savedScope)&&savedScope>=0&&savedScope<v434Optics.profiles.length)v434Optics.index=savedScope;}catch(e){}
 (function initV434Scope(){
  const controls=document.getElementById('controls');
  if(!controls)return;
@@ -4302,7 +4305,8 @@ window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>{
  finally{v432Camera.mode=previous;}
 };
 function aimAssistPull(dt){
- if(!running||paused||!player||adsHeld)return;
+ // V53.2: permit opt-in ADS assistance, but never override a live finger swipe.
+ if(!running||paused||!player||gameOver)return;
  if(!$('aimAssist').checked)return;
  // Never let aim assistance fight a finger currently dragging the view.
  if((!fireHeld&&!adsHeld)||cameraPointers.size>0||v22FireDragging)return;
@@ -4325,9 +4329,10 @@ function aimAssistPull(dt){
   if(score<bestScore){bestScore=score;best={rel,pitchError};}
  }
  if(!best)return;
- const strength=(adsHeld?.42:.22)*(1-Math.exp(-dt*3.4));
- camYaw+=best.rel*strength*.55;
- camPitch=clamp(camPitch+best.pitchError*strength*.30,-.34,.95);
+ // Small frame-rate-independent correction; no hard snap or target lock.
+ const strength=(adsHeld?.30:.20)*(1-Math.exp(-Math.min(dt,.05)*3.4));
+ camYaw+=clamp(best.rel*strength*.55,-.003,.003);
+ camPitch=clamp(camPitch+clamp(best.pitchError*strength*.30,-.002,.002),-.70,.90);
 }
 function flushCamera(dt){
  if(!mobile)return;
