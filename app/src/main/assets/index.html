@@ -563,6 +563,13 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  #menu #v533AccountShortcut{min-width:30px;min-height:30px;font-size:15px}
 }
 </style>
+<style id="v535LobbyFunctions">
+/* V53.5: functional lobby modules, scrollable on landscape phones. */
+#menu .v17Nav{overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-width:thin!important;padding-right:3px!important}
+#menu .v17Nav button{flex-shrink:0!important}
+#menu .v18Panel{border-radius:14px!important;box-shadow:0 24px 80px #000d!important}
+@media(max-height:440px){#menu .v17Nav{max-height:calc(100dvh - 125px)!important}}
+</style>
 </head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de eventos y misiones">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
@@ -654,9 +661,9 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 <div id="menu" class="v17Lobby" style="z-index:50">
 <div id="v22Edition">V50.4 · GOOGLE AUTOMÁTICO</div><div id="v500CloudBadge" role="status" aria-live="polite" style="position:absolute;top:calc(5% + 34px);left:50%;transform:translateX(-50%);z-index:5;padding:5px 11px;border:1px solid #91a6b477;border-radius:9px;background:#091d2be6;color:#e0f0fa;font:700 11px system-ui;white-space:nowrap;pointer-events:none">☁ RESPALDO GOOGLE SIN CONFIRMAR</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b>THEDEMIANFF</b><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="v533AccountShortcut" type="button" aria-label="Abrir cuenta y respaldo de Google" title="Cuenta Google y respaldos">☁</button> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
-<div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button></div></div>
+<div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button><button data-lobby="MISIONES">✓ &nbsp; MISIONES</button><button data-lobby="LOGROS">★ &nbsp; LOGROS</button><button data-lobby="ESTADÍSTICAS">◈ &nbsp; PERFIL</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V53.3</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V53.5</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
 <div class="v17Friends"><strong>◈ INFORME TÁCTICO</strong><span>◉ OPERADOR LISTO</span><span>⚔ 20 RIVALES IA · AURORA</span><span>▰ 5 ARMAS · SUPERVIVENCIA</span><button id="v502CloudAccess" type="button" aria-label="Abrir cuenta y respaldos de Google">☁ CUENTA Y RESPALDOS</button><small id="v502BackupHint">Google: progreso recuperable tras reinstalar · confirma el último guardado en Cuenta.</small></div>
 <div class="v17Bottom"><div class="v17Quick"><button data-lobby="INVENTARIO">▣ INVENTARIO</button><button data-lobby="ARMAS">⌖ ARMAS</button><button data-lobby="PRESET">☷ PRESET</button></div><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -3834,6 +3841,22 @@ function v18Open(name){
   const missions=[{id:'first',title:'PRIMERA MISIÓN',goal:1,current:p.matches,reward:75},{id:'hunter',title:'CAZADOR',goal:10,current:p.kills,reward:160},{id:'veteran',title:'VETERANO',goal:5,current:p.matches,reward:200},{id:'survivor',title:'ÚLTIMO EN PIE',goal:1,current:p.wins,reward:300}];
   html+='<div class="v18Grid">'+missions.map(m=>{const done=p.claimed.includes(m.id),ready=m.current>=m.goal;return `<div class="v18Item"><b>${m.title}</b><small>${Math.min(m.current,m.goal)} / ${m.goal} · Premio ${m.reward} créditos</small><div class="v18Progress"><span style="width:${Math.min(100,m.current/m.goal*100)}%"></span></div><button data-v18="${ready?'claim':'mission'}:${m.id}" ${done?'disabled':''}>${done?'RECLAMADA':ready?'RECLAMAR RECOMPENSA':'VER OBJETIVO'}</button></div>`}).join('')+'</div>';
   html+='<p class="v18PanelNote">Las misiones registran progreso local tras terminar cada partida.</p>';
+ }else if(name==='LOGROS'){
+  const achievements=[
+   ['PRIMER DESPLIEGUE',p.matches,1,'Juega tu primera partida'],
+   ['VETERANO AURORA',p.matches,25,'Completa 25 partidas'],
+   ['PRIMERA VICTORIA',p.wins,1,'Gana tu primera partida'],
+   ['LEYENDA GLACIAL',p.wins,10,'Consigue 10 victorias'],
+   ['CAZADOR',p.kills,20,'Elimina 20 rivales'],
+   ['OPERADOR EXPERTO',p.xp,3500,'Acumula 3500 XP']
+  ];
+  html+='<div class="v18Grid">'+achievements.map(([title,current,goal,description])=>{
+   const value=Math.max(0,Number(current)||0),completed=value>=goal;
+   return '<div class="v18Item"><b>'+(completed?'★ ':'☆ ')+title+'</b><small>'+description+' · '+Math.min(value,goal)+'/'+goal+'</small><div class="v18Progress"><span style="width:'+Math.min(100,value/goal*100)+'%"></span></div><small>'+(completed?'COMPLETADO':'EN PROGRESO')+'</small></div>';
+  }).join('')+'</div><p class="v18PanelNote">Logros calculados a partir de tus estadísticas reales. No se entregan premios ficticios.</p>';
+ }else if(name==='SOCIAL'){
+  html+='<div class="v18Grid">'+card('ESCUADRAS','Multijugador y salas compartidas pendientes de implementar.')+card('AMIGOS','La lista de amigos en línea requiere servidores y cuentas vinculadas.')+card('CLANES','La creación de clanes llegará con los servicios multijugador.')+card('ENTRENAMIENTO CON IA','Puedes practicar hoy con rivales controlados por el juego.','ELEGIR MODO','social:training')+'</div>';
+  html+='<p class="v18PanelNote">Estado actual: juego sin conexión. No se muestran jugadores, invitaciones ni salas simuladas.</p>';
  }else if(name==='EVENTOS'){
   html+=`<div class="v18Grid">${card('OPERACIÓN SUPERVIVENCIA','Desafío: consigue 3 bajas en una partida contra 20 IA. Premio +120 créditos y +120 XP.','JUGAR DESAFÍO','event:royale')}${card('PRÁCTICA TÁCTICA','Desafío: consigue 2 bajas en entrenamiento contra 8 IA. Premio +80 créditos y +80 XP.','ENTRAR','event:training')}${card('EVENTOS COMPLETADOS',String(p.eventCompletions||0))}</div>`;
  }else{
@@ -3849,6 +3872,7 @@ function v18Open(name){
   const [type,index]=b.dataset.v18.split(':');const n=Number(index);
   if(type==='preset-save'){if(!Number.isInteger(n)||n<0||n>2)return;p.presets??=[null,null,null];p.presets[n]={skin:p.skin,weapon:p.weapon};v18Save();v18Open('PRESET');return;}
    if(type==='preset-load'){if(!Number.isInteger(n)||!p.presets?.[n])return;const set=p.presets[n];p.skin=set.skin;p.weapon=set.weapon;v18Save();v24RefreshLobbyCharacter();v18Open('PRESET');return;}
+   if(type==='social'&&index==='training'){panel.classList.add('hidden');$('v18Mode').value='training';$('v18Mode').dispatchEvent(new Event('change',{bubbles:true}));return;}
    if(type==='event'){v362ShowEvents();return;}
    if(type==='skin'){
    const skin=v18Skins[n];if(!skin)return;
