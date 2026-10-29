@@ -75,6 +75,10 @@ jobs:
           assert r"\n  const height=(mobile?4.05:3.55)" not in html, "V53.4: camera height accidentally commented out"
           for token in ("v432Camera.update(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", "id=\"v533AccountShortcut\"", "v534_scope_index"):
               assert token in html, "V53.4: required camera/lobby component missing: "+token
+          # V53.8: identity remains part of validated Firebase backup payload.
+          for token in ('const v536IdPattern=', 'const v536NamePattern=', 'result.playerId=p.playerId', 'result.playerName=p.playerName', 'v536EnsureIdentity()', 'id="v536LobbyName"', 'id="v536LobbyId"', 'data-lobby="CUENTA DE JUGADOR"', 'id="v536SaveName"', 'id="v536CopyId"'):
+              assert token in html, 'V53.8: player ID/name persistence regression: '+token
+          assert "trim().replace(/\\s+/g,' ')" in html, 'V53.8: nickname whitespace validation missing'
           # V34.1: camera look owner cannot be stolen by a moving second finger.
           if "now-v26LastLookMove>85" in html: raise SystemExit("V34.1: cámara aún permite robo del puntero")
           if "!v23Touches.has(v26LookOwner)" not in html: raise SystemExit("V34.1: falta control de dueño de cámara")
