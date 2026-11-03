@@ -212,12 +212,12 @@ test('does not repair or reset a partially configured registry', () => {
 
 
 test('recovers one complete append interrupted before the counter update', () => {
-  const sheet = new FakeSheet([
+  const sheet = new Sheet([
     ['firebaseUid', 'playerNumber', 'createdAt'],
     ['uid-committed-before-counter', 1, 'date-1'],
   ]);
-  const env = createEnvironment({
-    spreadsheet: new FakeSpreadsheet(sheet),
+  const env = createEnv({
+    spreadsheet: new Spreadsheet(sheet),
     properties: { THEDEMIANFF_PLAYER_ID_COUNTER: '0' },
   });
   const nextToken = 'r'.repeat(120);
@@ -233,12 +233,12 @@ test('recovers one complete append interrupted before the counter update', () =>
 });
 
 test('refuses crash recovery when the uncommitted tail row is malformed', () => {
-  const sheet = new FakeSheet([
+  const sheet = new Sheet([
     ['firebaseUid', 'playerNumber', 'createdAt'],
     ['uid-partial', 9, 'date-1'],
   ]);
-  const env = createEnvironment({
-    spreadsheet: new FakeSpreadsheet(sheet),
+  const env = createEnv({
+    spreadsheet: new Spreadsheet(sheet),
     properties: { THEDEMIANFF_PLAYER_ID_COUNTER: '0' },
   });
   const token = 'q'.repeat(120);
