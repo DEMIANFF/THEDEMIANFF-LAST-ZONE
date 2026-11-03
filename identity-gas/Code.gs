@@ -142,8 +142,8 @@ function assignPlayerNumber_(uid) {
       const tailUid = tail[0];
       const tailNumber = Number(tail[1]);
       if (typeof tailUid !== 'string' || tailUid.length === 0 ||
-          !Number.isSafeInteger(tailNumber) || tailNumber !== counter + 1 ||
-          tail[2] === '' || tail[2] === null) {
+          !Number.isSafeInteger(tailNumber) || tailNumber > MAX_PLAYER_ID ||
+          tailNumber !== counter + 1 || tail[2] === '' || tail[2] === null) {
         throw serviceError_('REGISTRY_CORRUPT');
       }
       if (lastRow > 2) {
