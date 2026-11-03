@@ -247,3 +247,21 @@ test('refuses crash recovery when the uncommitted tail row is malformed', () => 
   assert.equal(env.props.getProperty('THEDEMIANFF_PLAYER_ID_COUNTER'), '0');
   assert.equal(sheet.getLastRow(), 2);
 });
+
+
+test('rejects an interrupted tail row above the five-digit ceiling', () => {
+  const sheet = new Sheet([
+    ['firebaseUid', 'playerNumber', 'createdAt'],
+    ['uid-invalid-tail', 100000, 'date-1'],
+  ]);
+  const t = token('m');
+  const env = createEnv({
+    spreadsheet: new Spreadsheet(sheet),
+    properties: { THEDEMIANFF_PLAYER_ID_COUNTER: '0' },
+    users: { [t]: null },
+  });
+  env.users[t] = env.googleUser('uid-new');
+  assert.equal(env.parse(env.post({ idToken: t })).code, 'REGISTRY_CORRUPT');
+  assert.equal(env.props.getProperty('THEDEMIANFF_PLAYER_ID_COUNTER'), '0');
+  assert.equal(sheet.getLastRow(), 2);
+});
