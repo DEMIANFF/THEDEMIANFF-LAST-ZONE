@@ -716,7 +716,7 @@ jobs:
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
           h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
           assert 'versionCode 140' in gradle, 'V48.6 requiere versionCode 140'
-          assert "versionName '55.3-bootstrap-and-errors'" in gradle, 'V48.6: versión Android incorrecta'
+          assert "versionName '55.4-free-identity'" in gradle, 'V55.4: versión Android incorrecta'
           # V50.4: Google-first login and safe automatic cloud recovery.
           for token in ('id="v504GoogleEntry"',
                         'v504StartCloudRestore()',
