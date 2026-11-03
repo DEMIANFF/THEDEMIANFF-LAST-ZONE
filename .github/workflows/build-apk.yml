@@ -97,7 +97,7 @@ jobs:
           assert 'db.runTransaction(transaction ->' not in java, 'V55: client-side identity transaction must be removed'
           for token in ('FirebaseFunctionsException.Code.NOT_FOUND', 'todavía no está desplegado en Firebase', 'Code.FAILED_PRECONDITION'):
               assert token in java, 'V55.2: precise Firebase callable diagnostics missing: '+token
-          assert 'V55.3 · ID SECUENCIAL' in html and 'AURORA EVOLUTION · V55.3' in h, 'V55.2: lobby version labels are stale'
+          assert 'V55.3 · ID SECUENCIAL' in html and 'AURORA EVOLUTION · V55.3' in html, 'V55.2: lobby version labels are stale'
           assert 'Firebase aún no autorizó el ID; verifica sus reglas' not in html, 'V55.2: generic error text still hides callable failure'
           assert 'collection("player_identities")' not in java and 'collection("system_counters")' not in java, 'V55: Android client must not access privileged identity collections'
           function_entry=Path('functions/src/index.js').read_text(encoding='utf-8')
