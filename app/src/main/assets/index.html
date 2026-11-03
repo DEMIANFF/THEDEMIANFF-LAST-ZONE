@@ -967,7 +967,7 @@ const v443Bounded=(n,max)=>Number.isSafeInteger(n)&&n>=0&&n<=max;
 const v536IdPattern=/^[0-9]{5}$/;
 const v536LegacyIdPattern=/^LZ-[A-F0-9]{24}$/;
 const v536NamePattern=/^[A-Za-z0-9_ÁÉÍÓÚÜÑáéíóúüñ ]{3,18}$/;
-// The server, not the phone, assigns consecutive public IDs.
+// The private owner-controlled registry verifies Firebase ID tokens and assigns public IDs.
 // V54.4: One in-flight request per Google session; retry is explicit.
 let v544IdRequestPending=false,v544IdRequestAccount='',v544IdStatus='Conecta Google para asignar tu ID.';
 function v544DisplayIdStatus(){
@@ -995,7 +995,7 @@ function v540RequestId(){
    v544DisplayIdStatus();
   }
  },75000);
- v544IdStatus='Consultando el número único en Firebase…';v544DisplayIdStatus();
+ v544IdStatus='Consultando el registro seguro de jugadores…';v544DisplayIdStatus();
  try{window.THEDEMIANFFIdentity.ensure();}catch(e){
   v544IdRequestPending=false;v544IdStatus='No se pudo solicitar el ID. Puedes reintentar.';v544DisplayIdStatus();
  }
@@ -1005,7 +1005,7 @@ window.thedemianffIdentityResult=(state,value)=>{
  if(v544IdRequestAccount!==v446GoogleEmail)return;
  v544IdRequestPending=false;
  if(state==='assigned'&&v536IdPattern.test(value)&&v446GoogleEmail&&v504CloudReady&&!v498CloudLoadPending){
-  v544IdStatus='ID asignado y guardado. Comprueba el respaldo de Google.';
+  v544IdStatus='ID asignado y registrado de forma segura.';
   if(v18Progress.playerId!==value){v18Progress.playerId=value;v18Save();}
   v18Refresh();
   const panel=$('v18Panel');
