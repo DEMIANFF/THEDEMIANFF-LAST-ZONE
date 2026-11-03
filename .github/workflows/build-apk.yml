@@ -413,7 +413,7 @@ jobs:
                         'RESPALDO LISTO',
                         'v489AutoSwaps=0',
                         'v489DryFires++',
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.4 · REGISTRO DE JUGADORES"):
               assert token in h, 'V48.9: falta arsenal táctico '+token
           # V48.8: live zone guidance, safe parachute actions and bounded effects.
           for token in ("v488Outside=Math.max(0",
@@ -424,7 +424,7 @@ jobs:
                         "window.v36FlightMode!=='landed'",
                         "Number.isFinite(fx)",
                         "if(!Number.isFinite(x)||!Number.isFinite(z))return null",
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.4 · REGISTRO DE JUGADORES"):
               assert token in h, 'V48.8: regresión combate o zona '+token
           # V49.0: anti-exploit weapon switching, robust rival targeting and match safety.
           for token in ('shootCooldown=Math.max(shootCooldown,.15)',
@@ -433,10 +433,10 @@ jobs:
                         "window.v36FlightMode!=='landed'",
                         'rival.x)||!Number.isFinite(rival.z)',
                         'b.hp>0&&b.hitStun<=0',
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.4 · REGISTRO DE JUGADORES'):
               assert token in h, 'V49.0: regresión táctica '+token
           # V49.1: safe rival combat, loaded backup scoring, medkit feedback.
-          for token in ('V55.3 · ID SECUENCIAL',
+          for token in ('V55.4 · REGISTRO DE JUGADORES',
                         'candidate.ammo/Math.max(1,candidate.mag',
                         'BOTIQUÍN INTERRUMPIDO POR DAÑO',
                         'v474RivalClock-=Math.min(dt,.1)',
@@ -457,7 +457,7 @@ jobs:
                         'V49.8'):
               assert token in h, 'V49.8: falta recuperación segura '+token
           # V49.9: cloud/account controls live in Settings, not the lobby.
-          for token in ('V55.3 · ID SECUENCIAL', 'CONFIGURACIÓN V49.9',
+          for token in ('V55.4 · REGISTRO DE JUGADORES', 'CONFIGURACIÓN V49.9',
                         'data-section="account"', 'v443Google', 'v494CloudSave',
                         'v494CloudLoad', 'v494AutoCloud', 'v494CloudStatus'):
               assert token in h, 'V49.9: configuración y recuperación incompletas '+token
@@ -469,18 +469,18 @@ jobs:
                         "v495CloudSave(queued.json)",
                         'Último progreso confirmado en Google:',
                         'v497ResetCloudQueue()',
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.4 · REGISTRO DE JUGADORES"):
               assert token in h, 'V49.7: regresión de guardado Google '+token
           # V49.6: cloud backup state visible in lobby and sign-in not treated as saved.
           for token in ('v496LobbyCloudStatus', 'Google conectado · respaldo remoto sin verificar',
-                        'Invitado · progreso solo en este dispositivo', 'V55.3 · ID SECUENCIAL'):
+                        'Invitado · progreso solo en este dispositivo', 'V55.4 · REGISTRO DE JUGADORES'):
               assert token in h, 'V49.6: regresión estado de nube '+token
           # V49.4: Google sign-in is distinct from explicit Firestore backup/recovery.
           for token in ('v494CloudSave', 'v494CloudLoad',
                         'window.thedemianffCloudResult',
                         'v443ValidateProgress(JSON.parse(payload))',
                         'v494ModelStatus', "models/lila-operator.glb",
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.4 · REGISTRO DE JUGADORES'):
               assert token in h, 'V49.4: falta nube / lobby '+token
           native = Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
           rules = Path('firestore.rules').read_text()
@@ -493,14 +493,14 @@ jobs:
           for token in ('const strafeLean=!air&&!crouch',
                         'const v493Gear=new THREE.Group()',
                         'const tracks=new THREE.InstancedMesh',
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.4 · REGISTRO DE JUGADORES'):
               assert token in h, 'V49.3: regresión visual '+token
           # V49.2: GPU-instanced Aurora scenery and Lila strafe response.
           for token in ("new THREE.InstancedMesh(frostGeometry,frostMat,56)",
                         "new THREE.InstancedMesh(frostGeometry,frostGlowMat,16)",
                         "const strafeLean=",
                         "model.rotation.z+=(strafeLean-model.rotation.z)*ease",
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.4 · REGISTRO DE JUGADORES"):
               assert token in h, 'V49.2: regresión visual '+token
           # V50.3: Google cloud callbacks must remain isolated to the authenticated Firebase UID.
           for token in ("cloudAccountUnchanged(String uid)",
@@ -510,7 +510,7 @@ jobs:
                         "Falta el operador inicial.",
                         "Cambió la cuenta Google durante la recuperación"):
               assert token in java, 'V50.3: protección de cuenta en Firebase '+token
-          for token in ('V55.3 · ID SECUENCIAL',
+          for token in ('V55.4 · REGISTRO DE JUGADORES',
                         '☁ CONSULTANDO RESPALDO…',
                         'Recuperación desde Google en curso'):
               assert token in h, 'V50.3: estado nube en lobby '+token
@@ -524,7 +524,7 @@ jobs:
                         "ESPERA A TERMINAR LA RECARGA",
                         "Number.isFinite(amount)",
                         "Number.isInteger(n)",
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.4 · REGISTRO DE JUGADORES"):
               assert token in h, 'V48.7: regresión de combate '+token
           # V48.6: safe-zone supply placement, guarded animation and battle diagnostics.
           for token in ('v477InZone(tx,tz,4)',
@@ -533,7 +533,7 @@ jobs:
                         'Number.isFinite(dt)',
                         'typeof mobile',
                         'visibleToPlayer&&effects.length<36',
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.4 · REGISTRO DE JUGADORES'):
               assert token in h, 'V48.6: regresión estabilidad '+token
           # V48.5: combat clarity, rival AI suppression and low-ammo notices.
           for token in ('attacker.suppression>.92',
@@ -542,7 +542,7 @@ jobs:
                         'visibleToPlayer&&effects.length<36',
                         'depthWrite:false,depthTest:true',
                         'Math.min(10,v8Combo+1)',
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.4 · REGISTRO DE JUGADORES"):
               assert token in h, 'V48.5: regresión de combate '+token
           # V48.4: ammunition alerts, obstacle hit validation and battle FX budget.
           for token in ("SIN MUNICIÓN · CAMBIA DE ARMA",
@@ -571,7 +571,7 @@ jobs:
                         "QUÉDATE QUIETO",
                         'v474RivalClock=.50',
                         'if(++checked>56)break',
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.4 · REGISTRO DE JUGADORES'):
               assert token in h, 'V48.2: regresión combate '+token
           # V48.1: mobile sprint animation and airborne combat accuracy.
           for token in ('sprintHeld&&speed>5.5',
@@ -593,7 +593,7 @@ jobs:
                         "rival.airborne||rival.retreatTime>0",
                         "cache.remaining===0",
                         'v474SupplyCount>=5',
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.4 · REGISTRO DE JUGADORES"):
               assert token in h, 'V48.0: regresión sistemas de batalla '+token
           # V47.7: tactical rivalry and supply signals in playable loop.
           for token in ('function v477FindRivalTarget(source,targets)',
@@ -715,7 +715,7 @@ jobs:
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
           h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
-          assert 'versionCode 139' in gradle, 'V48.6 requiere versionCode 139'
+          assert 'versionCode 140' in gradle, 'V48.6 requiere versionCode 140'
           assert "versionName '55.3-bootstrap-and-errors'" in gradle, 'V48.6: versión Android incorrecta'
           # V50.4: Google-first login and safe automatic cloud recovery.
           for token in ('id="v504GoogleEntry"',
@@ -726,7 +726,7 @@ jobs:
                         'if(!autoRestore&&!confirm(summary+',
                         'localStorage.setItem(v504AccountProgress(v446GoogleEmail)',
                         'v504SimpleAccount',
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.4 · REGISTRO DE JUGADORES'):
               assert token in h, 'V50.4 Google account regression '+token
           for token in ('if(!doc.exists())', 'El respaldo remoto existe pero no es válido. No se sobrescribirá.'):
               assert token in java, 'V50.4 remote backup safety regression '+token
@@ -738,7 +738,7 @@ jobs:
                         'v502AuroraMist',
                         'v502HangarLight',
                         'v502ReadyBanner',
-                        'V55.3 · ID SECUENCIAL',
+                        'V55.4 · REGISTRO DE JUGADORES',
                         "v494CloudBridge.save(valid)",
                         "v494CloudBridge.load()"):
               assert token in h, 'V50.2 missing lobby or backup feature: '+token
@@ -757,7 +757,7 @@ jobs:
                         "v495CloudLastConfirmed>0&&!v495CloudSaveInFlight",
                         "Hay un guardado pendiente. Espera la confirmación",
                         "v501LobbyPolish",
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.4 · REGISTRO DE JUGADORES"):
               assert token in h, 'V50.1: regresión lobby/nube '+token
           print('V50.1 lobby and cloud safety checks passed')
           PY
