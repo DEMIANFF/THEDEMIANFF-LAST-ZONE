@@ -272,7 +272,29 @@ public class MainActivity extends Activity {
     throw new IOException("El servicio gratuito de IDs todavía no está publicado en la configuración.");
   }
 
+  // Apps Script ContentService redirects POST responses to a one-time
+  // script.googleusercontent.com URL. Follow that response as GET, with a
+  // strict host allowlist and bounded retries for transient Google redirect loops.
   private JSONObject callFreeIdentityService(String endpoint,String idToken) throws IOException {
+    IOException lastError=null;
+    for(int attempt=0;attempt<3;attempt++) {
+      try {
+        return callFreeIdentityServiceAttempt(endpoint,idToken);
+      } catch(IOException error) {
+        lastError=error;
+        if(attempt<2) {
+          try { Thread.sleep(500L*(attempt+1)); }
+          catch(InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IOException("La consulta del ID fue interrumpida.",interrupted);
+          }
+        }
+      }
+    }
+    throw new IOException("No se pudo completar la consulta al registro después de tres intentos.",lastError);
+  }
+
+  private JSONObject callFreeIdentityServiceAttempt(String endpoint,String idToken) throws IOException {
     HttpURLConnection connection=null;
     try {
       connection=(HttpURLConnection)new URL(endpoint).openConnection();
@@ -281,24 +303,79 @@ public class MainActivity extends Activity {
       connection.setReadTimeout(30000);
       connection.setDoOutput(true);
       connection.setUseCaches(false);
-      connection.setInstanceFollowRedirects(true);
+      connection.setInstanceFollowRedirects(false);
       connection.setRequestProperty("Accept","application/json");
       connection.setRequestProperty("Content-Type","application/json; charset=utf-8");
       byte[] payload=new JSONObject().put("idToken",idToken).toString().getBytes(StandardCharsets.UTF_8);
-      // Keep the request buffered so HttpURLConnection can follow Apps Script's 302 response.
       try(OutputStream output=connection.getOutputStream()) {
         output.write(payload);
         output.flush();
       }
       int status=connection.getResponseCode();
+      if(status==301||status==302||status==303||status==307||status==308) {
+        String location=connection.getHeaderField("Location");
+        if(location==null||location.trim().isEmpty())
+          throw new IOException("Apps Script devolvió una redirección sin destino.");
+        URL redirected=new URL(new URL(endpoint),location);
+        connection.disconnect();
+        connection=null;
+        if("script.google.com".equalsIgnoreCase(redirected.getHost()))
+          throw new IOException("Apps Script devolvió un bucle de redirección; se reintentará.");
+        return readIdentityRedirect(redirected,1);
+      }
       InputStream body=status>=400?connection.getErrorStream():connection.getInputStream();
       String raw=readIdentityResponse(body,16384);
-      if(status<200||status>=300)throw new IOException("El servicio de identidad respondió HTTP "+status+".");
-      return new JSONObject(raw);
+      if(status<200||status>=300)
+        throw new IOException("El servicio de identidad respondió HTTP "+status+".");
+      return parseIdentityServiceJson(raw);
     } catch(org.json.JSONException error) {
       throw new IOException("El servicio de identidad devolvió una respuesta no válida.",error);
     } finally {
       if(connection!=null)connection.disconnect();
+    }
+  }
+
+  private JSONObject readIdentityRedirect(URL url,int redirects) throws IOException {
+    if(redirects>5)
+      throw new IOException("Apps Script excedió el límite de redirecciones.");
+    if(!"https".equalsIgnoreCase(url.getProtocol())||
+       !"script.googleusercontent.com".equalsIgnoreCase(url.getHost())||
+       url.getPort()!=-1||url.getUserInfo()!=null)
+      throw new IOException("Apps Script devolvió un destino de redirección no permitido.");
+
+    HttpURLConnection connection=null;
+    try {
+      connection=(HttpURLConnection)url.openConnection();
+      connection.setRequestMethod("GET");
+      connection.setConnectTimeout(10000);
+      connection.setReadTimeout(30000);
+      connection.setUseCaches(false);
+      connection.setInstanceFollowRedirects(false);
+      connection.setRequestProperty("Accept","application/json");
+      int status=connection.getResponseCode();
+      if(status==301||status==302||status==303||status==307||status==308) {
+        String location=connection.getHeaderField("Location");
+        if(location==null||location.trim().isEmpty())
+          throw new IOException("La respuesta de Apps Script contiene una redirección incompleta.");
+        URL next=new URL(url,location);
+        connection.disconnect();
+        connection=null;
+        return readIdentityRedirect(next,redirects+1);
+      }
+      InputStream body=status>=400?connection.getErrorStream():connection.getInputStream();
+      String raw=readIdentityResponse(body,16384);
+      if(status<200||status>=300)
+        throw new IOException("El resultado del registro respondió HTTP "+status+".");
+      return parseIdentityServiceJson(raw);
+    } finally {
+      if(connection!=null)connection.disconnect();
+    }
+  }
+
+  private JSONObject parseIdentityServiceJson(String raw) throws IOException {
+    try { return new JSONObject(raw); }
+    catch(org.json.JSONException error) {
+      throw new IOException("El servicio de identidad devolvió una respuesta no válida.",error);
     }
   }
 
