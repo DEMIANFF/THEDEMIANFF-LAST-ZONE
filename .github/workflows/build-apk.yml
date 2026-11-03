@@ -99,8 +99,9 @@ jobs:
           function_entry=Path('functions/src/index.js').read_text(encoding='utf-8')
           identity_logic=Path('functions/src/identity.js').read_text(encoding='utf-8')
           function_package=json.loads(Path('functions/package.json').read_text(encoding='utf-8'))
-          for token in ("onCall(", "request.auth.uid", "ensurePlayerIdentity"):
+          for token in ("onCall(", "getAuthenticatedUid(request", "ensurePlayerIdentity"):
               assert token in function_entry, 'V55: callable server entry missing: '+token
+          assert "request.auth.uid" in identity_logic, 'V55: server must derive UID from verified auth context'
           for token in ("transaction.create(identityRef", "transaction.set(counterRef", "validateSequenceCounter", "auditSequenceState"):
               assert token in identity_logic, 'V55: atomic ID allocation/audit missing: '+token
           assert function_package.get('engines',{}).get('node')=='22', 'V55: Functions runtime must be Node.js 22'
