@@ -285,7 +285,7 @@ public class MainActivity extends Activity {
       connection.setRequestProperty("Accept","application/json");
       connection.setRequestProperty("Content-Type","application/json; charset=utf-8");
       byte[] payload=new JSONObject().put("idToken",idToken).toString().getBytes(StandardCharsets.UTF_8);
-      connection.setFixedLengthStreamingMode(payload.length);
+      // Keep the request buffered so HttpURLConnection can follow Apps Script's 302 response.
       try(OutputStream output=connection.getOutputStream()) {
         output.write(payload);
         output.flush();
