@@ -245,10 +245,18 @@ public class MainActivity extends Activity {
                 detail="La identidad necesita una auditoría administrativa del contador antes de asignar nuevos ID.";
               else if(code==FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED)
                 detail="Se agotó el rango disponible de ID de cinco cifras.";
+              else if(code==FirebaseFunctionsException.Code.NOT_FOUND)
+                detail="El servicio de IDs todavía no está desplegado en Firebase (ensurePlayerIdentity). La cuenta y tu progreso siguen intactos.";
+              else if(code==FirebaseFunctionsException.Code.INVALID_ARGUMENT)
+                detail="Firebase rechazó los datos de la solicitud de identidad. No se modificó tu perfil.";
+              else if(code==FirebaseFunctionsException.Code.DEADLINE_EXCEEDED)
+                detail="Firebase tardó demasiado en responder. Comprueba Internet y pulsa REINTENTAR ID.";
               else if(code==FirebaseFunctionsException.Code.PERMISSION_DENIED)
-                detail="Firebase rechazó la llamada. Revisa la autorización de Cloud Functions.";
+                detail="Firebase denegó la llamada a la función. Revisa permisos de Cloud Functions y App Check.";
               else if(code==FirebaseFunctionsException.Code.UNAVAILABLE)
                 detail="Firebase no está disponible. Conservamos el progreso local; reintenta cuando haya conexión.";
+              else if(code==FirebaseFunctionsException.Code.INTERNAL||code==FirebaseFunctionsException.Code.UNKNOWN)
+                detail="El servidor de identidades encontró un error. Tu cuenta y respaldo no fueron borrados; consulta los registros de Cloud Functions.";
             }
             identityMessage("error",detail);
           });
