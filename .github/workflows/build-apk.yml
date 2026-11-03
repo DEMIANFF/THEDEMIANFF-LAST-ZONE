@@ -113,6 +113,8 @@ jobs:
           assert endpoint.startswith('https://script.google.com/macros/s/') and endpoint.endswith('/exec') and len(endpoint) <= 256 and not any(ch.isspace() for ch in endpoint), 'V55.4: endpoint must be a published HTTPS Apps Script Web App URL'
           for token in ('IDENTITY_ENDPOINT_CONFIG', 'identity-gas/endpoint.txt', 'resolveIdentityEndpoint()', 'callFreeIdentityService(endpoint,idToken)'):
               assert token in java, 'V55.4: endpoint discovery/POST integration missing: '+token
+          for token in ('setInstanceFollowRedirects(false)', 'getHeaderField("Location")', 'script.googleusercontent.com', 'readIdentityRedirect(redirected,1)', 'for(int attempt=0;attempt<3;attempt++)'):
+              assert token in java, 'V55.4: bounded Apps Script redirect handling missing: '+token
           for token in ("window.thedemianffIdentityResult=", 'window.THEDEMIANFFIdentity.ensure()', "state==='assigned'", "v18Progress.playerId=value"):
               assert token in html, 'V55.4: player ID result is not connected to the profile: '+token
           assert 'Firebase aún no autorizó el ID; verifica sus reglas' not in html, 'V55.3: generic error text still hides callable failure'
