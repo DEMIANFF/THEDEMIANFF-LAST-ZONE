@@ -109,7 +109,8 @@ function verifyFirebaseGoogleUser_(idToken) {
   return user.localId;
 }
 
-/** Lock lookup + append + counter update. Inconsistent state is always rejected. */
+/** Lock lookup + append + counter update. Recover only one complete, sequential tail row
+ * if a process stopped after writing the row but before persisting the high-water mark. */
 function assignPlayerNumber_(uid) {
   const lock = LockService.getScriptLock();
   try {
@@ -124,7 +125,7 @@ function assignPlayerNumber_(uid) {
     const counterRaw = properties.getProperty(COUNTER_PROPERTY);
     if (!sheetId || counterRaw === null) throw serviceError_('NOT_CONFIGURED');
 
-    const counter = Number(counterRaw);
+    let counter = Number(counterRaw);
     if (!Number.isSafeInteger(counter) || counter < 0 || counter > MAX_PLAYER_ID) {
       throw serviceError_('REGISTRY_CORRUPT');
     }
@@ -132,7 +133,29 @@ function assignPlayerNumber_(uid) {
     const spreadsheet = SpreadsheetApp.openById(sheetId);
     const sheet = spreadsheet.getSheetByName('players');
     validateSheetHeaders_(sheet);
-    const lastRow = sheet.getLastRow();
+    let lastRow = sheet.getLastRow();
+
+    // A process can be interrupted between appending the row and updating Script Properties.
+    // Recover exactly that one verifiable tail write; never guess across multiple missing rows.
+    if (lastRow === counter + 2) {
+      const tail = sheet.getRange(lastRow, 1, 1, 3).getValues()[0];
+      const tailUid = tail[0];
+      const tailNumber = Number(tail[1]);
+      if (typeof tailUid !== 'string' || tailUid.length === 0 ||
+          !Number.isSafeInteger(tailNumber) || tailNumber !== counter + 1 ||
+          tail[2] === '' || tail[2] === null) {
+        throw serviceError_('REGISTRY_CORRUPT');
+      }
+      if (lastRow > 2) {
+        const duplicateTail = sheet.getRange(2, 1, lastRow - 2, 1)
+          .createTextFinder(tailUid)
+          .matchEntireCell(true)
+          .findAll();
+        if (duplicateTail.length > 0) throw serviceError_('REGISTRY_CORRUPT');
+      }
+      counter = tailNumber;
+      properties.setProperty(COUNTER_PROPERTY, String(counter));
+    }
     if (lastRow !== counter + 1) throw serviceError_('REGISTRY_CORRUPT');
 
     if (counter > 0) {
