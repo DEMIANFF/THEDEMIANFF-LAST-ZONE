@@ -209,3 +209,41 @@ test('does not repair or reset a partially configured registry', () => {
   env.props.deleteProperty('THEDEMIANFF_PLAYER_ID_COUNTER');
   assert.throws(() => env.context.setupRegistry(), /Configuración parcial/);
 });
+
+
+test('recovers one complete append interrupted before the counter update', () => {
+  const sheet = new FakeSheet([
+    ['firebaseUid', 'playerNumber', 'createdAt'],
+    ['uid-committed-before-counter', 1, 'date-1'],
+  ]);
+  const env = createEnvironment({
+    spreadsheet: new FakeSpreadsheet(sheet),
+    properties: { THEDEMIANFF_PLAYER_ID_COUNTER: '0' },
+  });
+  const nextToken = 'r'.repeat(120);
+  const oldToken = 's'.repeat(120);
+  env.users[nextToken] = env.googleUser('uid-next');
+  env.users[oldToken] = env.googleUser('uid-committed-before-counter');
+
+  assert.equal(env.parse(env.post({ idToken: nextToken })).number, 2);
+  assert.equal(env.props.getProperty('THEDEMIANFF_PLAYER_ID_COUNTER'), '2');
+  assert.equal(sheet.getLastRow(), 3);
+  assert.equal(env.parse(env.post({ idToken: oldToken })).number, 1);
+  assert.equal(sheet.getLastRow(), 3);
+});
+
+test('refuses crash recovery when the uncommitted tail row is malformed', () => {
+  const sheet = new FakeSheet([
+    ['firebaseUid', 'playerNumber', 'createdAt'],
+    ['uid-partial', 9, 'date-1'],
+  ]);
+  const env = createEnvironment({
+    spreadsheet: new FakeSpreadsheet(sheet),
+    properties: { THEDEMIANFF_PLAYER_ID_COUNTER: '0' },
+  });
+  const token = 'q'.repeat(120);
+  env.users[token] = env.googleUser('uid-next');
+  assert.equal(env.parse(env.post({ idToken: token })).code, 'REGISTRY_CORRUPT');
+  assert.equal(env.props.getProperty('THEDEMIANFF_PLAYER_ID_COUNTER'), '0');
+  assert.equal(sheet.getLastRow(), 2);
+});
