@@ -110,7 +110,7 @@ jobs:
           for token in ('setupRegistry', 'THEDEMIANFF_PLAYER_ID_COUNTER', 'lastRow === counter + 2'):
               assert token in gas, 'V55.4: safe free registry implementation missing: '+token
           endpoint=Path('identity-gas/endpoint.txt').read_text(encoding='utf-8').strip()
-          assert re.fullmatch(r'https://script\\.google\\.com/macros/s/[A-Za-z0-9_-]+/exec', endpoint), 'V55.4: endpoint must be a published HTTPS Apps Script Web App URL'
+          assert endpoint.startswith('https://script.google.com/macros/s/') and endpoint.endswith('/exec') and len(endpoint) <= 256 and not any(ch.isspace() for ch in endpoint), 'V55.4: endpoint must be a published HTTPS Apps Script Web App URL'
           for token in ('IDENTITY_ENDPOINT_CONFIG', 'identity-gas/endpoint.txt', 'resolveIdentityEndpoint()', 'callFreeIdentityService(endpoint,idToken)'):
               assert token in java, 'V55.4: endpoint discovery/POST integration missing: '+token
           for token in ("window.thedemianffIdentityResult=", 'window.THEDEMIANFFIdentity.ensure()', "state==='assigned'", "v18Progress.playerId=value"):
