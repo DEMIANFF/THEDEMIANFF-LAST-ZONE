@@ -118,6 +118,7 @@ jobs:
           for token in ("window.thedemianffIdentityResult=", 'window.THEDEMIANFFIdentity.ensure()', "state==='assigned'", "v18Progress.playerId!==value", 'v544IdVerifiedAccount===v446GoogleEmail', 'v544IdVerifiedAccount=v446GoogleEmail', 'v544IdVerifiedAccount=\'\''):
               assert token in html, 'V55.4: canonical player ID verification missing: '+token
           assert "if(v536IdPattern.test(v18Progress.playerId||''))return;" not in html, 'V55.4: imported five-digit IDs must be checked against the authenticated UID'
+          assert "retryId.disabled=v544IdVerifiedAccount===v446GoogleEmail&&v536IdPattern.test(p.playerId||'')" in html, 'V55.4: ID retry must stay enabled until the server verifies this Google session'
           assert 'Firebase aún no autorizó el ID; verifica sus reglas' not in html, 'V55.3: generic error text still hides callable failure'
           assert 'collection("player_identities")' not in java and 'collection("system_counters")' not in java, 'V55: Android client must not access privileged identity collections'
           function_entry=Path('functions/src/index.js').read_text(encoding='utf-8')
