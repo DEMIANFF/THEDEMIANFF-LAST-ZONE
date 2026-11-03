@@ -1,0 +1,9 @@
+{
+  "name": "thedemianff-free-player-identity",
+  "private": true,
+  "description": "Tests for the Google Apps Script player ID service",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node --check < Code.gs && node --check test/identity.test.js"
+  }
+}
