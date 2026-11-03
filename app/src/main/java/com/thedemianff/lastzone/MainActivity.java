@@ -277,13 +277,13 @@ public class MainActivity extends Activity {
   // strict host allowlist and bounded retries for transient Google redirect loops.
   private JSONObject callFreeIdentityService(String endpoint,String idToken) throws IOException {
     IOException lastError=null;
-    for(int attempt=0;attempt<3;attempt++) {
+    for(int attempt=0;attempt<4;attempt++) {
       try {
         return callFreeIdentityServiceAttempt(endpoint,idToken);
       } catch(IOException error) {
         lastError=error;
-        if(attempt<2) {
-          try { Thread.sleep(500L*(attempt+1)); }
+        if(attempt<3) {
+          try { Thread.sleep(1000L*(attempt+1)); }
           catch(InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             throw new IOException("La consulta del ID fue interrumpida.",interrupted);
@@ -291,7 +291,7 @@ public class MainActivity extends Activity {
         }
       }
     }
-    throw new IOException("No se pudo completar la consulta al registro después de tres intentos.",lastError);
+    throw new IOException("No se pudo completar la consulta al registro después de cuatro intentos.",lastError);
   }
 
   private JSONObject callFreeIdentityServiceAttempt(String endpoint,String idToken) throws IOException {
