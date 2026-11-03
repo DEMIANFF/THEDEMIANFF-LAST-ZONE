@@ -877,6 +877,7 @@ window.thedemianffGoogleResult=function(state,detail){
  $('v443Google').disabled=false;
  if(state==='signed_in'){const incoming=typeof detail==='string'?detail.slice(0,150):'';const previous=localStorage.getItem(v504AccountKey)||'';const sameAccount=incoming&&incoming===previous;if(sameAccount&&v446GoogleEmail===incoming&&(v504Restoring||v504CloudReady))return;v497ResetCloudQueue();v495CloudLastConfirmed=0;
    v446GoogleEmail=incoming;
+   if(v544IdVerifiedAccount!==incoming)v544IdVerifiedAccount='';
    if(incoming&&previous&&previous!==incoming){try{const old=localStorage.getItem(progressKey);if(old)localStorage.setItem(v504AccountProgress(previous),old);}catch(e){console.warn('No se pudo archivar progreso anterior',e)}}
    if(incoming&&!previous&&guestId){try{const guestProgress=localStorage.getItem(progressKey);if(guestProgress)localStorage.setItem(v504PendingGuest(incoming),JSON.stringify(v443ValidateProgress(JSON.parse(guestProgress))));}catch(e){console.warn('Perfil invitado no transferible',e)}}
    if(incoming&&!sameAccount){try{const own=localStorage.getItem(v504AccountProgress(incoming));v504SetLocalProgress(own?v443ValidateProgress(JSON.parse(own)):v504Blank());localStorage.setItem(v504AccountKey,incoming);}catch(e){v494CloudNotice('⚠ No se pudo aislar el perfil local: '+e.message);}}
@@ -899,6 +900,7 @@ window.thedemianffGoogleResult=function(state,detail){
    const v504PriorOwner=v446GoogleEmail||localStorage.getItem(v504AccountKey)||'';
    const v504WasGoogle=!!v504PriorOwner;
    if(v504PriorOwner){try{const outgoing=localStorage.getItem(progressKey);if(outgoing)localStorage.setItem(v504AccountProgress(v504PriorOwner),outgoing);}catch(e){console.warn('No se pudo cachear la cuenta saliente',e)}}
+   v544IdVerifiedAccount='';v544IdRequestPending=false;v544IdRequestAccount='';
    v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v504CloudReady=false;v504Restoring=false;v504NewProfilePending=false;v446GoogleEmail='';v496LobbyCloudStatus('☁ Invitado · progreso solo en este dispositivo');$('v494AutoCloud').checked=false;
    guest.style.display='block';
    $('v504GoogleEntry').style.display='block';
@@ -915,6 +917,7 @@ window.thedemianffGoogleResult=function(state,detail){
    info.textContent=guestId?'Invitado existente · puedes continuar con tu progreso local':'Elige cómo ingresar al juego.';
    message.textContent='Google no conectado. Puedes seguir jugando como invitado.';
  }else{
+   v544IdVerifiedAccount='';v544IdRequestPending=false;v544IdRequestAccount='';
    v446GoogleEmail='';v496LobbyCloudStatus('☁ Google no verificado · progreso local');
    guest.style.display='block';
    $('v504GoogleEntry').style.display='block';
@@ -969,7 +972,7 @@ const v536LegacyIdPattern=/^LZ-[A-F0-9]{24}$/;
 const v536NamePattern=/^[A-Za-z0-9_ÁÉÍÓÚÜÑáéíóúüñ ]{3,18}$/;
 // The private owner-controlled registry verifies Firebase ID tokens and assigns public IDs.
 // V54.4: One in-flight request per Google session; retry is explicit.
-let v544IdRequestPending=false,v544IdRequestAccount='',v544IdStatus='Conecta Google para asignar tu ID.';
+let v544IdRequestPending=false,v544IdRequestAccount='',v544IdVerifiedAccount='',v544IdStatus='Conecta Google para asignar tu ID.';
 function v544DisplayIdStatus(){
  const status=$('v544IdStatus')||$('v536NameStatus');
  if(status&&$('v18PanelTitle')?.textContent==='CUENTA DE JUGADOR')status.textContent=v544IdStatus;
@@ -979,7 +982,7 @@ function v540RequestId(){
   v544IdStatus='Conecta Google y recupera tu perfil para recibir tu número.';
   v544DisplayIdStatus();return;
  }
- if(v536IdPattern.test(v18Progress.playerId||''))return;
+ if(v544IdVerifiedAccount===v446GoogleEmail&&v536IdPattern.test(v18Progress.playerId||''))return;
  if(v544IdRequestPending&&v544IdRequestAccount===v446GoogleEmail)return;
  if(!window.THEDEMIANFFIdentity?.ensure){
   v544IdStatus='El ID numérico solo está disponible en la APK Android actualizada.';
@@ -1006,6 +1009,7 @@ window.thedemianffIdentityResult=(state,value)=>{
  v544IdRequestPending=false;
  if(state==='assigned'&&v536IdPattern.test(value)&&v446GoogleEmail&&v504CloudReady&&!v498CloudLoadPending){
   v544IdStatus='ID asignado y registrado de forma segura.';
+  v544IdVerifiedAccount=v446GoogleEmail;
   if(v18Progress.playerId!==value){v18Progress.playerId=value;v18Save();}
   v18Refresh();
   const panel=$('v18Panel');
@@ -3909,7 +3913,7 @@ function v18Open(name){
  if(name==='CUENTA DE JUGADOR'){
   html+='<div class="v18Grid">'+card('ID PÚBLICO',v18Esc(v536IdPattern.test(p.playerId||'')?p.playerId:'PENDIENTE DE FIREBASE'))+card('NOMBRE ACTUAL',v18Esc(p.playerName||'OPERADOR'))+'</div>';
   html+='<div class="v536Editor"><label for="v536PlayerName">NOMBRE DEL OPERADOR</label><input id="v536PlayerName" type="text" maxlength="18" autocomplete="off" spellcheck="false" value="'+v18Esc(p.playerName||'OPERADOR')+'"><button type="button" id="v536SaveName">GUARDAR NOMBRE</button><button type="button" id="v536CopyId">COPIAR ID</button><button type="button" id="v544RetryId">REINTENTAR ID</button><small id="v544IdStatus" role="status">Conecta Google para obtener tu ID numérico.</small><small id="v536NameStatus" role="status">Nombre de 3 a 18 caracteres. El ID permanece al cambiar de nombre.</small></div>';
-  html+='<p class="v18PanelNote">Tu ID es público, no una contraseña. Para recuperarlo tras reinstalar, confirma el respaldo de Google. Los números se asignan desde Firebase al vincular Google. Los invitados sin vincular todavía no reciben ID global.</p>';
+  html+='<p class="v18PanelNote">Tu ID es público, no una contraseña. Para recuperarlo tras reinstalar, confirma el respaldo de Google. El registro seguro asigna y verifica tu número al vincular una cuenta Google verificada. Los invitados sin vincular todavía no reciben ID global.</p>';
  }else if(name==='ESTADÍSTICAS'){
   const games=Math.max(0,Number(p.matches)||0),wins=Math.max(0,Number(p.wins)||0),kills=Math.max(0,Number(p.kills)||0);
   const xp=Math.max(0,Number(p.xp)||0),level=1+Math.floor(xp/350),remaining=350-(xp%350);
