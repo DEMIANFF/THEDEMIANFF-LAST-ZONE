@@ -3974,7 +3974,7 @@ function v18Open(name){
  body.innerHTML=html;
  const saveName=body.querySelector('#v536SaveName'),copyId=body.querySelector('#v536CopyId');
  const retryId=body.querySelector('#v544RetryId');
- if(retryId){retryId.disabled=v536IdPattern.test(p.playerId||'');retryId.addEventListener('click',v540RequestId);}
+ if(retryId){retryId.disabled=v544IdVerifiedAccount===v446GoogleEmail&&v536IdPattern.test(p.playerId||'');retryId.addEventListener('click',v540RequestId);}
  v544DisplayIdStatus();
  if(saveName)saveName.addEventListener('click',()=>{
   const status=body.querySelector('#v536NameStatus');
