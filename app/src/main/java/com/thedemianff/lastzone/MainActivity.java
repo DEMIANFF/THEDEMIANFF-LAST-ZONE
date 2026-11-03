@@ -9,6 +9,8 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.functions.FirebaseFunctionsException;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FieldValue;
 import java.util.HashMap;
@@ -199,8 +201,8 @@ public class MainActivity extends Activity {
     }
   }
 
-  // V54: Firebase transaction issues one immutable, globally sequential public ID.
-  // Guest profiles without Firebase authentication show PENDING, not a duplicate ID.
+  // V55: public player IDs are assigned only by the authenticated server callable.
+  // Guest profiles remain pending; the Android client never writes identity counters.
   private void identityMessage(String state,String detail) {
     runOnUiThread(() -> {
       if(web==null)return;
@@ -214,43 +216,42 @@ public class MainActivity extends Activity {
         FirebaseUser user=firebaseAuth.getCurrentUser();
         if(user==null){identityMessage("pending","Conecta Google para recibir un ID numérico único.");return;}
         final String uid=user.getUid();
-        FirebaseFirestore db=FirebaseFirestore.getInstance();
-        com.google.firebase.firestore.DocumentReference identity=db.collection("player_identities").document(uid);
-        com.google.firebase.firestore.DocumentReference counter=db.collection("system_counters").document("players");
-        db.runTransaction(transaction -> {
-          com.google.firebase.firestore.DocumentSnapshot existing=transaction.get(identity);
-          if(existing.exists()){
-            Long assigned=existing.getLong("number");
-            if(assigned==null||assigned<1||assigned>99999L)throw new IllegalStateException("ID registrado fuera de rango.");
-            return assigned;
-          }
-          com.google.firebase.firestore.DocumentSnapshot current=transaction.get(counter);
-          Long previous=current.exists()?current.getLong("next"):0L;
-          if(previous==null||previous<0||previous>=99999L)throw new IllegalStateException("Se agotó el rango de IDs de cinco cifras.");
-          long next=previous+1L;
-          Map<String,Object> counterData=new HashMap<>();counterData.put("next",next);
-          transaction.set(counter,counterData);
-          Map<String,Object> identityData=new HashMap<>();
-          identityData.put("number",next);
-          identityData.put("createdAt",FieldValue.serverTimestamp());
-          transaction.set(identity,identityData);
-          return next;
-        }).addOnSuccessListener(number->{
-          if(cloudAccountUnchanged(uid))identityMessage("assigned",String.format(java.util.Locale.US,"%05d",number));
-        }).addOnFailureListener(e->{
-          if(cloudAccountUnchanged(uid)) {
-            String detail="No se pudo asignar el ID numérico. Comprueba la conexión y las reglas de Firebase para player_identities y system_counters.";
-            if(e instanceof com.google.firebase.firestore.FirebaseFirestoreException) {
-              com.google.firebase.firestore.FirebaseFirestoreException.Code code=
-                ((com.google.firebase.firestore.FirebaseFirestoreException)e).getCode();
-              if(code==com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED)
-                detail="Firebase no autorizó el ID numérico: faltan permisos para el contador y el registro de identidades.";
-              if(code==com.google.firebase.firestore.FirebaseFirestoreException.Code.UNAVAILABLE)
-                detail="Sin conexión con Firebase: pulsa REINTENTAR ID cuando tengas Internet.";
+        FirebaseFunctions.getInstance("us-central1")
+          .getHttpsCallable("ensurePlayerIdentity")
+          .call()
+          .addOnSuccessListener(result -> {
+            if(!cloudAccountUnchanged(uid))return;
+            Object response=result.getData();
+            Object raw=response instanceof Map ? ((Map<?,?>)response).get("number") : null;
+            if(!(raw instanceof Number)) {
+              identityMessage("error","Firebase respondió con un ID inválido. Pulsa REINTENTAR ID.");
+              return;
+            }
+            double numeric=((Number)raw).doubleValue();
+            if(!Double.isFinite(numeric)||numeric<1||numeric>99999||numeric!=Math.rint(numeric)) {
+              identityMessage("error","Firebase respondió con un ID fuera del rango permitido.");
+              return;
+            }
+            identityMessage("assigned",String.format(java.util.Locale.US,"%05d",(long)numeric));
+          })
+          .addOnFailureListener(error -> {
+            if(!cloudAccountUnchanged(uid))return;
+            String detail="No se pudo asignar el ID desde Firebase. Comprueba Internet y vuelve a intentarlo.";
+            if(error instanceof FirebaseFunctionsException) {
+              FirebaseFunctionsException.Code code=((FirebaseFunctionsException)error).getCode();
+              if(code==FirebaseFunctionsException.Code.UNAUTHENTICATED)
+                detail="La sesión de Google no está autenticada. Vuelve a iniciar sesión.";
+              else if(code==FirebaseFunctionsException.Code.FAILED_PRECONDITION)
+                detail="La identidad necesita una auditoría administrativa del contador antes de asignar nuevos ID.";
+              else if(code==FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED)
+                detail="Se agotó el rango disponible de ID de cinco cifras.";
+              else if(code==FirebaseFunctionsException.Code.PERMISSION_DENIED)
+                detail="Firebase rechazó la llamada. Revisa la autorización de Cloud Functions.";
+              else if(code==FirebaseFunctionsException.Code.UNAVAILABLE)
+                detail="Firebase no está disponible. Conservamos el progreso local; reintenta cuando haya conexión.";
             }
             identityMessage("error",detail);
-          }
-        });
+          });
       });
     }
   }
