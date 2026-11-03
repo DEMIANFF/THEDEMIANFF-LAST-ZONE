@@ -83,6 +83,27 @@ async function assignSequentialPlayerId({ firestore, uid, serverTimestamp, creat
   });
 }
 
+async function initializeEmptyPlayerCounter({ firestore, createError }) {
+  return firestore.runTransaction(async (transaction) => {
+    const counterRef = firestore.collection('system_counters').doc('players');
+    const identitiesQuery = firestore.collection('player_identities').limit(1);
+    const counterSnapshot = await transaction.get(counterRef);
+    const identitySnapshot = await transaction.get(identitiesQuery);
+
+    // Existing state is never rewritten by this bootstrap command.
+    if (counterSnapshot.exists) {
+      return { created: false, next: counterSnapshot.get('next') };
+    }
+    // Never infer a safe starting point from a partially populated identity collection.
+    if (identitySnapshot.docs.length > 0) {
+      fail(createError, 'failed-precondition',
+        'Existing player identities were found but the counter is missing; manual audit is required.');
+    }
+    transaction.create(counterRef, { next: 0 });
+    return { created: true, next: 0 };
+  });
+}
+
 function auditSequenceState(identityRecords, counterExists, counterValue) {
   const errors = [];
   const seen = new Set();
@@ -117,4 +138,5 @@ module.exports = {
   assignSequentialPlayerId,
   auditSequenceState,
   getAuthenticatedUid,
+  initializeEmptyPlayerCounter,
 };

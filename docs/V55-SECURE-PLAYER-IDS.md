@@ -1,4 +1,4 @@
-# V55 — IDs secuenciales seguros
+# V55.3 — IDs secuenciales seguros
 
 ## Implementación
 
@@ -11,14 +11,17 @@
 
 ## Preflight antes de desplegar
 
-Desde `functions/`, con credenciales de lectura para `thedemianff-last-zone`, ejecutar:
+Desde `functions/`, con Node.js 22 y credenciales administrativas de Application Default Credentials para `thedemianff-last-zone`, ejecutar:
 
 ```bash
 npm install
-npm run audit:player-ids
 npm test
 npm run check
+npm run bootstrap:player-ids
+npm run audit:player-ids
 ```
+
+`bootstrap:player-ids` solo crea `/system_counters/players` con `{ next: 0 }` cuando el contador no existe y la colección `player_identities` está completamente vacía. Si encuentra cualquier identidad existente, se detiene y no escribe. Si el contador ya existe, no lo modifica. Ejecutarlo requiere permiso administrativo para crear el documento del contador; nunca actualiza identidades.
 
 La auditoría lee toda `player_identities` en páginas de 1.000 documentos y consulta `/system_counters/players`; comprueba IDs enteros únicos dentro de `00001`–`99999` y que `next` exista y no sea menor que el ID máximo. Es de solo lectura. Si falla, detener el despliegue y resolver la inconsistencia mediante revisión administrativa; no reiniciar el contador ni sobrescribir identidades.
 
@@ -30,4 +33,4 @@ Este commit prepara el código, pero no ejecuta `firebase deploy`, no cambia el 
 
 ## Pruebas
 
-`npm test` ejecuta 10 pruebas unitarias del asignador con un adaptador transaccional en memoria. Incluyen autenticación, rechazo de UID enviado por el cliente, idempotencia, concurrencia simulada, contador faltante/atrasado/inválido, límite 99.999 y auditoría. No sustituyen una prueba de integración con Firebase Emulator ni la auditoría de datos reales de producción.
+`npm test` ejecuta 13 pruebas unitarias del asignador con un adaptador transaccional en memoria. Incluyen autenticación, rechazo de UID enviado por el cliente, idempotencia, concurrencia simulada, contador faltante/atrasado/inválido, límite 99.999, auditoría y bootstrap inicial protegido. No sustituyen una prueba de integración con Firebase Emulator ni la auditoría de datos reales de producción.

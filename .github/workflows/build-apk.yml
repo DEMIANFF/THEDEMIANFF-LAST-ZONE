@@ -97,8 +97,8 @@ jobs:
           assert 'db.runTransaction(transaction ->' not in java, 'V55: client-side identity transaction must be removed'
           for token in ('FirebaseFunctionsException.Code.NOT_FOUND', 'todavía no está desplegado en Firebase', 'Code.FAILED_PRECONDITION'):
               assert token in java, 'V55.2: precise Firebase callable diagnostics missing: '+token
-          assert 'V55.2 · ID SECUENCIAL' in h and 'AURORA EVOLUTION · V55.2' in h, 'V55.2: lobby version labels are stale'
-          assert 'Firebase aún no autorizó el ID; verifica sus reglas' not in h, 'V55.2: generic error text still hides callable failure'
+          assert 'V55.3 · ID SECUENCIAL' in html and 'AURORA EVOLUTION · V55.3' in h, 'V55.2: lobby version labels are stale'
+          assert 'Firebase aún no autorizó el ID; verifica sus reglas' not in html, 'V55.2: generic error text still hides callable failure'
           assert 'collection("player_identities")' not in java and 'collection("system_counters")' not in java, 'V55: Android client must not access privileged identity collections'
           function_entry=Path('functions/src/index.js').read_text(encoding='utf-8')
           identity_logic=Path('functions/src/identity.js').read_text(encoding='utf-8')
@@ -111,6 +111,12 @@ jobs:
           assert function_package.get('engines',{}).get('node')=='22', 'V55: Functions runtime must be Node.js 22'
           assert function_package.get('dependencies',{}).get('firebase-admin')=='14.5.0', 'V55: Admin SDK version missing'
           assert function_package.get('dependencies',{}).get('firebase-functions')=='7.4.0', 'V55: Functions SDK version missing'
+          assert 'bootstrap:player-ids' in function_package.get('scripts',{}), 'V55.3: safe empty-counter bootstrap command missing'
+          assert Path('functions/scripts/initialize-player-counter.js').is_file(), 'V55.3: bootstrap script missing'
+          for token in ('initializeEmptyPlayerCounter', 'identitySnapshot.docs.length > 0', 'transaction.create(counterRef'):
+              assert token in identity_logic, 'V55.3: bootstrap must protect existing identity records: '+token
+          assert '},75000);' in html, 'V55.3: identity request timeout must allow the callable SDK deadline'
+
           # V34.1: camera look owner cannot be stolen by a moving second finger.
           if "now-v26LastLookMove>85" in html: raise SystemExit("V34.1: cámara aún permite robo del puntero")
           if "!v23Touches.has(v26LookOwner)" not in html: raise SystemExit("V34.1: falta control de dueño de cámara")

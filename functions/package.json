@@ -8,8 +8,9 @@
   },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "check": "node --check src/index.js && node --check src/identity.js && node --check scripts/audit-player-ids.js",
-    "audit:player-ids": "node scripts/audit-player-ids.js"
+    "check": "node --check src/index.js && node --check src/identity.js && node --check scripts/audit-player-ids.js && node --check scripts/initialize-player-counter.js",
+    "audit:player-ids": "node scripts/audit-player-ids.js",
+    "bootstrap:player-ids": "node scripts/initialize-player-counter.js"
   },
   "dependencies": {
     "firebase-admin": "14.5.0",

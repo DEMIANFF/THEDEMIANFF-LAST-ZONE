@@ -6,6 +6,7 @@ const {
   assignSequentialPlayerId,
   auditSequenceState,
   getAuthenticatedUid,
+  initializeEmptyPlayerCounter,
 } = require('../src/identity');
 
 const createError = (code, message) => Object.assign(new Error(message), { code });
@@ -16,6 +17,7 @@ function makeFirestore({ identities = [], counterExists = true, counterValue = 0
   let queue = Promise.resolve();
   const identityCollection = {
     doc: (id) => ({ collection: 'player_identities', id }),
+    limit(count) { return { collection: 'player_identities', count }; },
     orderBy(field, direction) {
       return {
         collection: 'player_identities', field, direction,
@@ -38,6 +40,7 @@ function makeFirestore({ identities = [], counterExists = true, counterValue = 0
       await previous;
       const identityWrites = new Map();
       let counterWrite = null;
+      let counterCreate = null;
       const transaction = {
         async get(ref) {
           if (ref.collection === 'player_identities' && ref.id) {
@@ -46,6 +49,11 @@ function makeFirestore({ identities = [], counterExists = true, counterValue = 0
           }
           if (ref.collection === 'system_counters') {
             return { exists: counter !== null, get: (key) => counter?.[key] };
+          }
+          if (ref.collection === 'player_identities' && ref.count && !ref.field) {
+            const docs = [...identityDocs.entries()].slice(0, ref.count)
+              .map(([id, data]) => ({ id, get: (key) => data[key] }));
+            return { docs };
           }
           if (ref.collection === 'player_identities' && ref.field) {
             const docs = [...identityDocs.entries()]
@@ -58,6 +66,11 @@ function makeFirestore({ identities = [], counterExists = true, counterValue = 0
           throw new Error('Unexpected transaction read');
         },
         create(ref, data) {
+          if (ref.collection === 'system_counters') {
+            if (counter !== null || counterCreate !== null) throw new Error('document exists');
+            counterCreate = data;
+            return;
+          }
           if (identityDocs.has(ref.id) || identityWrites.has(ref.id)) throw new Error('document exists');
           identityWrites.set(ref.id, data);
         },
@@ -67,6 +80,7 @@ function makeFirestore({ identities = [], counterExists = true, counterValue = 0
         const result = await callback(transaction);
         for (const [uid, data] of identityWrites) identityDocs.set(uid, data);
         if (counterWrite !== null) counter = counterWrite;
+        else if (counterCreate !== null) counter = counterCreate;
         return result;
       } finally {
         release();
@@ -151,6 +165,31 @@ test('stops at the five-digit limit without creating another identity', async ()
   await assert.rejects(assign(db, 'last-user'), { code: 'resource-exhausted' });
   assert.equal(db.snapshot().identities.length, 0);
   assert.equal(db.snapshot().counter.next, 99999);
+});
+
+
+test('initializes a missing counter at zero only for an empty identity collection', async () => {
+  const db = makeFirestore({ counterExists: false });
+  const result = await initializeEmptyPlayerCounter({ firestore: db, createError });
+  assert.deepEqual(result, { created: true, next: 0 });
+  assert.deepEqual(db.snapshot(), { identities: [], counter: { next: 0 } });
+});
+
+test('does not overwrite an existing counter', async () => {
+  const db = makeFirestore({ counterValue: 17 });
+  const result = await initializeEmptyPlayerCounter({ firestore: db, createError });
+  assert.deepEqual(result, { created: false, next: 17 });
+  assert.equal(db.snapshot().counter.next, 17);
+});
+
+test('refuses to initialize a missing counter when any player identity exists', async () => {
+  const db = makeFirestore({ identities: [{ uid: 'old-user', number: 8 }], counterExists: false });
+  await assert.rejects(
+    initializeEmptyPlayerCounter({ firestore: db, createError }),
+    { code: 'failed-precondition' },
+  );
+  assert.equal(db.snapshot().counter, null);
+  assert.equal(db.snapshot().identities.length, 1);
 });
 
 test('read-only audit accepts a valid high-water mark and detects duplicate or malformed records', () => {
