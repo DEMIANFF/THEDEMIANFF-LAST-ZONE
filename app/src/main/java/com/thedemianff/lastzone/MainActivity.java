@@ -9,8 +9,6 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.functions.FirebaseFunctions;
-import com.google.firebase.functions.FirebaseFunctionsException;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FieldValue;
 import java.util.HashMap;
@@ -31,9 +29,12 @@ import android.view.View;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.net.URLConnection;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -41,6 +42,7 @@ public class MainActivity extends Activity {
   private WebView web;
   private static final int GOOGLE_LOGIN_REQUEST=4420;
   private FirebaseAuth firebaseAuth;
+  private volatile boolean googleSignOutPending=false;
   private void authMessage(String state,String detail) {
     runOnUiThread(() -> {
       if(web==null)return;
@@ -51,6 +53,10 @@ public class MainActivity extends Activity {
   public final class GoogleAuthBridge {
     @JavascriptInterface public void signIn() {
       runOnUiThread(() -> {
+        if(googleSignOutPending) {
+          authMessage("error","Google todavía está cerrando la sesión anterior. Espera y vuelve a intentarlo.");
+          return;
+        }
         try {
           GoogleSignInOptions options=new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build();
@@ -60,13 +66,19 @@ public class MainActivity extends Activity {
     }
     @JavascriptInterface public void signOut() {
       runOnUiThread(() -> {
+        googleSignOutPending=true;
         firebaseAuth.signOut();
         GoogleSignInOptions options=new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
           .requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build();
-        // Firebase is signed out locally even if Google Play Services cannot complete its cleanup.
-        authMessage("signed_out","Sesión local de Google cerrada.");
-        GoogleSignIn.getClient(MainActivity.this,options).signOut().addOnFailureListener(ex ->
-          android.util.Log.w("THEDEMIANFF","No se pudo completar la limpieza de Google Sign-In",ex));
+        GoogleSignIn.getClient(MainActivity.this,options).signOut().addOnCompleteListener(MainActivity.this,task -> {
+          googleSignOutPending=false;
+          if(!task.isSuccessful())
+            android.util.Log.w("THEDEMIANFF","Google Sign-In no confirmó la limpieza de sesión",task.getException());
+          // Do not expose the signed-out UI until Google has completed its native cleanup.
+          authMessage("signed_out",task.isSuccessful()
+            ?"Sesión Google cerrada correctamente."
+            :"Sesión Firebase cerrada; Google no confirmó la limpieza. Verifica la cuenta al volver a entrar.");
+        });
       });
     }
     @JavascriptInterface public void status() {
@@ -201,8 +213,12 @@ public class MainActivity extends Activity {
     }
   }
 
-  // V55: public player IDs are assigned only by the authenticated server callable.
-  // Guest profiles remain pending; the Android client never writes identity counters.
+  // V55.4: free identity registry. Firebase ID tokens are verified by the owner-run
+  // Apps Script service; the Android client never submits a UID or writes the registry.
+  private static final String IDENTITY_ENDPOINT_CONFIG =
+    "https://raw.githubusercontent.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/v55-4-free-player-identity/identity-gas/endpoint.txt";
+  private static final String IDENTITY_ENDPOINT_PREFS = "thedemianff_identity_config_v1";
+
   private void identityMessage(String state,String detail) {
     runOnUiThread(() -> {
       if(web==null)return;
@@ -210,55 +226,238 @@ public class MainActivity extends Activity {
         JSONObject.quote(state)+","+JSONObject.quote(detail)+")",null);
     });
   }
+
+  private boolean isValidIdentityEndpoint(String value) {
+    if(value==null)return false;
+    try {
+      Uri uri=Uri.parse(value.trim());
+      String path=uri.getPath();
+      return "https".equalsIgnoreCase(uri.getScheme()) &&
+        "script.google.com".equalsIgnoreCase(uri.getHost()) &&
+        uri.getPort()==-1 && path!=null &&
+        path.matches("/macros/s/[A-Za-z0-9_-]+/exec");
+    } catch(Exception ignored) { return false; }
+  }
+
+  private String readIdentityResponse(InputStream input,int maxBytes) throws IOException {
+    if(input==null)throw new IOException("Respuesta vacía del servicio de identidad.");
+    ByteArrayOutputStream output=new ByteArrayOutputStream();
+    byte[] buffer=new byte[2048];
+    int total=0,count;
+    try(InputStream stream=input) {
+      while((count=stream.read(buffer))!=-1) {
+        total+=count;
+        if(total>maxBytes)throw new IOException("Respuesta de identidad demasiado grande.");
+        output.write(buffer,0,count);
+      }
+    }
+    return new String(output.toByteArray(),StandardCharsets.UTF_8);
+  }
+
+  private String resolveIdentityEndpoint() throws IOException {
+    HttpURLConnection connection=null;
+    String cached=getSharedPreferences(IDENTITY_ENDPOINT_PREFS,MODE_PRIVATE)
+      .getString("endpoint","");
+    try {
+      connection=(HttpURLConnection)new URL(IDENTITY_ENDPOINT_CONFIG).openConnection();
+      connection.setRequestMethod("GET");
+      connection.setConnectTimeout(8000);
+      connection.setReadTimeout(10000);
+      connection.setUseCaches(false);
+      connection.setInstanceFollowRedirects(true);
+      int status=connection.getResponseCode();
+      if(status==200) {
+        String candidate=readIdentityResponse(connection.getInputStream(),2048).trim();
+        if(isValidIdentityEndpoint(candidate)) {
+          getSharedPreferences(IDENTITY_ENDPOINT_PREFS,MODE_PRIVATE).edit()
+            .putString("endpoint",candidate).apply();
+          return candidate;
+        }
+      }
+    } catch(Exception ignored) {
+      // A previously validated endpoint remains usable during a temporary GitHub outage.
+    } finally {
+      if(connection!=null)connection.disconnect();
+    }
+    if(isValidIdentityEndpoint(cached))return cached;
+    throw new IOException("El servicio gratuito de IDs todavía no está publicado en la configuración.");
+  }
+
+  // Apps Script ContentService redirects POST responses to a one-time
+  // script.googleusercontent.com URL. Follow that response as GET, with a
+  // strict host allowlist and bounded retries for transient Google redirect loops.
+  private JSONObject callFreeIdentityService(String endpoint,String idToken) throws IOException {
+    IOException lastError=null;
+    for(int attempt=0;attempt<4;attempt++) {
+      try {
+        return callFreeIdentityServiceAttempt(endpoint,idToken);
+      } catch(IOException error) {
+        lastError=error;
+        if(attempt<3) {
+          try { Thread.sleep(1000L*(attempt+1)); }
+          catch(InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IOException("La consulta del ID fue interrumpida.",interrupted);
+          }
+        }
+      }
+    }
+    throw new IOException("No se pudo completar la consulta al registro después de cuatro intentos.",lastError);
+  }
+
+  private JSONObject callFreeIdentityServiceAttempt(String endpoint,String idToken) throws IOException {
+    HttpURLConnection connection=null;
+    try {
+      connection=(HttpURLConnection)new URL(endpoint).openConnection();
+      connection.setRequestMethod("POST");
+      connection.setConnectTimeout(10000);
+      connection.setReadTimeout(30000);
+      connection.setDoOutput(true);
+      connection.setUseCaches(false);
+      connection.setInstanceFollowRedirects(false);
+      connection.setRequestProperty("Accept","application/json");
+      connection.setRequestProperty("Content-Type","application/json; charset=utf-8");
+      byte[] payload=new JSONObject().put("idToken",idToken).toString().getBytes(StandardCharsets.UTF_8);
+      try(OutputStream output=connection.getOutputStream()) {
+        output.write(payload);
+        output.flush();
+      }
+      int status=connection.getResponseCode();
+      if(status==301||status==302||status==303||status==307||status==308) {
+        String location=connection.getHeaderField("Location");
+        if(location==null||location.trim().isEmpty())
+          throw new IOException("Apps Script devolvió una redirección sin destino.");
+        URL redirected=new URL(new URL(endpoint),location);
+        connection.disconnect();
+        connection=null;
+        if("script.google.com".equalsIgnoreCase(redirected.getHost()))
+          throw new IOException("Apps Script devolvió un bucle de redirección; se reintentará.");
+        return readIdentityRedirect(redirected,1);
+      }
+      InputStream body=status>=400?connection.getErrorStream():connection.getInputStream();
+      String raw=readIdentityResponse(body,16384);
+      if(status<200||status>=300)
+        throw new IOException("El servicio de identidad respondió HTTP "+status+".");
+      return parseIdentityServiceJson(raw);
+    } catch(org.json.JSONException error) {
+      throw new IOException("El servicio de identidad devolvió una respuesta no válida.",error);
+    } finally {
+      if(connection!=null)connection.disconnect();
+    }
+  }
+
+  private JSONObject readIdentityRedirect(URL url,int redirects) throws IOException {
+    if(redirects>5)
+      throw new IOException("Apps Script excedió el límite de redirecciones.");
+    if(!"https".equalsIgnoreCase(url.getProtocol())||
+       !"script.googleusercontent.com".equalsIgnoreCase(url.getHost())||
+       url.getPort()!=-1||url.getUserInfo()!=null)
+      throw new IOException("Apps Script devolvió un destino de redirección no permitido.");
+
+    HttpURLConnection connection=null;
+    try {
+      connection=(HttpURLConnection)url.openConnection();
+      connection.setRequestMethod("GET");
+      connection.setConnectTimeout(10000);
+      connection.setReadTimeout(30000);
+      connection.setUseCaches(false);
+      connection.setInstanceFollowRedirects(false);
+      connection.setRequestProperty("Accept","application/json");
+      int status=connection.getResponseCode();
+      if(status==301||status==302||status==303||status==307||status==308) {
+        String location=connection.getHeaderField("Location");
+        if(location==null||location.trim().isEmpty())
+          throw new IOException("La respuesta de Apps Script contiene una redirección incompleta.");
+        URL next=new URL(url,location);
+        connection.disconnect();
+        connection=null;
+        return readIdentityRedirect(next,redirects+1);
+      }
+      InputStream body=status>=400?connection.getErrorStream():connection.getInputStream();
+      String raw=readIdentityResponse(body,16384);
+      if(status<200||status>=300)
+        throw new IOException("El resultado del registro respondió HTTP "+status+".");
+      return parseIdentityServiceJson(raw);
+    } finally {
+      if(connection!=null)connection.disconnect();
+    }
+  }
+
+  private JSONObject parseIdentityServiceJson(String raw) throws IOException {
+    try { return new JSONObject(raw); }
+    catch(org.json.JSONException error) {
+      throw new IOException("El servicio de identidad devolvió una respuesta no válida.",error);
+    }
+  }
+
+  private String identityServiceError(String code) {
+    if("UNAUTHENTICATED".equals(code))
+      return "La sesión de Google no es válida. Vuelve a iniciar sesión.";
+    if("GOOGLE_REQUIRED".equals(code))
+      return "Vincula una cuenta Google verificada para recibir un ID permanente.";
+    if("NOT_CONFIGURED".equals(code))
+      return "El administrador todavía debe terminar la configuración gratuita del registro de jugadores.";
+    if("REGISTRY_CORRUPT".equals(code))
+      return "El registro necesita una auditoría administrativa. No se asignó ni modificó ningún ID.";
+    if("RESOURCE_EXHAUSTED".equals(code))
+      return "Se agotó el rango disponible de ID de cinco cifras.";
+    if("BUSY".equals(code))
+      return "El registro está ocupado. Pulsa REINTENTAR ID en unos segundos.";
+    if("INVALID_ARGUMENT".equals(code))
+      return "La solicitud del ID fue rechazada. No se modificó el perfil.";
+    return "No se pudo confirmar el ID. Tu cuenta y tu progreso siguen intactos; puedes reintentar.";
+  }
+
   public final class IdentityBridge {
     @JavascriptInterface public void ensure() {
       runOnUiThread(() -> {
         FirebaseUser user=firebaseAuth.getCurrentUser();
-        if(user==null){identityMessage("pending","Conecta Google para recibir un ID numérico único.");return;}
+        if(user==null) {
+          identityMessage("pending","Conecta Google para recibir un ID numérico único.");
+          return;
+        }
         final String uid=user.getUid();
-        FirebaseFunctions.getInstance("us-central1")
-          .getHttpsCallable("ensurePlayerIdentity")
-          .call()
-          .addOnSuccessListener(result -> {
+        user.getIdToken(false)
+          .addOnSuccessListener(tokenResult -> {
             if(!cloudAccountUnchanged(uid))return;
-            Object response=result.getData();
-            Object raw=response instanceof Map ? ((Map<?,?>)response).get("number") : null;
-            if(!(raw instanceof Number)) {
-              identityMessage("error","Firebase respondió con un ID inválido. Pulsa REINTENTAR ID.");
+            String idToken=tokenResult==null?null:tokenResult.getToken();
+            if(idToken==null||idToken.length()<100) {
+              identityMessage("error","Firebase no entregó un token de sesión válido. Vuelve a iniciar sesión.");
               return;
             }
-            double numeric=((Number)raw).doubleValue();
-            if(!Double.isFinite(numeric)||numeric<1||numeric>99999||numeric!=Math.rint(numeric)) {
-              identityMessage("error","Firebase respondió con un ID fuera del rango permitido.");
-              return;
-            }
-            identityMessage("assigned",String.format(java.util.Locale.US,"%05d",(long)numeric));
+            new Thread(() -> {
+              try {
+                String endpoint=resolveIdentityEndpoint();
+                JSONObject response=callFreeIdentityService(endpoint,idToken);
+                if(!cloudAccountUnchanged(uid))return;
+                if(!response.optBoolean("ok",false)) {
+                  String code=response.optString("code","INTERNAL");
+                  identityMessage("error",identityServiceError(code));
+                  return;
+                }
+                Object raw=response.opt("number");
+                if(!(raw instanceof Number)) {
+                  identityMessage("error","El registro devolvió un ID inválido. Pulsa REINTENTAR ID.");
+                  return;
+                }
+                double numeric=((Number)raw).doubleValue();
+                if(!Double.isFinite(numeric)||numeric<1||numeric>99999||numeric!=Math.rint(numeric)) {
+                  identityMessage("error","El registro devolvió un ID fuera del rango permitido.");
+                  return;
+                }
+                identityMessage("assigned",String.format(java.util.Locale.US,"%05d",(long)numeric));
+              } catch(Exception error) {
+                if(!cloudAccountUnchanged(uid))return;
+                String detail=error.getMessage();
+                if(detail==null||detail.trim().isEmpty())
+                  detail="No se pudo conectar con el registro gratuito de jugadores. Comprueba Internet y reintenta.";
+                identityMessage("error",detail);
+              }
+            },"THEDEMIANFF-PlayerIdentity").start();
           })
           .addOnFailureListener(error -> {
-            if(!cloudAccountUnchanged(uid))return;
-            String detail="No se pudo asignar el ID desde Firebase. Comprueba Internet y vuelve a intentarlo.";
-            if(error instanceof FirebaseFunctionsException) {
-              FirebaseFunctionsException.Code code=((FirebaseFunctionsException)error).getCode();
-              if(code==FirebaseFunctionsException.Code.UNAUTHENTICATED)
-                detail="La sesión de Google no está autenticada. Vuelve a iniciar sesión.";
-              else if(code==FirebaseFunctionsException.Code.FAILED_PRECONDITION)
-                detail="La identidad necesita una auditoría administrativa del contador antes de asignar nuevos ID.";
-              else if(code==FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED)
-                detail="Se agotó el rango disponible de ID de cinco cifras.";
-              else if(code==FirebaseFunctionsException.Code.NOT_FOUND)
-                detail="El servicio de IDs todavía no está desplegado en Firebase (ensurePlayerIdentity). La cuenta y tu progreso siguen intactos.";
-              else if(code==FirebaseFunctionsException.Code.INVALID_ARGUMENT)
-                detail="Firebase rechazó los datos de la solicitud de identidad. No se modificó tu perfil.";
-              else if(code==FirebaseFunctionsException.Code.DEADLINE_EXCEEDED)
-                detail="Firebase tardó demasiado en responder. Comprueba Internet y pulsa REINTENTAR ID.";
-              else if(code==FirebaseFunctionsException.Code.PERMISSION_DENIED)
-                detail="Firebase denegó la llamada a la función. Revisa permisos de Cloud Functions y App Check.";
-              else if(code==FirebaseFunctionsException.Code.UNAVAILABLE)
-                detail="Firebase no está disponible. Conservamos el progreso local; reintenta cuando haya conexión.";
-              else if(code==FirebaseFunctionsException.Code.INTERNAL||code==FirebaseFunctionsException.Code.UNKNOWN)
-                detail="El servidor de identidades encontró un error. Tu cuenta y respaldo no fueron borrados; consulta los registros de Cloud Functions.";
-            }
-            identityMessage("error",detail);
+            if(cloudAccountUnchanged(uid))
+              identityMessage("error","No se pudo obtener el token de Firebase. Vuelve a iniciar sesión y reintenta.");
           });
       });
     }

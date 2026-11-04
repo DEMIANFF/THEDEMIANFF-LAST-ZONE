@@ -4,7 +4,11 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite, v38-3-lobby-parachute-polish, v38-6-lobby-polish-flight-controls, v38-7-parachute-axis-walk-68, v38-8-flight-axes-walk-74, v38-9-camera-relative-parachute, v39-0-walk-81-stable, v39-1-combat-precision-stability, v39-2-arsenal-recoil-polish, v39-3-impact-feedback-enemy-reaction, v39-4-tactical-cover-ai, v39-5-combat-animation-polish, v39-6-puerto-aurora-expansion, v39-7-aurora-cinematic-visuals, v39-8-aircraft-drop-rework, v40-architecture-reconstruction, v42-battle-royale-evolution, v42-2-graphics-recovery, v42-3-render-stability, v42-4-render-fix, v42-5-world-polish, v44-2-android-assets-fix, v44-3-account-entry-preview, v44-3-1-backup-integrity, v44-3-2-autosave-guest, v44-4-firebase-foundation, v44-5-secure-player-profiles]
+    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite, v38-3-lobby-parachute-polish, v38-6-lobby-polish-flight-controls, v38-7-parachute-axis-walk-68, v38-8-flight-axes-walk-74, v38-9-camera-relative-parachute, v39-0-walk-81-stable, v39-1-combat-precision-stability, v39-2-arsenal-recoil-polish, v39-3-impact-feedback-enemy-reaction, v39-4-tactical-cover-ai, v39-5-combat-animation-polish, v39-6-puerto-aurora-expansion, v39-7-aurora-cinematic-visuals, v39-8-aircraft-drop-rework, v40-architecture-reconstruction, v42-battle-royale-evolution, v42-2-graphics-recovery, v42-3-render-stability, v42-4-render-fix, v42-5-world-polish, v44-2-android-assets-fix, v44-3-account-entry-preview, v44-3-1-backup-integrity, v44-3-2-autosave-guest, v44-4-firebase-foundation, v44-5-secure-player-profiles, v55-4-free-player-identity]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   android:
@@ -18,6 +22,11 @@ jobs:
           node-version: '22'
       - name: Validar asignación de ID V55
         working-directory: functions
+        run: |
+          npm test
+          npm run check
+      - name: Validar servicio gratuito de IDs V55.4
+        working-directory: identity-gas
         run: |
           npm test
           npm run check
@@ -79,12 +88,12 @@ jobs:
           html=(root/"index.html").read_text(encoding="utf-8")
           # V53.4: detect regression where a literal escaped newline comments
           # out the camera height declaration but still passes JS syntax checks.
-          assert "const height=(mobile?4.05:3.55)" in html, "V53.4: missing TPS camera height declaration"
-          assert r"\n  const height=(mobile?4.05:3.55)" not in html, "V53.4: camera height accidentally commented out"
+          assert "const height=(mobile?3.75:3.45)" in html, "V53.4: missing TPS camera height declaration"
+          assert r"\n  const height=(mobile?3.75:3.45)" not in html, "V53.4: camera height accidentally commented out"
           for token in ("v432Camera.update(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", "id=\"v533AccountShortcut\"", "v534_scope_index"):
               assert token in html, "V53.4: required camera/lobby component missing: "+token
           # V53.8: identity remains part of validated Firebase backup payload.
-          for token in ('const v536IdPattern=', 'const v536NamePattern=', 'result.playerId=p.playerId', 'result.playerName=p.playerName', 'v536EnsureIdentity()', 'id="v536LobbyName"', 'id="v536LobbyId"', 'data-lobby="CUENTA DE JUGADOR"', 'id="v536SaveName"', 'id="v536CopyId"'):
+          for token in ('const v536IdPattern=', 'const v536NamePattern=', 'result.playerId=p.playerId', 'result.playerName=p.playerName', 'v536EnsureIdentity()', 'id="v536LobbyName"', 'id="v536LobbyId"', 'id="v18Profile"', 'id="v536SaveName"', 'id="v536CopyId"'):
               assert token in html, 'V53.8: player ID/name persistence regression: '+token
           assert "trim().replace(/\\s+/g,' ')" in html, 'V53.8: nickname whitespace validation missing'
           # V54.5: numeric IDs must come from the native Firebase bridge, never local random generation.
@@ -92,12 +101,28 @@ jobs:
               assert token in html, 'V54.5: sequential public ID integration missing: '+token
           assert 'function v536NewId()' not in html, 'V54.5: local-generated fake public IDs forbidden'
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text(encoding='utf-8')
-          for token in ('class IdentityBridge', 'FirebaseFunctions.getInstance("us-central1")', 'getHttpsCallable("ensurePlayerIdentity")', '.call()', 'web.addJavascriptInterface(new IdentityBridge()'):
-              assert token in java, 'V55: Android callable integration missing: '+token
+          for token in ('class IdentityBridge', 'getIdToken(false)', 'callFreeIdentityService(', 'isValidIdentityEndpoint(', 'identityServiceError(', 'web.addJavascriptInterface(new IdentityBridge()'):
+              assert token in java, 'V55.4: Android free identity integration missing: '+token
+          assert 'FirebaseFunctions' not in java and 'getHttpsCallable' not in java, 'V55.4: Android must not depend on paid Cloud Functions'
           assert 'db.runTransaction(transaction ->' not in java, 'V55: client-side identity transaction must be removed'
-          for token in ('FirebaseFunctionsException.Code.NOT_FOUND', 'todavía no está desplegado en Firebase', 'Code.FAILED_PRECONDITION'):
-              assert token in java, 'V55.3: precise Firebase callable diagnostics missing: '+token
-          assert 'V55.3 · ID SECUENCIAL' in html and 'AURORA EVOLUTION · V55.3' in html, 'V55.3: lobby version labels are stale'
+          assert 'V55.6 · PERFIL Y REGISTRO' in html and 'AURORA EVOLUTION · V55.6' in html, 'V55.6: lobby labels must match the release'
+          for token in ('UNAUTHENTICATED', 'GOOGLE_REQUIRED', 'REGISTRY_CORRUPT', 'RESOURCE_EXHAUSTED', 'BUSY'):
+              assert token in java, 'V55.4: free identity error mapping missing: '+token
+          gas=Path('identity-gas/Code.gs').read_text(encoding='utf-8')
+          for token in ('accounts:lookup', 'LockService.getScriptLock()', "providerId === 'google.com'"):
+              assert token in gas, 'V55.4: server-side verification/locking missing: '+token
+          for token in ('setupRegistry', 'THEDEMIANFF_PLAYER_ID_COUNTER', 'lastRow === counter + 2'):
+              assert token in gas, 'V55.4: safe free registry implementation missing: '+token
+          endpoint=Path('identity-gas/endpoint.txt').read_text(encoding='utf-8').strip()
+          assert endpoint.startswith('https://script.google.com/macros/s/') and endpoint.endswith('/exec') and len(endpoint) <= 256 and not any(ch.isspace() for ch in endpoint), 'V55.4: endpoint must be a published HTTPS Apps Script Web App URL'
+          for token in ('IDENTITY_ENDPOINT_CONFIG', 'identity-gas/endpoint.txt', 'resolveIdentityEndpoint()', 'callFreeIdentityService(endpoint,idToken)'):
+              assert token in java, 'V55.4: endpoint discovery/POST integration missing: '+token
+          for token in ('setInstanceFollowRedirects(false)', 'getHeaderField("Location")', 'script.googleusercontent.com', 'readIdentityRedirect(redirected,1)', 'for(int attempt=0;attempt<4;attempt++)', 'Thread.sleep(1000L*(attempt+1))'):
+              assert token in java, 'V55.4: bounded Apps Script redirect handling missing: '+token
+          for token in ("window.thedemianffIdentityResult=", 'window.THEDEMIANFFIdentity.ensure()', "state==='assigned'", "v18Progress.playerId!==value", 'v544IdVerifiedAccount===v446GoogleEmail', 'v544IdVerifiedAccount=v446GoogleEmail', 'v544IdVerifiedAccount=\'\''):
+              assert token in html, 'V55.4: canonical player ID verification missing: '+token
+          assert "if(v536IdPattern.test(v18Progress.playerId||''))return;" not in html, 'V55.4: imported five-digit IDs must be checked against the authenticated UID'
+          assert "retryId.disabled=v544IdVerifiedAccount===v446GoogleEmail&&v536IdPattern.test(p.playerId||'')" in html, 'V55.4: ID retry must stay enabled until the server verifies this Google session'
           assert 'Firebase aún no autorizó el ID; verifica sus reglas' not in html, 'V55.3: generic error text still hides callable failure'
           assert 'collection("player_identities")' not in java and 'collection("system_counters")' not in java, 'V55: Android client must not access privileged identity collections'
           function_entry=Path('functions/src/index.js').read_text(encoding='utf-8')
@@ -318,7 +343,7 @@ jobs:
           assert '@JavascriptInterface public boolean clearGuestId()' in java, 'V44.9: falta puente nativo de rollback de ID'
           assert '.edit().remove("progress").commit()' in java, 'V44.9: borrado limitado al campo de progreso'
           assert '.edit().remove("guestId").commit()' in java, 'V44.9: borrado limitado al campo de invitado'
-          for token in ('id="v45LobbyRecord"','id="v45XPFill"','v45ProfileName','v45HeroCard','v45HeroStats','id="v45OpenAccount"','v45OpenAccount','v45Record.textContent','v45Fill.style.width',"v18Open('ESTADÍSTICAS')"):
+          for token in ('id="v45LobbyRecord"','id="v45XPFill"','v45ProfileName','v45HeroCard','v45HeroStats','id="v45OpenAccount"','v45OpenAccount','v45Record.textContent','v45Fill.style.width',"v18Open('CUENTA DE JUGADOR')"):
               assert token in h, 'V45: falta panel de operador/lobby: '+token
           assert 'aria-valuemax="350"' in h, 'V45: falta progreso de nivel accesible'
           assert h.count('body.innerHTML=html;')==1, 'V45.1: panel renderizado dos veces, pierde eventos'
@@ -401,7 +426,7 @@ jobs:
                         'RESPALDO LISTO',
                         'v489AutoSwaps=0',
                         'v489DryFires++',
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.6 · PERFIL Y REGISTRO"):
               assert token in h, 'V48.9: falta arsenal táctico '+token
           # V48.8: live zone guidance, safe parachute actions and bounded effects.
           for token in ("v488Outside=Math.max(0",
@@ -412,7 +437,7 @@ jobs:
                         "window.v36FlightMode!=='landed'",
                         "Number.isFinite(fx)",
                         "if(!Number.isFinite(x)||!Number.isFinite(z))return null",
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.6 · PERFIL Y REGISTRO"):
               assert token in h, 'V48.8: regresión combate o zona '+token
           # V49.0: anti-exploit weapon switching, robust rival targeting and match safety.
           for token in ('shootCooldown=Math.max(shootCooldown,.15)',
@@ -421,10 +446,10 @@ jobs:
                         "window.v36FlightMode!=='landed'",
                         'rival.x)||!Number.isFinite(rival.z)',
                         'b.hp>0&&b.hitStun<=0',
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.6 · PERFIL Y REGISTRO'):
               assert token in h, 'V49.0: regresión táctica '+token
           # V49.1: safe rival combat, loaded backup scoring, medkit feedback.
-          for token in ('V55.3 · ID SECUENCIAL',
+          for token in ('V55.6 · PERFIL Y REGISTRO',
                         'candidate.ammo/Math.max(1,candidate.mag',
                         'BOTIQUÍN INTERRUMPIDO POR DAÑO',
                         'v474RivalClock-=Math.min(dt,.1)',
@@ -445,7 +470,7 @@ jobs:
                         'V49.8'):
               assert token in h, 'V49.8: falta recuperación segura '+token
           # V49.9: cloud/account controls live in Settings, not the lobby.
-          for token in ('V55.3 · ID SECUENCIAL', 'CONFIGURACIÓN V49.9',
+          for token in ('V55.6 · PERFIL Y REGISTRO', 'CONFIGURACIÓN V49.9',
                         'data-section="account"', 'v443Google', 'v494CloudSave',
                         'v494CloudLoad', 'v494AutoCloud', 'v494CloudStatus'):
               assert token in h, 'V49.9: configuración y recuperación incompletas '+token
@@ -457,18 +482,18 @@ jobs:
                         "v495CloudSave(queued.json)",
                         'Último progreso confirmado en Google:',
                         'v497ResetCloudQueue()',
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.6 · PERFIL Y REGISTRO"):
               assert token in h, 'V49.7: regresión de guardado Google '+token
           # V49.6: cloud backup state visible in lobby and sign-in not treated as saved.
           for token in ('v496LobbyCloudStatus', 'Google conectado · respaldo remoto sin verificar',
-                        'Invitado · progreso solo en este dispositivo', 'V55.3 · ID SECUENCIAL'):
+                        'Invitado · progreso solo en este dispositivo', 'V55.6 · PERFIL Y REGISTRO'):
               assert token in h, 'V49.6: regresión estado de nube '+token
           # V49.4: Google sign-in is distinct from explicit Firestore backup/recovery.
           for token in ('v494CloudSave', 'v494CloudLoad',
                         'window.thedemianffCloudResult',
                         'v443ValidateProgress(JSON.parse(payload))',
                         'v494ModelStatus', "models/lila-operator.glb",
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.6 · PERFIL Y REGISTRO'):
               assert token in h, 'V49.4: falta nube / lobby '+token
           native = Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
           rules = Path('firestore.rules').read_text()
@@ -481,14 +506,14 @@ jobs:
           for token in ('const strafeLean=!air&&!crouch',
                         'const v493Gear=new THREE.Group()',
                         'const tracks=new THREE.InstancedMesh',
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.6 · PERFIL Y REGISTRO'):
               assert token in h, 'V49.3: regresión visual '+token
           # V49.2: GPU-instanced Aurora scenery and Lila strafe response.
           for token in ("new THREE.InstancedMesh(frostGeometry,frostMat,56)",
                         "new THREE.InstancedMesh(frostGeometry,frostGlowMat,16)",
                         "const strafeLean=",
                         "model.rotation.z+=(strafeLean-model.rotation.z)*ease",
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.6 · PERFIL Y REGISTRO"):
               assert token in h, 'V49.2: regresión visual '+token
           # V50.3: Google cloud callbacks must remain isolated to the authenticated Firebase UID.
           for token in ("cloudAccountUnchanged(String uid)",
@@ -498,7 +523,7 @@ jobs:
                         "Falta el operador inicial.",
                         "Cambió la cuenta Google durante la recuperación"):
               assert token in java, 'V50.3: protección de cuenta en Firebase '+token
-          for token in ('V55.3 · ID SECUENCIAL',
+          for token in ('V55.6 · PERFIL Y REGISTRO',
                         '☁ CONSULTANDO RESPALDO…',
                         'Recuperación desde Google en curso'):
               assert token in h, 'V50.3: estado nube en lobby '+token
@@ -512,7 +537,7 @@ jobs:
                         "ESPERA A TERMINAR LA RECARGA",
                         "Number.isFinite(amount)",
                         "Number.isInteger(n)",
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.6 · PERFIL Y REGISTRO"):
               assert token in h, 'V48.7: regresión de combate '+token
           # V48.6: safe-zone supply placement, guarded animation and battle diagnostics.
           for token in ('v477InZone(tx,tz,4)',
@@ -521,7 +546,7 @@ jobs:
                         'Number.isFinite(dt)',
                         'typeof mobile',
                         'visibleToPlayer&&effects.length<36',
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.6 · PERFIL Y REGISTRO'):
               assert token in h, 'V48.6: regresión estabilidad '+token
           # V48.5: combat clarity, rival AI suppression and low-ammo notices.
           for token in ('attacker.suppression>.92',
@@ -530,7 +555,7 @@ jobs:
                         'visibleToPlayer&&effects.length<36',
                         'depthWrite:false,depthTest:true',
                         'Math.min(10,v8Combo+1)',
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.6 · PERFIL Y REGISTRO"):
               assert token in h, 'V48.5: regresión de combate '+token
           # V48.4: ammunition alerts, obstacle hit validation and battle FX budget.
           for token in ("SIN MUNICIÓN · CAMBIA DE ARMA",
@@ -559,7 +584,7 @@ jobs:
                         "QUÉDATE QUIETO",
                         'v474RivalClock=.50',
                         'if(++checked>56)break',
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.6 · PERFIL Y REGISTRO'):
               assert token in h, 'V48.2: regresión combate '+token
           # V48.1: mobile sprint animation and airborne combat accuracy.
           for token in ('sprintHeld&&speed>5.5',
@@ -581,7 +606,7 @@ jobs:
                         "rival.airborne||rival.retreatTime>0",
                         "cache.remaining===0",
                         'v474SupplyCount>=5',
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.6 · PERFIL Y REGISTRO"):
               assert token in h, 'V48.0: regresión sistemas de batalla '+token
           # V47.7: tactical rivalry and supply signals in playable loop.
           for token in ('function v477FindRivalTarget(source,targets)',
@@ -616,7 +641,7 @@ jobs:
                         'window.THEDEMIANFF_V474_SUPPLIES',
                         'v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[]'):
               assert token in h, 'V47.4: falta rivalidad enemiga o suministros '+token
-          assert "versionCode 139" in Path('app/build.gradle').read_text(), 'V48.6: versionCode desfasado'
+          assert "versionCode 142" in Path('app/build.gradle').read_text(), 'V55.4: versionCode desfasado'
           assert "if(name==='ESTADÍSTICAS')" in h, 'V45: falta panel de estadísticas del jugador'
           for metric in ('PORCENTAJE DE VICTORIAS','BAJAS POR PARTIDA','MEJOR MARCA','XP PARA SUBIR'):
               assert metric in h, 'V45: falta métrica '+metric
@@ -673,6 +698,34 @@ jobs:
           assert 'if(!selectedUnlocked)throw new IllegalArgumentException("Operador seleccionado no desbloqueado.");' in java
           print('V52.2 native guest isolation and cloud validation checks OK')
           PY
+      - name: V55.5 comprobar aislamiento de cuentas Google
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text(encoding='utf-8')
+          for token in ('v504HasPriorGoogleAccount()', 'v504GuestTransferOwnerKey',
+                        'transferOwner===v446GoogleEmail?', 'v504FindDuplicateAccountSnapshot(v446GoogleEmail,saved)',
+                        'v18Progress=validated', 'v18Progress=guestProgress;', 'v18Progress=saved;',
+                        'localStorage.setItem(archiveKey,JSON.stringify(saved))',
+                        'v495CloudSave(JSON.stringify(fresh))'):
+              assert token in h, 'V55.5 aislamiento incompleto: '+token
+          assert 'Object.assign(v18Progress,saved)' not in h
+          assert 'Object.assign(v18Progress,guestProgress)' not in h
+          for token in ('if(googleSignOutPending)', 'firebaseAuth.signOut();',
+                        '.signOut().addOnCompleteListener(MainActivity.this,task -> {',
+                        'googleSignOutPending=false;', 'authMessage("signed_out",task.isSuccessful()'):
+              assert token in java, 'V55.5 cambio Google incompleto: '+token
+          # V55.6: unified profile card, quieter repeated notices and hybrid TPS framing.
+          assert 'v18Open(\'CUENTA DE JUGADOR\')' in h, 'V55.6: profile card must open the unified account panel'
+          assert 'v18AccountSection' in h and 'PROGRESO Y ESTADÍSTICAS' in h, 'V55.6: profile statistics missing'
+          assert 'data-lobby="CUENTA DE JUGADOR"' not in h, 'V55.6: duplicate identity navigation remains'
+          assert 'v556LastToastAt' in h, 'V55.6: repeated notices are not throttled'
+          assert 'const tacticalBack=mobile?clamp(baseBack*1.10,3,12):baseBack;' in h, 'V55.6: mobile camera distance tuning missing'
+          assert 'const height=(mobile?3.75:3.45)-(mobile?.62:.35)*b;' in h, 'V55.6: hybrid camera shoulder framing missing'
+          print('V55.6 lobby and hybrid camera checks passed')
+          print('V55.5 Google account isolation checks passed')
+          PY
       - name: V44.3.2 verificar autoguardado de invitado en Android
         run: |
           python3 - <<'PY'
@@ -703,8 +756,8 @@ jobs:
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
           h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
-          assert 'versionCode 139' in gradle, 'V48.6 requiere versionCode 139'
-          assert "versionName '55.3-bootstrap-and-errors'" in gradle, 'V48.6: versión Android incorrecta'
+          assert 'versionCode 142' in gradle, 'V48.6 requiere versionCode 142'
+          assert "versionName '55.6-profile-camera'" in gradle, 'V55.4: versión Android incorrecta'
           # V50.4: Google-first login and safe automatic cloud recovery.
           for token in ('id="v504GoogleEntry"',
                         'v504StartCloudRestore()',
@@ -714,7 +767,7 @@ jobs:
                         'if(!autoRestore&&!confirm(summary+',
                         'localStorage.setItem(v504AccountProgress(v446GoogleEmail)',
                         'v504SimpleAccount',
-                        'V55.3 · ID SECUENCIAL'):
+                        'V55.6 · PERFIL Y REGISTRO'):
               assert token in h, 'V50.4 Google account regression '+token
           for token in ('if(!doc.exists())', 'El respaldo remoto existe pero no es válido. No se sobrescribirá.'):
               assert token in java, 'V50.4 remote backup safety regression '+token
@@ -726,12 +779,13 @@ jobs:
                         'v502AuroraMist',
                         'v502HangarLight',
                         'v502ReadyBanner',
-                        'V55.3 · ID SECUENCIAL',
+                        'V55.6 · PERFIL Y REGISTRO',
                         "v494CloudBridge.save(valid)",
                         "v494CloudBridge.load()"):
               assert token in h, 'V50.2 missing lobby or backup feature: '+token
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
-          assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
+          assert 'firebaseAuth.signOut();' in java and '.signOut().addOnCompleteListener(MainActivity.this,task -> {' in java, 'Google/Firebase sign-out must complete before returning to account selection'
+          assert 'authMessage("signed_out",task.isSuccessful()' in java and 'if(googleSignOutPending)' in java, 'Missing serialized Google account switch handling'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
           assert 'if(parsed.optLong("wins")>parsed.optLong("matches"))return false;' in java, 'Falta validar estadísticas Android'
           print('V44.6 Android version and logout checks passed')
@@ -745,7 +799,7 @@ jobs:
                         "v495CloudLastConfirmed>0&&!v495CloudSaveInFlight",
                         "Hay un guardado pendiente. Espera la confirmación",
                         "v501LobbyPolish",
-                        "V55.3 · ID SECUENCIAL"):
+                        "V55.6 · PERFIL Y REGISTRO"):
               assert token in h, 'V50.1: regresión lobby/nube '+token
           print('V50.1 lobby and cloud safety checks passed')
           PY

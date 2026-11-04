@@ -174,7 +174,7 @@
 /* V45: light-weight player HUD and responsive local statistics, no extra 3D work */
 .v45ProfileName{min-width:110px}.v45ProfileName b{font-size:clamp(10px,1.5vw,14px)}#v45LobbyRecord{color:#95d8e9;letter-spacing:0;margin-top:3px}.v45XPTrack{display:block;width:100%;height:4px;background:#274052;margin-top:5px;border-radius:8px;overflow:hidden}.v45XPTrack span{display:block;height:100%;width:0;background:linear-gradient(90deg,#22d3ee,#f5cb75);transition:width .25s}.v45HeroCard{padding:14px;background:linear-gradient(115deg,#233a52,#101c2c);border:1px solid #b6dce466;margin-bottom:12px}.v45HeroTitle{font-size:clamp(16px,3vw,24px);color:#f5d596;font-weight:900}.v45HeroMeta{color:#c5d9e7;font-size:11px;margin-top:5px}.v45HeroProgress{background:#243a50;height:8px;border-radius:12px;overflow:hidden;margin:12px 0 5px}.v45HeroProgress span{display:block;background:linear-gradient(90deg,#21c6ed,#e6b75c);height:100%}.v45HeroStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.v45HeroStats>div{min-width:0;padding:10px 5px;text-align:center;border:1px solid #7299b258;background:#102337}.v45HeroStats strong{display:block;color:#f7d495;font-size:clamp(16px,3vw,24px)}.v45HeroStats small{font-size:9px;color:#ccdce8}.v45Action{border:1px solid #b8d8e2;background:#24465b;color:white;padding:10px 12px;font-weight:800;cursor:pointer;width:100%;min-height:43px}.v17Profile:focus-visible{outline:2px solid #22d3ee;outline-offset:3px}@media(max-width:650px){.v45ProfileName{min-width:88px}.v45HeroCard{padding:10px}.v45HeroStats{gap:5px}}
 @media(max-width:650px){.v18Panel{inset:7% 4% 12% 4%;padding:10px}.v18PanelHeader h2{font-size:17px}.v18Grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.v18Item{padding:8px;min-height:64px}.v18Item b{font-size:11px}.v18Item small{font-size:9px}.v18ModePick{bottom:28%;right:2%;padding:4px}.v18ModePick select{max-width:125px;font-size:8px}.v17Left{top:22%}}
-/* V22 - Battle Royale lobby polish, lightweight GPU-friendly effects */
+/* V55.6: unified player card and compact account navigation */\n.v18AccountSection{margin:16px 0 8px;color:#f2d59b;font-size:12px;letter-spacing:1.2px}\n#v18Profile{cursor:pointer;max-width:min(54vw,430px);transition:border-color .15s,transform .15s}\n#v18Profile:hover{border-color:#e8c582;transform:translateY(-1px)}\n#v18Profile:focus-visible{outline:2px solid #67d9ec;outline-offset:3px}\n@media(max-width:740px){#v18Profile{max-width:57vw;gap:6px;padding:5px 7px}.v18AccountSection{font-size:10px}}\n/* V22 - Battle Royale lobby polish, lightweight GPU-friendly effects */
 .v17Lobby{background:radial-gradient(ellipse at 68% 22%,#214b62 0%,#102638 47%,#08131f 100%)}
 .v17Lobby .v17Brand{filter:drop-shadow(0 4px 16px #00c9ff44)}
 .v17Lobby button{transition:transform .14s ease,filter .14s ease,border-color .14s ease}
@@ -675,11 +675,11 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 @media(prefers-reduced-motion:reduce){#menu .v502AuroraMist{animation:none}}
 </style>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V55.3 · ID SECUENCIAL</div><div id="v500CloudBadge" role="status" aria-live="polite" style="position:absolute;top:calc(5% + 34px);left:50%;transform:translateX(-50%);z-index:5;padding:5px 11px;border:1px solid #91a6b477;border-radius:9px;background:#091d2be6;color:#e0f0fa;font:700 11px system-ui;white-space:nowrap;pointer-events:none">☁ RESPALDO GOOGLE SIN CONFIRMAR</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
-<div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="v533AccountShortcut" type="button" aria-label="Abrir cuenta y respaldo de Google" title="Cuenta Google y respaldos">☁</button> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
-<div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button><button data-lobby="MISIONES">✓ &nbsp; MISIONES</button><button data-lobby="LOGROS">★ &nbsp; LOGROS</button><button data-lobby="CUENTA DE JUGADOR">◈ &nbsp; MI ID Y NOMBRE</button><button data-lobby="ESTADÍSTICAS">▤ &nbsp; ESTADÍSTICAS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
+<div id="v22Edition">V55.6 · PERFIL Y REGISTRO</div><div id="v500CloudBadge" role="status" aria-live="polite" style="position:absolute;top:calc(5% + 34px);left:50%;transform:translateX(-50%);z-index:5;padding:5px 11px;border:1px solid #91a6b477;border-radius:9px;background:#091d2be6;color:#e0f0fa;font:700 11px system-ui;white-space:nowrap;pointer-events:none">☁ RESPALDO GOOGLE SIN CONFIRMAR</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
+<div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="v533AccountShortcut" type="button" aria-label="Abrir cuenta y respaldo de Google" title="Cuenta Google y respaldos">☁</button> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
+<div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button><button data-lobby="MISIONES">✓ &nbsp; MISIONES</button><button data-lobby="LOGROS">★ &nbsp; LOGROS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V55.3</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V55.6</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
 <div class="v17Friends"><strong>◈ INFORME TÁCTICO</strong><span>◉ OPERADOR LISTO</span><span>⚔ 20 RIVALES IA · AURORA</span><span>▰ 5 ARMAS · SUPERVIVENCIA</span><button id="v502CloudAccess" type="button" aria-label="Abrir cuenta y respaldos de Google">☁ CUENTA Y RESPALDOS</button><small id="v502BackupHint">Google: progreso recuperable tras reinstalar · confirma el último guardado en Cuenta.</small></div>
 <div class="v17Bottom"><div class="v17Quick"><button data-lobby="INVENTARIO">▣ INVENTARIO</button><button data-lobby="ARMAS">⌖ ARMAS</button><button data-lobby="PRESET">☷ PRESET</button></div><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -703,7 +703,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 <div class="settingsSection" data-section="control">
 <label class="v37Primary">SENSIBILIDAD GENERAL · CÁMARA 360° <input id="sensitivity" type="range" min=".35" max="3" step=".05" value="1.25"></label>
 <label class="v37Advanced">Sensibilidad vertical <input id="verticalSensitivity" type="range" min=".35" max="3" step=".05" value="1.2"></label>
-<label class="v37Advanced">Distancia de cámara <input id="v26CameraDistance" type="range" min="6.5" max="12.5" step=".25" value="7.5"></label><label class="v37Advanced">Desplazamiento lateral <input id="v26CameraShoulder" type="range" min=".6" max="2.8" step=".1" value="1.9"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
+<label class="v37Advanced">Distancia de cámara <input id="v26CameraDistance" type="range" min="6.5" max="12.5" step=".25" value="7.0"></label><label class="v37Advanced">Desplazamiento lateral <input id="v26CameraShoulder" type="range" min=".6" max="2.8" step=".1" value="1.9"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
 <label class="v37Advanced">Velocidad de cámara <input id="cameraSpeed" type="range" min=".6" max="1.8" step=".05" value="1"></label>
 <label>Invertir cámara vertical <input id="invertY" type="checkbox"></label>
 <label>Ayuda de apuntado <input id="aimAssist" type="checkbox" checked></label>
@@ -745,10 +745,38 @@ const v510ConflictKey=email=>'thedemianff_cloud_conflict_'+encodeURIComponent(em
 let v494AutoSyncPending=false;
 let v504CloudReady=false,v504Restoring=false,v504NewProfilePending=false;
 const v504AccountKey='thedemianff_v504_account';
+const v504GuestTransferOwnerKey='thedemianff_guest_transfer_owner_v1';
+// A guest snapshot may be claimed once by the first Google account only.
+// Existing per-account snapshots prove that this device has already used Google.
+function v504HasPriorGoogleAccount(){
+ if(localStorage.getItem(v504GuestTransferOwnerKey))return true;
+ for(let i=0;i<localStorage.length;i++){
+  const key=localStorage.key(i)||'';
+  if(key.startsWith('thedemianff_v504_progress_'))return true;
+ }
+ return false;
+}
 const v504AccountProgress=email=>'thedemianff_v504_progress_'+encodeURIComponent(email.toLowerCase());
+function v504FindDuplicateAccountSnapshot(email,candidate){
+ const ownKey=v504AccountProgress(email);
+ const current=v443ValidateProgress(candidate);
+ const fields=['credits','xp','matches','wins','kills','best','skin','weapon'];
+ for(let i=0;i<localStorage.length;i++){
+  const key=localStorage.key(i)||'';
+  if(!key.startsWith('thedemianff_v504_progress_')||key===ownKey)continue;
+  try{
+   const other=v443ValidateProgress(JSON.parse(localStorage.getItem(key)));
+   const sameFields=fields.every(field=>other[field]===current[field]);
+   const sameUnlocks=JSON.stringify(other.unlocked)===JSON.stringify(current.unlocked);
+   const sameClaims=JSON.stringify(other.claimed)===JSON.stringify(current.claimed);
+   if(sameFields&&sameUnlocks&&sameClaims)return key;
+  }catch(e){console.warn('Se omitió una copia local de cuenta no válida',e);}
+ }
+ return '';
+}
 const v504PendingGuest=email=>'thedemianff_v504_guest_transfer_'+encodeURIComponent(email.toLowerCase());
 const v504Blank=()=>({credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,unlocked:[0],weapon:0,claimed:[]});
-function v504SetLocalProgress(data){const serialized=JSON.stringify(v443ValidateProgress(data));localStorage.setItem(progressKey,serialized);if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(serialized))throw Error('No se pudo guardar el progreso invitado del dispositivo.');}
+function v504SetLocalProgress(data){const validated=v443ValidateProgress(data);const serialized=JSON.stringify(validated);localStorage.setItem(progressKey,serialized);if(typeof v18Progress!=='undefined'){v18Progress=validated;if(typeof v18Refresh==='function')v18Refresh();}if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(serialized))throw Error('No se pudo guardar el progreso invitado del dispositivo.');}
 function v504StartCloudRestore(){if(!v494CloudBridge||!v446GoogleEmail)return;v504CloudReady=false;v504Restoring=true;v498CloudLoadPending=true;v498CloudLoadAccount=v446GoogleEmail;v496LobbyCloudStatus('☁ Recuperando automáticamente desde Google…');try{v494CloudBridge.load();}catch(e){v504Restoring=false;v498CloudLoadPending=false;v494CloudNotice('⚠ Sin conexión. No se sobrescribirá el respaldo: '+e.message);}}
 
 let v495CloudSaveInFlight=false,v495CloudLastConfirmed=0;
@@ -865,7 +893,7 @@ guest.addEventListener('click',()=>{try{
  // Do not touch a Google-linked profile while its cloud recovery is pending.
  if(!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)){
   const guestProgress=v443ValidateProgress(JSON.parse(localStorage.getItem(progressKey)));
-  Object.assign(v18Progress,guestProgress);
+  v18Progress=guestProgress;
   if(v536EnsureIdentity())v18Save();else v18Refresh();
  }
  entry.style.display='none';
@@ -877,8 +905,19 @@ window.thedemianffGoogleResult=function(state,detail){
  $('v443Google').disabled=false;
  if(state==='signed_in'){const incoming=typeof detail==='string'?detail.slice(0,150):'';const previous=localStorage.getItem(v504AccountKey)||'';const sameAccount=incoming&&incoming===previous;if(sameAccount&&v446GoogleEmail===incoming&&(v504Restoring||v504CloudReady))return;v497ResetCloudQueue();v495CloudLastConfirmed=0;
    v446GoogleEmail=incoming;
+   if(v544IdVerifiedAccount!==incoming)v544IdVerifiedAccount='';
    if(incoming&&previous&&previous!==incoming){try{const old=localStorage.getItem(progressKey);if(old)localStorage.setItem(v504AccountProgress(previous),old);}catch(e){console.warn('No se pudo archivar progreso anterior',e)}}
-   if(incoming&&!previous&&guestId){try{const guestProgress=localStorage.getItem(progressKey);if(guestProgress)localStorage.setItem(v504PendingGuest(incoming),JSON.stringify(v443ValidateProgress(JSON.parse(guestProgress))));}catch(e){console.warn('Perfil invitado no transferible',e)}}
+   if(incoming&&!previous&&guestId&&!v504HasPriorGoogleAccount()){
+    try{
+     const guestProgress=localStorage.getItem(progressKey);
+     if(guestProgress){
+      const validated=JSON.stringify(v443ValidateProgress(JSON.parse(guestProgress)));
+      localStorage.setItem(v504PendingGuest(incoming),validated);
+      // Persist the one-time claim before switching the active profile to blank.
+      localStorage.setItem(v504GuestTransferOwnerKey,incoming);
+     }
+    }catch(e){console.warn('Perfil invitado no transferible',e)}
+   }
    if(incoming&&!sameAccount){try{const own=localStorage.getItem(v504AccountProgress(incoming));v504SetLocalProgress(own?v443ValidateProgress(JSON.parse(own)):v504Blank());localStorage.setItem(v504AccountKey,incoming);}catch(e){v494CloudNotice('⚠ No se pudo aislar el perfil local: '+e.message);}}
    if(incoming&&sameAccount)localStorage.setItem(v504AccountKey,incoming);
    v496LobbyCloudStatus('☁ Google conectado · respaldo remoto sin verificar');
@@ -899,6 +938,7 @@ window.thedemianffGoogleResult=function(state,detail){
    const v504PriorOwner=v446GoogleEmail||localStorage.getItem(v504AccountKey)||'';
    const v504WasGoogle=!!v504PriorOwner;
    if(v504PriorOwner){try{const outgoing=localStorage.getItem(progressKey);if(outgoing)localStorage.setItem(v504AccountProgress(v504PriorOwner),outgoing);}catch(e){console.warn('No se pudo cachear la cuenta saliente',e)}}
+   v544IdVerifiedAccount='';v544IdRequestPending=false;v544IdRequestAccount='';
    v495CloudSaveInFlight=false;v495CloudLastConfirmed=0;v504CloudReady=false;v504Restoring=false;v504NewProfilePending=false;v446GoogleEmail='';v496LobbyCloudStatus('☁ Invitado · progreso solo en este dispositivo');$('v494AutoCloud').checked=false;
    guest.style.display='block';
    $('v504GoogleEntry').style.display='block';
@@ -915,6 +955,7 @@ window.thedemianffGoogleResult=function(state,detail){
    info.textContent=guestId?'Invitado existente · puedes continuar con tu progreso local':'Elige cómo ingresar al juego.';
    message.textContent='Google no conectado. Puedes seguir jugando como invitado.';
  }else{
+   v544IdVerifiedAccount='';v544IdRequestPending=false;v544IdRequestAccount='';
    v446GoogleEmail='';v496LobbyCloudStatus('☁ Google no verificado · progreso local');
    guest.style.display='block';
    $('v504GoogleEntry').style.display='block';
@@ -967,9 +1008,9 @@ const v443Bounded=(n,max)=>Number.isSafeInteger(n)&&n>=0&&n<=max;
 const v536IdPattern=/^[0-9]{5}$/;
 const v536LegacyIdPattern=/^LZ-[A-F0-9]{24}$/;
 const v536NamePattern=/^[A-Za-z0-9_ÁÉÍÓÚÜÑáéíóúüñ ]{3,18}$/;
-// The server, not the phone, assigns consecutive public IDs.
+// The private owner-controlled registry verifies Firebase ID tokens and assigns public IDs.
 // V54.4: One in-flight request per Google session; retry is explicit.
-let v544IdRequestPending=false,v544IdRequestAccount='',v544IdStatus='Conecta Google para asignar tu ID.';
+let v544IdRequestPending=false,v544IdRequestAccount='',v544IdVerifiedAccount='',v544IdStatus='Conecta Google para asignar tu ID.';
 function v544DisplayIdStatus(){
  const status=$('v544IdStatus')||$('v536NameStatus');
  if(status&&$('v18PanelTitle')?.textContent==='CUENTA DE JUGADOR')status.textContent=v544IdStatus;
@@ -979,7 +1020,7 @@ function v540RequestId(){
   v544IdStatus='Conecta Google y recupera tu perfil para recibir tu número.';
   v544DisplayIdStatus();return;
  }
- if(v536IdPattern.test(v18Progress.playerId||''))return;
+ if(v544IdVerifiedAccount===v446GoogleEmail&&v536IdPattern.test(v18Progress.playerId||''))return;
  if(v544IdRequestPending&&v544IdRequestAccount===v446GoogleEmail)return;
  if(!window.THEDEMIANFFIdentity?.ensure){
   v544IdStatus='El ID numérico solo está disponible en la APK Android actualizada.';
@@ -995,7 +1036,7 @@ function v540RequestId(){
    v544DisplayIdStatus();
   }
  },75000);
- v544IdStatus='Consultando el número único en Firebase…';v544DisplayIdStatus();
+ v544IdStatus='Consultando el registro seguro de jugadores…';v544DisplayIdStatus();
  try{window.THEDEMIANFFIdentity.ensure();}catch(e){
   v544IdRequestPending=false;v544IdStatus='No se pudo solicitar el ID. Puedes reintentar.';v544DisplayIdStatus();
  }
@@ -1005,7 +1046,8 @@ window.thedemianffIdentityResult=(state,value)=>{
  if(v544IdRequestAccount!==v446GoogleEmail)return;
  v544IdRequestPending=false;
  if(state==='assigned'&&v536IdPattern.test(value)&&v446GoogleEmail&&v504CloudReady&&!v498CloudLoadPending){
-  v544IdStatus='ID asignado y guardado. Comprueba el respaldo de Google.';
+  v544IdStatus='ID asignado y registrado de forma segura.';
+  v544IdVerifiedAccount=v446GoogleEmail;
   if(v18Progress.playerId!==value){v18Progress.playerId=value;v18Save();}
   v18Refresh();
   const panel=$('v18Panel');
@@ -1056,7 +1098,7 @@ function v447BackupNotice(text){
 }
 // V49.4: recovery is NEVER automatic and NEVER merges guest IDs from other players.
 function v496LobbyCloudStatus(msg,ok=false){const confirmed=!!(ok&&v446GoogleEmail&&v495CloudLastConfirmed>0&&!v495CloudSaveInFlight&&!v498CloudLoadPending);const el=$('v494CloudStatus');if(el){el.textContent=msg;el.style.color=confirmed?'#baffda':'#e2f8ff';}const badge=$('v500CloudBadge');if(badge){badge.textContent=confirmed?'☁ RESPALDO GOOGLE CONFIRMADO':v495CloudSaveInFlight?'☁ SINCRONIZANDO GOOGLE…':v498CloudLoadPending?'☁ CONSULTANDO RESPALDO…':v446GoogleEmail?'☁ GOOGLE CONECTADO · RESPALDO SIN CONFIRMAR':'☁ RESPALDO GOOGLE SIN CONFIRMAR';badge.style.color=confirmed?'#baffda':'#e0f0fa';badge.setAttribute('aria-label',confirmed?'Respaldo de Google confirmado en esta sesión':v495CloudSaveInFlight?'Sincronización Google en curso':v498CloudLoadPending?'Recuperación desde Google en curso':'Respaldo de Google no confirmado');}}
-function v494CloudNotice(msg){const el=$('v494CloudStatus');if(el)el.textContent=msg;v496LobbyCloudStatus(msg,/Guardado confirmado|Respaldo guardado|Último progreso confirmado/.test(msg));v447BackupNotice(msg);}
+function v494CloudNotice(msg){const el=$('v494CloudStatus');if(el)el.textContent=msg;const confirmed=/Guardado confirmado|Respaldo guardado|Último progreso confirmado/.test(msg);v496LobbyCloudStatus(msg,confirmed);if(/⚠|No se pudo|error|conflicto/i.test(msg)||confirmed)v447BackupNotice(msg);}
 window.thedemianffCloudResult=(state,payload)=>{
  if(state==='saved'){
   if(!v495CloudSaveInFlight||v497CloudActiveAccount!==v446GoogleEmail){v496LobbyCloudStatus('☁ Cambió la sesión · comprueba el respaldo de Google');return;}
@@ -1084,7 +1126,7 @@ window.thedemianffCloudResult=(state,payload)=>{
   if(v504CloudReady&&typeof v18Progress!=='undefined'&&JSON.stringify(v18Progress)!==localStorage.getItem(progressKey)){location.reload();}return;
  }
  if(state==='missing'||state==='error'){if(state==='error'&&v504NewProfilePending){v504NewProfilePending=false;v504CloudReady=false;entry.style.display='flex';$('v504GoogleEntry').style.display='block';$('v504GoogleEntry').textContent='REINTENTAR';}const wasRestoring=v504Restoring;v504Restoring=false;if(v498CloudLoadPending){v498CloudLoadPending=false;v498CloudLoadAccount='';}
-  if(state==='missing'&&wasRestoring&&v446GoogleEmail){try{const pending=localStorage.getItem(v504PendingGuest(v446GoogleEmail));if(pending)v504SetLocalProgress(v443ValidateProgress(JSON.parse(pending)));v504CloudReady=true;v504NewProfilePending=true;entry.style.display='flex';info.textContent='Creando tu progreso de Google…';localStorage.setItem(v504AccountProgress(v446GoogleEmail),localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v495CloudSave(localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v494CloudNotice('☁ Creando progreso nuevo en Google…');return;}catch(e){v504CloudReady=false;v494CloudNotice('⚠ No fue posible guardar: '+e.message);return;}}
+  if(state==='missing'&&wasRestoring&&v446GoogleEmail){try{const transferOwner=localStorage.getItem(v504GuestTransferOwnerKey);const pending=transferOwner===v446GoogleEmail?localStorage.getItem(v504PendingGuest(v446GoogleEmail)):null;if(pending)v504SetLocalProgress(v443ValidateProgress(JSON.parse(pending)));v504CloudReady=true;v504NewProfilePending=true;entry.style.display='flex';info.textContent='Creando tu progreso de Google…';localStorage.setItem(v504AccountProgress(v446GoogleEmail),localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v495CloudSave(localStorage.getItem(progressKey)||JSON.stringify(v504Blank()));v494CloudNotice('☁ Creando progreso nuevo en Google…');return;}catch(e){v504CloudReady=false;v494CloudNotice('⚠ No fue posible guardar: '+e.message);return;}}
   if(wasRestoring){v504CloudReady=false;entry.style.display='flex';$('v504GoogleEntry').style.display='block';$('v504GoogleEntry').textContent='REINTENTAR CON GOOGLE';v494CloudNotice('⚠ No se recuperó el respaldo remoto: '+(payload||'Comprueba conexión y permisos.')+' No se sobrescribirá tu progreso.');return;}v495CloudSaveInFlight=false;v497QueuedCloudSave=null;v497CloudSentSnapshot=null;if(v494AutoSyncPending)v494AutoSyncPending=false;
   // Preserve the user's auto-sync preference after transient server/network errors.
   // The latest on-device progress remains available for a later safe retry.
@@ -1095,6 +1137,29 @@ window.thedemianffCloudResult=(state,payload)=>{
  const autoRestore=v504Restoring;v504Restoring=false;
  try{
   const saved=v443ValidateProgress(JSON.parse(payload));
+  // A prior app version could have copied the first account's guest snapshot
+  // into a second account's Firestore document. Detect matching local account
+  // snapshots (ignoring playerId, which the identity service reassigns per UID).
+  if(autoRestore&&v446GoogleEmail){
+   const duplicateSource=v504FindDuplicateAccountSnapshot(v446GoogleEmail,saved);
+   if(duplicateSource){
+    const startFresh=confirm('ATENCIÓN: el respaldo remoto de esta cuenta coincide con el progreso guardado de otra cuenta Google en este teléfono. Puede ser una transferencia antigua no deseada.\n\nAceptar: crear un perfil nuevo desde cero para esta cuenta. El respaldo duplicado se archivará en este dispositivo antes de reemplazarlo.\\nCancelar: conservar el respaldo remoto actual.');
+    if(startFresh){
+     const archiveKey='thedemianff_duplicate_backup_'+encodeURIComponent(v446GoogleEmail.toLowerCase())+'_'+Date.now();
+     localStorage.setItem(archiveKey,JSON.stringify(saved));
+     const fresh=v504Blank();
+     v504SetLocalProgress(fresh);
+     v504CloudReady=true;
+     v504NewProfilePending=true;
+     localStorage.setItem(v504AccountProgress(v446GoogleEmail),JSON.stringify(fresh));
+     entry.style.display='flex';
+     info.textContent='Creando un perfil independiente para esta cuenta Google…';
+     v495CloudSave(JSON.stringify(fresh));
+     v494CloudNotice('☁ Perfil nuevo solicitado. La copia anterior quedó archivada en este dispositivo.');
+     return;
+    }
+   }
+  }
   const currentRaw=localStorage.getItem(progressKey);
   const current=currentRaw?JSON.parse(currentRaw):null;
   const summary='Google: '+saved.matches+' partidas, '+saved.xp+' XP, '+saved.credits+' créditos y '+saved.unlocked.length+' operadores.';
@@ -1146,7 +1211,7 @@ window.thedemianffCloudResult=(state,payload)=>{
    // property insertion orders (default object vs validated Firestore data).
    // Do not auto-upload during restore or overwrite the remote document.
    if(typeof v18Progress!=='undefined'){
-    Object.assign(v18Progress,saved);
+    v18Progress=saved;
     if(typeof v18Refresh==='function')v18Refresh();
     v540RequestId();
    }
@@ -2891,7 +2956,7 @@ const healthPanel=$('health');
  weaponPanel.classList.toggle('v460Reload',reloadTimer>0&&reloadWeapon===weaponIndex);
  weaponPanel.classList.toggle('v461LastRounds',w.ammo>0&&w.ammo<=3);
  weaponPanel.classList.toggle('v461EmptyClip',w.ammo<=0);weaponPanel.setAttribute('aria-label',w.name+' · '+w.ammo+' balas y '+w.reserve+' en reserva'+(reloadTimer>0&&reloadWeapon===weaponIndex?' · recargando':''));
- const v488ZoneDistance=Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y);const v488Outside=Math.max(0,Math.ceil(v488ZoneDistance-zoneRadius));$('zoneInfo').classList.toggle('v461ZoneDanger',v488Outside>0);$('v15Loadout').textContent='ARMA '+(weaponIndex+1)+'/'+weapons.length+' · CAMBIAR: ARMA';$('gunName').textContent=w.name+(reloadTimer>0&&reloadWeapon===weaponIndex?' · RECARGANDO':w.ammo<=0?(w.reserve>0?' · PULSA RECARGAR':v489BestLoadedBackup(weaponIndex)>=0?' · RESPALDO LISTO':' · SIN MUNICIÓN · CAMBIA ARMA'):'');$('ammo').textContent=w.ammo;$('reserve').textContent='/ '+w.reserve;$('meds').textContent=meds;$('round').textContent=String(zonePhase+1).padStart(2,'0');$('timer').textContent=fmt(time);$('zoneRadius').textContent=Math.round(zoneRadius);$('zoneCountdown').textContent=fmt(Math.max(0,45-zoneTick));$('zoneText').textContent=v488Outside>0?'⚠ FUERA DE ZONA · '+v488Outside+'m HASTA SEGURIDAD':zoneTick>35?'⚠ ZONA CERRANDO':'◉ ZONA SEGURA'}function fmt(s){s=Math.floor(s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}function toast(msg){$('toast').textContent=msg;$('toast').style.opacity=1;toastTime=2.1}function impact(x,y,z,color='#ffce8a'){if(effects.length>=64||!Number.isFinite(x+y+z))return;const mesh=sphere(.18,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,depthWrite:false}),scene,x,y,z,6);effects.push({mesh,t:.26});}function distanceToSegment(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz||1),0,1);return Math.hypot(px-(ax+t*dx),pz-(az+t*dz))}// Height-aware segment-versus-cylinder cover: the same rules protect AI and player.
+ const v488ZoneDistance=Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y);const v488Outside=Math.max(0,Math.ceil(v488ZoneDistance-zoneRadius));$('zoneInfo').classList.toggle('v461ZoneDanger',v488Outside>0);$('v15Loadout').textContent='ARMA '+(weaponIndex+1)+'/'+weapons.length+' · CAMBIAR: ARMA';$('gunName').textContent=w.name+(reloadTimer>0&&reloadWeapon===weaponIndex?' · RECARGANDO':w.ammo<=0?(w.reserve>0?' · PULSA RECARGAR':v489BestLoadedBackup(weaponIndex)>=0?' · RESPALDO LISTO':' · SIN MUNICIÓN · CAMBIA ARMA'):'');$('ammo').textContent=w.ammo;$('reserve').textContent='/ '+w.reserve;$('meds').textContent=meds;$('round').textContent=String(zonePhase+1).padStart(2,'0');$('timer').textContent=fmt(time);$('zoneRadius').textContent=Math.round(zoneRadius);$('zoneCountdown').textContent=fmt(Math.max(0,45-zoneTick));$('zoneText').textContent=v488Outside>0?'⚠ FUERA DE ZONA · '+v488Outside+'m HASTA SEGURIDAD':zoneTick>35?'⚠ ZONA CERRANDO':'◉ ZONA SEGURA'}function fmt(s){s=Math.floor(s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}let v556LastToast='',v556LastToastAt=0;function toast(msg){const now=performance.now();if(msg===v556LastToast&&now-v556LastToastAt<2600)return;v556LastToast=msg;v556LastToastAt=now;$('toast').textContent=msg;$('toast').style.opacity=1;toastTime=1.7}function impact(x,y,z,color='#ffce8a'){if(effects.length>=64||!Number.isFinite(x+y+z))return;const mesh=sphere(.18,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,depthWrite:false}),scene,x,y,z,6);effects.push({mesh,t:.26});}function distanceToSegment(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz||1),0,1);return Math.hypot(px-(ax+t*dx),pz-(az+t*dz))}// Height-aware segment-versus-cylinder cover: the same rules protect AI and player.
 function blocked3D(ax,ay,az,bx,by,bz){
  const dx=bx-ax,dz=bz-az,len2=dx*dx+dz*dz;
  for(const o of worldObjects){
@@ -3789,6 +3854,7 @@ function v18Refresh(){
  const p=v18Progress;
  const nameEl=$('v536LobbyName'),idEl=$('v536LobbyId');
  if(nameEl)nameEl.textContent=v536NamePattern.test(p.playerName||'')?p.playerName:'OPERADOR';
+ const avatarEl=$('v536LobbyAvatar');if(avatarEl)avatarEl.textContent=(v536NamePattern.test(p.playerName||'')?p.playerName:'OPERADOR').trim().charAt(0).toUpperCase()||'D';
  if(idEl)idEl.textContent=v536IdPattern.test(p.playerId||'')?'ID · '+p.playerId:'ID PENDIENTE';
  $('v18Credits').textContent=(Number.isSafeInteger(p.credits)&&p.credits>=0?p.credits:0).toLocaleString('es-CO');
  $('v18XP').textContent=(Number.isSafeInteger(p.xp)&&p.xp>=0?p.xp:0).toLocaleString('es-CO');
@@ -3909,7 +3975,10 @@ function v18Open(name){
  if(name==='CUENTA DE JUGADOR'){
   html+='<div class="v18Grid">'+card('ID PÚBLICO',v18Esc(v536IdPattern.test(p.playerId||'')?p.playerId:'PENDIENTE DE FIREBASE'))+card('NOMBRE ACTUAL',v18Esc(p.playerName||'OPERADOR'))+'</div>';
   html+='<div class="v536Editor"><label for="v536PlayerName">NOMBRE DEL OPERADOR</label><input id="v536PlayerName" type="text" maxlength="18" autocomplete="off" spellcheck="false" value="'+v18Esc(p.playerName||'OPERADOR')+'"><button type="button" id="v536SaveName">GUARDAR NOMBRE</button><button type="button" id="v536CopyId">COPIAR ID</button><button type="button" id="v544RetryId">REINTENTAR ID</button><small id="v544IdStatus" role="status">Conecta Google para obtener tu ID numérico.</small><small id="v536NameStatus" role="status">Nombre de 3 a 18 caracteres. El ID permanece al cambiar de nombre.</small></div>';
-  html+='<p class="v18PanelNote">Tu ID es público, no una contraseña. Para recuperarlo tras reinstalar, confirma el respaldo de Google. Los números se asignan desde Firebase al vincular Google. Los invitados sin vincular todavía no reciben ID global.</p>';
+  const games=Math.max(0,Number(p.matches)||0),wins=Math.max(0,Number(p.wins)||0),kills=Math.max(0,Number(p.kills)||0),xp=Math.max(0,Number(p.xp)||0);
+  const level=1+Math.floor(xp/350),remaining=350-(xp%350),rate=games?((wins/games)*100).toFixed(1)+'%':'0%',avg=games?(kills/games).toFixed(2):'0.00';
+  html+='<h3 class="v18AccountSection">PROGRESO Y ESTADÍSTICAS</h3><div class="v18Grid">'+[['NIVEL',level],['PARTIDAS',games],['VICTORIAS',wins],['BAJAS',kills],['VICTORIAS',rate],['BAJAS / PARTIDA',avg],['MEJOR MARCA',Math.max(0,Number(p.best)||0)],['XP PARA SUBIR',remaining]].map(([label,value])=>card(label,String(value))).join('')+'</div>';
+  html+='<p class="v18PanelNote">Tu ID es público, no una contraseña. El número pertenece a tu cuenta Google verificada. El progreso y las estadísticas mostrados corresponden a este perfil.</p>';
  }else if(name==='ESTADÍSTICAS'){
   const games=Math.max(0,Number(p.matches)||0),wins=Math.max(0,Number(p.wins)||0),kills=Math.max(0,Number(p.kills)||0);
   const xp=Math.max(0,Number(p.xp)||0),level=1+Math.floor(xp/350),remaining=350-(xp%350);
@@ -3970,7 +4039,7 @@ function v18Open(name){
  body.innerHTML=html;
  const saveName=body.querySelector('#v536SaveName'),copyId=body.querySelector('#v536CopyId');
  const retryId=body.querySelector('#v544RetryId');
- if(retryId){retryId.disabled=v536IdPattern.test(p.playerId||'');retryId.addEventListener('click',v540RequestId);}
+ if(retryId){retryId.disabled=v544IdVerifiedAccount===v446GoogleEmail&&v536IdPattern.test(p.playerId||'');retryId.addEventListener('click',v540RequestId);}
  v544DisplayIdStatus();
  if(saveName)saveName.addEventListener('click',()=>{
   const status=body.querySelector('#v536NameStatus');
@@ -4030,7 +4099,7 @@ document.querySelectorAll('[data-v37mode]').forEach(button=>button.addEventListe
  $('v18Mode').value=mode;$('v18Mode').dispatchEvent(new Event('change'));$('v37ModeOverlay').classList.add('hidden');
 }));
 
-$('v18Profile').onclick=()=>v18Open('ESTADÍSTICAS');$('v18Profile').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();v18Open('ESTADÍSTICAS');}};$('v18Close').onclick=()=>{$('v18Panel').classList.add('hidden');$('v18Profile').focus();};
+$('v18Profile').onclick=()=>v18Open('CUENTA DE JUGADOR');$('v18Profile').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();v18Open('CUENTA DE JUGADOR');}};$('v18Close').onclick=()=>{$('v18Panel').classList.add('hidden');$('v18Profile').focus();};
 // Place the event dialog at the document root, above WebGL and all HUD layers.
 document.body.appendChild($('v362Events'));
 // V38: one dependable operations hub with two independent views.
@@ -4403,11 +4472,11 @@ const v432Camera={
   const b=this.blend;
   const baseBack=clamp(Number($('v26CameraDistance').value)||5,2.3,12);
   const baseShoulder=-clamp(Number($('v26CameraShoulder').value)||.65,-3,3);
-  const tacticalBack=mobile?clamp(baseBack*1.18,3,12):baseBack;
+  const tacticalBack=mobile?clamp(baseBack*1.10,3,12):baseBack;
   const back=tacticalBack*(1-b)+Math.max(2.45,baseBack*.80)*b;
   const shoulder=baseShoulder*(1-b)+baseShoulder*.58*b;
   // V52.9: lift the over-shoulder camera without shortening its distance.
-  const height=(mobile?4.05:3.55)-(mobile?.72:.42)*b;
+  const height=(mobile?3.75:3.45)-(mobile?.62:.35)*b;
   if(!Number.isFinite(this.back)){
    this.back=back;this.shoulder=shoulder;this.height=height;this.anchorY=player.position.y;
   }
