@@ -81,7 +81,7 @@ test('switching accounts replaces the active in-memory profile instead of mergin
       playerName: 'FIRST_ACCOUNT', staleField: 'must disappear',
     },
     refreshed: false,
-    v18Refresh() { this.refreshed = true; },
+    v18Refresh() { context.refreshed = true; },
   };
   const fresh = { credits: 0, xp: 0, matches: 0, wins: 0, kills: 0, best: 0,
     skin: 0, unlocked: [0], weapon: 0, claimed: [] };
