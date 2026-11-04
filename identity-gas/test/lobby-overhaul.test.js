@@ -11,7 +11,7 @@ const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
 test('V56.0 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.match(menu, /V56\.0 · CENTRO DE OPERACIONES/);
+  assert.match(menu, /V57.0 · CENTRO DE OPERACIONES/);
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -90,12 +90,12 @@ test('parachute camera is pulled back and Lila preview supports touch rotation a
 });
 
 test('Android release is V56.0 with a monotonic version code', () => {
-  assert.match(gradle, /versionCode 143/);
-  assert.match(gradle, /versionName '56\.0-lobby-overhaul'/);
+  assert.match(gradle, /versionCode 144/);
+  assert.match(gradle, /versionName '57.0-lobby-camera-stability'/);
 });
 
 test('V57 Android package metadata is monotonic and matches the lobby release', () => {
   assert.match(gradle, /versionCode 144/);
-  assert.match(gradle, /versionName '57\\.0-lobby-camera-stability'/);
-  assert.match(html, /V57\\.0 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionName '57.0-lobby-camera-stability'/);
+  assert.match(html, /V57.0 · CENTRO DE OPERACIONES/);
 });
