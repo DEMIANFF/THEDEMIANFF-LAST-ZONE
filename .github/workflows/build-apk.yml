@@ -111,7 +111,7 @@ jobs:
           gas=Path('identity-gas/Code.gs').read_text(encoding='utf-8')
           for token in ('accounts:lookup', 'LockService.getScriptLock()', "providerId === 'google.com'"):
               assert token in gas, 'V55.4: server-side verification/locking missing: '+token
-          for token in ('setupRegistry', 'THEDEMIANFF_PLAYER_ID_COUNTER', 'lastRow === counter + 2'):
+          for token in ('setupRegistry', 'THEDEMIANFF_PLAYER_ID_COUNTER', 'dataRows.length === counter + 1', 'validateRegistryRows_', 'number !== index + 1'):
               assert token in gas, 'V55.4: safe free registry implementation missing: '+token
           endpoint=Path('identity-gas/endpoint.txt').read_text(encoding='utf-8').strip()
           assert endpoint.startswith('https://script.google.com/macros/s/') and endpoint.endswith('/exec') and len(endpoint) <= 256 and not any(ch.isspace() for ch in endpoint), 'V55.4: endpoint must be a published HTTPS Apps Script Web App URL'
