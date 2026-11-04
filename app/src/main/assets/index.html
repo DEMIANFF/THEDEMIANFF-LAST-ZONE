@@ -1510,7 +1510,7 @@ function v22BuildPlaza(){
  }
 }
 v22BuildPlaza();
-for(let i=0;i<62;i++){let x=rand(-HALF+12,HALF-12),z=rand(-HALF+12,HALF-12);if(Math.hypot(x,z)<16)continue;let scale=rand(.7,1.5);let g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%4===0){v55DoorBuilding(g,x,z,7*scale,3.8*scale,5.7*scale,mats.wall,2.05,Math.min(2.4,3.8*scale-.12),.30*scale,{height:4.4*scale,halfW:3.9*scale,halfD:3.2*scale});box(7.8*scale,.6*scale,6.4*scale,mats.roof,g,0,4.1*scale,0);box(1.3*scale,2.5*scale,.1,mats.dark,g,0,1.25*scale,2.9*scale);box(1.5*scale,1.2*scale,.12,mats.glass,g,2*scale,2.3*scale,2.9*scale);}else if(i%4===1){box(5*scale,2.5*scale,3*scale,mats.wood,g,0,1.25*scale,0);box(5.5*scale,.3*scale,3.5*scale,mats.roof,g,0,2.65*scale,0);worldObjects.push({x,z,r:3.2*scale,h:2.8*scale,v403Roof:true,v403HalfW:2.75*scale,v403HalfD:1.75*scale});}else{box(3.3*scale,1.5*scale,2.1*scale,mats.dark,g,0,.75*scale,0);box(3.5*scale,.15*scale,2.3*scale,mats.gold,g,0,1.55*scale,0);worldObjects.push({x,z,r:2.4*scale,h:1.7*scale,v403Roof:true,v403HalfW:1.75*scale,v403HalfD:1.15*scale});}}
+for(let i=0;i<62;i++){let x=rand(-HALF+12,HALF-12),z=rand(-HALF+12,HALF-12);if(Math.hypot(x,z)<16)continue;let scale=rand(.7,1.5);let g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%4===0){v55DoorBuilding(g,x,z,7*scale,3.8*scale,5.7*scale,mats.wall,2.05,Math.min(2.4,3.8*scale-.12),.30*scale,{height:4.4*scale,halfW:3.9*scale,halfD:3.2*scale});box(7.8*scale,.6*scale,6.4*scale,mats.roof,g,0,4.1*scale,0);box(1.5*scale,1.2*scale,.12,mats.glass,g,2*scale,2.3*scale,2.9*scale);}else if(i%4===1){box(5*scale,2.5*scale,3*scale,mats.wood,g,0,1.25*scale,0);box(5.5*scale,.3*scale,3.5*scale,mats.roof,g,0,2.65*scale,0);worldObjects.push({x,z,r:3.2*scale,h:2.8*scale,v403Roof:true,v403HalfW:2.75*scale,v403HalfD:1.75*scale});}else{box(3.3*scale,1.5*scale,2.1*scale,mats.dark,g,0,.75*scale,0);box(3.5*scale,.15*scale,2.3*scale,mats.gold,g,0,1.55*scale,0);worldObjects.push({x,z,r:2.4*scale,h:1.7*scale,v403Roof:true,v403HalfW:1.75*scale,v403HalfD:1.15*scale});}}
 for(let i=0;i<175;i++){let x=rand(-HALF+8,HALF-8),z=rand(-HALF+8,HALF-8);if(Math.hypot(x,z)<14||Math.hypot(x+100,z+105)<22||Math.hypot(x-102,z-74)<22||v426DecorationBlocked(x,z,4.5))continue;const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%7===0){const rockRadius=rand(1.2,2.3);/* V42.6: roca original oculta */worldObjects.push({x,z,r:rockRadius*1.08,h:rockRadius*1.8,v426Rock:true});}else{let sc=rand(.75,1.5);cyl(.28*sc,.4*sc,3.2*sc,mats.trunk,g,0,1.6*sc,0);sphere(1.65*sc,i%3?mats.leaf:mats.leaf2,g,0,3.9*sc,0,7);sphere(1.2*sc,mats.leaf,g,.6*sc,3.1*sc,.35*sc,7);worldObjects.push({x,z,r:.7*sc,h:5.2*sc});}}
 // V17: Puerto Aurora, compact coastal village inspired by supplied reference (original geometry).
 const v17Stucco=new THREE.MeshStandardMaterial({color:'#e4d8c4',roughness:.96});
@@ -1537,7 +1537,7 @@ for(let i=0;i<12;i++){
  // Terracotta gabled roof with sloping halves.
  const roof1=box(w*.60,.36,depth+.7,v17Tile,g,-w*.23,wall+.9,0);roof1.rotation.z=.33;
  const roof2=box(w*.60,.36,depth+.7,v17Tile,g,w*.23,wall+.9,0);roof2.rotation.z=-.33;
- box(1.5,2.4,.13,v17Door,g,0,1.2,depth/2+.08);
+ 
  for(const side of [-1,1])box(1.1,1.25,.13,mats.glass,g,side*2.6,2.3,depth/2+.09);
  if(levels===2){box(3,.25,1.3,v17Stone,g,1.7,4.2,depth/2+.6);box(1.1,1.3,.13,mats.glass,g,1.5,5.4,depth/2+.09);}
  
@@ -2508,10 +2508,7 @@ function v396ExpandAurora(){
   return mesh;
  }
  function v40BuildingDetails(g,w,h,d){
-  // Facade entrance, recessed-looking glass and mullions; preserve original solid building footprint.
-  v40Panel(g,1.28,2.45,.11,v40Frame,0,1.225,d/2+.14);
-  v40Panel(g,.97,2.16,.12,v40Door,0,1.15,d/2+.22);
-  v40Panel(g,.07,1.82,.14,v40Warm,.36,1.16,d/2+.3);
+  // V55.1: omit the closed decorative leaf; the physical and visual doorway stays clear.
   for(const side of [-1,1]){
    const wx=side*w*.31,wy=Math.min(h-1.1,3.15);
    v40Panel(g,1.45,1.35,.12,v40Frame,wx,wy,d/2+.15);
