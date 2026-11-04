@@ -29,7 +29,7 @@ test('hybrid third-person camera keeps a moderate mobile distance and lower shou
   assert.ok(html.includes('const height=(mobile?2.85:2.9)-(mobile?.34:.28)*b;'));
   assert.ok(html.includes('const v432Camera={'));
   assert.ok(html.includes('const back=tacticalBack*(1-b)+Math.max(7.5,baseBack*.96)*b;'));
-  assert.ok(html.includes('const shoulder=baseShoulder*(1-b)+baseShoulder*.90*b;'));
+  assert.ok(html.includes('const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;'));
   assert.ok(html.includes('c.gun.scale.setScalar(activeIndex===4?1.0:activeIndex===0?.88:.86);'));
   assert.ok(html.includes("clamp(value,8.5,14)"));
   assert.ok(html.includes("clamp(value,2.0,2.7)"));
@@ -91,10 +91,11 @@ test('V57.5 keeps every aiming indicator hidden outside a match and restores the
   assert.match(html, /document\.body\.classList\.contains\('v475InMatch'\) && isADS && running/);
   assert.match(html, /camera\.getWorldDirection\(direction\)/);
 });
-test('V57.5 migrates old shoulder preferences to the wider right-hand framing range', () => {
-  assert.match(html, /value="2\.1"/);
-  assert.match(html, /clamp\(value,1\.6,2\.4\):2\.1/);
-  assert.match(html, /const baseShoulder=-clamp/);
+test('V57.5 migrates the previous shoulder default while preserving newer custom preferences', () => {
+  assert.match(html, /value="2\.35"/);
+  assert.match(html, /const calibrated=Number\.isFinite\(value\)&&value>2\.1\?clamp\(value,2\.0,2\.7\):2\.35;/);
+  assert.match(html, /localStorage\.setItem\('v26-pref-'\+id,String\(calibrated\)\)/);
+  assert.match(html, /const baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|2\.35,2\.0,2\.7\);/);
   assert.match(html, /baseShoulder\*\.92\*b/);
 });
 
