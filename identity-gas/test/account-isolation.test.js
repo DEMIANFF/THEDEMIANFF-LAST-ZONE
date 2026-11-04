@@ -62,7 +62,7 @@ test('native logout waits for Google sign-out completion before notifying the We
 
 test('switching accounts replaces the active in-memory profile instead of merging old stats', () => {
   const start = html.indexOf('function v504SetLocalProgress(data){');
-  const end = html.indexOf('\\nfunction v504StartCloudRestore', start);
+  const end = html.indexOf('\nfunction v504StartCloudRestore', start);
   assert.ok(start >= 0 && end > start, 'account-switch progress setter must exist');
   const values = {};
   const context = {
@@ -86,7 +86,7 @@ test('switching accounts replaces the active in-memory profile instead of mergin
   const fresh = { credits: 0, xp: 0, matches: 0, wins: 0, kills: 0, best: 0,
     skin: 0, unlocked: [0], weapon: 0, claimed: [] };
   vm.runInNewContext(html.slice(start, end) +
-    '\\nv504SetLocalProgress(' + JSON.stringify(fresh) + '); result={...v18Progress};', context);
+    '\nv504SetLocalProgress(' + JSON.stringify(fresh) + '); result={...v18Progress};', context);
   assert.equal(context.result.xp, 0);
   assert.equal(context.result.credits, 0);
   assert.equal(context.result.playerId, undefined);
