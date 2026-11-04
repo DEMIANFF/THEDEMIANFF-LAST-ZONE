@@ -10,8 +10,8 @@ const menuStart = html.indexOf('<div id="menu"');
 const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
-test('V57.2 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.match(menu, /V57.2 · CENTRO DE OPERACIONES/);
+test('V57.3 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
+  assert.match(menu, /V57.3 · CENTRO DE OPERACIONES/);
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -89,13 +89,32 @@ test('parachute camera is pulled back and Lila preview supports touch rotation a
   assert.match(html, /l\.camera\.position\.set\(0,1\.92,7\.9\)/);
 });
 
-test('Android release is V57.2 with a monotonic version code', () => {
-  assert.match(gradle, /versionCode 146/);
-  assert.match(gradle, /versionName '57.2-right-shoulder-aim'/);
+test('Android release is V57.3 with a monotonic version code', () => {
+  assert.match(gradle, /versionCode 147/);
+  assert.match(gradle, /versionName '57.3-battle-royale-visuals'/);
 });
 
 test('V57 Android package metadata is monotonic and matches the lobby release', () => {
-  assert.match(gradle, /versionCode 146/);
-  assert.match(gradle, /versionName '57.2-right-shoulder-aim'/);
-  assert.match(html, /V57.2 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionCode 147/);
+  assert.match(gradle, /versionName '57.3-battle-royale-visuals'/);
+  assert.match(html, /V57.3 · CENTRO DE OPERACIONES/);
+});
+
+test('V57.3 activates the authored Aurora battle royale environment and visual resources', () => {
+  const worldStart = html.indexOf('function v428CreateTrainingWorld');
+  const worldEnd = html.indexOf('function createWorld', worldStart);
+  const builder = html.slice(worldStart, worldEnd);
+  assert.match(builder, /addWorldDetails\(\);\s*\/\/ V57\.3: activate the previously authored district architecture and instanced Aurora dressing\.\s*v396ExpandAurora\(\);\s*v397DetailAurora\(\);\s*v583SetupBattleVisuals\(\);/);
+  assert.match(html, /function v396ExpandAurora\(\)/);
+  assert.match(html, /function v397DetailAurora\(\)/);
+  assert.match(html, /function v583SetupBattleVisuals\(\)/);
+  assert.match(html, /new THREE\.CanvasTexture\(snowCanvas\)/);
+  assert.match(html, /new THREE\.ShaderMaterial\(/);
+  assert.match(html, /new THREE\.Points\(assets\.snowGeometry,assets\.snowMaterial\)/);
+  assert.match(html, /name='V583_SAFE_ZONE_WALL'/);
+  assert.match(html, /v583TickBattleVisuals\(dt\)/);
+  assert.match(html, /v583UpdateZoneVisual\(zoneRadius,zoneCenter\.x,zoneCenter\.y,danger\)/);
+  assert.match(html, /v583BuildPickupCase\(group,type\)/);
+  assert.match(html, /window\.THEDEMIANFF_BATTLE_VISUAL_TEST/);
+  assert.match(html, /const detailCounts=\[48,32,32,32,64,48\]/);
 });
