@@ -865,13 +865,23 @@ body:not(.v475InMatch) #v434ScopeButton{display:none!important}
 body.v475InMatch #v10Reticle{display:block!important}
 body.v475InMatch #v13AimMode{display:block!important}
 </style>
+<style id="v585ReticleNoHalo">
+/* V57.5: remove the translucent white outer ring that visually sits over the operator. */
+#v10Reticle,#v10Reticle.v382ADS{
+ border-color:transparent!important;
+ box-shadow:none!important;
+ background:transparent!important;
+}
+#v10Reticle:not(.v382ADS){opacity:0!important}
+#v10Reticle.v382ADS{opacity:.96!important}
+</style>
 
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V57.4 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
+<div id="v22Edition">V57.5 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"><span class="v581Currency"><small>CR</small><b id="v18Credits">0</b></span><span class="v581Currency"><small>XP</small><b id="v18XP">0</b></span><button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE AURORA</button><button data-lobby="PERSONAJE">♙ &nbsp; OPERADORES</button><button data-lobby="OPERACIONES">◈ &nbsp; EVENTOS Y OBJETIVOS</button><button data-lobby="ARMAS">⌖ &nbsp; ARSENAL</button><button data-lobby="INVENTARIO">▣ &nbsp; INVENTARIO</button><button data-lobby="PRESET">☷ &nbsp; EQUIPAMIENTOS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V57.4</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V57.5</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
 
 <div class="v17Bottom"><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -895,7 +905,7 @@ body.v475InMatch #v13AimMode{display:block!important}
 <div class="settingsSection" data-section="control">
 <label class="v37Primary">SENSIBILIDAD GENERAL · CÁMARA 360° <input id="sensitivity" type="range" min=".35" max="3" step=".05" value="1.25"></label>
 <label class="v37Advanced">Sensibilidad vertical <input id="verticalSensitivity" type="range" min=".35" max="3" step=".05" value="1.2"></label>
-<label class="v37Primary">DISTANCIA DE CÁMARA · TERCERA PERSONA <input id="v26CameraDistance" type="range" min="8.5" max="14" step=".25" value="8.5"></label><label class="v37Advanced">Separación lateral de cámara · hombro derecho <input id="v26CameraShoulder" type="range" min="1.6" max="2.4" step=".05" value="2.1"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
+<label class="v37Primary">DISTANCIA DE CÁMARA · TERCERA PERSONA <input id="v26CameraDistance" type="range" min="8.5" max="14" step=".25" value="8.5"></label><label class="v37Advanced">Separación lateral de cámara · hombro derecho <input id="v26CameraShoulder" type="range" min="2.0" max="2.7" step=".05" value="2.35"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
 <label class="v37Advanced">Velocidad de cámara <input id="cameraSpeed" type="range" min=".6" max="1.8" step=".05" value="1"></label>
 <label>Invertir cámara vertical <input id="invertY" type="checkbox"></label>
 <label>Ayuda de apuntado <input id="aimAssist" type="checkbox" checked></label>
@@ -1726,7 +1736,7 @@ function v22BuildPlaza(){
 }
 v22BuildPlaza();
 for(let i=0;i<62;i++){let x=rand(-HALF+12,HALF-12),z=rand(-HALF+12,HALF-12);if(Math.hypot(x,z)<16)continue;let scale=rand(.7,1.5);let g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%4===0){box(7*scale,3.8*scale,5.7*scale,mats.wall,g,0,1.9*scale,0);box(7.8*scale,.6*scale,6.4*scale,mats.roof,g,0,4.1*scale,0);box(1.3*scale,2.5*scale,.1,mats.dark,g,0,1.25*scale,2.9*scale);box(1.5*scale,1.2*scale,.12,mats.glass,g,2*scale,2.3*scale,2.9*scale);worldObjects.push({x,z,r:4.4*scale,h:4.4*scale,v403Roof:true,v403HalfW:3.9*scale,v403HalfD:3.2*scale});}else if(i%4===1){box(5*scale,2.5*scale,3*scale,mats.wood,g,0,1.25*scale,0);box(5.5*scale,.3*scale,3.5*scale,mats.roof,g,0,2.65*scale,0);worldObjects.push({x,z,r:3.2*scale,h:2.8*scale,v403Roof:true,v403HalfW:2.75*scale,v403HalfD:1.75*scale});}else{box(3.3*scale,1.5*scale,2.1*scale,mats.dark,g,0,.75*scale,0);box(3.5*scale,.15*scale,2.3*scale,mats.gold,g,0,1.55*scale,0);worldObjects.push({x,z,r:2.4*scale,h:1.7*scale,v403Roof:true,v403HalfW:1.75*scale,v403HalfD:1.15*scale});}}
-for(let i=0;i<175;i++){let x=rand(-HALF+8,HALF-8),z=rand(-HALF+8,HALF-8);if(Math.hypot(x,z)<14||Math.hypot(x+100,z+105)<22||Math.hypot(x-102,z-74)<22||v426DecorationBlocked(x,z,4.5))continue;const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%7===0){const rockRadius=rand(1.2,2.3);/* V42.6: roca original oculta */worldObjects.push({x,z,r:rockRadius*1.08,h:rockRadius*1.8,v426Rock:true});}else{let sc=rand(.75,1.5);cyl(.28*sc,.4*sc,3.2*sc,mats.trunk,g,0,1.6*sc,0);sphere(1.65*sc,i%3?mats.leaf:mats.leaf2,g,0,3.9*sc,0,7);sphere(1.2*sc,mats.leaf,g,.6*sc,3.1*sc,.35*sc,7);worldObjects.push({x,z,r:.7*sc,h:5.2*sc});}}
+for(let i=0;i<175;i++){let x=rand(-HALF+8,HALF-8),z=rand(-HALF+8,HALF-8);if(Math.hypot(x,z)<14||Math.hypot(x+100,z+105)<22||Math.hypot(x-102,z-74)<22||v426DecorationBlocked(x,z,4.5))continue;const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);if(i%7===0){/* V57.5: removed the hidden rock and its invisible collision proxy. */}else{let sc=rand(.75,1.5);cyl(.28*sc,.4*sc,3.2*sc,mats.trunk,g,0,1.6*sc,0);sphere(1.65*sc,i%3?mats.leaf:mats.leaf2,g,0,3.9*sc,0,7);sphere(1.2*sc,mats.leaf,g,.6*sc,3.1*sc,.35*sc,7);worldObjects.push({x,z,r:.7*sc,h:5.2*sc});}}
 // V17: Puerto Aurora, compact coastal village inspired by supplied reference (original geometry).
 const v17Stucco=new THREE.MeshStandardMaterial({color:'#e4d8c4',roughness:.96});
 const v17White=new THREE.MeshStandardMaterial({color:'#f2eee2',roughness:.92});
@@ -1768,8 +1778,8 @@ for(let i=0;i<12;i++){
 }
 for(const x of [-7,7])for(const z of [-7,7]){
  const g=new THREE.Group();g.position.set(x,ground(x-86,z-82),z);village.add(g);
- box(3.1,1.1,3.1,v17Stone,g,0,.55,0);box(2.5,.35,2.5,mats.leaf,g,0,1.22,0);
- worldObjects.push({x:x-86,z:z-82,r:1.65});
+ box(1.7,.56,1.7,v17Stone,g,0,.28,0);box(1.3,.22,1.3,mats.leaf,g,0,.67,0);
+ worldObjects.push({x:x-86,z:z-82,r:.92});
 }
 // V16: low-poly road network and town plazas, all visual (no invisible collision).
 const roadMaterial=new THREE.MeshStandardMaterial({color:'#666967',roughness:1,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
@@ -2443,7 +2453,7 @@ function addWorldDetails(){
   if(kind==='forest'){for(let j=0;j<20;j++){const a=j*2.4,rr=4+j*.65;const t=new THREE.Mesh(new THREE.ConeGeometry(1.6,9,6),j%3?darkIce:glow);t.position.set(Math.cos(a)*rr,4.5,Math.sin(a)*rr);g.add(t);}}
   else if(kind==='sanctuary'){for(let j=0;j<5;j++){const p=new THREE.Mesh(new THREE.ConeGeometry(2+j*.4,10+j*2,5),crystal);p.position.set(Math.cos(j*1.26)*7,5+j,Math.sin(j*1.26)*7);g.add(p);}}
   else if(kind==='crystal'||kind==='glacier'){for(let j=0;j<12;j++){const p=new THREE.Mesh(new THREE.OctahedronGeometry(1.4+j%3,0),ice);p.position.set(Math.cos(j*2.4)*(4+j),1.3,Math.sin(j*2.4)*(4+j));g.add(p);}}
-  else {for(let j=0;j<5;j++){const p=new THREE.Mesh(new THREE.BoxGeometry(3,3+j%3*2,3),darkIce);p.position.set((j-2)*4,2,Math.sin(j*2)*5);g.add(p);}}
+  else { /* V57.5: keep landmark approaches open; no oversized dark-ice block clusters. */ }
  }
 
  // V49.2: shared-geometry glacial markers. Instancing keeps 72 details to two draw calls.
@@ -2458,7 +2468,7 @@ function addWorldDetails(){
   const fx=Math.cos(angle)*radius,fz=Math.sin(angle)*radius;
   frostDummy.position.set(fx,ground(fx,fz)+.52,fz);
   frostDummy.rotation.set(0,angle,0);
-  const size=i%9===0?1.85:.75+(i%5)*.19;
+  const size=i%9===0?.52:.26+(i%5)*.07;
   frostDummy.scale.set(size*.75,size*1.35,size*.75);
   frostDummy.updateMatrix();
   if(i<56)frostStones.setMatrixAt(i,frostDummy.matrix);
@@ -2888,6 +2898,12 @@ function v396ExpandAurora(){
  window.v40CachedSignTextures=v40SignCache.size;
 }
 window.THEDEMIANFF_AURORA_TEST=()=>({structures:window.v396StructuresPlaced||0,colliders:worldObjects.length});
+window.THEDEMIANFF_AURORA_ACCESS_TEST=()=>({
+ hiddenRockColliders:worldObjects.filter(o=>o&&o.v426Rock===true).length,
+ oversizedFrostStones:false,
+ openPoiBlockClusters:false,
+ villagePlanterCollisionRadius:.92
+});
 window.THEDEMIANFF_V40_TEST=()=>({exposureCalibrated:true,visibilityLighting:true,lootHalo:true,enemyUniformMarkers:true,aircraftFinishing:!!(v36Aircraft&&v36Aircraft.userData.v40VisualFinishing),facadePieces:window.v40FacadePieces||0,textures:window.v40TextureCount||0,bumpMaps:3,signs:window.v40DistrictSigns||0,uniqueSigns:window.v40CachedSignTextures||0,structures:window.v396StructuresPlaced||0});
 // V39.7: architectural trim and icy ground patches are purely decorative.
 // Existing V39.6 collision footprints and AI cover locations remain unchanged.
@@ -4853,7 +4869,7 @@ for(const id of ['v26CameraDistance','v26CameraShoulder','v26TouchDeadzone','v26
    const value=Number(saved);
    if(id==='v26CameraDistance')el.value=String(Number.isFinite(value)?clamp(value,8.5,14):8.5);
    else if(id==='v26CameraShoulder'){
-    const calibrated=Number.isFinite(value)&&value>=1.6?clamp(value,1.6,2.4):2.1;
+    const calibrated=Number.isFinite(value)&&value>2.1?clamp(value,2.0,2.7):2.35;
     el.value=String(calibrated);
     localStorage.setItem('v26-pref-'+id,String(calibrated));
    }
@@ -4964,21 +4980,21 @@ const v432Camera={
   // Un solo blend gobierna hombro, distancia, altura y FOV.
   const b=this.blend;
   const baseBack=clamp(Number($('v26CameraDistance').value)||8.5,8.5,14);
-  const baseShoulder=-clamp(Number($('v26CameraShoulder').value)||2.1,1.6,2.4);
+  const baseShoulder=-clamp(Number($('v26CameraShoulder').value)||2.35,2.0,2.7);
   const tacticalBack=mobile?clamp(baseBack*1.05,8.5,14):baseBack;
   const back=tacticalBack*(1-b)+Math.max(7.5,baseBack*.96)*b;
-  const shoulder=baseShoulder*(1-b)+baseShoulder*.90*b;
+  const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;
   // V52.9: lift the over-shoulder camera without shortening its distance.
   const height=(mobile?2.85:2.9)-(mobile?.34:.28)*b;
   if(!Number.isFinite(this.back)){
    this.back=back;this.shoulder=shoulder;this.height=height;this.anchorY=player.position.y;
   }
-  const follow=1-Math.exp(-t*16);
+  const follow=1-Math.exp(-t*13);
   this.back+=(back-this.back)*follow;
   this.shoulder+=(shoulder-this.shoulder)*follow;
   this.height+=(height-this.height)*follow;
   const smooth=clamp(Number($('cameraSmooth').value)||0,0,.8);
-  this.anchorY+=(player.position.y-this.anchorY)*(1-Math.exp(-t*(this.mode==='ADS'?9:5)*(1-.4*smooth)));
+  this.anchorY+=(player.position.y-this.anchorY)*(1-Math.exp(-t*(this.mode==='ADS'?10:6.5)*(1-.4*smooth)));
   const desired=new THREE.Vector3(
    player.position.x+Math.cos(camYaw)*this.shoulder-Math.sin(camYaw)*this.back,
    this.anchorY+this.height,
@@ -4988,7 +5004,7 @@ const v432Camera={
   // V53.1: damp small horizontal follow jitter while keeping collision
   // responses immediate to prevent the view entering scenery.
   const obstructed=Math.abs(safe.x-desired.x)+Math.abs(safe.z-desired.z)>.02;
-  const followXZ=1-Math.exp(-t*16);
+  const followXZ=1-Math.exp(-t*12.5);
   if(obstructed||!Number.isFinite(camera.position.x)||!Number.isFinite(camera.position.z)||
      Math.hypot(camera.position.x-safe.x,camera.position.z-safe.z)>8){
    camera.position.x=safe.x;camera.position.z=safe.z;
@@ -4998,7 +5014,7 @@ const v432Camera={
   }
   // Smooth vertical tracking is essential: keep the shoulder camera attached to the player.
   if(!Number.isFinite(camera.position.y)||Math.abs(camera.position.y-safe.y)>5)camera.position.y=safe.y;
-  else camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*15));
+  else camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*13));
   const forward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
   camera.lookAt(camera.position.clone().addScaledVector(forward,100));
   const baseFov=mobile?79:68,targetFov=baseFov/v434Optics.active().zoom;
