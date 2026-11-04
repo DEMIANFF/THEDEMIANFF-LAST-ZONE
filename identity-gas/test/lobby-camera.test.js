@@ -68,7 +68,7 @@ test('V57 lobby gives the operator, Social navigation and launch controls separa
   assert.match(html, /max-width:min\(34vw,315px\)/);
 });
 
-test('V57.2 right-shoulder framing clears the operator from the center aim ray', () => {
+test('V57.3 right-shoulder framing clears the operator from the center aim ray', () => {
   assert.match(html, /const baseShoulder=clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|1\.45,1\.0,1\.7\);/);
   assert.match(html, /const shoulder=baseShoulder\*\(1-b\)\+baseShoulder\*\.78\*b;/);
   assert.doesNotMatch(html, /const baseShoulder=-clamp/);
