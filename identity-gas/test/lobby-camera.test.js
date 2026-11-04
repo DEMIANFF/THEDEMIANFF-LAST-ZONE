@@ -67,3 +67,16 @@ test('V57 lobby gives the operator, Social navigation and launch controls separa
   assert.match(html, /class="v581Currency"/);
   assert.match(html, /max-width:min\(34vw,315px\)/);
 });
+
+test('V57.2 right-shoulder framing clears the operator from the center aim ray', () => {
+  assert.match(html, /const baseShoulder=clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|1\.45,1\.0,1\.7\);/);
+  assert.match(html, /const shoulder=baseShoulder\*\(1-b\)\+baseShoulder\*\.78\*b;/);
+  assert.doesNotMatch(html, /const baseShoulder=-clamp/);
+  assert.match(html, /const start=camera\.position\.clone\(\),direction=new THREE\.Vector3\(\);camera\.getWorldDirection\(direction\)/);
+  assert.match(html, /reticle\.dataset\.scope=this\.active\(\)\.name/);
+  assert.match(html, /cross\.dataset\.scope=this\.active\(\)\.name/);
+  for (const scope of ['PUNTO', '2x', '4x', '8x']) {
+    assert.ok(html.includes('#v10Reticle[data-scope="' + scope + '"]'), 'missing calibrated reticle: ' + scope);
+  }
+  assert.match(html, /#cross,#v10Reticle\{[^}]*z-index:140!important/);
+});
