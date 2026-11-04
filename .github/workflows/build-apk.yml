@@ -524,13 +524,13 @@ jobs:
                         'const tracks=new THREE.InstancedMesh',
                         'V57.6 · CENTRO DE OPERACIONES'):
               assert token in h, 'V49.3: regresión visual '+token
-          # V49.2: GPU-instanced Aurora scenery and Lila strafe response.
-          for token in ("new THREE.InstancedMesh(frostGeometry,frostMat,56)",
-                        "new THREE.InstancedMesh(frostGeometry,frostGlowMat,16)",
-                        "const strafeLean=",
+          # V49.2: Lila strafe response remains; loose ice rocks are intentionally disabled in V57.6.
+          for token in ("const strafeLean=",
                         "model.rotation.z+=(strafeLean-model.rotation.z)*ease",
-                        "V57.6 · CENTRO DE OPERACIONES"):
-              assert token in h, 'V49.2: regresión visual '+token
+                        "V57.6 · CENTRO DE OPERACIONES",
+                        "looseFrostStones:false",
+                        "valleyRockCliffs:false"):
+              assert token in h, 'V49.2/V57.6: visual regression '+token
           # V50.3: Google cloud callbacks must remain isolated to the authenticated Firebase UID.
           for token in ("cloudAccountUnchanged(String uid)",
                         "final String requestUid=user.getUid();",
