@@ -757,6 +757,23 @@ function v504HasPriorGoogleAccount(){
  return false;
 }
 const v504AccountProgress=email=>'thedemianff_v504_progress_'+encodeURIComponent(email.toLowerCase());
+function v504FindDuplicateAccountSnapshot(email,candidate){
+ const ownKey=v504AccountProgress(email);
+ const current=v443ValidateProgress(candidate);
+ const fields=['credits','xp','matches','wins','kills','best','skin','weapon'];
+ for(let i=0;i<localStorage.length;i++){
+  const key=localStorage.key(i)||'';
+  if(!key.startsWith('thedemianff_v504_progress_')||key===ownKey)continue;
+  try{
+   const other=v443ValidateProgress(JSON.parse(localStorage.getItem(key)));
+   const sameFields=fields.every(field=>other[field]===current[field]);
+   const sameUnlocks=JSON.stringify(other.unlocked)===JSON.stringify(current.unlocked);
+   const sameClaims=JSON.stringify(other.claimed)===JSON.stringify(current.claimed);
+   if(sameFields&&sameUnlocks&&sameClaims)return key;
+  }catch(e){console.warn('Se omitió una copia local de cuenta no válida',e);}
+ }
+ return '';
+}
 const v504PendingGuest=email=>'thedemianff_v504_guest_transfer_'+encodeURIComponent(email.toLowerCase());
 const v504Blank=()=>({credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,unlocked:[0],weapon:0,claimed:[]});
 function v504SetLocalProgress(data){const validated=v443ValidateProgress(data);const serialized=JSON.stringify(validated);localStorage.setItem(progressKey,serialized);if(typeof v18Progress!=='undefined'){v18Progress=validated;if(typeof v18Refresh==='function')v18Refresh();}if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(serialized))throw Error('No se pudo guardar el progreso invitado del dispositivo.');}
@@ -1120,6 +1137,29 @@ window.thedemianffCloudResult=(state,payload)=>{
  const autoRestore=v504Restoring;v504Restoring=false;
  try{
   const saved=v443ValidateProgress(JSON.parse(payload));
+  // A prior app version could have copied the first account's guest snapshot
+  // into a second account's Firestore document. Detect matching local account
+  // snapshots (ignoring playerId, which the identity service reassigns per UID).
+  if(autoRestore&&v446GoogleEmail){
+   const duplicateSource=v504FindDuplicateAccountSnapshot(v446GoogleEmail,saved);
+   if(duplicateSource){
+    const startFresh=confirm('ATENCIÓN: el respaldo remoto de esta cuenta coincide con el progreso guardado de otra cuenta Google en este teléfono. Puede ser una transferencia antigua no deseada.\\n\\nAceptar: crear un perfil nuevo desde cero para esta cuenta. El respaldo duplicado se archivará en este dispositivo antes de reemplazarlo.\\nCancelar: conservar el respaldo remoto actual.');
+    if(startFresh){
+     const archiveKey='thedemianff_duplicate_backup_'+encodeURIComponent(v446GoogleEmail.toLowerCase())+'_'+Date.now();
+     localStorage.setItem(archiveKey,JSON.stringify(saved));
+     const fresh=v504Blank();
+     v504SetLocalProgress(fresh);
+     v504CloudReady=true;
+     v504NewProfilePending=true;
+     localStorage.setItem(v504AccountProgress(v446GoogleEmail),JSON.stringify(fresh));
+     entry.style.display='flex';
+     info.textContent='Creando un perfil independiente para esta cuenta Google…';
+     v495CloudSave(JSON.stringify(fresh));
+     v494CloudNotice('☁ Perfil nuevo solicitado. La copia anterior quedó archivada en este dispositivo.');
+     return;
+    }
+   }
+  }
   const currentRaw=localStorage.getItem(progressKey);
   const current=currentRaw?JSON.parse(currentRaw):null;
   const summary='Google: '+saved.matches+' partidas, '+saved.xp+' XP, '+saved.credits+' créditos y '+saved.unlocked.length+' operadores.';
