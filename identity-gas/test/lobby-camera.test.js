@@ -26,7 +26,7 @@ test('identity and statistics are no longer duplicated in the lobby navigation',
 test('hybrid third-person camera keeps a moderate mobile distance and higher framing', () => {
   assert.match(html, /id="v26CameraDistance"[^>]*value="7\.0"/);
   assert.ok(html.includes('const tacticalBack=mobile?clamp(baseBack*1.10,3,12):baseBack;'));
-  assert.ok(html.includes('const height=(mobile?3.75:3.45)-(mobile?.62:.35)*b;'));
+  assert.ok(html.includes('const height=(mobile?3.15:3.0)-(mobile?.40:.32)*b;'));
   assert.ok(html.includes('const v432Camera={'));
   assert.ok(html.includes('aimFromFire(dx,dy)'));
 });
