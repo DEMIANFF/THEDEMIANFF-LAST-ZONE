@@ -1,10 +1,10 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
-const htmlPath = fileURLToPath(new URL('../../app/src/main/assets/index.html', import.meta.url));
-const html = readFileSync(htmlPath, 'utf8');
+const htmlPath = path.join(__dirname, '../../app/src/main/assets/index.html');
+const html = fs.readFileSync(htmlPath, 'utf8');
 
 test('lobby profile header opens the unified account panel', () => {
   assert.match(html, /id="v18Profile"[^>]*role="button"/);
