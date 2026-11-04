@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 148
-        versionName '57.4-tactical-visibility'
+        versionCode 149
+        versionName '57.5-natural-camera-clean-aurora'
     }
     signingConfigs {
         persistentRelease {
