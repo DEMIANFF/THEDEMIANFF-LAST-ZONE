@@ -162,7 +162,7 @@ test('does not flag a profile as duplicated against its own account cache', () =
 
 test('duplicate cloud profile is archived before a fresh profile is saved', () => {
   assert.ok(html.includes('v504FindDuplicateAccountSnapshot(v446GoogleEmail,saved)'));
-  assert.ok(html.includes('const archiveKey=\\'thedemianff_duplicate_backup_\\''));
+  assert.ok(html.includes("const archiveKey='thedemianff_duplicate_backup_'"));
   assert.ok(html.includes('localStorage.setItem(archiveKey,JSON.stringify(saved))'));
   assert.ok(html.includes('v504SetLocalProgress(fresh)'));
   assert.ok(html.includes('v495CloudSave(JSON.stringify(fresh))'));
