@@ -105,7 +105,7 @@ jobs:
               assert token in java, 'V55.4: Android free identity integration missing: '+token
           assert 'FirebaseFunctions' not in java and 'getHttpsCallable' not in java, 'V55.4: Android must not depend on paid Cloud Functions'
           assert 'db.runTransaction(transaction ->' not in java, 'V55: client-side identity transaction must be removed'
-          assert 'V56.0 · CENTRO DE OPERACIONES' in html and 'AURORA EVOLUTION · V55.6' in html, 'V55.6: lobby labels must match the release'
+          assert 'V56.0 · CENTRO DE OPERACIONES' in html and 'AURORA EVOLUTION · V56.0' in html, 'V56.0: lobby labels must match the release'
           for token in ('UNAUTHENTICATED', 'GOOGLE_REQUIRED', 'REGISTRY_CORRUPT', 'RESOURCE_EXHAUSTED', 'BUSY'):
               assert token in java, 'V55.4: free identity error mapping missing: '+token
           gas=Path('identity-gas/Code.gs').read_text(encoding='utf-8')
