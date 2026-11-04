@@ -588,7 +588,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 </style>
 
 <style id="v560LobbyOperations">
-/* V56.0 — compact command lobby, clear hierarchy and reliable touch targets. */
+/* V57.0 — compact command lobby, clear hierarchy and reliable touch targets. */
 #menu .v17Left{left:1.5%!important;top:21%!important;width:clamp(174px,17.5vw,252px)!important;max-height:calc(100dvh - 235px)!important;overflow-y:auto!important;overscroll-behavior:contain!important}
 #menu .v17Nav{gap:7px!important}
 #menu .v17Nav button{min-height:48px!important;padding:10px 12px!important;border-radius:12px!important;background:linear-gradient(110deg,#081827f2,#17354bdd)!important;border:1px solid #9bc5d555!important;border-left:4px solid #45baca!important;box-shadow:0 5px 16px #0004!important;font-weight:850!important;letter-spacing:.015em!important}
@@ -665,6 +665,56 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  #menu .v24Hero{top:19%!important;height:66%!important}
 }
 </style>
+
+<style id="v57LobbyCameraStability">
+/* V57: restore breathing room on the lobby; keep every navigation item visible. */
+#menu .v17Left{left:1.2%!important;top:22%!important;width:clamp(150px,18vw,220px)!important;max-height:calc(100dvh - 190px)!important;overflow-y:auto!important;z-index:44!important}
+#menu .v17Nav{display:flex!important;flex-direction:column!important;gap:6px!important}
+#menu .v17Nav button{min-height:38px!important;padding:8px 10px!important;font-size:11px!important;line-height:1.15!important}
+#menu .v24Hero{left:61%!important;top:18%!important;width:clamp(230px,32vw,430px)!important;height:66%!important;transform:translateX(-50%)!important;z-index:3!important}
+#menu #v24LobbyStage{inset:0!important}
+#menu .v17Bottom{right:1.5%!important;bottom:1.5%!important;z-index:46!important}
+#menu .v17Launch{width:clamp(245px,27vw,350px)!important;max-width:42vw!important}
+#menu .v17Launch .primary{width:100%!important;min-height:48px!important;padding:11px 14px!important;font-size:clamp(13px,1.5vw,17px)!important}
+#menu .v18ModePick{right:1.5%!important;bottom:15%!important;z-index:46!important;max-width:42vw!important}
+#menu .v18ModePick select{max-width:100%!important;min-height:34px!important;font-size:11px!important}
+#menu .v17Friends{z-index:45!important}
+@media(max-width:740px){
+ #menu .v17Top{left:1%!important;right:1%!important;gap:5px!important}
+ #menu .v17Profile{max-width:53vw!important;padding:6px 8px!important}
+ #menu .v17Currencies{font-size:10px!important;padding:6px!important}
+ #menu .v17Left{left:1%!important;top:22%!important;width:30vw!important;max-width:132px!important;max-height:calc(100dvh - 165px)!important}
+ #menu .v17Nav{gap:4px!important}
+ #menu .v17Nav button{min-height:34px!important;padding:6px 6px!important;font-size:9px!important;white-space:normal!important}
+ #menu .v24Hero{left:65%!important;top:25%!important;width:40vw!important;height:51%!important;max-width:190px!important}
+ #menu .v24HeroCaption{bottom:0!important;padding:5px 7px!important;max-width:100%!important;white-space:normal!important}
+ #menu .v24HeroCaption b{font-size:10px!important}
+ #menu .v24HeroCaption small{font-size:7px!important}
+ #menu .v17Brand{top:13%!important;right:1%!important;max-width:37vw!important;font-size:16px!important}
+ #menu .v17Brand small{font-size:7px!important;letter-spacing:.7px!important}
+ #menu .v17Bottom{left:auto!important;right:1%!important;bottom:1%!important;width:48vw!important}
+ #menu .v17Launch{width:100%!important;max-width:none!important}
+ #menu .v17Launch .primary{min-height:43px!important;font-size:13px!important;padding:9px 6px!important}
+ #menu .v17Mode{padding:5px 7px!important;font-size:10px!important}
+ #menu .v17Mode small{font-size:8px!important}
+ #menu .v18ModePick{right:1%!important;bottom:14%!important;width:48vw!important;max-width:none!important;padding:3px!important}
+ #menu .v18ModePick label{font-size:9px!important}
+ #menu .v18ModePick select{width:100%!important;max-width:none!important;font-size:9px!important}
+ #menu .v502ReadyBanner{font-size:8px!important;padding:4px!important}
+}
+@media(max-width:390px){
+ #menu .v17Left{width:31vw!important;max-width:120px!important}
+ #menu .v17Nav button{font-size:8px!important;min-height:32px!important;padding:5px 4px!important}
+ #menu .v24Hero{left:66%!important;width:38vw!important}
+ #menu .v17Brand{font-size:14px!important}
+}
+@media(max-height:520px){
+ #menu .v17Left{top:20%!important;max-height:calc(100dvh - 115px)!important}
+ #menu .v17Nav button{min-height:29px!important;padding:4px 6px!important}
+ #menu .v24Hero{top:22%!important;height:58%!important}
+ #menu .v18ModePick{bottom:16%!important}
+}
+</style>
 </head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de operaciones: eventos, misiones y logros">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
@@ -704,7 +754,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  </div><small style="color:#a7b8c8">Configura Google y la recuperación en Ajustes → Cuenta. Confirma el respaldo antes de reinstalar.</small></div></div>
 <style id="v504SimpleAccount">
 /* Minimal player account screen: advanced recovery remains wired but is not part of normal flow. */
-/* V56.0: all Google account, identity and backup actions live under Settings > Account. */\n.settingsSection[data-section="account"] #v443Google{display:block!important;width:100%;min-height:44px;margin:8px 0}\n.settingsSection[data-section="account"] #v446LocalIdentity,.settingsSection[data-section="account"] #v446LocalProgress{display:block!important;line-height:1.45;overflow-wrap:anywhere}\n.settingsSection[data-section="account"] #v494CloudStatus{display:block!important;padding:9px 11px;border:1px solid #6cb7c766;border-radius:8px;background:#102838;color:#d4f4ff}\n
+/* V57.0: all Google account, identity and backup actions live under Settings > Account. */\n.settingsSection[data-section="account"] #v443Google{display:block!important;width:100%;min-height:44px;margin:8px 0}\n.settingsSection[data-section="account"] #v446LocalIdentity,.settingsSection[data-section="account"] #v446LocalProgress{display:block!important;line-height:1.45;overflow-wrap:anywhere}\n.settingsSection[data-section="account"] #v494CloudStatus{display:block!important;padding:9px 11px;border:1px solid #6cb7c766;border-radius:8px;background:#102838;color:#d4f4ff}\n
 .settingsSection[data-section="account"] > :not(h3:first-child):not(p:nth-child(2)):not(#v443Google):not(#v445AccountStatus):not(#v446LocalIdentity):not(#v446LocalProgress):not(#v494CloudStatus):not(#v445SettingsLogout){display:none!important}
 #v502CloudAccess,#v502BackupHint{display:none!important}
 #v443Entry #v443Backup,#v443Entry #v443Restore{display:none!important}
@@ -755,11 +805,11 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 @media(prefers-reduced-motion:reduce){#menu .v502AuroraMist{animation:none}}
 </style>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V56.0 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
+<div id="v22Edition">V57.0 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE AURORA</button><button data-lobby="PERSONAJE">♙ &nbsp; OPERADORES</button><button data-lobby="OPERACIONES">◈ &nbsp; EVENTOS Y OBJETIVOS</button><button data-lobby="ARMAS">⌖ &nbsp; ARSENAL</button><button data-lobby="INVENTARIO">▣ &nbsp; INVENTARIO</button><button data-lobby="PRESET">☷ &nbsp; EQUIPAMIENTOS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V56.0</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V57.0</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
 
 <div class="v17Bottom"><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -4715,9 +4765,15 @@ function aimAssistPull(dt){
 }
 function flushCamera(dt){
  if(!mobile)return;
- // Apply the complete measured gesture once. No inertial queue or stale deltas.
- const dx=cameraDX,dy=cameraDY;
- cameraDX=0;cameraDY=0;
+ // V57: cap angular velocity per frame while preserving the queued gesture only
+ // while a finger is still down. On release, discard any remainder (no camera drift).
+ const frameDt=Math.max(1/120,Math.min(Number(dt)||1/60,1/20));
+ const maxStep=Math.max(10,Math.min(30,frameDt*900));
+ const dx=clamp(cameraDX,-maxStep,maxStep);
+ const dy=clamp(cameraDY,-maxStep*.72,maxStep*.72);
+ const active=typeof cameraPointers!=='undefined'&&cameraPointers.size>0;
+ if(active){cameraDX-=dx;cameraDY-=dy;}
+ else{cameraDX=0;cameraDY=0;}
  if(dx!==0||dy!==0)applyAim(dx,dy);
 }function pause(){if(!running||window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')return;if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);v123ResetInputs();$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');settingsFromMenu=false;paused=true;v372RefreshSettingsContext();fireHeld=false;fireTouch=null;adsHeld=false;sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)';$('pausePanel').classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();}function resume(){v123ResetInputs();clock.getDelta();paused=false;$('pausePanel').classList.add('hidden');if(!mobile)renderer.domElement.requestPointerLock?.();}
 function v23LeaveMatch(){
