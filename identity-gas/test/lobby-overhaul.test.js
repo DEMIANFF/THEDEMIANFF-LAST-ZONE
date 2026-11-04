@@ -93,3 +93,9 @@ test('Android release is V56.0 with a monotonic version code', () => {
   assert.match(gradle, /versionCode 143/);
   assert.match(gradle, /versionName '56\.0-lobby-overhaul'/);
 });
+
+test('V57 Android package metadata is monotonic and matches the lobby release', () => {
+  assert.match(gradle, /versionCode 144/);
+  assert.match(gradle, /versionName '57\\.0-lobby-camera-stability'/);
+  assert.match(html, /V57\\.0 · CENTRO DE OPERACIONES/);
+});
