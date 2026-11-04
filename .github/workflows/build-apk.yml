@@ -108,6 +108,8 @@ jobs:
           assert 'V57.3 · CENTRO DE OPERACIONES' in html and 'AURORA EVOLUTION · V57.3' in html, 'V57.3: lobby labels must match the release'
           for token in ('v396ExpandAurora();', 'v397DetailAurora();', 'v583SetupBattleVisuals();', 'function v583SetupBattleVisuals()', 'function v583TickBattleVisuals(dt)', 'function v583UpdateZoneVisual(radius,cx,cz,danger)', 'function v583BuildPickupCase(group,type)', 'new THREE.CanvasTexture(snowCanvas)', 'new THREE.ShaderMaterial(', 'new THREE.Points(assets.snowGeometry,assets.snowMaterial)', 'name=\'V583_SAFE_ZONE_WALL\'', 'window.THEDEMIANFF_BATTLE_VISUAL_TEST'):
               assert token in html, 'V57.3: battle royale visual pipeline missing '+token
+          for token in ('function v583DisposeVisualRoot(root)', 'window.v396VisualRoot=v396Root', 'window.v397VisualRoot=v397Root', 'v583DisposeVisualRoot(window.v396VisualRoot)', 'v583DisposeVisualRoot(window.v397VisualRoot)', 'palette[key].userData.v583Shared=true', 'g.userData.v583Shared=true'):
+              assert token in html, 'V57.3: visual resource lifecycle missing '+token
           assert "versionCode 147" in Path('app/build.gradle').read_text(), 'V57.3: Android version code mismatch'
           for token in ('const baseShoulder=clamp(Number($(\'v26CameraShoulder\').value)||1.45,1.0,1.7);', 'const shoulder=baseShoulder*(1-b)+baseShoulder*.78*b;', 'reticle.dataset.scope=this.active().name', 'cross.dataset.scope=this.active().name', 'const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction)', 'id="v582RightShoulderAim"'):
               assert token in html, 'V57.3: missing right-shoulder aiming correction '+token
