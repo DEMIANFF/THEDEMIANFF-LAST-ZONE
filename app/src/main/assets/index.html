@@ -1619,14 +1619,14 @@ function v426DecorationBlocked(x,z,r){
  }
  return false;
 }
-function v576RegisterWallRun(cx,cz,x1,z1,x2,z2,height,radius=.26){
+function v576RegisterWallRun(cx,cz,x1,z1,x2,z2,height,radius=.12){
  const length=Math.hypot(x2-x1,z2-z1),steps=Math.max(1,Math.ceil(length/.45));
  for(let i=0;i<=steps;i++){
   const t=i/steps;
   worldObjects.push({x:cx+x1+(x2-x1)*t,z:cz+z1+(z2-z1)*t,r:radius,h:height,v576Wall:true});
  }
 }
-function v576RegisterOpenBuilding(cx,cz,w,h,d,doorWidth=1.9,thickness=.34){
+function v576RegisterOpenBuilding(cx,cz,w,h,d,doorWidth=2.6,thickness=.34){
  const halfW=w/2-thickness/2,halfD=d/2-thickness/2,gap=doorWidth/2;
  v576RegisterWallRun(cx,cz,-halfW,-halfD,halfW,-halfD,h);
  v576RegisterWallRun(cx,cz,-halfW,-halfD,-halfW,halfD,h);
@@ -1775,9 +1775,9 @@ for(let i=0;i<12;i++){
  if(Math.abs(xx)<9&&Math.abs(zz)<11)continue;
  const g=new THREE.Group();g.position.set(xx,ground(xx-86,zz-82),zz);village.add(g);
  const w=8.5,depth=8.1,levels=i%3===0?2:1;
- const wall=levels===2?7.2:4.5,doorWidth=1.9,thickness=.32;
+ const wall=levels===2?7.2:4.5,doorWidth=2.6,thickness=.32;
  const facade=i%2?v17White:v17Stucco,frontZ=depth/2-thickness/2;
- // Four wall runs with a 1.9 m open entrance; no solid wall behind the door.
+ // Four wall runs with a 2.6 m open entrance; no solid wall behind the door.
  box(thickness,wall,depth,facade,g,-w/2+thickness/2,wall/2,0);
  box(thickness,wall,depth,facade,g,w/2-thickness/2,wall/2,0);
  box(w-2*thickness,wall,thickness,facade,g,0,wall/2,-depth/2+thickness/2);
@@ -2725,10 +2725,10 @@ function v396ExpandAurora(){
   return mesh;
  }
  function v40BuildingDetails(g,w,h,d){
-  // V57.6: open 1.9 m doorway; only slim side posts and lintel remain.
-  v40Panel(g,.12,2.45,.16,v40Frame,-.95,1.225,d/2+.14);
-  v40Panel(g,.12,2.45,.16,v40Frame,.95,1.225,d/2+.14);
-  v40Panel(g,2.02,.14,.16,v40Frame,0,2.52,d/2+.14);
+  // V57.6: open 2.6 m doorway; only slim side posts and lintel remain.
+  v40Panel(g,.12,2.45,.16,v40Frame,-1.3,1.225,d/2+.14);
+  v40Panel(g,.12,2.45,.16,v40Frame,1.3,1.225,d/2+.14);
+  v40Panel(g,2.72,.14,.16,v40Frame,0,2.52,d/2+.14);
   for(const side of [-1,1]){
    const wx=side*w*.31,wy=Math.min(h-1.1,3.15);
    v40Panel(g,1.45,1.35,.12,v40Frame,wx,wy,d/2+.15);
@@ -2781,12 +2781,12 @@ function v396ExpandAurora(){
   }
   // V42.7 PILOTO ARQUITECTURA: se retiran parapetos y equipos que cruzaban el techo inclinado.
   // V57.6: segmented low baseboards preserve the open doorway.
-  const baseSide=(w-1.9)/2;
+  const baseSide=(w-2.6)/2;
   v40Panel(g,w,.12,.28,v40Concrete,0,.06,-d/2+.14);
   v40Panel(g,.28,.12,d,v40Concrete,-w/2+.14,.06,0);
   v40Panel(g,.28,.12,d,v40Concrete,w/2-.14,.06,0);
-  v40Panel(g,baseSide,.12,.28,v40Concrete,-(1.9/2+baseSide/2),.06,d/2-.14);
-  v40Panel(g,baseSide,.12,.28,v40Concrete,(1.9/2+baseSide/2),.06,d/2-.14);
+  v40Panel(g,baseSide,.12,.28,v40Concrete,-(2.6/2+baseSide/2),.06,d/2-.14);
+  v40Panel(g,baseSide,.12,.28,v40Concrete,(2.6/2+baseSide/2),.06,d/2-.14);
  }
  // V40 district identity: offline-rendered signboards and distinct equipment silhouettes.
  const v40DistrictNames=['HELIOS','VORTEX','CRISTAL','ECOS'];
@@ -2845,7 +2845,7 @@ function v396ExpandAurora(){
   if(Math.abs(x)>HALF-9||Math.abs(z)>HALF-9||Math.hypot(x,z)<21||solid(x,z,Math.max(w,d)*.58+1))return false;
   const g=new THREE.Group();g.position.set(x,ground(x,z),z);v396Root.add(g);
   if(kind==='building'){
-   const thickness=.34,doorWidth=1.9,doorHeight=2.45,frontZ=d/2-thickness/2;
+   const thickness=.34,doorWidth=2.6,doorHeight=2.45,frontZ=d/2-thickness/2;
    box(thickness,h,d,material,g,-w/2+thickness/2,h/2,0);
    box(thickness,h,d,material,g,w/2-thickness/2,h/2,0);
    box(w-2*thickness,h,thickness,material,g,0,h/2,-d/2+thickness/2);
@@ -2906,7 +2906,7 @@ window.THEDEMIANFF_AURORA_ACCESS_TEST=()=>({
  raisedStonePlanters:false,
  openBuildings:window.v576OpenBuildingCount||0,
  wallColliders:worldObjects.filter(o=>o&&o.v576Wall===true).length,
- doorWidthMeters:1.9,
+ doorWidthMeters:2.6,
  zoneVolume:false,
  zonePerimeterOnGround:!!zoneRing
 });
