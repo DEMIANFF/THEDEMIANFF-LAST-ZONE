@@ -32,7 +32,7 @@ test('hybrid third-person camera keeps a moderate mobile distance and lower shou
   assert.ok(html.includes('const shoulder=baseShoulder*(1-b)+baseShoulder*.90*b;'));
   assert.ok(html.includes('c.gun.scale.setScalar(activeIndex===4?1.0:activeIndex===0?.88:.86);'));
   assert.ok(html.includes("clamp(value,8.5,14)"));
-  assert.ok(html.includes("clamp(value,1.6,2.4)"));
+  assert.ok(html.includes("clamp(value,2.0,2.7)"));
   assert.ok(html.includes('aimFromFire(dx,dy)'));
 });
 
@@ -68,10 +68,10 @@ test('V57 lobby gives the operator, Social navigation and launch controls separa
   assert.match(html, /max-width:min\(34vw,315px\)/);
 });
 
-test('V57.4 right-shoulder framing places the operator left of the centered aim ray', () => {
-  assert.match(html, /const baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|2\.1,1\.6,2\.4\);/);
+test('V57.5 right-shoulder framing places the operator left of the centered aim ray', () => {
+  assert.match(html, /const baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|2\.35,2\.0,2\.7\);/);
   assert.doesNotMatch(html, /const baseShoulder=clamp/);
-  assert.match(html, /const shoulder=baseShoulder\*\(1-b\)\+baseShoulder\*\.90\*b;/);
+  assert.match(html, /const shoulder=baseShoulder\*\(1-b\)\+baseShoulder\*\.92\*b;/);
   assert.match(html, /player\.position\.x\+Math\.cos\(camYaw\)\*this\.shoulder-Math\.sin\(camYaw\)\*this\.back/);
   assert.match(html, /const start=camera\.position\.clone\(\),direction=new THREE\.Vector3\(\);camera\.getWorldDirection\(direction\)/);
   assert.match(html, /reticle\.dataset\.scope=this\.active\(\)\.name/);
@@ -82,7 +82,7 @@ test('V57.4 right-shoulder framing places the operator left of the centered aim 
   assert.match(html, /#cross,#v10Reticle\{[^}]*z-index:140!important/);
 });
 
-test('V57.4 keeps every aiming indicator hidden outside a match and restores the center reticle in combat', () => {
+test('V57.5 keeps every aiming indicator hidden outside a match and restores the center reticle in combat', () => {
   assert.match(html, /body:not\(\.v475InMatch\) #v10Reticle/);
   assert.match(html, /body:not\(\.v475InMatch\) #v434ScopeButton/);
   assert.match(html, /body:not\(\.v475InMatch\) #v434ScopeLabel/);
@@ -91,9 +91,34 @@ test('V57.4 keeps every aiming indicator hidden outside a match and restores the
   assert.match(html, /document\.body\.classList\.contains\('v475InMatch'\) && isADS && running/);
   assert.match(html, /camera\.getWorldDirection\(direction\)/);
 });
-test('V57.4 migrates old shoulder preferences to the wider right-hand framing range', () => {
+test('V57.5 migrates old shoulder preferences to the wider right-hand framing range', () => {
   assert.match(html, /value="2\.1"/);
   assert.match(html, /clamp\(value,1\.6,2\.4\):2\.1/);
   assert.match(html, /const baseShoulder=-clamp/);
-  assert.match(html, /baseShoulder\*\.90\*b/);
+  assert.match(html, /baseShoulder\*\.92\*b/);
+});
+
+test('V57.5 adds a little more shoulder clearance and smooths camera follow naturally', () => {
+  assert.match(html, /min="2\.0" max="2\.7" step="\.05" value="2\.35"/);
+  assert.match(html, /const baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|2\.35,2\.0,2\.7\);/);
+  assert.match(html, /const shoulder=baseShoulder\*\(1-b\)\+baseShoulder\*\.92\*b;/);
+  assert.match(html, /const follow=1-Math\.exp\(-t\*13\);/);
+  assert.match(html, /const followXZ=1-Math\.exp\(-t\*12\.5\);/);
+  assert.match(html, /this\.mode==='ADS'\?10:6\.5/);
+});
+test('V57.5 removes the translucent reticle halo while preserving ADS reticle lines', () => {
+  assert.match(html, /id="v585ReticleNoHalo"/);
+  assert.match(html, /#v10Reticle,#v10Reticle\.v382ADS\{[^}]*border-color:transparent!important/);
+  assert.match(html, /#v10Reticle:not\(\.v382ADS\)\{opacity:0!important\}/);
+  assert.match(html, /#v10Reticle\.v382ADS\{opacity:\.96!important\}/);
+  assert.match(html, /#v10Reticle\.v382ADS::before/);
+  assert.match(html, /#v10Reticle\.v382ADS::after/);
+});
+test('V57.5 removes oversized ice blocks, hidden rock colliders and reduces village planters', () => {
+  assert.doesNotMatch(html, /new THREE\.BoxGeometry\(3,3\+j%3\*2,3\),darkIce/);
+  assert.match(html, /const size=i%9===0\?\.52:\.26\+\(i%5\)\*\.07;/);
+  assert.doesNotMatch(html, /v426Rock:true/);
+  assert.match(html, /box\(1\.7,\.56,1\.7,v17Stone,g,0,\.28,0\)/);
+  assert.match(html, /r:\.92/);
+  assert.match(html, /window\.THEDEMIANFF_AURORA_ACCESS_TEST/);
 });
