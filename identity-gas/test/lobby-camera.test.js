@@ -127,7 +127,7 @@ test('V57.6 removes grey blocks and opens the house and district entrances', () 
   assert.match(html, /v576RegisterOpenBuilding\(xx-86,zz-82,w,wall,depth,doorWidth,thickness\)/);
   assert.match(html, /v576RegisterOpenBuilding\(x,z,w,h,d,doorWidth,thickness\)/);
   assert.match(html, /window\.THEDEMIANFF_AURORA_ACCESS_TEST/);
-  assert.match(html, /doorWidthMeters:1\.9/);
+  assert.match(html, /doorWidthMeters:2\.6/);
   assert.doesNotMatch(html, /v426Rock:true/);
 });
 
