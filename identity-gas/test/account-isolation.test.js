@@ -54,7 +54,7 @@ test('Google account transfer is guarded and owner marker is stored before accou
 
 test('native logout waits for Google sign-out completion before notifying the WebView', () => {
   assert.ok(java.includes('if(googleSignOutPending)'));
-  const signOut = java.indexOf('.signOut().addOnCompleteListener(this,task -> {');
+  const signOut = java.indexOf('.signOut().addOnCompleteListener(MainActivity.this,task -> {');
   const callback = java.indexOf('authMessage("signed_out"', signOut);
   assert.ok(signOut >= 0 && callback > signOut);
   assert.ok(java.includes('googleSignOutPending=false;'));
