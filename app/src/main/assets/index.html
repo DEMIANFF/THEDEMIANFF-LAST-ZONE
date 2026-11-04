@@ -2979,7 +2979,9 @@ function v472FirstBulletImpact(start,direction,maxDistance){
  if(flat>.000001){
   for(const o of worldObjects){
    if(o.v55AABB){const t=v55RayAABB2D(start.x,start.z,direction.x,direction.z,o,.02,first);if(!Number.isFinite(t)||t<.01||t>=first)continue;const bottom=ground(o.x,o.z)+(o.baseY||0),y=start.y+direction.y*t;if(y>bottom+.03&&y<bottom+(o.h??2.8))first=t;continue;}
-   const rx=start.x-o.x,rz=start.z-o.z,radius=Math.max(.25,(o.r||0)*.9),beta=rx*direction.x+rz*direction.z,c=rx*rx+rz*rz-radius*radius,disc=beta*beta-flat*c;
+   const rx=start.x-o.x,rz=start.z-o.z,radius=Math.max(.25,(o.r||0)*.9),beta=rx*direction.x+rz*direction.z,c=rx*rx+rz*rz-radius*radius;
+   // V47.3 circular fallback retained for non-rectangular Aurora obstacles.
+   const disc=beta*beta-flat*c;
    if(disc<0)continue;const root=Math.sqrt(disc),near=(-beta-root)/flat,far=(-beta+root)/flat;if(far<0)continue;const t=near>=.01?near:far;
    if(t<.01||t>=first)continue;const y=start.y+direction.y*t,floor=ground(o.x,o.z);if(y>floor+.03&&y<floor+(o.h??2.8))first=t;
   }
