@@ -11,7 +11,7 @@ const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
 test('V57.6 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.match(menu, /V57.7 · CENTRO DE OPERACIONES/);
+  assert.match(menu, /V57.8 · CENTRO DE OPERACIONES/);
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -69,35 +69,35 @@ test('Aurora pass has 30 persistent free and Elite reward tiers without real-mon
 });
 
 test('combat camera follows vertically and the mobile shoulder framing is lower', () => {
-  assert.match(html, /const height=\(mobile\?2\.85:2\.9\)-\(mobile\?\.34:\.28\)\*b;/);
+  assert.match(html, /const height=\(mobile\?2\.68:2\.78\)-\(mobile\?\.20:\.18\)\*b;/);
   assert.match(html, /Smooth vertical tracking is essential: keep the shoulder camera attached to the player\.\n  if\(!Number\.isFinite\(camera\.position\.y\)/);
   assert.doesNotMatch(html, /thereafter\.\\n  if\(!Number\.isFinite\(camera\.position\.y\)/);
 });
 
 test('ADS optics provide calibrated 2x, 4x and 8x magnification with progressive sensitivity', () => {
-  assert.match(html, /\{name:'2x',zoom:2,fov:39\.5,sensitivity:\.62\}/);
-  assert.match(html, /\{name:'4x',zoom:4,fov:19\.75,sensitivity:\.36\}/);
-  assert.match(html, /\{name:'8x',zoom:8,fov:9\.875,sensitivity:\.18\}/);
+  assert.match(html, /\{name:'2x',zoom:2,fov:39\.5,sensitivity:\.60\}/);
+  assert.match(html, /\{name:'4x',zoom:4,fov:19\.75,sensitivity:\.34\}/);
+  assert.match(html, /\{name:'8x',zoom:8,fov:9\.875,sensitivity:\.20\}/);
   assert.match(html, /targetFov=baseFov\/v434Optics\.active\(\)\.zoom/);
 });
 
 test('parachute camera is pulled back and Lila preview supports touch rotation at smoother frame pacing', () => {
-  assert.match(html, /const d=clamp\(baseDistance\*2\.0,16,20\)/);
-  assert.match(html, /const aerialHeight=v398ChuteOpen\?15:17/);
+  assert.match(html, /const d=clamp\(baseDistance\*2\.05,22,28\)/);
+  assert.match(html, /const aerialHeight=v398ChuteOpen\?18:20/);
   assert.match(html, /#menu #v24LobbyStage\{pointer-events:auto!important;touch-action:pan-y!important/);
   assert.match(html, /if\(l\.renderer&&now-l\.last>\(mobile\?40:33\)\)/);
   assert.match(html, /l\.camera\.position\.set\(0,1\.92,7\.9\)/);
 });
 
 test('Android release is V57.6 with a monotonic version code', () => {
-  assert.match(gradle, /versionCode 151/);
-  assert.match(gradle, /versionName '57.7-bot-wall-slide'/);
+  assert.match(gradle, /versionCode 152/);
+  assert.match(gradle, /versionName '57.8-hybrid-camera-scale'/);
 });
 
 test('V57 Android package metadata is monotonic and matches the lobby release', () => {
-  assert.match(gradle, /versionCode 151/);
-  assert.match(gradle, /versionName '57.7-bot-wall-slide'/);
-  assert.match(html, /V57.7 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionCode 152/);
+  assert.match(gradle, /versionName '57.8-hybrid-camera-scale'/);
+  assert.match(html, /V57.8 · CENTRO DE OPERACIONES/);
 });
 
 test('V57.6 activates the authored Aurora battle royale environment and visual resources', () => {
@@ -134,13 +134,13 @@ test('V57.6 visual roots dispose their private materials while shared GPU geomet
 });
 
 test('Android release is V57.6 with monotonic version code 149', () => {
-  assert.match(gradle, /versionCode 151/);
-  assert.match(gradle, /versionName '57.7-bot-wall-slide'/);
-  assert.match(html, /V57.7 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionCode 152/);
+  assert.match(gradle, /versionName '57.8-hybrid-camera-scale'/);
+  assert.match(html, /V57.8 · CENTRO DE OPERACIONES/);
 });
 test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
   assert.match(html, /function v576RegisterOpenBuilding/);
-  assert.match(html, /doorWidthMeters:2\.6/);
+  assert.match(html, /doorWidthMeters:3\.0/);
   assert.match(html, /looseFrostStones:false/);
   assert.match(html, /greyDistrictCrates:false/);
   assert.match(html, /valleyRockCliffs:false/);
