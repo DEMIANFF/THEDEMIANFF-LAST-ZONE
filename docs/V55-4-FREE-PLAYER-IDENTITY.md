@@ -11,7 +11,7 @@ Esta versión ofrece una ruta sin Cloud Functions/Blaze para asignar IDs públic
 - Un bloqueo global serializa cada consulta y asignación.
 - El mismo UID conserva su número; los siguientes usuarios reciben el próximo entero.
 - Los IDs van de 1 a 99999 y se muestran como cinco dígitos (00001, 00002, ...).
-- Si el contador y las filas no coinciden, o aparece una escritura incompleta, el servicio falla de forma segura. Solo recupera una fila final completa y consecutiva que pueda validar; no reconstruye ni reinicia historiales dañados.
+- Antes de devolver un ID existente o emitir uno nuevo, el servicio audita todas las filas: UID no vacío y único, número entero y estrictamente consecutivo según la posición, fecha presente y contador exactamente alineado. Si encuentra duplicados, huecos, filas reordenadas o valores alterados, falla de forma segura. Solo recupera una fila final completa y consecutiva tras validar primero todo el prefijo; no reconstruye ni reinicia historiales dañados.
 - Las cuentas invitadas no reciben un ID público permanente hasta vincular una cuenta Google de Firebase.
 
 Esto es una solución inicial y de bajo volumen. Google Apps Script tiene cuotas por cuenta y puede limitar o suspender temporalmente el servicio si se superan. No se debe tratar como infraestructura para miles de solicitudes simultáneas o como garantía de disponibilidad comercial. Para cuentas personales, la documentación publica actualmente un límite de 20.000 llamadas URL Fetch al día y 6 minutos por ejecución; Google puede cambiar esas cuotas.
@@ -30,7 +30,9 @@ La persona propietaria del proyecto debe hacer estos pasos desde su propia cuent
 8. Abre la URL /exec en el navegador. Debe mostrar JSON y status: ready. Si dice setup_required, revisa Script Properties y ejecuta setupRegistry solo si el registro todavía no existe.
 9. En el chat del proyecto, comparte únicamente la URL pública de despliegue /exec. No compartas la hoja, la Web API Key, el token Firebase ni datos personales. Esa URL se añadirá a identity-gas/endpoint.txt en esta rama; Android descargará ese archivo de configuración sin requerir otra compilación.
 
-El endpoint es públicamente accesible para que la APK pueda llamarlo, pero no acepta una petición de identidad basada solo en UID. Requiere un ID token Firebase vigente con Google vinculado y correo verificado. Apps Script verifica ese token contra thedemianff-last-zone antes de asignar un número.
+El endpoint es públicamente accesible para que la APK pueda llamarlo, pero no acepta una petición de identidad basada solo en UID. Requiere un ID token Firebase vigente con Google vinculado y correo verificado. Apps Script verifica ese token contra thedemianff-last-zone antes de asignar un número. La URL pública no es una credencial: la hoja y sus propiedades deben permanecer privadas.
+
+Importante: actualizar `identity-gas/Code.gs` en GitHub no actualiza el proyecto Apps Script ya desplegado. Después de copiar la versión revisada a `script.google.com`, crea una nueva versión del despliegue web y conserva la URL `/exec` que ya usa la APK. El código de GitHub y el servicio publicado son dos artefactos separados.
 
 ## Prueba de aceptación después de publicar
 
@@ -51,7 +53,7 @@ Desde identity-gas/:
     npm test
     npm run check
 
-Los tests comprueban la verificación simulada del token Google, el rechazo de UID proporcionado por el cliente, la idempotencia, números consecutivos, solicitudes inválidas, contador/filas inconsistentes, duplicados, el límite 99999 y la recuperación segura de una escritura interrumpida.
+Los tests comprueban la verificación simulada del token Google, el rechazo de UID proporcionado por el cliente, la idempotencia, números consecutivos, solicitudes inválidas, contador/filas inconsistentes, duplicados de UID o número, huecos, filas reordenadas, valores numéricos guardados como texto, el límite 99999 y la recuperación segura de una escritura interrumpida. Son pruebas automatizadas simuladas; no prueban el despliegue real ni una cuenta Firebase de producción.
 
 ## Facturación y privacidad
 
