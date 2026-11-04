@@ -8,7 +8,7 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 
 test('lobby profile header opens the unified account panel', () => {
   assert.match(html, /id="v18Profile"[^>]*role="button"/);
-  assert.match(html, /\$('v18Profile')\.onclick=\(\)=>v18Open\('CUENTA DE JUGADOR'\)/);
+  assert.ok(html.includes("$('v18Profile').onclick=()=>v18Open('CUENTA DE JUGADOR')"), 'profile header must open the unified account panel');
   assert.match(html, /id="v536LobbyName"/);
   assert.match(html, /id="v536LobbyId"/);
   assert.match(html, /id="v536LobbyAvatar"/);
