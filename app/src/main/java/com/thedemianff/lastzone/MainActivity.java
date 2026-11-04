@@ -42,6 +42,7 @@ public class MainActivity extends Activity {
   private WebView web;
   private static final int GOOGLE_LOGIN_REQUEST=4420;
   private FirebaseAuth firebaseAuth;
+  private volatile boolean googleSignOutPending=false;
   private void authMessage(String state,String detail) {
     runOnUiThread(() -> {
       if(web==null)return;
@@ -52,6 +53,10 @@ public class MainActivity extends Activity {
   public final class GoogleAuthBridge {
     @JavascriptInterface public void signIn() {
       runOnUiThread(() -> {
+        if(googleSignOutPending) {
+          authMessage("error","Google todavía está cerrando la sesión anterior. Espera y vuelve a intentarlo.");
+          return;
+        }
         try {
           GoogleSignInOptions options=new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build();
@@ -61,13 +66,19 @@ public class MainActivity extends Activity {
     }
     @JavascriptInterface public void signOut() {
       runOnUiThread(() -> {
+        googleSignOutPending=true;
         firebaseAuth.signOut();
         GoogleSignInOptions options=new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
           .requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build();
-        // Firebase is signed out locally even if Google Play Services cannot complete its cleanup.
-        authMessage("signed_out","Sesión local de Google cerrada.");
-        GoogleSignIn.getClient(MainActivity.this,options).signOut().addOnFailureListener(ex ->
-          android.util.Log.w("THEDEMIANFF","No se pudo completar la limpieza de Google Sign-In",ex));
+        GoogleSignIn.getClient(MainActivity.this,options).signOut().addOnCompleteListener(this,task -> {
+          googleSignOutPending=false;
+          if(!task.isSuccessful())
+            android.util.Log.w("THEDEMIANFF","Google Sign-In no confirmó la limpieza de sesión",task.getException());
+          // Do not expose the signed-out UI until Google has completed its native cleanup.
+          authMessage("signed_out",task.isSuccessful()
+            ?"Sesión Google cerrada correctamente."
+            :"Sesión Firebase cerrada; Google no confirmó la limpieza. Verifica la cuenta al volver a entrar.");
+        });
       });
     }
     @JavascriptInterface public void status() {
