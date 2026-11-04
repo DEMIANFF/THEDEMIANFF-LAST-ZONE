@@ -111,7 +111,8 @@ test('V57.6 activates the authored Aurora battle royale environment and visual r
   assert.match(html, /new THREE\.CanvasTexture\(snowCanvas\)/);
   assert.match(html, /new THREE\.ShaderMaterial\(/);
   assert.match(html, /new THREE\.Points\(assets\.snowGeometry,assets\.snowMaterial\)/);
-  assert.match(html, /name='V583_SAFE_ZONE_WALL'/);
+  assert.match(html, /zonePerimeter:!!zoneRing/);
+  assert.match(html, /zoneVolume:false/);
   assert.match(html, /v583TickBattleVisuals\(dt\)/);
   assert.match(html, /v583UpdateZoneVisual\(zoneRadius,zoneCenter\.x,zoneCenter\.y,danger\)/);
   assert.match(html, /v583BuildPickupCase\(group,type\)/);
