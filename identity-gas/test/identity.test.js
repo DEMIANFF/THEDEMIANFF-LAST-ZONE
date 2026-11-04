@@ -193,6 +193,56 @@ test('detects duplicate UID rows rather than returning an ambiguous identity', (
   assert.equal(sheet.getLastRow(), 3);
 });
 
+test('rejects duplicate, skipped, reordered or text-formatted IDs anywhere in the registry', () => {
+  const brokenRegistries = [
+    [['uid-1', 1, 'date-1'], ['uid-2', 1, 'date-2']],
+    [['uid-1', 1, 'date-1'], ['uid-2', 3, 'date-2']],
+    [['uid-1', 2, 'date-1'], ['uid-2', 1, 'date-2']],
+    [['uid-1', 1, 'date-1'], ['uid-2', '2', 'date-2']],
+  ];
+
+  brokenRegistries.forEach((records, index) => {
+    const t = token(String.fromCharCode(110 + index));
+    const sheet = new Sheet([['firebaseUid', 'playerNumber', 'createdAt'], ...records]);
+    const env = createEnv({
+      spreadsheet: new Spreadsheet(sheet),
+      properties: { THEDEMIANFF_PLAYER_ID_COUNTER: '2' },
+      users: { [t]: null },
+    });
+    env.users[t] = env.googleUser('uid-new');
+    assert.equal(env.parse(env.post({ idToken: t })).code, 'REGISTRY_CORRUPT');
+    assert.equal(sheet.getLastRow(), 3);
+  });
+});
+
+test('does not return an existing ID while another registry row is corrupt', () => {
+  const sheet = new Sheet([
+    ['firebaseUid', 'playerNumber', 'createdAt'],
+    ['uid-existing', 1, 'date-1'],
+    ['uid-corrupt', 4, 'date-2'],
+  ]);
+  const t = token('w');
+  const env = createEnv({
+    spreadsheet: new Spreadsheet(sheet),
+    properties: { THEDEMIANFF_PLAYER_ID_COUNTER: '2' },
+    users: { [t]: null },
+  });
+  env.users[t] = env.googleUser('uid-existing');
+  assert.equal(env.parse(env.post({ idToken: t })).code, 'REGISTRY_CORRUPT');
+  assert.equal(sheet.getLastRow(), 3);
+});
+
+test('rejects non-canonical counter values instead of interpreting them as integers', () => {
+  const t = token('x');
+  const env = createEnv({
+    properties: { THEDEMIANFF_PLAYER_ID_COUNTER: '01' },
+    users: { [t]: null },
+  });
+  env.users[t] = env.googleUser('uid-new');
+  assert.equal(env.parse(env.post({ idToken: t })).code, 'REGISTRY_CORRUPT');
+  assert.equal(env.spreadsheet.sheet.getLastRow(), 1);
+});
+
 test('enforces the maximum five-digit ID without writing another row', () => {
   const rows = [['firebaseUid', 'playerNumber', 'createdAt']];
   for (let i = 1; i <= 99999; i += 1) rows.push(['uid-' + i, i, 'date']);
