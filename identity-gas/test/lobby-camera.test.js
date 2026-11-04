@@ -24,10 +24,15 @@ test('identity and statistics are no longer duplicated in the lobby navigation',
 });
 
 test('hybrid third-person camera keeps a moderate mobile distance and lower shoulder framing', () => {
-  assert.match(html, /id="v26CameraDistance"[^>]*value="7\.0"/);
-  assert.ok(html.includes('const tacticalBack=mobile?clamp(baseBack*1.10,3,12):baseBack;'));
+  assert.match(html, /id="v26CameraDistance"[^>]*value="8\.5"/);
+  assert.ok(html.includes('const tacticalBack=mobile?clamp(baseBack*1.05,8.5,14):baseBack;'));
   assert.ok(html.includes('const height=(mobile?2.85:2.9)-(mobile?.34:.28)*b;'));
   assert.ok(html.includes('const v432Camera={'));
+  assert.ok(html.includes('const back=tacticalBack*(1-b)+Math.max(7.5,baseBack*.96)*b;'));
+  assert.ok(html.includes('const shoulder=baseShoulder*(1-b)+baseShoulder*.52*b;'));
+  assert.ok(html.includes('c.gun.scale.setScalar(activeIndex===4?1.0:activeIndex===0?.88:.86);'));
+  assert.ok(html.includes("clamp(value,8.5,14)"));
+  assert.ok(html.includes("clamp(value,.6,1.5)"));
   assert.ok(html.includes('aimFromFire(dx,dy)'));
 });
 
@@ -54,7 +59,11 @@ test('V57 bounds rapid mobile camera swipes without adding post-release drift', 
 test('V57 lobby gives the operator, Social navigation and launch controls separate space', () => {
   assert.match(html, /id="v57LobbyCameraStability"/);
   assert.match(html, /#menu \.v17Left\{left:1\.2%/);
-  assert.match(html, /#menu \.v24Hero\{left:61%/);
+  assert.match(html, /#menu \.v24Hero\{left:50%/);
   assert.match(html, /#menu \.v18ModePick\{right:1\.5%/);
   assert.match(html, /data-lobby="SOCIAL"/);
+  assert.match(html, /id="v581LobbyCameraUX"/);
+  assert.match(html, /#v37AdvancedControl\{display:none!important\}/);
+  assert.match(html, /class="v581Currency"/);
+  assert.match(html, /max-width:min\(34vw,315px\)/);
 });
