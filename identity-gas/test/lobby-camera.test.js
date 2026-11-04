@@ -44,3 +44,17 @@ test('unified account statistics use real JavaScript line breaks', () => {
   );
   assert.match(html, /Number\(p\.xp\)\|\|0\);\n  const level=/);
 });
+
+test('V57 bounds rapid mobile camera swipes without adding post-release drift', () => {
+  assert.match(html, /function flushCamera\(dt\)/);
+  assert.match(html, /const maxStep=Math\.max\(10,Math\.min\(30,frameDt\*900\)\)/);
+  assert.match(html, /if\(active\)\{cameraDX-=dx;cameraDY-=dy;\}/);
+  assert.match(html, /else\{cameraDX=0;cameraDY=0;\}/);
+});
+test('V57 lobby gives the operator, Social navigation and launch controls separate space', () => {
+  assert.match(html, /id="v57LobbyCameraStability"/);
+  assert.match(html, /#menu \.v17Left\{left:1\.2%/);
+  assert.match(html, /#menu \.v24Hero\{left:61%/);
+  assert.match(html, /#menu \.v18ModePick\{right:1\.5%/);
+  assert.match(html, /data-lobby="SOCIAL"/);
+});
