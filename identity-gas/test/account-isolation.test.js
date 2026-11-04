@@ -102,3 +102,68 @@ test('guest and Firestore restores replace, rather than merge, active account st
   assert.ok(!html.includes('Object.assign(v18Progress,guestProgress)'));
   assert.ok(!html.includes('Object.assign(v18Progress,saved)'));
 });
+
+
+test('detects a previously copied cloud profile by stats even after its public ID changes', () => {
+  const start = html.indexOf('function v504FindDuplicateAccountSnapshot(');
+  const end = html.indexOf('\nconst v504PendingGuest=', start);
+  assert.ok(start >= 0 && end > start, 'duplicate account snapshot detector must exist');
+  const firstKey = 'thedemianff_v504_progress_first%40example.com';
+  const values = {
+    [firstKey]: JSON.stringify({
+      credits: 9000, xp: 12000, matches: 80, wins: 30, kills: 210, best: 18,
+      skin: 2, unlocked: [0, 2], weapon: 3, claimed: ['old'], playerId: '00001',
+    }),
+  };
+  const context = {
+    localStorage: {
+      get length() { return Object.keys(values).length; },
+      getItem(key) { return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : null; },
+      key(index) { return Object.keys(values)[index] ?? null; },
+    },
+    v504AccountProgress(email) {
+      return 'thedemianff_v504_progress_' + encodeURIComponent(email.toLowerCase());
+    },
+    v443ValidateProgress(data) { return { ...data }; },
+  };
+  const candidate = {
+    credits: 9000, xp: 12000, matches: 80, wins: 30, kills: 210, best: 18,
+    skin: 2, unlocked: [0, 2], weapon: 3, claimed: ['old'], playerId: '00002',
+  };
+  vm.runInNewContext(html.slice(start, end) +
+    '\nresult=v504FindDuplicateAccountSnapshot("second@example.com",' +
+    JSON.stringify(candidate) + ');', context);
+  assert.equal(context.result, firstKey);
+});
+
+test('does not flag a profile as duplicated against its own account cache', () => {
+  const start = html.indexOf('function v504FindDuplicateAccountSnapshot(');
+  const end = html.indexOf('\nconst v504PendingGuest=', start);
+  const ownKey = 'thedemianff_v504_progress_second%40example.com';
+  const profile = { credits: 0, xp: 0, matches: 0, wins: 0, kills: 0, best: 0,
+    skin: 0, unlocked: [0], weapon: 0, claimed: [] };
+  const values = { [ownKey]: JSON.stringify(profile) };
+  const context = {
+    localStorage: {
+      get length() { return Object.keys(values).length; },
+      getItem(key) { return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : null; },
+      key(index) { return Object.keys(values)[index] ?? null; },
+    },
+    v504AccountProgress(email) {
+      return 'thedemianff_v504_progress_' + encodeURIComponent(email.toLowerCase());
+    },
+    v443ValidateProgress(data) { return { ...data }; },
+  };
+  vm.runInNewContext(html.slice(start, end) +
+    '\nresult=v504FindDuplicateAccountSnapshot("second@example.com",' +
+    JSON.stringify(profile) + ');', context);
+  assert.equal(context.result, '');
+});
+
+test('duplicate cloud profile is archived before a fresh profile is saved', () => {
+  assert.ok(html.includes('v504FindDuplicateAccountSnapshot(v446GoogleEmail,saved)'));
+  assert.ok(html.includes('const archiveKey=\\'thedemianff_duplicate_backup_\\''));
+  assert.ok(html.includes('localStorage.setItem(archiveKey,JSON.stringify(saved))'));
+  assert.ok(html.includes('v504SetLocalProgress(fresh)'));
+  assert.ok(html.includes('v495CloudSave(JSON.stringify(fresh))'));
+});
