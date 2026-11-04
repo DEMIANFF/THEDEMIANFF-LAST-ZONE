@@ -717,7 +717,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 </style>
 
 <style id="v582RightShoulderAim">
-/* V57.2: clear the center sightline with a right-shoulder camera and calibrated reticles. */
+/* V57.3: clear the center sightline with a right-shoulder camera and calibrated reticles. */
 #cross,#v10Reticle{left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;z-index:140!important;pointer-events:none!important;filter:drop-shadow(0 1px 2px #00121b)!important}
 #cross{width:14px!important;height:14px!important;opacity:.94!important}
 #cross:before{width:2px!important;height:14px!important;left:6px!important;top:0!important;background:#d9fff1!important;box-shadow:0 0 0 1px #061b22,0 0 7px #5fffd2!important}
@@ -856,11 +856,11 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 </style>
 
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V57.2 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
+<div id="v22Edition">V57.3 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"><span class="v581Currency"><small>CR</small><b id="v18Credits">0</b></span><span class="v581Currency"><small>XP</small><b id="v18XP">0</b></span><button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE AURORA</button><button data-lobby="PERSONAJE">♙ &nbsp; OPERADORES</button><button data-lobby="OPERACIONES">◈ &nbsp; EVENTOS Y OBJETIVOS</button><button data-lobby="ARMAS">⌖ &nbsp; ARSENAL</button><button data-lobby="INVENTARIO">▣ &nbsp; INVENTARIO</button><button data-lobby="PRESET">☷ &nbsp; EQUIPAMIENTOS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V57.2</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V57.3</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
 
 <div class="v17Bottom"><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -1671,6 +1671,10 @@ function v428CreateTrainingWorld(){
  // Reuse the existing Aurora landmarks, POIs, glacial lighting and accessible interiors.
  // The original flat gameplay foundation remains intact for touch movement and camera.
  addWorldDetails();
+ // V57.3: activate the previously authored district architecture and instanced Aurora dressing.
+ v396ExpandAurora();
+ v397DetailAurora();
+ v583SetupBattleVisuals();
  window.v470CompoundReady=false;
  window.v428TrainingBase=true;
  window.v473AuroraRestored=true;
@@ -3072,6 +3076,196 @@ function v397DetailAurora(){
  window.v397VisualDetails=details+72;
 }
 window.THEDEMIANFF_VISUAL_TEST=()=>({details:window.v397VisualDetails||0,environmentInstances:window.v40EnvironmentInstances||0,pathSegments:window.v40PathSegments||0,environmentProps:window.v40EnvironmentProps||0,propTypes:window.v40EnvironmentPropTypes||0,districtMotifs:window.v40DistrictMotifs||0,motifTypes:window.v40DistrictMotifTypes||0,auroraCurtains:v27AuroraRibbons.length});
+
+// V57.3 · BATTLE ROYALE VISUAL PIPELINE
+// All materials are generated locally; no network dependency and no external image downloads.
+let v583BattleVisuals=null,v583EnvironmentAssets=null,v583LootPalette=null;
+function v583CreateEnvironmentAssets(){
+ if(v583EnvironmentAssets)return v583EnvironmentAssets;
+ const snowCanvas=document.createElement('canvas');snowCanvas.width=256;snowCanvas.height=256;
+ const snowCtx=snowCanvas.getContext('2d');
+ if(snowCtx){
+  const pixels=snowCtx.createImageData(256,256);let seed=583157;
+  for(let i=0;i<256*256;i++){
+   seed=(seed*1664525+1013904223)>>>0;
+   const grain=((seed>>>24)-128)*.20,blue=(seed>>>16)&31,offset=i*4;
+   pixels.data[offset]=Math.max(0,Math.min(255,211+grain-blue*.12));
+   pixels.data[offset+1]=Math.max(0,Math.min(255,226+grain-blue*.08));
+   pixels.data[offset+2]=Math.max(0,Math.min(255,232+grain));
+   pixels.data[offset+3]=255;
+  }
+  snowCtx.putImageData(pixels,0,0);
+  snowCtx.globalAlpha=.16;snowCtx.strokeStyle='#ffffff';snowCtx.lineWidth=1;
+  for(let i=0;i<34;i++){
+   seed=(seed*1664525+1013904223)>>>0;const x=(seed>>>8)%256;
+   seed=(seed*1664525+1013904223)>>>0;const y=(seed>>>8)%256;
+   snowCtx.beginPath();snowCtx.moveTo(x,y);snowCtx.lineTo(x+8+(seed%25),y-3-(seed%11));snowCtx.stroke();
+  }
+  snowCtx.globalAlpha=.13;snowCtx.fillStyle='#5b7e8c';
+  for(let i=0;i<82;i++){
+   seed=(seed*1664525+1013904223)>>>0;const x=(seed>>>8)%256;
+   seed=(seed*1664525+1013904223)>>>0;const y=(seed>>>8)%256;
+   snowCtx.fillRect(x,y,1+(seed%3),1);
+  }
+ }
+ const snowTexture=snowCtx?new THREE.CanvasTexture(snowCanvas):null;
+ if(snowTexture){
+  snowTexture.wrapS=THREE.RepeatWrapping;snowTexture.wrapT=THREE.RepeatWrapping;
+  snowTexture.repeat.set(38,38);snowTexture.colorSpace=THREE.SRGBColorSpace;
+  snowTexture.anisotropy=renderer?.capabilities?.getMaxAnisotropy?.()?Math.min(4,renderer.capabilities.getMaxAnisotropy()):2;
+ }
+ const skyGeometry=new THREE.SphereGeometry(560,28,16);skyGeometry.userData.v583Shared=true;
+ const skyMaterial=new THREE.ShaderMaterial({
+  vertexShader:'varying vec3 vDirection;void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:'varying vec3 vDirection;void main(){vec3 d=normalize(vDirection);float h=clamp(d.y*.5+.5,0.0,1.0);vec3 horizon=vec3(.48,.66,.72);vec3 zenith=vec3(.025,.065,.12);vec3 color=mix(horizon,zenith,smoothstep(.20,.91,h));float glow=pow(max(0.0,1.0-abs(d.y-.10)*10.0),5.0);color+=vec3(.035,.12,.14)*glow;float dusk=pow(max(0.0,1.0-abs(d.y+.08)*5.0),3.0);color+=vec3(.035,.075,.11)*dusk;gl_FragColor=vec4(color,1.0);}',
+  side:THREE.BackSide,depthWrite:false,depthTest:true,toneMapped:false
+ });
+ const ridgeGeometry=new THREE.ConeGeometry(1,1,6);ridgeGeometry.userData.v583Shared=true;
+ const ridgeMaterial=new THREE.MeshStandardMaterial({color:'#819eae',roughness:.94,metalness:.04,flatShading:true});
+ const snowGeometry=new THREE.BufferGeometry();snowGeometry.userData.v583Shared=true;
+ const snowPositions=new Float32Array(72*3);
+ for(let i=0;i<72;i++){
+  snowPositions[i*3]=(i%9-4)*8.4;
+  snowPositions[i*3+1]=4+(i%8)*3.1;
+  snowPositions[i*3+2]=(Math.floor(i/9)-3.5)*10.5;
+ }
+ snowGeometry.setAttribute('position',new THREE.BufferAttribute(snowPositions,3));
+ const snowMaterial=new THREE.PointsMaterial({color:'#f2fdff',size:.20,transparent:true,opacity:.52,depthWrite:false,sizeAttenuation:true});
+ const zoneWallGeometry=new THREE.CylinderGeometry(1,1,10,72,1,true);zoneWallGeometry.userData.v583Shared=true;
+ const zoneRingGeometry=new THREE.TorusGeometry(1,.035,6,96);zoneRingGeometry.userData.v583Shared=true;
+ const zoneWallMaterial=new THREE.MeshBasicMaterial({color:'#63e8ef',transparent:true,opacity:.085,side:THREE.DoubleSide,depthWrite:false});
+ const zoneRingMaterial=new THREE.MeshBasicMaterial({color:'#8af6ef',transparent:true,opacity:.56,depthWrite:false});
+ v583EnvironmentAssets={snowTexture,skyGeometry,skyMaterial,ridgeGeometry,ridgeMaterial,snowGeometry,snowMaterial,zoneWallGeometry,zoneRingGeometry,zoneWallMaterial,zoneRingMaterial};
+ return v583EnvironmentAssets;
+}
+function v583GetLootPalette(type){
+ if(!v583LootPalette)v583LootPalette={};
+ if(v583LootPalette[type])return v583LootPalette[type];
+ const configs={
+  med:{shell:'#d7e5e8',lid:'#f0f7f7',accent:'#d94e55',label:'MED',symbol:'+'},
+  armor:{shell:'#244b62',lid:'#3d7188',accent:'#63e5ee',label:'ARMOR',symbol:'◆'},
+  ammo:{shell:'#4c5050',lid:'#77704f',accent:'#f3c65f',label:'AMMO',symbol:'III'}
+ };
+ const config=configs[type]||configs.ammo;
+ const canvas=document.createElement('canvas');canvas.width=128;canvas.height=64;
+ const ctx=canvas.getContext('2d');
+ if(ctx){
+  ctx.fillStyle='#0a1d2a';ctx.fillRect(0,0,128,64);
+  ctx.fillStyle=config.accent;ctx.fillRect(3,3,122,58);
+  ctx.fillStyle='#102432';ctx.fillRect(7,7,114,50);
+  ctx.strokeStyle=config.accent;ctx.lineWidth=2;ctx.strokeRect(10,10,108,44);
+  ctx.fillStyle='#f1fbff';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='900 17px system-ui';ctx.fillText(config.symbol,27,31);
+  ctx.font='900 13px system-ui';ctx.fillText(config.label,78,31);
+ }
+ const map=ctx?new THREE.CanvasTexture(canvas):null;
+ if(map)map.colorSpace=THREE.SRGBColorSpace;
+ const palette={
+  shell:new THREE.MeshStandardMaterial({color:config.shell,roughness:.58,metalness:.36}),
+  lid:new THREE.MeshStandardMaterial({color:config.lid,roughness:.49,metalness:.48}),
+  strap:new THREE.MeshStandardMaterial({color:'#172b38',roughness:.65,metalness:.52}),
+  label:new THREE.MeshBasicMaterial({map,transparent:true,side:THREE.DoubleSide,depthWrite:false}),
+  bodyGeometry:new THREE.BoxGeometry(.92,.52,.82),
+  lidGeometry:new THREE.BoxGeometry(.98,.14,.88),
+  strapGeometry:new THREE.BoxGeometry(.13,.64,.90),
+  labelGeometry:new THREE.PlaneGeometry(.52,.27)
+ };
+ v583LootPalette[type]=palette;return palette;
+}
+function v583BuildPickupCase(group,type){
+ const p=v583GetLootPalette(type),body=new THREE.Mesh(p.bodyGeometry,p.shell);
+ body.position.y=.02;body.castShadow=true;body.receiveShadow=true;group.add(body);
+ const lid=new THREE.Mesh(p.lidGeometry,p.lid);lid.position.y=.31;lid.castShadow=true;group.add(lid);
+ const strap=new THREE.Mesh(p.strapGeometry,p.strap);strap.position.y=.02;group.add(strap);
+ const label=new THREE.Mesh(p.labelGeometry,p.label);label.position.set(0,.045,.414);group.add(label);
+ group.userData.v583BattleLoot=true;
+}
+function v583SetupBattleVisuals(){
+ if(!scene||v583BattleVisuals?.scene===scene)return;
+ const assets=v583CreateEnvironmentAssets();
+ if(terrain?.material&&!Array.isArray(terrain.material)){
+  terrain.material.map=assets.snowTexture;
+  terrain.material.bumpMap=assets.snowTexture;
+  terrain.material.bumpScale=.026;
+  terrain.material.color.set('#ffffff');
+  terrain.material.roughness=.96;
+  terrain.material.needsUpdate=true;
+ }
+ scene.background=new THREE.Color('#8ba9b8');
+ scene.fog=new THREE.FogExp2('#9db9c4',.00102);
+ const sky=new THREE.Mesh(assets.skyGeometry,assets.skyMaterial);
+ sky.name='V583_ARCTIC_SKY';sky.frustumCulled=false;sky.renderOrder=-1000;scene.add(sky);
+ // Distant glacial ridge silhouettes close the horizon without filling the playable center.
+ const ridgeCount=40,ridges=new THREE.InstancedMesh(assets.ridgeGeometry,assets.ridgeMaterial,ridgeCount);
+ const matrix=new THREE.Matrix4(),rotation=new THREE.Quaternion(),scale=new THREE.Vector3();
+ let placed=0;
+ for(let i=0;i<ridgeCount;i++){
+  const angle=i*Math.PI*2/ridgeCount,radius=HALF-20+(i%4)*3.2;
+  const x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;
+  if(Math.abs(x)>HALF-5||Math.abs(z)>HALF-5||solid(x,z,2.8))continue;
+  const height=10+(i%6)*2.8,width=2.7+(i%4)*.75;
+  rotation.setFromAxisAngle(new THREE.Vector3(0,1,0),angle*.7);
+  scale.set(width,height,width*.85);
+  matrix.compose(new THREE.Vector3(x,ground(x,z)+height*.5,z),rotation,scale);
+  ridges.setMatrixAt(placed++,matrix);
+  worldObjects.push({x,z,r:width*.8,h:height});
+ }
+ ridges.count=placed;ridges.instanceMatrix.needsUpdate=true;ridges.frustumCulled=false;scene.add(ridges);
+ const snowfall=new THREE.Points(assets.snowGeometry,assets.snowMaterial);
+ snowfall.name='V583_LOCAL_SNOW';snowfall.frustumCulled=false;scene.add(snowfall);
+ const zoneGroup=new THREE.Group();zoneGroup.name='V583_SAFE_ZONE_WALL';
+ const wall=new THREE.Mesh(assets.zoneWallGeometry,assets.zoneWallMaterial);wall.position.y=5.05;zoneGroup.add(wall);
+ const lower=new THREE.Mesh(assets.zoneRingGeometry,assets.zoneRingMaterial);lower.rotation.x=-Math.PI/2;lower.position.y=.12;zoneGroup.add(lower);
+ const upper=new THREE.Mesh(assets.zoneRingGeometry,assets.zoneRingMaterial);upper.rotation.x=-Math.PI/2;upper.position.y=10.05;zoneGroup.add(upper);
+ scene.add(zoneGroup);
+ v583BattleVisuals={scene,sky,ridges,snowfall,zoneGroup,zoneWall:wall,zoneLower:lower,zoneUpper:upper,flakeClock:0};
+ v583UpdateZoneVisual(zoneRadius,zoneCenter.x,zoneCenter.y,false);
+ window.v583ActiveDistrictVisuals=window.v396StructuresPlaced||0;
+ window.v583InstancedEnvironment=window.v40EnvironmentProps||0;
+ window.v583SnowTextureReady=!!assets.snowTexture;
+}
+function v583UpdateZoneVisual(radius,cx,cz,danger){
+ const v=v583BattleVisuals;if(!v||v.scene!==scene)return;
+ const floor=ground(cx,cz);
+ v.zoneGroup.position.set(cx,floor,cz);
+ v.zoneWall.scale.set(radius,1,radius);
+ v.zoneLower.scale.set(radius,radius,radius);
+ v.zoneUpper.scale.set(radius,radius,radius);
+ const hot=danger||zoneTick>35;
+ const color= danger?0xff7772:hot?0xffcf78:0x70eced;
+ v.zoneWall.material.color.setHex(color);
+ v.zoneLower.material.color.setHex(color);v.zoneUpper.material.color.setHex(color);
+ v.zoneWall.material.opacity=danger?.12:hot?.105:.075;
+}
+function v583TickBattleVisuals(dt){
+ const v=v583BattleVisuals;if(!v||v.scene!==scene||!player||!Number.isFinite(dt)||dt<=0)return;
+ v.sky.position.copy(camera.position);
+ const attr=v.snowfall.geometry.attributes.position,array=attr.array,px=player.position.x,py=player.position.y,pz=player.position.z;
+ v.flakeClock+=dt;
+ if(v.flakeClock>=.028){
+  const step=Math.min(.12,v.flakeClock);v.flakeClock=0;
+  for(let i=0;i<attr.count;i++){
+   const k=i*3;let x=array[k]+step*(.55+(i%5)*.08),y=array[k+1]-step*(1.35+(i%4)*.23),z=array[k+2]+step*.22;
+   if(y<py+1.4||Math.abs(x-px)>48||Math.abs(z-pz)>48){x=px+((i*17)%97-48);y=py+8+(i%9)*2.2;z=pz+((i*29)%97-48);}
+   array[k]=x;array[k+1]=y;array[k+2]=z;
+  }
+  attr.needsUpdate=true;
+ }
+}
+window.THEDEMIANFF_BATTLE_VISUAL_TEST=()=>({
+ districts:window.v396StructuresPlaced||0,
+ facadePieces:window.v40FacadePieces||0,
+ signs:window.v40DistrictSigns||0,
+ environmentProps:window.v40EnvironmentProps||0,
+ pathSegments:window.v40PathSegments||0,
+ snowTexture:!!window.v583SnowTextureReady,
+ skyDome:!!v583BattleVisuals?.sky,
+ snowfall:!!v583BattleVisuals?.snowfall,
+ safeZoneWall:!!v583BattleVisuals?.zoneWall,
+ instancedHorizon:v583BattleVisuals?.ridges?.count||0,
+ lootPalette:!!v583LootPalette
+});
+
 // V39.4: bounded cover search on AI decision ticks, not on every frame.
 function v394FindCover(b,px,pz){
  if(!b||!b.root||![b.x,b.z,px,pz].every(Number.isFinite))return null;
@@ -3108,10 +3302,10 @@ v40EnemyMark.color.set(['#ff946d','#ffd16e','#ff7272','#9ce6ff'][roleIndex]);
 const role=['ASALTO','EXPLORADOR','DEFENSOR','FRANCOTIRADOR'][roleIndex];
 const roleHp=[100,78,145,85][roleIndex],roleSpeed=[1,1.28,.78,.9][roleIndex];
 c.root.scale.setScalar(1.24*[1,.92,1.1,1][roleIndex]);
-bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),think:rand(0,3),shoot:rand(.5,2),speed:rand(3.2,4.6)*roleSpeed,velocityX:0,velocityZ:0,alive:true,strafe:rand(-1,1),phase:rand(0,6),lastHit:0,alert:0,burst:rand(.2,.65),tactic:rand(0,6.28),coverTimer:0,coverX:null,coverZ:null,shotPose:0,lostSight:5,lastSeenAngle:0,stuckTime:0,lastSeenX:null,lastSeenZ:null,investigateTime:0,heardShotStamp:-100,suppression:0,burstLeft:0,retreatTime:0,initialHp:roleHp,previousX:p.x,previousZ:p.z,visionTime:rand(0,.12),cachedVisible:false,hitStun:0,dodgeTime:0,dodgeSign:1,rangePreference:role==='FRANCOTIRADOR'?30:role==='DEFENSOR'?18:role==='EXPLORADOR'?11:16});}function spawnPickup(type,x,z){const group=new THREE.Group();group.position.set(x,ground(x,z)+.65,z);const color=type==='med'?'#ff5959':type==='armor'?'#25dcff':'#ffd54c';box(.9,.45,.9,mat(color,.4,.2),group);box(.45,.08,.1,mats.dark,group,0,.24,0);if(type==='med'){box(.42,.08,.08,mats.wall,group,0,.25,.45);box(.08,.42,.08,mats.wall,group,0,.25,.45)}const glow=new THREE.Mesh(new THREE.CylinderGeometry(.84,.84,.08,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.86,depthWrite:false}));glow.position.y=-.5;group.add(glow);
+bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),think:rand(0,3),shoot:rand(.5,2),speed:rand(3.2,4.6)*roleSpeed,velocityX:0,velocityZ:0,alive:true,strafe:rand(-1,1),phase:rand(0,6),lastHit:0,alert:0,burst:rand(.2,.65),tactic:rand(0,6.28),coverTimer:0,coverX:null,coverZ:null,shotPose:0,lostSight:5,lastSeenAngle:0,stuckTime:0,lastSeenX:null,lastSeenZ:null,investigateTime:0,heardShotStamp:-100,suppression:0,burstLeft:0,retreatTime:0,initialHp:roleHp,previousX:p.x,previousZ:p.z,visionTime:rand(0,.12),cachedVisible:false,hitStun:0,dodgeTime:0,dodgeSign:1,rangePreference:role==='FRANCOTIRADOR'?30:role==='DEFENSOR'?18:role==='EXPLORADOR'?11:16});}function spawnPickup(type,x,z){const group=new THREE.Group();group.position.set(x,ground(x,z)+.65,z);const color=type==='med'?'#ff5959':type==='armor'?'#25dcff':'#ffd54c';v583BuildPickupCase(group,type);const glow=new THREE.Mesh(new THREE.CylinderGeometry(.84,.84,.08,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.86,depthWrite:false}));glow.position.y=-.5;group.add(glow);
  const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.39,0),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.96,depthWrite:false,depthTest:true}));beacon.position.y=1.45;group.add(beacon);
  // V40 easy-to-identify medkits, ammunition and armor: visible pillar + floating ring.
- const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,1.85,8),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.54,depthWrite:false,depthTest:true}));pillar.position.y=.45;group.add(pillar);
+ const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,1.25,8),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.54,depthWrite:false,depthTest:true}));pillar.position.y=.35;group.add(pillar);
  const halo=new THREE.Mesh(new THREE.TorusGeometry(.51,.085,6,16),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.89,depthWrite:false,depthTest:true}));halo.rotation.x=Math.PI/2;halo.position.y=1.2;group.add(halo);
  group.userData.v40PickupHalo=halo;
  group.userData.v362Glow=beacon;
@@ -3119,7 +3313,7 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
 function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v480Pulse=0;v480FrameCount=0;v480Snapshot.fill(null);v484NoAmmoNotice=-10;v489AutoSwaps=0;v489DryFires=0;v489LastDryFire=-10;v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(scene){
  const geometries=new Set();
- scene.traverse(obj=>{if(obj.geometry)geometries.add(obj.geometry);});
+ scene.traverse(obj=>{if(obj.geometry&&!obj.geometry.userData.v583Shared)geometries.add(obj.geometry);});
  for(const geometry of geometries)geometry.dispose();
  while(scene.children.length)scene.remove(scene.children[0]);
 }
@@ -3500,7 +3694,7 @@ function v474SupplyEvent(dt){
 window.THEDEMIANFF_V474_SUPPLIES=()=>({delivered:v474SupplyCount,markers:v474SupplyMarkers.length,remaining:Math.ceil(v474SupplyClock)});
 window.THEDEMIANFF_V475_HUD=()=>({match:document.body.classList.contains('v475InMatch'),menu:!$('menu').classList.contains('hidden'),reticle:getComputedStyle($('cross')).display});
 window.THEDEMIANFF_V474_RIVALS=()=>({exchanges:v474RivalRounds,eliminations:v474RivalEliminations});
-function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);return;}v362UpdateBotsInAir(dt);flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);
+function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);return;}v362UpdateBotsInAir(dt);flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);v583TickBattleVisuals(dt);
  // FOV y reticula ahora pertenecen exclusivamente al controlador V43.2.
  time+=dt;
 if(v469HealTimer>0){
@@ -3601,7 +3795,7 @@ playerModel.gun.position.y=1.45-v431VisualKick*.045-v395Reload*.22-v395Swap*.30+
 $('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':fireHeld?'◉ MIRA DE COMBATE':'⊕ MIRA LIBRE';
 zoneTick+=dt;
 if($('v18Mode').value!=='training'&&zoneTick>=35&&!v473ZoneWarningIssued){v473ZoneWarningIssued=true;toast('⚠ ZONA: 10 SEGUNDOS PARA NUEVA FASE');toneSound(620,.22,.06,'triangle');}
-if($('v18Mode').value!=='training'&&zoneTick>45){zoneTick=0;v473ZoneWarningIssued=false;zonePhase++;zoneCenter.x=clamp(zoneCenter.x+rand(-12,12),-40,40);zoneCenter.y=clamp(zoneCenter.y+rand(-12,12),-40,40);toast('⚠ LA ZONA SE ESTÁ CERRANDO');v9Event('⚠ NUEVA ZONA DE COMBATE')}const targetRadius=$('v18Mode').value==='training'?225:Math.max(13,225*Math.pow(.75,zonePhase+clamp(zoneTick/45,0,1)));zoneRadius+=(targetRadius-zoneRadius)*Math.min(1,dt*1.8);zoneRing.position.set(zoneCenter.x,ground(zoneCenter.x,zoneCenter.y)+.25,zoneCenter.y);zoneRing.scale.set(zoneRadius,zoneRadius,zoneRadius);if(zoneRing.material&&zoneRing.material.color){const danger=Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y)>zoneRadius;zoneRing.material.color.setHex(danger?0xff7474:zoneTick>35?0xffd574:0x5bdce7);}if(Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y)>zoneRadius){damageFlash=Math.max(damageFlash,.05);hp-=dt*(2.5+zonePhase*.9);if(hp<=0){hp=0;finish(false);}}
+if($('v18Mode').value!=='training'&&zoneTick>45){zoneTick=0;v473ZoneWarningIssued=false;zonePhase++;zoneCenter.x=clamp(zoneCenter.x+rand(-12,12),-40,40);zoneCenter.y=clamp(zoneCenter.y+rand(-12,12),-40,40);toast('⚠ LA ZONA SE ESTÁ CERRANDO');v9Event('⚠ NUEVA ZONA DE COMBATE')}const targetRadius=$('v18Mode').value==='training'?225:Math.max(13,225*Math.pow(.75,zonePhase+clamp(zoneTick/45,0,1)));zoneRadius+=(targetRadius-zoneRadius)*Math.min(1,dt*1.8);zoneRing.position.set(zoneCenter.x,ground(zoneCenter.x,zoneCenter.y)+.25,zoneCenter.y);zoneRing.scale.set(zoneRadius,zoneRadius,zoneRadius);if(zoneRing.material&&zoneRing.material.color){const danger=Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y)>zoneRadius;zoneRing.material.color.setHex(danger?0xff7474:zoneTick>35?0xffd574:0x5bdce7);v583UpdateZoneVisual(zoneRadius,zoneCenter.x,zoneCenter.y,danger);}if(Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y)>zoneRadius){damageFlash=Math.max(damageFlash,.05);hp-=dt*(2.5+zonePhase*.9);if(hp<=0){hp=0;finish(false);}}
 for(const b of bots){if(!b.alive||b.airborne)continue;const px=player.position.x-b.x,pz=player.position.z-b.z,d=Math.hypot(px,pz);
 // V46.5: line of sight from proportional eye height, not the old short model.
 const enemyEye=ground(b.x,b.z)+1.55*b.root.scale.y;
