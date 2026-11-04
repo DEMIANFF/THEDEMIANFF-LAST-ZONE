@@ -140,7 +140,7 @@ test('Android release is V57.6 with monotonic version code 149', () => {
 });
 test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
   assert.match(html, /function v576RegisterOpenBuilding/);
-  assert.match(html, /doorWidthMeters:1\.9/);
+  assert.match(html, /doorWidthMeters:2\.6/);
   assert.match(html, /looseFrostStones:false/);
   assert.match(html, /greyDistrictCrates:false/);
   assert.match(html, /valleyRockCliffs:false/);
