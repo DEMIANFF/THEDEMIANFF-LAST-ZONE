@@ -165,3 +165,8 @@ test('duplicate cloud profile is archived before a fresh profile is saved', () =
   assert.ok(html.includes('v504SetLocalProgress(fresh)'));
   assert.ok(html.includes('v495CloudSave(JSON.stringify(fresh))'));
 });
+
+test('duplicate-profile confirmation uses valid escaped newlines, not literal slash sequences', () => {
+  assert.ok(html.includes(String.raw`no deseada.\n\nAceptar: crear un perfil nuevo`));
+  assert.ok(!html.includes(String.raw`no deseada.\\n\\nAceptar: crear un perfil nuevo`));
+});
