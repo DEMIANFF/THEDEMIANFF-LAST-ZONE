@@ -35,3 +35,12 @@ test('repeated identical gameplay notices are throttled', () => {
   assert.match(html, /v556LastToastAt/);
   assert.match(html, /now-v556LastToastAt<2600/);
 });
+
+test('unified account statistics use real JavaScript line breaks', () => {
+  assert.equal(
+    html.includes('Number(p.xp)||0);\\n  const level='),
+    false,
+    'profile statistics must not contain literal backslash-n separators'
+  );
+  assert.match(html, /Number\(p\.xp\)\|\|0\);\n  const level=/);
+});
