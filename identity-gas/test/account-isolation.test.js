@@ -59,3 +59,46 @@ test('native logout waits for Google sign-out completion before notifying the We
   assert.ok(signOut >= 0 && callback > signOut);
   assert.ok(java.includes('googleSignOutPending=false;'));
 });
+
+test('switching accounts replaces the active in-memory profile instead of merging old stats', () => {
+  const start = html.indexOf('function v504SetLocalProgress(data){');
+  const end = html.indexOf('\\nfunction v504StartCloudRestore', start);
+  assert.ok(start >= 0 && end > start, 'account-switch progress setter must exist');
+  const values = {};
+  const context = {
+    localStorage: {
+      setItem(key, value) { values[key] = String(value); },
+      getItem(key) { return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : null; },
+    },
+    progressKey: 'thedemianff_progress_v18',
+    v443ValidateProgress(data) { return { ...data }; },
+    v443Native: null,
+    v446GoogleEmail: 'second@example.com',
+    v504AccountKey: 'thedemianff_v504_account',
+    v18Progress: {
+      credits: 9000, xp: 12000, matches: 80, wins: 30, kills: 210, best: 18,
+      skin: 2, unlocked: [0, 2], weapon: 3, claimed: ['old'], playerId: '00001',
+      playerName: 'FIRST_ACCOUNT', staleField: 'must disappear',
+    },
+    refreshed: false,
+    v18Refresh() { this.refreshed = true; },
+  };
+  const fresh = { credits: 0, xp: 0, matches: 0, wins: 0, kills: 0, best: 0,
+    skin: 0, unlocked: [0], weapon: 0, claimed: [] };
+  vm.runInNewContext(html.slice(start, end) +
+    '\\nv504SetLocalProgress(' + JSON.stringify(fresh) + '); result={...v18Progress};', context);
+  assert.equal(context.result.xp, 0);
+  assert.equal(context.result.credits, 0);
+  assert.equal(context.result.playerId, undefined);
+  assert.equal(context.result.playerName, undefined);
+  assert.equal(context.result.staleField, undefined);
+  assert.equal(context.refreshed, true);
+  assert.deepEqual(JSON.parse(values.thedemianff_progress_v18), fresh);
+});
+
+test('guest and Firestore restores replace, rather than merge, active account state', () => {
+  assert.ok(html.includes('v18Progress=guestProgress;'));
+  assert.ok(html.includes('v18Progress=saved;'));
+  assert.ok(!html.includes('Object.assign(v18Progress,guestProgress)'));
+  assert.ok(!html.includes('Object.assign(v18Progress,saved)'));
+});
