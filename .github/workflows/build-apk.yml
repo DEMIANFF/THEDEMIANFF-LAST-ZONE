@@ -90,7 +90,7 @@ jobs:
           # out the camera height declaration but still passes JS syntax checks.
           assert "const height=(mobile?3.75:3.45)" in html, "V53.4: missing TPS camera height declaration"
           assert r"\n  const height=(mobile?3.75:3.45)" not in html, "V53.4: camera height accidentally commented out"
-          for token in ("v432Camera.update(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", "id=\"v533AccountShortcut\"", "v534_scope_index"):
+          for token in ("v432Camera.update(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", "id=\"v17Profile\"", "v534_scope_index"):
               assert token in html, "V53.4: required camera/lobby component missing: "+token
           # V53.8: identity remains part of validated Firebase backup payload.
           for token in ('const v536IdPattern=', 'const v536NamePattern=', 'result.playerId=p.playerId', 'result.playerName=p.playerName', 'v536EnsureIdentity()', 'id="v536LobbyName"', 'id="v536LobbyId"', 'id="v18Profile"', 'id="v536SaveName"', 'id="v536CopyId"'):
@@ -730,7 +730,7 @@ jobs:
           for token in ('id="v500CloudBadge"', 'id="v533AccountShortcut"', 'id="v502CloudAccess"'):
               assert token not in h, 'V56.0: cloud shortcut must not be in the lobby: '+token
           assert 'id="v443Google"' in h and 'id="v494CloudStatus"' in h, 'V56.0: Settings > Account lost Google controls'
-          assert "thereafter.\\\\n  if(!Number.isFinite(camera.position.y)" not in h, 'V56.0: vertical camera tracking comment regression'
+          assert ('thereafter.'+chr(92)+'n  if(!Number.isFinite(camera.position.y)') not in h, 'V56.0: vertical camera tracking comment regression'
           print('V56.0 lobby, pass, account routing and camera checks passed')
           print('V55.6 lobby and hybrid camera checks passed')
           print('V55.5 Google account isolation checks passed')
@@ -781,8 +781,8 @@ jobs:
           for token in ('if(!doc.exists())', 'El respaldo remoto existe pero no es válido. No se sobrescribirá.'):
               assert token in java, 'V50.4 remote backup safety regression '+token
           # V50.2 cinematic Aurora lobby and direct Google backup navigation.
-          for token in ('id="v502CloudAccess"',
-                        "v502CloudAccess').onclick",
+          for token in ('id="menuSettings"',
+                        'id="v443Google"', 'id="v494CloudStatus"',
                         "data-tab=\"account\"",
                         'v502AuroraMountains',
                         'v502AuroraMist',
@@ -792,7 +792,8 @@ jobs:
                         "v494CloudBridge.save(valid)",
                         "v494CloudBridge.load()"):
               assert token in h, 'V50.2 missing lobby or backup feature: '+token
-          assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
+          
+assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
           assert 'firebaseAuth.signOut();' in java and '.signOut().addOnCompleteListener(MainActivity.this,task -> {' in java, 'Google/Firebase sign-out must complete before returning to account selection'
           assert 'authMessage("signed_out",task.isSuccessful()' in java and 'if(googleSignOutPending)' in java, 'Missing serialized Google account switch handling'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
