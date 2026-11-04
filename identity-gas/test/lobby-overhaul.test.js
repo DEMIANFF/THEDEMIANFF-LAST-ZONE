@@ -10,7 +10,7 @@ const menuStart = html.indexOf('<div id="menu"');
 const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
-test('V56.0 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
+test('V57.0 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
   assert.match(menu, /V57.0 · CENTRO DE OPERACIONES/);
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
@@ -69,7 +69,7 @@ test('Aurora pass has 30 persistent free and Elite reward tiers without real-mon
 });
 
 test('combat camera follows vertically and the mobile shoulder framing is lower', () => {
-  assert.match(html, /const height=\(mobile\?3\.15:3\.0\)-\(mobile\?\.40:\.32\)\*b;/);
+  assert.match(html, /const height=\(mobile\?2\.85:2\.9\)-\(mobile\?\.34:\.28\)\*b;/);
   assert.match(html, /Smooth vertical tracking is essential: keep the shoulder camera attached to the player\.\n  if\(!Number\.isFinite\(camera\.position\.y\)/);
   assert.doesNotMatch(html, /thereafter\.\\n  if\(!Number\.isFinite\(camera\.position\.y\)/);
 });
@@ -82,8 +82,8 @@ test('ADS optics provide calibrated 2x, 4x and 8x magnification with progressive
 });
 
 test('parachute camera is pulled back and Lila preview supports touch rotation at smoother frame pacing', () => {
-  assert.match(html, /const d=clamp\(baseDistance\*1\.7,12,16\)/);
-  assert.match(html, /const aerialHeight=v398ChuteOpen\?13:15/);
+  assert.match(html, /const d=clamp\(baseDistance\*2\.0,16,20\)/);
+  assert.match(html, /const aerialHeight=v398ChuteOpen\?15:17/);
   assert.match(html, /#menu #v24LobbyStage\{pointer-events:auto!important;touch-action:pan-y!important/);
   assert.match(html, /if\(l\.renderer&&now-l\.last>\(mobile\?40:33\)\)/);
   assert.match(html, /l\.camera\.position\.set\(0,1\.92,7\.9\)/);
