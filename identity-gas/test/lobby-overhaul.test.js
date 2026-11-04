@@ -89,7 +89,7 @@ test('parachute camera is pulled back and Lila preview supports touch rotation a
   assert.match(html, /l\.camera\.position\.set\(0,1\.92,7\.9\)/);
 });
 
-test('Android release is V56.0 with a monotonic version code', () => {
+test('Android release is V57.0 with a monotonic version code', () => {
   assert.match(gradle, /versionCode 144/);
   assert.match(gradle, /versionName '57.0-lobby-camera-stability'/);
 });
