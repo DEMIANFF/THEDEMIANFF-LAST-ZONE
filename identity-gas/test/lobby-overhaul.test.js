@@ -19,7 +19,7 @@ test('V56.0 uses one clean lobby navigation and removes cloud shortcuts from the
   assert.doesNotMatch(menu, /id="v533AccountShortcut"/);
   assert.doesNotMatch(menu, /id="v502CloudAccess"/);
   assert.doesNotMatch(menu, /data-lobby="MISIONES"|data-lobby="LOGROS"|data-lobby="EVENTOS"/);
-  assert.match(menu, /class="v17Friends"/);
+  assert.doesNotMatch(menu, /class="v17Friends"/);
   assert.match(html, /#menu \.v17Friends,\#menu \.v17Quick\{display:none!important\}/);
 });
 
