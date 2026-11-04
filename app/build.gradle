@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 152
-        versionName '57.8-hybrid-camera-scale'
+        versionCode 153
+        versionName '57.8.1-start-repair'
     }
     signingConfigs {
         persistentRelease {
