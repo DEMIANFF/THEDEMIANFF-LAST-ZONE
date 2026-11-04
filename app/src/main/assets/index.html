@@ -715,6 +715,23 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  #menu .v18ModePick{bottom:16%!important}
 }
 </style>
+
+<style id="v582RightShoulderAim">
+/* V57.2: clear the center sightline with a right-shoulder camera and calibrated reticles. */
+#cross,#v10Reticle{left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;z-index:140!important;pointer-events:none!important;filter:drop-shadow(0 1px 2px #00121b)!important}
+#cross{width:14px!important;height:14px!important;opacity:.94!important}
+#cross:before{width:2px!important;height:14px!important;left:6px!important;top:0!important;background:#d9fff1!important;box-shadow:0 0 0 1px #061b22,0 0 7px #5fffd2!important}
+#cross:after{height:2px!important;width:14px!important;top:6px!important;left:0!important;background:#d9fff1!important;box-shadow:0 0 0 1px #061b22,0 0 7px #5fffd2!important}
+#v10Reticle{border-color:#b9ffe9!important;opacity:.96!important;box-shadow:0 0 0 1.5px #071820,0 0 9px #64f4cb88!important;background:transparent!important}
+#v10Reticle[data-scope="PUNTO"]{width:12px!important;height:12px!important;border-width:1.5px!important}
+#v10Reticle[data-scope="2x"]{width:10px!important;height:10px!important;border-width:1.5px!important}
+#v10Reticle[data-scope="4x"]{width:8px!important;height:8px!important;border-width:1.25px!important}
+#v10Reticle[data-scope="8x"]{width:7px!important;height:7px!important;border-width:1px!important}
+#v10Reticle.v382ADS[data-scope="PUNTO"]{width:12px!important;height:12px!important;opacity:.98!important}
+#v10Reticle.v382ADS[data-scope="2x"]{width:10px!important;height:10px!important;opacity:.98!important}
+#v10Reticle.v382ADS[data-scope="4x"]{width:8px!important;height:8px!important;opacity:.98!important}
+#v10Reticle.v382ADS[data-scope="8x"]{width:7px!important;height:7px!important;opacity:1!important}
+</style>
 </head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de operaciones: eventos, misiones y logros">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
@@ -867,7 +884,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 <div class="settingsSection" data-section="control">
 <label class="v37Primary">SENSIBILIDAD GENERAL · CÁMARA 360° <input id="sensitivity" type="range" min=".35" max="3" step=".05" value="1.25"></label>
 <label class="v37Advanced">Sensibilidad vertical <input id="verticalSensitivity" type="range" min=".35" max="3" step=".05" value="1.2"></label>
-<label class="v37Primary">DISTANCIA DE CÁMARA · TERCERA PERSONA <input id="v26CameraDistance" type="range" min="8.5" max="14" step=".25" value="8.5"></label><label class="v37Advanced">Desplazamiento lateral <input id="v26CameraShoulder" type="range" min=".6" max="1.5" step=".05" value="1.45"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
+<label class="v37Primary">DISTANCIA DE CÁMARA · TERCERA PERSONA <input id="v26CameraDistance" type="range" min="8.5" max="14" step=".25" value="8.5"></label><label class="v37Advanced">Separación lateral de cámara · hombro derecho <input id="v26CameraShoulder" type="range" min="1.0" max="1.7" step=".05" value="1.45"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
 <label class="v37Advanced">Velocidad de cámara <input id="cameraSpeed" type="range" min=".6" max="1.8" step=".05" value="1"></label>
 <label>Invertir cámara vertical <input id="invertY" type="checkbox"></label>
 <label>Ayuda de apuntado <input id="aimAssist" type="checkbox" checked></label>
@@ -4607,7 +4624,7 @@ for(const id of ['v26CameraDistance','v26CameraShoulder','v26TouchDeadzone','v26
   if(saved!==null){
    const value=Number(saved);
    if(id==='v26CameraDistance')el.value=String(Number.isFinite(value)?clamp(value,8.5,14):8.5);
-   else if(id==='v26CameraShoulder')el.value=String(Number.isFinite(value)?clamp(value,.6,1.5):1.45);
+   else if(id==='v26CameraShoulder')el.value=String(Number.isFinite(value)?clamp(value,1.0,1.7):1.45);
    else el.value=saved;
   }
  }catch{}
@@ -4633,6 +4650,10 @@ const v434Optics={
  updateHud(isADS){
   const button=document.getElementById('v434ScopeButton');
   const label=document.getElementById('v434ScopeLabel');
+  const reticle=document.getElementById('v10Reticle');
+  const cross=document.getElementById('cross');
+  if(reticle)reticle.dataset.scope=this.active().name;
+  if(cross)cross.dataset.scope=this.active().name;
   if(button){
    const visible=!!(isADS && running && !paused && !gameOver &&
      window.v36FlightMode!=='aircraft' &&
@@ -4711,10 +4732,10 @@ const v432Camera={
   // Un solo blend gobierna hombro, distancia, altura y FOV.
   const b=this.blend;
   const baseBack=clamp(Number($('v26CameraDistance').value)||8.5,8.5,14);
-  const baseShoulder=-clamp(Number($('v26CameraShoulder').value)||1.45,.6,1.5);
+  const baseShoulder=clamp(Number($('v26CameraShoulder').value)||1.45,1.0,1.7);
   const tacticalBack=mobile?clamp(baseBack*1.05,8.5,14):baseBack;
   const back=tacticalBack*(1-b)+Math.max(7.5,baseBack*.96)*b;
-  const shoulder=baseShoulder*(1-b)+baseShoulder*.52*b;
+  const shoulder=baseShoulder*(1-b)+baseShoulder*.78*b;
   // V52.9: lift the over-shoulder camera without shortening its distance.
   const height=(mobile?2.85:2.9)-(mobile?.34:.28)*b;
   if(!Number.isFinite(this.back)){
