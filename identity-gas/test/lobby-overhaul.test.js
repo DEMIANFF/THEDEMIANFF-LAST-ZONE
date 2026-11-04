@@ -10,8 +10,8 @@ const menuStart = html.indexOf('<div id="menu"');
 const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
-test('V57.5 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.match(menu, /V57.5 · CENTRO DE OPERACIONES/);
+test('V57.6 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
+  assert.match(menu, /V57.6 · CENTRO DE OPERACIONES/);
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -89,18 +89,18 @@ test('parachute camera is pulled back and Lila preview supports touch rotation a
   assert.match(html, /l\.camera\.position\.set\(0,1\.92,7\.9\)/);
 });
 
-test('Android release is V57.5 with a monotonic version code', () => {
-  assert.match(gradle, /versionCode 149/);
-  assert.match(gradle, /versionName '57.5-natural-camera-clean-aurora'/);
+test('Android release is V57.6 with a monotonic version code', () => {
+  assert.match(gradle, /versionCode 150/);
+  assert.match(gradle, /versionName '57.6-open-entrances-ground-zone'/);
 });
 
 test('V57 Android package metadata is monotonic and matches the lobby release', () => {
-  assert.match(gradle, /versionCode 149/);
-  assert.match(gradle, /versionName '57.5-natural-camera-clean-aurora'/);
-  assert.match(html, /V57.5 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionCode 150/);
+  assert.match(gradle, /versionName '57.6-open-entrances-ground-zone'/);
+  assert.match(html, /V57.6 · CENTRO DE OPERACIONES/);
 });
 
-test('V57.5 activates the authored Aurora battle royale environment and visual resources', () => {
+test('V57.6 activates the authored Aurora battle royale environment and visual resources', () => {
   const worldStart = html.indexOf('function v428CreateTrainingWorld');
   const worldEnd = html.indexOf('function createWorld', worldStart);
   const builder = html.slice(worldStart, worldEnd);
@@ -119,7 +119,7 @@ test('V57.5 activates the authored Aurora battle royale environment and visual r
   assert.match(html, /const detailCounts=\[48,32,32,32,64,48\]/);
 });
 
-test('V57.5 visual roots dispose their private materials while shared GPU geometry survives resets', () => {
+test('V57.6 visual roots dispose their private materials while shared GPU geometry survives resets', () => {
   assert.match(html, /const v396Root=new THREE\.Group\(\);v396Root\.name='V396_AURORA_DISTRICTS'/);
   assert.match(html, /window\.v396VisualRoot=v396Root/);
   assert.match(html, /const v397Root=new THREE\.Group\(\);v397Root\.name='V397_AURORA_DRESSING'/);
@@ -132,16 +132,18 @@ test('V57.5 visual roots dispose their private materials while shared GPU geomet
   assert.match(html, /obj\.geometry&&!obj\.geometry\.userData\.v583Shared/);
 });
 
-test('Android release is V57.5 with monotonic version code 149', () => {
-  assert.match(gradle, /versionCode 149/);
-  assert.match(gradle, /versionName '57.5-natural-camera-clean-aurora'/);
-  assert.match(html, /V57.5 · CENTRO DE OPERACIONES/);
+test('Android release is V57.6 with monotonic version code 149', () => {
+  assert.match(gradle, /versionCode 150/);
+  assert.match(gradle, /versionName '57.6-open-entrances-ground-zone'/);
+  assert.match(html, /V57.6 · CENTRO DE OPERACIONES/);
 });
-test('V57.5 keeps the Aurora approaches clear of oversized rocks and invisible blockers', () => {
-  assert.doesNotMatch(html, /v426Rock:true/);
-  assert.doesNotMatch(html, /new THREE\.BoxGeometry\(3,3\+j%3\*2,3\),darkIce/);
-  assert.match(html, /const size=i%9===0\?\.52:\.26\+\(i%5\)\*\.07;/);
-  assert.match(html, /box\(1\.7,\.56,1\.7,v17Stone,g,0,\.28,0\)/);
-  assert.match(html, /window\.THEDEMIANFF_AURORA_ACCESS_TEST/);
-  assert.match(html, /id="v585ReticleNoHalo"/);
+test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
+  assert.match(html, /function v576RegisterOpenBuilding/);
+  assert.match(html, /doorWidthMeters:1\.9/);
+  assert.match(html, /looseFrostStones:false/);
+  assert.match(html, /greyDistrictCrates:false/);
+  assert.match(html, /valleyRockCliffs:false/);
+  assert.match(html, /openBuildings:window\.v576OpenBuildingCount\|\|0/);
+  assert.match(html, /zonePerimeterOnGround:!!zoneRing/);
+  assert.match(html, /id="v586ReticleRestored"/);
 });
