@@ -141,11 +141,12 @@ test('V57.6 keeps only the floor-level zone perimeter, not a translucent volume 
 });
 
 
+
 const v577CollisionStart = html.indexOf('function v577ResolveBotWallSlide(');
-const v577CollisionEnd = html.indexOf('\\n}\\n', v577CollisionStart);
+const v577CollisionEnd = html.indexOf('window.THEDEMIANFF_BOT_COLLISION_TEST=', v577CollisionStart);
 assert.ok(v577CollisionStart >= 0 && v577CollisionEnd > v577CollisionStart,
   'V57.7 bot collision resolver must be present');
-const v577CollisionSource = html.slice(v577CollisionStart, v577CollisionEnd + 2);
+const v577CollisionSource = html.slice(v577CollisionStart, v577CollisionEnd).trim();
 const v577Resolve = vm.runInNewContext('(' + v577CollisionSource + ')');
 const v577Move = (...args) => JSON.parse(JSON.stringify(v577Resolve(...args)));
 
@@ -179,6 +180,8 @@ test('V57.7 bots stop safely when both slide axes remain blocked', () => {
 
 test('V57.7 wall-slide integration preserves the original bot collision radius', () => {
   assert.ok(html.includes('v577ResolveBotWallSlide(b.x,b.z,bx-b.x,bz-b.z,.7*b.root.scale.x,solid)'));
-  assert.ok(html.includes('if(v577Step.movedX){\\n  b.velocityZ*=.28;'));
-  assert.ok(html.includes('else if(v577Step.movedZ){\\n  b.velocityX*=.28;'));
+  assert.ok(html.includes('if(v577Step.movedX){'));
+  assert.ok(html.includes('else if(v577Step.movedZ){'));
+  assert.ok(html.includes('b.velocityZ*=.28;'));
+  assert.ok(html.includes('b.velocityX*=.28;'));
 });
