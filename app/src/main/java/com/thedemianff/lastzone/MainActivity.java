@@ -70,7 +70,7 @@ public class MainActivity extends Activity {
         firebaseAuth.signOut();
         GoogleSignInOptions options=new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
           .requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build();
-        GoogleSignIn.getClient(MainActivity.this,options).signOut().addOnCompleteListener(this,task -> {
+        GoogleSignIn.getClient(MainActivity.this,options).signOut().addOnCompleteListener(MainActivity.this,task -> {
           googleSignOutPending=false;
           if(!task.isSuccessful())
             android.util.Log.w("THEDEMIANFF","Google Sign-In no confirmó la limpieza de sesión",task.getException());
