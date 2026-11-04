@@ -88,7 +88,7 @@ jobs:
           html=(root/"index.html").read_text(encoding="utf-8")
           # V53.4: detect regression where a literal escaped newline comments
           # out the camera height declaration but still passes JS syntax checks.
-          assert "const height=(mobile?3.15:3.0)" in html, "V53.4: missing TPS camera height declaration"
+          assert "const height=(mobile?2.85:2.9)" in html, "V57: missing calibrated TPS camera height declaration"
           assert r"\n  const height=(mobile?3.15:3.0)" not in html, "V53.4: camera height accidentally commented out"
           for token in ("v432Camera.update(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", "id=\"v18Profile\"", "v534_scope_index"):
               assert token in html, "V53.4: required camera/lobby component missing: "+token
