@@ -694,6 +694,26 @@ jobs:
           assert 'if(!selectedUnlocked)throw new IllegalArgumentException("Operador seleccionado no desbloqueado.");' in java
           print('V52.2 native guest isolation and cloud validation checks OK')
           PY
+      - name: V55.5 comprobar aislamiento de cuentas Google
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text(encoding='utf-8')
+          for token in ('v504HasPriorGoogleAccount()', 'v504GuestTransferOwnerKey',
+                        'transferOwner===v446GoogleEmail?', 'v504FindDuplicateAccountSnapshot(v446GoogleEmail,saved)',
+                        'v18Progress=validated', 'v18Progress=guestProgress;', 'v18Progress=saved;',
+                        'localStorage.setItem(archiveKey,JSON.stringify(saved))',
+                        'v495CloudSave(JSON.stringify(fresh))'):
+              assert token in h, 'V55.5 aislamiento incompleto: '+token
+          assert 'Object.assign(v18Progress,saved)' not in h
+          assert 'Object.assign(v18Progress,guestProgress)' not in h
+          for token in ('if(googleSignOutPending)', 'firebaseAuth.signOut();',
+                        '.signOut().addOnCompleteListener(MainActivity.this,task -> {',
+                        'googleSignOutPending=false;', 'authMessage("signed_out",task.isSuccessful()'):
+              assert token in java, 'V55.5 cambio Google incompleto: '+token
+          print('V55.5 Google account isolation checks passed')
+          PY
       - name: V44.3.2 verificar autoguardado de invitado en Android
         run: |
           python3 - <<'PY'
@@ -752,7 +772,7 @@ jobs:
                         "v494CloudBridge.load()"):
               assert token in h, 'V50.2 missing lobby or backup feature: '+token
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
-          assert 'firebaseAuth.signOut();' in java and '.signOut().addOnCompleteListener(this,task -> {' in java, 'Google/Firebase sign-out must complete before returning to account selection'
+          assert 'firebaseAuth.signOut();' in java and '.signOut().addOnCompleteListener(MainActivity.this,task -> {' in java, 'Google/Firebase sign-out must complete before returning to account selection'
           assert 'authMessage("signed_out",task.isSuccessful()' in java and 'if(googleSignOutPending)' in java, 'Missing serialized Google account switch handling'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
           assert 'if(parsed.optLong("wins")>parsed.optLong("matches"))return false;' in java, 'Falta validar estadísticas Android'
