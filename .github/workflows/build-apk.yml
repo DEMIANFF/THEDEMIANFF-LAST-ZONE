@@ -88,8 +88,8 @@ jobs:
           html=(root/"index.html").read_text(encoding="utf-8")
           # V53.4: detect regression where a literal escaped newline comments
           # out the camera height declaration but still passes JS syntax checks.
-          assert "const height=(mobile?2.85:2.9)" in html, "V57: missing calibrated TPS camera height declaration"
-          assert r"\n  const height=(mobile?2.85:2.9)" not in html, "V53.4: camera height accidentally commented out"
+          assert "const height=(mobile?2.68:2.78)" in html, "V57.8: missing calibrated TPS camera height declaration"
+          assert r"\n  const height=(mobile?2.68:2.78)" not in html, "V53.4: camera height accidentally commented out"
           for token in ("v432Camera.update(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", "id=\"v18Profile\"", "v534_scope_index"):
               assert token in html, "V53.4: required camera/lobby component missing: "+token
           # V53.8: identity remains part of validated Firebase backup payload.
@@ -105,7 +105,7 @@ jobs:
               assert token in java, 'V55.4: Android free identity integration missing: '+token
           assert 'FirebaseFunctions' not in java and 'getHttpsCallable' not in java, 'V55.4: Android must not depend on paid Cloud Functions'
           assert 'db.runTransaction(transaction ->' not in java, 'V55: client-side identity transaction must be removed'
-          assert 'V57.8 · CENTRO DE OPERACIONES' in html and 'AURORA EVOLUTION · V57.7' in html, 'V57.6: lobby labels must match the release'
+          assert 'V57.8 · CENTRO DE OPERACIONES' in html and 'AURORA EVOLUTION · V57.8' in html, 'V57.6: lobby labels must match the release'
           for token in ('v396ExpandAurora();', 'v397DetailAurora();', 'v583SetupBattleVisuals();', 'function v583SetupBattleVisuals()', 'function v583TickBattleVisuals(dt)', 'function v583UpdateZoneVisual(radius,cx,cz,danger)', 'function v583BuildPickupCase(group,type)', 'new THREE.CanvasTexture(snowCanvas)', 'new THREE.ShaderMaterial(', 'new THREE.Points(assets.snowGeometry,assets.snowMaterial)', 'zonePerimeter:!!zoneRing', 'window.THEDEMIANFF_BATTLE_VISUAL_TEST'):
               assert token in html, 'V57.6: battle royale visual pipeline missing '+token
           for token in ('function v583DisposeVisualRoot(root)', 'window.v396VisualRoot=v396Root', 'window.v397VisualRoot=v397Root', 'v583DisposeVisualRoot(window.v396VisualRoot)', 'v583DisposeVisualRoot(window.v397VisualRoot)', 'palette[key].userData.v583Shared=true', 'g.userData.v583Shared=true'):
@@ -741,8 +741,8 @@ jobs:
           assert 'const tacticalBack=mobile?clamp(baseBack*1.06,10,16):baseBack;' in h, 'V55.6: mobile camera distance tuning missing'
           assert 'const height=(mobile?2.68:2.78)-(mobile?.20:.18)*b;' in h, 'V55.6: hybrid camera shoulder framing missing'
           gradle=Path('app/build.gradle').read_text()
-          assert 'versionCode 152' in gradle and "versionName '57.7-bot-wall-slide'" in gradle, 'V57.6: release identity mismatch'
-          for token in ('id="v38TabAchievements"', 'id="v38AchievementsView"', 'v56RenderAchievements' if 'v56RenderAchievements' in h else 'function v38RenderAchievements()', 'v56StoreGrid', 'v56StoreArt', 'Array.from({length:30}', 'data-v18="passbuy"', 'pass_free_', 'pass_elite_', 'result.passElite=p.passElite===true', 'v434Optics.active().zoom', 'targetFov=baseFov/v434Optics.active().zoom', "const d=clamp(baseDistance*2.0,16,20)", 'Smooth vertical tracking is essential', 'if(l.renderer&&now-l.last>(mobile?40:33))'):
+          assert 'versionCode 152' in gradle and "versionName '57.8-hybrid-camera-scale'" in gradle, 'V57.6: release identity mismatch'
+          for token in ('id="v38TabAchievements"', 'id="v38AchievementsView"', 'v56RenderAchievements' if 'v56RenderAchievements' in h else 'function v38RenderAchievements()', 'v56StoreGrid', 'v56StoreArt', 'Array.from({length:30}', 'data-v18="passbuy"', 'pass_free_', 'pass_elite_', 'result.passElite=p.passElite===true', 'v434Optics.active().zoom', 'targetFov=baseFov/v434Optics.active().zoom', "const d=clamp(baseDistance*2.05,22,28)", 'Smooth vertical tracking is essential', 'if(l.renderer&&now-l.last>(mobile?40:33))'):
               assert token in h, 'V57.6: missing lobby/pass/camera component '+token
           for token in ('id="v500CloudBadge"', 'id="v533AccountShortcut"', 'id="v502CloudAccess"'):
               assert token not in h, 'V57.6: cloud shortcut must not be in the lobby: '+token
@@ -783,7 +783,7 @@ jobs:
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
           h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
           assert 'versionCode 152' in gradle, 'V48.6 requiere versionCode 152'
-          assert "versionName '57.7-bot-wall-slide'" in gradle, 'V55.4: versión Android incorrecta'
+          assert "versionName '57.8-hybrid-camera-scale'" in gradle, 'V55.4: versión Android incorrecta'
           # V50.4: Google-first login and safe automatic cloud recovery.
           for token in ('id="v504GoogleEntry"',
                         'v504StartCloudRestore()',
