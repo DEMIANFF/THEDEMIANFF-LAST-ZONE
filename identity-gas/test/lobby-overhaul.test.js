@@ -11,7 +11,7 @@ const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
 test('V57.6 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.match(menu, /V57.8 · CENTRO DE OPERACIONES/);
+  assert.match(menu, /V57.8.1 · CENTRO DE OPERACIONES/);
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -90,14 +90,14 @@ test('parachute camera is pulled back and Lila preview supports touch rotation a
 });
 
 test('Android release is V57.6 with a monotonic version code', () => {
-  assert.match(gradle, /versionCode 152/);
-  assert.match(gradle, /versionName '57.8-hybrid-camera-scale'/);
+  assert.match(gradle, /versionCode 153/);
+  assert.match(gradle, /versionName '57.8.1-start-repair'/);
 });
 
 test('V57 Android package metadata is monotonic and matches the lobby release', () => {
-  assert.match(gradle, /versionCode 152/);
-  assert.match(gradle, /versionName '57.8-hybrid-camera-scale'/);
-  assert.match(html, /V57.8 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionCode 153/);
+  assert.match(gradle, /versionName '57.8.1-start-repair'/);
+  assert.match(html, /V57.8.1 · CENTRO DE OPERACIONES/);
 });
 
 test('V57.6 activates the authored Aurora battle royale environment and visual resources', () => {
@@ -134,9 +134,9 @@ test('V57.6 visual roots dispose their private materials while shared GPU geomet
 });
 
 test('Android release is V57.6 with monotonic version code 149', () => {
-  assert.match(gradle, /versionCode 152/);
-  assert.match(gradle, /versionName '57.8-hybrid-camera-scale'/);
-  assert.match(html, /V57.8 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionCode 153/);
+  assert.match(gradle, /versionName '57.8.1-start-repair'/);
+  assert.match(html, /V57.8.1 · CENTRO DE OPERACIONES/);
 });
 test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
   assert.match(html, /function v576RegisterOpenBuilding/);
@@ -147,4 +147,22 @@ test('V57.6 opens the homes and removes free-standing grey block obstacles', () 
   assert.match(html, /openBuildings:window\.v576OpenBuildingCount\|\|0/);
   assert.match(html, /zonePerimeterOnGround:!!zoneRing/);
   assert.match(html, /id="v586ReticleRestored"/);
+});
+
+
+test('V57.8.1 binds the start button before later boot code and reports initialization errors', () => {
+  assert.ok(html.includes("v578StartButton.addEventListener('click',start)"));
+  assert.ok(html.includes("startStage='webgl-renderer'"));
+  assert.ok(html.includes("startStage='world-reset';reset();"));
+  assert.ok(html.includes("startStage='flight-sequence';v36Begin();"));
+  assert.ok(html.includes("window.__THEDEMIANFF_START_DIAGNOSTIC={stage:startStage,message:"));
+  assert.ok(html.includes("panel.textContent='NO SE PUDO INICIAR LA PARTIDA"));
+  assert.ok(html.includes("launchButton.textContent='REINTENTAR PARTIDA'"));
+  assert.doesNotMatch(html, /\$\('start'\)\.onclick=start/);
+});
+
+test('V57.8.1 package and lobby labels identify the repaired start build', () => {
+  assert.match(gradle, /versionCode 153/);
+  assert.match(gradle, /versionName '57\.8\.1-start-repair'/);
+  assert.match(html, /V57\.8\.1 · CENTRO DE OPERACIONES/);
 });
