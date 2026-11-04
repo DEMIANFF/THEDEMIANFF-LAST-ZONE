@@ -118,3 +118,16 @@ test('V57.3 activates the authored Aurora battle royale environment and visual r
   assert.match(html, /window\.THEDEMIANFF_BATTLE_VISUAL_TEST/);
   assert.match(html, /const detailCounts=\[48,32,32,32,64,48\]/);
 });
+
+test('V57.3 visual roots dispose their private materials while shared GPU geometry survives resets', () => {
+  assert.match(html, /const v396Root=new THREE\.Group\(\);v396Root\.name='V396_AURORA_DISTRICTS'/);
+  assert.match(html, /window\.v396VisualRoot=v396Root/);
+  assert.match(html, /const v397Root=new THREE\.Group\(\);v397Root\.name='V397_AURORA_DRESSING'/);
+  assert.match(html, /window\.v397VisualRoot=v397Root/);
+  assert.match(html, /function v583DisposeVisualRoot\(root\)/);
+  assert.match(html, /v583DisposeVisualRoot\(window\.v396VisualRoot\)/);
+  assert.match(html, /v583DisposeVisualRoot\(window\.v397VisualRoot\)/);
+  assert.match(html, /g\.userData\.v583Shared=true/);
+  assert.match(html, /palette\[key\]\.userData\.v583Shared=true/);
+  assert.match(html, /obj\.geometry&&!obj\.geometry\.userData\.v583Shared/);
+});
