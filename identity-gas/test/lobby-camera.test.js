@@ -25,14 +25,14 @@ test('identity and statistics are no longer duplicated in the lobby navigation',
 });
 
 test('hybrid third-person camera keeps a moderate mobile distance and lower shoulder framing', () => {
-  assert.match(html, /id="v26CameraDistance"[^>]*value="8\.5"/);
-  assert.ok(html.includes('const tacticalBack=mobile?clamp(baseBack*1.05,8.5,14):baseBack;'));
-  assert.ok(html.includes('const height=(mobile?2.85:2.9)-(mobile?.34:.28)*b;'));
+  assert.match(html, /id="v26CameraDistance"[^>]*min="9\.5" max="16" step="\.25" value="10"/);
+  assert.ok(html.includes('const tacticalBack=mobile?clamp(baseBack*1.06,10,16):baseBack;'));
+  assert.ok(html.includes('const height=(mobile?2.68:2.78)-(mobile?.20:.18)*b;'));
   assert.ok(html.includes('const v432Camera={'));
   assert.ok(html.includes('const back=tacticalBack*(1-b)+Math.max(7.5,baseBack*.96)*b;'));
   assert.ok(html.includes('const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;'));
   assert.ok(html.includes('c.gun.scale.setScalar(activeIndex===4?1.0:activeIndex===0?.88:.86);'));
-  assert.ok(html.includes("clamp(value,8.5,14)"));
+  assert.ok(html.includes("clamp(value,9.5,16)"));
   assert.ok(html.includes("clamp(value,2.0,2.7)"));
   assert.ok(html.includes('aimFromFire(dx,dy)'));
 });
@@ -128,7 +128,7 @@ test('V57.6 removes grey blocks and opens the house and district entrances', () 
   assert.match(html, /v576RegisterOpenBuilding\(xx-86,zz-82,w,wall,depth,doorWidth,thickness\)/);
   assert.match(html, /v576RegisterOpenBuilding\(x,z,w,h,d,doorWidth,thickness\)/);
   assert.match(html, /window\.THEDEMIANFF_AURORA_ACCESS_TEST/);
-  assert.match(html, /doorWidthMeters:2\.6/);
+  assert.match(html, /doorWidthMeters:3\.0/);
   assert.doesNotMatch(html, /v426Rock:true/);
 });
 
@@ -184,4 +184,29 @@ test('V57.7 wall-slide integration preserves the original bot collision radius',
   assert.ok(html.includes('else if(v577Step.movedZ){'));
   assert.ok(html.includes('b.velocityZ*=.28;'));
   assert.ok(html.includes('b.velocityX*=.28;'));
+});
+
+
+test('V57.8 reduces and smooths bot parachute canopies without disabling enemy landing', () => {
+  assert.ok(html.includes('new THREE.SphereGeometry(1.55,14,8,0,Math.PI*2,0,Math.PI*.5)'));
+  assert.ok(html.includes("chute.name='V578_BOT_PARACHUTE';chute.position.y=4.15"));
+  assert.ok(html.includes('canopyRadius:1.55,canopySegments:'));
+  assert.ok(html.includes('if(b.v362Chute){b.root.remove(b.v362Chute);'));
+});
+
+test('V57.8 enlarges houses and outposts while keeping their entrances and colliders aligned', () => {
+  assert.match(html, /const w=10\.5,depth=10,levels=i%3===0\?2:1/);
+  assert.match(html, /const wall=levels===2\?8\.2:5\.4,doorWidth=3\.0,thickness=\.38/);
+  assert.match(html, /function v576RegisterOpenBuilding\(cx,cz,w,h,d,doorWidth=3\.0,thickness=\.38\)/);
+  assert.ok(html.includes('[-14,-10,9,6.8,8],[13,10,10,7.8,8],[14,-12,7,5.8,7]'));
+  assert.ok(html.includes('v40BuildingDetails(g,w,h,d,doorWidth)'));
+});
+
+test('V57.8 keeps the 360-degree camera wrapped, calibrates X2/X4/X8 and widens aerial framing', () => {
+  assert.match(html, /camYaw=Math\.atan2\(Math\.sin\(camYaw-dx\*\.003\),Math\.cos\(camYaw-dx\*\.003\)\)/);
+  assert.ok(html.includes("{name:'2x',zoom:2,fov:39.5,sensitivity:.60}"));
+  assert.ok(html.includes("{name:'4x',zoom:4,fov:19.75,sensitivity:.34}"));
+  assert.ok(html.includes("{name:'8x',zoom:8,fov:9.875,sensitivity:.20}"));
+  assert.ok(html.includes('const d=clamp(baseDistance*2.05,22,28);'));
+  assert.ok(html.includes('const aerialHeight=v398ChuteOpen?18:20;'));
 });
