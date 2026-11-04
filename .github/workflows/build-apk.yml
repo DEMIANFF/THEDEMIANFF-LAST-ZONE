@@ -88,9 +88,9 @@ jobs:
           html=(root/"index.html").read_text(encoding="utf-8")
           # V53.4: detect regression where a literal escaped newline comments
           # out the camera height declaration but still passes JS syntax checks.
-          assert "const height=(mobile?3.75:3.45)" in html, "V53.4: missing TPS camera height declaration"
-          assert r"\n  const height=(mobile?3.75:3.45)" not in html, "V53.4: camera height accidentally commented out"
-          for token in ("v432Camera.update(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", "id=\"v17Profile\"", "v534_scope_index"):
+          assert "const height=(mobile?3.15:3.0)" in html, "V53.4: missing TPS camera height declaration"
+          assert r"\n  const height=(mobile?3.15:3.0)" not in html, "V53.4: camera height accidentally commented out"
+          for token in ("v432Camera.update(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", "id=\"v18Profile\"", "v534_scope_index"):
               assert token in html, "V53.4: required camera/lobby component missing: "+token
           # V53.8: identity remains part of validated Firebase backup payload.
           for token in ('const v536IdPattern=', 'const v536NamePattern=', 'result.playerId=p.playerId', 'result.playerName=p.playerName', 'v536EnsureIdentity()', 'id="v536LobbyName"', 'id="v536LobbyId"', 'id="v18Profile"', 'id="v536SaveName"', 'id="v536CopyId"'):
