@@ -29,7 +29,7 @@ test('hybrid third-person camera keeps a moderate mobile distance and lower shou
   assert.ok(html.includes('const tacticalBack=mobile?clamp(baseBack*1.06,10,16):baseBack;'));
   assert.ok(html.includes('const height=(mobile?2.68:2.78)-(mobile?.20:.18)*b;'));
   assert.ok(html.includes('const v432Camera={'));
-  assert.ok(html.includes('const back=tacticalBack*(1-b)+Math.max(7.5,baseBack*.96)*b;'));
+  assert.ok(html.includes('const back=tacticalBack*(1-b)+Math.max(9.0,baseBack*.94)*b;'));
   assert.ok(html.includes('const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;'));
   assert.ok(html.includes('c.gun.scale.setScalar(activeIndex===4?1.0:activeIndex===0?.88:.86);'));
   assert.ok(html.includes("clamp(value,9.5,16)"));
