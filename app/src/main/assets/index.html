@@ -1156,7 +1156,11 @@ function v443ValidateProgress(p){
  if(!Array.isArray(p.unlocked)||p.unlocked.length>30||!p.unlocked.every(v=>v443Bounded(v,20))||!p.unlocked.includes(0))throw Error('Lista de operadores incorrecta.');
  if(!Array.isArray(p.claimed)||p.claimed.length>100||!p.claimed.every(v=>typeof v==='string'&&v.length<=100))throw Error('Misiones del respaldo incorrectas.');
  const result={};for(const k of fields)result[k]=p[k];
- result.unlocked=[...new Set(p.unlocked)];result.claimed=[...new Set(p.claimed)];\n result.passElite=p.passElite===true;\n const eventCompletions=p.eventCompletions===undefined?0:p.eventCompletions;\n if(!v443Bounded(eventCompletions,100000000))throw Error('Contador de eventos inválido.');\n result.eventCompletions=eventCompletions;
+ result.unlocked=[...new Set(p.unlocked)];result.claimed=[...new Set(p.claimed)];
+ result.passElite=p.passElite===true;
+ const eventCompletions=p.eventCompletions===undefined?0:p.eventCompletions;
+ if(!v443Bounded(eventCompletions,100000000))throw Error('Contador de eventos inválido.');
+ result.eventCompletions=eventCompletions;
  if(p.playerId!==undefined&&p.playerId!==null){if(typeof p.playerId!=='string'||!(v536IdPattern.test(p.playerId)||v536LegacyIdPattern.test(p.playerId)))throw Error('ID de jugador inválido.');result.playerId=p.playerId;}
  if(p.playerName!==undefined&&p.playerName!==null){if(typeof p.playerName!=='string'||!v536NamePattern.test(p.playerName))throw Error('Nombre de jugador inválido.');result.playerName=p.playerName;}
  if(!result.unlocked.includes(result.skin))throw Error('Operador seleccionado no está desbloqueado.');
