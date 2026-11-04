@@ -420,7 +420,8 @@ jobs:
           for token in ('const enemyEye=ground(b.x,b.z)+1.55*b.root.scale.y',
                         'if(visible)b.lastSeenAngle=', 'b.lostSight<2',
                         "b.role==='EXPLORADOR'?.42", 'b.stuckTime>1.1',
-                        'b.coverX=null;b.coverZ=null', 'if(!solid(bx,bz,.7*b.root.scale.x))'):
+                        'b.coverX=null;b.coverZ=null', 'v577ResolveBotWallSlide(b.x,b.z,bx-b.x,bz-b.z,.7*b.root.scale.x,solid)',
+                        'if(v577Step.movedX)', 'else if(v577Step.movedZ)'):
               assert token in h, 'V46.5: falta tactica enemiga '+token
 
           # V47.3: Aurora is the real battle scene, not a generic empty training arena.
