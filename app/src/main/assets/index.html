@@ -1156,7 +1156,7 @@ function v443ValidateProgress(p){
  if(!Array.isArray(p.unlocked)||p.unlocked.length>30||!p.unlocked.every(v=>v443Bounded(v,20))||!p.unlocked.includes(0))throw Error('Lista de operadores incorrecta.');
  if(!Array.isArray(p.claimed)||p.claimed.length>100||!p.claimed.every(v=>typeof v==='string'&&v.length<=100))throw Error('Misiones del respaldo incorrectas.');
  const result={};for(const k of fields)result[k]=p[k];
- result.unlocked=[...new Set(p.unlocked)];result.claimed=[...new Set(p.claimed)];
+ result.unlocked=[...new Set(p.unlocked)];result.claimed=[...new Set(p.claimed)];\n result.passElite=p.passElite===true;\n const eventCompletions=p.eventCompletions===undefined?0:p.eventCompletions;\n if(!v443Bounded(eventCompletions,100000000))throw Error('Contador de eventos inválido.');\n result.eventCompletions=eventCompletions;
  if(p.playerId!==undefined&&p.playerId!==null){if(typeof p.playerId!=='string'||!(v536IdPattern.test(p.playerId)||v536LegacyIdPattern.test(p.playerId)))throw Error('ID de jugador inválido.');result.playerId=p.playerId;}
  if(p.playerName!==undefined&&p.playerName!==null){if(typeof p.playerName!=='string'||!v536NamePattern.test(p.playerName))throw Error('Nombre de jugador inválido.');result.playerName=p.playerName;}
  if(!result.unlocked.includes(result.skin))throw Error('Operador seleccionado no está desbloqueado.');
@@ -3924,8 +3924,8 @@ $('v36Mark').onclick=()=>{if(v36MapPick){v36Waypoint=v36MapPick;toast('DESTINO M
 // V18 local progression and functioning lobby modules. No simulated online purchases.
 const V18_STORAGE='thedemianff_progress_v18';
  let v18ActiveEvent=null;
-const v18Skins=[{name:'OPERADOR AZUL',color:'#556d72',price:0},{name:'CENTINELA ARENA',color:'#9a8465',price:180},{name:'SOMBRA NOCTURNA',color:'#333f57',price:260},{name:'GUARDIÁN CARMESÍ',color:'#8b4550',price:380},{name:'OPERADORA LILA · V22',color:'#d8c5ea',price:0}];
-let v18Progress={credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,unlocked:[0],weapon:0,claimed:[]};
+const v18Skins=[{name:'OPERADOR AZUL',color:'#556d72',price:0},{name:'CENTINELA ARENA',color:'#9a8465',price:180},{name:'SOMBRA NOCTURNA',color:'#333f57',price:260},{name:'GUARDIÁN CARMESÍ',color:'#8b4550',price:380},{name:'OPERADORA LILA · V22',color:'#d8c5ea',price:0},{name:'GUARDIÁN AURORA',color:'#3b8baf',price:850},{name:'SOMBRA PÚRPURA',color:'#70558d',price:1000},{name:'NÓMADA ÁRTICO',color:'#a7b8c0',price:1150},{name:'ASALTO CARMESÍ',color:'#a84351',price:1350},{name:'CENTINELA JADE',color:'#3d826f',price:1550},{name:'ÉLITE DORADA',color:'#bd9345',price:1850}];
+let v18Progress={credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,unlocked:[0],weapon:0,claimed:[],passElite:false,eventCompletions:0};
 try{const stored=JSON.parse(localStorage.getItem(V18_STORAGE)||'null');if(stored&&typeof stored==='object')v18Progress={...v18Progress,...stored}}catch{}
 function v18Refresh(){
  const p=v18Progress;
@@ -4070,8 +4070,13 @@ function v18Open(name){
    html+='<div class="v18Grid">'+v18Skins.map((skin,i)=>{const owned=i===4||p.unlocked.includes(i);return owned?card(skin.name,'Operador disponible · Apariencia original',p.skin===i?'EQUIPADO':'EQUIPAR','skin:'+i):'';}).join('')+'</div>';
    html+='<p class="v18PanelNote">Elige entre los personajes adquiridos. Desbloquea más estilos en TIENDA.</p>';
   }else if(name==='TIENDA'){
-  html+='<div class="v18Grid">'+v18Skins.map((skin,i)=>card(skin.name,`Oferta con créditos del juego · ${skin.price?skin.price+' créditos':'Gratis'}`,p.skin===i?'EQUIPADO':(i===4||p.unlocked.includes(i))?'EQUIPAR':p.credits>=skin.price?'DESBLOQUEAR':'BLOQUEADO',`skin:${i}`)).join('')+'</div>';
-  html+='<p class="v18PanelNote">Las apariencias son originales y se desbloquean con créditos obtenidos jugando. No hay pagos reales.</p>';
+  html+='<p class="v18PanelNote">COLECCIÓN AURORA · Aspectos desbloqueables con créditos ganados jugando. Cada tarjeta presenta una ilustración de la colección; no hay compras con dinero real.</p>';
+  html+='<div class="v18Grid v56StoreGrid">'+v18Skins.map((skin,i)=>{
+   const owned=i===4||p.unlocked.includes(i),action=owned?(p.skin===i?'EQUIPADO':'EQUIPAR'):p.credits>=skin.price?'COMPRAR':'CRÉDITOS INSUFICIENTES';
+   const tone=i%5,emblem=['✦','◈','❄','⚡','◆'][tone];
+   return '<article class="v18Item v56StoreItem"><div class="v56StoreArt v56Art'+tone+'"><em>'+emblem+'</em><div class="v56ArtFigure"></div><small>'+(i===4?'OPERADORA 3D':'COLECCIÓN')+'</small></div><b>'+v18Esc(skin.name)+'</b><small>'+(i===4?'Operadora original Lila': 'Variación de armadura · '+(skin.price?skin.price+' créditos':'Gratis'))+'</small><button type="button" data-v18="skin:'+i+'" '+(owned&&p.skin===i?'disabled':'')+'>'+(owned&&p.skin===i?'EQUIPADO':action)+'</button></article>';
+  }).join('')+'</div>';
+  html+='<p class="v18PanelNote">Las variantes de armadura usan el operador 3D base y su paleta correspondiente. Los nuevos modelos únicos se incorporarán como contenido adicional.</p>';
  }else if(name==='INVENTARIO'){
    const owned=p.unlocked.filter(i=>v18Skins[i]).map(i=>v18Skins[i].name);
    if(!owned.includes(v18Skins[4].name))owned.push(v18Skins[4].name);
@@ -4084,8 +4089,16 @@ function v18Open(name){
   html+='<div class="v18Grid">'+weapons.map((w,i)=>card(w.name,`Daño ${w.damage} · Cargador ${w.mag} · Alcance ${w.range}m`,p.weapon===i?'EQUIPADA':'EQUIPAR',`weapon:${i}`)).join('')+'</div>';
   html+='<p class="v18PanelNote">Selecciona el arma inicial. Durante la partida puedes cambiar entre las cinco.</p>';
   }else if(name==='PASE'){
-  const tier=1+Math.floor(p.xp/350),progress=p.xp%350;
-  html+='<div class="v18Grid">'+card('PASE · NIVEL '+tier,'XP acumulada '+p.xp+' · '+progress+'/350 XP para el siguiente nivel')+card('RECOMPENSAS GRATUITAS','Gana XP al jugar. No existen compras reales.')+card('TEMPORADA 01','La ruta de recompensas exclusiva está en desarrollo. Tu progreso local sigue guardado.')+'</div>';
+  const tier=Math.min(30,1+Math.floor(Math.max(0,p.xp)/350)),progress=Math.max(0,p.xp)%350,elite=p.passElite===true;
+  const freeClaimed=p.claimed.filter(x=>/^pass_free_/.test(x)).length,eliteClaimed=p.claimed.filter(x=>/^pass_elite_/.test(x)).length;
+  html+='<section class="v56PassHero"><div class="v56PassTitle">PASE AURORA · TEMPORADA 01</div><div class="v56PassMeta">NIVEL '+tier+' / 30 · '+p.xp.toLocaleString('es-CO')+' XP acumulada · '+progress+'/350 XP al siguiente nivel</div><div class="v56PassBar"><span style="width:'+(tier>=30?100:Math.round(progress/350*100))+'%"></span></div><div class="v56PassMeta">Ruta gratuita: '+freeClaimed+' recompensas reclamadas · Ruta Elite: '+(elite?'ACTIVA · '+eliteClaimed+' reclamadas':'BLOQUEADA')+'</div></section>';
+  if(!elite)html+='<div class="v18Item v56PassHero"><b>✦ DESBLOQUEAR PASE ELITE</b><small>Desbloqueo único por 2.400 créditos del juego. No utiliza Google Play ni dinero real. Habilita la ruta Elite y sus recompensas por nivel.</small><button type="button" data-v18="passbuy" '+(p.credits<2400?'disabled':'')+'>ACTIVAR POR 2.400 CRÉDITOS</button></div>';
+  html+='<h3 class="v56PassSection">RECOMPENSAS · 30 NIVELES</h3><div class="v56PassGrid">'+Array.from({length:30},(_,i)=>{
+   const n=i+1,unlocked=tier>=n,freeKey='pass_free_'+String(n).padStart(2,'0'),eliteKey='pass_elite_'+String(n).padStart(2,'0'),freeDone=p.claimed.includes(freeKey),eliteDone=p.claimed.includes(eliteKey),freeReward=50+n*15,eliteSkin=n%5===0?5+(n/5-1):-1;
+   const eliteReward=eliteSkin>=5&&eliteSkin<v18Skins.length?v18Skins[eliteSkin].name:(120+n*12)+' CRÉDITOS';
+   const eliteReady=elite&&unlocked&&!eliteDone;
+   return '<article class="v56PassTier"><strong>NIVEL '+String(n).padStart(2,'0')+'</strong><small>GRATIS · '+freeReward+' créditos</small><button type="button" data-v18="passfree:'+n+'" '+(!unlocked||freeDone?'disabled':'')+'>'+(freeDone?'RECLAMADO':unlocked?'RECLAMAR':'BLOQUEADO')+'</button><small>ELITE · '+v18Esc(eliteReward)+'</small><button type="button" class="v56Elite '+(eliteReady?'':'v56Locked')+'" data-v18="passelite:'+n+'" '+(!eliteReady?'disabled':'')+'>'+(eliteDone?'RECLAMADO':!elite?'BLOQUEADO':unlocked?'RECLAMAR':'BLOQUEADO')+'</button></article>';
+  }).join('')+'</div><p class="v18PanelNote">Cada nivel requiere 350 XP. Las recompensas se pueden reclamar una sola vez y se guardan junto al perfil. Las recompensas Elite cada cinco niveles desbloquean aspectos de operador.</p>';
  }else if(name==='MISIONES'){
   const missions=[{id:'first',title:'PRIMERA MISIÓN',goal:1,current:p.matches,reward:75},{id:'hunter',title:'CAZADOR',goal:10,current:p.kills,reward:160},{id:'veteran',title:'VETERANO',goal:5,current:p.matches,reward:200},{id:'survivor',title:'ÚLTIMO EN PIE',goal:1,current:p.wins,reward:300}];
   html+='<div class="v18Grid">'+missions.map(m=>{const done=p.claimed.includes(m.id),ready=m.current>=m.goal;return `<div class="v18Item"><b>${m.title}</b><small>${Math.min(m.current,m.goal)} / ${m.goal} · Premio ${m.reward} créditos</small><div class="v18Progress"><span style="width:${Math.min(100,m.current/m.goal*100)}%"></span></div><button data-v18="${ready?'claim':'mission'}:${m.id}" ${done?'disabled':''}>${done?'RECLAMADA':ready?'RECLAMAR RECOMPENSA':'VER OBJETIVO'}</button></div>`}).join('')+'</div>';
