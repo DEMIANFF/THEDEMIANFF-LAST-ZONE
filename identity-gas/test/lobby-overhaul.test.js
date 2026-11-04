@@ -10,8 +10,8 @@ const menuStart = html.indexOf('<div id="menu"');
 const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
-test('V57.3 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.match(menu, /V57.3 · CENTRO DE OPERACIONES/);
+test('V57.4 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
+  assert.match(menu, /V57.4 · CENTRO DE OPERACIONES/);
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -89,18 +89,18 @@ test('parachute camera is pulled back and Lila preview supports touch rotation a
   assert.match(html, /l\.camera\.position\.set\(0,1\.92,7\.9\)/);
 });
 
-test('Android release is V57.3 with a monotonic version code', () => {
-  assert.match(gradle, /versionCode 147/);
-  assert.match(gradle, /versionName '57.3-battle-royale-visuals'/);
+test('Android release is V57.4 with a monotonic version code', () => {
+  assert.match(gradle, /versionCode 148/);
+  assert.match(gradle, /versionName '57.4-tactical-visibility'/);
 });
 
 test('V57 Android package metadata is monotonic and matches the lobby release', () => {
-  assert.match(gradle, /versionCode 147/);
-  assert.match(gradle, /versionName '57.3-battle-royale-visuals'/);
-  assert.match(html, /V57.3 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionCode 148/);
+  assert.match(gradle, /versionName '57.4-tactical-visibility'/);
+  assert.match(html, /V57.4 · CENTRO DE OPERACIONES/);
 });
 
-test('V57.3 activates the authored Aurora battle royale environment and visual resources', () => {
+test('V57.4 activates the authored Aurora battle royale environment and visual resources', () => {
   const worldStart = html.indexOf('function v428CreateTrainingWorld');
   const worldEnd = html.indexOf('function createWorld', worldStart);
   const builder = html.slice(worldStart, worldEnd);
@@ -119,7 +119,7 @@ test('V57.3 activates the authored Aurora battle royale environment and visual r
   assert.match(html, /const detailCounts=\[48,32,32,32,64,48\]/);
 });
 
-test('V57.3 visual roots dispose their private materials while shared GPU geometry survives resets', () => {
+test('V57.4 visual roots dispose their private materials while shared GPU geometry survives resets', () => {
   assert.match(html, /const v396Root=new THREE\.Group\(\);v396Root\.name='V396_AURORA_DISTRICTS'/);
   assert.match(html, /window\.v396VisualRoot=v396Root/);
   assert.match(html, /const v397Root=new THREE\.Group\(\);v397Root\.name='V397_AURORA_DRESSING'/);
