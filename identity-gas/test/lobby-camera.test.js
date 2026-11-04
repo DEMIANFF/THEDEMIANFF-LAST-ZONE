@@ -29,10 +29,10 @@ test('hybrid third-person camera keeps a moderate mobile distance and lower shou
   assert.ok(html.includes('const height=(mobile?2.85:2.9)-(mobile?.34:.28)*b;'));
   assert.ok(html.includes('const v432Camera={'));
   assert.ok(html.includes('const back=tacticalBack*(1-b)+Math.max(7.5,baseBack*.96)*b;'));
-  assert.ok(html.includes('const shoulder=baseShoulder*(1-b)+baseShoulder*.78*b;'));
+  assert.ok(html.includes('const shoulder=baseShoulder*(1-b)+baseShoulder*.90*b;'));
   assert.ok(html.includes('c.gun.scale.setScalar(activeIndex===4?1.0:activeIndex===0?.88:.86);'));
   assert.ok(html.includes("clamp(value,8.5,14)"));
-  assert.ok(html.includes("clamp(value,1.0,1.7)"));
+  assert.ok(html.includes("clamp(value,1.6,2.4)"));
   assert.ok(html.includes('aimFromFire(dx,dy)'));
 });
 
@@ -68,10 +68,10 @@ test('V57 lobby gives the operator, Social navigation and launch controls separa
   assert.match(html, /max-width:min\(34vw,315px\)/);
 });
 
-test('V57.3 right-shoulder framing clears the operator from the center aim ray', () => {
-  assert.match(html, /const baseShoulder=clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|1\.45,1\.0,1\.7\);/);
+test('V57.4 right-shoulder framing places the operator left of the centered aim ray', () => {
+  assert.match(html, /const baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|2\.1,1\.6,2\.4\);/);
   assert.match(html, /const shoulder=baseShoulder\*\(1-b\)\+baseShoulder\*\.78\*b;/);
-  assert.doesNotMatch(html, /const baseShoulder=-clamp/);
+  assert.match(html, /player\.position\.x\+Math\.cos\(camYaw\)\*this\.shoulder-Math\.sin\(camYaw\)\*this\.back/);
   assert.match(html, /const start=camera\.position\.clone\(\),direction=new THREE\.Vector3\(\);camera\.getWorldDirection\(direction\)/);
   assert.match(html, /reticle\.dataset\.scope=this\.active\(\)\.name/);
   assert.match(html, /cross\.dataset\.scope=this\.active\(\)\.name/);
@@ -79,4 +79,20 @@ test('V57.3 right-shoulder framing clears the operator from the center aim ray',
     assert.ok(html.includes('#v10Reticle[data-scope="' + scope + '"]'), 'missing calibrated reticle: ' + scope);
   }
   assert.match(html, /#cross,#v10Reticle\{[^}]*z-index:140!important/);
+});
+
+test('V57.4 keeps every aiming indicator hidden outside a match and restores the center reticle in combat', () => {
+  assert.match(html, /body:not\(\.v475InMatch\) #v10Reticle/);
+  assert.match(html, /body:not\(\.v475InMatch\) #v434ScopeButton/);
+  assert.match(html, /body:not\(\.v475InMatch\) #v434ScopeLabel/);
+  assert.match(html, /body:not\(\.v475InMatch\) #v13AimMode/);
+  assert.match(html, /body\.v475InMatch #v10Reticle\{display:block!important\}/);
+  assert.match(html, /document\.body\.classList\.contains\('v475InMatch'\) && isADS && running/);
+  assert.match(html, /camera\.getWorldDirection\(direction\)/);
+});
+test('V57.4 migrates old shoulder preferences to the wider right-hand framing range', () => {
+  assert.match(html, /value="2\.1"/);
+  assert.match(html, /clamp\(value,1\.6,2\.4\):2\.1/);
+  assert.match(html, /const baseShoulder=-clamp/);
+  assert.match(html, /baseShoulder\*\.90\*b/);
 });
