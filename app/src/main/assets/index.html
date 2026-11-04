@@ -1098,7 +1098,7 @@ function v447BackupNotice(text){
 }
 // V49.4: recovery is NEVER automatic and NEVER merges guest IDs from other players.
 function v496LobbyCloudStatus(msg,ok=false){const confirmed=!!(ok&&v446GoogleEmail&&v495CloudLastConfirmed>0&&!v495CloudSaveInFlight&&!v498CloudLoadPending);const el=$('v494CloudStatus');if(el){el.textContent=msg;el.style.color=confirmed?'#baffda':'#e2f8ff';}const badge=$('v500CloudBadge');if(badge){badge.textContent=confirmed?'☁ RESPALDO GOOGLE CONFIRMADO':v495CloudSaveInFlight?'☁ SINCRONIZANDO GOOGLE…':v498CloudLoadPending?'☁ CONSULTANDO RESPALDO…':v446GoogleEmail?'☁ GOOGLE CONECTADO · RESPALDO SIN CONFIRMAR':'☁ RESPALDO GOOGLE SIN CONFIRMAR';badge.style.color=confirmed?'#baffda':'#e0f0fa';badge.setAttribute('aria-label',confirmed?'Respaldo de Google confirmado en esta sesión':v495CloudSaveInFlight?'Sincronización Google en curso':v498CloudLoadPending?'Recuperación desde Google en curso':'Respaldo de Google no confirmado');}}
-function v494CloudNotice(msg){const el=$('v494CloudStatus');if(el)el.textContent=msg;v496LobbyCloudStatus(msg,/Guardado confirmado|Respaldo guardado|Último progreso confirmado/.test(msg));v447BackupNotice(msg);}
+function v494CloudNotice(msg){const el=$('v494CloudStatus');if(el)el.textContent=msg;const confirmed=/Guardado confirmado|Respaldo guardado|Último progreso confirmado/.test(msg);v496LobbyCloudStatus(msg,confirmed);if(/⚠|No se pudo|error|conflicto/i.test(msg)||confirmed)v447BackupNotice(msg);}
 window.thedemianffCloudResult=(state,payload)=>{
  if(state==='saved'){
   if(!v495CloudSaveInFlight||v497CloudActiveAccount!==v446GoogleEmail){v496LobbyCloudStatus('☁ Cambió la sesión · comprueba el respaldo de Google');return;}
