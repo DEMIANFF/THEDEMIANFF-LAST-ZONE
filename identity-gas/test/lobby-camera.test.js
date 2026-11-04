@@ -70,7 +70,8 @@ test('V57 lobby gives the operator, Social navigation and launch controls separa
 
 test('V57.4 right-shoulder framing places the operator left of the centered aim ray', () => {
   assert.match(html, /const baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|2\.1,1\.6,2\.4\);/);
-  assert.match(html, /const shoulder=baseShoulder\*\(1-b\)\+baseShoulder\*\.78\*b;/);
+  assert.doesNotMatch(html, /const baseShoulder=clamp/);
+  assert.match(html, /const shoulder=baseShoulder\*\(1-b\)\+baseShoulder\*\.90\*b;/);
   assert.match(html, /player\.position\.x\+Math\.cos\(camYaw\)\*this\.shoulder-Math\.sin\(camYaw\)\*this\.back/);
   assert.match(html, /const start=camera\.position\.clone\(\),direction=new THREE\.Vector3\(\);camera\.getWorldDirection\(direction\)/);
   assert.match(html, /reticle\.dataset\.scope=this\.active\(\)\.name/);
