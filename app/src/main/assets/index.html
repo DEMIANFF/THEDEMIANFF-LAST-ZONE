@@ -586,15 +586,94 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 #menu .v18Panel{box-sizing:border-box!important;border-radius:18px!important;max-height:calc(100% - 8%)!important}
 @media(max-width:740px){#menu #v536LobbyId{max-width:105px;font-size:8px}}
 </style>
-</head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de eventos y misiones">
+
+<style id="v560LobbyOperations">
+/* V56.0 — compact command lobby, clear hierarchy and reliable touch targets. */
+#menu .v17Left{left:1.5%!important;top:21%!important;width:clamp(174px,17.5vw,252px)!important;max-height:calc(100dvh - 235px)!important;overflow-y:auto!important;overscroll-behavior:contain!important}
+#menu .v17Nav{gap:7px!important}
+#menu .v17Nav button{min-height:48px!important;padding:10px 12px!important;border-radius:12px!important;background:linear-gradient(110deg,#081827f2,#17354bdd)!important;border:1px solid #9bc5d555!important;border-left:4px solid #45baca!important;box-shadow:0 5px 16px #0004!important;font-weight:850!important;letter-spacing:.015em!important}
+#menu .v17Nav button:active{background:linear-gradient(110deg,#1b5265,#234b66)!important}
+#menu .v17Friends,#menu .v17Quick{display:none!important}
+#menu .v17Bottom{left:auto!important;right:1.7%!important;bottom:2.2%!important;justify-content:flex-end!important}
+#menu .v17Launch{width:clamp(250px,27vw,390px)!important}
+#menu .v17Launch .primary{min-height:72px!important;font-size:clamp(20px,2.5vw,30px)!important;line-height:1.05!important}
+#menu .v17Brand{top:13%!important;right:3%!important;max-width:35vw!important;text-align:right!important;z-index:3!important}
+#menu .v17Currencies{gap:9px!important}
+#menu .v17Currencies #menuSettings{margin-left:8px!important}
+#menu #v500CloudBadge,#menu #v533AccountShortcut,#menu #v502CloudAccess,#menu #v502BackupHint{display:none!important}
+#menu .v24Hero{left:50%!important;top:17%!important;width:clamp(330px,39vw,590px)!important;height:72%!important;pointer-events:auto!important}
+#menu #v24LobbyStage{pointer-events:auto!important;touch-action:pan-y!important;cursor:grab!important}
+#menu #v24LobbyStage:active{cursor:grabbing!important}
+#v38Operations .v38OpsTabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#v38Operations .v38OpsTabs button{min-height:42px}
+#v38Operations .v38OpsView{max-height:min(58vh,520px);overflow:auto}
+.v56StoreGrid{grid-template-columns:repeat(auto-fit,minmax(165px,1fr))!important}
+.v56StoreItem{padding:9px!important;overflow:hidden;border-radius:13px;background:linear-gradient(155deg,#243d54,#101e31)!important}
+.v56StoreArt{height:118px;position:relative;overflow:hidden;border-radius:10px;margin-bottom:9px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 32%,#e7f5ff55,transparent 32%),linear-gradient(145deg,#2d7892,#14243d 66%,#091522)}
+.v56StoreArt:before{content:"";position:absolute;width:86px;height:86px;border-radius:50%;border:1px solid #d9f8ff88;box-shadow:0 0 30px #7fe5ff55}
+.v56ArtFigure{position:relative;width:46px;height:72px;border-radius:18px 18px 10px 10px;background:linear-gradient(90deg,#d6eaf0,#617b98 45%,#182d46);box-shadow:0 8px 18px #0009}
+.v56ArtFigure:before{content:"";position:absolute;left:12px;top:-23px;width:23px;height:25px;border-radius:45% 45% 40% 40%;background:linear-gradient(90deg,#dcbfae,#f1d8c8)}
+.v56ArtFigure:after{content:"";position:absolute;left:-10px;right:-10px;bottom:0;height:26px;border-left:10px solid #273950;border-right:10px solid #273950}
+.v56StoreArt em{position:absolute;top:8px;left:10px;font-style:normal;font-size:19px;color:#ffe3a4;text-shadow:0 0 12px #fff}
+.v56StoreArt small{position:absolute;right:9px;bottom:8px;letter-spacing:1.5px;color:#e9faff;font-size:9px;font-weight:900}
+.v56Art1{background:radial-gradient(circle at 50% 35%,#d5b0ff88,transparent 34%),linear-gradient(145deg,#5a4283,#1a2343 70%,#101526)}
+.v56Art1 .v56ArtFigure{background:linear-gradient(90deg,#e8d5fa,#8e72b2 52%,#322c57)}
+.v56Art2{background:radial-gradient(circle at 50% 35%,#ffcc7980,transparent 34%),linear-gradient(145deg,#8b5731,#24283a 70%,#101523)}
+.v56Art2 .v56ArtFigure{background:linear-gradient(90deg,#e9d4a0,#9c7950 52%,#313747)}
+.v56Art3{background:radial-gradient(circle at 50% 35%,#72d8e888,transparent 34%),linear-gradient(145deg,#246a78,#1b2e4d 70%,#0a1424)}
+.v56Art3 .v56ArtFigure{background:linear-gradient(90deg,#c0eff0,#377d91 52%,#172b43)}
+.v56Art4{background:radial-gradient(circle at 50% 35%,#ff8a9888,transparent 34%),linear-gradient(145deg,#873f53,#29213c 70%,#111526)}
+.v56Art4 .v56ArtFigure{background:linear-gradient(90deg,#f1c4c9,#a84b64 52%,#2d2944)}
+.v56StoreItem b{font-size:13px!important}
+.v56StoreItem button{width:100%;min-height:40px}
+.v56PassHero{padding:14px;border:1px solid #d4b978;border-radius:14px;background:radial-gradient(circle at 86% 12%,#eac67c44,transparent 30%),linear-gradient(135deg,#142b43,#263e58 54%,#10192a);margin-bottom:12px}
+.v56PassTitle{font-size:clamp(19px,3vw,28px);font-weight:1000;letter-spacing:1px;color:#ffe0a1}
+.v56PassMeta{font-size:11px;color:#cce6f2;margin-top:5px}
+.v56PassBar{height:10px;background:#081524;border-radius:9px;overflow:hidden;margin:11px 0 5px}
+.v56PassBar span{display:block;height:100%;background:linear-gradient(90deg,#28c8dc,#f6ce7c)}
+.v56PassGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.v56PassTier{border:1px solid #7792aa66;border-radius:10px;padding:9px;background:linear-gradient(145deg,#22394f,#101c2c);min-width:0}
+.v56PassTier strong{display:block;color:#ffdfa0;font-size:12px}
+.v56PassTier small{display:block;color:#c8dce8;font-size:10px;line-height:1.35;margin-top:5px;min-height:27px}
+.v56PassTier button{width:100%;margin-top:7px;min-height:34px;font-size:10px}
+.v56PassTier .v56Elite{border-color:#e7bd71;background:linear-gradient(120deg,#6c4c25,#d5a14d);color:#1e1b19}
+.v56PassTier .v56Locked{opacity:.55}
+.v56PassSection{margin:12px 0 8px;color:#f7d99a;font-size:12px;letter-spacing:1px}
+.v56OpsAchievement{border-left:3px solid #60c8d7}
+.v56OpsAchievement.done{border-left-color:#e5bc70}
+@media(max-width:740px){
+ #menu .v17Top{left:1%;right:1%;gap:6px}
+ #menu .v17Profile{max-width:48vw!important}
+ #menu .v17Currencies{max-width:43vw!important}
+ #menu .v17Left{left:1%!important;top:22%!important;width:31vw!important;max-height:calc(100dvh - 190px)!important}
+ #menu .v17Nav{gap:5px!important}
+ #menu .v17Nav button{min-height:39px!important;padding:7px 8px!important;font-size:10px!important}
+ #menu .v17Brand{top:12%!important;right:1%!important;font-size:17px!important;max-width:40vw!important}
+ #menu .v24Hero{left:55%!important;top:24%!important;width:61vw!important;height:55%!important}
+ #menu .v17Bottom{right:1%!important;bottom:1.5%!important}
+ #menu .v17Launch{width:48vw!important;max-width:320px!important}
+ #menu .v17Launch .primary{min-height:54px!important;font-size:18px!important}
+ #v18Panel{inset:7% 3% 8% 3%!important}
+ #v38Operations .v38OpsCard{width:96vw!important;max-height:90dvh!important;overflow:auto!important}
+ #v38Operations .v38OpsTabs{gap:4px}
+ #v38Operations .v38OpsTabs button{padding:7px 4px!important;font-size:10px!important}
+ .v56PassGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-height:440px){
+ #menu .v17Left{top:20%!important;max-height:calc(100dvh - 155px)!important}
+ #menu .v17Nav button{min-height:34px!important}
+ #menu .v24Hero{top:19%!important;height:66%!important}
+}
+</style>
+</head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de operaciones: eventos, misiones y logros">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
-  <div class="v38OpsTabs"><button type="button" id="v38TabEvents" aria-selected="true">★ EVENTOS</button><button type="button" id="v38TabMissions" aria-selected="false">▣ MISIONES</button></div>
+  <div class="v38OpsTabs"><button type="button" id="v38TabEvents" aria-selected="true">★ EVENTOS</button><button type="button" id="v38TabMissions" aria-selected="false">▣ MISIONES</button><button type="button" id="v38TabAchievements" aria-selected="false">✦ LOGROS</button></div>
   <div id="v38EventsView" class="v38OpsView"><div class="v38OpsGrid">
    <article class="v38OpsTile"><h3>SUPERVIVENCIA DE ÉLITE</h3><p>Elimina 3 o más enemigos IA en una misma partida.</p><strong>+120 XP · +120 CRÉDITOS</strong><button type="button" data-v38event="royale">VER DETALLES</button></article>
    <article class="v38OpsTile"><h3>ENTRENAMIENTO TÁCTICO</h3><p>Elimina 2 o más enemigos IA durante un entrenamiento.</p><strong>+80 XP · +80 CRÉDITOS</strong><button type="button" data-v38event="training">VER DETALLES</button></article>
   </div></div>
-  <div id="v38MissionsView" class="v38OpsView hidden"><div id="v38MissionsContent" class="v38OpsGrid"></div></div>
+  <div id="v38MissionsView" class="v38OpsView hidden"><div id="v38MissionsContent" class="v38OpsGrid"></div></div><div id="v38AchievementsView" class="v38OpsView hidden"><div id="v38AchievementsContent" class="v38OpsGrid"></div></div>
   <div id="v381EventDetail" class="hidden" role="region" aria-live="polite"><h3 id="v381DetailTitle">DETALLES</h3><p id="v381DetailDescription"></p><p id="v381DetailReward"></p><button type="button" id="v381SelectMode">SELECCIONAR MODO PARA JUGAR DESPUÉS</button><button type="button" id="v381DetailClose">VOLVER A EVENTOS</button></div><p id="v38OpsStatus" aria-live="polite"></p>
  </div>
 </section><div id="ui"><button id="v36MapButton" class="hidden" type="button">▧ MAPA</button>
@@ -675,13 +754,13 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 @media(prefers-reduced-motion:reduce){#menu .v502AuroraMist{animation:none}}
 </style>
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V55.6 · PERFIL Y REGISTRO</div><div id="v500CloudBadge" role="status" aria-live="polite" style="position:absolute;top:calc(5% + 34px);left:50%;transform:translateX(-50%);z-index:5;padding:5px 11px;border:1px solid #91a6b477;border-radius:9px;background:#091d2be6;color:#e0f0fa;font:700 11px system-ui;white-space:nowrap;pointer-events:none">☁ RESPALDO GOOGLE SIN CONFIRMAR</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
-<div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="v533AccountShortcut" type="button" aria-label="Abrir cuenta y respaldo de Google" title="Cuenta Google y respaldos">☁</button> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
-<div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE</button><button data-lobby="EVENTOS">▦ &nbsp; EVENTOS</button><button data-lobby="PERSONAJE">♙ &nbsp; PERSONAJES</button><button data-lobby="MISIONES">✓ &nbsp; MISIONES</button><button data-lobby="LOGROS">★ &nbsp; LOGROS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
+<div id="v22Edition">V56.0 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
+<div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
+<div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE AURORA</button><button data-lobby="PERSONAJE">♙ &nbsp; OPERADORES</button><button data-lobby="OPERACIONES">◈ &nbsp; EVENTOS Y OBJETIVOS</button><button data-lobby="ARMAS">⌖ &nbsp; ARSENAL</button><button data-lobby="INVENTARIO">▣ &nbsp; INVENTARIO</button><button data-lobby="PRESET">☷ &nbsp; EQUIPAMIENTOS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
 <div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V55.6</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
-<div class="v17Friends"><strong>◈ INFORME TÁCTICO</strong><span>◉ OPERADOR LISTO</span><span>⚔ 20 RIVALES IA · AURORA</span><span>▰ 5 ARMAS · SUPERVIVENCIA</span><button id="v502CloudAccess" type="button" aria-label="Abrir cuenta y respaldos de Google">☁ CUENTA Y RESPALDOS</button><small id="v502BackupHint">Google: progreso recuperable tras reinstalar · confirma el último guardado en Cuenta.</small></div>
-<div class="v17Bottom"><div class="v17Quick"><button data-lobby="INVENTARIO">▣ INVENTARIO</button><button data-lobby="ARMAS">⌖ ARMAS</button><button data-lobby="PRESET">☷ PRESET</button></div><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
+
+<div class="v17Bottom"><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
 <div id="v18Panel" class="v18Panel hidden" role="dialog" aria-modal="true" aria-labelledby="v18PanelTitle"><div class="v18PanelHeader"><div><small>THEDEMIANFF · CENTRO DE OPERACIONES</small><h2 id="v18PanelTitle">OPERADOR</h2></div><button id="v18Close" aria-label="Cerrar">✕</button></div><div id="v18PanelBody"></div></div>
 <div id="v37ModeOverlay" class="hidden"><div class="v37ModeBox"><h2>ESCOGER MODO</h2><button type="button" data-v37mode="royale">SUPERVIVENCIA · 20 IA · AVIÓN</button><button type="button" data-v37mode="training">ENTRENAMIENTO · 8 IA</button><button type="button" id="v37ModeClose">VOLVER AL LOBBY</button></div></div><div class="v18ModePick" id="v18ModePick"><label for="v18Mode">MODO</label><select id="v18Mode"><option value="royale">SUPERVIVENCIA · 20 IA</option><option value="training">ENTRENAMIENTO · 8 IA</option></select></div>
@@ -824,8 +903,6 @@ function v507RetryPendingCloud(){
   }catch(e){v494CloudNotice('⚠ Reintento de sincronización pendiente: '+e.message);}
  },1500);
 }
-// The compact top-bar account shortcut works even when the tactical sidebar is hidden.
-$('v533AccountShortcut')?.addEventListener('click',()=>{$('v502CloudAccess')?.click();});
 window.addEventListener('online',v507RetryPendingCloud);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)v507RetryPendingCloud();});
 // V52.6: periodically retry an already-persisted Google snapshot when an
@@ -4688,7 +4765,6 @@ function v372RefreshSettingsContext(){
  $('v372ExitGame').classList.toggle('hidden',!inLobby);
 }
 $('menuSettings').onclick=()=>{settingsFromMenu=true;v372RefreshSettingsContext();$('pausePanel').classList.remove('hidden')};
-$('v502CloudAccess').onclick=()=>{if(running)return;$('menuSettings').click();const tab=document.querySelector('[data-tab="account"]');if(tab)tab.click();};
 
 $('v372ExitGame').onclick=()=>{
  if(!window.confirm('¿Salir de THEDEMIANFF LAST ZONE? Se conservará el progreso guardado.'))return;
