@@ -1143,7 +1143,7 @@ window.thedemianffCloudResult=(state,payload)=>{
   if(autoRestore&&v446GoogleEmail){
    const duplicateSource=v504FindDuplicateAccountSnapshot(v446GoogleEmail,saved);
    if(duplicateSource){
-    const startFresh=confirm('ATENCIÓN: el respaldo remoto de esta cuenta coincide con el progreso guardado de otra cuenta Google en este teléfono. Puede ser una transferencia antigua no deseada.\\n\\nAceptar: crear un perfil nuevo desde cero para esta cuenta. El respaldo duplicado se archivará en este dispositivo antes de reemplazarlo.\\nCancelar: conservar el respaldo remoto actual.');
+    const startFresh=confirm('ATENCIÓN: el respaldo remoto de esta cuenta coincide con el progreso guardado de otra cuenta Google en este teléfono. Puede ser una transferencia antigua no deseada.\n\nAceptar: crear un perfil nuevo desde cero para esta cuenta. El respaldo duplicado se archivará en este dispositivo antes de reemplazarlo.\\nCancelar: conservar el respaldo remoto actual.');
     if(startFresh){
      const archiveKey='thedemianff_duplicate_backup_'+encodeURIComponent(v446GoogleEmail.toLowerCase())+'_'+Date.now();
      localStorage.setItem(archiveKey,JSON.stringify(saved));
