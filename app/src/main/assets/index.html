@@ -804,12 +804,46 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 @media(max-width:540px){#menu .v17Friends{top:38%;max-height:41%;overflow:auto}#menu .v17Brand{top:15%;right:2%}#menu .v502BrandSubtitle{display:none}}
 @media(prefers-reduced-motion:reduce){#menu .v502AuroraMist{animation:none}}
 </style>
+<style id="v581LobbyCameraUX">
+/* V57.1: centered operator, compact identity strip and readable lobby actions. */
+#menu .v24Hero{left:50%!important;top:17%!important;width:clamp(235px,34vw,440px)!important;height:68%!important;transform:translateX(-50%)!important;z-index:3!important}
+#menu #v24LobbyStage{inset:0!important}
+#menu .v17Profile{max-width:min(34vw,315px)!important;min-width:0!important;gap:6px!important;padding:4px 7px!important}
+#menu .v17Avatar{font-size:17px!important;padding:3px 6px!important}
+#menu .v45ProfileName{min-width:0!important;max-width:245px!important}
+#menu .v45ProfileName b{font-size:12px!important;letter-spacing:.3px!important}
+#menu .v45ProfileName small{font-size:8px!important;letter-spacing:.4px!important}
+#menu .v45ProfileName small:nth-of-type(2),#menu #v45LobbyRecord,#menu .v45XPTrack,#menu .v17Rank{display:none!important}
+#menu .v17Currencies{gap:8px!important;padding:4px 7px!important;min-height:34px!important;white-space:nowrap!important}
+#menu .v581Currency{display:flex!important;align-items:baseline!important;gap:3px!important}
+#menu .v581Currency small{font-size:8px!important;color:#88cddd!important;letter-spacing:.5px!important}
+#menu .v581Currency b{font-size:11px!important;font-variant-numeric:tabular-nums!important}
+#menu .v17Gear{width:28px!important;height:28px!important;padding:0!important;font-size:16px!important;line-height:1!important}
+#menu .v17Top{align-items:flex-start!important;gap:6px!important}
+#v37AdvancedControl{display:none!important}
+@media(max-width:740px){
+ #menu .v17Top{left:1%!important;right:1%!important;gap:4px!important}
+ #menu .v17Profile{max-width:45vw!important;padding:4px 6px!important;gap:5px!important}
+ #menu .v45ProfileName{max-width:34vw!important}
+ #menu .v45ProfileName b{font-size:10px!important}
+ #menu .v45ProfileName small{font-size:7px!important}
+ #menu .v17Avatar{font-size:15px!important;padding:3px 5px!important}
+ #menu .v17Currencies{gap:5px!important;padding:4px 5px!important;font-size:10px!important}
+ #menu .v581Currency b{font-size:10px!important}
+ #menu .v17Gear{width:25px!important;height:25px!important;font-size:14px!important}
+ #menu .v24Hero{left:50%!important;top:24%!important;width:44vw!important;height:54%!important;max-width:230px!important;transform:translateX(-50%)!important}
+}
+@media(max-height:440px){
+ #menu .v24Hero{top:15%!important;height:70%!important}
+}
+</style>
+
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V57.0 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
-<div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
+<div id="v22Edition">V57.1 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
+<div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"><span class="v581Currency"><small>CR</small><b id="v18Credits">0</b></span><span class="v581Currency"><small>XP</small><b id="v18XP">0</b></span><button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE AURORA</button><button data-lobby="PERSONAJE">♙ &nbsp; OPERADORES</button><button data-lobby="OPERACIONES">◈ &nbsp; EVENTOS Y OBJETIVOS</button><button data-lobby="ARMAS">⌖ &nbsp; ARSENAL</button><button data-lobby="INVENTARIO">▣ &nbsp; INVENTARIO</button><button data-lobby="PRESET">☷ &nbsp; EQUIPAMIENTOS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V57.0</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V57.1</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
 
 <div class="v17Bottom"><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -833,7 +867,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 <div class="settingsSection" data-section="control">
 <label class="v37Primary">SENSIBILIDAD GENERAL · CÁMARA 360° <input id="sensitivity" type="range" min=".35" max="3" step=".05" value="1.25"></label>
 <label class="v37Advanced">Sensibilidad vertical <input id="verticalSensitivity" type="range" min=".35" max="3" step=".05" value="1.2"></label>
-<label class="v37Advanced">Distancia de cámara <input id="v26CameraDistance" type="range" min="6.5" max="12.5" step=".25" value="7.0"></label><label class="v37Advanced">Desplazamiento lateral <input id="v26CameraShoulder" type="range" min=".6" max="2.8" step=".1" value="1.9"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
+<label class="v37Primary">DISTANCIA DE CÁMARA · TERCERA PERSONA <input id="v26CameraDistance" type="range" min="8.5" max="14" step=".25" value="8.5"></label><label class="v37Advanced">Desplazamiento lateral <input id="v26CameraShoulder" type="range" min=".6" max="1.5" step=".05" value="1.45"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
 <label class="v37Advanced">Velocidad de cámara <input id="cameraSpeed" type="range" min=".6" max="1.8" step=".05" value="1"></label>
 <label>Invertir cámara vertical <input id="invertY" type="checkbox"></label>
 <label>Ayuda de apuntado <input id="aimAssist" type="checkbox" checked></label>
@@ -1949,7 +1983,7 @@ function v22UpdateHolster(c,activeIndex){
  c.backGun.visible=weapons.length>1&&alternate!==activeIndex;
  c.backGun.userData.weaponIndex=alternate;
  c.backGun.scale.setScalar(alternate===4?.87:1);
- c.gun.scale.setScalar(activeIndex===4?1.10:activeIndex===0?1:.92);
+ c.gun.scale.setScalar(activeIndex===4?1.0:activeIndex===0?.88:.86);
  const accent=c.gun.userData.v38Accent;if(accent&&accent.material&&accent.material.color)accent.material.color.set(['#d6bd7a','#8bd4d6','#e39f67','#93a1bd','#d38dc2'][activeIndex]||'#d6bd7a');
  const variants=c.gun.userData.v40Variants;
  if(variants)for(let i=0;i<variants.length;i++)variants[i].visible=i===activeIndex;
@@ -4566,7 +4600,19 @@ function frame(now){
  }catch(error){v21Diagnostic('GAME LOOP',error);paused=true}
 }let cameraDX=0,cameraDY=0,adsHeld=false,fireTouch=null,fireLastX=0,fireLastY=0;
 const v22ShoulderRig={back:NaN,shoulder:NaN,height:NaN,anchorY:NaN};
-for(const id of ['v26CameraDistance','v26CameraShoulder','v26TouchDeadzone','v26TouchCurve']){const el=$(id);try{const v=localStorage.getItem('v26-pref-'+id);if(v!==null)el.value=v}catch{}el.addEventListener('change',()=>{try{localStorage.setItem('v26-pref-'+id,el.value)}catch{}})}
+for(const id of ['v26CameraDistance','v26CameraShoulder','v26TouchDeadzone','v26TouchCurve']){
+ const el=$(id);
+ try{
+  const saved=localStorage.getItem('v26-pref-'+id);
+  if(saved!==null){
+   const value=Number(saved);
+   if(id==='v26CameraDistance')el.value=String(Number.isFinite(value)?clamp(value,8.5,14):8.5);
+   else if(id==='v26CameraShoulder')el.value=String(Number.isFinite(value)?clamp(value,.6,1.5):1.45);
+   else el.value=saved;
+  }
+ }catch{}
+ el.addEventListener('change',()=>{try{localStorage.setItem('v26-pref-'+id,el.value)}catch{}});
+}
 // Dual independent camera channels: screen swipe (FREE) and fire drag (FIRE).
 // Each pointer owns its own low-pass filter and never changes the other channel.
 // V43.4 OPTIC PROFILES: perfiles independientes y selector tactil.
@@ -4664,11 +4710,11 @@ const v432Camera={
   this.blend+=(goal-this.blend)*(1-Math.exp(-t*11));
   // Un solo blend gobierna hombro, distancia, altura y FOV.
   const b=this.blend;
-  const baseBack=clamp(Number($('v26CameraDistance').value)||5,2.3,12);
-  const baseShoulder=-clamp(Number($('v26CameraShoulder').value)||.65,-3,3);
-  const tacticalBack=mobile?clamp(baseBack*1.10,3,12):baseBack;
-  const back=tacticalBack*(1-b)+Math.max(2.45,baseBack*.80)*b;
-  const shoulder=baseShoulder*(1-b)+baseShoulder*.58*b;
+  const baseBack=clamp(Number($('v26CameraDistance').value)||8.5,8.5,14);
+  const baseShoulder=-clamp(Number($('v26CameraShoulder').value)||1.45,.6,1.5);
+  const tacticalBack=mobile?clamp(baseBack*1.05,8.5,14):baseBack;
+  const back=tacticalBack*(1-b)+Math.max(7.5,baseBack*.96)*b;
+  const shoulder=baseShoulder*(1-b)+baseShoulder*.52*b;
   // V52.9: lift the over-shoulder camera without shortening its distance.
   const height=(mobile?2.85:2.9)-(mobile?.34:.28)*b;
   if(!Number.isFinite(this.back)){
@@ -4689,7 +4735,7 @@ const v432Camera={
   // V53.1: damp small horizontal follow jitter while keeping collision
   // responses immediate to prevent the view entering scenery.
   const obstructed=Math.abs(safe.x-desired.x)+Math.abs(safe.z-desired.z)>.02;
-  const followXZ=1-Math.exp(-t*20);
+  const followXZ=1-Math.exp(-t*16);
   if(obstructed||!Number.isFinite(camera.position.x)||!Number.isFinite(camera.position.z)||
      Math.hypot(camera.position.x-safe.x,camera.position.z-safe.z)>8){
    camera.position.x=safe.x;camera.position.z=safe.z;
