@@ -758,7 +758,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"> ◉ <span id="v18Credits">0</span> &nbsp; ✧ <span id="v18XP">0</span> &nbsp; <button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE AURORA</button><button data-lobby="PERSONAJE">♙ &nbsp; OPERADORES</button><button data-lobby="OPERACIONES">◈ &nbsp; EVENTOS Y OBJETIVOS</button><button data-lobby="ARMAS">⌖ &nbsp; ARSENAL</button><button data-lobby="INVENTARIO">▣ &nbsp; INVENTARIO</button><button data-lobby="PRESET">☷ &nbsp; EQUIPAMIENTOS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V55.6</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V56.0</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
 
 <div class="v17Bottom"><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -1407,7 +1407,7 @@ $('v443RestoreFile').addEventListener('change',async e=>{
 });
 
 if(!window.THREE){$('menu').querySelector('p').textContent='No se pudo cargar el motor 3D. Conéctate a Internet y vuelve a abrir el archivo.';return;}
-const THREE=window.THREE, mobile=matchMedia('(pointer:coarse)').matches, WORLD=340, HALF=WORLD/2, clock=new THREE.Clock();let renderer,scene,camera,player,playerModel,gunGroup,terrain,zoneRing,water,worldObjects=[],bots=[],pickups=[],effects=[],decor=[],running=false,paused=false,gameOver=false,time=0,zoneRadius=225,zoneCenter=new THREE.Vector2(0,0),zonePhase=0,zoneTick=0,kills=0,keys={},fireHeld=false,jumpQueued=false,sprintHeld=false,crouchHeld=false,reloadTimer=0,reloadWeapon=-1,shootCooldown=0,damageFlash=0,hitFlash=0,toastTime=0,footTime=0,camYaw=0,camPitch=.26,lookTouch=null,stickTouch=null,joyX=0,joyY=0,botSpawnTimer=0;let weapons=[{name:'AR-7 · ASALTO',damage:23,rate:.115,mag:30,ammo:30,reserve:180,reload:1.65,spread:.022,range:100},{name:'DMR-9 · PRECISIÓN',damage:58,rate:.52,mag:12,ammo:12,reserve:60,reload:2.15,spread:.007,range:145},{name:'SMG-4 · RÁFAGA',damage:15,rate:.072,mag:42,ammo:42,reserve:210,reload:1.35,spread:.038,range:65},{name:'ESC-12 · CORTA',damage:75,rate:.78,mag:6,ammo:6,reserve:36,reload:2.05,spread:.062,range:32},{name:'LMG-60 · APOYO',damage:20,rate:.085,mag:60,ammo:60,reserve:180,reload:2.9,spread:.034,range:105}],weaponIndex=0;let hp=100,armor=50,meds=2,vertical=0,onGround=true;const mapCanvas=$('minimap'),mctx=mapCanvas.getContext('2d');const mat=(c,r=1,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});const mats={grass:mat('#506c54'),grass2:mat('#637d55'),sand:mat('#b9a67e'),road:mat('#6b706e'),rock:mat('#697779'),trunk:mat('#635044'),leaf:mat('#365a48'),leaf2:mat('#57734b'),wall:mat('#8c9892'),roof:mat('#394954'),wood:mat('#8c7056'),dark:mat('#24313a'),blue:mat('#3e91a6'),gold:mat('#e5b56b'),red:mat('#bd5b4b'),skin:mat('#b88e6d'),pants:mat('#3b4a4c'),gun:mat('#1c252c',.4,.5),glass:mat('#84d9e7',.2,.3)};
+const THREE=window.THREE, mobile=matchMedia('(pointer:coarse)').matches, WORLD=340, HALF=WORLD/2, clock=new THREE.Clock();let renderer,scene,camera,player,playerModel,gunGroup,terrain,zoneRing,water,worldObjects=[],bots=[],pickups=[],effects=[],decor=[],running=false,paused=false,gameOver=false,time=0,zoneRadius=225,zoneCenter=new THREE.Vector2(0,0),zonePhase=0,zoneTick=0,kills=0,keys={},fireHeld=false,jumpQueued=false,sprintHeld=false,crouchHeld=false,reloadTimer=0,reloadWeapon=-1,shootCooldown=0,damageFlash=0,hitFlash=0,toastTime=0,footTime=0,camYaw=0,camPitch=.18,lookTouch=null,stickTouch=null,joyX=0,joyY=0,botSpawnTimer=0;let weapons=[{name:'AR-7 · ASALTO',damage:23,rate:.115,mag:30,ammo:30,reserve:180,reload:1.65,spread:.022,range:100},{name:'DMR-9 · PRECISIÓN',damage:58,rate:.52,mag:12,ammo:12,reserve:60,reload:2.15,spread:.007,range:145},{name:'SMG-4 · RÁFAGA',damage:15,rate:.072,mag:42,ammo:42,reserve:210,reload:1.35,spread:.038,range:65},{name:'ESC-12 · CORTA',damage:75,rate:.78,mag:6,ammo:6,reserve:36,reload:2.05,spread:.062,range:32},{name:'LMG-60 · APOYO',damage:20,rate:.085,mag:60,ammo:60,reserve:180,reload:2.9,spread:.034,range:105}],weaponIndex=0;let hp=100,armor=50,meds=2,vertical=0,onGround=true;const mapCanvas=$('minimap'),mctx=mapCanvas.getContext('2d');const mat=(c,r=1,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});const mats={grass:mat('#506c54'),grass2:mat('#637d55'),sand:mat('#b9a67e'),road:mat('#6b706e'),rock:mat('#697779'),trunk:mat('#635044'),leaf:mat('#365a48'),leaf2:mat('#57734b'),wall:mat('#8c9892'),roof:mat('#394954'),wood:mat('#8c7056'),dark:mat('#24313a'),blue:mat('#3e91a6'),gold:mat('#e5b56b'),red:mat('#bd5b4b'),skin:mat('#b88e6d'),pants:mat('#3b4a4c'),gun:mat('#1c252c',.4,.5),glass:mat('#84d9e7',.2,.3)};
 function rand(a,b){return a+Math.random()*(b-a)}function clamp(x,a,b){return Math.max(a,Math.min(b,x))}function h(x,z){const r=Math.hypot(x,z);const crater=2.8*Math.exp(-Math.pow((r-39)/15,2))-1.4*Math.exp(-Math.pow(r/18,2));const ridge=1.6*Math.sin(x*.025)*Math.cos(z*.038);return crater+ridge+.35*Math.sin(x*.11+z*.07)+.35*Math.cos(z*.081)}function ground(x,z){return 0} // V42.8: piso plano de entrenamiento
 /* ===== V42.4 render fixes: helpers ===== */
 // Malla horizontal que SIGUE el terreno (vértices = ground()+lift). Sustituye planos planos sobre terreno ondulado.
@@ -3021,7 +3021,7 @@ if(scene){
  for(const geometry of geometries)geometry.dispose();
  while(scene.children.length)scene.remove(scene.children[0]);
 }
-v428CreateTrainingWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;player.scale.setScalar(1.24);const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.10;v432Camera.reset();camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
+v428CreateTrainingWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;player.scale.setScalar(1.24);const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.18;v432Camera.reset();camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
 for(let i=2;i<weapons.length;i++){weapons[i].ammo=weapons[i].mag;weapons[i].reserve=[210,36,180][i-2];}for(let i=0;i<($('v18Mode').value==='training'?8:20);i++)spawnBot(Math.random()<.5?10:17);for(let i=0;i<55;i++){let p=safePos(5);spawnPickup(['ammo','ammo','med','armor'][i%4],p.x,p.z)}updateHud();}
 function updateHud(){
  const eventHud=$('v362EventHud');if(eventHud){eventHud.classList.toggle('hidden',!v18ActiveEvent);if(v18ActiveEvent)eventHud.textContent='EVENTO '+(v18ActiveEvent==='training'?'PRÁCTICA TÁCTICA':'SUPERVIVENCIA')+' · BAJAS '+kills+'/'+(v18ActiveEvent==='training'?2:3);}
@@ -3896,9 +3896,11 @@ function v36StepFlight(dt){
   v22ShoulderRig.anchorY=NaN;moveVX=moveVZ=0;toast('ATERRIZAJE COMPLETADO');
  }else{
   $('v36ParachuteStatus').textContent=(v398ChuteOpen?'🪂 PARACAÍDAS':'↘ CAÍDA LIBRE')+' · '+Math.ceil(player.position.y-floor)+' m · JOYSTICK PARA DIRIGIR';
-  const d=Number($('v26CameraDistance').value);
-  camera.position.set(player.position.x-Math.sin(camYaw)*d,player.position.y+9,player.position.z-Math.cos(camYaw)*d);
-  const viewDirection=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));camera.lookAt(camera.position.clone().addScaledVector(viewDirection,60));
+  const baseDistance=Number($('v26CameraDistance').value)||7;
+  const d=clamp(baseDistance*1.7,12,16);
+  const aerialHeight=v398ChuteOpen?13:15;
+  camera.position.set(player.position.x-Math.sin(camYaw)*d,player.position.y+aerialHeight,player.position.z-Math.cos(camYaw)*d);
+  const viewDirection=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));camera.lookAt(camera.position.clone().addScaledVector(viewDirection,72));
  }
 }
 function v36ChoosePoint(e,id){
@@ -4376,7 +4378,7 @@ function v24InitLobby(){
   const l=v24Lobby;l.scene=new THREE.Scene();
   l.scene.background=null;
   l.camera=new THREE.PerspectiveCamera(32,1,.1,60);
-  l.camera.position.set(0,2.05,8.9);l.camera.lookAt(0,1.45,0);
+  l.camera.position.set(0,1.92,7.9);l.camera.lookAt(0,1.38,0);
   l.scene.add(new THREE.HemisphereLight(0xd5ecff,0x213047,1.6));
   const key=new THREE.DirectionalLight(0xffffff,2.25);key.position.set(-3,7,6);l.scene.add(key);
   const rim=new THREE.DirectionalLight(0x8a8cff,1.5);rim.position.set(4,5,-4);l.scene.add(rim);
@@ -4385,7 +4387,7 @@ function v24InitLobby(){
   const ring=new THREE.Mesh(new THREE.TorusGeometry(1.55,.025,8,64),new THREE.MeshBasicMaterial({color:0x6ecde9}));
   ring.rotation.x=Math.PI/2;ring.position.y=-.025;l.scene.add(ring);
   l.renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'low-power',precision:'highp'});
-  l.renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1:1.5));if('outputColorSpace' in l.renderer && THREE.SRGBColorSpace){l.renderer.outputColorSpace=THREE.SRGBColorSpace;}else{l.renderer.outputEncoding=THREE.sRGBEncoding;}
+  l.renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.15:1.5));if('outputColorSpace' in l.renderer && THREE.SRGBColorSpace){l.renderer.outputColorSpace=THREE.SRGBColorSpace;}else{l.renderer.outputEncoding=THREE.sRGBEncoding;}
   host.appendChild(l.renderer.domElement);
   v24RefreshLobbyCharacter();
  }catch(err){console.warn('[V24] Lobby 3D preview unavailable',err);host.textContent='VISTA 3D NO DISPONIBLE';}
@@ -4399,7 +4401,7 @@ function v24LobbyTick(){
  if(!$('menu').classList.contains('hidden')){
   if(!v24Lobby.renderer)v24InitLobby();
   const l=v24Lobby,now=performance.now();
-  if(l.renderer&&now-l.last>(mobile?95:45)){
+  if(l.renderer&&now-l.last>(mobile?40:33)){
    l.last=now;
    const host=$('v24LobbyStage'),w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
    if(l.renderer.domElement.width!==Math.round(w*l.renderer.getPixelRatio())||l.renderer.domElement.height!==Math.round(h*l.renderer.getPixelRatio())){
@@ -4407,7 +4409,7 @@ function v24LobbyTick(){
    }
    if(l.operator){
  l.phase+=.035;
- if(!l.dragging){l.userYaw+=l.angularVelocity;l.angularVelocity*=.91;if(Math.abs(l.angularVelocity)<.0003)l.angularVelocity=0;}
+ if(!l.dragging){l.userYaw+=l.angularVelocity;l.angularVelocity*=.90;if(Math.abs(l.angularVelocity)<.0003)l.angularVelocity=0;}
  l.operator.root.rotation.y=Math.PI*.15+l.userYaw+Math.sin(l.phase*.15)*.024;
  l.operator.root.position.y=.018*Math.sin(l.phase*.7);
  if(l.operator.body)l.operator.body.rotation.z=Math.sin(l.phase*.33)*.015;
@@ -4520,10 +4522,10 @@ for(const id of ['v26CameraDistance','v26CameraShoulder','v26TouchDeadzone','v26
 const v434Optics={
  index:0,
  profiles:[
-  {name:'PUNTO',fov:54,sensitivity:1},
-  {name:'2x',fov:40,sensitivity:.74},
-  {name:'4x',fov:26,sensitivity:.52},
-  {name:'8x',fov:15,sensitivity:.32}
+  {name:'PUNTO',zoom:1,fov:79,sensitivity:1},
+  {name:'2x',zoom:2,fov:39.5,sensitivity:.62},
+  {name:'4x',zoom:4,fov:19.75,sensitivity:.36},
+  {name:'8x',zoom:8,fov:9.875,sensitivity:.18}
  ],
  active(){return this.profiles[this.index];},
  cycle(){
@@ -4617,7 +4619,7 @@ const v432Camera={
   const back=tacticalBack*(1-b)+Math.max(2.45,baseBack*.80)*b;
   const shoulder=baseShoulder*(1-b)+baseShoulder*.58*b;
   // V52.9: lift the over-shoulder camera without shortening its distance.
-  const height=(mobile?3.75:3.45)-(mobile?.62:.35)*b;
+  const height=(mobile?3.15:3.0)-(mobile?.40:.32)*b;
   if(!Number.isFinite(this.back)){
    this.back=back;this.shoulder=shoulder;this.height=height;this.anchorY=player.position.y;
   }
@@ -4644,10 +4646,13 @@ const v432Camera={
    camera.position.x+=(safe.x-camera.position.x)*followXZ;
    camera.position.z+=(safe.z-camera.position.z)*followXZ;
   }
-  // Prevent a low-angle spawn frame; smooth vertical movement thereafter.\n  if(!Number.isFinite(camera.position.y)||Math.abs(camera.position.y-safe.y)>5)camera.position.y=safe.y;\n  else camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*15));
+  // Smooth vertical tracking is essential: keep the shoulder camera attached to the player.
+  if(!Number.isFinite(camera.position.y)||Math.abs(camera.position.y-safe.y)>5)camera.position.y=safe.y;
+  else camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*15));
   const forward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
   camera.lookAt(camera.position.clone().addScaledVector(forward,100));
-  const fov=(mobile?79:68)+(v434Optics.active().fov-(mobile?79:68))*b;
+  const baseFov=mobile?79:68,targetFov=baseFov/v434Optics.active().zoom;
+  const fov=baseFov+(targetFov-baseFov)*b;
   if(Math.abs(camera.fov-fov)>.01){camera.fov=fov;camera.updateProjectionMatrix();}
   $('v10Reticle').classList.toggle('v382ADS',this.mode==='ADS');
   v434Optics.updateHud(this.mode==='ADS');
