@@ -704,7 +704,8 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  </div><small style="color:#a7b8c8">Configura Google y la recuperación en Ajustes → Cuenta. Confirma el respaldo antes de reinstalar.</small></div></div>
 <style id="v504SimpleAccount">
 /* Minimal player account screen: advanced recovery remains wired but is not part of normal flow. */
-.settingsSection[data-section="account"] > :not(h3:first-child):not(p:nth-child(2)):not(#v445AccountStatus):not(#v494CloudStatus):not(#v445SettingsLogout){display:none!important}
+/* V56.0: all Google account, identity and backup actions live under Settings > Account. */\n.settingsSection[data-section="account"] #v443Google{display:block!important;width:100%;min-height:44px;margin:8px 0}\n.settingsSection[data-section="account"] #v446LocalIdentity,.settingsSection[data-section="account"] #v446LocalProgress{display:block!important;line-height:1.45;overflow-wrap:anywhere}\n.settingsSection[data-section="account"] #v494CloudStatus{display:block!important;padding:9px 11px;border:1px solid #6cb7c766;border-radius:8px;background:#102838;color:#d4f4ff}\n
+.settingsSection[data-section="account"] > :not(h3:first-child):not(p:nth-child(2)):not(#v443Google):not(#v445AccountStatus):not(#v446LocalIdentity):not(#v446LocalProgress):not(#v494CloudStatus):not(#v445SettingsLogout){display:none!important}
 #v502CloudAccess,#v502BackupHint{display:none!important}
 #v443Entry #v443Backup,#v443Entry #v443Restore{display:none!important}
 </style>
