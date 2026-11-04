@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 144
-        versionName '57.0-lobby-camera-stability'
+        versionCode 145
+        versionName '57.1-camera-lobby-ux'
     }
     signingConfigs {
         persistentRelease {
