@@ -93,7 +93,7 @@ jobs:
           for token in ("v432Camera.update(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", "id=\"v533AccountShortcut\"", "v534_scope_index"):
               assert token in html, "V53.4: required camera/lobby component missing: "+token
           # V53.8: identity remains part of validated Firebase backup payload.
-          for token in ('const v536IdPattern=', 'const v536NamePattern=', 'result.playerId=p.playerId', 'result.playerName=p.playerName', 'v536EnsureIdentity()', 'id="v536LobbyName"', 'id="v536LobbyId"', 'data-lobby="CUENTA DE JUGADOR"', 'id="v536SaveName"', 'id="v536CopyId"'):
+          for token in ('const v536IdPattern=', 'const v536NamePattern=', 'result.playerId=p.playerId', 'result.playerName=p.playerName', 'v536EnsureIdentity()', 'id="v536LobbyName"', 'id="v536LobbyId"', 'id="v18Profile"', 'id="v536SaveName"', 'id="v536CopyId"'):
               assert token in html, 'V53.8: player ID/name persistence regression: '+token
           assert "trim().replace(/\\s+/g,' ')" in html, 'V53.8: nickname whitespace validation missing'
           # V54.5: numeric IDs must come from the native Firebase bridge, never local random generation.
