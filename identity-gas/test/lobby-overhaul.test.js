@@ -10,8 +10,8 @@ const menuStart = html.indexOf('<div id="menu"');
 const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
-test('V57.0 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.match(menu, /V57.0 · CENTRO DE OPERACIONES/);
+test('V57.1 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
+  assert.match(menu, /V57.1 · CENTRO DE OPERACIONES/);
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -89,13 +89,13 @@ test('parachute camera is pulled back and Lila preview supports touch rotation a
   assert.match(html, /l\.camera\.position\.set\(0,1\.92,7\.9\)/);
 });
 
-test('Android release is V57.0 with a monotonic version code', () => {
-  assert.match(gradle, /versionCode 144/);
-  assert.match(gradle, /versionName '57.0-lobby-camera-stability'/);
+test('Android release is V57.1 with a monotonic version code', () => {
+  assert.match(gradle, /versionCode 145/);
+  assert.match(gradle, /versionName '57.1-camera-lobby-ux'/);
 });
 
 test('V57 Android package metadata is monotonic and matches the lobby release', () => {
-  assert.match(gradle, /versionCode 144/);
-  assert.match(gradle, /versionName '57.0-lobby-camera-stability'/);
-  assert.match(html, /V57.0 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionCode 145/);
+  assert.match(gradle, /versionName '57.1-camera-lobby-ux'/);
+  assert.match(html, /V57.1 · CENTRO DE OPERACIONES/);
 });
