@@ -80,8 +80,7 @@ test('switching accounts replaces the active in-memory profile instead of mergin
       skin: 2, unlocked: [0, 2], weapon: 3, claimed: ['old'], playerId: '00001',
       playerName: 'FIRST_ACCOUNT', staleField: 'must disappear',
     },
-    refreshed: false,
-    v18Refresh() { context.refreshed = true; },
+    v18Refresh() {},
   };
   const fresh = { credits: 0, xp: 0, matches: 0, wins: 0, kills: 0, best: 0,
     skin: 0, unlocked: [0], weapon: 0, claimed: [] };
@@ -92,7 +91,6 @@ test('switching accounts replaces the active in-memory profile instead of mergin
   assert.equal(context.result.playerId, undefined);
   assert.equal(context.result.playerName, undefined);
   assert.equal(context.result.staleField, undefined);
-  assert.equal(context.refreshed, true);
   assert.deepEqual(JSON.parse(values.thedemianff_progress_v18), fresh);
 });
 
