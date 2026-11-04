@@ -105,12 +105,12 @@ jobs:
               assert token in java, 'V55.4: Android free identity integration missing: '+token
           assert 'FirebaseFunctions' not in java and 'getHttpsCallable' not in java, 'V55.4: Android must not depend on paid Cloud Functions'
           assert 'db.runTransaction(transaction ->' not in java, 'V55: client-side identity transaction must be removed'
-          assert 'V57.8 · CENTRO DE OPERACIONES' in html and 'AURORA EVOLUTION · V57.8' in html, 'V57.6: lobby labels must match the release'
+          assert 'V57.8.1 · CENTRO DE OPERACIONES' in html and 'AURORA EVOLUTION · V57.8.1' in html, 'V57.6: lobby labels must match the release'
           for token in ('v396ExpandAurora();', 'v397DetailAurora();', 'v583SetupBattleVisuals();', 'function v583SetupBattleVisuals()', 'function v583TickBattleVisuals(dt)', 'function v583UpdateZoneVisual(radius,cx,cz,danger)', 'function v583BuildPickupCase(group,type)', 'new THREE.CanvasTexture(snowCanvas)', 'new THREE.ShaderMaterial(', 'new THREE.Points(assets.snowGeometry,assets.snowMaterial)', 'zonePerimeter:!!zoneRing', 'window.THEDEMIANFF_BATTLE_VISUAL_TEST'):
               assert token in html, 'V57.6: battle royale visual pipeline missing '+token
           for token in ('function v583DisposeVisualRoot(root)', 'window.v396VisualRoot=v396Root', 'window.v397VisualRoot=v397Root', 'v583DisposeVisualRoot(window.v396VisualRoot)', 'v583DisposeVisualRoot(window.v397VisualRoot)', 'palette[key].userData.v583Shared=true', 'g.userData.v583Shared=true'):
               assert token in html, 'V57.6: visual resource lifecycle missing '+token
-          assert "versionCode 152" in Path('app/build.gradle').read_text(), 'V57.6: Android version code mismatch'
+          assert "versionCode 153" in Path('app/build.gradle').read_text(), 'V57.6: Android version code mismatch'
           for token in ('const baseShoulder=-clamp(Number($(\'v26CameraShoulder\').value)||2.35,2.0,2.7);', 'const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;', 'const follow=1-Math.exp(-t*13);', 'const followXZ=1-Math.exp(-t*12.5);', 'id="v586ReticleRestored"', 'border-color:#9cf9de!important', 'function v576RegisterWallRun', 'v576RegisterOpenBuilding(xx-86,zz-82,w,wall,depth,doorWidth,thickness)', 'window.THEDEMIANFF_AURORA_ACCESS_TEST', 'doorWidthMeters:3.0'):
               assert token in html, 'V57.6: camera, reticle or clear-Aurora guard missing '+token
           assert 'new THREE.BoxGeometry(3,3+j%3*2,3),darkIce' not in html, 'V57.6: oversized dark-ice POI blocks must stay removed'
@@ -443,7 +443,7 @@ jobs:
                         'RESPALDO LISTO',
                         'v489AutoSwaps=0',
                         'v489DryFires++',
-                        "V57.8 · CENTRO DE OPERACIONES"):
+                        "V57.8.1 · CENTRO DE OPERACIONES"):
               assert token in h, 'V48.9: falta arsenal táctico '+token
           # V48.8: live zone guidance, safe parachute actions and bounded effects.
           for token in ("v488Outside=Math.max(0",
@@ -454,7 +454,7 @@ jobs:
                         "window.v36FlightMode!=='landed'",
                         "Number.isFinite(fx)",
                         "if(!Number.isFinite(x)||!Number.isFinite(z))return null",
-                        "V57.8 · CENTRO DE OPERACIONES"):
+                        "V57.8.1 · CENTRO DE OPERACIONES"):
               assert token in h, 'V48.8: regresión combate o zona '+token
           # V49.0: anti-exploit weapon switching, robust rival targeting and match safety.
           for token in ('shootCooldown=Math.max(shootCooldown,.15)',
@@ -463,10 +463,10 @@ jobs:
                         "window.v36FlightMode!=='landed'",
                         'rival.x)||!Number.isFinite(rival.z)',
                         'b.hp>0&&b.hitStun<=0',
-                        'V57.8 · CENTRO DE OPERACIONES'):
+                        'V57.8.1 · CENTRO DE OPERACIONES'):
               assert token in h, 'V49.0: regresión táctica '+token
           # V49.1: safe rival combat, loaded backup scoring, medkit feedback.
-          for token in ('V57.8 · CENTRO DE OPERACIONES',
+          for token in ('V57.8.1 · CENTRO DE OPERACIONES',
                         'candidate.ammo/Math.max(1,candidate.mag',
                         'BOTIQUÍN INTERRUMPIDO POR DAÑO',
                         'v474RivalClock-=Math.min(dt,.1)',
@@ -487,7 +487,7 @@ jobs:
                         'V49.8'):
               assert token in h, 'V49.8: falta recuperación segura '+token
           # V49.9: cloud/account controls live in Settings, not the lobby.
-          for token in ('V57.8 · CENTRO DE OPERACIONES', 'CONFIGURACIÓN V49.9',
+          for token in ('V57.8.1 · CENTRO DE OPERACIONES', 'CONFIGURACIÓN V49.9',
                         'data-section="account"', 'v443Google', 'v494CloudSave',
                         'v494CloudLoad', 'v494AutoCloud', 'v494CloudStatus'):
               assert token in h, 'V49.9: configuración y recuperación incompletas '+token
@@ -499,18 +499,18 @@ jobs:
                         "v495CloudSave(queued.json)",
                         'Último progreso confirmado en Google:',
                         'v497ResetCloudQueue()',
-                        "V57.8 · CENTRO DE OPERACIONES"):
+                        "V57.8.1 · CENTRO DE OPERACIONES"):
               assert token in h, 'V49.7: regresión de guardado Google '+token
           # V49.6: cloud backup state visible in lobby and sign-in not treated as saved.
           for token in ('v496LobbyCloudStatus', 'Google conectado · respaldo remoto sin verificar',
-                        'Invitado · progreso solo en este dispositivo', 'V57.8 · CENTRO DE OPERACIONES'):
+                        'Invitado · progreso solo en este dispositivo', 'V57.8.1 · CENTRO DE OPERACIONES'):
               assert token in h, 'V49.6: regresión estado de nube '+token
           # V49.4: Google sign-in is distinct from explicit Firestore backup/recovery.
           for token in ('v494CloudSave', 'v494CloudLoad',
                         'window.thedemianffCloudResult',
                         'v443ValidateProgress(JSON.parse(payload))',
                         'v494ModelStatus', "models/lila-operator.glb",
-                        'V57.8 · CENTRO DE OPERACIONES'):
+                        'V57.8.1 · CENTRO DE OPERACIONES'):
               assert token in h, 'V49.4: falta nube / lobby '+token
           native = Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
           rules = Path('firestore.rules').read_text()
@@ -523,12 +523,12 @@ jobs:
           for token in ('const strafeLean=!air&&!crouch',
                         'const v493Gear=new THREE.Group()',
                         'const tracks=new THREE.InstancedMesh',
-                        'V57.8 · CENTRO DE OPERACIONES'):
+                        'V57.8.1 · CENTRO DE OPERACIONES'):
               assert token in h, 'V49.3: regresión visual '+token
           # V49.2: Lila strafe response remains; loose ice rocks are intentionally disabled in V57.6.
           for token in ("const strafeLean=",
                         "model.rotation.z+=(strafeLean-model.rotation.z)*ease",
-                        "V57.8 · CENTRO DE OPERACIONES",
+                        "V57.8.1 · CENTRO DE OPERACIONES",
                         "looseFrostStones:false",
                         "valleyRockCliffs:false"):
               assert token in h, 'V49.2/V57.6: visual regression '+token
@@ -540,7 +540,7 @@ jobs:
                         "Falta el operador inicial.",
                         "Cambió la cuenta Google durante la recuperación"):
               assert token in java, 'V50.3: protección de cuenta en Firebase '+token
-          for token in ('V57.8 · CENTRO DE OPERACIONES',
+          for token in ('V57.8.1 · CENTRO DE OPERACIONES',
                         '☁ CONSULTANDO RESPALDO…',
                         'Recuperación desde Google en curso'):
               assert token in h, 'V50.3: estado nube en lobby '+token
@@ -554,7 +554,7 @@ jobs:
                         "ESPERA A TERMINAR LA RECARGA",
                         "Number.isFinite(amount)",
                         "Number.isInteger(n)",
-                        "V57.8 · CENTRO DE OPERACIONES"):
+                        "V57.8.1 · CENTRO DE OPERACIONES"):
               assert token in h, 'V48.7: regresión de combate '+token
           # V48.6: safe-zone supply placement, guarded animation and battle diagnostics.
           for token in ('v477InZone(tx,tz,4)',
@@ -563,7 +563,7 @@ jobs:
                         'Number.isFinite(dt)',
                         'typeof mobile',
                         'visibleToPlayer&&effects.length<36',
-                        'V57.8 · CENTRO DE OPERACIONES'):
+                        'V57.8.1 · CENTRO DE OPERACIONES'):
               assert token in h, 'V48.6: regresión estabilidad '+token
           # V48.5: combat clarity, rival AI suppression and low-ammo notices.
           for token in ('attacker.suppression>.92',
@@ -572,7 +572,7 @@ jobs:
                         'visibleToPlayer&&effects.length<36',
                         'depthWrite:false,depthTest:true',
                         'Math.min(10,v8Combo+1)',
-                        "V57.8 · CENTRO DE OPERACIONES"):
+                        "V57.8.1 · CENTRO DE OPERACIONES"):
               assert token in h, 'V48.5: regresión de combate '+token
           # V48.4: ammunition alerts, obstacle hit validation and battle FX budget.
           for token in ("SIN MUNICIÓN · CAMBIA DE ARMA",
@@ -601,7 +601,7 @@ jobs:
                         "QUÉDATE QUIETO",
                         'v474RivalClock=.50',
                         'if(++checked>56)break',
-                        'V57.8 · CENTRO DE OPERACIONES'):
+                        'V57.8.1 · CENTRO DE OPERACIONES'):
               assert token in h, 'V48.2: regresión combate '+token
           # V48.1: mobile sprint animation and airborne combat accuracy.
           for token in ('sprintHeld&&speed>5.5',
@@ -623,7 +623,7 @@ jobs:
                         "rival.airborne||rival.retreatTime>0",
                         "cache.remaining===0",
                         'v474SupplyCount>=5',
-                        "V57.8 · CENTRO DE OPERACIONES"):
+                        "V57.8.1 · CENTRO DE OPERACIONES"):
               assert token in h, 'V48.0: regresión sistemas de batalla '+token
           # V47.7: tactical rivalry and supply signals in playable loop.
           for token in ('function v477FindRivalTarget(source,targets)',
@@ -658,7 +658,7 @@ jobs:
                         'window.THEDEMIANFF_V474_SUPPLIES',
                         'v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[]'):
               assert token in h, 'V47.4: falta rivalidad enemiga o suministros '+token
-          assert "versionCode 152" in Path('app/build.gradle').read_text(), 'V55.4: versionCode desfasado'
+          assert "versionCode 153" in Path('app/build.gradle').read_text(), 'V55.4: versionCode desfasado'
           assert "if(name==='ESTADÍSTICAS')" in h, 'V45: falta panel de estadísticas del jugador'
           for metric in ('PORCENTAJE DE VICTORIAS','BAJAS POR PARTIDA','MEJOR MARCA','XP PARA SUBIR'):
               assert metric in h, 'V45: falta métrica '+metric
@@ -741,7 +741,7 @@ jobs:
           assert 'const tacticalBack=mobile?clamp(baseBack*1.06,10,16):baseBack;' in h, 'V55.6: mobile camera distance tuning missing'
           assert 'const height=(mobile?2.68:2.78)-(mobile?.20:.18)*b;' in h, 'V55.6: hybrid camera shoulder framing missing'
           gradle=Path('app/build.gradle').read_text()
-          assert 'versionCode 152' in gradle and "versionName '57.8-hybrid-camera-scale'" in gradle, 'V57.6: release identity mismatch'
+          assert 'versionCode 153' in gradle and "versionName '57.8.1-start-repair'" in gradle, 'V57.6: release identity mismatch'
           for token in ('id="v38TabAchievements"', 'id="v38AchievementsView"', 'v56RenderAchievements' if 'v56RenderAchievements' in h else 'function v38RenderAchievements()', 'v56StoreGrid', 'v56StoreArt', 'Array.from({length:30}', 'data-v18="passbuy"', 'pass_free_', 'pass_elite_', 'result.passElite=p.passElite===true', 'v434Optics.active().zoom', 'targetFov=baseFov/v434Optics.active().zoom', "const d=clamp(baseDistance*2.05,22,28)", 'Smooth vertical tracking is essential', 'if(l.renderer&&now-l.last>(mobile?40:33))'):
               assert token in h, 'V57.6: missing lobby/pass/camera component '+token
           for token in ('id="v500CloudBadge"', 'id="v533AccountShortcut"', 'id="v502CloudAccess"'):
@@ -782,8 +782,8 @@ jobs:
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
           h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
-          assert 'versionCode 152' in gradle, 'V48.6 requiere versionCode 152'
-          assert "versionName '57.8-hybrid-camera-scale'" in gradle, 'V55.4: versión Android incorrecta'
+          assert 'versionCode 153' in gradle, 'V48.6 requiere versionCode 153'
+          assert "versionName '57.8.1-start-repair'" in gradle, 'V55.4: versión Android incorrecta'
           # V50.4: Google-first login and safe automatic cloud recovery.
           for token in ('id="v504GoogleEntry"',
                         'v504StartCloudRestore()',
@@ -793,7 +793,7 @@ jobs:
                         'if(!autoRestore&&!confirm(summary+',
                         'localStorage.setItem(v504AccountProgress(v446GoogleEmail)',
                         'v504SimpleAccount',
-                        'V57.8 · CENTRO DE OPERACIONES'):
+                        'V57.8.1 · CENTRO DE OPERACIONES'):
               assert token in h, 'V50.4 Google account regression '+token
           for token in ('if(!doc.exists())', 'El respaldo remoto existe pero no es válido. No se sobrescribirá.'):
               assert token in java, 'V50.4 remote backup safety regression '+token
@@ -805,7 +805,7 @@ jobs:
                         'v502AuroraMist',
                         'v502HangarLight',
                         'v502ReadyBanner',
-                        'V57.8 · CENTRO DE OPERACIONES',
+                        'V57.8.1 · CENTRO DE OPERACIONES',
                         "v494CloudBridge.save(valid)",
                         "v494CloudBridge.load()"):
               assert token in h, 'V50.2 missing lobby or backup feature: '+token
@@ -826,7 +826,7 @@ jobs:
                         "v495CloudLastConfirmed>0&&!v495CloudSaveInFlight",
                         "Hay un guardado pendiente. Espera la confirmación",
                         "v501LobbyPolish",
-                        "V57.8 · CENTRO DE OPERACIONES"):
+                        "V57.8.1 · CENTRO DE OPERACIONES"):
               assert token in h, 'V50.1: regresión lobby/nube '+token
           print('V50.1 lobby and cloud safety checks passed')
           PY
@@ -894,3 +894,7 @@ jobs:
         with:
           name: THEDEMIANFF-PRUEBA-NO-ACTUALIZABLE-FIRMA-TEMPORAL
           path: app/build/outputs/apk/debug/app-debug.apk
+
+          assert "v578StartButton.addEventListener('click',start)" in html, "V57.8.1: Start button must bind before later boot code"
+          assert "startStage='world-reset';reset();" in html, "V57.8.1: startup phase diagnostics missing"
+          assert "NO SE PUDO INICIAR LA PARTIDA" in html, "V57.8.1: startup errors must be visible"
