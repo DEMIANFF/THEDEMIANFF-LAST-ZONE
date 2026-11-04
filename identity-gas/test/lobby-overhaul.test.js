@@ -158,6 +158,7 @@ test('V57.8.1 binds the start button before later boot code and reports initiali
   assert.ok(html.includes("window.__THEDEMIANFF_START_DIAGNOSTIC={stage:startStage,message:"));
   assert.ok(html.includes("panel.textContent='NO SE PUDO INICIAR LA PARTIDA"));
   assert.ok(html.includes("launchButton.textContent='REINTENTAR PARTIDA'"));
+  assert.ok(html.includes("launchButton.textContent='▶ INICIAR PARTIDA'"));
   assert.doesNotMatch(html, /\$\('start'\)\.onclick=start/);
 });
 
