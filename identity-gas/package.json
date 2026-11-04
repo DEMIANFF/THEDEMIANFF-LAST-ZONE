@@ -4,6 +4,6 @@
   "description": "Tests for the Google Apps Script player ID service",
   "scripts": {
     "test": "node --test test/*.test.js",
-    "check": "node --check < Code.gs && node --check test/identity.test.js"
+    "check": "node --check < Code.gs && node --check test/identity.test.js && node --check test/account-isolation.test.js"
   }
 }
