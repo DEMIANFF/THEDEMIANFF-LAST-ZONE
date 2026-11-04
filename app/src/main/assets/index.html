@@ -759,7 +759,7 @@ function v504HasPriorGoogleAccount(){
 const v504AccountProgress=email=>'thedemianff_v504_progress_'+encodeURIComponent(email.toLowerCase());
 const v504PendingGuest=email=>'thedemianff_v504_guest_transfer_'+encodeURIComponent(email.toLowerCase());
 const v504Blank=()=>({credits:0,xp:0,matches:0,wins:0,kills:0,best:0,skin:0,unlocked:[0],weapon:0,claimed:[]});
-function v504SetLocalProgress(data){const serialized=JSON.stringify(v443ValidateProgress(data));localStorage.setItem(progressKey,serialized);if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(serialized))throw Error('No se pudo guardar el progreso invitado del dispositivo.');}
+function v504SetLocalProgress(data){const validated=v443ValidateProgress(data);const serialized=JSON.stringify(validated);localStorage.setItem(progressKey,serialized);if(typeof v18Progress!=='undefined'){v18Progress=validated;if(typeof v18Refresh==='function')v18Refresh();}if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(serialized))throw Error('No se pudo guardar el progreso invitado del dispositivo.');}
 function v504StartCloudRestore(){if(!v494CloudBridge||!v446GoogleEmail)return;v504CloudReady=false;v504Restoring=true;v498CloudLoadPending=true;v498CloudLoadAccount=v446GoogleEmail;v496LobbyCloudStatus('☁ Recuperando automáticamente desde Google…');try{v494CloudBridge.load();}catch(e){v504Restoring=false;v498CloudLoadPending=false;v494CloudNotice('⚠ Sin conexión. No se sobrescribirá el respaldo: '+e.message);}}
 
 let v495CloudSaveInFlight=false,v495CloudLastConfirmed=0;
@@ -876,7 +876,7 @@ guest.addEventListener('click',()=>{try{
  // Do not touch a Google-linked profile while its cloud recovery is pending.
  if(!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)){
   const guestProgress=v443ValidateProgress(JSON.parse(localStorage.getItem(progressKey)));
-  Object.assign(v18Progress,guestProgress);
+  v18Progress=guestProgress;
   if(v536EnsureIdentity())v18Save();else v18Refresh();
  }
  entry.style.display='none';
@@ -1171,7 +1171,7 @@ window.thedemianffCloudResult=(state,payload)=>{
    // property insertion orders (default object vs validated Firestore data).
    // Do not auto-upload during restore or overwrite the remote document.
    if(typeof v18Progress!=='undefined'){
-    Object.assign(v18Progress,saved);
+    v18Progress=saved;
     if(typeof v18Refresh==='function')v18Refresh();
     v540RequestId();
    }
