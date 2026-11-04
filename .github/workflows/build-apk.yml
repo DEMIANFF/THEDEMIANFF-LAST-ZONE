@@ -898,3 +898,4 @@ jobs:
           assert "v578StartButton.addEventListener('click',start)" in html, "V57.8.1: Start button must bind before later boot code"
           assert "startStage='world-reset';reset();" in html, "V57.8.1: startup phase diagnostics missing"
           assert "NO SE PUDO INICIAR LA PARTIDA" in html, "V57.8.1: startup errors must be visible"
+          assert "launchButton.textContent='▶ INICIAR PARTIDA'" in html, "V57.8.1: restore launch button after success"
