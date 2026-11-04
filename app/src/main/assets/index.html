@@ -855,12 +855,23 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 }
 </style>
 
+<style id="v584MatchOnlyAimHUD">
+/* V57.4: reticle and optic labels are part of the match HUD, never the lobby. */
+body:not(.v475InMatch) #cross,
+body:not(.v475InMatch) #v10Reticle,
+body:not(.v475InMatch) #v13AimMode,
+body:not(.v475InMatch) #v434ScopeLabel,
+body:not(.v475InMatch) #v434ScopeButton{display:none!important}
+body.v475InMatch #v10Reticle{display:block!important}
+body.v475InMatch #v13AimMode{display:block!important}
+</style>
+
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V57.3 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
+<div id="v22Edition">V57.4 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"><span class="v581Currency"><small>CR</small><b id="v18Credits">0</b></span><span class="v581Currency"><small>XP</small><b id="v18XP">0</b></span><button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE AURORA</button><button data-lobby="PERSONAJE">♙ &nbsp; OPERADORES</button><button data-lobby="OPERACIONES">◈ &nbsp; EVENTOS Y OBJETIVOS</button><button data-lobby="ARMAS">⌖ &nbsp; ARSENAL</button><button data-lobby="INVENTARIO">▣ &nbsp; INVENTARIO</button><button data-lobby="PRESET">☷ &nbsp; EQUIPAMIENTOS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V57.3</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V57.4</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
 
 <div class="v17Bottom"><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -884,7 +895,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 <div class="settingsSection" data-section="control">
 <label class="v37Primary">SENSIBILIDAD GENERAL · CÁMARA 360° <input id="sensitivity" type="range" min=".35" max="3" step=".05" value="1.25"></label>
 <label class="v37Advanced">Sensibilidad vertical <input id="verticalSensitivity" type="range" min=".35" max="3" step=".05" value="1.2"></label>
-<label class="v37Primary">DISTANCIA DE CÁMARA · TERCERA PERSONA <input id="v26CameraDistance" type="range" min="8.5" max="14" step=".25" value="8.5"></label><label class="v37Advanced">Separación lateral de cámara · hombro derecho <input id="v26CameraShoulder" type="range" min="1.0" max="1.7" step=".05" value="1.45"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
+<label class="v37Primary">DISTANCIA DE CÁMARA · TERCERA PERSONA <input id="v26CameraDistance" type="range" min="8.5" max="14" step=".25" value="8.5"></label><label class="v37Advanced">Separación lateral de cámara · hombro derecho <input id="v26CameraShoulder" type="range" min="1.6" max="2.4" step=".05" value="2.1"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
 <label class="v37Advanced">Velocidad de cámara <input id="cameraSpeed" type="range" min=".6" max="1.8" step=".05" value="1"></label>
 <label>Invertir cámara vertical <input id="invertY" type="checkbox"></label>
 <label>Ayuda de apuntado <input id="aimAssist" type="checkbox" checked></label>
@@ -4841,7 +4852,11 @@ for(const id of ['v26CameraDistance','v26CameraShoulder','v26TouchDeadzone','v26
   if(saved!==null){
    const value=Number(saved);
    if(id==='v26CameraDistance')el.value=String(Number.isFinite(value)?clamp(value,8.5,14):8.5);
-   else if(id==='v26CameraShoulder')el.value=String(Number.isFinite(value)?clamp(value,1.0,1.7):1.45);
+   else if(id==='v26CameraShoulder'){
+    const calibrated=Number.isFinite(value)&&value>=1.6?clamp(value,1.6,2.4):2.1;
+    el.value=String(calibrated);
+    localStorage.setItem('v26-pref-'+id,String(calibrated));
+   }
    else el.value=saved;
   }
  }catch{}
@@ -4872,7 +4887,7 @@ const v434Optics={
   if(reticle)reticle.dataset.scope=this.active().name;
   if(cross)cross.dataset.scope=this.active().name;
   if(button){
-   const visible=!!(isADS && running && !paused && !gameOver &&
+   const visible=!!(document.body.classList.contains('v475InMatch') && isADS && running && !paused && !gameOver &&
      window.v36FlightMode!=='aircraft' &&
      window.v36FlightMode!=='freefall' &&
      window.v36FlightMode!=='parachute');
@@ -4881,7 +4896,7 @@ const v434Optics={
     'display',visible?'block':'none','important'
    );
   }
-  if(label){label.textContent=isADS?this.active().name:'';label.style.display=isADS?'block':'none';}
+  if(label){const visible=!!(document.body.classList.contains('v475InMatch')&&isADS&&running&&!paused&&!gameOver);label.textContent=visible?this.active().name:'';label.style.display=visible?'block':'none';}
  }
 };
 // V53.2: restore the player's preferred sight magnification after relaunch.
@@ -4949,10 +4964,10 @@ const v432Camera={
   // Un solo blend gobierna hombro, distancia, altura y FOV.
   const b=this.blend;
   const baseBack=clamp(Number($('v26CameraDistance').value)||8.5,8.5,14);
-  const baseShoulder=clamp(Number($('v26CameraShoulder').value)||1.45,1.0,1.7);
+  const baseShoulder=-clamp(Number($('v26CameraShoulder').value)||2.1,1.6,2.4);
   const tacticalBack=mobile?clamp(baseBack*1.05,8.5,14):baseBack;
   const back=tacticalBack*(1-b)+Math.max(7.5,baseBack*.96)*b;
-  const shoulder=baseShoulder*(1-b)+baseShoulder*.78*b;
+  const shoulder=baseShoulder*(1-b)+baseShoulder*.90*b;
   // V52.9: lift the over-shoulder camera without shortening its distance.
   const height=(mobile?2.85:2.9)-(mobile?.34:.28)*b;
   if(!Number.isFinite(this.back)){
