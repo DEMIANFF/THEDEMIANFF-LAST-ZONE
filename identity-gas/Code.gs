@@ -109,8 +109,9 @@ function verifyFirebaseGoogleUser_(idToken) {
   return user.localId;
 }
 
-/** Lock lookup + append + counter update. Recover only one complete, sequential tail row
- * if a process stopped after writing the row but before persisting the high-water mark. */
+/** Lock lookup + full registry audit + append + counter update.
+ * Recover only one complete sequential tail row after a possible interrupted append.
+ * Every persisted row is validated before an existing or new ID is returned. */
 function assignPlayerNumber_(uid) {
   const lock = LockService.getScriptLock();
   try {
@@ -124,6 +125,9 @@ function assignPlayerNumber_(uid) {
     const sheetId = properties.getProperty(SHEET_ID_PROPERTY);
     const counterRaw = properties.getProperty(COUNTER_PROPERTY);
     if (!sheetId || counterRaw === null) throw serviceError_('NOT_CONFIGURED');
+    if (typeof counterRaw !== 'string' || !/^(0|[1-9][0-9]*)$/.test(counterRaw)) {
+      throw serviceError_('REGISTRY_CORRUPT');
+    }
 
     let counter = Number(counterRaw);
     if (!Number.isSafeInteger(counter) || counter < 0 || counter > MAX_PLAYER_ID) {
@@ -133,47 +137,42 @@ function assignPlayerNumber_(uid) {
     const spreadsheet = SpreadsheetApp.openById(sheetId);
     const sheet = spreadsheet.getSheetByName('players');
     validateSheetHeaders_(sheet);
-    let lastRow = sheet.getLastRow();
+    const lastRow = sheet.getLastRow();
+    const dataRows = lastRow > 1
+      ? sheet.getRange(2, 1, lastRow - 1, 3).getValues()
+      : [];
 
-    // A process can be interrupted between appending the row and updating Script Properties.
-    // Recover exactly that one verifiable tail write; never guess across multiple missing rows.
-    if (lastRow === counter + 2) {
-      const tail = sheet.getRange(lastRow, 1, 1, 3).getValues()[0];
+    let registryRows = dataRows;
+
+    // A process can be interrupted after appending one complete row but before
+    // persisting the high-water mark. Validate the committed prefix first.
+    if (dataRows.length === counter + 1) {
+      const committedRows = dataRows.slice(0, counter);
+      const committedRegistry = validateRegistryRows_(committedRows, counter);
+      const tail = dataRows[counter];
       const tailUid = tail[0];
-      const tailNumber = Number(tail[1]);
-      if (typeof tailUid !== 'string' || tailUid.length === 0 ||
-          !Number.isSafeInteger(tailNumber) || tailNumber > MAX_PLAYER_ID ||
-          tailNumber !== counter + 1 || tail[2] === '' || tail[2] === null) {
+      const tailNumber = tail[1];
+      const tailCreatedAt = tail[2];
+
+      if (typeof tailUid !== 'string' || tailUid.trim().length === 0 ||
+          tailUid.length > 128 || tailUid.indexOf('/') !== -1 ||
+          typeof tailNumber !== 'number' || !Number.isSafeInteger(tailNumber) ||
+          tailNumber !== counter + 1 || tailNumber > MAX_PLAYER_ID ||
+          tailCreatedAt === '' || tailCreatedAt === null || tailCreatedAt === undefined ||
+          committedRegistry.byUid.has(tailUid)) {
         throw serviceError_('REGISTRY_CORRUPT');
       }
-      if (lastRow > 2) {
-        const duplicateTail = sheet.getRange(2, 1, lastRow - 2, 1)
-          .createTextFinder(tailUid)
-          .matchEntireCell(true)
-          .findAll();
-        if (duplicateTail.length > 0) throw serviceError_('REGISTRY_CORRUPT');
-      }
+
       counter = tailNumber;
       properties.setProperty(COUNTER_PROPERTY, String(counter));
+    } else if (dataRows.length !== counter) {
+      throw serviceError_('REGISTRY_CORRUPT');
     }
-    if (lastRow !== counter + 1) throw serviceError_('REGISTRY_CORRUPT');
 
-    if (counter > 0) {
-      const matches = sheet.getRange(2, 1, counter, 1)
-        .createTextFinder(uid)
-        .matchEntireCell(true)
-        .findAll();
-      if (matches.length > 1) throw serviceError_('REGISTRY_CORRUPT');
-      if (matches.length === 1) {
-        const row = matches[0].getRow();
-        const existingNumber = Number(sheet.getRange(row, 2).getValue());
-        if (!Number.isSafeInteger(existingNumber) || existingNumber < 1 ||
-            existingNumber > counter || row !== existingNumber + 1) {
-          throw serviceError_('REGISTRY_CORRUPT');
-        }
-        return existingNumber;
-      }
-    }
+    // Detect gaps, reordered IDs, duplicate numbers, duplicate UIDs, blank rows,
+    // malformed records and a counter/registry mismatch before issuing any ID.
+    const registry = validateRegistryRows_(registryRows, counter);
+    if (registry.byUid.has(uid)) return registry.byUid.get(uid);
 
     if (counter >= MAX_PLAYER_ID) throw serviceError_('RESOURCE_EXHAUSTED');
     const nextNumber = counter + 1;
@@ -184,6 +183,33 @@ function assignPlayerNumber_(uid) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/** Validate the complete ordered registry and return its UID-to-number index. */
+function validateRegistryRows_(rows, expectedCount) {
+  if (!Array.isArray(rows) || rows.length !== expectedCount) {
+    throw serviceError_('REGISTRY_CORRUPT');
+  }
+
+  const byUid = new Map();
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    if (!Array.isArray(row) || row.length < 3) throw serviceError_('REGISTRY_CORRUPT');
+
+    const uid = row[0];
+    const number = row[1];
+    const createdAt = row[2];
+    if (typeof uid !== 'string' || uid.trim().length === 0 ||
+        uid.length > 128 || uid.indexOf('/') !== -1 ||
+        typeof number !== 'number' || !Number.isSafeInteger(number) ||
+        number !== index + 1 ||
+        createdAt === '' || createdAt === null || createdAt === undefined ||
+        byUid.has(uid)) {
+      throw serviceError_('REGISTRY_CORRUPT');
+    }
+    byUid.set(uid, number);
+  }
+  return { byUid: byUid };
 }
 
 function validateSheetHeaders_(sheet) {
