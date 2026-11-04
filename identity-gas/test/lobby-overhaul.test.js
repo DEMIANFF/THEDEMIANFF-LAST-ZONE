@@ -61,7 +61,7 @@ test('Aurora pass has 30 persistent free and Elite reward tiers without real-mon
   assert.match(html, /data-v18="passbuy"/);
   assert.match(html, /pass_free_/);
   assert.match(html, /pass_elite_/);
-  assert.match(html, //result\\.passElite=p\\.passElite===true//);
+  assert.match(html, /result\.passElite=p\.passElite===true/);
   assert.match(html, /result\.eventCompletions=eventCompletions/);
   assert.match(html, /p\.credits-=2400;p\.passElite=true/);
   assert.match(html, /No utiliza Google Play ni dinero real/);
