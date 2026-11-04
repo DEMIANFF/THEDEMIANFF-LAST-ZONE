@@ -11,7 +11,7 @@ const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
 test('V57.6 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.match(menu, /V57.6 · CENTRO DE OPERACIONES/);
+  assert.match(menu, /V57.7 · CENTRO DE OPERACIONES/);
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -90,14 +90,14 @@ test('parachute camera is pulled back and Lila preview supports touch rotation a
 });
 
 test('Android release is V57.6 with a monotonic version code', () => {
-  assert.match(gradle, /versionCode 150/);
-  assert.match(gradle, /versionName '57.6-open-entrances-ground-zone'/);
+  assert.match(gradle, /versionCode 151/);
+  assert.match(gradle, /versionName '57.7-bot-wall-slide'/);
 });
 
 test('V57 Android package metadata is monotonic and matches the lobby release', () => {
-  assert.match(gradle, /versionCode 150/);
-  assert.match(gradle, /versionName '57.6-open-entrances-ground-zone'/);
-  assert.match(html, /V57.6 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionCode 151/);
+  assert.match(gradle, /versionName '57.7-bot-wall-slide'/);
+  assert.match(html, /V57.7 · CENTRO DE OPERACIONES/);
 });
 
 test('V57.6 activates the authored Aurora battle royale environment and visual resources', () => {
@@ -134,9 +134,9 @@ test('V57.6 visual roots dispose their private materials while shared GPU geomet
 });
 
 test('Android release is V57.6 with monotonic version code 149', () => {
-  assert.match(gradle, /versionCode 150/);
-  assert.match(gradle, /versionName '57.6-open-entrances-ground-zone'/);
-  assert.match(html, /V57.6 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionCode 151/);
+  assert.match(gradle, /versionName '57.7-bot-wall-slide'/);
+  assert.match(html, /V57.7 · CENTRO DE OPERACIONES/);
 });
 test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
   assert.match(html, /function v576RegisterOpenBuilding/);

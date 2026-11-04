@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const htmlPath = path.join(__dirname, '../../app/src/main/assets/index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
@@ -137,4 +138,44 @@ test('V57.6 keeps only the floor-level zone perimeter, not a translucent volume 
   assert.doesNotMatch(html, /new THREE\.CylinderGeometry\(1,1,10,72,1,true\)/);
   assert.doesNotMatch(html, /V583_SAFE_ZONE_WALL/);
   assert.match(html, /zoneRing\.position\.set\(zoneCenter\.x,ground\(zoneCenter\.x,zoneCenter\.y\)\+\.25,zoneCenter\.y\)/);
+});
+
+
+const v577CollisionSource = html.match(/function v577ResolveBotWallSlide\([\\s\\S]*?\\n}\\n/);
+assert.ok(v577CollisionSource, 'V57.7 bot collision resolver must be present');
+const v577Resolve = vm.runInNewContext('(' + v577CollisionSource[0].trim() + ')');
+const v577Move = (...args) => JSON.parse(JSON.stringify(v577Resolve(...args)));
+
+test('V57.7 bot movement keeps full motion when the path is clear', () => {
+  assert.deepEqual(v577Move(0, 0, 2, 3, 0.4, () => false),
+    { x: 2, z: 3, movedX: true, movedZ: true, blocked: false });
+});
+
+test('V57.7 bots slide along a wall instead of freezing on diagonal contact', () => {
+  const wallZ = (_x, z, radius) => z + radius > 1;
+  assert.deepEqual(v577Move(0, 0, 2, 2, 0.25, wallZ),
+    { x: 2, z: 0, movedX: true, movedZ: false, blocked: true });
+  const wallX = (x, _z, radius) => x + radius > 1;
+  assert.deepEqual(v577Move(0, 0, 2, 1, 0.25, wallX),
+    { x: 0, z: 1, movedX: false, movedZ: true, blocked: true });
+});
+
+test('V57.7 diagonal corner contact chooses the axis with greater progress', () => {
+  const corner = (x, z, radius) => x + radius > 0.5 && z + radius > 0.5;
+  assert.deepEqual(v577Move(0, 0, 2, 1, 0.1, corner),
+    { x: 2, z: 0, movedX: true, movedZ: false, blocked: true });
+  assert.deepEqual(v577Move(0, 0, 1, 2, 0.1, corner),
+    { x: 0, z: 2, movedX: false, movedZ: true, blocked: true });
+});
+
+test('V57.7 bots stop safely when both slide axes remain blocked', () => {
+  const boxedIn = (x, z, radius) => x + radius > 0.5 || z + radius > 0.5;
+  assert.deepEqual(v577Move(0, 0, 1, 1, 0.1, boxedIn),
+    { x: 0, z: 0, movedX: false, movedZ: false, blocked: true });
+});
+
+test('V57.7 wall-slide integration preserves the original bot collision radius', () => {
+  assert.match(html, /v577ResolveBotWallSlide\(b\.x,b\.z,bx-b\.x,bz-b\.z,\.7\*b\.root\.scale\.x,solid\)/);
+  assert.match(html, /if\(v577Step\.movedX\)[\\s\\S]*?b\.velocityZ\*=\.28/);
+  assert.match(html, /else if\(v577Step\.movedZ\)[\\s\\S]*?b\.velocityX\*=\.28/);
 });
