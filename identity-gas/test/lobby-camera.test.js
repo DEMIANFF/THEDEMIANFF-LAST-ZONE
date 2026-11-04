@@ -8,7 +8,7 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 
 test('lobby profile header opens the unified account panel', () => {
   assert.match(html, /id="v18Profile"[^>]*role="button"/);
-  assert.match(html, /\$\('v18Profile'\)\.onclick=\(\)=>v18Open\('CUENTA DE JUGADOR'\)/);
+  assert.match(html, /\$('v18Profile')\.onclick=\(\)=>v18Open\('CUENTA DE JUGADOR'\)/);
   assert.match(html, /id="v536LobbyName"/);
   assert.match(html, /id="v536LobbyId"/);
   assert.match(html, /id="v536LobbyAvatar"/);
@@ -23,10 +23,10 @@ test('identity and statistics are no longer duplicated in the lobby navigation',
   }
 });
 
-test('hybrid third-person camera keeps a moderate mobile distance and higher framing', () => {
+test('hybrid third-person camera keeps a moderate mobile distance and lower shoulder framing', () => {
   assert.match(html, /id="v26CameraDistance"[^>]*value="7\.0"/);
   assert.ok(html.includes('const tacticalBack=mobile?clamp(baseBack*1.10,3,12):baseBack;'));
-  assert.ok(html.includes('const height=(mobile?3.15:3.0)-(mobile?.40:.32)*b;'));
+  assert.ok(html.includes('const height=(mobile?2.85:2.9)-(mobile?.34:.28)*b;'));
   assert.ok(html.includes('const v432Camera={'));
   assert.ok(html.includes('aimFromFire(dx,dy)'));
 });
