@@ -48,6 +48,8 @@ test('Google account transfer is guarded and owner marker is stored before accou
   const isolate = html.indexOf('if(incoming&&!sameAccount)', guard);
   assert.ok(guard >= 0 && marker > guard && isolate > marker);
   assert.ok(html.includes('localStorage.setItem(v504PendingGuest(incoming),validated)'));
+  assert.ok(html.includes('transferOwner===v446GoogleEmail?localStorage.getItem(v504PendingGuest(v446GoogleEmail)):null'));
+  assert.ok(!html.includes('const pending=localStorage.getItem(v504PendingGuest(v446GoogleEmail));'));
 });
 
 test('native logout waits for Google sign-out completion before notifying the WebView', () => {
