@@ -4,7 +4,7 @@ name: Compilar APK offline THEDEMIANFF
 on:
   workflow_dispatch:
   push:
-    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite, v38-3-lobby-parachute-polish, v38-6-lobby-polish-flight-controls, v38-7-parachute-axis-walk-68, v38-8-flight-axes-walk-74, v38-9-camera-relative-parachute, v39-0-walk-81-stable, v39-1-combat-precision-stability, v39-2-arsenal-recoil-polish, v39-3-impact-feedback-enemy-reaction, v39-4-tactical-cover-ai, v39-5-combat-animation-polish, v39-6-puerto-aurora-expansion, v39-7-aurora-cinematic-visuals, v39-8-aircraft-drop-rework, v40-architecture-reconstruction, v42-battle-royale-evolution, v42-2-graphics-recovery, v42-3-render-stability, v42-4-render-fix, v42-5-world-polish, v44-2-android-assets-fix, v44-3-account-entry-preview, v44-3-1-backup-integrity, v44-3-2-autosave-guest, v44-4-firebase-foundation, v44-5-secure-player-profiles, v55-4-free-player-identity, v56-0-royale-lobby-overhaul]
+    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite, v38-3-lobby-parachute-polish, v38-6-lobby-polish-flight-controls, v38-7-parachute-axis-walk-68, v38-8-flight-axes-walk-74, v38-9-camera-relative-parachute, v39-0-walk-81-stable, v39-1-combat-precision-stability, v39-2-arsenal-recoil-polish, v39-3-impact-feedback-enemy-reaction, v39-4-tactical-cover-ai, v39-5-combat-animation-polish, v39-6-puerto-aurora-expansion, v39-7-aurora-cinematic-visuals, v39-8-aircraft-drop-rework, v40-architecture-reconstruction, v42-battle-royale-evolution, v42-2-graphics-recovery, v42-3-render-stability, v42-4-render-fix, v42-5-world-polish, v44-2-android-assets-fix, v44-3-account-entry-preview, v44-3-1-backup-integrity, v44-3-2-autosave-guest, v44-4-firebase-foundation, v44-5-secure-player-profiles, v55-4-free-player-identity, v56-0-royale-lobby-overhaul, v57-lobby-camera-stability]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -105,7 +105,7 @@ jobs:
               assert token in java, 'V55.4: Android free identity integration missing: '+token
           assert 'FirebaseFunctions' not in java and 'getHttpsCallable' not in java, 'V55.4: Android must not depend on paid Cloud Functions'
           assert 'db.runTransaction(transaction ->' not in java, 'V55: client-side identity transaction must be removed'
-          assert 'V56.0 · CENTRO DE OPERACIONES' in html and 'AURORA EVOLUTION · V56.0' in html, 'V56.0: lobby labels must match the release'
+          assert 'V57.0 · CENTRO DE OPERACIONES' in html and 'AURORA EVOLUTION · V57.0' in html, 'V57.0: lobby labels must match the release'
           for token in ('UNAUTHENTICATED', 'GOOGLE_REQUIRED', 'REGISTRY_CORRUPT', 'RESOURCE_EXHAUSTED', 'BUSY'):
               assert token in java, 'V55.4: free identity error mapping missing: '+token
           gas=Path('identity-gas/Code.gs').read_text(encoding='utf-8')
