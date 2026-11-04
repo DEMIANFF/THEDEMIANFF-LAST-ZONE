@@ -1537,7 +1537,7 @@ function v424RockGeometry(){
   const k=1+n*.16;
   p.setXYZ(i,x*k,y*k*.86,z*k);
  }
- g.computeVertexNormals();
+ g.computeVertexNormals();g.userData.v583Shared=true;
  v424RockGeo=g;return g;
 }
 function v424Rock(r,material,parent,x,y,z){
@@ -2644,6 +2644,7 @@ function v396ExpandAurora(){
  const accent=new THREE.MeshStandardMaterial({color:'#5ce6d2',emissive:'#127a76',emissiveIntensity:.45,roughness:.4});
  const roof=new THREE.MeshStandardMaterial({color:'#273e56',metalness:.42,roughness:.62});
  const districts=[{x:-83,z:-72,name:'HELIOS'},{x:87,z:66,name:'VÓRTEX'},{x:80,z:-91,name:'CRISTAL'},{x:-95,z:79,name:'ECOS'}];
+ const v396Root=new THREE.Group();v396Root.name='V396_AURORA_DISTRICTS';scene.add(v396Root);
  // V40 texture pass: deterministic 128px offline maps shared across buildings.
  // CanvasTexture avoids network dependencies and preserves the offline APK.
  function v40Texture(kind){
@@ -2830,7 +2831,7 @@ function v396ExpandAurora(){
  let placed=0;
  function place(x,z,w,h,d,material,kind){
   if(Math.abs(x)>HALF-9||Math.abs(z)>HALF-9||Math.hypot(x,z)<21||solid(x,z,Math.max(w,d)*.58+1))return false;
-  const g=new THREE.Group();g.position.set(x,ground(x,z),z);scene.add(g);
+  const g=new THREE.Group();g.position.set(x,ground(x,z),z);v396Root.add(g);
   const main=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
   main.position.y=h*.5;main.castShadow=true;main.receiveShadow=true;g.add(main);if(kind==='building'){const pl=new THREE.Mesh(new THREE.BoxGeometry(w+.06,.35,d+.06),v40Concrete);pl.position.y=.13;pl.receiveShadow=true;g.add(pl);}
   if(kind==='building'){
@@ -2868,6 +2869,7 @@ function v396ExpandAurora(){
    place(x+dx,z+dz,w,h,d,dx%2?steel:frost,'crate');
   }
  }
+ window.v396VisualRoot=v396Root;
  window.v396StructuresPlaced=placed;
  window.v40FacadePieces=v40FacadePieces;
  window.v40TextureCount=[v40MetalMap,v40ConcreteMap,v40SnowMap,v40MetalBump,v40ConcreteBump,v40SnowBump].filter(Boolean).length;
@@ -2879,6 +2881,7 @@ window.THEDEMIANFF_V40_TEST=()=>({exposureCalibrated:true,visibilityLighting:tru
 // V39.7: architectural trim and icy ground patches are purely decorative.
 // Existing V39.6 collision footprints and AI cover locations remain unchanged.
 function v397DetailAurora(){
+ const v397Root=new THREE.Group();v397Root.name='V397_AURORA_DRESSING';scene.add(v397Root);
  const ice=new THREE.MeshStandardMaterial({color:'#b8d6df',metalness:0,roughness:.92,transparent:false,depthWrite:true,polygonOffset:true,polygonOffsetFactor:-1});
  const snow=new THREE.MeshStandardMaterial({color:'#e6f3f7',metalness:0,roughness:.96,polygonOffset:true,polygonOffsetFactor:-2});
  const trim=new THREE.MeshStandardMaterial({color:'#78cfd9',metalness:.65,roughness:.32,emissive:'#164f65',emissiveIntensity:.35});
@@ -2891,11 +2894,11 @@ function v397DetailAurora(){
   matrix.compose(new THREE.Vector3(x,ground(x,z)+.11,z),quat,scale);
   patches.setMatrixAt(i,matrix);
  }
- patches.instanceMatrix.needsUpdate=true;patches.castShadow=false;scene.add(patches);
+ patches.instanceMatrix.needsUpdate=true;patches.castShadow=false;v397Root.add(patches);
  const districts=[[-83,-72],[87,66],[80,-91],[-95,79]];
  let details=0;
  for(const [x,z] of districts){
-  const g=new THREE.Group();g.position.set(x,ground(x,z)+.08,z);scene.add(g);
+  const g=new THREE.Group();g.position.set(x,ground(x,z)+.08,z);v397Root.add(g);
   for(const [dx,dz] of [[-9,0],[9,0],[0,9],[0,-9]]){
    const base=new THREE.Mesh(new THREE.BoxGeometry(2.9,.13,2.9),snow);base.position.set(dx,.02,dz);base.receiveShadow=true;g.add(base);
    const edge=new THREE.Mesh(edgeGeo,trim);edge.position.set(dx,.15,dz);edge.castShadow=false;g.add(edge);details+=2;
@@ -2957,7 +2960,7 @@ function v397DetailAurora(){
   mesh.instanceMatrix.needsUpdate=true;
   mesh.castShadow=false;
   mesh.receiveShadow=false;
-  scene.add(mesh);
+  v397Root.add(mesh);
  }
  console.info('[V42.5] Decoracion segura', {
   rocas:rockPlaced,
@@ -2991,7 +2994,7 @@ function v397DetailAurora(){
   }
  }
  lanes.instanceMatrix.needsUpdate=true;markers.instanceMatrix.needsUpdate=true;
- lanes.castShadow=false;markers.castShadow=false;scene.add(lanes,markers);
+ lanes.castShadow=false;markers.castShadow=false;v397Root.add(lanes,markers);
  // V40 six-in-one environment pass: instanced bollards, warning posts,
  // antenna beacons, fuel drums, ice ridges and solar field tiles.
  // Decorative only: no collision/AI/loot objects are added.
@@ -3027,7 +3030,7 @@ function v397DetailAurora(){
    transform.compose(new THREE.Vector3(x,ground(x,z)+height,z),rotation,sz);
    mesh.setMatrixAt(i,transform);
   }
-  mesh.instanceMatrix.needsUpdate=true;scene.add(mesh);detailMeshes.push(mesh);
+  mesh.instanceMatrix.needsUpdate=true;v397Root.add(mesh);detailMeshes.push(mesh);
  }
  // V40 district identity set: six additional families of low-poly, instanced,
  // terrain-aligned world details. Pure scenery; existing gameplay colliders untouched.
@@ -3065,7 +3068,7 @@ function v397DetailAurora(){
   }
   item.instanceMatrix.needsUpdate=true;
   if(typeof item.computeBoundingSphere==='function')item.computeBoundingSphere();
-  scene.add(item);motifMeshes.push(item);
+  v397Root.add(item);motifMeshes.push(item);
  }
  window.v40DistrictMotifs=motifCounts.reduce((a,b)=>a+b,0);
  window.v40DistrictMotifTypes=motifMeshes.length;
@@ -3074,6 +3077,7 @@ function v397DetailAurora(){
  window.v40PathSegments=laneIndex;
  window.v40EnvironmentInstances=rockCount+treeCount*2;
  window.v397VisualDetails=details+72;
+ window.v397VisualRoot=v397Root;
 }
 window.THEDEMIANFF_VISUAL_TEST=()=>({details:window.v397VisualDetails||0,environmentInstances:window.v40EnvironmentInstances||0,pathSegments:window.v40PathSegments||0,environmentProps:window.v40EnvironmentProps||0,propTypes:window.v40EnvironmentPropTypes||0,districtMotifs:window.v40DistrictMotifs||0,motifTypes:window.v40DistrictMotifTypes||0,auroraCurtains:v27AuroraRibbons.length});
 
@@ -3170,6 +3174,7 @@ function v583GetLootPalette(type){
   strapGeometry:new THREE.BoxGeometry(.13,.64,.90),
   labelGeometry:new THREE.PlaneGeometry(.52,.27)
  };
+ for(const key of ['bodyGeometry','lidGeometry','strapGeometry','labelGeometry'])palette[key].userData.v583Shared=true;
  v583LootPalette[type]=palette;return palette;
 }
 function v583BuildPickupCase(group,type){
@@ -3179,6 +3184,22 @@ function v583BuildPickupCase(group,type){
  const strap=new THREE.Mesh(p.strapGeometry,p.strap);strap.position.y=.02;group.add(strap);
  const label=new THREE.Mesh(p.labelGeometry,p.label);label.position.set(0,.045,.414);group.add(label);
  group.userData.v583BattleLoot=true;
+}
+
+function v583DisposeVisualRoot(root){
+ if(!root)return;
+ const materials=new Set(),textures=new Set();
+ const textureKeys=['map','lightMap','aoMap','emissiveMap','bumpMap','normalMap','displacementMap','roughnessMap','metalnessMap','alphaMap','envMap','specularMap'];
+ root.traverse(object=>{
+  if(!object.material)return;
+  const list=Array.isArray(object.material)?object.material:[object.material];
+  for(const material of list){
+   if(!material)continue;materials.add(material);
+   for(const key of textureKeys){const texture=material[key];if(texture&&texture.isTexture)textures.add(texture);}
+  }
+ });
+ for(const texture of textures)texture.dispose();
+ for(const material of materials)material.dispose();
 }
 function v583SetupBattleVisuals(){
  if(!scene||v583BattleVisuals?.scene===scene)return;
@@ -3311,6 +3332,8 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  group.userData.v362Glow=beacon;
  scene.add(group);pickups.push({type,x,z,group,phase:rand(0,6)});}
 function reset(){v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v480Pulse=0;v480FrameCount=0;v480Snapshot.fill(null);v484NoAmmoNotice=-10;v489AutoSwaps=0;v489DryFires=0;v489LastDryFire=-10;v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+if(window.v396VisualRoot){v583DisposeVisualRoot(window.v396VisualRoot);window.v396VisualRoot=null;}
+if(window.v397VisualRoot){v583DisposeVisualRoot(window.v397VisualRoot);window.v397VisualRoot=null;}
 if(scene){
  const geometries=new Set();
  scene.traverse(obj=>{if(obj.geometry&&!obj.geometry.userData.v583Shared)geometries.add(obj.geometry);});
