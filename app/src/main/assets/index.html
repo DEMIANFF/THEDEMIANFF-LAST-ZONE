@@ -4154,6 +4154,19 @@ function v18Open(name){
  body.querySelectorAll('[data-v18]').forEach(b=>b.addEventListener('click',()=>{
   if(b.disabled)return;
   const [type,index]=b.dataset.v18.split(':');const n=Number(index);
+  if(type==='passbuy'){
+   if(p.passElite||p.credits<2400)return;
+   p.credits-=2400;p.passElite=true;v18Save();v18Open('PASE');return;
+  }
+  if(type==='passfree'||type==='passelite'){
+   const tier=Number(index),earned=Math.min(30,1+Math.floor(Math.max(0,p.xp)/350));
+   if(!Number.isInteger(tier)||tier<1||tier>30||tier>earned)return;
+   const elite=type==='passelite',key=(elite?'pass_elite_':'pass_free_')+String(tier).padStart(2,'0');
+   if(p.claimed.includes(key)||elite&&!p.passElite)return;
+   if(elite&&tier%5===0){const skin=5+(tier/5-1);if(skin>=5&&skin<v18Skins.length&&!p.unlocked.includes(skin))p.unlocked.push(skin);else p.credits+=120+tier*12;}
+   else p.credits+=elite?120+tier*12:50+tier*15;
+   p.claimed.push(key);v18Save();v24RefreshLobbyCharacter();v18Open('PASE');return;
+  }
   if(type==='preset-save'){if(!Number.isInteger(n)||n<0||n>2)return;p.presets??=[null,null,null];p.presets[n]={skin:p.skin,weapon:p.weapon};v18Save();v18Open('PRESET');return;}
    if(type==='preset-load'){if(!Number.isInteger(n)||!p.presets?.[n])return;const set=p.presets[n];p.skin=set.skin;p.weapon=set.weapon;v18Save();v24RefreshLobbyCharacter();v18Open('PRESET');return;}
    if(type==='social'&&index==='training'){panel.classList.add('hidden');$('v18Mode').value='training';$('v18Mode').dispatchEvent(new Event('change',{bubbles:true}));return;}
@@ -4202,7 +4215,13 @@ const v38MissionList=[
  {id:'first',title:'PRIMERA MISIÓN',goal:1,key:'matches',reward:75,desc:'Completa una partida'},
  {id:'hunter',title:'CAZADOR',goal:10,key:'kills',reward:160,desc:'Consigue 10 bajas acumuladas'},
  {id:'veteran',title:'VETERANO',goal:5,key:'matches',reward:200,desc:'Completa 5 partidas'},
- {id:'survivor',title:'ÚLTIMO EN PIE',goal:1,key:'wins',reward:300,desc:'Gana una partida'}
+ {id:'survivor',title:'ÚLTIMO EN PIE',goal:1,key:'wins',reward:300,desc:'Gana una partida'},
+ {id:'scout',title:'VETERANO DE AURORA',goal:10,key:'matches',reward:260,desc:'Completa 10 partidas'},
+ {id:'predator',title:'DEPREDADOR',goal:50,key:'kills',reward:350,desc:'Acumula 50 bajas'},
+ {id:'champion',title:'CAMPEÓN',goal:3,key:'wins',reward:450,desc:'Consigue 3 victorias'},
+ {id:'expert',title:'OPERADOR EXPERTO',goal:3500,key:'xp',reward:320,desc:'Acumula 3.500 XP'},
+ {id:'ace',title:'AS DE COMBATE',goal:100,key:'kills',reward:600,desc:'Acumula 100 bajas'},
+ {id:'season',title:'LEYENDA DE AURORA',goal:25,key:'matches',reward:500,desc:'Completa 25 partidas'}
 ];
 function v38RenderMissions(){
  const p=v18Progress;const target=$('v38MissionsContent');
@@ -4222,15 +4241,42 @@ function v38RenderMissions(){
   article.append(title,description,track,reward,button);target.append(article);
  }
 }
+function v38RenderAchievements(){
+ const p=v18Progress,target=$('v38AchievementsContent');target.replaceChildren();
+ const achievements=[
+  {title:'PRIMER DESPLIEGUE',key:'matches',goal:1,desc:'Completa tu primera partida'},
+  {title:'PRIMERA SANGRE',key:'kills',goal:1,desc:'Consigue tu primera baja'},
+  {title:'PRIMERA VICTORIA',key:'wins',goal:1,desc:'Gana una partida'},
+  {title:'VETERANO AURORA',key:'matches',goal:25,desc:'Completa 25 partidas'},
+  {title:'CAZADOR GLACIAL',key:'kills',goal:100,desc:'Acumula 100 bajas'},
+  {title:'CAMPEÓN',key:'wins',goal:5,desc:'Consigue 5 victorias'},
+  {title:'OPERADOR EXPERTO',key:'xp',goal:3500,desc:'Alcanza 3.500 XP'},
+  {title:'LEYENDA AURORA',key:'xp',goal:10500,desc:'Alcanza el nivel 31 del pase'},
+  {title:'RÉCORD DE COMBATE',key:'best',goal:10,desc:'Consigue 10 bajas en una sola partida'},
+  {title:'MAESTRO DE EVENTOS',key:'eventCompletions',goal:5,desc:'Completa 5 eventos especiales'}
+ ];
+ for(const a of achievements){
+  const value=Math.max(0,Number(p[a.key])||0),done=value>=a.goal;
+  const article=document.createElement('article');article.className='v38OpsTile v56OpsAchievement'+(done?' done':'');
+  const title=document.createElement('h3');title.textContent=(done?'★ ':'☆ ')+a.title;
+  const desc=document.createElement('p');desc.textContent=a.desc+' · '+Math.min(value,a.goal).toLocaleString('es-CO')+' / '+a.goal.toLocaleString('es-CO');
+  const track=document.createElement('div');track.className='v38OpsTrack';const fill=document.createElement('span');fill.style.width=Math.min(100,100*value/a.goal)+'%';track.append(fill);
+  const state=document.createElement('strong');state.textContent=done?'LOGRO CONSEGUIDO':'EN PROGRESO';
+  article.append(title,desc,track,state);target.append(article);
+ }
+}
 function v38SelectTab(tab){
- v38ActiveTab=tab==='missions'?'missions':'events';
+ v38ActiveTab=tab==='missions'?'missions':tab==='achievements'?'achievements':'events';
  $('v38EventsView').classList.toggle('hidden',v38ActiveTab!=='events');
  $('v38MissionsView').classList.toggle('hidden',v38ActiveTab!=='missions');
+ $('v38AchievementsView').classList.toggle('hidden',v38ActiveTab!=='achievements');
  $('v38TabEvents').setAttribute('aria-selected',String(v38ActiveTab==='events'));
  $('v38TabMissions').setAttribute('aria-selected',String(v38ActiveTab==='missions'));
+ $('v38TabAchievements').setAttribute('aria-selected',String(v38ActiveTab==='achievements'));
  $('v381EventDetail').classList.add('hidden');
  if(v38ActiveTab==='missions')v38RenderMissions();
- $('v38OpsStatus').textContent=v38ActiveTab==='events'?'DESAFÍOS COMPLETADOS: '+(Number(v18Progress.eventCompletions)||0):'PROGRESO GUARDADO LOCALMENTE';
+ if(v38ActiveTab==='achievements')v38RenderAchievements();
+ $('v38OpsStatus').textContent=v38ActiveTab==='events'?'DESAFÍOS COMPLETADOS: '+(Number(v18Progress.eventCompletions)||0):v38ActiveTab==='missions'?'PROGRESO DE MISIONES GUARDADO':'LOGROS CALCULADOS CON TUS ESTADÍSTICAS';
 }
 function v38OpenHub(tab='events'){
  if(running)return;
@@ -4241,6 +4287,7 @@ function v38CloseHub(){$('v38Operations').classList.add('hidden');$('v381EventDe
 $('v38OpsClose').addEventListener('click',v38CloseHub);
 $('v38TabEvents').addEventListener('click',()=>v38SelectTab('events'));
 $('v38TabMissions').addEventListener('click',()=>v38SelectTab('missions'));
+$('v38TabAchievements').addEventListener('click',()=>v38SelectTab('achievements'));
 // Event browsing must never call start(). Selection only updates lobby mode.
 let v381SelectedEvent=null;
 function v381ShowEventDetails(mode){
@@ -4272,9 +4319,9 @@ document.querySelectorAll('#menu [data-lobby]').forEach(button=>{
  button.addEventListener('pointerdown',e=>{
   if(e.pointerType!=='touch'&&e.pointerType!=='pen')return;
   const action=button.dataset.lobby;
-  if(action==='EVENTOS'||action==='PERSONAJE'){
+  if(action==='OPERACIONES'||action==='PERSONAJE'){
    e.preventDefault();e.stopImmediatePropagation();
-   if(action==='EVENTOS')v38OpenHub('events');else v18Open('PERSONAJE');
+   if(action==='OPERACIONES')v38OpenHub('events');else v18Open('PERSONAJE');
   }
  },true);
 });
@@ -4288,7 +4335,7 @@ $('v362Events').querySelectorAll('[data-v362mode]').forEach(button=>button.addEv
  try{start();}catch(error){v18ActiveEvent=null;v21Diagnostic('V36.2 EVENTO',error);$('menu').classList.remove('hidden');v362ShowEvents();}
 }));
 document.querySelectorAll('[data-lobby]').forEach(button=>button.addEventListener('click',()=>{
- if(button.dataset.lobby==='EVENTOS')v362ShowEvents();else v18Open(button.dataset.lobby);
+ if(button.dataset.lobby==='OPERACIONES')v38OpenHub('events');else v18Open(button.dataset.lobby);
 }));
 // V38.1 removes the duplicate pointer-up handler; first-touch entry is handled above.
 function v18RecordMatch(win){
