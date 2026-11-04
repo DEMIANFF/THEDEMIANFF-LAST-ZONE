@@ -53,7 +53,7 @@ test('shop uses illustrated operator cards and all purchasable styles are real s
   for (const skin of ['GUARDIÁN AURORA', 'SOMBRA PÚRPURA', 'NÓMADA ÁRTICO', 'ASALTO CARMESÍ', 'CENTINELA JADE', 'ÉLITE DORADA']) {
     assert.ok(html.includes(skin), 'missing new store operator: ' + skin);
   }
-  assert.match(html, /data-v18="skin:'\+i\+"/);
+  assert.match(html, /data-v18="skin:'\+i\+'"/);
 });
 
 test('Aurora pass has 30 persistent free and Elite reward tiers without real-money billing', () => {
