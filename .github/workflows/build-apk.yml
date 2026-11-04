@@ -752,7 +752,8 @@ jobs:
                         "v494CloudBridge.load()"):
               assert token in h, 'V50.2 missing lobby or backup feature: '+token
           assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
-          assert 'authMessage("signed_out","Sesión local de Google cerrada.");' in java, 'Falta confirmación local inmediata'
+          assert 'firebaseAuth.signOut();' in java and '.signOut().addOnCompleteListener(this,task -> {' in java, 'Google/Firebase sign-out must complete before returning to account selection'
+          assert 'authMessage("signed_out",task.isSuccessful()' in java and 'if(googleSignOutPending)' in java, 'Missing serialized Google account switch handling'
           assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
           assert 'if(parsed.optLong("wins")>parsed.optLong("matches"))return false;' in java, 'Falta validar estadísticas Android'
           print('V44.6 Android version and logout checks passed')
