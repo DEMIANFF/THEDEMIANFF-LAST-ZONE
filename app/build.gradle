@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 156
-        versionName '58.1-freefire-thirdperson'
+        versionCode 157
+        versionName '58.2-freefire-camera-comfort'
     }
     signingConfigs {
         persistentRelease {
