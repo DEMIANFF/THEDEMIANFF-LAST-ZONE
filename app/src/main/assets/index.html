@@ -4984,7 +4984,8 @@ const v58Sights={
  active(){return this.profiles[this.index];},
  cycle(){if(!adsHeld||window.v36FlightMode!=='landed'||!running||paused||gameOver)return;this.index=(this.index+1)%this.profiles.length;try{localStorage.setItem('v534_scope_index',String(this.index));}catch(e){}this.updateHud(true);},
  updateHud(isADS=adsHeld){
-  const button=document.getElementById('v58ScopeButton'),label=document.getElementById('v58ScopeLabel');
+  const button=document.getElementById('v58ScopeButton'),label=document.getElementById('v58ScopeLabel'),reticle=document.getElementById('v10Reticle');
+  if(reticle)reticle.dataset.scope=this.active().name;
   const visible=!!(document.body.classList.contains('v475InMatch')&&isADS&&running&&!paused&&!gameOver&&window.v36FlightMode==='landed');
   if(button){button.textContent='MIRA '+this.active().name;button.style.setProperty('display',visible?'block':'none','important');}
   if(label){label.textContent=visible?this.active().name:'';label.style.display=visible?'block':'none';}

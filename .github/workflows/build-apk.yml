@@ -840,7 +840,7 @@ jobs:
           import re, subprocess
           h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
           gradle=Path('app/build.gradle').read_text(encoding='utf-8')
-          checks=('const v58Sights={','const v58Camera={',"profile:'FREE_FIRE_THIRD_PERSON'",'this.updateAngles(t);','v58Camera.updateAngles(dt);','function v58FlightPointerDown(e)','function v58FlightPointerMove(e)',"v58SetFlightMode('aircraft')","v58SetFlightMode('descending')","v58SetFlightMode('landed')",'v58Camera.update(dt)','body.v58FlightMode #cross','body.v58FlightMode #v10Reticle','v58Sights.active().zoom','v404SafeCameraTarget(desired)','v586UpdateBuildingVisibility(t);')
+          checks=('const v58Sights={','const v58Camera={',"profile:'FREE_FIRE_THIRD_PERSON'",'this.updateAngles(t);','v58Camera.updateAngles(dt);','function v58FlightPointerDown(e)','function v58FlightPointerMove(e)',"v58SetFlightMode('aircraft')","v58SetFlightMode('descending')","v58SetFlightMode('landed')",'v58Camera.update(dt)','body.v58FlightMode #cross','body.v58FlightMode #v10Reticle','v58Sights.active().zoom','reticle.dataset.scope=this.active().name','v404SafeCameraTarget(desired)','v586UpdateBuildingVisibility(t);')
           for token in checks: assert token in h, 'V58.1 missing: '+token
           assert 'const v432Camera={' not in h and 'const v434Optics={' not in h
           assert 'v372PlaneTouch' not in h
