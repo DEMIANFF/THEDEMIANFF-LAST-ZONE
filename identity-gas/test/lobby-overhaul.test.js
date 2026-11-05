@@ -11,7 +11,7 @@ const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
 test('V57.6 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.match(menu, /V57.8.1 · CENTRO DE OPERACIONES/);
+  assert.match(menu, /V57.8.2 · CENTRO DE OPERACIONES/);
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -89,15 +89,15 @@ test('parachute camera is pulled back and Lila preview supports touch rotation a
   assert.match(html, /l\.camera\.position\.set\(0,1\.92,7\.9\)/);
 });
 
-test('Android release is V57.6 with a monotonic version code', () => {
-  assert.match(gradle, /versionCode 153/);
+test('Android release is V57.8.2 with a monotonic version code', () => {
+  assert.match(gradle, /versionCode 154/);
   assert.match(gradle, /versionName '57.8.1-start-repair'/);
 });
 
 test('V57 Android package metadata is monotonic and matches the lobby release', () => {
-  assert.match(gradle, /versionCode 153/);
+  assert.match(gradle, /versionCode 154/);
   assert.match(gradle, /versionName '57.8.1-start-repair'/);
-  assert.match(html, /V57.8.1 · CENTRO DE OPERACIONES/);
+  assert.match(html, /V57.8.2 · CENTRO DE OPERACIONES/);
 });
 
 test('V57.6 activates the authored Aurora battle royale environment and visual resources', () => {
@@ -133,10 +133,10 @@ test('V57.6 visual roots dispose their private materials while shared GPU geomet
   assert.match(html, /obj\.geometry&&!obj\.geometry\.userData\.v583Shared/);
 });
 
-test('Android release is V57.6 with monotonic version code 149', () => {
-  assert.match(gradle, /versionCode 153/);
+test('Android release is V57.6 with monotonic version code 154', () => {
+  assert.match(gradle, /versionCode 154/);
   assert.match(gradle, /versionName '57.8.1-start-repair'/);
-  assert.match(html, /V57.8.1 · CENTRO DE OPERACIONES/);
+  assert.match(html, /V57.8.2 · CENTRO DE OPERACIONES/);
 });
 test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
   assert.match(html, /function v576RegisterOpenBuilding/);
@@ -150,7 +150,16 @@ test('V57.6 opens the homes and removes free-standing grey block obstacles', () 
 });
 
 
-test('V57.8.1 binds the start button before later boot code and reports initialization errors', () => {
+test('V57.8.2 keeps doorWidth in scope across both building-construction blocks', () => {
+  const placeStart = html.indexOf('function place(x,z,w,h,d,material,kind){');
+  const place = html.slice(placeStart, placeStart + 3000);
+  assert.ok(placeStart >= 0, 'building placement function is missing');
+  assert.ok(place.indexOf('const doorWidth=3.0;') >= 0, 'doorWidth declaration is missing');
+  assert.ok(place.indexOf('const doorWidth=3.0;') < place.indexOf("if(kind==='building'){"), 'doorWidth must be declared outside the first building block');
+  assert.ok(place.includes('v40BuildingDetails(g,w,h,d,doorWidth);'), 'second building pass must receive the shared doorWidth');
+});
+
+test('V57.8.2 binds the start button before later boot code and reports initialization errors', () => {
   assert.ok(html.includes("v578StartButton.addEventListener('click',start)"));
   assert.ok(html.includes("startStage='webgl-renderer'"));
   assert.ok(html.includes("startStage='world-reset';reset();"));
@@ -162,8 +171,8 @@ test('V57.8.1 binds the start button before later boot code and reports initiali
   assert.doesNotMatch(html, /\$\('start'\)\.onclick=start/);
 });
 
-test('V57.8.1 package and lobby labels identify the repaired start build', () => {
-  assert.match(gradle, /versionCode 153/);
-  assert.match(gradle, /versionName '57\.8\.1-start-repair'/);
-  assert.match(html, /V57\.8\.1 · CENTRO DE OPERACIONES/);
+test('V57.8.2 package and lobby labels identify the repaired start build', () => {
+  assert.match(gradle, /versionCode 154/);
+  assert.match(gradle, /versionName '57\.8\.2-doorwidth-fix'/);
+  assert.match(html, /V57\.8\.2 · CENTRO DE OPERACIONES/);
 });
