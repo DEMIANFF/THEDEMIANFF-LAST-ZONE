@@ -70,7 +70,7 @@ test('Aurora pass has 30 persistent free and Elite reward tiers without real-mon
 
 test('V58.2 landed camera follows the pulled-back Free Fire TPS shoulder rig', () => {
   assert.match(html, /targetHeight=\(mobile\?2\.62:2\.74\)-\.08\*b/);
-  assert.match(html, /this\.anchorY\+\(player\.position\.y-this\.anchorY\)\*\(1-Math\.exp\(-t\*\(aiming\?8\.5:7\.5\)/);
+  assert.ok(html.includes("this.anchorY+=(player.position.y-this.anchorY)*(1-Math.exp(-t*(aiming?8.5:7.5)*(1-.20*smooth)))"));
   assert.match(html, /v58Camera\.update\(dt\)/);
   assert.match(html, /targetBack=baseBack\*\(1-\.02\*b\)/);
   assert.match(html, /profile:'FREE_FIRE_THIRD_PERSON'/);
@@ -85,7 +85,7 @@ test('V58.2 ADS keeps third-person camera and uses Blood Strike-inspired sight m
   assert.ok(html.includes("adsSensitivity=clamp(finite(Number($('adsSensitivity').value)||.9),.55,2.2)"));
   assert.match(html, /velocityGain=clamp\(1-Math\.max\(0,velocity-\.55\)\*\.18,\.58,1\)/);
   assert.match(html, /maxYawRate=aiming\?v58Sights\.active\(\)\.yawRate:5\.2/);
-  assert.ok(html.includes("sightFactor=this.mode==='ADS'&&window.v36FlightMode==='landed'?adsSensitivity*v58Sights.active().sensitivity:1"));
+  assert.ok(html.includes("const sightFactor=aiming?adsSensitivity*v58Sights.active().sensitivity:1"));
 });
 
 test('V58.2 aircraft and parachute have their own responsive camera route', () => {

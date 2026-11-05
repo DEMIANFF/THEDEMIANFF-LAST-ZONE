@@ -89,7 +89,7 @@ test('V58.2 hides crosshair and all sights in plane and parachute states', () =>
   assert.match(html, /body\.v475InMatch:not\(\.v58FlightMode\) #cross/);
   assert.match(html, /body\.v475InMatch:not\(\.v58FlightMode\) #v10Reticle\.v58ADS/);
   assert.match(html, /function v58SetFlightMode\(mode\)/);
-  assert.match(html, /const inAir=mode==='aircraft'\|\|mode==='descending'/);
+  assert.match(html, /const airborne=mode==='aircraft'\|\|mode==='descending'/);
 });
 test('V58.2 migrates previous camera preferences to the wider framing once', () => {
   assert.match(html, /value="11\.2"/);
@@ -104,7 +104,7 @@ test('V58.2 camera follows with damped shoulder, vertical and horizontal smoothi
   assert.match(html, /targetHeight=\(mobile\?2\.62:2\.74\)-\.08\*b/);
   assert.match(html, /const follow=1-Math\.exp\(-t\*8\.5\)/);
   assert.match(html, /followXZ=1-Math\.exp\(-t\*9\.5\)/);
-  assert.match(html, /this\.anchorY\+\(player\.position\.y-this\.anchorY\)\*\(1-Math\.exp\(-t\*\(aiming\?8\.5:7\.5\)/);
+  assert.ok(html.includes("this.anchorY+=(player.position.y-this.anchorY)*(1-Math.exp(-t*(aiming?8.5:7.5)*(1-.20*smooth)))"));
   assert.match(html, /obstructed\?1-Math\.exp\(-t\*24\):followXZ/);
 });
 test('V58.2 provides one clean free-look dot and a separate ADS sight reticle', () => {

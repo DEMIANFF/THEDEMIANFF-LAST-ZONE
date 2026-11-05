@@ -5090,6 +5090,18 @@ const v58Camera={
  if(inAir){adsHeld=false;cameraDX=0;cameraDY=0;$('aimBtn').classList.remove('adsActive');$('v10Reticle').classList.remove('v58ADS');$('v13AimMode').textContent='⊕ CÁMARA';}
  v58Sights.updateHud(false);
 }
+function v58SetFlightMode(mode){
+ window.v36FlightMode=mode;
+ const airborne=mode==='aircraft'||mode==='descending';
+ document.body.classList.toggle('v58FlightMode',airborne);
+ if(airborne){
+  adsHeld=false;cameraDX=0;cameraDY=0;
+  $('aimBtn').classList.remove('adsActive');
+  $('v10Reticle').classList.remove('v58ADS');
+  $('v13AimMode').textContent='⊕ CÁMARA';
+ }
+ v58Sights.updateHud(false);
+}
 function htmlFlightModeSupportsCamera(){return window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending';}
 window.THEDEMIANFF_CAMERA_SYSTEM=()=>({profile:'FREE_FIRE_THIRD_PERSON',mode:v58Camera.mode,blend:v58Camera.blend,distance:v58Camera.back,shoulder:v58Camera.shoulder,fov:camera?.fov,ads:adsHeld&&window.v36FlightMode==='landed',flightMode:window.v36FlightMode,sight:v58Sights.active().name});
 window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>{const old=v58Camera.mode;v58Camera.mode=ads?'ADS':'FREE';try{return v58Camera.input(dx,dy,fire?'fire':'free');}finally{v58Camera.mode=old;}};
