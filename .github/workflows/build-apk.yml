@@ -110,7 +110,7 @@ jobs:
               assert token in html, 'V57.6: battle royale visual pipeline missing '+token
           for token in ('function v583DisposeVisualRoot(root)', 'window.v396VisualRoot=v396Root', 'window.v397VisualRoot=v397Root', 'v583DisposeVisualRoot(window.v396VisualRoot)', 'v583DisposeVisualRoot(window.v397VisualRoot)', 'palette[key].userData.v583Shared=true', 'g.userData.v583Shared=true'):
               assert token in html, 'V57.6: visual resource lifecycle missing '+token
-          assert "versionCode 154" in Path('app/build.gradle').read_text(), 'V57.6: Android version code mismatch'
+          assert "versionCode 155" in Path('app/build.gradle').read_text(), 'V57.6: Android version code mismatch'
           for token in ('const baseShoulder=-clamp(Number($(\'v26CameraShoulder\').value)||2.35,2.0,2.7);', 'const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;', 'const follow=1-Math.exp(-t*13);', 'const followXZ=1-Math.exp(-t*12.5);', 'id="v586ReticleRestored"', 'border-color:#9cf9de!important', 'function v576RegisterWallRun', 'v576RegisterOpenBuilding(xx-86,zz-82,w,wall,depth,doorWidth,thickness)', 'window.THEDEMIANFF_AURORA_ACCESS_TEST', 'doorWidthMeters:3.0'):
               assert token in html, 'V57.6: camera, reticle or clear-Aurora guard missing '+token
           place_start=html.index('function place(x,z,w,h,d,material,kind){')
@@ -661,7 +661,7 @@ jobs:
                         'window.THEDEMIANFF_V474_SUPPLIES',
                         'v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[]'):
               assert token in h, 'V47.4: falta rivalidad enemiga o suministros '+token
-          assert "versionCode 154" in Path('app/build.gradle').read_text(), 'V55.4: versionCode desfasado'
+          assert "versionCode 155" in Path('app/build.gradle').read_text(), 'V55.4: versionCode desfasado'
           assert "if(name==='ESTADÍSTICAS')" in h, 'V45: falta panel de estadísticas del jugador'
           for metric in ('PORCENTAJE DE VICTORIAS','BAJAS POR PARTIDA','MEJOR MARCA','XP PARA SUBIR'):
               assert metric in h, 'V45: falta métrica '+metric
@@ -744,7 +744,7 @@ jobs:
           assert 'const tacticalBack=mobile?clamp(baseBack*1.06,10,16):baseBack;' in h, 'V55.6: mobile camera distance tuning missing'
           assert 'const height=(mobile?2.68:2.78)-(mobile?.20:.18)*b;' in h, 'V55.6: hybrid camera shoulder framing missing'
           gradle=Path('app/build.gradle').read_text()
-          assert 'versionCode 154' in gradle and "versionName '57.8.2-doorwidth-fix'" in gradle, 'V57.6: release identity mismatch'
+          assert 'versionCode 155' in gradle and "versionName '58.0-camera-visibility'" in gradle, 'V57.6: release identity mismatch'
           for token in ('id="v38TabAchievements"', 'id="v38AchievementsView"', 'v56RenderAchievements' if 'v56RenderAchievements' in h else 'function v38RenderAchievements()', 'v56StoreGrid', 'v56StoreArt', 'Array.from({length:30}', 'data-v18="passbuy"', 'pass_free_', 'pass_elite_', 'result.passElite=p.passElite===true', 'v434Optics.active().zoom', 'targetFov=baseFov/v434Optics.active().zoom', "const d=clamp(baseDistance*2.05,22,28)", 'Smooth vertical tracking is essential', 'if(l.renderer&&now-l.last>(mobile?40:33))'):
               assert token in h, 'V57.6: missing lobby/pass/camera component '+token
           for token in ('id="v500CloudBadge"', 'id="v533AccountShortcut"', 'id="v502CloudAccess"'):
@@ -785,8 +785,8 @@ jobs:
           gradle=Path('app/build.gradle').read_text()
           java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
           h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
-          assert 'versionCode 154' in gradle, 'V48.6 requiere versionCode 154'
-          assert "versionName '57.8.2-doorwidth-fix'" in gradle, 'V55.4: versión Android incorrecta'
+          assert 'versionCode 155' in gradle, 'V48.6 requiere versionCode 155'
+          assert "versionName '58.0-camera-visibility'" in gradle, 'V55.4: versión Android incorrecta'
           # V50.4: Google-first login and safe automatic cloud recovery.
           for token in ('id="v504GoogleEntry"',
                         'v504StartCloudRestore()',
@@ -833,6 +833,38 @@ jobs:
               assert token in h, 'V50.1: regresión lobby/nube '+token
           print('V50.1 lobby and cloud safety checks passed')
           PY
+      - name: V58.0 validar estabilidad de cámara y visibilidad
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          gradle=Path('app/build.gradle').read_text(encoding='utf-8')
+          checks=(
+              'this.targetYaw=Math.atan2',
+              "const yawAlpha=1-Math.exp(-t*(this.mode==='ADS'?28:24))",
+              'const obstructionFollow=obstructed?1-Math.exp(-t*32):followXZ',
+              'v586UpdateBuildingVisibility(t);',
+              'new THREE.Raycaster()',
+              'skyContext.createLinearGradient(0,0,0,512)',
+              'skyTexture.mapping=THREE.EquirectangularReflectionMapping;',
+              "scene.background=assets.skyTexture||new THREE.Color('#8ba9b8');",
+              "terrain.material.color.set('#b7cbd3')",
+              'terrain.material.bumpScale=.045',
+              'activeIndex===4?.86:activeIndex===0?.80:.78',
+              'v586RestoreBuildingVisibility();v395SwapTime=0;',
+          )
+          for token in checks:
+              assert token in h, 'V58.0 falta mejora visual: '+token
+          assert 'new THREE.SphereGeometry(560,28,16)' not in h, 'V58.0: esfera visible aún presente'
+          assert "versionCode 155" in gradle and "versionName '58.0-camera-visibility'" in gradle
+          scripts=re.findall(r'<script\b[^>]*>([\s\S]*?)</script\s*>',h,re.I)
+          inline=next((part for part in scripts if 'const v432Camera={' in part),None)
+          assert inline is not None, 'No se encontró el script principal'
+          Path('/tmp/thedemianff-v58-inline.js').write_text(inline,encoding='utf-8')
+          print('V58.0: cámara, fondo, contraste, interiores y armas verificados')
+          PY
+          node -e "new Function(require('fs').readFileSync('/tmp/thedemianff-v58-inline.js','utf8')); console.log('JavaScript inline syntax OK')"
       - name: Compilar APK debug
         run: gradle --no-daemon assembleDebug
       - name: Verificar identidad y firma de APK debug
