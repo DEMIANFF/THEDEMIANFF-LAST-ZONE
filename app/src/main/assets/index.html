@@ -3693,8 +3693,9 @@ document.addEventListener('pointermove',e=>{
  if(v372PlaneTouch!==e.pointerId||window.v36FlightMode!=='aircraft')return;
  const dx=clamp(e.clientX-v372PlaneX,-55,55),dy=clamp(e.clientY-v372PlaneY,-55,55);
  v372PlaneX=e.clientX;v372PlaneY=e.clientY;
- camYaw-=dx*.004*Number($('sensitivity').value);
- camPitch=clamp(camPitch+dy*.002*Number($('sensitivity').value),-.65,.85);
+ const sensitivity=clamp(Number($('sensitivity').value)||1,.55,1.65);
+ camYaw=Math.atan2(Math.sin(camYaw-dx*.004*sensitivity),Math.cos(camYaw-dx*.004*sensitivity));
+ camPitch=clamp(camPitch+dy*.002*sensitivity,-.72,.92);
  if(e.cancelable)e.preventDefault();
 },true);
 for(const type of ['pointerup','pointercancel'])document.addEventListener(type,e=>{if(e.pointerId===v372PlaneTouch)v372PlaneTouch=null;},true);
@@ -3705,8 +3706,8 @@ function v36TickAircraft(dt){
  if(v36Aircraft.position.x>HALF-12)v36Aircraft.position.x=-HALF+14;
  v398MapRefresh+=dt;
  if(v398MapRefresh>.25&&!$('v36DropPanel').classList.contains('hidden')){v398MapRefresh=0;v36DrawMap('v36DropCanvas');}
- const radius=29,look=v36Aircraft.position;
- camera.position.set(look.x-Math.sin(camYaw)*radius,look.y+9+Math.sin(camPitch)*17,look.z-Math.cos(camYaw)*radius);
+ const radius=29,look=v36Aircraft.position,desired=new THREE.Vector3(look.x-Math.sin(camYaw)*radius,look.y+9+Math.sin(camPitch)*17,look.z-Math.cos(camYaw)*radius);
+ camera.position.lerp(desired,1-Math.exp(-Math.max(0,dt)*9));
  camera.lookAt(look.x,look.y+1,look.z);
 }
 function v36Begin(){
@@ -3825,7 +3826,8 @@ function v36StepFlight(dt){
  }else{
   $('v36ParachuteStatus').textContent=(v398ChuteOpen?'🪂 PARACAÍDAS':'↘ CAÍDA LIBRE')+' · '+Math.ceil(player.position.y-floor)+' m · JOYSTICK PARA DIRIGIR';
   const d=Number($('v26CameraDistance').value);
-  camera.position.set(player.position.x-Math.sin(camYaw)*d,player.position.y+9,player.position.z-Math.cos(camYaw)*d);
+  const desiredCamera=new THREE.Vector3(player.position.x-Math.sin(camYaw)*d,player.position.y+9,player.position.z-Math.cos(camYaw)*d);
+  camera.position.lerp(desiredCamera,1-Math.exp(-Math.max(0,dt)*9));
   const viewDirection=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));camera.lookAt(camera.position.clone().addScaledVector(viewDirection,60));
  }
 }
