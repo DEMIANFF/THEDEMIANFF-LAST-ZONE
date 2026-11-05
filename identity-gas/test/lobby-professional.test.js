@@ -33,14 +33,16 @@ test('weapon showcase follows the actual equipped weapon and statistics',()=>{
  assert.match(html,/const index=clamp\(Number\(v18Progress\.weapon\)\|\|0,0,weapons\.length-1\)/);
  for(const id of ['v588WeaponName','v588WeaponDamage','v588WeaponMag','v588WeaponRange'])assert.match(markup,new RegExp('id="'+id+'"'));
 });
-test('operation rail reflects selected mode and labels local AI honestly',()=>{
+test('the single launch banner reflects the selected local AI mode',()=>{
  assert.match(html,/const training=\$\('v18Mode'\)\?\.value==='training'/);
  assert.match(html,/RIVALES IA/);
- assert.match(markup,/id="v588OpponentCount"/);
- assert.match(markup,/salas online se habilitarán en una etapa futura/);
+ assert.match(markup,/id="v588ReadyCount"/);
+ assert.doesNotMatch(markup,/v588OpsCard|v588OpponentCount|v588ModeCard/);
 });
-test('quick dock, arsenal, social and operations use existing functional panels',()=>{
- for(const action of ['INVENTARIO','ARMAS','PRESET','SOCIAL','OPERACIONES'])assert.match(markup,new RegExp('data-lobby="'+action+'"'));
+test('Arsenal is one destination; quick dock and Social keep their original panels',()=>{
+ for(const action of ['INVENTARIO','PRESET','SOCIAL','OPERACIONES'])assert.match(markup,new RegExp('data-lobby="'+action+'"'));
+ assert.equal((markup.match(/data-lobby="ARMAS"/g)||[]).length,1);
+ assert.match(markup,/data-lobby="ARMAS">ABRIR ARSENAL/);
  assert.match(html,/else v18Open\(button\.dataset\.lobby\)/);
  assert.match(html,/function v38OpenHub\(/);
 });
@@ -55,9 +57,30 @@ test('lobby module routing keeps player identity and mode selection intact',()=>
  assert.match(html,/v588RefreshLobbyHud\(\);/);
  assert.match(html,/v18ModeLabel/);
 });
-test('one integrated V58.8 release is enabled in CI; live V59 multiplayer is excluded',()=>{
- assert.match(gradle,/versionCode 164/);
- assert.match(gradle,/versionName '58\.8\.0-professional-lobby-suite'/);
- assert.match(workflow,/v58-8-professional-lobby-suite/);
+test('V58.8.1 lobby clarity release is enabled in CI; live V59 multiplayer is excluded',()=>{
+ assert.match(gradle,/versionCode 165/);
+ assert.match(gradle,/versionName '58\.8\.1-lobby-clarity-polish'/);
+ assert.match(workflow,/v58-8-1-lobby-layout-polish/);
  assert.doesNotMatch(gradle,/59\.0\.0/);
+});
+test('wordmark is reduced to THEDEMIANFF and AURORA EVOLUTION only',()=>{
+ assert.match(markup,/<div class="v17Brand"><strong>THEDEMIANFF<\/strong><small>AURORA EVOLUTION<\/small><\/div>/);
+ assert.doesNotMatch(markup,/v502BrandSubtitle|LAST ZONE 3D|BATALLA REAL 3D/);
+ assert.match(html,/#menu \.v17Brand\{[^}]*left:50%!important/);
+});
+test('technical labels and model caption are no longer visible in the lobby',()=>{
+ assert.match(html,/#menu #v22Edition,#menu #v494ModelStatus,#menu \.v24HeroCaption\{display:none!important/);
+ assert.doesNotMatch(markup,/v24HeroCaption/);
+});
+test('the lobby no longer layers an operation card behind the launch button',()=>{
+ assert.doesNotMatch(markup,/v588OpsCard|v588OpponentCount|v588ModeCard/);
+ assert.match(markup,/id="v588ReadyCount"/);
+ assert.match(html,/#menu \.v17Bottom\{[^}]*justify-content:space-between!important/);
+});
+test('the lower dock contains only inventory and loadouts; Arsenal is in the right rail',()=>{
+ const dock=markup.slice(markup.indexOf('<nav class="v588Dock"'),markup.indexOf('</nav>',markup.indexOf('<nav class="v588Dock"')));
+ assert.match(dock,/data-lobby="INVENTARIO"/);
+ assert.match(dock,/data-lobby="PRESET"/);
+ assert.doesNotMatch(dock,/data-lobby="ARMAS"/);
+ assert.equal((markup.match(/data-lobby="ARMAS"/g)||[]).length,1);
 });
