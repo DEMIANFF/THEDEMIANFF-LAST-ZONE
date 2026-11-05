@@ -69,7 +69,7 @@ test('wordmark is reduced to THEDEMIANFF and AURORA EVOLUTION only',()=>{
  assert.match(html,/#menu \.v17Brand\{[^}]*left:50%!important/);
 });
 test('technical labels and model caption are no longer visible in the lobby',()=>{
- assert.match(html,/#menu #v22Edition,#menu #v494ModelStatus,#menu \.v24HeroCaption\{display:none!important/);
+ assert.ok(html.includes("#menu #v22Edition,#menu #v494ModelStatus,#menu .v24HeroCaption,#menu .v502BrandSubtitle{display:none!important"));
  assert.doesNotMatch(markup,/v24HeroCaption/);
 });
 test('the lobby no longer layers an operation card behind the launch button',()=>{
