@@ -4988,6 +4988,7 @@ const v58Sights={
  index:0,
  profiles:[{name:'PUNTO',zoom:1,sensitivity:1,yawRate:5.2,pitchRate:3.8},{name:'2x',zoom:2,sensitivity:.72,yawRate:3.2,pitchRate:2.4},{name:'4x',zoom:4,sensitivity:.52,yawRate:2.0,pitchRate:1.5},{name:'8x',zoom:8,sensitivity:.34,yawRate:1.15,pitchRate:.9}],
  active(){return this.profiles[this.index];},
+ weaponScale(){const zoom=clamp(Number(this.active().zoom)||1,1,8);return Math.pow(zoom,-.82);},
  cycle(){if(!adsHeld||window.v36FlightMode!=='landed'||!running||paused||gameOver)return;this.index=(this.index+1)%this.profiles.length;try{localStorage.setItem('v534_scope_index',String(this.index));}catch(e){}this.updateHud(true);},
  updateHud(isADS=adsHeld){
   const button=document.getElementById('v58ScopeButton'),label=document.getElementById('v58ScopeLabel'),reticle=document.getElementById('v10Reticle');
@@ -5080,7 +5081,7 @@ const v58Camera={
   $('v10Reticle').classList.toggle('v58ADS',aiming);v58Sights.updateHud(aiming);
   if(playerModel?.gun){
    const normalScale=weaponIndex===4?.86:weaponIndex===0?.80:.78;
-   const sightScale=aiming?(v58Sights.active().zoom>=8?.66:v58Sights.active().zoom>=4?.76:.88):1;
+   const sightScale=aiming?v58Sights.weaponScale():1;
    playerModel.gun.scale.setScalar(normalScale*sightScale);
   }
  }
@@ -5098,7 +5099,7 @@ function v58SetFlightMode(mode){
  v58Sights.updateHud(false);
 }
 function htmlFlightModeSupportsCamera(){return window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending';}
-window.THEDEMIANFF_CAMERA_SYSTEM=()=>({profile:'FREE_FIRE_THIRD_PERSON',mode:v58Camera.mode,blend:v58Camera.blend,distance:v58Camera.back,shoulder:v58Camera.shoulder,fov:camera?.fov,ads:adsHeld&&window.v36FlightMode==='landed',flightMode:window.v36FlightMode,sight:v58Sights.active().name});
+window.THEDEMIANFF_CAMERA_SYSTEM=()=>({profile:'FREE_FIRE_THIRD_PERSON',mode:v58Camera.mode,blend:v58Camera.blend,distance:v58Camera.back,shoulder:v58Camera.shoulder,fov:camera?.fov,zoom:v58Sights.active().zoom,weaponScale:v58Sights.weaponScale(),ads:adsHeld&&window.v36FlightMode==='landed',flightMode:window.v36FlightMode,sight:v58Sights.active().name});
 window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>{const old=v58Camera.mode;v58Camera.mode=ads?'ADS':'FREE';try{return v58Camera.input(dx,dy,fire?'fire':'free');}finally{v58Camera.mode=old;}};
 window.THEDEMIANFF_FLIGHT_CAMERA_TEST=()=>({aircraftCameraInput:typeof v58FlightPointerDown==='function',parachuteCameraUpdate:typeof v58Camera.updateAngles==='function',crosshairHidden:document.body.classList.contains('v58FlightMode'),mode:window.v36FlightMode});
 let v586BuildingVisibilityClock=0;

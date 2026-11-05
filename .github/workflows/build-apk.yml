@@ -906,10 +906,25 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 3
           unzip -t "$APK" | tail -n 1
           sha256sum "$APK" | tee app/build/outputs/apk/release/SHA256SUMS.txt
+      - name: Preparar nombre de APK según versión Gradle
+        if: env.HAS_RELEASE_KEY == 'true'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import re
+          from pathlib import Path
+          gradle=Path('app/build.gradle').read_text(encoding='utf-8')
+          version=re.search(r"^\s*versionName\s+'([^']+)'",gradle,re.M)
+          code=re.search(r'^\s*versionCode\s+(\d+)',gradle,re.M)
+          if not version or not code:
+              raise SystemExit('No se pudo determinar versionName/versionCode de Gradle')
+          print('APP_VERSION='+version.group(1))
+          print('APP_VERSION_CODE='+code.group(1))
+          PY
       - uses: actions/upload-artifact@v7
         if: env.HAS_RELEASE_KEY == 'true'
         with:
-          name: THEDEMIANFF-V40-APK-RELEASE-FIRMA-PERMANENTE
+          name: THEDEMIANFF-${{ env.APP_VERSION }}-APK-RELEASE-FIRMADA
           path: |
             app/build/outputs/apk/release/app-release.apk
             app/build/outputs/apk/release/SHA256SUMS.txt

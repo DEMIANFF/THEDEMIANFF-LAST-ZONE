@@ -108,6 +108,12 @@ test('V58.2 camera follows with damped shoulder, vertical and horizontal smoothi
   assert.ok(html.includes("this.anchorY+=(player.position.y-this.anchorY)*(1-Math.exp(-t*(aiming?8.5:7.5)*(1-.20*smooth)))"));
   assert.match(html, /obstructed\?1-Math\.exp\(-t\*24\):followXZ/);
 });
+test('V58.2 reduces rifle obstruction consistently as optical magnification increases', () => {
+  assert.match(html, /weaponScale\(\)\{const zoom=clamp\(Number\(this\.active\(\)\.zoom\)\|\|1,1,8\);return Math\.pow\(zoom,-\.82\);\}/);
+  assert.match(html, /const sightScale=aiming\?v58Sights\.weaponScale\(\):1/);
+  assert.match(html, /zoom:v58Sights\.active\(\)\.zoom,weaponScale:v58Sights\.weaponScale\(\)/);
+});
+
 test('V58.2 provides one clean free-look dot and a separate ADS sight reticle', () => {
   assert.match(html, /<style id="v58FreeFireCamera">/);
   assert.match(html, /body\.v475InMatch:not\(\.v58FlightMode\) #cross/);

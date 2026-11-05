@@ -6,6 +6,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '../..');
 const html = fs.readFileSync(path.join(root, 'app/src/main/assets/index.html'), 'utf8');
 const gradle = fs.readFileSync(path.join(root, 'app/build.gradle'), 'utf8');
+const workflow = fs.readFileSync(path.join(root, '.github/workflows/build-apk.yml'), 'utf8');
 const menuStart = html.indexOf('<div id="menu"');
 const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
@@ -183,6 +184,13 @@ test('V57.8.2 binds the start button before later boot code and reports initiali
   assert.ok(html.includes("launchButton.textContent='REINTENTAR PARTIDA'"));
   assert.ok(html.includes("launchButton.textContent='▶ INICIAR PARTIDA'"));
   assert.doesNotMatch(html, /\$\('start'\)\.onclick=start/);
+});
+
+test('release APK artifact name follows Gradle version instead of a stale V40 label', () => {
+  assert.ok(workflow.includes('APP_VERSION='+"'+version.group(1)"));
+  assert.ok(workflow.includes('THEDEMIANFF-${{ env.APP_VERSION }}-APK-RELEASE-FIRMADA'));
+  assert.doesNotMatch(workflow, /THEDEMIANFF-V40-APK-RELEASE-FIRMA-PERMANENTE/);
+  assert.ok(workflow.includes("versionName '58.2-freefire-camera-comfort'"));
 });
 
 test('V58.2 package and lobby labels identify the Free Fire camera release', () => {
