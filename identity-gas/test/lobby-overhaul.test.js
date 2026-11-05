@@ -195,6 +195,6 @@ test('release APK artifact name follows Gradle version instead of a stale V40 la
 
 test('V58.3.0 package and lobby labels identify the Free Fire camera release', () => {
   assert.match(gradle, /versionCode 159/);
-  assert.match(gradle, /versionName '58\.2\.1-freefire-ads-comfort'/);
+  assert.match(gradle, /versionName '58\.3\.0-battle-royale-quality'/);
   assert.match(html, /V58\.2\.1 · CENTRO DE OPERACIONES/);
 });
