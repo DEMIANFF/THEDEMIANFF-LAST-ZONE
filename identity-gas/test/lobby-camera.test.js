@@ -24,17 +24,17 @@ test('identity and statistics are no longer duplicated in the lobby navigation',
   }
 });
 
-test('hybrid third-person camera keeps a moderate mobile distance and lower shoulder framing', () => {
-  assert.match(html, /id="v26CameraDistance"[^>]*min="9\.5" max="16" step="\.25" value="10"/);
-  assert.ok(html.includes('const tacticalBack=mobile?clamp(baseBack*1.06,10,16):baseBack;'));
-  assert.ok(html.includes('const height=(mobile?2.68:2.78)-(mobile?.20:.18)*b;'));
-  assert.ok(html.includes('const v432Camera={'));
-  assert.ok(html.includes('const back=tacticalBack*(1-b)+Math.max(9.0,baseBack*.94)*b;'));
-  assert.ok(html.includes('const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;'));
-  assert.ok(html.includes('c.gun.scale.setScalar(activeIndex===4?.86:activeIndex===0?.80:.78);'));
-  assert.ok(html.includes("clamp(value,9.5,16)"));
-  assert.ok(html.includes("clamp(value,2.0,2.7)"));
-  assert.ok(html.includes('aimFromFire(dx,dy)'));
+test('V58.1 uses one Free Fire third-person camera with stable shoulder follow and smooth zoom', () => {
+  assert.match(html, /id="v26CameraDistance"[^>]*min="6\.5" max="10\.5" step="\.25" value="7\.8"/);
+  assert.match(html, /id="v26CameraShoulder"[^>]*min="\.65" max="1\.5" step="\.05" value="1\.05"/);
+  assert.match(html, /const v58Camera=\{/);
+  assert.match(html, /profile:'FREE_FIRE_THIRD_PERSON'/);
+  assert.match(html, /const targetBack=baseBack\*\(1-\.20\*b\),targetShoulder=baseShoulder\*\(1-\.34\*b\)/);
+  assert.match(html, /const follow=1-Math\.exp\(-t\*13\.5\)/);
+  assert.match(html, /v404SafeCameraTarget\(desired\)/);
+  assert.match(html, /v586UpdateBuildingVisibility\(t\)/);
+  assert.match(html, /this\.currentFov\+=\(targetFov-this\.currentFov\)/);
+  assert.match(html, /c\.gun\.scale\.setScalar\(activeIndex===4\?\.86:activeIndex===0\?\.80:\.78\)/);
 });
 
 test('repeated identical gameplay notices are throttled', () => {
@@ -69,54 +69,46 @@ test('V57 lobby gives the operator, Social navigation and launch controls separa
   assert.match(html, /max-width:min\(34vw,315px\)/);
 });
 
-test('V57.6 right-shoulder framing places the operator left of the centered aim ray', () => {
-  assert.match(html, /const baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|2\.35,2\.0,2\.7\);/);
-  assert.doesNotMatch(html, /const baseShoulder=clamp/);
-  assert.match(html, /const shoulder=baseShoulder\*\(1-b\)\+baseShoulder\*\.92\*b;/);
-  assert.match(html, /player\.position\.x\+Math\.cos\(camYaw\)\*this\.shoulder-Math\.sin\(camYaw\)\*this\.back/);
+test('V58.1 keeps right-shoulder framing and a centered sight ray', () => {
+  assert.match(html, /const baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|1\.05,\.65,1\.5\)/);
+  assert.match(html, /const targetBack=baseBack\*\(1-\.20\*b\),targetShoulder=baseShoulder\*\(1-\.34\*b\)/);
+  assert.ok(html.includes('player.position.x+Math.cos(camYaw)*this.shoulder-Math.sin(camYaw)*this.back'));
   assert.match(html, /const start=camera\.position\.clone\(\),direction=new THREE\.Vector3\(\);camera\.getWorldDirection\(direction\)/);
   assert.match(html, /reticle\.dataset\.scope=this\.active\(\)\.name/);
-  assert.match(html, /cross\.dataset\.scope=this\.active\(\)\.name/);
-  for (const scope of ['PUNTO', '2x', '4x', '8x']) {
-    assert.ok(html.includes('#v10Reticle[data-scope="' + scope + '"]'), 'missing calibrated reticle: ' + scope);
-  }
   assert.match(html, /#cross,#v10Reticle\{[^}]*z-index:140!important/);
 });
 
-test('V57.6 keeps every aiming indicator hidden outside a match and restores the center reticle in combat', () => {
-  assert.match(html, /body:not\(\.v475InMatch\) #v10Reticle/);
-  assert.match(html, /body:not\(\.v475InMatch\) #v434ScopeButton/);
-  assert.match(html, /body:not\(\.v475InMatch\) #v434ScopeLabel/);
-  assert.match(html, /body:not\(\.v475InMatch\) #v13AimMode/);
-  assert.match(html, /body\.v475InMatch #v10Reticle\{display:block!important\}/);
-  assert.match(html, /document\.body\.classList\.contains\('v475InMatch'\) && isADS && running/);
-  assert.match(html, /camera\.getWorldDirection\(direction\)/);
+test('V58.1 hides crosshair and all sights in plane and parachute states', () => {
+  assert.match(html, /body\.v58FlightMode #cross/);
+  assert.match(html, /body\.v58FlightMode #v10Reticle/);
+  assert.match(html, /body\.v58FlightMode #v58ScopeButton/);
+  assert.match(html, /body\.v58FlightMode #v58ScopeLabel/);
+  assert.match(html, /body\.v475InMatch:not\(\.v58FlightMode\) #cross/);
+  assert.match(html, /body\.v475InMatch:not\(\.v58FlightMode\) #v10Reticle\.v58ADS/);
+  assert.match(html, /function v58SetFlightMode\(mode\)/);
+  assert.match(html, /const inAir=mode==='aircraft'\|\|mode==='descending'/);
 });
-test('V57.6 migrates the previous shoulder default while preserving newer custom preferences', () => {
-  assert.match(html, /value="2\.35"/);
-  assert.match(html, /const calibrated=Number\.isFinite\(value\)&&value>2\.1\?clamp\(value,2\.0,2\.7\):2\.35;/);
+test('V58.1 migrates old camera preferences into the Free Fire distance and shoulder ranges', () => {
+  assert.match(html, /value="7\.8"/);
+  assert.match(html, /value="1\.05"/);
+  assert.match(html, /const migrated=Number\.isFinite\(value\)\?\(value>10\.5\?value\*\.78:value\):7\.8/);
+  assert.match(html, /const calibrated=Number\.isFinite\(value\)\?clamp\(value>1\.5\?value\*\.45:value,\.65,1\.5\):1\.05/);
   assert.match(html, /localStorage\.setItem\('v26-pref-'\+id,String\(calibrated\)\)/);
-  assert.match(html, /const baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|2\.35,2\.0,2\.7\);/);
-  assert.match(html, /baseShoulder\*\.92\*b/);
 });
 
-test('V57.6 adds a little more shoulder clearance and smooths camera follow naturally', () => {
-  assert.match(html, /min="2\.0" max="2\.7" step="\.05" value="2\.35"/);
-  assert.match(html, /const baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|2\.35,2\.0,2\.7\);/);
-  assert.match(html, /const shoulder=baseShoulder\*\(1-b\)\+baseShoulder\*\.92\*b;/);
-  assert.match(html, /const follow=1-Math\.exp\(-t\*13\);/);
-  assert.match(html, /const followXZ=1-Math\.exp\(-t\*12\.5\);/);
-  assert.match(html, /this\.mode==='ADS'\?10:6\.5/);
+test('V58.1 camera follows with damped shoulder, vertical and horizontal smoothing', () => {
+  assert.match(html, /const targetHeight=\(mobile\?2\.46:2\.58\)-\.14\*b/);
+  assert.match(html, /const follow=1-Math\.exp\(-t\*13\.5\)/);
+  assert.match(html, /const followXZ=1-Math\.exp\(-t\*13\)/);
+  assert.match(html, /this\.anchorY\+\(player\.position\.y-this\.anchorY\)\*\(1-Math\.exp\(-t\*\(aiming\?11:8\)/);
+  assert.match(html, /const alpha=obstructed\?1-Math\.exp\(-t\*29\):followXZ/);
 });
-test('V57.6 restores the normal aiming point and keeps the ADS crosshair visible', () => {
-  assert.match(html, /id="v586ReticleRestored"/);
-  assert.match(html, /#v10Reticle:not\(\.v382ADS\)\{[^}]*border-color:#9cf9de!important/);
-  assert.match(html, /#v10Reticle:not\(\.v382ADS\)\{[^}]*opacity:\.72!important/);
-  assert.match(html, /#v10Reticle\.v382ADS\{[^}]*border-color:#aaf9dd!important/);
-  assert.match(html, /body\.v475InMatch #cross\{[^}]*display:block!important/);
-  assert.match(html, /body\.v475InMatch #v10Reticle\{visibility:visible!important\}/);
-  assert.match(html, /#v10Reticle\.v382ADS::before/);
-  assert.match(html, /#v10Reticle\.v382ADS::after/);
+test('V58.1 provides one clean free-look dot and a separate ADS sight reticle', () => {
+  assert.match(html, /<style id="v58FreeFireCamera">/);
+  assert.match(html, /body\.v475InMatch:not\(\.v58FlightMode\) #cross/);
+  assert.match(html, /body\.v475InMatch:not\(\.v58FlightMode\) #v10Reticle\.v58ADS/);
+  assert.match(html, /#v10Reticle:before,#v10Reticle:after/);
+  for (const scope of ['PUNTO','2x','4x','8x']) assert.ok(html.includes('#v10Reticle[data-scope="' + scope + '"]'));
 });
 test('V57.6 removes grey blocks and opens the house and district entrances', () => {
   assert.doesNotMatch(html, /new THREE\.BoxGeometry\(3,3\+j%3\*2,3\),darkIce/);
@@ -202,13 +194,18 @@ test('V57.8 enlarges houses and outposts while keeping their entrances and colli
   assert.ok(html.includes('v40BuildingDetails(g,w,h,d,doorWidth)'));
 });
 
-test('V57.8 keeps the 360-degree camera wrapped, calibrates X2/X4/X8 and widens aerial framing', () => {
-  assert.match(html, /this\.targetYaw=Math\.atan2\(Math\.sin\(this\.targetYaw-dx\*\.003\),Math\.cos\(this\.targetYaw-dx\*\.003\)\)/);
-  assert.match(html, /const yawAlpha=1-Math\.exp\(-t\*\(this\.mode==='ADS'\?28:24\)\)/);
-  assert.match(html, /const pitchAlpha=1-Math\.exp\(-t\*\(this\.mode==='ADS'\?30:25\)\)/);
-  assert.ok(html.includes("{name:'2x',zoom:2,fov:39.5,sensitivity:.60}"));
-  assert.ok(html.includes("{name:'4x',zoom:4,fov:19.75,sensitivity:.34}"));
-  assert.ok(html.includes("{name:'8x',zoom:8,fov:9.875,sensitivity:.20}"));
-  assert.ok(html.includes('const d=clamp(baseDistance*2.05,22,28);'));
-  assert.ok(html.includes('const aerialHeight=v398ChuteOpen?18:20;'));
+test('V58.1 routes camera movement independently in aircraft, parachute and landed gameplay', () => {
+  assert.match(html, /function v58FlightPointerDown\(e\)/);
+  assert.match(html, /function v58FlightPointerMove\(e\)/);
+  assert.match(html, /const v58FlightPointers=new Map\(\)/);
+  assert.match(html, /function v36TickAircraft\(dt\)[\s\S]*?v58Camera\.updateAngles\(dt\)/);
+  const start=html.indexOf('function v36StepFlight(dt){'),end=html.indexOf('function v36ChoosePoint(e,id)',start);
+  const parachute=html.slice(start,end);
+  assert.ok(start>=0&&end>start,'parachute update path must exist');
+  assert.ok(parachute.includes('v58Camera.updateAngles(dt);'),'parachute must advance camera target angles');
+  assert.match(parachute, /const d=v398ChuteOpen\?16\.5:14\.5/);
+  assert.doesNotMatch(html, /let v372PlaneTouch=/);
+  assert.match(html, /v58SetFlightMode\('aircraft'\)/);
+  assert.match(html, /v58SetFlightMode\('descending'\)/);
+  assert.match(html, /v58SetFlightMode\('landed'\)/);
 });

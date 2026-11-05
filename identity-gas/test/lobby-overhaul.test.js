@@ -11,7 +11,7 @@ const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
 test('V57.6 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.match(menu, /V57.8.2 · CENTRO DE OPERACIONES/);
+  assert.match(menu, /V58.1 · CENTRO DE OPERACIONES/);
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -68,36 +68,42 @@ test('Aurora pass has 30 persistent free and Elite reward tiers without real-mon
   assert.match(html, /p\.claimed\.push\(key\)/);
 });
 
-test('combat camera follows vertically and the mobile shoulder framing is lower', () => {
-  assert.match(html, /const height=\(mobile\?2\.68:2\.78\)-\(mobile\?\.20:\.18\)\*b;/);
-  assert.match(html, /Smooth vertical tracking is essential: keep the shoulder camera attached to the player\.\n  if\(!Number\.isFinite\(camera\.position\.y\)/);
-  assert.doesNotMatch(html, /thereafter\.\\n  if\(!Number\.isFinite\(camera\.position\.y\)/);
+test('V58.1 landed camera follows the Free Fire TPS shoulder rig vertically', () => {
+  assert.match(html, /const targetHeight=\(mobile\?2\.46:2\.58\)-\.14\*b/);
+  assert.match(html, /this\.anchorY\+\(player\.position\.y-this\.anchorY\)\*\(1-Math\.exp\(-t\*\(aiming\?11:8\)/);
+  assert.match(html, /v58Camera\.update\(dt\)/);
+  assert.match(html, /profile:'FREE_FIRE_THIRD_PERSON'/);
 });
 
-test('ADS optics provide calibrated 2x, 4x and 8x magnification with progressive sensitivity', () => {
-  assert.match(html, /\{name:'2x',zoom:2,fov:39\.5,sensitivity:\.60\}/);
-  assert.match(html, /\{name:'4x',zoom:4,fov:19\.75,sensitivity:\.34\}/);
-  assert.match(html, /\{name:'8x',zoom:8,fov:9\.875,sensitivity:\.20\}/);
-  assert.match(html, /targetFov=baseFov\/v434Optics\.active\(\)\.zoom/);
+test('V58.1 ADS keeps third-person camera and uses Blood Strike-inspired sight magnification', () => {
+  assert.match(html, /\{name:'2x',zoom:2,sensitivity:\.62\}/);
+  assert.match(html, /\{name:'4x',zoom:4,sensitivity:\.36\}/);
+  assert.match(html, /\{name:'8x',zoom:8,sensitivity:\.23\}/);
+  assert.match(html, /targetFov=baseFov\/\(aiming\?v58Sights\.active\(\)\.zoom:1\)/);
+  assert.match(html, /fireStability=channel==='fire'\?clamp/);
+  assert.match(html, /sightFactor=this\.mode==='ADS'&&window\.v36FlightMode==='landed'\?v58Sights\.active\(\)\.sensitivity:1/);
 });
 
-test('parachute camera is pulled back and Lila preview supports touch rotation at smoother frame pacing', () => {
-  assert.match(html, /const d=clamp\(baseDistance\*2\.05,22,28\)/);
-  assert.match(html, /const aerialHeight=v398ChuteOpen\?18:20/);
+test('V58.1 aircraft and parachute have their own responsive camera route', () => {
+  assert.match(html, /function v58FlightPointerDown\(e\)/);
+  assert.match(html, /function v58FlightPointerMove\(e\)/);
+  assert.match(html, /const radius=22,look=v36Aircraft\.position/);
+  assert.match(html, /const d=v398ChuteOpen\?16\.5:14\.5/);
+  assert.match(html, /v58Camera\.updateAngles\(dt\)/);
   assert.match(html, /#menu #v24LobbyStage\{pointer-events:auto!important;touch-action:pan-y!important/);
   assert.match(html, /if\(l\.renderer&&now-l\.last>\(mobile\?40:33\)\)/);
   assert.match(html, /l\.camera\.position\.set\(0,1\.92,7\.9\)/);
 });
 
-test('Android release is V57.8.2 with a monotonic version code', () => {
-  assert.match(gradle, /versionCode 155/);
-  assert.match(gradle, /versionName '58.0-camera-visibility'/);
+test('Android release is V58.1 with monotonic version code', () => {
+  assert.match(gradle, /versionCode 156/);
+  assert.match(gradle, /versionName '58.1-freefire-thirdperson'/);
 });
 
-test('V57 Android package metadata is monotonic and matches the lobby release', () => {
-  assert.match(gradle, /versionCode 155/);
-  assert.match(gradle, /versionName '58.0-camera-visibility'/);
-  assert.match(html, /V57.8.2 · CENTRO DE OPERACIONES/);
+test('V58.1 Android package metadata and lobby label match', () => {
+  assert.match(gradle, /versionCode 156/);
+  assert.match(gradle, /versionName '58.1-freefire-thirdperson'/);
+  assert.match(html, /V58.1 · CENTRO DE OPERACIONES/);
 });
 
 test('V57.6 activates the authored Aurora battle royale environment and visual resources', () => {
@@ -137,10 +143,10 @@ test('V57.6 visual roots dispose their private materials while shared GPU geomet
   assert.match(html, /obj\.geometry&&!obj\.geometry\.userData\.v583Shared/);
 });
 
-test('Android release is V57.6 with monotonic version code 154', () => {
-  assert.match(gradle, /versionCode 155/);
-  assert.match(gradle, /versionName '58.0-camera-visibility'/);
-  assert.match(html, /V57.8.2 · CENTRO DE OPERACIONES/);
+test('Android release version remains monotonic after the camera rebuild', () => {
+  assert.match(gradle, /versionCode 156/);
+  assert.match(gradle, /versionName '58.1-freefire-thirdperson'/);
+  assert.match(html, /V58.1 · CENTRO DE OPERACIONES/);
 });
 test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
   assert.match(html, /function v576RegisterOpenBuilding/);
@@ -175,8 +181,8 @@ test('V57.8.2 binds the start button before later boot code and reports initiali
   assert.doesNotMatch(html, /\$\('start'\)\.onclick=start/);
 });
 
-test('V57.8.2 package and lobby labels identify the repaired start build', () => {
-  assert.match(gradle, /versionCode 155/);
-  assert.match(gradle, /versionName '58\.0-camera-visibility'/);
-  assert.match(html, /V57\.8\.2 · CENTRO DE OPERACIONES/);
+test('V58.1 package and lobby labels identify the Free Fire camera release', () => {
+  assert.match(gradle, /versionCode 156/);
+  assert.match(gradle, /versionName '58\.1-freefire-thirdperson'/);
+  assert.match(html, /V58\.1 · CENTRO DE OPERACIONES/);
 });
