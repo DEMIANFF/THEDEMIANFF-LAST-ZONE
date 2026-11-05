@@ -1,3 +1,297 @@
+name: Compilar APK offline THEDEMIANFF
+# V44.2: iniciar compilacion Android de prueba tras corregir assets WebView.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, v28-html-upgrade, v34-4-ads-sprint-fix, v34-5-ads-button-fix, v34-6-combat-stop, v34-7-combat-strafe, v35-1-combat-spawn-lobby, v36-0-battle-royale-core, v36-1-events-missions-crouch, v36-2-cover-loot-events, v37-0-aurora-ux-flight-events, v37-1-lobby-hotfix, v37-2-controls-events-camera, v38-0-operations-lobby-fhd, v38-1-event-navigation-touch-camera, v38-2-ads-camera-stability-suite, v38-3-lobby-parachute-polish, v38-6-lobby-polish-flight-controls, v38-7-parachute-axis-walk-68, v38-8-flight-axes-walk-74, v38-9-camera-relative-parachute, v39-0-walk-81-stable, v39-1-combat-precision-stability, v39-2-arsenal-recoil-polish, v39-3-impact-feedback-enemy-reaction, v39-4-tactical-cover-ai, v39-5-combat-animation-polish, v39-6-puerto-aurora-expansion, v39-7-aurora-cinematic-visuals, v39-8-aircraft-drop-rework, v40-architecture-reconstruction, v42-battle-royale-evolution, v42-2-graphics-recovery, v42-3-render-stability, v42-4-render-fix, v42-5-world-polish, v44-2-android-assets-fix, v44-3-account-entry-preview, v44-3-1-backup-integrity, v44-3-2-autosave-guest, v44-4-firebase-foundation, v44-5-secure-player-profiles, v55-4-free-player-identity, v56-0-royale-lobby-overhaul, v57-lobby-camera-stability, v58-integration-audit]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    env:
+      HAS_RELEASE_KEY: ${{ secrets.THEDEMIANFF_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar asignación de ID V55
+        working-directory: functions
+        run: |
+          npm test
+          npm run check
+      - name: Validar servicio gratuito de IDs V55.4
+        working-directory: identity-gas
+        run: |
+          npm test
+          npm run check
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: '8.10.2'
+      - name: Instalar SDK Android 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Preparar dependencias 3D para APK offline
+        run: |
+          set -euo pipefail
+          ASSETS=app/src/main/assets
+          mkdir -p "$ASSETS"
+          if grep -q 'src="three.min.js"' "$ASSETS/index.html" && [ ! -s "$ASSETS/three.min.js" ]; then
+            curl --fail --location --retry 3 --silent --show-error "https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js" -o "$ASSETS/three.min.js"
+          fi
+          if grep -q 'src="GLTFLoader.js"' "$ASSETS/index.html" && [ ! -s "$ASSETS/GLTFLoader.js" ]; then
+            curl --fail --location --retry 3 --silent --show-error "https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js" -o "$ASSETS/GLTFLoader.js"
+          fi
+          # V29: aceptar la subida móvil de Lila en la raíz de assets y normalizar la ruta.
+          mkdir -p "$ASSETS/models"
+          if [ ! -s "$ASSETS/models/lila-operator.glb" ]; then
+            for source in "$ASSETS/operador-lila.glb" "$ASSETS/lila-operator.glb" "$ASSETS/models/operador-lila.glb"; do
+              if [ -s "$source" ]; then
+                cp "$source" "$ASSETS/models/lila-operator.glb"
+                echo "Modelo Lila encontrado en $source; ruta normalizada."
+                break
+              fi
+            done
+          fi
+          test -s "$ASSETS/index.html"
+          test -s "$ASSETS/models/lila-operator.glb" || { echo "::error::Falta models/lila-operator.glb: no generar APK con Lila de respaldo"; exit 1; }
+          # V44.2: verify the exact 3D assets used by the browser are packaged.
+          test -s "$ASSETS/models/lila-v44-experimental.glb" || { echo "::error::Falta Lila V44.1 en APK"; exit 1; }
+          test -s "$ASSETS/models/ak74-tactical.glb" || { echo "::error::Falta skin AK-74 en APK"; exit 1; }
+          grep -q "models/lila-v44-experimental.glb" "$ASSETS/index.html" || { echo "::error::HTML no selecciona Lila V44.1"; exit 1; }
+          grep -q "models/ak74-tactical.glb" "$ASSETS/index.html" || { echo "::error::HTML no selecciona AK-74"; exit 1; }
+          grep -q "web.loadUrl(GAME_ORIGIN+GAME_PREFIX" app/src/main/java/com/thedemianff/lastzone/MainActivity.java || { echo "::error::WebView no usa origen HTTPS local"; exit 1; }
+          grep -q 'getAssets().open(relative)' app/src/main/java/com/thedemianff/lastzone/MainActivity.java || { echo "::error::WebView no sirve modelos desde assets"; exit 1; }
+          echo "V44.2 Android assets / Lila / AK-74 OK"
+          echo "Recursos 3D presentes:"
+          ls -lh "$ASSETS/index.html" "$ASSETS/three.min.js" "$ASSETS/GLTFLoader.js" "$ASSETS/models/lila-operator.glb"
+          if grep -q 'src="three.min.js"' "$ASSETS/index.html"; then test -s "$ASSETS/three.min.js"; fi
+          if grep -q 'src="GLTFLoader.js"' "$ASSETS/index.html"; then test -s "$ASSETS/GLTFLoader.js"; fi
+      - name: Validar scripts y estructura del modelo 3D
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,struct,json,subprocess,tempfile
+          root=Path("app/src/main/assets")
+          html=(root/"index.html").read_text(encoding="utf-8")
+          # V53.4: detect regression where a literal escaped newline comments
+          # out the camera height declaration but still passes JS syntax checks.
+          assert "targetHeight=(mobile?2.46:2.58)-.14*b" in html, "V58.1: missing calibrated Free Fire camera height"
+          assert r"\n  const targetHeight=(mobile?2.46:2.58)" not in html, "V58.1: camera height accidentally commented out"
+          for token in ("v58Camera.update(dt);", "v58Camera.updateAngles(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", 'id="v18Profile"', "v534_scope_index"):
+              assert token in html, "V53.4: required camera/lobby component missing: "+token
+          # V53.8: identity remains part of validated Firebase backup payload.
+          for token in ('const v536IdPattern=', 'const v536NamePattern=', 'result.playerId=p.playerId', 'result.playerName=p.playerName', 'v536EnsureIdentity()', 'id="v536LobbyName"', 'id="v536LobbyId"', 'id="v18Profile"', 'id="v536SaveName"', 'id="v536CopyId"'):
+              assert token in html, 'V53.8: player ID/name persistence regression: '+token
+          assert "trim().replace(/\\s+/g,' ')" in html, 'V53.8: nickname whitespace validation missing'
+          # V54.5: numeric IDs must come from the native Firebase bridge, never local random generation.
+          for token in ('const v536IdPattern=/^[0-9]{5}$/', 'function v540RequestId()', 'window.thedemianffIdentityResult=', 'id="v544RetryId"', 'THEDEMIANFFIdentity'):
+              assert token in html, 'V54.5: sequential public ID integration missing: '+token
+          assert 'function v536NewId()' not in html, 'V54.5: local-generated fake public IDs forbidden'
+          java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text(encoding='utf-8')
+          for token in ('class IdentityBridge', 'getIdToken(false)', 'callFreeIdentityService(', 'isValidIdentityEndpoint(', 'identityServiceError(', 'web.addJavascriptInterface(new IdentityBridge()'):
+              assert token in java, 'V55.4: Android free identity integration missing: '+token
+          assert 'FirebaseFunctions' not in java and 'getHttpsCallable' not in java, 'V55.4: Android must not depend on paid Cloud Functions'
+          assert 'db.runTransaction(transaction ->' not in java, 'V55: client-side identity transaction must be removed'
+          assert 'V58.1 · CENTRO DE OPERACIONES' in html and 'AURORA EVOLUTION · V58.1' in html, 'V57.6: lobby labels must match the release'
+          for token in ('v396ExpandAurora();', 'v397DetailAurora();', 'v583SetupBattleVisuals();', 'function v583SetupBattleVisuals()', 'function v583TickBattleVisuals(dt)', 'function v583UpdateZoneVisual(radius,cx,cz,danger)', 'function v583BuildPickupCase(group,type)', 'new THREE.CanvasTexture(snowCanvas)', 'skyContext.createLinearGradient(0,0,0,512)', 'new THREE.Points(assets.snowGeometry,assets.snowMaterial)', 'zonePerimeter:!!zoneRing', 'window.THEDEMIANFF_BATTLE_VISUAL_TEST'):
+              assert token in html, 'V57.6: battle royale visual pipeline missing '+token
+          for token in ('function v583DisposeVisualRoot(root)', 'window.v396VisualRoot=v396Root', 'window.v397VisualRoot=v397Root', 'v583DisposeVisualRoot(window.v396VisualRoot)', 'v583DisposeVisualRoot(window.v397VisualRoot)', 'palette[key].userData.v583Shared=true', 'g.userData.v583Shared=true'):
+              assert token in html, 'V57.6: visual resource lifecycle missing '+token
+          assert "versionCode 156" in Path('app/build.gradle').read_text(), 'V57.6: Android version code mismatch'
+          for token in ("baseShoulder=-clamp(Number($('v26CameraShoulder').value)||1.05,.65,1.5)", 'targetShoulder=baseShoulder*(1-.34*b)', 'targetHeight=(mobile?2.46:2.58)-.14*b', 'const follow=1-Math.exp(-t*13.5)', 'followXZ=1-Math.exp(-t*13)', 'id="v586ReticleRestored"', 'v58ADS', 'function v576RegisterWallRun', 'v576RegisterOpenBuilding(xx-86,zz-82,w,wall,depth,doorWidth,thickness)', 'window.THEDEMIANFF_AURORA_ACCESS_TEST', 'doorWidthMeters:3.0'):
+              assert token in html, 'V57.6: camera, reticle or clear-Aurora guard missing '+token
+          place_start=html.index('function place(x,z,w,h,d,material,kind){')
+          place=html[place_start:place_start+3000]
+          assert 'const doorWidth=3.0;' in place and place.index('const doorWidth=3.0;') < place.index("if(kind==='building'){") and 'v40BuildingDetails(g,w,h,d,doorWidth);' in place, 'V57.8.2: doorWidth must be in the shared place() scope'
+          assert 'new THREE.BoxGeometry(3,3+j%3*2,3),darkIce' not in html, 'V57.6: oversized dark-ice POI blocks must stay removed'
+          for token in ('function v576RegisterOpenBuilding', 'v576RegisterOpenBuilding(x,z,w,h,d,doorWidth,thickness)', 'looseFrostStones:false', 'greyDistrictCrates:false', 'valleyRockCliffs:false', 'raisedStonePlanters:false', 'zoneVolume:false', 'body.v58FlightMode #cross', 'body.v58FlightMode #v10Reticle'):
+              assert token in html, 'V57.6: door, reticle or ground-zone guard missing '+token
+          for token in ('new THREE.DodecahedronGeometry(2.2+i%3,0),metal', 'new THREE.CylinderGeometry(1,1,10,72,1,true)', 'for(let i=0;i<62;i++)', "place(x+dx,z+dz,w,h,d,dx%2?steel:frost,'crate')"):
+              assert token not in html, 'V57.6: grey clutter or translucent zone volume remains '+token
+          for token in ('body.v475InMatch:not(.v58FlightMode) #cross', 'body.v475InMatch:not(.v58FlightMode) #v10Reticle.v58ADS', 'body.v58FlightMode #v58ScopeButton', 'body.v58FlightMode #v58ScopeLabel', "document.body.classList.contains('v475InMatch')&&isADS&&running", 'min="6.5" max="10.5" step=".25" value="7.8"', "baseShoulder=-clamp(Number($('v26CameraShoulder').value)||1.05,.65,1.5)", 'targetShoulder=baseShoulder*(1-.34*b)', 'id="v584MatchOnlyAimHUD"'):
+              assert token in html, 'V57.6: match-only aim or right-shoulder camera guard missing '+token
+          for token in ("baseShoulder=-clamp(Number($('v26CameraShoulder').value)||1.05,.65,1.5)", 'targetShoulder=baseShoulder*(1-.34*b)', 'reticle.dataset.scope=this.active().name', 'const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction)', 'id="v582RightShoulderAim"'):
+              assert token in html, 'V57.6: missing right-shoulder aiming correction '+token
+          for token in ('UNAUTHENTICATED', 'GOOGLE_REQUIRED', 'REGISTRY_CORRUPT', 'RESOURCE_EXHAUSTED', 'BUSY'):
+              assert token in java, 'V55.4: free identity error mapping missing: '+token
+          gas=Path('identity-gas/Code.gs').read_text(encoding='utf-8')
+          for token in ('accounts:lookup', 'LockService.getScriptLock()', "providerId === 'google.com'"):
+              assert token in gas, 'V55.4: server-side verification/locking missing: '+token
+          for token in ('setupRegistry', 'THEDEMIANFF_PLAYER_ID_COUNTER', 'dataRows.length === counter + 1', 'validateRegistryRows_', 'number !== index + 1'):
+              assert token in gas, 'V55.4: safe free registry implementation missing: '+token
+          endpoint=Path('identity-gas/endpoint.txt').read_text(encoding='utf-8').strip()
+          assert endpoint.startswith('https://script.google.com/macros/s/') and endpoint.endswith('/exec') and len(endpoint) <= 256 and not any(ch.isspace() for ch in endpoint), 'V55.4: endpoint must be a published HTTPS Apps Script Web App URL'
+          for token in ('IDENTITY_ENDPOINT_CONFIG', 'identity-gas/endpoint.txt', 'resolveIdentityEndpoint()', 'callFreeIdentityService(endpoint,idToken)'):
+              assert token in java, 'V55.4: endpoint discovery/POST integration missing: '+token
+          for token in ('setInstanceFollowRedirects(false)', 'getHeaderField("Location")', 'script.googleusercontent.com', 'readIdentityRedirect(redirected,1)', 'for(int attempt=0;attempt<4;attempt++)', 'Thread.sleep(1000L*(attempt+1))'):
+              assert token in java, 'V55.4: bounded Apps Script redirect handling missing: '+token
+          for token in ("window.thedemianffIdentityResult=", 'window.THEDEMIANFFIdentity.ensure()', "state==='assigned'", "v18Progress.playerId!==value", 'v544IdVerifiedAccount===v446GoogleEmail', 'v544IdVerifiedAccount=v446GoogleEmail', 'v544IdVerifiedAccount=\'\''):
+              assert token in html, 'V55.4: canonical player ID verification missing: '+token
+          assert "if(v536IdPattern.test(v18Progress.playerId||''))return;" not in html, 'V55.4: imported five-digit IDs must be checked against the authenticated UID'
+          assert "retryId.disabled=v544IdVerifiedAccount===v446GoogleEmail&&v536IdPattern.test(p.playerId||'')" in html, 'V55.4: ID retry must stay enabled until the server verifies this Google session'
+          assert 'Firebase aún no autorizó el ID; verifica sus reglas' not in html, 'V55.3: generic error text still hides callable failure'
+          assert 'collection("player_identities")' not in java and 'collection("system_counters")' not in java, 'V55: Android client must not access privileged identity collections'
+          function_entry=Path('functions/src/index.js').read_text(encoding='utf-8')
+          identity_logic=Path('functions/src/identity.js').read_text(encoding='utf-8')
+          function_package=json.loads(Path('functions/package.json').read_text(encoding='utf-8'))
+          for token in ("onCall(", "getAuthenticatedUid(request", "ensurePlayerIdentity"):
+              assert token in function_entry, 'V55: callable server entry missing: '+token
+          assert "request.auth.uid" in identity_logic, 'V55: server must derive UID from verified auth context'
+          for token in ("transaction.create(identityRef", "transaction.set(counterRef", "validateSequenceCounter", "auditSequenceState"):
+              assert token in identity_logic, 'V55: atomic ID allocation/audit missing: '+token
+          assert function_package.get('engines',{}).get('node')=='22', 'V55: Functions runtime must be Node.js 22'
+          assert function_package.get('dependencies',{}).get('firebase-admin')=='14.5.0', 'V55: Admin SDK version missing'
+          assert function_package.get('dependencies',{}).get('firebase-functions')=='7.4.0', 'V55: Functions SDK version missing'
+          assert 'bootstrap:player-ids' in function_package.get('scripts',{}), 'V55.3: safe empty-counter bootstrap command missing'
+          assert Path('functions/scripts/initialize-player-counter.js').is_file(), 'V55.3: bootstrap script missing'
+          for token in ('initializeEmptyPlayerCounter', 'identitySnapshot.docs.length > 0', 'transaction.create(counterRef'):
+              assert token in identity_logic, 'V55.3: bootstrap must protect existing identity records: '+token
+          assert '},75000);' in html, 'V55.3: identity request timeout must allow the callable SDK deadline'
+
+          # V34.1: camera look owner cannot be stolen by a moving second finger.
+          if "now-v26LastLookMove>85" in html: raise SystemExit("V34.1: cámara aún permite robo del puntero")
+          if "!v23Touches.has(v26LookOwner)" not in html: raise SystemExit("V34.1: falta control de dueño de cámara")
+          # V33: prevent untrusted JSON from restoring competitive progression.
+          if "const entries=v33ValidateSettingsBackup(backup)" not in html: raise SystemExit("V33: restauración no validada")
+          if "format:2,type:'settings'" not in html: raise SystemExit("V33: exportación de configuraciones ausente")
+          if "V33_BACKUP_KEYS" not in html or "v33IsSettingsKey(k)" not in html: raise SystemExit("V33: lista blanca ausente")
+          # V33 settings importer must remain strict; V44.3 guest snapshots use a separate validated format.
+          settings_import=html.split('function v33ValidateSettingsBackup(backup){',1)[1].split('function ',1)[0]
+          if "backup.format!==2" not in settings_import or "backup.type!=='settings'" not in settings_import:
+              raise SystemExit("V33: importación de ajustes no restringida a formato 2")
+          guest_import=html.split("$('v443RestoreFile').addEventListener('change',",1)[1].split("if(!window.THREE)",1)[0]
+          if "backup.format!==1" not in guest_import or "v443ValidateProgress(backup.progress)" not in guest_import:
+              raise SystemExit("V44.3: respaldo de invitado sin validación")
+          if "for(const [k,v] of entries)localStorage.setItem(k,v);" not in html: raise SystemExit("V33: importación de ajustes ausente")
+          # V44.5: backup actions are no longer duplicated in the lobby or Settings.
+          if 'id="v29BackupButton"' in html: raise SystemExit("V44.5: respaldo antiguo sigue visible en ajustes")
+          if 'data-tab="progress"' in html or 'data-section="progress"' in html: raise SystemExit("V44.5: pestaña PROGRESO duplicada")
+          if 'id="v443Account"' in html: raise SystemExit("V44.5: botón CUENTA / RESPALDO sigue en lobby")
+          if html.count('id="v445SettingsLogout"')!=1 or 'data-tab="account"' not in html: raise SystemExit("V44.5: falta cerrar sesión en Ajustes > Cuenta")
+          if html.count('id="v443Backup"')!=1 or html.count('id="v443Restore"')!=1: raise SystemExit("V44.5: mecanismo de respaldo local eliminado")
+          if 'document.body.appendChild(btn)' in html: raise SystemExit("Regresión: botón flotante de respaldo fuera de ajustes")
+          # V40 architecture/combat presentation smoke checks: preserve approved runtime API.
+          required_v40 = {
+              "five weapon profiles": "gun.userData.v40Variants=v40Variants",
+              "automatic weapon variant switch": "variants[i].visible=i===activeIndex",
+              "animated plane propellers": "v36Aircraft.userData.v40Propellers",
+              "airplane glide remains": "v36TickAircraft(dt)",
+              "four recognizable districts": "const v40DistrictNames=['HELIOS','VORTEX','CRISTAL','ECOS']",
+              "cached offline district signs": "v40SignCache.set(name,t)",
+              "district roof variations": "v40DistrictEquipment(g,w,h,d,v40DistrictIndex)",
+              "offline environmental instancing": "window.v40EnvironmentInstances=rockCount+treeCount*2",
+              "six Aurora district motif families": "window.v40DistrictMotifs=motifCounts.reduce((a,b)=>a+b,0)",
+              "visibility lighting": "visibilityLighting:true",
+              "calibrated snow exposure": "renderer.toneMappingExposure=.72",
+              "landscape HUD calibration": "v40ScreenshotHudCalibration",
+              "V58 Free Fire TPS camera controller": "const v58Camera={",
+              "V58 Free Fire TPS camera tick": "v58Camera.update(dt);",
+              "loot halo": "v40PickupHalo=halo",
+              "enemy markers": "v40EnemyMark=new THREE.MeshBasicMaterial",
+              "district motif count exposed": "window.v40DistrictMotifTypes=motifMeshes.length",
+              "camera-relative parachute": "cameraRight=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion)"
+          }
+          for check, marker in required_v40.items():
+              if marker not in html: raise SystemExit(f"V40 regresión: {check}")
+          print(f"V40 comprobaciones estructurales: {len(required_v40)} OK")
+          scripts=re.findall(r"<script\b[^>]*>([\s\S]*?)</script\s*>",html,re.I)
+          count=0
+          for script in scripts:
+              if not script.strip(): continue
+              with tempfile.NamedTemporaryFile("w",suffix=".js",encoding="utf-8") as tmp:
+                  tmp.write(script);tmp.flush()
+                  subprocess.run(["node","--check",tmp.name],check=True)
+                  count+=1
+          if count==0: raise SystemExit("No se encontraron bloques JavaScript inline; revisar HTML")
+          print(f"JavaScript HTML validado: {count} bloques")
+          for name in ("three.min.js","GLTFLoader.js"):
+              subprocess.run(["node","--check",str(root/name)],check=True)
+          p=root/"models/lila-operator.glb"
+          data=p.read_bytes()
+          if len(data)<20 or data[:4]!=b"glTF": raise SystemExit("GLB inválido: falta cabecera glTF")
+          magic,version,length=struct.unpack_from("<4sII",data)
+          if version!=2 or length!=len(data): raise SystemExit("GLB inválido: versión o longitud")
+          chunk_len,chunk_type=struct.unpack_from("<I4s",data,12)
+          if chunk_type!=b"JSON": raise SystemExit("GLB inválido: bloque JSON ausente")
+          doc=json.loads(data[20:20+chunk_len])
+          names={node.get("name") for node in doc.get("nodes",[])}
+          expected={"leftArm","rightArm","leftLeg","rightLeg"}
+          missing=expected-names
+          if missing: raise SystemExit("Faltan articulaciones de Lila: "+", ".join(sorted(missing)))
+          if not doc.get("meshes"): raise SystemExit("GLB sin mallas")
+          print(f"Lila validada: {len(doc['meshes'])} mallas y {len(doc.get('nodes',[]))} nodos")
+          PY
+      - name: Validar interfaz y controles críticos V37.2
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          ids=['v362Events','v362EventClose','v362EventStatus','v37ModeOverlay','v37ModeClose','v37FlightHUD','v37FlightJump','v36DropCanvas','v372ExitGame','minimap','leaveMatch']
+          for element in ids:
+              count=len(re.findall(r'id="'+re.escape(element)+r'"',html))
+              if count!=1: raise SystemExit(f'ID de interfaz ausente o duplicado: {element} ({count})')
+          required=['function v362ShowEvents()',"document.querySelectorAll('#menu [data-lobby]')",'function v36TickAircraft(dt)','function v58FlightPointerDown(e)','function v58FlightPointerMove(e)','function v372FlightMap()','THEDEMIANFFGame.exitGame()']
+          for marker in required:
+              if marker not in html: raise SystemExit('Control crítico no conectado: '+marker)
+          if 'id="v37OpenDropMap"' in html: raise SystemExit('Regresión: botón MAPA redundante reapareció')
+          print('Validación estática de controles: OK')
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          html=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          start=html.index('<script>')+len('<script>')
+          end=html.rindex('</script>')
+          Path('/tmp/thedemianff-inline.js').write_text(html[start:end],encoding='utf-8')
+          PY
+          node --check /tmp/thedemianff-inline.js
+      - name: Verificar V38 interfaz eventos, personaje 360 y perfil FHD
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          ids=['v38Operations','v38TabEvents','v38TabMissions','v38EventsView','v38MissionsView','v38MissionsContent','v38OpsClose','v24LobbyStage']
+          for ident in ids:
+              count=len(re.findall(r'id="'+re.escape(ident)+r'"',html))
+              if count!=1: raise SystemExit(f'Interfaz faltante o duplicada: {ident} = {count}')
+          required=['function v38OpenHub(','function v38SelectTab(','function v38RenderMissions(','function v381ShowEventDetails(mode)','v38LobbyTouch.addEventListener','function v38FhdRatio()','function v38NoiseBurst(']
+          for item in required:
+              if item not in html: raise SystemExit('Control o función ausente: '+item)
+          if html.count('data-v38event=')!=2: raise SystemExit('Se esperaban dos desafíos activos')
+          print('V38 verificaciones estáticas: OK')
+          PY
+      - name: V38.1 comprobar consulta de eventos sin auto-inicio
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          for ident in ('v381EventDetail','v381SelectMode','v381DetailClose','v38Operations','v24LobbyStage'):
+              count=len(re.findall(r'id="'+ident+r'"',html))
+              if count!=1: raise SystemExit('Interfaz incorrecta: '+ident)
+          required=('v381ShowEventDetails(button.dataset.v38event)','document.querySelectorAll(\'#menu [data-lobby]\')',
+                    '#menu .v24Hero{z-index:30!important;pointer-events:auto!important',
+                    "window.v36FlightMode==='aircraft'",'v372RefreshSettingsContext()')
+          for token in required:
+              if token not in html: raise SystemExit('Falta función o control: '+token)
+          section=html[html.index("$('v38Operations').querySelectorAll('[data-v38event]')"):html.index("// Single immediate pointer action")]
+          if 'start()' in section: raise SystemExit('Eventos no deben iniciar partidas')
+          print('V38.1 interacciones estáticas OK')
+          PY
       - name: V58.1 validar cámara TPS, vuelo y ADS
         run: |
           python3 - <<'PY'
@@ -23,3 +317,620 @@
               raise SystemExit('Legacy camera owner is still active')
           print('V58.1 TPS/flight/ADS static checks passed')
           PY
+      - name: Verificar V38.3 lobby accesible y control del paracaidas
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          required=[
+           'id="v383LobbyLayout"',
+           'data-lobby="INVENTARIO"',
+           'data-lobby="ARMAS"',
+           'data-lobby="PRESET"',
+           'const glideSpeed=v398ChuteOpen?13.5:21;',
+           'player.rotation.y+=turn',
+           'player.position.y-=(v398ChuteOpen?(strength>.12?8.0:9.0):19.5)*dt;',
+           'const cameraRight=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);',
+           'const cameraForward=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);',
+           "window.v36FlightMode==='descending'",
+           "const inLobby=!running;"
+          ]
+          for token in required:
+              if token not in h: raise SystemExit('V38.3 missing: '+token)
+          if 'OPERACIÓN<br>ÚLTIMA ZONA' in h: raise SystemExit('Old banner remains')
+          print('V38.3 static checks passed')
+          PY
+      - name: Validar entrada de invitado y acceso Google V44.5
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text()
+          java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
+          for token in ('id="v443Entry"','id="v443Guest"','id="v443Google"','id="v443Backup"','id="v443Restore"','id="v443RestoreFile"','id="v445SettingsLogout"','thedemianff_v443_guest_id','thedemianff_progress_v18','v443ValidateProgress','localStorage.setItem(progressKey,JSON.stringify(progress))','window.THEDEMIANFFBackup.saveBackup(content)'):
+              assert token in h, 'Missing V44.3 guest entry: '+token
+          for token in ("if(!raw)throw Error('No hay progreso guardado", "const data=v443ValidateProgress(raw)", "Este respaldo contiene:", "este respaldo tiene MENOS XP"):
+              assert token in h, 'V44.3.1 backup integrity missing: '+token
+          assert 'id="v443Account"' not in h, 'V44.5: CUENTA / RESPALDO reapareció en lobby'
+          assert 'data-tab="account"' in h, 'V44.5: falta ajustes de cuenta'
+          assert 'id="v445Play"' not in h, 'V44.5: inicio Google exige clic innecesario'
+          for token in ('id="v446AccountRefresh"','id="v446LocalIdentity"','id="v446LocalProgress"','function v446UpdateAccountProfile()','v446AuthResolved','},8000);','v446GoogleEmail'):
+              assert token in h, 'V44.6: falta funcionalidad de cuenta/perfil: '+token
+          for token in ('id="v447ExportProgress"','id="v447ImportProgress"','id="v447BackupStatus"','id="v447RefreshProgress"','function v447BackupNotice(text)',"$('v447ExportProgress').addEventListener('click',()=>$('v443Backup').click())","$('v447ImportProgress').addEventListener('click',()=>$('v443Restore').click())"):
+              assert token in h, 'V44.7: falta respaldo manual en ajustes: '+token
+          assert h.count('id="v447ExportProgress"')==1 and h.count('id="v447ImportProgress"')==1, 'V44.7: controles de respaldo duplicados'
+          assert "if(!confirm(summary+(present?" in h, 'V44.7: falta advertencia antes de restaurar'
+          assert "if(file.size>1000000)" in h, 'V44.7: falta límite de tamaño en la restauración'
+          assert "v443ValidateProgress(backup.progress)" in h, 'V44.7: falta validación del respaldo'
+          assert "v443Native.saveProgress(JSON.stringify(progress))" in h, 'V44.7: falta persistencia nativa al restaurar'
+          assert 'const prevNativeProgress=v443Native?v443Native.readProgress():null;' in h, 'V44.8: falta copia previa nativa'
+          assert 'const prevNativeGuest=v443Native?v443Native.readGuestId():null;' in h, 'V44.8: falta identidad previa nativa'
+          assert "backup.guestId!==guestId" in h, 'V44.8: falta aviso por cambio de invitado'
+          assert 'v443Native.saveProgress(prevNativeProgress)' in h, 'V44.8: falta rollback nativo'
+          assert 'v443Native.saveGuestId(prevNativeGuest)' in h, 'V44.8: falta rollback de identidad'
+          assert 'v443Native.clearProgress()' in h, 'V44.9: falta revertir progreso nativo inicialmente vacío'
+          assert 'v443Native.clearGuestId()' in h, 'V44.9: falta revertir ID nativo inicialmente vacío'
+          assert '@JavascriptInterface public boolean clearProgress()' in java, 'V44.9: falta puente nativo de rollback de progreso'
+          assert '@JavascriptInterface public boolean clearGuestId()' in java, 'V44.9: falta puente nativo de rollback de ID'
+          assert '.edit().remove("progress").commit()' in java, 'V44.9: borrado limitado al campo de progreso'
+          assert '.edit().remove("guestId").commit()' in java, 'V44.9: borrado limitado al campo de invitado'
+          for token in ('id="v45LobbyRecord"','id="v45XPFill"','v45ProfileName','v45HeroCard','v45HeroStats','id="v45OpenAccount"','v45OpenAccount','v45Record.textContent','v45Fill.style.width',"v18Open('CUENTA DE JUGADOR')"):
+              assert token in h, 'V45: falta panel de operador/lobby: '+token
+          assert 'aria-valuemax="350"' in h, 'V45: falta progreso de nivel accesible'
+          assert h.count('body.innerHTML=html;')==1, 'V45.1: panel renderizado dos veces, pierde eventos'
+          assert "if(v45AccountButton)v45AccountButton.addEventListener('click'" in h, 'V45.1: falta navegación a cuenta'
+          assert "$('v18Profile').focus();" in h, 'V45.1: falta restaurar foco del perfil'
+          assert "track.setAttribute('aria-valuenow',String(levelXP))" in h, 'V45.2: progreso accesible sin valor actualizado'
+          assert 'Number.isSafeInteger(p.xp)&&p.xp>=0' in h, 'V45.2: XP local sin validación'
+          assert "function resume(){v123ResetInputs();clock.getDelta();" in h, 'V45.3: reanudar con controles sin reiniciar'
+          assert "window.addEventListener('blur',()=>{if(running){v123ResetInputs()" in h, 'V45.3: falta limpieza táctil en segundo plano'
+          assert "if(running){v123ResetInputs();keys={};stick.style.transform" in h, 'V45.3: falta limpieza al ocultar ventana'
+          assert "Math.hypot(dx,dy)>Math.max(180,Math.min(innerWidth,innerHeight)*.45)" in h, 'V45.4: falta filtro de salto táctil'
+          assert "t.startX=t.x;t.startY=t.y;v22FireDragging=false;v23FireThumb(t);" in h, 'V45.8: disparo debe recalibrar origen al descartar salto'
+          assert "if(role!=='look'&&[...v23Touches.values()].some(t=>t.role===role))" in h, 'V45.5: acciones duplicadas por multitouch'
+          assert "if(v23Touches.has(e.pointerId))return;" in h, 'V45.5: puntero registrado dos veces'
+          # V45.6: multi-feature Android touch regression guards
+          for token in (
+              'const v456TouchFeatures=', 'function v456InsideViewport(x,y)',
+              'function v456OverlayTarget(target)', "if(role==='look'&&[...v23Touches.values()]",
+              "if(role==='look'&&e.target.closest?.('button,input",
+              'lastAt:performance.now()', 'if(gap>320',
+              'v342JoyOrigin.x=clamp(', "v26LookOwner=next?next[0]:null",
+              '✋ ', "window.addEventListener('orientationchange'",
+              'Number.isSafeInteger(p.credits)&&p.credits>=0',
+              "&&!gameOver&&!document.hidden"
+          ):
+              assert token in h, 'V45.6: falta mejora de controles '+token
+          for token in (
+              'sprintHeld=false;adsHeld=false;crouchHeld=false;jumpQueued=false;',
+              "classList.remove('v382ADS')",
+              'if(v23Touches.size>=6)return;',
+              'v23PointerEnd(e);return;',
+              't.startX=t.x;t.startY=t.y;v22FireDragging=false;',
+              "window.addEventListener('resize',()=>{if(running&&v23Touches.size)v123ResetInputs();});"
+          ):
+              assert token in h, 'V45.7: falta recuperación táctil '+token
+          for token in ('#v123InputTest.v458Multi','#v123InputTest.v458Firing',
+                        'env(safe-area-inset-bottom)','prefers-reduced-motion',
+                        "monitor.classList.toggle('v458Multi'",
+                        "monitor.classList.toggle('v458Firing'"):
+              assert token in h, 'V45.8: falta indicador de combate '+token
+          for token in ('/* V45.9: readable combat overlays', '#v7Compass{top:max(8px',
+                        '#v362LootLegend{border-left:3px', '#missionHud{max-width:92vw',
+                        '#v13AimMode{padding:3px', '#v10Reticle{box-shadow:',
+                        '#v7Toast,#combatFeed{max-width:90vw', '@media(orientation:portrait)'):
+              assert token in h, 'V45.9: falta mejora visual '+token
+          for token in ('#health.v460Low','#health.v460NoShield',
+                        '#weapon.v460LowAmmo','#weapon.v460Empty',
+                        '#weapon.v460Reload',"healthPanel.classList.toggle('v460Low'",
+                        "weaponPanel.classList.toggle('v460Empty'",
+                        "weaponPanel.classList.toggle('v460Reload'"):
+              assert token in h, 'V46.0: falta indicador de estado '+token
+          for token in ('#health.v461Critical','#weapon.v461LastRounds',
+                        '#weapon.v461EmptyClip','#zoneInfo.v461ZoneDanger',
+                        "healthPanel.classList.toggle('v461Critical'",
+                        "weaponPanel.classList.toggle('v461LastRounds'",
+                        "classList.toggle('v461ZoneDanger'"):
+              assert token in h, 'V46.1: falta alerta de combate '+token
+          for token in ('const enemyEye=ground(b.x,b.z)+1.55*b.root.scale.y',
+                        'if(visible)b.lastSeenAngle=', 'b.lostSight<2',
+                        "b.role==='EXPLORADOR'?.42", 'b.stuckTime>1.1',
+                        'b.coverX=null;b.coverZ=null', 'v577ResolveBotWallSlide(b.x,b.z,bx-b.x,bz-b.z,.7*b.root.scale.x,solid)',
+                        'if(v577Step.movedX)', 'else if(v577Step.movedZ)'):
+              assert token in h, 'V46.5: falta tactica enemiga '+token
+
+          # V47.3: Aurora is the real battle scene, not a generic empty training arena.
+          for token in ('addWorldDetails();','window.v473AuroraRestored=true',
+                        'window.v27AuroraPOI=auroraPoi',
+                        "v27BuildInterior(-100,-105,'helios')",
+                        "v27BuildInterior(102,74,'vortex')",
+                        'function v472FirstBulletImpact(start,direction,maxDistance)',
+                        'const disc=beta*beta-flat*c',
+                        'v473ZoneWarningIssued',
+                        'v473PoiAudioClock',
+                        'const margin=o.r+Math.max(.95,.5*b.root.scale.x)'):
+              assert token in h, 'V47.3: falta sistema Aurora '+token
+          assert 'const v470Compound=new THREE.Group()' not in h, 'V47.3: reapareció infraestructura genérica'
+          # V48.9: automatic loaded backup, dry-fire throttling and readable ammo state.
+          for token in ('function v489BestLoadedBackup(exclude)',
+                        'window.THEDEMIANFF_V489_AMMO',
+                        'CAMBIO AUTOMÁTICO',
+                        'RESPALDO LISTO',
+                        'v489AutoSwaps=0',
+                        'v489DryFires++',
+                        "V58.1 · CENTRO DE OPERACIONES"):
+              assert token in h, 'V48.9: falta arsenal táctico '+token
+          # V48.8: live zone guidance, safe parachute actions and bounded effects.
+          for token in ("v488Outside=Math.max(0",
+                        "m HASTA SEGURIDAD",
+                        "⚠ ZONA CERRANDO",
+                        "weaponPanel.setAttribute('aria-label'",
+                        "if(effects.length>=64",
+                        "window.v36FlightMode!=='landed'",
+                        "Number.isFinite(fx)",
+                        "if(!Number.isFinite(x)||!Number.isFinite(z))return null",
+                        "V58.1 · CENTRO DE OPERACIONES"):
+              assert token in h, 'V48.8: regresión combate o zona '+token
+          # V49.0: anti-exploit weapon switching, robust rival targeting and match safety.
+          for token in ('shootCooldown=Math.max(shootCooldown,.15)',
+                        'reloadTimer>0&&reloadWeapon===i',
+                        'Number.isFinite(candidate.ammo)',
+                        "window.v36FlightMode!=='landed'",
+                        'rival.x)||!Number.isFinite(rival.z)',
+                        'b.hp>0&&b.hitStun<=0',
+                        'V58.1 · CENTRO DE OPERACIONES'):
+              assert token in h, 'V49.0: regresión táctica '+token
+          # V49.1: safe rival combat, loaded backup scoring, medkit feedback.
+          for token in ('V58.1 · CENTRO DE OPERACIONES',
+                        'candidate.ammo/Math.max(1,candidate.mag',
+                        'BOTIQUÍN INTERRUMPIDO POR DAÑO',
+                        'v474RivalClock-=Math.min(dt,.1)',
+                        'Number.isFinite(eyeA)',
+                        'Number.isFinite(b.x)'):
+              assert token in h, 'V49.1: regresión de combate '+token
+          # V49.5: avoid overlapping Google backups and expose confirmed cloud status.
+          for token in ('v495CloudSaveInFlight', 'function v495CloudSave(json)',
+                        'v495CloudLastConfirmed=Date.now()',
+                        'v495CloudSave(JSON.stringify(local))'):
+              assert token in h, 'V49.5: regresión de guardado Google '+token
+          # V49.8: lobby recovery access and Google account-bound restoration.
+          for token in ('v498CloudLoadPending',
+                        "v498CloudLoadAccount!==v446GoogleEmail",
+                        'v498CloudLoadAccount=v446GoogleEmail',
+                        'v494CloudStatus',
+                        'Conecta Google aquí.',
+                        'V49.8'):
+              assert token in h, 'V49.8: falta recuperación segura '+token
+          # V49.9: cloud/account controls live in Settings, not the lobby.
+          for token in ('V58.1 · CENTRO DE OPERACIONES', 'CONFIGURACIÓN V49.9',
+                        'data-section="account"', 'v443Google', 'v494CloudSave',
+                        'v494CloudLoad', 'v494AutoCloud', 'v494CloudStatus'):
+              assert token in h, 'V49.9: configuración y recuperación incompletas '+token
+          assert 'id="v496LobbyCloud"' not in h, 'V49.9: estado de nube visible en lobby'
+          assert 'id="v498LobbyCloudButton"' not in h, 'V49.9: botón de nube visible en lobby'
+          # V49.7: coalesce latest Google progress and verify server confirmation.
+          for token in ('v497QueuedCloudSave={json:valid,account:v446GoogleEmail}',
+                        'v497CloudActiveAccount!==v446GoogleEmail',
+                        "v495CloudSave(queued.json)",
+                        'Último progreso confirmado en Google:',
+                        'v497ResetCloudQueue()',
+                        "V58.1 · CENTRO DE OPERACIONES"):
+              assert token in h, 'V49.7: regresión de guardado Google '+token
+          # V49.6: cloud backup state visible in lobby and sign-in not treated as saved.
+          for token in ('v496LobbyCloudStatus', 'Google conectado · respaldo remoto sin verificar',
+                        'Invitado · progreso solo en este dispositivo', 'V58.1 · CENTRO DE OPERACIONES'):
+              assert token in h, 'V49.6: regresión estado de nube '+token
+          # V49.4: Google sign-in is distinct from explicit Firestore backup/recovery.
+          for token in ('v494CloudSave', 'v494CloudLoad',
+                        'window.thedemianffCloudResult',
+                        'v443ValidateProgress(JSON.parse(payload))',
+                        'v494ModelStatus', "models/lila-operator.glb",
+                        'V58.1 · CENTRO DE OPERACIONES'):
+              assert token in h, 'V49.4: falta nube / lobby '+token
+          native = Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
+          rules = Path('firestore.rules').read_text()
+          assert 'FirebaseFirestore.getInstance()' in native, 'V49.4: falta Firestore'
+          assert 'THEDEMIANFFCloud' in native, 'V49.4: falta bridge Android'
+          assert 'Source.SERVER' in native, 'V49.4: recuperación debe consultar servidor'
+          assert 'request.auth.uid == uid' in rules, 'V49.4: permisos deben aislar cada cuenta'
+          assert "match /player_backups/{uid}" in rules, 'V49.4: falta colección protegida'
+          # V49.3: Lila lateral pose initialization and visible world upgrades.
+          for token in ('const strafeLean=!air&&!crouch',
+                        'const v493Gear=new THREE.Group()',
+                        'const tracks=new THREE.InstancedMesh',
+                        'V58.1 · CENTRO DE OPERACIONES'):
+              assert token in h, 'V49.3: regresión visual '+token
+          # V49.2: Lila strafe response remains; loose ice rocks are intentionally disabled in V57.6.
+          for token in ("const strafeLean=",
+                        "model.rotation.z+=(strafeLean-model.rotation.z)*ease",
+                        "V58.1 · CENTRO DE OPERACIONES",
+                        "looseFrostStones:false",
+                        "valleyRockCliffs:false"):
+              assert token in h, 'V49.2/V57.6: visual regression '+token
+          # V50.3: Google cloud callbacks must remain isolated to the authenticated Firebase UID.
+          for token in ("cloudAccountUnchanged(String uid)",
+                        "final String requestUid=user.getUid();",
+                        "if(cloudAccountUnchanged(requestUid))",
+                        'doc.getLong("format")',
+                        "Falta el operador inicial.",
+                        "Cambió la cuenta Google durante la recuperación"):
+              assert token in java, 'V50.3: protección de cuenta en Firebase '+token
+          for token in ('V58.1 · CENTRO DE OPERACIONES',
+                        '☁ CONSULTANDO RESPALDO…',
+                        'Recuperación desde Google en curso'):
+              assert token in h, 'V50.3: estado nube en lobby '+token
+          # V48.7: real combat warning, medkit/reload state and validated damage.
+          for token in ("v487Closest=bots.reduce", "const v487Danger=bots.some", "18/WORLD*w",
+                        "v487Closest.role==='FRANCOTIRADOR'",
+                        "Advertencia táctica:",
+                        "v469HealTimer.toFixed(1)",
+                        "reloadTimer.toFixed(1)",
+                        "TERMINA EL BOTIQUÍN ANTES DE RECARGAR",
+                        "ESPERA A TERMINAR LA RECARGA",
+                        "Number.isFinite(amount)",
+                        "Number.isInteger(n)",
+                        "V58.1 · CENTRO DE OPERACIONES"):
+              assert token in h, 'V48.7: regresión de combate '+token
+          # V48.6: safe-zone supply placement, guarded animation and battle diagnostics.
+          for token in ('v477InZone(tx,tz,4)',
+                        'v477InZone(px,pz,2)',
+                        'zoneRadius<15',
+                        'Number.isFinite(dt)',
+                        'typeof mobile',
+                        'visibleToPlayer&&effects.length<36',
+                        'V58.1 · CENTRO DE OPERACIONES'):
+              assert token in h, 'V48.6: regresión estabilidad '+token
+          # V48.5: combat clarity, rival AI suppression and low-ammo notices.
+          for token in ('attacker.suppression>.92',
+                        'rival.retreatTime>0',
+                        'victim.dodgeTime,.46',
+                        'visibleToPlayer&&effects.length<36',
+                        'depthWrite:false,depthTest:true',
+                        'Math.min(10,v8Combo+1)',
+                        "V58.1 · CENTRO DE OPERACIONES"):
+              assert token in h, 'V48.5: regresión de combate '+token
+          # V48.4: ammunition alerts, obstacle hit validation and battle FX budget.
+          for token in ("SIN MUNICIÓN · CAMBIA DE ARMA",
+                        "MUNICIÓN BAJA",
+                        'v484NoAmmoNotice=-10',
+                        'center.x,center.y,center.z',
+                        'if(!victim||attacker.shoot>0||attacker.retreatTime>0||attacker.suppression>.92',
+                        'visibleToPlayer&&effects.length<36',
+                        'battleDistance<46&&effects.length<36',
+                        'if(!Number.isInteger(n)||n<0||n>=weapons.length||n===weaponIndex)return'):
+              assert token in h, 'V48.4: regresión combate y munición '+token
+          # V48.3: mobile HUD cadence, healing interruption and visual optimization.
+          for token in ('if(hudUpdateClock>=.10)',
+                        'if(mapUpdateClock>=.125)',
+                        'keys.ShiftLeft||keys.ShiftRight',
+                        'BOTIQUÍN CANCELADO AL DISPARAR',
+                        "if(!$('combatFx').checked||$('batterySaver').checked)return;",
+                        'if(!gameOver&&bots.length&&bots.every(b=>!b.alive))finish(true)',
+                        'const runningFast=!crouch&&onGround'):
+              assert token in h, 'V48.3: regresión móvil '+token
+          # V48.2: reload/heal mutual exclusion, reliable feedback and safe cover.
+          for token in ("$('combatFx').checked||$('batterySaver').checked",
+                        'Math.min(10,v8Combo+1)',
+                        'gameOver||reloadTimer>0',
+                        "SIN BOTIQUINES",
+                        "QUÉDATE QUIETO",
+                        'v474RivalClock=.50',
+                        'if(++checked>56)break',
+                        'V58.1 · CENTRO DE OPERACIONES'):
+              assert token in h, 'V48.2: regresión combate '+token
+          # V48.1: mobile sprint animation and airborne combat accuracy.
+          for token in ('sprintHeld&&speed>5.5',
+                        'runningFast?1.02:.72',
+                        'runningFast?.83:.52',
+                        'runningFast?.025*Math.sin(phase*2)',
+                        '!onGround?1.28:1',
+                        'adsHeld&&onGround?.92:1',
+                        'target.dodgeTime=.62',
+                        'target.shoot=Math.max(target.shoot,.31)'):
+              assert token in h, 'V48.1: regresión animación y combate '+token
+          # V48.0: tactical minimap, safe loot, and 50 sampled diagnostics.
+          for token in ('function v480SampleBattle(dt)',
+                        'window.THEDEMIANFF_V480_50',
+                        'v480SampleBattle(dt);',
+                        'v480Snapshot.fill(null)',
+                        "p.type==='med'?'#ff7171'",
+                        "zoneTick>35?'#ffc86b'",
+                        "rival.airborne||rival.retreatTime>0",
+                        "cache.remaining===0",
+                        'v474SupplyCount>=5',
+                        "V58.1 · CENTRO DE OPERACIONES"):
+              assert token in h, 'V48.0: regresión sistemas de batalla '+token
+          # V47.7: tactical rivalry and supply signals in playable loop.
+          for token in ('function v477FindRivalTarget(source,targets)',
+                        'function v477SupplyAwareness(dt)',
+                        'v477SupplyAwareness(dt);',
+                        'b.rivalThreatTimer=Math.max(0,',
+                        'victim.rivalThreatX=attacker.x',
+                        'window.THEDEMIANFF_V477_COMBAT',
+                        'window.THEDEMIANFF_V477_SUPPLY',
+                        'visibleToPlayer',
+                        'scene.add(line);effects.push({mesh:line,t:.085'):
+              assert token in h, 'V47.7: regresión táctica '+token
+          # V47.6: ensure Aurora supply caches and location systems remain bounded.
+          for token in ('function v476UpdateLocation(dt)', 'function v474SupplyEvent(dt)',
+                        'item.remaining<=0||time>item.expires', 'v476Cache=cache',
+                        "if(p.v476Cache){p.v476Cache.remaining",
+                        "const cache={x,z,root,ring,beacon,ownMaterials:",
+                        'v476AuroraRefresh<.09',
+                        "bots.every(b=>!b.alive)){finish(true);return;",
+                        "v476PoiName=nearest&&dist<57",
+                        "zoneRing.material.color.setHex(danger?"):
+              assert token in h, 'V47.6: regresión Aurora '+token
+          # V47.5: aim point must never appear over the lobby.
+          for token in ('#cross{display:none!important}',
+                        'body.v475InMatch #cross{display:block!important}',
+                        "document.body.classList.add('v475InMatch')",
+                        "document.body.classList.remove('v475InMatch')"):
+              assert token in h, 'V47.5: mira visible en lobby '+token
+          for token in ('function v474RivalCombat(dt)', 'function v474SupplyEvent(dt)',
+                        'v474RivalCombat(dt);v474SupplyEvent(dt);',
+                        'attacker.shoot=Math.max',
+                        'window.THEDEMIANFF_V474_SUPPLIES',
+                        'v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[]'):
+              assert token in h, 'V47.4: falta rivalidad enemiga o suministros '+token
+          assert "versionCode 156" in Path('app/build.gradle').read_text(), 'V55.4: versionCode desfasado'
+          assert "if(name==='ESTADÍSTICAS')" in h, 'V45: falta panel de estadísticas del jugador'
+          for metric in ('PORCENTAJE DE VICTORIAS','BAJAS POR PARTIDA','MEJOR MARCA','XP PARA SUBIR'):
+              assert metric in h, 'V45: falta métrica '+metric
+          assert 'p.matches?Math.round(p.wins/p.matches*100):0' in h, 'V45: estadística de victorias debe evitar división por cero'
+          assert 'id="v443Guest" type="button" style="display:none;' in h, 'V44.5: invitado visible durante validación Google'
+          # Google is intentionally available in Settings > Account; it starts hidden on the entry screen via the authenticated-state flow.
+          assert 'id="v443Google" type="button" style="display:block;' in h, 'V49: falta botón Google en Ajustes > Cuenta'
+          assert "if(!v445GoogleBridge){" in h and "$('v443Google').style.display='block';" in h, 'V44.5: acceso Google sin recuperación manual'
+          assert "if(state==='signed_in')" in h and "$('v443Google').style.display='none';" in h, 'V44.5: falta ocultar acceso tras iniciar sesión'
+          assert "if(!v445GoogleBridge){" in h, 'V44.5: Chrome sin recuperación de acceso'
+          assert "guest.style.display='block';" in h, 'V44.5: acceso manual no reaparece sin sesión'
+          assert 'Invitado · progreso solo en este dispositivo' in h, 'V50.0: estado de invitado debe aclarar que no existe respaldo remoto'
+          google=h.split('window.thedemianffGoogleResult=function(state,detail){',1)[1].split("}else if(state==='signed_out'){",1)[0]
+          assert "v504StartCloudRestore();" in google and "entry.style.display='flex';" in google and "$('v504GoogleEntry').style.display='none';" in google, 'V50.4: Google debe iniciar recuperación protegida antes de mostrar lobby'
+          print('V44.5 login, guest backup integrity and clean lobby checks OK')
+          PY
+      - name: V51.0 verificar respaldo pendiente y protección contra conflictos
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          for token in (
+              'const v508DirtyKey=email=>',
+              'const v510ConflictKey=email=>',
+              'localStorage.setItem(v508DirtyKey(v446GoogleEmail),valid);',
+              'if(localStorage.getItem(pendingKey)===v497CloudSentSnapshot)',
+              'window.addEventListener(\'online\',v507RetryPendingCloud)',
+              "if(autoRestore&&v446GoogleEmail){",
+              "localStorage.setItem(v510ConflictKey(v446GoogleEmail),dirtyRaw)",
+              'v504StartCloudRestore();',
+              'const scheduledAccount=v446GoogleEmail;',
+              'scheduledAccount!==v446GoogleEmail',
+          ):
+              assert token in h, 'V51.0 falta protección de progreso: '+token
+          for control in ('v447ExportProgress','v447ImportProgress',
+                          'v494CloudSave','v494CloudLoad'):
+              assert 'id="'+control+'" hidden' in h, 'V51.0 respaldo manual visible: '+control
+          assert "if(incoming)localStorage.setItem(v494OptKey(incoming),'yes');" in h
+          print('V51.0 cloud progress safeguards passed')
+          PY
+      - name: V52.0 comprobar aislamiento Google e invitado
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          assert "if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(snapshot))" in h
+          assert "if(!localStorage.getItem(v504AccountKey)&&valid(nativeProgress)" in h
+          assert "else if(!localStorage.getItem(v504AccountKey)&&valid(localProgress))" in h
+          assert "if(v443Native&&!v446GoogleEmail&&!localStorage.getItem(v504AccountKey)&&!v443Native.saveProgress(serialized))" in h
+          assert "if(v443Native&&!v443Native.saveProgress(JSON.stringify(saved)))" not in h
+          assert "if(oldNative)v443Native.saveProgress(oldNative)" not in h
+          java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text(encoding='utf-8')
+          assert 'if(!hasBase||!hasSelected||parsed.optLong("best")>parsed.optLong("kills"))return false;' in java
+          assert 'if(!selectedUnlocked)throw new IllegalArgumentException("Operador seleccionado no desbloqueado.");' in java
+          print('V52.2 native guest isolation and cloud validation checks OK')
+          PY
+      - name: V55.5 comprobar aislamiento de cuentas Google
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text(encoding='utf-8')
+          for token in ('v504HasPriorGoogleAccount()', 'v504GuestTransferOwnerKey',
+                        'transferOwner===v446GoogleEmail?', 'v504FindDuplicateAccountSnapshot(v446GoogleEmail,saved)',
+                        'v18Progress=validated', 'v18Progress=guestProgress;', 'v18Progress=saved;',
+                        'localStorage.setItem(archiveKey,JSON.stringify(saved))',
+                        'v495CloudSave(JSON.stringify(fresh))'):
+              assert token in h, 'V55.5 aislamiento incompleto: '+token
+          assert 'Object.assign(v18Progress,saved)' not in h
+          assert 'Object.assign(v18Progress,guestProgress)' not in h
+          for token in ('if(googleSignOutPending)', 'firebaseAuth.signOut();',
+                        '.signOut().addOnCompleteListener(MainActivity.this,task -> {',
+                        'googleSignOutPending=false;', 'authMessage("signed_out",task.isSuccessful()'):
+              assert token in java, 'V55.5 cambio Google incompleto: '+token
+          # V55.6: unified profile card, quieter repeated notices and hybrid TPS framing.
+          assert 'v18Open(\'CUENTA DE JUGADOR\')' in h, 'V55.6: profile card must open the unified account panel'
+          assert 'v18AccountSection' in h and 'PROGRESO Y ESTADÍSTICAS' in h, 'V55.6: profile statistics missing'
+          assert 'data-lobby="CUENTA DE JUGADOR"' not in h, 'V55.6: duplicate identity navigation remains'
+          assert 'v556LastToastAt' in h, 'V55.6: repeated notices are not throttled'
+          assert "Number($('v26CameraDistance').value)||7.8" in h and '6.5,10.5' in h, 'V58.1: Free Fire TPS distance tuning missing'
+          assert 'targetHeight=(mobile?2.46:2.58)-.14*b' in h, 'V58.1: TPS shoulder height calibration missing'
+          gradle=Path('app/build.gradle').read_text()
+          assert 'versionCode 156' in gradle and "versionName '58.1-freefire-thirdperson'" in gradle, 'V57.6: release identity mismatch'
+          for token in ('id="v38TabAchievements"', 'id="v38AchievementsView"', 'v56RenderAchievements' if 'v56RenderAchievements' in h else 'function v38RenderAchievements()', 'v56StoreGrid', 'v56StoreArt', 'Array.from({length:30}', 'data-v18="passbuy"', 'pass_free_', 'pass_elite_', 'result.passElite=p.passElite===true', 'v58Sights.active().zoom', 'targetFov=baseFov/(aiming?v58Sights.active().zoom:1)', 'const d=v398ChuteOpen?16.5:14.5', 'this.anchorY+=(player.position.y-this.anchorY)', 'if(l.renderer&&now-l.last>(mobile?40:33)'):
+              assert token in h, 'V57.6: missing lobby/pass/camera component '+token
+          for token in ('id="v500CloudBadge"', 'id="v533AccountShortcut"', 'id="v502CloudAccess"'):
+              assert token not in h, 'V57.6: cloud shortcut must not be in the lobby: '+token
+          assert 'id="v443Google"' in h and 'id="v494CloudStatus"' in h, 'V57.6: Settings > Account lost Google controls'
+          assert r"\n  const targetHeight=(mobile?2.46:2.58)" not in h, 'V58.1: camera height must not be commented out by an escaped newline'
+          print('V57.6 lobby, pass, account routing and camera checks passed')
+          print('V55.6 lobby and hybrid camera checks passed')
+          print('V55.5 Google account isolation checks passed')
+          PY
+      - name: V44.3.2 verificar autoguardado de invitado en Android
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text(encoding='utf-8')
+          for token in ('v443Native.readProgress()', 'v443Native.saveProgress(snapshot)', 'v443Native.saveGuestId(guestId)', 'localStorage.setItem(V18_STORAGE,snapshot)'):
+              assert token in h, 'Autoguardado HTML incompleto: '+token
+          for token in ('class GuestStorageBridge','SharedPreferences','THEDEMIANFFGuestStore','readProgress()','saveProgress(String json)'):
+              assert token in java, 'Autoguardado Android incompleto: '+token
+          print('V44.3.2 autosave source checks passed')
+          PY
+      - name: V44.4 validar configuración Firebase sin revelar claves
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          c=json.loads(Path('app/google-services.json').read_text())
+          assert c['project_info']['project_id']=='thedemianff-last-zone'
+          assert any(x['client_info']['android_client_info']['package_name']=='com.thedemianff.lastzone' for x in c['client'])
+          assert "com.google.gms.google-services" in Path('app/build.gradle').read_text()
+          print('Firebase Android config matches game package')
+          PY
+      - name: V45.0 comprobar perfil de operador y rollback
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          gradle=Path('app/build.gradle').read_text()
+          java=Path('app/src/main/java/com/thedemianff/lastzone/MainActivity.java').read_text()
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          assert 'versionCode 156' in gradle, 'V48.6 requiere versionCode 156'
+          assert "versionName '58.1-freefire-thirdperson'" in gradle, 'V55.4: versión Android incorrecta'
+          # V50.4: Google-first login and safe automatic cloud recovery.
+          for token in ('id="v504GoogleEntry"',
+                        'v504StartCloudRestore()',
+                        'const v504AccountProgress=email',
+                        'v504CloudReady',
+                        'v504Restoring',
+                        'if(!autoRestore&&!confirm(summary+',
+                        'localStorage.setItem(v504AccountProgress(v446GoogleEmail)',
+                        'v504SimpleAccount',
+                        'V58.1 · CENTRO DE OPERACIONES'):
+              assert token in h, 'V50.4 Google account regression '+token
+          for token in ('if(!doc.exists())', 'El respaldo remoto existe pero no es válido. No se sobrescribirá.'):
+              assert token in java, 'V50.4 remote backup safety regression '+token
+          # V50.2 cinematic Aurora lobby and direct Google backup navigation.
+          for token in ('id="menuSettings"',
+                        'id="v443Google"', 'id="v494CloudStatus"',
+                        "data-tab=\"account\"",
+                        'v502AuroraMountains',
+                        'v502AuroraMist',
+                        'v502HangarLight',
+                        'v502ReadyBanner',
+                        'V58.1 · CENTRO DE OPERACIONES',
+                        "v494CloudBridge.save(valid)",
+                        "v494CloudBridge.load()"):
+              assert token in h, 'V50.2 missing lobby or backup feature: '+token
+          
+          assert 'firebaseAuth.signOut();' in java, 'No se cierra sesión Firebase'
+          assert 'firebaseAuth.signOut();' in java and '.signOut().addOnCompleteListener(MainActivity.this,task -> {' in java, 'Google/Firebase sign-out must complete before returning to account selection'
+          assert 'authMessage("signed_out",task.isSuccessful()' in java and 'if(googleSignOutPending)' in java, 'Missing serialized Google account switch handling'
+          assert 'org.json.JSONArray unlocked=parsed.optJSONArray' in java, 'Falta validar respaldo Android'
+          assert 'if(parsed.optLong("wins")>parsed.optLong("matches"))return false;' in java, 'Falta validar estadísticas Android'
+          print('V44.6 Android version and logout checks passed')
+          PY
+      - name: V50.1 validar seguridad de sincronización y lobby
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          for token in ("v498CloudLoadPending)throw Error",
+                        "v495CloudLastConfirmed>0&&!v495CloudSaveInFlight",
+                        "Hay un guardado pendiente. Espera la confirmación",
+                        "v501LobbyPolish",
+                        "V58.1 · CENTRO DE OPERACIONES"):
+              assert token in h, 'V50.1: regresión lobby/nube '+token
+          print('V50.1 lobby and cloud safety checks passed')
+          PY
+      - name: V58.1 validar cámara Free Fire, vuelo y miras ADS
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+          h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
+          gradle=Path('app/build.gradle').read_text(encoding='utf-8')
+          checks=('const v58Sights={','const v58Camera={',"profile:'FREE_FIRE_THIRD_PERSON'",'this.updateAngles(t);','v58Camera.updateAngles(dt);','function v58FlightPointerDown(e)','function v58FlightPointerMove(e)',"v58SetFlightMode('aircraft')","v58SetFlightMode('descending')","v58SetFlightMode('landed')",'v58Camera.update(dt)','body.v58FlightMode #cross','body.v58FlightMode #v10Reticle','v58Sights.active().zoom','reticle.dataset.scope=this.active().name','v404SafeCameraTarget(desired)','v586UpdateBuildingVisibility(t);')
+          for token in checks: assert token in h, 'V58.1 missing: '+token
+          assert 'const v432Camera={' not in h and 'const v434Optics={' not in h
+          assert 'v372PlaneTouch' not in h
+          assert "versionCode 156" in gradle and "versionName '58.1-freefire-thirdperson'" in gradle
+          scripts=re.findall(r"<script\\b[^>]*>([\\s\\S]*?)</script\\s*>",h,re.I)
+          assert scripts
+          for script in scripts:
+              if script.strip():
+                  Path('/tmp/thedemianff-v58-script.js').write_text(script,encoding='utf-8')
+                  subprocess.run(['node','--check','/tmp/thedemianff-v58-script.js'],check=True)
+          print('V58.1 camera, flight, ADS and script validation OK')
+          PY
+      - name: Compilar APK debug
+
+        run: gradle --no-daemon assembleDebug
+      - name: Verificar identidad y firma de APK debug
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 3
+          echo "::notice::La APK debug puede tener firma diferente en cada ejecución de GitHub Actions; no desinstalar una instalación existente sin respaldo."
+      - name: Informar estado de firma permanente
+        if: env.HAS_RELEASE_KEY != 'true'
+        run: echo "::warning::No hay keystore de release configurado. La APK debug no garantiza actualizaciones compatibles con la instalación anterior."
+      - name: Mostrar identidad y certificado de APK debug
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 3
+          sha256sum "$APK"
+      - name: Compilar APK release con firma permanente
+        if: env.HAS_RELEASE_KEY == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.THEDEMIANFF_KEYSTORE_BASE64 }}
+          THEDEMIANFF_KEYSTORE_PASSWORD: ${{ secrets.THEDEMIANFF_KEYSTORE_PASSWORD }}
+          THEDEMIANFF_KEY_ALIAS: ${{ secrets.THEDEMIANFF_KEY_ALIAS }}
+          THEDEMIANFF_KEY_PASSWORD: ${{ secrets.THEDEMIANFF_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$THEDEMIANFF_KEYSTORE_PASSWORD"
+          test -n "$THEDEMIANFF_KEY_ALIAS"
+          test -n "$THEDEMIANFF_KEY_PASSWORD"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/thedemianff-release.jks"
+          export THEDEMIANFF_KEYSTORE_PATH="$RUNNER_TEMP/thedemianff-release.jks"
+          gradle --no-daemon assembleRelease
+          test -s app/build/outputs/apk/release/app-release.apk
+      - name: Mostrar identidad y firma de APK release
+        if: env.HAS_RELEASE_KEY == 'true'
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 3
+          unzip -t "$APK" | tail -n 1
+          sha256sum "$APK" | tee app/build/outputs/apk/release/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v7
+        if: env.HAS_RELEASE_KEY == 'true'
+        with:
+          name: THEDEMIANFF-V40-APK-RELEASE-FIRMA-PERMANENTE
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/release/SHA256SUMS.txt
+      - name: Aviso de compatibilidad de actualizaciones
+        run: |
+          if [ "$HAS_RELEASE_KEY" = "true" ]; then
+            echo "::notice::Usa EXCLUSIVAMENTE app-release.apk para las próximas actualizaciones. Conserva el mismo keystore y aumenta versionCode."
+          else
+            echo "::warning::Solo se ha generado una APK de prueba con firma temporal. No sirve para actualizar instalaciones anteriores; NO desinstales una app con progreso sin exportarlo."
+          fi
+      - uses: actions/upload-artifact@v7
+        if: env.HAS_RELEASE_KEY != 'true'
+        with:
+          name: THEDEMIANFF-PRUEBA-NO-ACTUALIZABLE-FIRMA-TEMPORAL
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+          assert "v578StartButton.addEventListener('click',start)" in html, "V57.8.2: Start button must bind before later boot code"
+          assert "startStage='world-reset';reset();" in html, "V57.8.2: startup phase diagnostics missing"
+          assert "NO SE PUDO INICIAR LA PARTIDA" in html, "V57.8.2: startup errors must be visible"
+          assert "launchButton.textContent='▶ INICIAR PARTIDA'" in html, "V57.8.2: restore launch button after success"
