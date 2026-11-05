@@ -88,9 +88,9 @@ jobs:
           html=(root/"index.html").read_text(encoding="utf-8")
           # V53.4: detect regression where a literal escaped newline comments
           # out the camera height declaration but still passes JS syntax checks.
-          assert "const height=(mobile?2.68:2.78)" in html, "V57.8: missing calibrated TPS camera height declaration"
-          assert r"\n  const height=(mobile?2.68:2.78)" not in html, "V53.4: camera height accidentally commented out"
-          for token in ("v432Camera.update(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", "id=\"v18Profile\"", "v534_scope_index"):
+          assert "targetHeight=(mobile?2.46:2.58)-.14*b" in html, "V58.1: missing calibrated Free Fire camera height"
+          assert r"\n  const targetHeight=(mobile?2.46:2.58)" not in html, "V58.1: camera height accidentally commented out"
+          for token in ("v58Camera.update(dt);", "v58Camera.updateAngles(dt);", "function flushCamera(dt)", "v404SafeCameraTarget(desired)", "function aimAssistPull(dt)", "id=\\"v18Profile\\"", "v534_scope_index"):
               assert token in html, "V53.4: required camera/lobby component missing: "+token
           # V53.8: identity remains part of validated Firebase backup payload.
           for token in ('const v536IdPattern=', 'const v536NamePattern=', 'result.playerId=p.playerId', 'result.playerName=p.playerName', 'v536EnsureIdentity()', 'id="v536LobbyName"', 'id="v536LobbyId"', 'id="v18Profile"', 'id="v536SaveName"', 'id="v536CopyId"'):
@@ -111,19 +111,19 @@ jobs:
           for token in ('function v583DisposeVisualRoot(root)', 'window.v396VisualRoot=v396Root', 'window.v397VisualRoot=v397Root', 'v583DisposeVisualRoot(window.v396VisualRoot)', 'v583DisposeVisualRoot(window.v397VisualRoot)', 'palette[key].userData.v583Shared=true', 'g.userData.v583Shared=true'):
               assert token in html, 'V57.6: visual resource lifecycle missing '+token
           assert "versionCode 156" in Path('app/build.gradle').read_text(), 'V57.6: Android version code mismatch'
-          for token in ('const baseShoulder=-clamp(Number($(\'v26CameraShoulder\').value)||2.35,2.0,2.7);', 'const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;', 'const follow=1-Math.exp(-t*13);', 'const followXZ=1-Math.exp(-t*12.5);', 'id="v586ReticleRestored"', 'border-color:#9cf9de!important', 'function v576RegisterWallRun', 'v576RegisterOpenBuilding(xx-86,zz-82,w,wall,depth,doorWidth,thickness)', 'window.THEDEMIANFF_AURORA_ACCESS_TEST', 'doorWidthMeters:3.0'):
+          for token in ('baseShoulder=-clamp(Number($(\\'v26CameraShoulder\\').value)||1.05,.65,1.5)', 'targetShoulder=baseShoulder*(1-.34*b)', 'targetHeight=(mobile?2.46:2.58)-.14*b', 'const follow=1-Math.exp(-t*13.5)', 'followXZ=1-Math.exp(-t*13)', 'id=\\"v586ReticleRestored\\"', 'v58ADS', 'function v576RegisterWallRun', 'v576RegisterOpenBuilding(xx-86,zz-82,w,wall,depth,doorWidth,thickness)', 'window.THEDEMIANFF_AURORA_ACCESS_TEST', 'doorWidthMeters:3.0'):
               assert token in html, 'V57.6: camera, reticle or clear-Aurora guard missing '+token
           place_start=html.index('function place(x,z,w,h,d,material,kind){')
           place=html[place_start:place_start+3000]
           assert 'const doorWidth=3.0;' in place and place.index('const doorWidth=3.0;') < place.index("if(kind==='building'){") and 'v40BuildingDetails(g,w,h,d,doorWidth);' in place, 'V57.8.2: doorWidth must be in the shared place() scope'
           assert 'new THREE.BoxGeometry(3,3+j%3*2,3),darkIce' not in html, 'V57.6: oversized dark-ice POI blocks must stay removed'
-          for token in ('function v576RegisterOpenBuilding', 'v576RegisterOpenBuilding(x,z,w,h,d,doorWidth,thickness)', 'looseFrostStones:false', 'greyDistrictCrates:false', 'valleyRockCliffs:false', 'raisedStonePlanters:false', 'zoneVolume:false', 'body.v475InMatch #cross{display:block!important}', 'body.v475InMatch #v10Reticle{visibility:visible!important}'):
+          for token in ('function v576RegisterOpenBuilding', 'v576RegisterOpenBuilding(x,z,w,h,d,doorWidth,thickness)', 'looseFrostStones:false', 'greyDistrictCrates:false', 'valleyRockCliffs:false', 'raisedStonePlanters:false', 'zoneVolume:false', 'body.v58FlightMode #cross', 'body.v58FlightMode #v10Reticle'):
               assert token in html, 'V57.6: door, reticle or ground-zone guard missing '+token
           for token in ('new THREE.DodecahedronGeometry(2.2+i%3,0),metal', 'new THREE.CylinderGeometry(1,1,10,72,1,true)', 'for(let i=0;i<62;i++)', "place(x+dx,z+dz,w,h,d,dx%2?steel:frost,'crate')"):
               assert token not in html, 'V57.6: grey clutter or translucent zone volume remains '+token
-          for token in ('body:not(.v475InMatch) #v10Reticle', 'body:not(.v475InMatch) #v434ScopeButton', 'body:not(.v475InMatch) #v434ScopeLabel', 'body.v475InMatch #v10Reticle{display:block!important}', 'document.body.classList.contains(\'v475InMatch\') && isADS && running', 'min="2.0" max="2.7" step=".05" value="2.35"', 'const baseShoulder=-clamp(Number($(\'v26CameraShoulder\').value)||2.35,2.0,2.7);', 'const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;', 'id="v584MatchOnlyAimHUD"'):
+          for token in ('body.v475InMatch:not(.v58FlightMode) #cross', 'body.v475InMatch:not(.v58FlightMode) #v10Reticle.v58ADS', 'body.v58FlightMode #v58ScopeButton', 'body.v58FlightMode #v58ScopeLabel', 'document.body.classList.contains(\\'v475InMatch\\') && isADS && running', 'min=\\"6.5\\" max=\\"10.5\\" step=\\".25\\" value=\\"7.8\\"', 'baseShoulder=-clamp(Number($(\\'v26CameraShoulder\\').value)||1.05,.65,1.5)', 'targetShoulder=baseShoulder*(1-.34*b)', 'id=\\"v584MatchOnlyAimHUD\\"'):
               assert token in html, 'V57.6: match-only aim or right-shoulder camera guard missing '+token
-          for token in ('const baseShoulder=-clamp(Number($(\'v26CameraShoulder\').value)||2.35,2.0,2.7);', 'const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;', 'reticle.dataset.scope=this.active().name', 'cross.dataset.scope=this.active().name', 'const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction)', 'id="v582RightShoulderAim"'):
+          for token in ('baseShoulder=-clamp(Number($(\\'v26CameraShoulder\\').value)||1.05,.65,1.5)', 'targetShoulder=baseShoulder*(1-.34*b)', 'reticle.dataset.scope=this.active().name', 'const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction)', 'id=\\"v582RightShoulderAim\\"'):
               assert token in html, 'V57.6: missing right-shoulder aiming correction '+token
           for token in ('UNAUTHENTICATED', 'GOOGLE_REQUIRED', 'REGISTRY_CORRUPT', 'RESOURCE_EXHAUSTED', 'BUSY'):
               assert token in java, 'V55.4: free identity error mapping missing: '+token
@@ -197,8 +197,8 @@ jobs:
               "visibility lighting": "visibilityLighting:true",
               "calibrated snow exposure": "renderer.toneMappingExposure=.72",
               "landscape HUD calibration": "v40ScreenshotHudCalibration",
-              "V43 hybrid camera controller": "const v432Camera={",
-              "V43 hybrid camera tick": "v432Camera.update(dt);",
+              "V58 Free Fire TPS camera controller": "const v58Camera={",
+              "V58 Free Fire TPS camera tick": "v58Camera.update(dt);",
               "loot halo": "v40PickupHalo=halo",
               "enemy markers": "v40EnemyMark=new THREE.MeshBasicMaterial",
               "district motif count exposed": "window.v40DistrictMotifTypes=motifMeshes.length",
@@ -297,7 +297,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
-          required=('const v432Camera={','v432Camera.update(dt);',
+          required=('const v58Camera={','v58Camera.update(dt);','const v58Sights={', "Number($('adsSensitivity').value)", "Number($('verticalSensitivity').value)")
                     "Number($('adsSensitivity').value)",
                     "Number($('verticalSensitivity').value)")
           for marker in required:
@@ -741,16 +741,16 @@ jobs:
           assert 'v18AccountSection' in h and 'PROGRESO Y ESTADÍSTICAS' in h, 'V55.6: profile statistics missing'
           assert 'data-lobby="CUENTA DE JUGADOR"' not in h, 'V55.6: duplicate identity navigation remains'
           assert 'v556LastToastAt' in h, 'V55.6: repeated notices are not throttled'
-          assert 'const tacticalBack=mobile?clamp(baseBack*1.06,10,16):baseBack;' in h, 'V55.6: mobile camera distance tuning missing'
-          assert 'const height=(mobile?2.68:2.78)-(mobile?.20:.18)*b;' in h, 'V55.6: hybrid camera shoulder framing missing'
+          assert "Number($('v26CameraDistance').value)||7.8" in h and '6.5,10.5' in h, 'V58.1: Free Fire TPS distance tuning missing'
+          assert 'targetHeight=(mobile?2.46:2.58)-.14*b' in h, 'V58.1: TPS shoulder height calibration missing'
           gradle=Path('app/build.gradle').read_text()
           assert 'versionCode 156' in gradle and "versionName '58.1-freefire-thirdperson'" in gradle, 'V57.6: release identity mismatch'
-          for token in ('id="v38TabAchievements"', 'id="v38AchievementsView"', 'v56RenderAchievements' if 'v56RenderAchievements' in h else 'function v38RenderAchievements()', 'v56StoreGrid', 'v56StoreArt', 'Array.from({length:30}', 'data-v18="passbuy"', 'pass_free_', 'pass_elite_', 'result.passElite=p.passElite===true', 'v434Optics.active().zoom', 'targetFov=baseFov/v434Optics.active().zoom', "const d=clamp(baseDistance*2.05,22,28)", 'Smooth vertical tracking is essential', 'if(l.renderer&&now-l.last>(mobile?40:33))'):
+          for token in ('id=\\"v38TabAchievements\\"', 'id=\\"v38AchievementsView\\"', 'v56RenderAchievements' if 'v56RenderAchievements' in h else 'function v38RenderAchievements()', 'v56StoreGrid', 'v56StoreArt', 'Array.from({length:30}', 'data-v18=\\"passbuy\\"', 'pass_free_', 'pass_elite_', 'result.passElite=p.passElite===true', 'v58Sights.active().zoom', 'targetFov=baseFov/(aiming?v58Sights.active().zoom:1)', 'const d=v398ChuteOpen?16.5:14.5', 'this.anchorY+=(player.position.y-this.anchorY)', 'if(l.renderer&&now-l.last>(mobile?40:33)'):
               assert token in h, 'V57.6: missing lobby/pass/camera component '+token
           for token in ('id="v500CloudBadge"', 'id="v533AccountShortcut"', 'id="v502CloudAccess"'):
               assert token not in h, 'V57.6: cloud shortcut must not be in the lobby: '+token
           assert 'id="v443Google"' in h and 'id="v494CloudStatus"' in h, 'V57.6: Settings > Account lost Google controls'
-          assert ('thereafter.'+chr(92)+'n  if(!Number.isFinite(camera.position.y)') not in h, 'V57.6: vertical camera tracking comment regression'
+          assert r"\n  const targetHeight=(mobile?2.46:2.58)" not in h, 'V58.1: camera height must not be commented out by an escaped newline'
           print('V57.6 lobby, pass, account routing and camera checks passed')
           print('V55.6 lobby and hybrid camera checks passed')
           print('V55.5 Google account isolation checks passed')
