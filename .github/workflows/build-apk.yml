@@ -856,7 +856,7 @@ jobs:
           assert 'const v432Camera={' not in h and 'const v434Optics={' not in h
           assert 'v372PlaneTouch' not in h
           assert "versionCode 156" in gradle and "versionName '58.1-freefire-thirdperson'" in gradle
-          scripts=re.findall(r"<script\\b[^>]*>([\\s\\S]*?)</script\\s*>",h,re.I)
+          scripts=re.findall(r"<script\b[^>]*>([\s\S]*?)</script\s*>",h,re.I)
           assert scripts
           for script in scripts:
               if script.strip():
