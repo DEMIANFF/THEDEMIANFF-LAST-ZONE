@@ -3391,7 +3391,7 @@ v432Camera.update(dt);
 // Fire after the camera has been aimed this frame, avoiding one-frame stale shots.
 if(!fireHeld)v59AwmNeedsRelease=false;
 if(fireHeld)shoot();
-else if(mobile&&$('autoFire').checked){for(const b of bots){if(!b.alive)continue;const dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);if(d<45&&Math.abs(Math.atan2(Math.sin(angle-camYaw),Math.cos(angle-camYaw)))<.075&&!blocked(player.position.x,player.position.z,b.x,b.z)){shoot();break;}}}
+else if(mobile&&$('autoFire').checked&&weaponIndex!==5){for(const b of bots){if(!b.alive)continue;const dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);if(d<45&&Math.abs(Math.atan2(Math.sin(angle-camYaw),Math.cos(angle-camYaw)))<.075&&!blocked(player.position.x,player.position.z,b.x,b.z)){shoot();break;}}}
 v14Recoil=Math.max(0,v14Recoil-dt*(weaponIndex===1?6.5:weaponIndex===3?6:8.5));
 // V39.5: cosmetic-only animation envelope; does not change camera, aiming or weapon timing.
 v395SwapTime=Math.max(0,v395SwapTime-dt);
