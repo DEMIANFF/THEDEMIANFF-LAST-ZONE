@@ -1675,7 +1675,7 @@ function v401AttachAK(character){
   const toggle=()=>{
    const ak=group.userData.v40ActiveIndex===0;
    model.visible=ak;
-   for(const child of fallback)child.visible=!ak && (!child.userData.v40WeaponName || child.userData.v40WeaponName===['AR-7','DMR-9','SMG-4','ESC-12','LMG-60'][group.userData.v40ActiveIndex]);
+   for(const child of fallback){if(child===group.userData.v59Awm){child.visible=group.userData.v40ActiveIndex===5;continue;}child.visible=group.userData.v40ActiveIndex!==5&&!ak&&(!child.userData.v40WeaponName||child.userData.v40WeaponName===['AR-7','DMR-9','SMG-4','ESC-12','LMG-60'][group.userData.v40ActiveIndex]);}
   };
   group.add(model);group.userData.v401AKModel=model;group.userData.v401AKFallback=fallback;
   character.v401AKMounted=true;toggle();
@@ -4428,7 +4428,7 @@ try{const savedScope=Number(localStorage.getItem('v534_scope_index'));if(Number.
   v434Optics.cycle();
  });
  document.body.appendChild(button); // V43.4.1 SCOPE BUTTON FIX
- const opticStyle=document.createElement('style');opticStyle.textContent='#v59AwmScopeOverlay{display:none;position:fixed;inset:0;z-index:24;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0 42vmin,rgba(0,0,0,.94) 43vmin 100%)}#v59AwmScopeOverlay:before{content:"";position:absolute;left:50%;top:50%;width:min(84vmin,92vw);height:min(84vmin,92vw);transform:translate(-50%,-50%);border:clamp(5px,1.1vmin,13px) solid #111820;border-radius:50%;box-shadow:0 0 0 2px #9ab0bd88,0 0 30px #000, inset 0 0 20px #0009}#v59AwmScopeOverlay:after{content:"";position:absolute;left:50%;top:50%;width:min(84vmin,92vw);height:min(84vmin,92vw);transform:translate(-50%,-50%);border-radius:50%;background:linear-gradient(90deg,transparent calc(50% - .7px),#d9eee6cc 50%,transparent calc(50% + .7px)),linear-gradient(0deg,transparent calc(50% - .7px),#d9eee6cc 50%,transparent calc(50% + .7px));opacity:.78}';document.head.appendChild(opticStyle);
+ const opticStyle=document.createElement('style');opticStyle.textContent='#v59AwmScopeOverlay{display:none;position:fixed;inset:0;z-index:18;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0 42vmin,rgba(0,0,0,.94) 43vmin 100%)}#v59AwmScopeOverlay:before{content:"";position:absolute;left:50%;top:50%;width:min(84vmin,92vw);height:min(84vmin,92vw);transform:translate(-50%,-50%);border:clamp(5px,1.1vmin,13px) solid #111820;border-radius:50%;box-shadow:0 0 0 2px #9ab0bd88,0 0 30px #000, inset 0 0 20px #0009}#v59AwmScopeOverlay:after{content:"";position:absolute;left:50%;top:50%;width:min(84vmin,92vw);height:min(84vmin,92vw);transform:translate(-50%,-50%);border-radius:50%;background:linear-gradient(90deg,transparent calc(50% - .7px),#d9eee6cc 50%,transparent calc(50% + .7px)),linear-gradient(0deg,transparent calc(50% - .7px),#d9eee6cc 50%,transparent calc(50% + .7px));opacity:.78}';document.head.appendChild(opticStyle);
  const opticOverlay=document.createElement('div');opticOverlay.id='v59AwmScopeOverlay';document.body.appendChild(opticOverlay);
  const label=document.createElement('div');
  label.id='v434ScopeLabel';label.setAttribute('aria-live','off');
