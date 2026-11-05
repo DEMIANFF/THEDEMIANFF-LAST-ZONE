@@ -194,12 +194,12 @@
 @media(max-width:600px){.v24Hero{left:52%;top:18%;width:48vw;height:62%}.v24HeroCaption{padding:6px 9px}.v24HeroCaption small{font-size:7px}}
 <style id="v4341ScopeVisibility">
 /* Selector fuera del HUD, visible solo durante la partida. */
-#v434ScopeButton{display:none!important;position:fixed!important;right:112px!important;
+#v58ScopeButton{display:none!important;position:fixed!important;right:112px!important;
  bottom:116px!important;top:auto!important;left:auto!important;z-index:80!important;
  pointer-events:auto!important;touch-action:none!important;opacity:.95!important;
  min-width:75px!important;padding:8px!important}
 
-@media(max-height:420px){#v434ScopeButton{right:105px!important;bottom:100px!important}}
+@media(max-height:420px){#v58ScopeButton{right:105px!important;bottom:100px!important}}
 </style>
 </style><style id="v494LobbyLook">
 /* V49.4: modern cinematic hangar presentation; preserves third-person FOV and controls. */
@@ -436,36 +436,36 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 #pausePanel:not(.hidden){z-index:121!important;position:fixed!important;inset:0!important;overflow:auto!important;touch-action:pan-y!important}
 #pausePanel .menuCard{max-height:94vh!important;overflow:auto!important}
 @media(max-width:620px){#v38Operations .v38OpsCard{width:94vw!important;max-height:78vh!important;padding:10px!important}#v38Operations .v38OpsTile{padding:9px!important}#v38Operations .v38OpsGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#v38Operations .v38OpsTile h3{font-size:12px!important}#v38Operations .v38OpsTile p{font-size:10px!important}#v38Operations .v38OpsTile strong{font-size:10px!important}}
-</style><style id="v382ADS">
-#v10Reticle.v382ADS{width:12px!important;height:12px!important;border:2px solid #aaf9dd!important;opacity:.96!important;box-shadow:0 0 0 1px #031721,0 0 12px #5edfc688!important;transition:width .13s ease,height .13s ease,opacity .13s ease!important}
-#v10Reticle.v382ADS::before,#v10Reticle.v382ADS::after{content:'';position:absolute;background:#aaf9dd;box-shadow:0 1px 3px #031721}
-#v10Reticle.v382ADS::before{width:1px;height:24px;left:4px;top:-8px}
-#v10Reticle.v382ADS::after{width:24px;height:1px;top:4px;left:-8px}
+</style><style id="v58ADS">
+#v10Reticle.v58ADS{width:12px!important;height:12px!important;border:2px solid #aaf9dd!important;opacity:.96!important;box-shadow:0 0 0 1px #031721,0 0 12px #5edfc688!important;transition:width .13s ease,height .13s ease,opacity .13s ease!important}
+#v10Reticle.v58ADS::before,#v10Reticle.v58ADS::after{content:'';position:absolute;background:#aaf9dd;box-shadow:0 1px 3px #031721}
+#v10Reticle.v58ADS::before{width:1px;height:24px;left:4px;top:-8px}
+#v10Reticle.v58ADS::after{width:24px;height:1px;top:4px;left:-8px}
 #aimBtn.adsActive{background:#d7a458!important;border-color:#ffdb99!important;color:#142b3c!important}
-</style><style id="v434OpticsStyle">
+</style><style id="v58SightsStyle">
 /* V43.4 OPTIC PROFILES: punto libre compacto y selector no invasivo. */
 #cross{width:10px!important;height:10px!important;opacity:.55!important}
 #cross:before{width:1px!important;height:10px!important;left:4.5px!important;top:0!important}
 #cross:after{height:1px!important;width:10px!important;top:4.5px!important;left:0!important}
-#v10Reticle:not(.v382ADS){width:8px!important;height:8px!important;border-width:1px!important;opacity:.55!important}
-#v434ScopeButton{position:absolute;right:15px;bottom:285px;z-index:20;pointer-events:auto;
+#v10Reticle:not(.v58ADS){width:8px!important;height:8px!important;border-width:1px!important;opacity:.55!important}
+#v58ScopeButton{position:absolute;right:15px;bottom:285px;z-index:20;pointer-events:auto;
  touch-action:none;border:1px solid #7bd9dd99;border-radius:9px;padding:8px 10px;
  background:#102c3ddd;color:#e8ffff;font:700 10px system-ui;min-width:80px}
-#v434ScopeLabel{position:absolute;left:50%;top:calc(50% + 28px);transform:translateX(-50%);
+#v58ScopeLabel{position:absolute;left:50%;top:calc(50% + 28px);transform:translateX(-50%);
  z-index:15;pointer-events:none;color:#c8ffeb;font:700 10px system-ui;letter-spacing:2px;
  text-shadow:0 1px 3px #001;display:none}
-@media(max-height:500px){#v434ScopeButton{bottom:205px;right:7px;padding:6px;font-size:9px}}
-@media(pointer:fine){#v434ScopeButton{display:none}}
+@media(max-height:500px){#v58ScopeButton{bottom:205px;right:7px;padding:6px;font-size:9px}}
+@media(pointer:fine){#v58ScopeButton{display:none}}
 </style>
 <style id='v433ADSVisibility'>/* V43.3 ADS VISIBILITY TUNING: retícula mínima, centro despejado. */
-#v10Reticle.v382ADS{
+#v10Reticle.v58ADS{
  width:5px!important;height:5px!important;
  border:1px solid #d7fff0!important;
  border-radius:50%!important;opacity:.88!important;
  background:transparent!important;
  box-shadow:0 0 0 1px #09252199!important;
 }
-#v10Reticle.v382ADS::before,#v10Reticle.v382ADS::after{
+#v10Reticle.v58ADS::before,#v10Reticle.v58ADS::after{
  content:none!important;display:none!important;
 }
 </style><style id="v383LobbyLayout">
@@ -499,7 +499,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 </style>
 <style id="v4342ADSScope">
 /* V43.4.2 ADS ONLY */
-#v434ScopeButton{
+#v58ScopeButton{
  position:fixed!important;
  right:15px!important;
  bottom:34%!important;
@@ -507,7 +507,7 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
  z-index:9999!important;
 }
 @media(pointer:fine){
- #v434ScopeButton{display:none}
+ #v58ScopeButton{display:none}
 }
 </style>
 <style id="v528LobbyReorganization">
@@ -727,12 +727,32 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 #v10Reticle[data-scope="2x"]{width:10px!important;height:10px!important;border-width:1.5px!important}
 #v10Reticle[data-scope="4x"]{width:8px!important;height:8px!important;border-width:1.25px!important}
 #v10Reticle[data-scope="8x"]{width:7px!important;height:7px!important;border-width:1px!important}
-#v10Reticle.v382ADS[data-scope="PUNTO"]{width:12px!important;height:12px!important;opacity:.98!important}
-#v10Reticle.v382ADS[data-scope="2x"]{width:10px!important;height:10px!important;opacity:.98!important}
-#v10Reticle.v382ADS[data-scope="4x"]{width:8px!important;height:8px!important;opacity:.98!important}
-#v10Reticle.v382ADS[data-scope="8x"]{width:7px!important;height:7px!important;opacity:1!important}
+#v10Reticle.v58ADS[data-scope="PUNTO"]{width:12px!important;height:12px!important;opacity:.98!important}
+#v10Reticle.v58ADS[data-scope="2x"]{width:10px!important;height:10px!important;opacity:.98!important}
+#v10Reticle.v58ADS[data-scope="4x"]{width:8px!important;height:8px!important;opacity:.98!important}
+#v10Reticle.v58ADS[data-scope="8x"]{width:7px!important;height:7px!important;opacity:1!important}
 </style>
-</head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de operaciones: eventos, misiones y logros">
+<style id="v58FreeFireCamera">
+#cross{display:none!important;position:absolute!important;left:50%!important;top:50%!important;width:5px!important;height:5px!important;border:0!important;border-radius:50%!important;background:#f7ffff!important;opacity:.9!important;box-shadow:0 0 3px #00131d,0 0 8px #d8ffff66!important;transform:translate(-50%,-50%)!important;z-index:140!important;pointer-events:none!important}
+#cross:before,#cross:after{display:none!important;content:none!important}
+body.v475InMatch:not(.v58FlightMode) #cross{display:block!important}
+#v10Reticle{display:none!important;position:absolute!important;left:50%!important;top:50%!important;width:13px!important;height:13px!important;border:1px solid #e4fff2!important;border-radius:50%!important;background:transparent!important;opacity:.96!important;box-shadow:0 0 0 1px #071a22,0 0 8px #9bffdf66!important;transform:translate(-50%,-50%)!important;z-index:141!important;pointer-events:none!important}
+#v10Reticle:before,#v10Reticle:after{content:'';position:absolute;display:block;background:#e4fff2;box-shadow:0 0 2px #001}
+#v10Reticle:before{width:1px;height:25px;left:5px;top:-7px}
+#v10Reticle:after{height:1px;width:25px;top:5px;left:-7px}
+body.v475InMatch:not(.v58FlightMode) #v10Reticle.v58ADS{display:block!important}
+#v10Reticle[data-scope="PUNTO"]{width:13px!important;height:13px!important}
+#v10Reticle[data-scope="2x"]{width:12px!important;height:12px!important}
+#v10Reticle[data-scope="4x"]{width:10px!important;height:10px!important}
+#v10Reticle[data-scope="8x"]{width:8px!important;height:8px!important}
+#v58ScopeButton{position:absolute;right:14px;bottom:265px;z-index:145;pointer-events:auto;touch-action:manipulation;border:1px solid #8cebd4aa;border-radius:8px;padding:8px 12px;min-width:86px;background:#0a2839ed;color:#eafffa;font:800 10px system-ui;letter-spacing:.7px;box-shadow:0 3px 12px #0019}
+#v58ScopeLabel{position:absolute;left:50%;top:calc(50% + 33px);transform:translateX(-50%);z-index:142;pointer-events:none;color:#d9fff0;font:800 10px system-ui;letter-spacing:2px;text-shadow:0 1px 3px #001;display:none}
+body.v58FlightMode #cross,body.v58FlightMode #v10Reticle,body.v58FlightMode #v58ScopeButton,body.v58FlightMode #v58ScopeLabel{display:none!important;visibility:hidden!important;opacity:0!important}
+body.v58FlightMode #v13AimMode{display:none!important}
+body.v58FlightMode #mobileBtns #aimBtn{opacity:.4!important;pointer-events:none!important}
+@media(max-height:500px){#v58ScopeButton{bottom:205px;right:7px;padding:6px 8px}}
+@media(pointer:fine){#v58ScopeButton{display:none!important}}
+</style></head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de operaciones: eventos, misiones y logros">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
   <div class="v38OpsTabs"><button type="button" id="v38TabEvents" aria-selected="true">★ EVENTOS</button><button type="button" id="v38TabMissions" aria-selected="false">▣ MISIONES</button><button type="button" id="v38TabAchievements" aria-selected="false">✦ LOGROS</button></div>
@@ -860,21 +880,21 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 body:not(.v475InMatch) #cross,
 body:not(.v475InMatch) #v10Reticle,
 body:not(.v475InMatch) #v13AimMode,
-body:not(.v475InMatch) #v434ScopeLabel,
-body:not(.v475InMatch) #v434ScopeButton{display:none!important}
+body:not(.v475InMatch) #v58ScopeLabel,
+body:not(.v475InMatch) #v58ScopeButton{display:none!important}
 body.v475InMatch #v10Reticle{display:block!important}
 body.v475InMatch #v13AimMode{display:block!important}
 </style>
 <style id="v586ReticleRestored">
 /* V57.6: restore the normal sight point; remove only its outer glow. */
-#v10Reticle:not(.v382ADS){
+#v10Reticle:not(.v58ADS){
  border-color:#9cf9de!important;
  border-width:1px!important;
  box-shadow:none!important;
  background:transparent!important;
  opacity:.72!important;
 }
-#v10Reticle.v382ADS{
+#v10Reticle.v58ADS{
  border-color:#aaf9dd!important;
  box-shadow:none!important;
  background:transparent!important;
@@ -889,11 +909,11 @@ body.v475InMatch #v10Reticle{visibility:visible!important}
 </style>
 
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V57.8.2 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
+<div id="v22Edition">V58.1 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"><span class="v581Currency"><small>CR</small><b id="v18Credits">0</b></span><span class="v581Currency"><small>XP</small><b id="v18XP">0</b></span><button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <div class="v17Left"><div class="v17Nav"><button data-lobby="TIENDA">▤ &nbsp; TIENDA</button><button data-lobby="PASE">✧ &nbsp; PASE AURORA</button><button data-lobby="PERSONAJE">♙ &nbsp; OPERADORES</button><button data-lobby="OPERACIONES">◈ &nbsp; EVENTOS Y OBJETIVOS</button><button data-lobby="ARMAS">⌖ &nbsp; ARSENAL</button><button data-lobby="INVENTARIO">▣ &nbsp; INVENTARIO</button><button data-lobby="PRESET">☷ &nbsp; EQUIPAMIENTOS</button><button data-lobby="SOCIAL">♧ &nbsp; SOCIAL</button></div></div>
 <div class="v17Hero v24Hero" aria-label="Vista previa tridimensional del operador seleccionado"><div id="v24LobbyStage"></div><div class="v24HeroCaption"><b id="v24OperatorName">OPERADOR AZUL</b><small>DESLIZA PARA GIRAR 360° · OPERADOR 3D</small></div></div>
-<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V57.8.2</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
+<div class="v17Brand">THE<span>DEMIAN</span>FF<small>LAST ZONE 3D · AURORA EVOLUTION · V58.1</small><div class="v502BrandSubtitle">OPERACIÓN ÚLTIMA ZONA <span>◆</span> BATALLA REAL 3D</div></div>
 
 <div class="v17Bottom"><div class="v17Launch"><div class="v502ReadyBanner">◉ DESPLIEGUE DISPONIBLE <span>20 RIVALES IA</span></div><div class="v17Mode">◈ &nbsp; <span id="v18ModeLabel">SUPERVIVENCIA</span> <small>AURORA GLACIAL · CONTRA IA</small></div><button class="primary" id="start">▶ INICIAR PARTIDA</button></div></div>
 <div id="v17Notice" role="status" aria-live="polite"></div>
@@ -917,7 +937,7 @@ body.v475InMatch #v10Reticle{visibility:visible!important}
 <div class="settingsSection" data-section="control">
 <label class="v37Primary">SENSIBILIDAD GENERAL · CÁMARA 360° <input id="sensitivity" type="range" min=".35" max="3" step=".05" value="1.25"></label>
 <label class="v37Advanced">Sensibilidad vertical <input id="verticalSensitivity" type="range" min=".35" max="3" step=".05" value="1.2"></label>
-<label class="v37Primary">DISTANCIA DE CÁMARA · TERCERA PERSONA <input id="v26CameraDistance" type="range" min="9.5" max="16" step=".25" value="10"></label><label class="v37Advanced">Separación lateral de cámara · hombro derecho <input id="v26CameraShoulder" type="range" min="2.0" max="2.7" step=".05" value="2.35"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
+<label class="v37Primary">DISTANCIA · CÁMARA TERCERA PERSONA <input id="v26CameraDistance" type="range" min="6.5" max="10.5" step=".25" value="7.8"></label><label class="v37Advanced">DESPLAZAMIENTO DE HOMBRO · TERCERA PERSONA <input id="v26CameraShoulder" type="range" min=".65" max="1.5" step=".05" value="1.05"></label><label class="v37Advanced">Zona muerta táctil <input id="v26TouchDeadzone" type="range" min="0" max="2" step=".1" value=".35"></label><label class="v37Advanced">Curva táctil <input id="v26TouchCurve" type="range" min=".75" max="1.5" step=".05" value="1.12"></label><label class="v37Advanced">Suavizado de cámara <input id="cameraSmooth" type="range" min="0" max=".8" step=".05" value=".16"></label>
 <label class="v37Advanced">Velocidad de cámara <input id="cameraSpeed" type="range" min=".6" max="1.8" step=".05" value="1"></label>
 <label>Invertir cámara vertical <input id="invertY" type="checkbox"></label>
 <label>Ayuda de apuntado <input id="aimAssist" type="checkbox" checked></label>
@@ -3381,7 +3401,7 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  group.userData.v40PickupHalo=halo;
  group.userData.v362Glow=beacon;
  scene.add(group);pickups.push({type,x,z,group,phase:rand(0,6)});}
-function reset(){v586RestoreBuildingVisibility();v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v480Pulse=0;v480FrameCount=0;v480Snapshot.fill(null);v484NoAmmoNotice=-10;v489AutoSwaps=0;v489DryFires=0;v489LastDryFire=-10;v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+function reset(){v58FlightPointers?.clear?.();v58SetFlightMode('idle');v586RestoreBuildingVisibility();v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v480Pulse=0;v480FrameCount=0;v480Snapshot.fill(null);v484NoAmmoNotice=-10;v489AutoSwaps=0;v489DryFires=0;v489LastDryFire=-10;v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(window.v396VisualRoot){v583DisposeVisualRoot(window.v396VisualRoot);window.v396VisualRoot=null;}
 if(window.v397VisualRoot){v583DisposeVisualRoot(window.v397VisualRoot);window.v397VisualRoot=null;}
 if(scene){
@@ -3390,7 +3410,7 @@ if(scene){
  for(const geometry of geometries)geometry.dispose();
  while(scene.children.length)scene.remove(scene.children[0]);
 }
-v428CreateTrainingWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;player.scale.setScalar(1.24);const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.18;v432Camera.reset();camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
+v428CreateTrainingWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;player.scale.setScalar(1.24);const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.18;v58Camera.reset();camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
 for(let i=2;i<weapons.length;i++){weapons[i].ammo=weapons[i].mag;weapons[i].reserve=[210,36,180][i-2];}for(let i=0;i<($('v18Mode').value==='training'?8:20);i++)spawnBot(Math.random()<.5?10:17);for(let i=0;i<55;i++){let p=safePos(5);spawnPickup(['ammo','ammo','med','armor'][i%4],p.x,p.z)}updateHud();}
 function updateHud(){
  const eventHud=$('v362EventHud');if(eventHud){eventHud.classList.toggle('hidden',!v18ActiveEvent);if(v18ActiveEvent)eventHud.textContent='EVENTO '+(v18ActiveEvent==='training'?'PRÁCTICA TÁCTICA':'SUPERVIVENCIA')+' · BAJAS '+kills+'/'+(v18ActiveEvent==='training'?2:3);}
@@ -3836,7 +3856,7 @@ const v470WasAirborne=!onGround;vertical-=19*dt;player.position.y+=vertical*dt;
 const floor=v403Floor(player.position.x,player.position.z,player.position.y-vertical*dt);
 if(player.position.y<=floor){player.position.y=floor;vertical=0;onGround=true;if(v470WasAirborne)v470LandingPose=1;}else onGround=false;
 v470JumpPose=Math.max(0,v470JumpPose-dt*2.0);v470LandingPose=Math.max(0,v470LandingPose-dt*3.3);v470FirePose=Math.max(0,v470FirePose-dt*7);
-v432Camera.update(dt);
+v58Camera.update(dt);
 // Fire after the camera has been aimed this frame, avoiding one-frame stale shots.
 if(fireHeld)shoot();
 else if(mobile&&$('autoFire').checked){for(const b of bots){if(!b.alive)continue;const dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);if(d<45&&Math.abs(Math.atan2(Math.sin(angle-camYaw),Math.cos(angle-camYaw)))<.075&&!blocked(player.position.x,player.position.z,b.x,b.z)){shoot();break;}}}
@@ -4134,41 +4154,50 @@ function v36BuildAircraft(){
  g.position.set(-HALF+14,115,0);v36Aircraft=g;scene.add(g);
  camera.position.set(g.position.x-25,125,-28);camera.lookAt(g.position);
 }
-let v372PlaneTouch=null,v372PlaneX=0,v372PlaneY=0;
-document.addEventListener('pointerdown',e=>{
- if(window.v36FlightMode!=='aircraft'||!$('v36DropPanel').classList.contains('hidden')||!$('pausePanel').classList.contains('hidden'))return;
- if(e.target.closest?.('button,#minimap,#v36DropPanel,#v37FlightHUD,#pausePanel'))return;
- if(e.pointerType==='mouse'&&e.button!==0)return;
- if(v372PlaneTouch!==null)return;
- v372PlaneTouch=e.pointerId;v372PlaneX=e.clientX;v372PlaneY=e.clientY;
-},true);
-document.addEventListener('pointermove',e=>{
- if(v372PlaneTouch!==e.pointerId||window.v36FlightMode!=='aircraft')return;
- const dx=clamp(e.clientX-v372PlaneX,-55,55),dy=clamp(e.clientY-v372PlaneY,-55,55);
- v372PlaneX=e.clientX;v372PlaneY=e.clientY;
- camYaw-=dx*.004*Number($('sensitivity').value);
- camPitch=clamp(camPitch+dy*.002*Number($('sensitivity').value),-.65,.85);
- v432Camera.targetYaw=camYaw;v432Camera.targetPitch=camPitch;
- if(e.cancelable)e.preventDefault();
-},true);
-for(const type of ['pointerup','pointercancel'])document.addEventListener(type,e=>{if(e.pointerId===v372PlaneTouch)v372PlaneTouch=null;},true);
+
+const v58FlightPointers=new Map();
+function v58FlightPointerAllowed(e){
+ if(!running||gameOver||!htmlFlightModeSupportsCamera())return false;
+ if(window.v36FlightMode==='aircraft'&&!$('v36DropPanel').classList.contains('hidden'))return false;
+ if(!$('pausePanel').classList.contains('hidden'))return false;
+ if(e.target.closest?.('button,input,select,textarea,a,[role="button"],#v36DropPanel,#v37FlightHUD,#minimap,#v36MapPanel,#pausePanel,#v362Settings,#hudEditor,#mobileBtns,#stickBase'))return false;
+ return e.clientX>=window.innerWidth*.42;
+}
+function v58FlightPointerDown(e){
+ if(!v58FlightPointerAllowed(e)||(e.pointerType==='mouse'&&e.button!==0)||v58FlightPointers.size>=1)return;
+ v58FlightPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(e.cancelable)e.preventDefault();e.stopImmediatePropagation();
+}
+function v58FlightPointerMove(e){
+ const p=v58FlightPointers.get(e.pointerId);if(!p)return;
+ if(!htmlFlightModeSupportsCamera()){v58FlightPointers.delete(e.pointerId);return;}
+ const dx=clamp(e.clientX-p.x,-78,78),dy=clamp(e.clientY-p.y,-78,78);p.x=e.clientX;p.y=e.clientY;
+ if(Math.abs(dx)+Math.abs(dy)>.15){const delta=v58Camera.input(dx,dy,'flight');v58Camera.orient(delta.x,delta.y);}
+ if(e.cancelable)e.preventDefault();e.stopImmediatePropagation();
+}
+function v58FlightPointerEnd(e){if(!v58FlightPointers.delete(e.pointerId))return;if(e.cancelable)e.preventDefault();e.stopImmediatePropagation();}
+document.addEventListener('pointerdown',v58FlightPointerDown,true);
+document.addEventListener('pointermove',v58FlightPointerMove,true);
+document.addEventListener('pointerup',v58FlightPointerEnd,true);
+document.addEventListener('pointercancel',v58FlightPointerEnd,true);
 function v36TickAircraft(dt){
  if(!v36Aircraft)return;
+ v58Camera.updateAngles(dt);
  if(v36Aircraft.userData.v40Propellers)for(const prop of v36Aircraft.userData.v40Propellers)prop.rotation.x=(prop.rotation.x+dt*19)%(Math.PI*2);
  v36Aircraft.position.x+=dt*15;
  if(v36Aircraft.position.x>HALF-12)v36Aircraft.position.x=-HALF+14;
  v398MapRefresh+=dt;
  if(v398MapRefresh>.25&&!$('v36DropPanel').classList.contains('hidden')){v398MapRefresh=0;v36DrawMap('v36DropCanvas');}
- const radius=29,look=v36Aircraft.position;
- camera.position.set(look.x-Math.sin(camYaw)*radius,look.y+9+Math.sin(camPitch)*17,look.z-Math.cos(camYaw)*radius);
- camera.lookAt(look.x,look.y+1,look.z);
+ const radius=22,look=v36Aircraft.position,horizontal=radius*Math.cos(camPitch);
+ camera.position.set(look.x-Math.sin(camYaw)*horizontal,look.y+2.8+Math.sin(camPitch)*radius,look.z-Math.cos(camYaw)*horizontal);
+ camera.lookAt(look.x,look.y+1.25,look.z);
 }
 function v36Begin(){
- if($('v18Mode').value==='training'){window.v36FlightMode='landed';$('v36MapButton').classList.add('hidden');return;}
- window.v36FlightMode='aircraft';
+ v58FlightPointers.clear();
+ if($('v18Mode').value==='training'){v58SetFlightMode('landed');$('v36MapButton').classList.add('hidden');return;}
+ v58SetFlightMode('aircraft');
  v36Destination=v36Safe(0,0);v398DropAge=0;v398ChuteOpen=false;
  paused=true;$('controls').classList.add('hidden');
- v36BuildAircraft();camYaw=.75;camPitch=.15;v432Camera.targetYaw=camYaw;v432Camera.targetPitch=camPitch;v372PlaneTouch=null;player.visible=false;
+ v36BuildAircraft();camYaw=.75;camPitch=.15;v58Camera.reset();player.visible=false;
  $('v36MapButton').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.remove('hidden');
  v36DrawMap('v36DropCanvas');
 }
@@ -4179,6 +4208,7 @@ $('v36DropPanel').querySelector('.v36Buttons').prepend(v37FlightMapButton);
 v37FlightMapButton.addEventListener('click',()=>{$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.remove('hidden');});
 function v36Jump(){
  if(window.v36FlightMode!=='aircraft')return;
+ v58FlightPointers.clear();
  const pos=v36Aircraft?{x:v36Aircraft.position.x,z:v36Aircraft.position.z}:v36Safe(v36Destination.x,v36Destination.z);
  if(v36Aircraft){scene.remove(v36Aircraft);v36Aircraft.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose();});v36Aircraft=null;}
  player.visible=true;
@@ -4187,7 +4217,7 @@ function v36Jump(){
  $('v36ParachuteStatus').classList.remove('hidden');
  $('v36MapButton').classList.add('hidden');
  if(mobile)$('controls').classList.remove('hidden');
- window.v36FlightMode='descending';paused=false;onGround=false;vertical=0;
+ v58SetFlightMode('descending');paused=false;onGround=false;vertical=0;
  v36Chute=new THREE.Group();
  const canopy=new THREE.Mesh(new THREE.SphereGeometry(3.5,12,6,0,Math.PI*2,0,Math.PI*.5),new THREE.MeshStandardMaterial({color:'#e79c4b',side:THREE.DoubleSide}));
  canopy.position.y=6.2;canopy.scale.y=.5;v36Chute.add(canopy);
@@ -4224,7 +4254,7 @@ function v362UpdateBotsInAir(dt){
 }
 window.THEDEMIANFF_PARACHUTE_TEST=()=>({activeBots:bots.filter(b=>b.alive&&b.airborne&&!!b.v362Chute).length,canopyRadius:1.55,canopySegments:'14x8'});
 function v36StepFlight(dt){
- v362UpdateBotsInAir(dt);flushCamera(dt);
+ v362UpdateBotsInAir(dt);flushCamera(dt);v58Camera.updateAngles(dt);
  // V38.9: derive control directions from the ACTUAL rendered camera orientation.
  // Do not guess yaw signs: joystick right = camera screen-right; up = camera view-forward.
  // Camera quaternion is updated by lookAt at the end of the previous frame.
@@ -4267,7 +4297,7 @@ function v36StepFlight(dt){
  }
  const floor=v403Floor(player.position.x,player.position.z,player.position.y+(v398ChuteOpen?(strength>.12?8.0:9.0):19.5)*dt);
  if(player.position.y<=floor){
-  player.position.y=floor;window.v36FlightMode='landed';onGround=true;v404ResolveLanding();
+  player.position.y=floor;v58FlightPointers.clear();v58SetFlightMode('landed');onGround=true;v404ResolveLanding();
   if(v36Chute){
    player.remove(v36Chute);
    v36Chute.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose();});
@@ -4277,11 +4307,9 @@ function v36StepFlight(dt){
   v22ShoulderRig.anchorY=NaN;moveVX=moveVZ=0;toast('ATERRIZAJE COMPLETADO');
  }else{
   $('v36ParachuteStatus').textContent=(v398ChuteOpen?'🪂 PARACAÍDAS':'↘ CAÍDA LIBRE')+' · '+Math.ceil(player.position.y-floor)+' m · JOYSTICK PARA DIRIGIR';
-  const baseDistance=Number($('v26CameraDistance').value)||7;
-  const d=clamp(baseDistance*2.05,22,28);
-  const aerialHeight=v398ChuteOpen?18:20;
-  camera.position.set(player.position.x-Math.sin(camYaw)*d,player.position.y+aerialHeight,player.position.z-Math.cos(camYaw)*d);
-  const viewDirection=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));camera.lookAt(camera.position.clone().addScaledVector(viewDirection,72));
+  const d=v398ChuteOpen?16.5:14.5,focus=player.position,horizontal=d*Math.cos(camPitch);
+  camera.position.set(focus.x-Math.sin(camYaw)*horizontal,focus.y+(v398ChuteOpen?5.7:4.8)+Math.sin(camPitch)*d,focus.z-Math.cos(camYaw)*horizontal);
+  camera.lookAt(focus.x,focus.y+1.75,focus.z);
  }
 }
 function v36ChoosePoint(e,id){
@@ -4934,9 +4962,12 @@ for(const id of ['v26CameraDistance','v26CameraShoulder','v26TouchDeadzone','v26
   const saved=localStorage.getItem('v26-pref-'+id);
   if(saved!==null){
    const value=Number(saved);
-   if(id==='v26CameraDistance')el.value=String(Number.isFinite(value)?clamp(value,9.5,16):10);
+   if(id==='v26CameraDistance'){
+    const migrated=Number.isFinite(value)?(value>10.5?value*.78:value):7.8;
+    el.value=String(clamp(migrated,6.5,10.5));if(value>10.5)localStorage.setItem('v26-pref-'+id,el.value);
+   }
    else if(id==='v26CameraShoulder'){
-    const calibrated=Number.isFinite(value)&&value>2.1?clamp(value,2.0,2.7):2.35;
+    const calibrated=Number.isFinite(value)?clamp(value>1.5?value*.45:value,.65,1.5):1.05;
     el.value=String(calibrated);
     localStorage.setItem('v26-pref-'+id,String(calibrated));
    }
@@ -4945,163 +4976,74 @@ for(const id of ['v26CameraDistance','v26CameraShoulder','v26TouchDeadzone','v26
  }catch{}
  el.addEventListener('change',()=>{try{localStorage.setItem('v26-pref-'+id,el.value)}catch{}});
 }
-// Dual independent camera channels: screen swipe (FREE) and fire drag (FIRE).
-// Each pointer owns its own low-pass filter and never changes the other channel.
-// V43.4 OPTIC PROFILES: perfiles independientes y selector tactil.
-const v434Optics={
+
+/* V58.1 FREE FIRE TPS CAMERA: world orbit and sight zoom are separate channels. */
+const v58Sights={
  index:0,
- profiles:[
-  {name:'PUNTO',zoom:1,fov:79,sensitivity:1},
-  {name:'2x',zoom:2,fov:39.5,sensitivity:.60},
-  {name:'4x',zoom:4,fov:19.75,sensitivity:.34},
-  {name:'8x',zoom:8,fov:9.875,sensitivity:.20}
- ],
+ profiles:[{name:'PUNTO',zoom:1,sensitivity:1},{name:'2x',zoom:2,sensitivity:.62},{name:'4x',zoom:4,sensitivity:.36},{name:'8x',zoom:8,sensitivity:.23}],
  active(){return this.profiles[this.index];},
- cycle(){
-  this.index=(this.index+1)%this.profiles.length;
-  try{localStorage.setItem('v534_scope_index',String(this.index));}catch(e){}
-  this.updateHud(adsHeld);
- },
- updateHud(isADS){
-  const button=document.getElementById('v434ScopeButton');
-  const label=document.getElementById('v434ScopeLabel');
-  const reticle=document.getElementById('v10Reticle');
-  const cross=document.getElementById('cross');
-  if(reticle)reticle.dataset.scope=this.active().name;
-  if(cross)cross.dataset.scope=this.active().name;
-  if(button){
-   const visible=!!(document.body.classList.contains('v475InMatch') && isADS && running && !paused && !gameOver &&
-     window.v36FlightMode!=='aircraft' &&
-     window.v36FlightMode!=='freefall' &&
-     window.v36FlightMode!=='parachute');
-   button.textContent='MIRA '+this.active().name;
-   button.style.setProperty(
-    'display',visible?'block':'none','important'
-   );
-  }
-  if(label){const visible=!!(document.body.classList.contains('v475InMatch')&&isADS&&running&&!paused&&!gameOver);label.textContent=visible?this.active().name:'';label.style.display=visible?'block':'none';}
+ cycle(){if(!adsHeld||window.v36FlightMode!=='landed'||!running||paused||gameOver)return;this.index=(this.index+1)%this.profiles.length;try{localStorage.setItem('v534_scope_index',String(this.index));}catch(e){}this.updateHud(true);},
+ updateHud(isADS=adsHeld){
+  const button=document.getElementById('v58ScopeButton'),label=document.getElementById('v58ScopeLabel');
+  const visible=!!(document.body.classList.contains('v475InMatch')&&isADS&&running&&!paused&&!gameOver&&window.v36FlightMode==='landed');
+  if(button){button.textContent='MIRA '+this.active().name;button.style.setProperty('display',visible?'block':'none','important');}
+  if(label){label.textContent=visible?this.active().name:'';label.style.display=visible?'block':'none';}
  }
 };
-// V53.2: restore the player's preferred sight magnification after relaunch.
-try{const savedScope=Number(localStorage.getItem('v534_scope_index'));if(Number.isInteger(savedScope)&&savedScope>=0&&savedScope<v434Optics.profiles.length)v434Optics.index=savedScope;}catch(e){}
-(function initV434Scope(){
- const controls=document.getElementById('controls');
- if(!controls)return;
- const button=document.createElement('button');
- button.id='v434ScopeButton';button.type='button';button.textContent='MIRA PUNTO';
- button.setAttribute('aria-label','Cambiar aumento de mira');
- button.addEventListener('pointerdown',e=>{
-  e.preventDefault();
-  e.stopImmediatePropagation();
-  if(!adsHeld||!running||paused||gameOver)return;
-  v434Optics.cycle();
- });
- document.body.appendChild(button); // V43.4.1 SCOPE BUTTON FIX
- const label=document.createElement('div');
- label.id='v434ScopeLabel';label.setAttribute('aria-live','off');
- controls.appendChild(label);
- document.addEventListener('keydown',e=>{
-  if(e.code==='KeyV'&&!e.repeat&&running&&!paused&&!gameOver)v434Optics.cycle();
- });
+try{const savedScope=Number(localStorage.getItem('v534_scope_index'));if(Number.isInteger(savedScope)&&savedScope>=0&&savedScope<v58Sights.profiles.length)v58Sights.index=savedScope;}catch(e){}
+(function initV58ScopeSelector(){
+ const controls=document.getElementById('controls');if(!controls)return;
+ const button=document.createElement('button');button.id='v58ScopeButton';button.type='button';button.textContent='MIRA PUNTO';button.setAttribute('aria-label','Cambiar aumento de la mira');button.addEventListener('click',()=>v58Sights.cycle());document.body.appendChild(button);
+ const label=document.createElement('div');label.id='v58ScopeLabel';label.setAttribute('aria-live','off');controls.appendChild(label);
+ document.addEventListener('keydown',e=>{if(e.code==='KeyV'&&!e.repeat&&running&&!paused&&!gameOver&&adsHeld&&window.v36FlightMode==='landed')v58Sights.cycle();});
 })();
-// V43.2 HYBRID CAMERA CORE: controlador ORIGINAL TPS/ADS independiente.
-// La entrada multitactil permanece en V42.9; este controlador es el UNICO dueño de la vista.
-const v432Camera={
- mode:'FREE', blend:0, back:NaN, shoulder:NaN, height:NaN, anchorY:NaN,
- targetYaw:0,targetPitch:.18,
- input(dx,dy,mode){
-  const finite=n=>Number.isFinite(n)?n:0;
-  const c=n=>Math.max(0,Math.min(3,finite(n)));
-  const general=Math.max(.2,c(Number($('sensitivity').value)||1));
-  const zoom=c(Number($('adsSensitivity').value)||1);
-  const fire=c(Number($('fireSensitivity').value)||1);
-  const speed=Math.max(.2,Math.min(2.4,finite(Number($('cameraSpeed').value))||1));
-  const vertical=Math.max(.35,Math.min(3,finite(Number($('verticalSensitivity').value))||1.2))/1.2;
-  // V43.4 OPTIC PROFILES: multiplicador de sensibilidad por aumento.
-  const m=this.mode==='ADS'?zoom*v434Optics.active().sensitivity:1;
-  const f=mode==='fire'?fire:1;
-  // Sin inercia: el dedo dirige exactamente el cambio medido.
-  // V43.5 RAPID SWIPE DELTAS: conservar movimiento legítimo; descartar solo valores no finitos.
-  // V53.0 precision: retain tiny real finger movements (no sticky dead zone).
-  // Fine ADS adjustments receive a continuous, bounded sensitivity curve;
-  // fast swipes retain their original travel, with no trailing inertia.
-  const clean=n=>Number.isFinite(n)?Math.max(-120,Math.min(120,n)):0;
-  const fine=n=>{
-   const a=Math.abs(n);
-   if(this.mode!=='ADS'||a>=8)return n;
-   const ratio=.70+.30*(a/8);
-   return n*ratio;
-  };
-  return {x:fine(clean(dx))*general*m*f*speed,y:fine(clean(dy))*general*m*f*speed*vertical};
+const v58Camera={
+ mode:'FREE',blend:0,back:NaN,shoulder:NaN,height:NaN,anchorY:NaN,currentFov:NaN,targetYaw:0,targetPitch:.18,
+ input(dx,dy,channel='free'){
+  const finite=n=>Number.isFinite(n)?n:0,general=clamp(finite(Number($('sensitivity').value)||1.25),.2,3),speed=clamp(finite(Number($('cameraSpeed').value)||1),.45,2.2);
+  const vertical=clamp(finite(Number($('verticalSensitivity').value)||1.2)/1.2,.35,2.5),fireFactor=channel==='fire'?clamp(finite(Number($('fireSensitivity').value)||1),.25,2.5):1;
+  const fireStability=channel==='fire'?clamp(finite(Number($('fireStability').value)||.3),0,.85):0,sightFactor=this.mode==='ADS'&&window.v36FlightMode==='landed'?v58Sights.active().sensitivity:1;
+  const clean=n=>Number.isFinite(n)?clamp(n,-100,100):0;
+  return {x:clean(dx)*.00315*general*speed*fireFactor*(1-fireStability*.20)*sightFactor,y:clean(dy)*.00305*general*speed*fireFactor*(1-fireStability*.14)*sightFactor*vertical};
  },
- orient(dx,dy){
-  this.targetYaw=Math.atan2(Math.sin(this.targetYaw-dx*.003),Math.cos(this.targetYaw-dx*.003));
-  this.targetPitch=clamp(this.targetPitch+dy*.00155*($('invertY').checked?-1:1),-.70,.90);
+ orient(dx,dy){if(!Number.isFinite(dx)||!Number.isFinite(dy))return;this.targetYaw=Math.atan2(Math.sin(this.targetYaw-dx),Math.cos(this.targetYaw-dx));this.targetPitch=clamp(this.targetPitch+dy*($('invertY').checked?-1:1),-.72,.82);},
+ updateAngles(dt){
+  const t=clamp(Number(dt)||0,0,.08),aiming=adsHeld&&window.v36FlightMode==='landed';this.mode=aiming?'ADS':'FREE';
+  const ya=1-Math.exp(-t*(aiming?21:19)),pa=1-Math.exp(-t*(aiming?23:20)),delta=Math.atan2(Math.sin(this.targetYaw-camYaw),Math.cos(this.targetYaw-camYaw));
+  camYaw=Math.atan2(Math.sin(camYaw+delta*ya),Math.cos(camYaw+delta*ya));camPitch+=(this.targetPitch-camPitch)*pa;
  },
- reset(){this.mode='FREE';this.blend=0;this.back=NaN;this.shoulder=NaN;this.height=NaN;this.anchorY=NaN;this.targetYaw=camYaw;this.targetPitch=camPitch;},
+ reset(){this.mode='FREE';this.blend=0;this.back=NaN;this.shoulder=NaN;this.height=NaN;this.anchorY=NaN;this.currentFov=NaN;this.targetYaw=camYaw;this.targetPitch=camPitch;},
  update(dt){
   if(!camera||!player)return;
-  const t=Math.max(0,Math.min(dt,.08));
-  this.mode=adsHeld?'ADS':'FREE';
-  const yawAlpha=1-Math.exp(-t*(this.mode==='ADS'?28:24));
-  const yawDelta=Math.atan2(Math.sin(this.targetYaw-camYaw),Math.cos(this.targetYaw-camYaw));
-  camYaw=Math.atan2(Math.sin(camYaw+yawDelta*yawAlpha),Math.cos(camYaw+yawDelta*yawAlpha));
-  const pitchAlpha=1-Math.exp(-t*(this.mode==='ADS'?30:25));
-  camPitch+=(this.targetPitch-camPitch)*pitchAlpha;
-  const goal=this.mode==='ADS'?1:0;
-  this.blend+=(goal-this.blend)*(1-Math.exp(-t*11));
-  // Un solo blend gobierna hombro, distancia, altura y FOV.
-  const b=this.blend;
-  const baseBack=clamp(Number($('v26CameraDistance').value)||10,9.5,16);
-  const baseShoulder=-clamp(Number($('v26CameraShoulder').value)||2.35,2.0,2.7);
-  const tacticalBack=mobile?clamp(baseBack*1.06,10,16):baseBack;
-  const back=tacticalBack*(1-b)+Math.max(9.0,baseBack*.94)*b;
-  const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;
-  // V52.9: lift the over-shoulder camera without shortening its distance.
-  const height=(mobile?2.68:2.78)-(mobile?.20:.18)*b;
-  if(!Number.isFinite(this.back)){
-   this.back=back;this.shoulder=shoulder;this.height=height;this.anchorY=player.position.y;
-  }
-  const follow=1-Math.exp(-t*13);
-  this.back+=(back-this.back)*follow;
-  this.shoulder+=(shoulder-this.shoulder)*follow;
-  this.height+=(height-this.height)*follow;
-  const smooth=clamp(Number($('cameraSmooth').value)||0,0,.8);
-  this.anchorY+=(player.position.y-this.anchorY)*(1-Math.exp(-t*(this.mode==='ADS'?10:6.5)*(1-.4*smooth)));
-  const desired=new THREE.Vector3(
-   player.position.x+Math.cos(camYaw)*this.shoulder-Math.sin(camYaw)*this.back,
-   this.anchorY+this.height,
-   player.position.z-Math.sin(camYaw)*this.shoulder-Math.cos(camYaw)*this.back
-  );
-  const safe=v404SafeCameraTarget(desired);
-  // V53.1: damp small horizontal follow jitter while keeping collision
-  // responses immediate to prevent the view entering scenery.
-  const obstructed=Math.abs(safe.x-desired.x)+Math.abs(safe.z-desired.z)>.02;
-  const followXZ=1-Math.exp(-t*12.5);
-  if(!Number.isFinite(camera.position.x)||!Number.isFinite(camera.position.z)||
-     Math.hypot(camera.position.x-safe.x,camera.position.z-safe.z)>16){
-   camera.position.x=safe.x;camera.position.z=safe.z;
-  }else{
-   const obstructionFollow=obstructed?1-Math.exp(-t*32):followXZ;
-   camera.position.x+=(safe.x-camera.position.x)*obstructionFollow;
-   camera.position.z+=(safe.z-camera.position.z)*obstructionFollow;
-  }
-  // Smooth vertical tracking is essential: keep the shoulder camera attached to the player.
-  if(!Number.isFinite(camera.position.y)||Math.abs(camera.position.y-safe.y)>5)camera.position.y=safe.y;
-  else camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*13));
-  const forward=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
-  camera.lookAt(camera.position.clone().addScaledVector(forward,100));
-  v586UpdateBuildingVisibility(t);
-  const baseFov=mobile?79:68,targetFov=baseFov/v434Optics.active().zoom;
-  const fov=baseFov+(targetFov-baseFov)*b;
-  if(Math.abs(camera.fov-fov)>.01){camera.fov=fov;camera.updateProjectionMatrix();}
-  $('v10Reticle').classList.toggle('v382ADS',this.mode==='ADS');
-  v434Optics.updateHud(this.mode==='ADS');
+  const t=clamp(Number(dt)||0,0,.08);this.updateAngles(t);const aiming=this.mode==='ADS',goal=aiming?1:0;
+  this.blend+=(goal-this.blend)*(1-Math.exp(-t*9.5));const b=this.blend;
+  const baseBack=clamp(Number($('v26CameraDistance').value)||7.8,6.5,10.5),baseShoulder=-clamp(Number($('v26CameraShoulder').value)||1.05,.65,1.5);
+  const targetBack=baseBack*(1-.20*b),targetShoulder=baseShoulder*(1-.34*b),targetHeight=(mobile?2.46:2.58)-.14*b;
+  if(!Number.isFinite(this.back)){this.back=targetBack;this.shoulder=targetShoulder;this.height=targetHeight;this.anchorY=player.position.y;}
+  const follow=1-Math.exp(-t*13.5);this.back+=(targetBack-this.back)*follow;this.shoulder+=(targetShoulder-this.shoulder)*follow;this.height+=(targetHeight-this.height)*follow;
+  const smooth=clamp(Number($('cameraSmooth').value)||.16,0,.8);this.anchorY+=(player.position.y-this.anchorY)*(1-Math.exp(-t*(aiming?11:8)*(1-.25*smooth)));
+  const desired=new THREE.Vector3(player.position.x+Math.cos(camYaw)*this.shoulder-Math.sin(camYaw)*this.back,this.anchorY+this.height,player.position.z-Math.sin(camYaw)*this.shoulder-Math.cos(camYaw)*this.back);
+  const safe=v404SafeCameraTarget(desired),obstructed=Math.abs(safe.x-desired.x)+Math.abs(safe.z-desired.z)>.02,followXZ=1-Math.exp(-t*13);
+  if(!Number.isFinite(camera.position.x)||!Number.isFinite(camera.position.z)||Math.hypot(camera.position.x-safe.x,camera.position.z-safe.z)>14){camera.position.x=safe.x;camera.position.z=safe.z;}
+  else{const alpha=obstructed?1-Math.exp(-t*29):followXZ;camera.position.x+=(safe.x-camera.position.x)*alpha;camera.position.z+=(safe.z-camera.position.z)*alpha;}
+  if(!Number.isFinite(camera.position.y)||Math.abs(camera.position.y-safe.y)>5)camera.position.y=safe.y;else camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*12));
+  const fwd=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));camera.lookAt(camera.position.clone().addScaledVector(fwd,90));v586UpdateBuildingVisibility(t);
+  const baseFov=mobile?74:66,targetFov=baseFov/(aiming?v58Sights.active().zoom:1);if(!Number.isFinite(this.currentFov))this.currentFov=baseFov;
+  this.currentFov+=(targetFov-this.currentFov)*(1-Math.exp(-t*9));if(Math.abs(camera.fov-this.currentFov)>.01){camera.fov=this.currentFov;camera.updateProjectionMatrix();}
+  $('v10Reticle').classList.toggle('v58ADS',aiming);v58Sights.updateHud(aiming);
  }
 };
-window.THEDEMIANFF_HYBRID_CAMERA=()=>({mode:v432Camera.mode,blend:v432Camera.blend,fov:camera?.fov});
-
+function v58SetFlightMode(mode){
+ window.v36FlightMode=mode;const inAir=mode==='aircraft'||mode==='descending';document.body.classList.toggle('v58FlightMode',inAir);
+ if(inAir){adsHeld=false;cameraDX=0;cameraDY=0;$('aimBtn').classList.remove('adsActive');$('v10Reticle').classList.remove('v58ADS');$('v13AimMode').textContent='⊕ CÁMARA';}
+ v58Sights.updateHud(false);
+}
+function htmlFlightModeSupportsCamera(){return window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending';}
+window.THEDEMIANFF_CAMERA_SYSTEM=()=>({profile:'FREE_FIRE_THIRD_PERSON',mode:v58Camera.mode,blend:v58Camera.blend,distance:v58Camera.back,shoulder:v58Camera.shoulder,fov:camera?.fov,ads:adsHeld&&window.v36FlightMode==='landed',flightMode:window.v36FlightMode,sight:v58Sights.active().name});
+window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>{const old=v58Camera.mode;v58Camera.mode=ads?'ADS':'FREE';try{return v58Camera.input(dx,dy,fire?'fire':'free');}finally{v58Camera.mode=old;}};
+window.THEDEMIANFF_FLIGHT_CAMERA_TEST=()=>({aircraftCameraInput:typeof v58FlightPointerDown==='function',parachuteCameraUpdate:typeof v58Camera.updateAngles==='function',crosshairHidden:document.body.classList.contains('v58FlightMode'),mode:window.v36FlightMode});
 let v586BuildingVisibilityClock=0;
+
 const v586BuildingRaycaster=new THREE.Raycaster();
 const v586FadedBuildingMeshes=new Set();
 function v586CloneFadeMaterial(source){
@@ -5161,7 +5103,7 @@ function v586UpdateBuildingVisibility(dt){
   }
  }
 }
-window.THEDEMIANFF_V586_VISUAL_TEST=()=>({cameraTargets:Number.isFinite(v432Camera.targetYaw)&&Number.isFinite(v432Camera.targetPitch),skyDome:false,skyboxTexture:!!v583EnvironmentAssets?.skyTexture,buildingFadeReady:!!v586BuildingRaycaster,buildingFadeCount:v586FadedBuildingMeshes.size,weaponScale:playerModel?.gun?.scale?.x??null});
+window.THEDEMIANFF_V586_VISUAL_TEST=()=>({cameraTargets:Number.isFinite(v58Camera.targetYaw)&&Number.isFinite(v58Camera.targetPitch),skyDome:false,skyboxTexture:!!v583EnvironmentAssets?.skyTexture,buildingFadeReady:!!v586BuildingRaycaster,buildingFadeCount:v586FadedBuildingMeshes.size,weaponScale:playerModel?.gun?.scale?.x??null});
 
 const fireCameraFilter={x:0,y:0};
 let v22FireDragging=false;
@@ -5169,21 +5111,21 @@ function resetFireCamera(){fireCameraFilter.x=0;fireCameraFilter.y=0;}
 // V38.2: same linear, memoryless touch response in FREE and ADS.
 // No velocity filtering, no ADS zoom jump, and a single camera owner.
 function aim(dx,dy,mode='free'){
- const delta=v432Camera.input(dx,dy,mode);
+ const delta=v58Camera.input(dx,dy,mode);
  if(mobile){cameraDX+=delta.x;cameraDY+=delta.y;}
- else v432Camera.orient(delta.x,delta.y);
+ else v58Camera.orient(delta.x,delta.y);
 }
 function aimFromFire(dx,dy){
  // No recursive low-pass memory or trailing movement after thumb release.
  if(Math.abs(dx)+Math.abs(dy)>.12)aim(dx,dy,'fire');
 }
-function applyAim(dx,dy){v432Camera.orient(dx,dy);}
+function applyAim(dx,dy){v58Camera.orient(dx,dy);}
 // Pruebas numericas sin modificar el estado real de la partida.
 window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>{
- const previous=v432Camera.mode;
- v432Camera.mode=ads?'ADS':'FREE';
- try{return v432Camera.input(dx,dy,fire?'fire':'free');}
- finally{v432Camera.mode=previous;}
+ const previous=v58Camera.mode;
+ v58Camera.mode=ads?'ADS':'FREE';
+ try{return v58Camera.input(dx,dy,fire?'fire':'free');}
+ finally{v58Camera.mode=previous;}
 };
 function aimAssistPull(dt){
  // V53.2: permit opt-in ADS assistance, but never override a live finger swipe.
@@ -5213,8 +5155,8 @@ function aimAssistPull(dt){
  // Small frame-rate-independent correction; no hard snap or target lock.
  const strength=(adsHeld?.30:.20)*(1-Math.exp(-Math.min(dt,.05)*3.4));
  const yawCorrection=clamp(best.rel*strength*.55,-.003,.003);
-  v432Camera.targetYaw=Math.atan2(Math.sin(v432Camera.targetYaw+yawCorrection),Math.cos(v432Camera.targetYaw+yawCorrection));
-  v432Camera.targetPitch=clamp(v432Camera.targetPitch+clamp(best.pitchError*strength*.30,-.002,.002),-.70,.90);
+  v58Camera.targetYaw=Math.atan2(Math.sin(v58Camera.targetYaw+yawCorrection),Math.cos(v58Camera.targetYaw+yawCorrection));
+  v58Camera.targetPitch=clamp(v58Camera.targetPitch+clamp(best.pitchError*strength*.30,-.002,.002),-.70,.90);
 }
 function flushCamera(dt){
  if(!mobile)return;
@@ -5445,7 +5387,7 @@ function v123Feedback(){
  monitor.classList.toggle('v458Multi',v23ControlsEnabled&&v23Touches.size>=2);
  monitor.classList.toggle('v458Firing',!!fireHeld);
  $('sprint').classList.toggle('sprintActive',sprintHeld);
- $('aimBtn').classList.toggle('adsActive',adsHeld);$('v10Reticle').classList.toggle('v382ADS',adsHeld);
+ $('aimBtn').classList.toggle('adsActive',adsHeld);$('v10Reticle').classList.toggle('v58ADS',adsHeld);
 }
 function v123ResetInputs(){
  if(v23ControlsEnabled)v23Clear();
@@ -5513,14 +5455,14 @@ let v26LookOwner=null;
 let v26LastLookMove=0;
 // V42.9 MULTITOUCH CAMERA OWNER: permite pasar el control a un dedo que realmente se mueve.
 const v429LookIdleMs=170;
-function v23Ready(){return mobile&&running&&!paused&&!hudEditing&&!gameOver&&!document.hidden&&!$('controls').classList.contains('hidden');}
+function v23Ready(){return mobile&&running&&!paused&&!hudEditing&&!gameOver&&!document.hidden&&!$('controls').classList.contains('hidden')&&window.v36FlightMode!=='aircraft';}
 const v456TouchFeatures={
  guardCoordinates:true,guardEdges:true,guardOverlays:true,singleJoystick:true,singleFire:true,
  exclusiveActions:true,twoLookFingers:true,lookHandoff:true,gapRebase:true,
  joystickViewportClamp:true,indicator:true,cleanup:true,validProgress:true
 };
 function v456InsideViewport(x,y){return Number.isFinite(x)&&Number.isFinite(y)&&x>=0&&y>=0&&x<=innerWidth&&y<=innerHeight;}
-function v456OverlayTarget(target){return !!target.closest?.('#v18Panel,#v362Settings,#v362Events,#v36MapPanel,#v36DropPanel,#hudEditor,#pausePanel,#menu,#end,#v443Entry,#v434ScopeButton,#minimap');}
+function v456OverlayTarget(target){return !!target.closest?.('#v18Panel,#v362Settings,#v362Events,#v36MapPanel,#v36DropPanel,#hudEditor,#pausePanel,#menu,#end,#v443Entry,#v58ScopeButton,#minimap');}
 function v23Joy(x,y){
  const r=stickBase.getBoundingClientRect(),radius=Math.max(18,r.width*.33);
  const centerX=v342JoyOrigin?v342JoyOrigin.x:r.left+r.width/2;
@@ -5552,7 +5494,7 @@ function v23Clear(){
  // V45.7: clear all held states on Android lifecycle interruptions.
  sprintHeld=false;adsHeld=false;crouchHeld=false;jumpQueued=false;
  $('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');
- $('crouchBtn').classList.remove('crouchActive');$('v10Reticle').classList.remove('v382ADS');
+ $('crouchBtn').classList.remove('crouchActive');$('v10Reticle').classList.remove('v58ADS');
  $('v13AimMode').textContent='⊕ MIRA LIBRE';
  v26LookOwner=null;v26LastLookMove=0;
  joyX=joyY=0;stickTouch=lookTouch=fireTouch=null;v342JoyOrigin=null;stickBase.style.removeProperty('--v342-origin-x');stickBase.style.removeProperty('--v342-origin-y');
@@ -5571,6 +5513,7 @@ function v23PointerDown(e){
  else if(e.target.closest?.('#stickBase')||(e.clientX<innerWidth*.46&&e.clientY>innerHeight*.32&&!e.target.closest?.('button,input,select,textarea,a,[role="button"],#hudEditor,#pausePanel,#menu')))role='joystick';
  else if(e.clientX>=window.innerWidth*0.5&&cameraAllowedTarget(e.target))role='look';
  if(!role)return;
+ if(id==='aimBtn'&&window.v36FlightMode!=='landed')return;
  // Keep camera and movement away from the wrong half of the display.
  if(role==='look'&&e.target.closest?.('button,input,select,textarea,a,[role="button"]'))return;
  if(role==='look'&&[...v23Touches.values()].filter(t=>t.role==='look').length>=2)return;
@@ -5592,7 +5535,7 @@ function v23PointerDown(e){
  else if(role==='aimBtn'){
   adsHeld=!adsHeld;cameraDX=0;cameraDY=0;
   $('aimBtn').classList.toggle('adsActive',adsHeld);
-  $('v10Reticle').classList.toggle('v382ADS',adsHeld);
+  $('v10Reticle').classList.toggle('v58ADS',adsHeld);
   $('v13AimMode').textContent=adsHeld?'◎ MIRA ADS':'⊕ MIRA LIBRE';
 }
  else if(role==='crouchBtn'){crouchHeld=!crouchHeld;if(crouchHeld){sprintHeld=false;$('sprint').classList.remove('sprintActive');}$('crouchBtn').classList.toggle('crouchActive',crouchHeld);}
@@ -5671,12 +5614,12 @@ function v23PointerEnd(e){
 }
 // V43.4.3 SCOPE FIX
 document.addEventListener('pointerdown',e=>{
- const target=e.target.closest?.('#v434ScopeButton');
+ const target=e.target.closest?.('#v58ScopeButton');
  if(!target)return;
  e.preventDefault();
  e.stopImmediatePropagation();
  if(!running||paused||gameOver||!adsHeld)return;
- v434Optics.cycle();
+ v58Sights.cycle();
 },true);
 document.addEventListener('pointerdown',v23PointerDown,true);
 document.addEventListener('pointermove',v23PointerMove,true);
