@@ -300,7 +300,7 @@ jobs:
           required=(
               'const v58Camera={','v58Camera.update(dt);','const v58Sights={',
               'function v58FlightPointerDown(e)','function v58FlightPointerMove(e)',
-              'function v58FlightPointerEnd(e)','v58Camera.updateAngles(dt);',
+              'function v58FlightPointerEnd(e)','function v58SetFlightMode(mode){','v58Camera.updateAngles(dt);',
               "v58SetFlightMode('aircraft')","v58SetFlightMode('descending')","v58SetFlightMode('landed')",
               'body.v58FlightMode #cross','body.v58FlightMode #v10Reticle',
               'velocityGain=clamp(1-Math.max(0,velocity-.55)*.18,.58,1)',

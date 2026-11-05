@@ -88,8 +88,9 @@ test('V58.2 hides crosshair and all sights in plane and parachute states', () =>
   assert.match(html, /body\.v58FlightMode #v58ScopeLabel/);
   assert.match(html, /body\.v475InMatch:not\(\.v58FlightMode\) #cross/);
   assert.match(html, /body\.v475InMatch:not\(\.v58FlightMode\) #v10Reticle\.v58ADS/);
-  assert.match(html, /function v58SetFlightMode\(mode\)/);
+  assert.equal((html.match(/function v58SetFlightMode\(mode\)\{/g)||[]).length,1);
   assert.match(html, /const airborne=mode==='aircraft'\|\|mode==='descending'/);
+  assert.doesNotMatch(html, /window\.v36FlightMode=mode;const inAir=/);
 });
 test('V58.2 migrates previous camera preferences to the wider framing once', () => {
   assert.match(html, /value="11\.2"/);

@@ -5085,11 +5085,6 @@ const v58Camera={
   }
  }
 };
-
- window.v36FlightMode=mode;const inAir=mode==='aircraft'||mode==='descending';document.body.classList.toggle('v58FlightMode',inAir);
- if(inAir){adsHeld=false;cameraDX=0;cameraDY=0;$('aimBtn').classList.remove('adsActive');$('v10Reticle').classList.remove('v58ADS');$('v13AimMode').textContent='⊕ CÁMARA';}
- v58Sights.updateHud(false);
-}
 function v58SetFlightMode(mode){
  window.v36FlightMode=mode;
  const airborne=mode==='aircraft'||mode==='descending';
