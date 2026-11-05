@@ -91,12 +91,12 @@ test('parachute camera is pulled back and Lila preview supports touch rotation a
 
 test('Android release is V57.8.2 with a monotonic version code', () => {
   assert.match(gradle, /versionCode 154/);
-  assert.match(gradle, /versionName '57.8.1-start-repair'/);
+  assert.match(gradle, /versionName '57.8.2-doorwidth-fix'/);
 });
 
 test('V57 Android package metadata is monotonic and matches the lobby release', () => {
   assert.match(gradle, /versionCode 154/);
-  assert.match(gradle, /versionName '57.8.1-start-repair'/);
+  assert.match(gradle, /versionName '57.8.2-doorwidth-fix'/);
   assert.match(html, /V57.8.2 · CENTRO DE OPERACIONES/);
 });
 
@@ -135,7 +135,7 @@ test('V57.6 visual roots dispose their private materials while shared GPU geomet
 
 test('Android release is V57.6 with monotonic version code 154', () => {
   assert.match(gradle, /versionCode 154/);
-  assert.match(gradle, /versionName '57.8.1-start-repair'/);
+  assert.match(gradle, /versionName '57.8.2-doorwidth-fix'/);
   assert.match(html, /V57.8.2 · CENTRO DE OPERACIONES/);
 });
 test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
