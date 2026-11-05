@@ -938,7 +938,19 @@ body.v58FlightMode #mobileBtns #aimBtn{opacity:.4!important;pointer-events:none!
 }
 @media(max-width:390px){#menu .v588CommandRail{width:31vw!important}#menu .v588RailCard{padding:4px!important}#menu .v588Dock{max-width:51%!important}#menu .v588Dock button{font-size:5px!important;padding:3px!important}#menu .v588Dock button span{font-size:9px!important}#menu .v17Launch{width:41vw!important}}
 @media(max-height:520px){#menu .v17Left{top:19%!important;bottom:13%!important}#menu .v24Hero{top:14%!important;height:66%!important}#menu .v588CommandRail{top:19%!important}#menu .v17Launch #start{min-height:42px!important}#menu .v588Dock button{min-height:34px!important}}
-</style></head><body><div id="game"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de operaciones: eventos, misiones y logros">
+</style><style id="v589AwmOpticStyle">
+#v58OpticOverlay{display:none;position:fixed;inset:0;z-index:90;pointer-events:none;--v58-optic-aperture:34vmin;background:radial-gradient(circle at 50% 50%,transparent 0 calc(var(--v58-optic-aperture) - 7px),#03070bee calc(var(--v58-optic-aperture) + 2px),#020509fa 100%)}
+body.v58OpticActive #v58OpticOverlay{display:block}
+#v58OpticOverlay::before{content:'';position:absolute;left:50%;top:50%;width:calc(var(--v58-optic-aperture)*2);height:calc(var(--v58-optic-aperture)*2);transform:translate(-50%,-50%);border-radius:50%;border:8px solid #17212a;box-shadow:0 0 0 2px #050a0e,0 0 0 5px #75858b55,inset 0 0 18px #07131b99,0 0 22px #000b}
+#v58OpticOverlay::after{content:'';position:absolute;left:50%;top:50%;width:calc(var(--v58-optic-aperture)*1.94);height:calc(var(--v58-optic-aperture)*1.94);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse at 32% 19%,#d7f4ff16 0%,transparent 26%),radial-gradient(ellipse at 72% 88%,#8bd9e90a 0%,transparent 35%);box-shadow:inset 0 0 18px #80c4d01a}
+body.v58OpticActive #v10Reticle{display:block!important;width:7px!important;height:7px!important;border:1px solid #f2fff0!important;border-radius:50%!important;opacity:1!important;box-shadow:0 0 0 1px #001a20,0 0 8px #d7fff4!important;z-index:171!important}
+body.v58OpticActive #v10Reticle::before,body.v58OpticActive #v10Reticle::after{display:block!important;content:''!important;position:absolute!important;background:#eaffee!important;box-shadow:0 0 2px #001!important}
+body.v58OpticActive #v10Reticle::before{width:1px!important;height:34px!important;left:2px!important;top:-14px!important}
+body.v58OpticActive #v10Reticle::after{height:1px!important;width:34px!important;top:2px!important;left:-14px!important}
+#controls{z-index:150!important}
+#mobileBtns,#stickBase,#health,#weapon,#minimap,#zoneInfo,.top,#v362Settings,#v58ScopeButton,#pingButton{z-index:155!important}
+#v58ScopeButton:disabled{opacity:.72!important;cursor:default!important}
+</style></head><body><div id="game"></div><div id="v58OpticOverlay" aria-hidden="true"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de operaciones: eventos, misiones y logros">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
   <div class="v38OpsTabs"><button type="button" id="v38TabEvents" aria-selected="true">★ EVENTOS</button><button type="button" id="v38TabMissions" aria-selected="false">▣ MISIONES</button><button type="button" id="v38TabAchievements" aria-selected="false">✦ LOGROS</button></div>
@@ -1784,7 +1796,7 @@ $('v443RestoreFile').addEventListener('change',async e=>{
 });
 
 if(!window.THREE){$('menu').querySelector('p').textContent='No se pudo cargar el motor 3D. Conéctate a Internet y vuelve a abrir el archivo.';return;}
-const THREE=window.THREE, mobile=matchMedia('(pointer:coarse)').matches, WORLD=340, HALF=WORLD/2, clock=new THREE.Clock();let renderer,scene,camera,player,playerModel,gunGroup,terrain,zoneRing,water,worldObjects=[],bots=[],pickups=[],effects=[],decor=[],running=false,paused=false,gameOver=false,time=0,zoneRadius=225,zoneCenter=new THREE.Vector2(0,0),zonePhase=0,zoneTick=0,kills=0,keys={},fireHeld=false,jumpQueued=false,sprintHeld=false,crouchHeld=false,reloadTimer=0,reloadWeapon=-1,shootCooldown=0,damageFlash=0,hitFlash=0,toastTime=0,footTime=0,camYaw=0,camPitch=.18,lookTouch=null,stickTouch=null,joyX=0,joyY=0,botSpawnTimer=0;let weapons=[{name:'AR-7 · ASALTO',damage:23,rate:.115,mag:30,ammo:30,reserve:180,reload:1.65,spread:.022,range:100},{name:'DMR-9 · PRECISIÓN',damage:58,rate:.52,mag:12,ammo:12,reserve:60,reload:2.15,spread:.007,range:145},{name:'SMG-4 · RÁFAGA',damage:15,rate:.072,mag:42,ammo:42,reserve:210,reload:1.35,spread:.038,range:65},{name:'ESC-12 · CORTA',damage:75,rate:.78,mag:6,ammo:6,reserve:36,reload:2.05,spread:.062,range:32},{name:'LMG-60 · APOYO',damage:20,rate:.085,mag:60,ammo:60,reserve:180,reload:2.9,spread:.034,range:105}],weaponIndex=0;let hp=100,armor=50,meds=2,vertical=0,onGround=true;const mapCanvas=$('minimap'),mctx=mapCanvas.getContext('2d');const mat=(c,r=1,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});const mats={grass:mat('#506c54'),grass2:mat('#637d55'),sand:mat('#b9a67e'),road:mat('#6b706e'),rock:mat('#697779'),trunk:mat('#635044'),leaf:mat('#365a48'),leaf2:mat('#57734b'),wall:mat('#8c9892'),roof:mat('#394954'),wood:mat('#8c7056'),dark:mat('#24313a'),blue:mat('#3e91a6'),gold:mat('#e5b56b'),red:mat('#bd5b4b'),skin:mat('#b88e6d'),pants:mat('#3b4a4c'),gun:mat('#1c252c',.4,.5),glass:mat('#84d9e7',.2,.3)};
+const THREE=window.THREE, mobile=matchMedia('(pointer:coarse)').matches, WORLD=340, HALF=WORLD/2, clock=new THREE.Clock();let renderer,scene,camera,player,playerModel,gunGroup,terrain,zoneRing,water,worldObjects=[],bots=[],pickups=[],effects=[],decor=[],running=false,paused=false,gameOver=false,time=0,zoneRadius=225,zoneCenter=new THREE.Vector2(0,0),zonePhase=0,zoneTick=0,kills=0,keys={},fireHeld=false,jumpQueued=false,sprintHeld=false,crouchHeld=false,reloadTimer=0,reloadWeapon=-1,shootCooldown=0,damageFlash=0,hitFlash=0,toastTime=0,footTime=0,camYaw=0,camPitch=.18,lookTouch=null,stickTouch=null,joyX=0,joyY=0,botSpawnTimer=0;let weapons=[{name:'AR-7 · ASALTO',damage:23,rate:.115,mag:30,ammo:30,reserve:180,reserveMax:180,reload:1.65,spread:.022,range:100},{name:'DMR-9 · PRECISIÓN',damage:58,rate:.52,mag:12,ammo:12,reserve:60,reserveMax:60,reload:2.15,spread:.007,range:145},{name:'SMG-4 · RÁFAGA',damage:15,rate:.072,mag:42,ammo:42,reserve:210,reserveMax:210,reload:1.35,spread:.038,range:65},{name:'ESC-12 · CORTA',damage:75,rate:.78,mag:6,ammo:6,reserve:36,reserveMax:36,reload:2.05,spread:.062,range:32},{name:'LMG-60 · APOYO',damage:20,rate:.085,mag:60,ammo:60,reserve:180,reserveMax:180,reload:2.9,spread:.034,range:105},{name:'AWM · FRANCOTIRADOR',type:'sniper',scope:'8x',damage:118,rate:1.28,mag:5,ammo:5,reserve:30,reserveMax:30,reload:3.45,spread:.0018,range:260}],weaponIndex=0;let hp=100,armor=50,meds=2,vertical=0,onGround=true;const mapCanvas=$('minimap'),mctx=mapCanvas.getContext('2d');const mat=(c,r=1,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});const mats={grass:mat('#506c54'),grass2:mat('#637d55'),sand:mat('#b9a67e'),road:mat('#6b706e'),rock:mat('#697779'),trunk:mat('#635044'),leaf:mat('#365a48'),leaf2:mat('#57734b'),wall:mat('#8c9892'),roof:mat('#394954'),wood:mat('#8c7056'),dark:mat('#24313a'),blue:mat('#3e91a6'),gold:mat('#e5b56b'),red:mat('#bd5b4b'),skin:mat('#b88e6d'),pants:mat('#3b4a4c'),gun:mat('#1c252c',.4,.5),glass:mat('#84d9e7',.2,.3)};
 function rand(a,b){return a+Math.random()*(b-a)}function clamp(x,a,b){return Math.max(a,Math.min(b,x))}function h(x,z){const r=Math.hypot(x,z);const crater=2.8*Math.exp(-Math.pow((r-39)/15,2))-1.4*Math.exp(-Math.pow(r/18,2));const ridge=1.6*Math.sin(x*.025)*Math.cos(z*.038);return crater+ridge+.35*Math.sin(x*.11+z*.07)+.35*Math.cos(z*.081)}function ground(x,z){return 0} // V42.8: piso plano de entrenamiento
 /* ===== V42.4 render fixes: helpers ===== */
 // Malla horizontal que SIGUE el terreno (vértices = ground()+lift). Sustituye planos planos sobre terreno ondulado.
@@ -2236,7 +2248,7 @@ function v401AttachAK(character){
   const toggle=()=>{
    const ak=group.userData.v40ActiveIndex===0;
    model.visible=ak;
-   for(const child of fallback)child.visible=!ak && (!child.userData.v40WeaponName || child.userData.v40WeaponName===['AR-7','DMR-9','SMG-4','ESC-12','LMG-60'][group.userData.v40ActiveIndex]);
+   for(const child of fallback)child.visible=!ak && (!child.userData.v40WeaponName || child.userData.v40WeaponName===['AR-7','DMR-9','SMG-4','ESC-12','LMG-60','AWM'][group.userData.v40ActiveIndex]);
   };
   group.add(model);group.userData.v401AKModel=model;group.userData.v401AKFallback=fallback;
   character.v401AKMounted=true;toggle();
@@ -2361,8 +2373,8 @@ function v22UpdateHolster(c,activeIndex){
  c.backGun.visible=weapons.length>1&&alternate!==activeIndex;
  c.backGun.userData.weaponIndex=alternate;
  c.backGun.scale.setScalar(alternate===4?.87:1);
- c.gun.scale.setScalar(activeIndex===4?.86:activeIndex===0?.80:.78);
- const accent=c.gun.userData.v38Accent;if(accent&&accent.material&&accent.material.color)accent.material.color.set(['#d6bd7a','#8bd4d6','#e39f67','#93a1bd','#d38dc2'][activeIndex]||'#d6bd7a');
+ c.gun.scale.setScalar(activeIndex===5?.94:activeIndex===4?.86:activeIndex===0?.80:.78);
+ const accent=c.gun.userData.v38Accent;if(accent&&accent.material&&accent.material.color)accent.material.color.set(['#d6bd7a','#8bd4d6','#e39f67','#93a1bd','#d38dc2','#e3c77c'][activeIndex]||'#d6bd7a');
  const variants=c.gun.userData.v40Variants;
  if(variants)for(let i=0;i<variants.length;i++)variants[i].visible=i===activeIndex;
  c.gun.userData.v40ActiveIndex=activeIndex;
@@ -2371,7 +2383,7 @@ function v22UpdateHolster(c,activeIndex){
   c.gun.userData.v401AKModel.visible=ak;
   for(const child of c.gun.userData.v401AKFallback||[]){
    const name=child.userData.v40WeaponName;
-   child.visible=!ak&&(!name||name===['AR-7','DMR-9','SMG-4','ESC-12','LMG-60'][activeIndex]);
+   child.visible=!ak&&(!name||name===['AR-7','DMR-9','SMG-4','ESC-12','LMG-60','AWM'][activeIndex]);
   }
  }
  if(!c.v401AKMounted)v401AttachAK(c);
@@ -2541,7 +2553,8 @@ const v40Variants=[],v40Specs=[
  ['DMR-9',1.39,.28,.30,.57,.54,'#8bd4d6'],
  ['SMG-4',.65,.09,.42,.22,.12,'#e39f67'],
  ['ESC-12',.92,.06,.23,.48,.32,'#93a1bd'],
- ['LMG-60',1.25,.17,.61,.58,.48,'#d38dc2']
+ ['LMG-60',1.25,.17,.61,.58,.48,'#d38dc2'],
+ ['AWM',1.88,.58,.48,.82,1.05,'#e3c77c']
 ];
 for(let i=0;i<v40Specs.length;i++){
  const [name,len,optic,mag,stock,barrelLength,color]=v40Specs[i];
@@ -2560,6 +2573,13 @@ for(let i=0;i<v40Specs.length;i++){
  if(i===1){
   const scope=new THREE.Mesh(new THREE.CylinderGeometry(.16,.18,.55,12),v40GunMetal);
   scope.rotation.x=Math.PI/2;scope.position.set(0,.48,.4);group.add(scope);
+ }else if(i===5){
+  const scopeBody=new THREE.Mesh(new THREE.CylinderGeometry(.17,.20,.82,14),v40GunMetal);scopeBody.rotation.x=Math.PI/2;scopeBody.position.set(0,.52,.40);group.add(scopeBody);
+  for(const z of [.02,.76]){const ring=new THREE.Mesh(new THREE.TorusGeometry(.17,.035,8,16),v40GunMetal);ring.position.set(0,.52,z);group.add(ring);}
+  const opticLens=new THREE.Mesh(new THREE.CircleGeometry(.145,16),v40GunGlass);opticLens.position.set(0,.52,.815);group.add(opticLens);
+  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.31,8),v40GunMetal);bolt.position.set(.19,-.02,.10);bolt.rotation.z=Math.PI/2;group.add(bolt);
+  const boltHandle=new THREE.Mesh(new THREE.SphereGeometry(.075,8,6),v40GunGrip);boltHandle.position.set(.34,-.02,.10);group.add(boltHandle);
+  for(const side of [-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.022,.032,.46,7),v40GunMetal);leg.position.set(side*.15,-.24,1.14);leg.rotation.z=side*.18;group.add(leg);}
  }else if(i===3){
   for(let j=0;j<4;j++){const pump=new THREE.Mesh(new THREE.BoxGeometry(.24,.035,.075),v40GunGrip);pump.position.set(0,-.15,.56+j*.15);group.add(pump);}
  }else if(i===4){
@@ -2577,7 +2597,7 @@ for(let i=0;i<v40Specs.length;i++){
  group.visible=i===0;group.userData.v40WeaponName=name;v40Variants.push(group);
 }
 gun.userData.v40Variants=v40Variants;
-gun.userData.v40VisualVersion='five-profiles';
+gun.userData.v40VisualVersion='six-profiles';
 gun.userData.v40WeaponNames=v40Specs.map(p=>p[0]);
 box(.44,.09,.11,mats.gold,body,0,1.96,.36);
 box(.20,.24,.07,mats.dark,body,-.34,1.58,.39);
@@ -2705,10 +2725,10 @@ function v470BattleStartSound(){
  v38NoiseBurst(.62,.032,80,1100);
 }
 function playShot(){
- const weapon=weaponIndex,bass=[95,68,130,48,77][weapon]||90,snap=[520,360,760,235,450][weapon]||520;
- const length=[.15,.25,.09,.34,.17][weapon]||.15;
+ const weapon=weaponIndex,bass=[95,68,130,48,77,43][weapon]||90,snap=[520,360,760,235,450,210][weapon]||520;
+ const length=[.15,.25,.09,.34,.17,.42][weapon]||.15;
  toneSound(snap,.035,.055,'square');toneSound(bass,length,weapon===3?.21:.13,weapon===2?'triangle':'sawtooth');
- v38NoiseBurst(weapon===3?.24:.095,weapon===3?.19:.11,weapon===3?85:650,weapon===2?8400:5700);
+ v38NoiseBurst(weapon===5?.30:weapon===3?.24:.095,weapon===5?.22:weapon===3?.19:.11,weapon===5?115:weapon===3?85:650,weapon===2?8400:weapon===5?3200:5700);
 }
 document.addEventListener('pointerdown',()=>{if(running&&!paused)unlockAudio()},true);
 $('testSound').addEventListener('pointerdown',()=>{unlockAudio();toneSound(680,.22,.22,'sine');});
@@ -3688,8 +3708,8 @@ if(scene){
  for(const geometry of geometries)geometry.dispose();
  while(scene.children.length)scene.remove(scene.children[0]);
 }
-v428CreateTrainingWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;player.scale.setScalar(1.24);const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.18;v58Camera.reset();camera.lookAt(0,1.7,35);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);weapons[0].ammo=30;weapons[0].reserve=180;weapons[1].ammo=12;weapons[1].reserve=60;
-for(let i=2;i<weapons.length;i++){weapons[i].ammo=weapons[i].mag;weapons[i].reserve=[210,36,180][i-2];}for(let i=0;i<($('v18Mode').value==='training'?8:20);i++)spawnBot(Math.random()<.5?10:17);for(let i=0;i<55;i++){let p=safePos(5);spawnPickup(['ammo','ammo','med','armor'][i%4],p.x,p.z)}updateHud();}
+v428CreateTrainingWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;player.scale.setScalar(1.24);const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.18;v58Camera.reset();camera.lookAt(0,1.7,35);v58Sights.updateHud(false);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);for(const weapon of weapons){weapon.ammo=weapon.mag;weapon.reserve=weapon.reserveMax??weapon.mag*6;}
+v472ShotHeat.fill(0);for(let i=0;i<($('v18Mode').value==='training'?8:20);i++)spawnBot(Math.random()<.5?10:17);for(let i=0;i<55;i++){let p=safePos(5);spawnPickup(['ammo','ammo','med','armor'][i%4],p.x,p.z)}updateHud();}
 function updateHud(){
  const eventHud=$('v362EventHud');if(eventHud){eventHud.classList.toggle('hidden',!v18ActiveEvent);if(v18ActiveEvent)eventHud.textContent='EVENTO '+(v18ActiveEvent==='training'?'PRÁCTICA TÁCTICA':'SUPERVIVENCIA')+' · BAJAS '+kills+'/'+(v18ActiveEvent==='training'?2:3);}
  $('v122ControlState').textContent=(v469HealTimer>0?'✚ CURANDO '+v469HealTimer.toFixed(1)+'s  ':'')+(reloadTimer>0&&reloadWeapon===weaponIndex?'↻ RECARGA '+reloadTimer.toFixed(1)+'s  ':'')+(sprintHeld?'🏃 CORRER ACTIVO  ':'')+(adsHeld?'◎ MIRA ACTIVA':'');$('alive').textContent=bots.filter(b=>b.alive).length+1;updateV7Hud();const v487Closest=bots.reduce((best,b)=>{if(!b.alive||b.airborne||b.hp<=0||!Number.isFinite(b.x)||!Number.isFinite(b.z))return best;const d=Math.hypot(b.x-player.position.x,b.z-player.position.z);return d<best.distance?{distance:d,role:b.role}:best;},{distance:Infinity,role:''});const v487Near=v487Closest.distance;const v487Threat=v487Near<18?'⚠ '+(v487Closest.role==='FRANCOTIRADOR'?'FRANCOTIRADOR':'RIVAL')+' '+Math.round(v487Near)+'m':v487Near<34?'◉ CONTACTO '+Math.round(v487Near)+'m':'';const combatHud=$('v8Combat');combatHud.textContent='BAJAS '+kills+' · ARMA '+(weaponIndex+1)+(v487Threat?' · '+v487Threat:'');combatHud.style.color=v487Near<18?'#ffbb91':'';combatHud.setAttribute('aria-label',v487Threat?'Advertencia táctica: '+v487Threat:'Estado del combate');$('missionHud').textContent='ÚLTIMOS '+(bots.filter(b=>b.alive).length+1)+' · BAJAS '+kills+' · ZONA '+Math.round(zoneRadius)+'m'+' · '+v476PoiName;$('kills').textContent=kills;$('hpText').textContent=Math.ceil(hp);$('armorText').textContent=Math.ceil(armor);$('hpBar').style.width=clamp(hp,0,100)+'%';$('armorBar').style.width=clamp(armor,0,100)+'%';
@@ -3727,16 +3747,16 @@ function v391Spread(base,ads,moving,sprinting){
 }
 window.THEDEMIANFF_COMBAT_TEST=(base,ads,moving,sprinting)=>v391Spread(base,ads,moving,sprinting);
 // V39.2: weapon-specific visual kick; does not modify aim or camera input.
-const v392Kick=[.54,.95,.37,1.15,.46];
+const v392Kick=[.54,.95,.37,1.15,.46,1.34];
 function v392RecoilKick(index){return v392Kick[index]??.65;}
 window.THEDEMIANFF_RECOIL_TEST=(index)=>v392RecoilKick(index);
 // V47.2: weapon-specific heat discourages indefinite pixel-perfect sprays.
-let v472ShotHeat=[0,0,0,0,0],v472ShotCounter=0;
+let v472ShotHeat=[0,0,0,0,0,0],v472ShotCounter=0;
 // Trace a real bullet endpoint against the flat play surface and solid covers.
 // Used only when firing: no ray allocations or expensive work each animation frame.
 function v472FirstBulletImpact(start,direction,maxDistance){
  // V47.3: analytic bullet ray vs. Aurora collision cylinders, O(obstacles) per shot.
- const limit=Math.max(1,Math.min(80,maxDistance));
+ const limit=Math.max(1,Math.min(320,maxDistance));
  let first=limit;
  const flat=direction.x*direction.x+direction.z*direction.z;
  if(direction.y<-.00001){
@@ -3766,7 +3786,7 @@ let v484NoAmmoNotice=-10;
 let v489AutoSwaps=0,v489DryFires=0,v489LastDryFire=-10;
 function v489BestLoadedBackup(exclude){let chosen=-1,score=-Infinity;for(let i=0;i<weapons.length;i++){if(i===exclude||reloadTimer>0&&reloadWeapon===i)continue;const candidate=weapons[i];if(!candidate||!Number.isFinite(candidate.ammo)||candidate.ammo<=0||!Number.isFinite(candidate.mag)||candidate.mag<=0)continue;const value=candidate.ammo/Math.max(1,candidate.mag||candidate.ammo)+Math.min(1,(candidate.reserve||0)/Math.max(1,candidate.mag||1))*.25+(candidate.range||0)*.002;if(value>score){score=value;chosen=i;}}return chosen;}
 window.THEDEMIANFF_V489_AMMO=()=>({autoSwaps:v489AutoSwaps,dryFires:v489DryFires,armed:weapons.filter(w=>w&&w.ammo>0).length});
-function shoot(){const w=weapons[weaponIndex];if(!w||shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused||gameOver||window.v36FlightMode!=='landed')return;if(w.ammo<=0){if(reloadTimer<=0&&w.reserve>0){if(v469HealTimer<=0)reload();return;}if(time-v489LastDryFire>.35){v489DryFires++;v489LastDryFire=time;}if(w.reserve<=0&&v469HealTimer<=0){const backup=v489BestLoadedBackup(weaponIndex);if(backup>=0){swap(backup);v489AutoSwaps++;shootCooldown=Math.max(shootCooldown,.20);toast('CAMBIO AUTOMÁTICO · '+weapons[backup].name);return;}}if(time-v484NoAmmoNotice>2.5){v484NoAmmoNotice=time;toast(v469HealTimer>0?'BOTIQUÍN EN PROCESO':w.reserve>0?'RECARGA EN PROCESO':'SIN MUNICIÓN · CAMBIA DE ARMA');}return;}if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN CANCELADO AL DISPARAR');updateHud();}w.ammo--;if(w.ammo===0&&w.reserve===0)showCombat(v489BestLoadedBackup(weaponIndex)>=0?'⚠ ARMA VACÍA · SIGUIENTE DISPARO CAMBIA':'⚠ SIN MUNICIÓN · CAMBIA DE ARMA');else if(w.ammo===Math.max(2,Math.floor(w.mag*.18)))showCombat('⚠ MUNICIÓN BAJA');v472ShotCounter++;v472ShotHeat[weaponIndex]=Math.min(1,v472ShotHeat[weaponIndex]+(weaponIndex===2?.095:weaponIndex===3?.35:.16));v467LastShotTime=time;v467LastShotX=player.position.x;v467LastShotZ=player.position.z;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+v392RecoilKick(weaponIndex));v470FirePose=Math.min(1,v470FirePose+.38);playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
+function shoot(){const w=weapons[weaponIndex];if(!w||shootCooldown>0||(reloadTimer>0&&reloadWeapon===weaponIndex)||!running||paused||gameOver||window.v36FlightMode!=='landed')return;if(w.ammo<=0){if(reloadTimer<=0&&w.reserve>0){if(v469HealTimer<=0)reload();return;}if(time-v489LastDryFire>.35){v489DryFires++;v489LastDryFire=time;}if(w.reserve<=0&&v469HealTimer<=0){const backup=v489BestLoadedBackup(weaponIndex);if(backup>=0){swap(backup);v489AutoSwaps++;shootCooldown=Math.max(shootCooldown,.20);toast('CAMBIO AUTOMÁTICO · '+weapons[backup].name);return;}}if(time-v484NoAmmoNotice>2.5){v484NoAmmoNotice=time;toast(v469HealTimer>0?'BOTIQUÍN EN PROCESO':w.reserve>0?'RECARGA EN PROCESO':'SIN MUNICIÓN · CAMBIA DE ARMA');}return;}if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN CANCELADO AL DISPARAR');updateHud();}w.ammo--;if(w.ammo===0&&w.reserve===0)showCombat(v489BestLoadedBackup(weaponIndex)>=0?'⚠ ARMA VACÍA · SIGUIENTE DISPARO CAMBIA':'⚠ SIN MUNICIÓN · CAMBIA DE ARMA');else if(w.ammo===Math.max(2,Math.floor(w.mag*.18)))showCombat('⚠ MUNICIÓN BAJA');v472ShotCounter++;v472ShotHeat[weaponIndex]=Math.min(1,v472ShotHeat[weaponIndex]+(weaponIndex===5?.52:weaponIndex===2?.095:weaponIndex===3?.35:.16));v467LastShotTime=time;v467LastShotX=player.position.x;v467LastShotZ=player.position.z;shootCooldown=w.rate;v14Recoil=Math.min(1.6,v14Recoil+v392RecoilKick(weaponIndex));v470FirePose=Math.min(1,v470FirePose+.38);playShot();v8MuzzleFlash();v10ReticlePulse();const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction);const moving=Math.hypot(moveVX,moveVZ)>1.2;
 const v472StanceAccuracy=onGround&&crouchHeld?.71:!onGround?1.28:1;
 const spread=v391Spread(w.spread,adsHeld,moving,sprintHeld)*v472StanceAccuracy*(1+.55*v472ShotHeat[weaponIndex])*(adsHeld&&onGround?.92:1);
 const jitterX=rand(-spread,spread),jitterY=rand(-spread,spread);
@@ -4308,8 +4328,8 @@ for(let i=pickups.length-1;i>=0;i--){const p=pickups[i];p.group.rotation.y+=dt*1
  let collected=false;
  if(p.type==='med'&&meds<5){meds++;collected=true;toast('+1 BOTIQUÍN · '+meds+'/5');}
  if(p.type==='ammo'){
-  const caps=[300,96,360,72,300],weapon=weapons[weaponIndex],maximum=caps[weaponIndex]??weapon.mag*10;
-  const portion=weaponIndex===3?6:weaponIndex===1?12:Math.round(weapon.mag*1.2);
+  const weapon=weapons[weaponIndex],maximum=weapon?(weapon.reserveMax??weapon.mag*10):0;
+  const portion=weaponIndex===5?3:weaponIndex===3?6:weaponIndex===1?12:Math.round((weapon?.mag||1)*1.2);
   const added=weapon?Math.max(0,Math.min(portion,maximum-weapon.reserve)):0;
   if(added>0){weapon.reserve+=added;collected=true;toast('+'+added+' MUNICIÓN · '+weapon.name);}
  }
@@ -4635,7 +4655,7 @@ function v583NormalizeProgress(raw){
  result.credits=bounded(source.credits,0,100000000);result.xp=bounded(source.xp,0,100000000);
  result.matches=bounded(source.matches,0,100000000);result.wins=Math.min(result.matches,bounded(source.wins,0,100000000));
  result.kills=bounded(source.kills,0,100000000);result.best=Math.min(result.kills,bounded(source.best,0,100000000));
- result.unlocked=unlocked;result.skin=unlocked.includes(bounded(source.skin,0,20))?bounded(source.skin,0,20):0;result.weapon=bounded(source.weapon,0,4);
+ result.unlocked=unlocked;result.skin=unlocked.includes(bounded(source.skin,0,20))?bounded(source.skin,0,20):0;result.weapon=bounded(source.weapon,0,5);
  result.claimed=Array.isArray(source.claimed)?Array.from(new Set(source.claimed.filter(v=>typeof v==='string'&&v.length<=100))).slice(0,100):[];
  result.passElite=source.passElite===true;result.eventCompletions=bounded(source.eventCompletions,0,100000000);
  if(typeof source.playerId==='string'&&source.playerId.length<=80&&/^[A-Za-z0-9_-]+$/.test(source.playerId))result.playerId=source.playerId;
@@ -4647,7 +4667,7 @@ try{const stored=JSON.parse(localStorage.getItem(V18_STORAGE)||'null');if(stored
 function v588RefreshLobbyHud(){
  const name=$('v588WeaponName');if(!name)return;
  const index=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1),weapon=weapons[index]||weapons[0];
- const glyph=['⌖','◎','ϟ','◉','▤'];
+ const glyph=['⌖','◎','ϟ','◉','▤','⊕'];
  const glyphEl=$('v588WeaponGlyph');if(glyphEl)glyphEl.textContent=glyph[index]||'⌖';
  name.textContent=weapon.name;
  const spec=$('v588WeaponSpec');if(spec)spec.textContent='DAÑO '+weapon.damage+' · ALCANCE '+weapon.range+' M';
@@ -5313,26 +5333,41 @@ try{localStorage.setItem(V58_CAMERA_MIGRATION_KEY,'1');}catch{}
 /* V58.8.0 FREE FIRE TPS CAMERA: world orbit and sight zoom are separate channels. */
 const v58Sights={
  index:0,
- profiles:[{name:'PUNTO',zoom:1,sensitivity:1,yawRate:5.2,pitchRate:3.8},{name:'2x',zoom:2,sensitivity:.72,yawRate:3.2,pitchRate:2.4},{name:'4x',zoom:4,sensitivity:.52,yawRate:2.0,pitchRate:1.5},{name:'8x',zoom:8,sensitivity:.34,yawRate:1.15,pitchRate:.9}],
- active(){return this.profiles[this.index];},
+ profiles:[
+  {name:'PUNTO',zoom:1,sensitivity:1,yawRate:5.2,pitchRate:3.8},
+  {name:'2x',zoom:2,sensitivity:.72,yawRate:3.2,pitchRate:2.4},
+  {name:'4x',zoom:4,sensitivity:.52,yawRate:2.0,pitchRate:1.5}
+ ],
+ sniperProfile:{name:'8x',zoom:8,sensitivity:.22,yawRate:.72,pitchRate:.54},
+ isSniper(){return weaponIndex===5&&weapons[weaponIndex]?.scope==='8x';},
+ active(){return this.isSniper()?this.sniperProfile:this.profiles[clamp(this.index,0,this.profiles.length-1)];},
  weaponScale(){const zoom=clamp(Number(this.active().zoom)||1,1,8);return Math.pow(zoom,-.82);},
- cycle(){if(!adsHeld||window.v36FlightMode!=='landed'||!running||paused||gameOver)return;this.index=(this.index+1)%this.profiles.length;try{localStorage.setItem('v534_scope_index',String(this.index));}catch(e){}this.updateHud(true);},
+ cycle(){
+  if(!adsHeld||window.v36FlightMode!=='landed'||!running||paused||gameOver)return;
+  if(this.isSniper()){this.index=0;toast('AWM · MIRA FIJA 8X');this.updateHud(true);return;}
+  this.index=(this.index+1)%this.profiles.length;
+  try{localStorage.setItem('v534_scope_index',String(this.index));}catch(e){}
+  this.updateHud(true);
+ },
  updateHud(isADS=adsHeld){
   const button=document.getElementById('v58ScopeButton'),label=document.getElementById('v58ScopeLabel'),reticle=document.getElementById('v10Reticle');
-  if(reticle)reticle.dataset.scope=this.active().name;
+  const overlay=document.getElementById('v58OpticOverlay'),active=this.active();
+  if(reticle)reticle.dataset.scope=active.name;
   const visible=!!(document.body.classList.contains('v475InMatch')&&isADS&&running&&!paused&&!gameOver&&window.v36FlightMode==='landed');
-  if(button){button.textContent='MIRA '+this.active().name;button.style.setProperty('display',visible?'block':'none','important');}
-  if(label){label.textContent=visible?this.active().name:'';label.style.display=visible?'block':'none';}
+  const opticVisible=visible&&active.zoom>1;
+  document.body.classList.toggle('v58OpticActive',opticVisible);
+  if(overlay){overlay.dataset.scope=active.name;overlay.style.setProperty('--v58-optic-aperture',active.zoom===8?'31vmin':active.zoom===4?'34vmin':'37vmin');}
+  if(button){button.textContent=this.isSniper()?'AWM · X8 FIJA':'MIRA '+active.name;button.disabled=this.isSniper();button.style.setProperty('display',visible?'block':'none','important');}
+  if(label){label.textContent=visible?active.name:'';label.style.display=visible&&!opticVisible?'block':'none';}
  }
 };
 try{const savedScope=Number(localStorage.getItem('v534_scope_index'));if(Number.isInteger(savedScope)&&savedScope>=0&&savedScope<v58Sights.profiles.length)v58Sights.index=savedScope;}catch(e){}
 (function initV58ScopeSelector(){
  const controls=document.getElementById('controls');if(!controls)return;
- const button=document.createElement('button');button.id='v58ScopeButton';button.type='button';button.textContent='MIRA PUNTO';button.setAttribute('aria-label','Cambiar aumento de la mira');button.addEventListener('click',()=>v58Sights.cycle());document.body.appendChild(button);
+ const button=document.createElement('button');button.id='v58ScopeButton';button.type='button';button.textContent='MIRA PUNTO';button.setAttribute('aria-label','Cambiar aumento óptico permitido para el arma equipada');button.addEventListener('click',()=>v58Sights.cycle());document.body.appendChild(button);
  const label=document.createElement('div');label.id='v58ScopeLabel';label.setAttribute('aria-live','off');controls.appendChild(label);
  document.addEventListener('keydown',e=>{if(e.code==='KeyV'&&!e.repeat&&running&&!paused&&!gameOver&&adsHeld&&window.v36FlightMode==='landed')v58Sights.cycle();});
 })();
-const v58Camera={
  mode:'FREE',blend:0,back:NaN,shoulder:NaN,height:NaN,anchorY:NaN,currentFov:NaN,targetYaw:0,targetPitch:.18,
  input(dx,dy,channel='free',elapsedMs=16){
   const finite=n=>Number.isFinite(n)?n:0;
@@ -5401,13 +5436,13 @@ const v58Camera={
   else camera.position.y+=(safe.y-camera.position.y)*(1-Math.exp(-t*9));
   const fwd=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),-Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch));
   camera.lookAt(camera.position.clone().addScaledVector(fwd,90));v586UpdateBuildingVisibility(t);
-  const baseFov=mobile?74:66,targetFov=baseFov/(aiming?v58Sights.active().zoom:1);
+  const baseFov=mobile?74:66,zoom=aiming?v58Sights.active().zoom:1,targetFov=2*Math.atan(Math.tan(baseFov*Math.PI/360)/zoom)*180/Math.PI;
   if(!Number.isFinite(this.currentFov))this.currentFov=baseFov;
   this.currentFov+=(targetFov-this.currentFov)*(1-Math.exp(-t*7.5));
   if(Math.abs(camera.fov-this.currentFov)>.01){camera.fov=this.currentFov;camera.updateProjectionMatrix();}
   $('v10Reticle').classList.toggle('v58ADS',aiming);v58Sights.updateHud(aiming);
   if(playerModel?.gun){
-   const normalScale=weaponIndex===4?.86:weaponIndex===0?.80:.78;
+   const normalScale=weaponIndex===5?.94:weaponIndex===4?.86:weaponIndex===0?.80:.78;
    const sightScale=aiming?v58Sights.weaponScale():1;
    playerModel.gun.scale.setScalar(normalScale*sightScale);
   }
@@ -5426,7 +5461,7 @@ function v58SetFlightMode(mode){
  v58Sights.updateHud(false);
 }
 function htmlFlightModeSupportsCamera(){return window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending';}
-window.THEDEMIANFF_CAMERA_SYSTEM=()=>({profile:'FREE_FIRE_THIRD_PERSON',mode:v58Camera.mode,blend:v58Camera.blend,distance:v58Camera.back,shoulder:v58Camera.shoulder,fov:camera?.fov,zoom:v58Sights.active().zoom,weaponScale:v58Sights.weaponScale(),ads:adsHeld&&window.v36FlightMode==='landed',flightMode:window.v36FlightMode,sight:v58Sights.active().name});
+window.THEDEMIANFF_CAMERA_SYSTEM=()=>({profile:'FREE_FIRE_THIRD_PERSON',mode:v58Camera.mode,blend:v58Camera.blend,distance:v58Camera.back,shoulder:v58Camera.shoulder,fov:camera?.fov,zoom:v58Sights.active().zoom,weaponScale:v58Sights.weaponScale(),ads:adsHeld&&window.v36FlightMode==='landed',flightMode:window.v36FlightMode,sight:v58Sights.active().name,awmExclusiveX8:v58Sights.isSniper(),opticOverlay:document.body.classList.contains('v58OpticActive')});
 window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>{const old=v58Camera.mode;v58Camera.mode=ads?'ADS':'FREE';try{return v58Camera.input(dx,dy,fire?'fire':'free');}finally{v58Camera.mode=old;}};
 window.THEDEMIANFF_FLIGHT_CAMERA_TEST=()=>({aircraftCameraInput:typeof v58FlightPointerDown==='function',parachuteCameraUpdate:typeof v58Camera.updateAngles==='function',crosshairHidden:document.body.classList.contains('v58FlightMode'),mode:window.v36FlightMode});
 let v586BuildingVisibilityClock=0;
