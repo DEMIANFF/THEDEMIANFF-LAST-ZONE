@@ -3612,6 +3612,10 @@ function v36DrawMap(id){
   c.beginPath();c.moveTo(8,256);c.lineTo(504,256);c.stroke();c.setLineDash([]);
   c.fillStyle='#fff2bb';c.font='bold 18px system-ui';c.fillText('✈',clamp(mapX-9,8,485),251);c.restore();
  }
+ if(id==='v36DropCanvas'&&window.v36FlightMode==='descending'){
+  const sx=(player.position.x/WORLD+.5)*512,sy=(player.position.z/WORLD+.5)*512,dx=(v36Destination.x/WORLD+.5)*512,dy=(v36Destination.z/WORLD+.5)*512;
+  c.save();c.strokeStyle='#ffb14e';c.lineWidth=3;c.setLineDash([8,7]);c.beginPath();c.moveTo(sx,sy);c.lineTo(dx,dy);c.stroke();c.setLineDash([]);c.fillStyle='#fff2bb';c.font='bold 17px system-ui';c.fillText('↘',clamp(sx-8,6,494),clamp(sy-8,16,500));c.restore();
+ }
  c.fillStyle='#fff6cf';c.font='bold 13px system-ui';
  c.fillText('POSICIÓN X '+Math.round(player.position.x)+' · Z '+Math.round(player.position.z),12,500);
 
@@ -3714,11 +3718,11 @@ function v36Begin(){
  $('v36MapButton').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.remove('hidden');
  v36DrawMap('v36DropCanvas');
 }
-function v372FlightMap(){if(window.v36FlightMode!=='aircraft')return;$('v36DropPanel').classList.remove('hidden');$('v37FlightHUD').classList.add('hidden');v36DrawMap('v36DropCanvas');}
+function v372FlightMap(){if(window.v36FlightMode!=='aircraft'&&window.v36FlightMode!=='descending')return;$('v36DropPanel').classList.remove('hidden');$('v37FlightHUD').classList.add('hidden');v37FlightMapButton.textContent=window.v36FlightMode==='aircraft'?'VOLVER A VER EL AVIÓN':'VOLVER A LA CAÍDA';v36DrawMap('v36DropCanvas');}
 $('v37FlightJump').addEventListener('click',e=>{e.preventDefault();v36Jump();});
 const v37FlightMapButton=document.createElement('button');v37FlightMapButton.type='button';v37FlightMapButton.id='v37FlightMapReturn';v37FlightMapButton.textContent='VOLVER A VER EL AVIÓN';
 $('v36DropPanel').querySelector('.v36Buttons').prepend(v37FlightMapButton);
-v37FlightMapButton.addEventListener('click',()=>{$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.remove('hidden');});
+v37FlightMapButton.addEventListener('click',()=>{$('v36DropPanel').classList.add('hidden');if(window.v36FlightMode==='aircraft')$('v37FlightHUD').classList.remove('hidden');else $('v37FlightHUD').classList.add('hidden');});
 function v36Jump(){
  if(window.v36FlightMode!=='aircraft')return;
  const pos=v36Aircraft?{x:v36Aircraft.position.x,z:v36Aircraft.position.z}:v36Safe(v36Destination.x,v36Destination.z);
@@ -3727,12 +3731,13 @@ function v36Jump(){
  player.position.set(pos.x,115,pos.z);v398DropAge=0;v398ChuteOpen=false;
  $('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');
  $('v36ParachuteStatus').classList.remove('hidden');
- $('v36MapButton').classList.add('hidden');
+ $('v36MapButton').classList.remove('hidden');
  if(mobile)$('controls').classList.remove('hidden');
  window.v36FlightMode='descending';paused=false;onGround=false;vertical=0;
  v36Chute=new THREE.Group();
- const canopy=new THREE.Mesh(new THREE.SphereGeometry(3.5,12,6,0,Math.PI*2,0,Math.PI*.5),new THREE.MeshStandardMaterial({color:'#e79c4b',side:THREE.DoubleSide}));
- canopy.position.y=6.2;canopy.scale.y=.5;v36Chute.add(canopy);
+ const wingShape=new THREE.Shape();wingShape.moveTo(-3.8,0);wingShape.quadraticCurveTo(-2.2,1.25,0,.72);wingShape.quadraticCurveTo(2.2,1.25,3.8,0);wingShape.quadraticCurveTo(2.8,-.35,1.8,-.28);wingShape.quadraticCurveTo(0,-.72,-1.8,-.28);wingShape.quadraticCurveTo(-2.8,-.35,-3.8,0);
+ const canopy=new THREE.Mesh(new THREE.ExtrudeGeometry(wingShape,{depth:.10,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:.06,bevelThickness:.05}),new THREE.MeshStandardMaterial({color:'#dca744',metalness:.34,roughness:.48,side:THREE.DoubleSide}));
+ canopy.rotation.x=-Math.PI/2;canopy.position.y=6.2;v36Chute.add(canopy);
  for(const a of [-2.3,-1,1,2.3]){
   const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a*.14,2,0),new THREE.Vector3(a,6,-.6)]),new THREE.LineBasicMaterial({color:'#f2f3eb'}));
   v36Chute.add(line);
@@ -3778,6 +3783,7 @@ function v36StepFlight(dt){
  const dz=joyX*cameraRight.z-joyY*cameraForward.z;
  const strength=Math.min(1,Math.hypot(joyX,joyY));
  v398DropAge+=dt;
+ v398MapRefresh+=dt;if(v398MapRefresh>.22&&!$('v36DropPanel').classList.contains('hidden')){v398MapRefresh=0;v36DrawMap('v36DropCanvas');}
  const altitude=player.position.y-ground(player.position.x,player.position.z);
  if(!v398ChuteOpen&&(v398DropAge>=2.8||altitude<42)){
   v398ChuteOpen=true;if(v36Chute)v36Chute.visible=true;
@@ -3843,8 +3849,8 @@ function v36CloseMap(){
 $('v36DropCanvas').addEventListener('pointerdown',e=>{e.preventDefault();v36ChoosePoint(e,'v36DropCanvas');});
 $('v36MapCanvas').addEventListener('pointerdown',e=>{e.preventDefault();v36ChoosePoint(e,'v36MapCanvas');});
 $('v36Jump').onclick=v36Jump;
-$('v36MapButton').onclick=v36OpenMap;
-mapCanvas.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(window.v36FlightMode==='aircraft')v372FlightMap();else v36OpenMap();});
+$('v36MapButton').onclick=()=>{if(window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')v372FlightMap();else v36OpenMap();};
+mapCanvas.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')v372FlightMap();else v36OpenMap();});
 $('v36MapClose').onclick=v36CloseMap;
 $('v36Mark').onclick=()=>{if(v36MapPick){v36Waypoint=v36MapPick;toast('DESTINO MARCADO EN MAPA');}v36CloseMap();};
 // V18 local progression and functioning lobby modules. No simulated online purchases.
