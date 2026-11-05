@@ -5097,7 +5097,7 @@ function v24RefreshLobbyCharacter(){
  c.root.position.set(0,0,0);c.root.rotation.y=Math.PI*.15+v24Lobby.userYaw;
  l.scene.add(c.root);
  if(skin===4){v22PrepareLila();v22ApplyLilaModel(c);}
- $('v24OperatorName').textContent=v18Skins[skin].name;
+ const operatorName=$('v24OperatorName');if(operatorName)operatorName.textContent=v18Skins[skin].name;
 }
 function v24InitLobby(){
  const host=$('v24LobbyStage');if(!host||v24Lobby.renderer)return;

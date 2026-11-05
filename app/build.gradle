@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 165
-        versionName '58.8.1-lobby-clarity-polish'
+        versionCode 166
+        versionName '58.8.2-lobby-runtime-guard'
     }
     signingConfigs {
         persistentRelease {

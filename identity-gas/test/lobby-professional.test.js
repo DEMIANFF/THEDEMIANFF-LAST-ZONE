@@ -20,6 +20,7 @@ test('all primary lobby destinations are wired to existing data-lobby routing',(
 test('operator showcase is the existing live Three.js character preview',()=>{
  assert.match(markup,/id="v24LobbyStage"/);
  assert.match(html,/function v24RefreshLobbyCharacter\(\)/);
+ assert.match(html,/const operatorName=\\$\\('v24OperatorName'\\);if\\(operatorName\\)operatorName\\.textContent=/);
  assert.match(html,/function v24LobbyTick\(\)/);
  assert.match(html,/#menu #v24LobbyStage\{[^}]*pointer-events:auto!important/);
 });
@@ -57,10 +58,10 @@ test('lobby module routing keeps player identity and mode selection intact',()=>
  assert.match(html,/v588RefreshLobbyHud\(\);/);
  assert.match(html,/v18ModeLabel/);
 });
-test('V58.8.1 lobby clarity release is enabled in CI; live V59 multiplayer is excluded',()=>{
- assert.match(gradle,/versionCode 165/);
- assert.match(gradle,/versionName '58\.8\.1-lobby-clarity-polish'/);
- assert.match(workflow,/v58-8-1-lobby-layout-polish/);
+test('V58.8.2 lobby runtime guard is enabled in CI; live V59 multiplayer is excluded',()=>{
+ assert.match(gradle,/versionCode 166/);
+ assert.match(gradle,/versionName '58\.8\.2-lobby-runtime-guard'/);
+ assert.match(workflow,/v58-8-2-lobby-runtime-guard/);
  assert.doesNotMatch(gradle,/59\.0\.0/);
 });
 test('wordmark is reduced to THEDEMIANFF and AURORA EVOLUTION only',()=>{
