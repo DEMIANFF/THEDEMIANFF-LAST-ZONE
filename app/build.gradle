@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 158
-        versionName '58.2.1-freefire-ads-comfort'
+        versionCode 159
+        versionName '58.3.0-battle-royale-quality'
     }
     signingConfigs {
         persistentRelease {
