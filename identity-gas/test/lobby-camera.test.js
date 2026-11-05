@@ -31,7 +31,7 @@ test('hybrid third-person camera keeps a moderate mobile distance and lower shou
   assert.ok(html.includes('const v432Camera={'));
   assert.ok(html.includes('const back=tacticalBack*(1-b)+Math.max(9.0,baseBack*.94)*b;'));
   assert.ok(html.includes('const shoulder=baseShoulder*(1-b)+baseShoulder*.92*b;'));
-  assert.ok(html.includes('c.gun.scale.setScalar(activeIndex===4?1.0:activeIndex===0?.88:.86);'));
+  assert.ok(html.includes('c.gun.scale.setScalar(activeIndex===4?.86:activeIndex===0?.80:.78);'));
   assert.ok(html.includes("clamp(value,9.5,16)"));
   assert.ok(html.includes("clamp(value,2.0,2.7)"));
   assert.ok(html.includes('aimFromFire(dx,dy)'));
@@ -203,7 +203,9 @@ test('V57.8 enlarges houses and outposts while keeping their entrances and colli
 });
 
 test('V57.8 keeps the 360-degree camera wrapped, calibrates X2/X4/X8 and widens aerial framing', () => {
-  assert.match(html, /camYaw=Math\.atan2\(Math\.sin\(camYaw-dx\*\.003\),Math\.cos\(camYaw-dx\*\.003\)\)/);
+  assert.match(html, /this\.targetYaw=Math\.atan2\(Math\.sin\(this\.targetYaw-dx\*\.003\),Math\.cos\(this\.targetYaw-dx\*\.003\)\)/);
+  assert.match(html, /const yawAlpha=1-Math\.exp\(-t\*\(this\.mode==='ADS'\?28:24\)\)/);
+  assert.match(html, /const pitchAlpha=1-Math\.exp\(-t\*\(this\.mode==='ADS'\?30:25\)\)/);
   assert.ok(html.includes("{name:'2x',zoom:2,fov:39.5,sensitivity:.60}"));
   assert.ok(html.includes("{name:'4x',zoom:4,fov:19.75,sensitivity:.34}"));
   assert.ok(html.includes("{name:'8x',zoom:8,fov:9.875,sensitivity:.20}"));

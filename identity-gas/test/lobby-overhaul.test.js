@@ -109,7 +109,11 @@ test('V57.6 activates the authored Aurora battle royale environment and visual r
   assert.match(html, /function v397DetailAurora\(\)/);
   assert.match(html, /function v583SetupBattleVisuals\(\)/);
   assert.match(html, /new THREE\.CanvasTexture\(snowCanvas\)/);
-  assert.match(html, /new THREE\.ShaderMaterial\(/);
+  assert.match(html, /skyContext\.createLinearGradient\(0,0,0,512\)/);
+  assert.match(html, /skyTexture\.mapping=THREE\.EquirectangularReflectionMapping/);
+  assert.match(html, /scene\.background=assets\.skyTexture\|\|new THREE\.Color/);
+  assert.match(html, /skyDome:false/);
+  assert.doesNotMatch(html, /new THREE\.SphereGeometry\(560,28,16\)/);
   assert.match(html, /new THREE\.Points\(assets\.snowGeometry,assets\.snowMaterial\)/);
   assert.match(html, /zonePerimeter:!!zoneRing/);
   assert.match(html, /zoneVolume:false/);
