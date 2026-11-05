@@ -402,7 +402,7 @@ jobs:
               assert token in h, 'V45.6: falta mejora de controles '+token
           for token in (
               'sprintHeld=false;adsHeld=false;crouchHeld=false;jumpQueued=false;',
-              "classList.remove('v382ADS')",
+              "classList.remove('v58ADS')",
               'if(v23Touches.size>=6)return;',
               'v23PointerEnd(e);return;',
               't.startX=t.x;t.startY=t.y;v22FireDragging=false;',

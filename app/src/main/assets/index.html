@@ -4160,7 +4160,7 @@ function v58FlightPointerAllowed(e){
  if(!running||gameOver||!htmlFlightModeSupportsCamera())return false;
  if(window.v36FlightMode==='aircraft'&&!$('v36DropPanel').classList.contains('hidden'))return false;
  if(!$('pausePanel').classList.contains('hidden'))return false;
- if(e.target.closest?.('button,input,select,textarea,a,[role="button"],#v36DropPanel,#v37FlightHUD,#minimap,#v36MapPanel,#pausePanel,#v362Settings,#hudEditor,#mobileBtns,#stickBase'))return false;
+ if(e.target.closest?.('button,input,select,textarea,a,[role="button"],#v36DropPanel,#minimap,#v36MapPanel,#pausePanel,#v362Settings,#hudEditor,#stickBase'))return false;
  return e.clientX>=window.innerWidth*.42;
 }
 function v58FlightPointerDown(e){
@@ -5003,7 +5003,9 @@ const v58Camera={
  input(dx,dy,channel='free'){
   const finite=n=>Number.isFinite(n)?n:0,general=clamp(finite(Number($('sensitivity').value)||1.25),.2,3),speed=clamp(finite(Number($('cameraSpeed').value)||1),.45,2.2);
   const vertical=clamp(finite(Number($('verticalSensitivity').value)||1.2)/1.2,.35,2.5),fireFactor=channel==='fire'?clamp(finite(Number($('fireSensitivity').value)||1),.25,2.5):1;
-  const fireStability=channel==='fire'?clamp(finite(Number($('fireStability').value)||.3),0,.85):0,sightFactor=this.mode==='ADS'&&window.v36FlightMode==='landed'?v58Sights.active().sensitivity:1;
+  const fireStability=channel==='fire'?clamp(finite(Number($('fireStability').value)||.3),0,.85):0;
+  const adsSensitivity=clamp(finite(Number($('adsSensitivity').value)||.9),.55,2.2);
+  const sightFactor=this.mode==='ADS'&&window.v36FlightMode==='landed'?adsSensitivity*v58Sights.active().sensitivity:1;
   const clean=n=>Number.isFinite(n)?clamp(n,-100,100):0;
   return {x:clean(dx)*.00315*general*speed*fireFactor*(1-fireStability*.20)*sightFactor,y:clean(dy)*.00305*general*speed*fireFactor*(1-fireStability*.14)*sightFactor*vertical};
  },

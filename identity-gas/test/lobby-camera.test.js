@@ -194,17 +194,21 @@ test('V57.8 enlarges houses and outposts while keeping their entrances and colli
 });
 
 test('V58.1 routes camera movement independently in aircraft, parachute and landed gameplay', () => {
-  assert.match(html, /function v58FlightPointerDown\(e\)/);
-  assert.match(html, /function v58FlightPointerMove\(e\)/);
-  assert.match(html, /const v58FlightPointers=new Map\(\)/);
-  assert.match(html, /function v36TickAircraft\(dt\)[\s\S]*?v58Camera\.updateAngles\(dt\)/);
+  assert.match(html, /function v58FlightPointerDown\\(e\\)/);
+  assert.match(html, /function v58FlightPointerMove\\(e\\)/);
+  assert.match(html, /const v58FlightPointers=new Map\\(\\)/);
+  assert.match(html, /function v36TickAircraft\\(dt\\)[\\s\\S]*?v58Camera\\.updateAngles\\(dt\\)/);
+  assert.match(html, /if\\(running&&window\\.v36FlightMode==='aircraft'[^\\n]*v36TickAircraft\\(dt\\)/);
   const start=html.indexOf('function v36StepFlight(dt){'),end=html.indexOf('function v36ChoosePoint(e,id)',start);
   const parachute=html.slice(start,end);
   assert.ok(start>=0&&end>start,'parachute update path must exist');
   assert.ok(parachute.includes('v58Camera.updateAngles(dt);'),'parachute must advance camera target angles');
-  assert.match(parachute, /const d=v398ChuteOpen\?16\.5:14\.5/);
+  assert.match(parachute, /const d=v398ChuteOpen\\?16\\.5:14\\.5/);
   assert.doesNotMatch(html, /let v372PlaneTouch=/);
-  assert.match(html, /v58SetFlightMode\('aircraft'\)/);
-  assert.match(html, /v58SetFlightMode\('descending'\)/);
-  assert.match(html, /v58SetFlightMode\('landed'\)/);
+  const route=html.slice(html.indexOf('function v58FlightPointerAllowed(e)'),html.indexOf('function v58FlightPointerDown(e)'));
+  assert.doesNotMatch(route, /#v37FlightHUD|#mobileBtns/,'non-interactive HUD containers must not block camera drag');
+  assert.match(route, /#stickBase/,'joystick must remain excluded from camera look');
+  assert.match(html, /v58SetFlightMode\\('aircraft'\\)/);
+  assert.match(html, /v58SetFlightMode\\('descending'\\)/);
+  assert.match(html, /v58SetFlightMode\\('landed'\\)/);
 });
