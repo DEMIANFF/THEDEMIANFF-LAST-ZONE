@@ -3718,11 +3718,11 @@ function v36Begin(){
  $('v36MapButton').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.remove('hidden');
  v36DrawMap('v36DropCanvas');
 }
-function v372FlightMap(){if(window.v36FlightMode!=='aircraft'&&window.v36FlightMode!=='descending')return;$('v36DropPanel').classList.remove('hidden');$('v37FlightHUD').classList.add('hidden');v37FlightMapButton.textContent=window.v36FlightMode==='aircraft'?'VOLVER A VER EL AVIÓN':'VOLVER A LA CAÍDA';v36DrawMap('v36DropCanvas');}
+function v372FlightMap(){if(window.v36FlightMode!=='aircraft'&&window.v36FlightMode!=='descending')return;$('v36DropPanel').classList.remove('hidden');$('v37FlightHUD').classList.add('hidden');v37FlightMapButton.textContent=window.v36FlightMode==='aircraft'?'VOLVER A VER EL AVIÓN':'VOLVER A LA CAÍDA';$('v37FlightJump').style.display=window.v36FlightMode==='aircraft'?'':'none';v36DrawMap('v36DropCanvas');}
 $('v37FlightJump').addEventListener('click',e=>{e.preventDefault();v36Jump();});
 const v37FlightMapButton=document.createElement('button');v37FlightMapButton.type='button';v37FlightMapButton.id='v37FlightMapReturn';v37FlightMapButton.textContent='VOLVER A VER EL AVIÓN';
 $('v36DropPanel').querySelector('.v36Buttons').prepend(v37FlightMapButton);
-v37FlightMapButton.addEventListener('click',()=>{$('v36DropPanel').classList.add('hidden');if(window.v36FlightMode==='aircraft')$('v37FlightHUD').classList.remove('hidden');else $('v37FlightHUD').classList.add('hidden');});
+v37FlightMapButton.addEventListener('click',()=>{$('v36DropPanel').classList.add('hidden');$('v37FlightJump').style.display='';if(window.v36FlightMode==='aircraft')$('v37FlightHUD').classList.remove('hidden');else $('v37FlightHUD').classList.add('hidden');});
 function v36Jump(){
  if(window.v36FlightMode!=='aircraft')return;
  const pos=v36Aircraft?{x:v36Aircraft.position.x,z:v36Aircraft.position.z}:v36Safe(v36Destination.x,v36Destination.z);
@@ -4398,6 +4398,8 @@ const v434Optics={
  updateHud(isADS){
   const button=document.getElementById('v434ScopeButton');
   const label=document.getElementById('v434ScopeLabel');
+  const awmOverlay=document.getElementById('v59AwmScopeOverlay');
+  if(awmOverlay)awmOverlay.style.display=(isADS&&running&&!paused&&!gameOver&&weaponIndex===5&&window.v36FlightMode==='landed')?'block':'none';
   if(button){
    const visible=!!(isADS && running && !paused && !gameOver && weaponIndex!==5 &&
      window.v36FlightMode!=='aircraft' &&
@@ -4426,6 +4428,8 @@ try{const savedScope=Number(localStorage.getItem('v534_scope_index'));if(Number.
   v434Optics.cycle();
  });
  document.body.appendChild(button); // V43.4.1 SCOPE BUTTON FIX
+ const opticStyle=document.createElement('style');opticStyle.textContent='#v59AwmScopeOverlay{display:none;position:fixed;inset:0;z-index:24;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0 42vmin,rgba(0,0,0,.94) 43vmin 100%)}#v59AwmScopeOverlay:before{content:"";position:absolute;left:50%;top:50%;width:min(84vmin,92vw);height:min(84vmin,92vw);transform:translate(-50%,-50%);border:clamp(5px,1.1vmin,13px) solid #111820;border-radius:50%;box-shadow:0 0 0 2px #9ab0bd88,0 0 30px #000, inset 0 0 20px #0009}#v59AwmScopeOverlay:after{content:"";position:absolute;left:50%;top:50%;width:min(84vmin,92vw);height:min(84vmin,92vw);transform:translate(-50%,-50%);border-radius:50%;background:linear-gradient(90deg,transparent calc(50% - .7px),#d9eee6cc 50%,transparent calc(50% + .7px)),linear-gradient(0deg,transparent calc(50% - .7px),#d9eee6cc 50%,transparent calc(50% + .7px));opacity:.78}';document.head.appendChild(opticStyle);
+ const opticOverlay=document.createElement('div');opticOverlay.id='v59AwmScopeOverlay';document.body.appendChild(opticOverlay);
  const label=document.createElement('div');
  label.id='v434ScopeLabel';label.setAttribute('aria-live','off');
  controls.appendChild(label);
@@ -4518,6 +4522,8 @@ const v432Camera={
  }
 };
 window.THEDEMIANFF_HYBRID_CAMERA=()=>({mode:v432Camera.mode,blend:v432Camera.blend,fov:camera?.fov});
+window.THEDEMIANFF_V59_AWM_TEST=()=>({weapon:weapons[5]?.name,ammo:weapons[5]?.ammo,mag:weapons[5]?.mag,reserve:weapons[5]?.reserve,optic:v434Optics.active().name,x8Exclusive:weaponIndex===5,range:weapons[5]?.range});
+window.THEDEMIANFF_V59_FLIGHT_TEST=()=>({mode:window.v36FlightMode,mapAvailable:window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending',cameraYaw:camYaw,cameraPitch:camPitch,descentMapOpen:!$('v36DropPanel').classList.contains('hidden')});
 
 const fireCameraFilter={x:0,y:0};
 let v22FireDragging=false;
