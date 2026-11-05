@@ -187,6 +187,6 @@ test('V57.8.2 binds the start button before later boot code and reports initiali
 
 test('V58.2 package and lobby labels identify the Free Fire camera release', () => {
   assert.match(gradle, /versionCode 157/);
-  assert.match(gradle, /versionName '58\.1-freefire-thirdperson'/);
-  assert.match(html, /V58\.1 · CENTRO DE OPERACIONES/);
+  assert.match(gradle, /versionName '58\.2-freefire-camera-comfort'/);
+  assert.match(html, /V58\.2 · CENTRO DE OPERACIONES/);
 });

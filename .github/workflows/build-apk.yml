@@ -313,7 +313,7 @@ jobs:
           if 'const v432Camera={' in h or 'let v372PlaneTouch=' in h: raise SystemExit('Legacy camera owner is still active')
           print('V58.2 camera, adaptive touch, ADS and flight checks passed')
           PY
-
+      - name: Verificar V38.3 lobby accesible y control del paracaidas
         run: |
           python3 - <<'PY'
           from pathlib import Path
