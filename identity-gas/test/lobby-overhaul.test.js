@@ -69,7 +69,7 @@ test('Aurora pass has 30 persistent free and Elite reward tiers without real-mon
 });
 
 test('V58.1 landed camera follows the Free Fire TPS shoulder rig vertically', () => {
-  assert.match(html, /const targetHeight=\(mobile\?2\.46:2\.58\)-\.14\*b/);
+  assert.match(html, /targetHeight=\(mobile\?2\.46:2\.58\)-\.14\*b/);
   assert.match(html, /this\.anchorY\+\(player\.position\.y-this\.anchorY\)\*\(1-Math\.exp\(-t\*\(aiming\?11:8\)/);
   assert.match(html, /v58Camera\.update\(dt\)/);
   assert.match(html, /profile:'FREE_FIRE_THIRD_PERSON'/);

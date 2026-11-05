@@ -70,8 +70,8 @@ test('V57 lobby gives the operator, Social navigation and launch controls separa
 });
 
 test('V58.1 keeps right-shoulder framing and a centered sight ray', () => {
-  assert.match(html, /const baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|1\.05,\.65,1\.5\)/);
-  assert.match(html, /const targetBack=baseBack\*\(1-\.20\*b\),targetShoulder=baseShoulder\*\(1-\.34\*b\)/);
+  assert.match(html, /baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|1\.05,\.65,1\.5\)/);
+  assert.match(html, /const targetBack=baseBack\*\(1-\.20\*b\),targetShoulder=baseShoulder\*\(1-\.34\*b\),targetHeight=\(mobile\?2\.46:2\.58\)-\.14\*b/);
   assert.ok(html.includes('player.position.x+Math.cos(camYaw)*this.shoulder-Math.sin(camYaw)*this.back'));
   assert.match(html, /const start=camera\.position\.clone\(\),direction=new THREE\.Vector3\(\);camera\.getWorldDirection\(direction\)/);
   assert.match(html, /reticle\.dataset\.scope=this\.active\(\)\.name/);
@@ -97,7 +97,7 @@ test('V58.1 migrates old camera preferences into the Free Fire distance and shou
 });
 
 test('V58.1 camera follows with damped shoulder, vertical and horizontal smoothing', () => {
-  assert.match(html, /const targetHeight=\(mobile\?2\.46:2\.58\)-\.14\*b/);
+  assert.match(html, /targetHeight=\(mobile\?2\.46:2\.58\)-\.14\*b/);
   assert.match(html, /const follow=1-Math\.exp\(-t\*13\.5\)/);
   assert.match(html, /const followXZ=1-Math\.exp\(-t\*13\)/);
   assert.match(html, /this\.anchorY\+\(player\.position\.y-this\.anchorY\)\*\(1-Math\.exp\(-t\*\(aiming\?11:8\)/);
