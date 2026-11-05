@@ -1810,7 +1810,7 @@ function v59EnsureAwm(c){
  part(new THREE.BoxGeometry(.12,.12,.34),gold,0,.19,.60);
  part(new THREE.CylinderGeometry(.12,.13,.64,12),steel,0,.36,.45,Math.PI/2);
  part(new THREE.CylinderGeometry(.085,.085,.08,12),glass,0,.36,.79,Math.PI/2);
- for(const z of [.17,.73])part(new THREE.TorusGeometry(.13,.025,7,14),gold,0,.36,z,Math.PI/2);
+ for(const z of [.17,.73])part(new THREE.TorusGeometry(.13,.025,7,14),gold,0,.36,z);
  part(new THREE.BoxGeometry(.035,.06,.82),gold,0,.18,.48);
  for(const x of [-.13,.13])part(new THREE.CylinderGeometry(.018,.025,.52,7),steel,x,-.28,1.04,.18,0,x*1.2);
  g.visible=false;g.userData.v40WeaponName='AWM';c.gun.add(g);c.gun.userData.v59Awm=g;return g;
@@ -2168,9 +2168,9 @@ function v470BattleStartSound(){
  v38NoiseBurst(.62,.032,80,1100);
 }
 function playShot(){
- const weapon=weaponIndex,bass=[95,68,130,48,77][weapon]||90,snap=[520,360,760,235,450][weapon]||520;
- const length=[.15,.25,.09,.34,.17][weapon]||.15;
- toneSound(snap,.035,.055,'square');toneSound(bass,length,weapon===3?.21:.13,weapon===2?'triangle':'sawtooth');
+ const weapon=weaponIndex,bass=[95,68,130,48,77,38][weapon]||90,snap=[520,360,760,235,450,980][weapon]||520;
+ const length=[.15,.25,.09,.34,.17,.42][weapon]||.15;
+ toneSound(snap,.035,.055,'square');toneSound(bass,length,weapon===3?.21:weapon===5?.18:.13,weapon===2||weapon===5?'triangle':'sawtooth');
  v38NoiseBurst(weapon===3?.24:.095,weapon===3?.19:.11,weapon===3?85:650,weapon===2?8400:5700);
 }
 document.addEventListener('pointerdown',()=>{if(running&&!paused)unlockAudio()},true);
@@ -2963,7 +2963,7 @@ const healthPanel=$('health');
  weaponPanel.classList.toggle('v460Reload',reloadTimer>0&&reloadWeapon===weaponIndex);
  weaponPanel.classList.toggle('v461LastRounds',w.ammo>0&&w.ammo<=3);
  weaponPanel.classList.toggle('v461EmptyClip',w.ammo<=0);weaponPanel.setAttribute('aria-label',w.name+' · '+w.ammo+' balas y '+w.reserve+' en reserva'+(reloadTimer>0&&reloadWeapon===weaponIndex?' · recargando':''));
- const v488ZoneDistance=Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y);const v488Outside=Math.max(0,Math.ceil(v488ZoneDistance-zoneRadius));const v488EffectiveOutside=v55IsTraining()?0:v488Outside;$('zoneInfo').classList.toggle('v461ZoneDanger',v488EffectiveOutside>0);$('v15Loadout').textContent='ARMA '+(weaponIndex+1)+'/'+weapons.length+' · CAMBIAR: ARMA';$('gunName').textContent=w.name+(reloadTimer>0&&reloadWeapon===weaponIndex?' · RECARGANDO':w.ammo<=0?(w.reserve>0?' · PULSA RECARGAR':v489BestLoadedBackup(weaponIndex)>=0?' · RESPALDO LISTO':' · SIN MUNICIÓN · CAMBIA ARMA'):'');$('ammo').textContent=w.ammo;$('reserve').textContent='/ '+w.reserve;$('meds').textContent=meds;$('round').textContent=String(zonePhase+1).padStart(2,'0');$('timer').textContent=fmt(time);$('zoneRadius').textContent=Math.round(zoneRadius);$('zoneCountdown').textContent=fmt(Math.max(0,45-zoneTick));$('zoneText').textContent=v488EffectiveOutside>0?'⚠ FUERA DE ZONA · '+v488EffectiveOutside+'m HASTA SEGURIDAD':zoneTick>35?'⚠ ZONA CERRANDO':'◉ ZONA SEGURA'}function fmt(s){s=Math.floor(s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}function toast(msg){$('toast').textContent=msg;$('toast').style.opacity=1;toastTime=2.1}function impact(x,y,z,color='#ffce8a'){if(effects.length>=64||!Number.isFinite(x+y+z))return;const mesh=sphere(.18,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,depthWrite:false}),scene,x,y,z,6);effects.push({mesh,t:.26});}function distanceToSegment(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz||1),0,1);return Math.hypot(px-(ax+t*dx),pz-(az+t*dz))}// Height-aware segment-versus-cylinder cover: the same rules protect AI and player.
+ const v488ZoneDistance=Math.hypot(player.position.x-zoneCenter.x,player.position.z-zoneCenter.y);const v488Outside=Math.max(0,Math.ceil(v488ZoneDistance-zoneRadius));const v488EffectiveOutside=v55IsTraining()?0:v488Outside;$('zoneInfo').classList.toggle('v461ZoneDanger',v488EffectiveOutside>0);$('v15Loadout').textContent='ARMA '+(weaponIndex+1)+'/'+weapons.length+' · CAMBIAR: ARMA';$('weaponMode').textContent=weaponIndex===5?'CERROJO':'AUTO';$('gunName').textContent=w.name+(reloadTimer>0&&reloadWeapon===weaponIndex?' · RECARGANDO':w.ammo<=0?(w.reserve>0?' · PULSA RECARGAR':v489BestLoadedBackup(weaponIndex)>=0?' · RESPALDO LISTO':' · SIN MUNICIÓN · CAMBIA ARMA'):'');$('ammo').textContent=w.ammo;$('reserve').textContent='/ '+w.reserve;$('meds').textContent=meds;$('round').textContent=String(zonePhase+1).padStart(2,'0');$('timer').textContent=fmt(time);$('zoneRadius').textContent=Math.round(zoneRadius);$('zoneCountdown').textContent=fmt(Math.max(0,45-zoneTick));$('zoneText').textContent=v488EffectiveOutside>0?'⚠ FUERA DE ZONA · '+v488EffectiveOutside+'m HASTA SEGURIDAD':zoneTick>35?'⚠ ZONA CERRANDO':'◉ ZONA SEGURA'}function fmt(s){s=Math.floor(s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}function toast(msg){$('toast').textContent=msg;$('toast').style.opacity=1;toastTime=2.1}function impact(x,y,z,color='#ffce8a'){if(effects.length>=64||!Number.isFinite(x+y+z))return;const mesh=sphere(.18,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,depthWrite:false}),scene,x,y,z,6);effects.push({mesh,t:.26});}function distanceToSegment(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz||1),0,1);return Math.hypot(px-(ax+t*dx),pz-(az+t*dz))}// Height-aware segment-versus-cylinder cover: the same rules protect AI and player.
 function blocked3D(ax,ay,az,bx,by,bz){
  const dx=bx-ax,dz=bz-az;
  for(const o of worldObjects){let t;
@@ -4010,7 +4010,7 @@ function v18Open(name){
    html+='<div class="v18Grid">'+[0,1,2].map(i=>{const set=p.presets[i],info=set?'Personaje: '+(v18Skins[set.skin]?.name||'Operador')+' · '+(weapons[set.weapon]?.name||'Arma'):'Ranura sin guardar';return card('EQUIPAMIENTO '+(i+1),info,'GUARDAR','preset-save:'+i)+card('CARGAR EQUIPO '+(i+1),set?'Equipar personaje y arma guardados':'Primero guarda un equipamiento',set?'EQUIPAR':'VACÍO','preset-load:'+i)}).join('')+'</div>';
   }else if(name==='ARMAS'){
   html+='<div class="v18Grid">'+weapons.map((w,i)=>card(w.name,`Daño ${w.damage} · Cargador ${w.mag} · Alcance ${w.range}m`,p.weapon===i?'EQUIPADA':'EQUIPAR',`weapon:${i}`)).join('')+'</div>';
-  html+='<p class="v18PanelNote">Selecciona el arma inicial. Durante la partida puedes cambiar entre las cinco.</p>';
+  html+='<p class="v18PanelNote">Selecciona el arma inicial. Durante la partida puedes cambiar entre las seis.</p>';
   }else if(name==='PASE'){
   const tier=1+Math.floor(p.xp/350),progress=p.xp%350;
   html+='<div class="v18Grid">'+card('PASE · NIVEL '+tier,'XP acumulada '+p.xp+' · '+progress+'/350 XP para el siguiente nivel')+card('RECOMPENSAS GRATUITAS','Gana XP al jugar. No existen compras reales.')+card('TEMPORADA 01','La ruta de recompensas exclusiva está en desarrollo. Tu progreso local sigue guardado.')+'</div>';
