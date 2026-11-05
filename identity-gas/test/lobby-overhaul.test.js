@@ -76,13 +76,13 @@ test('V58.1 landed camera follows the Free Fire TPS shoulder rig vertically', ()
 });
 
 test('V58.1 ADS keeps third-person camera and uses Blood Strike-inspired sight magnification', () => {
-  assert.match(html, /\\{name:'2x',zoom:2,sensitivity:\\.62\\}/);
-  assert.match(html, /\\{name:'4x',zoom:4,sensitivity:\\.36\\}/);
-  assert.match(html, /\\{name:'8x',zoom:8,sensitivity:\\.23\\}/);
-  assert.match(html, /targetFov=baseFov\\/\\(aiming\\?v58Sights\\.active\\(\\)\\.zoom:1\\)/);
-  assert.match(html, /fireStability=channel==='fire'\\?clamp/);
-  assert.match(html, /adsSensitivity=clamp\\(finite\\(Number\\(\\$\\('adsSensitivity'\\)\\.value\\)\\|\\|\\.9\\),\\.55,2\\.2\\)/);
-  assert.match(html, /sightFactor=this\\.mode==='ADS'&&window\\.v36FlightMode==='landed'\\?adsSensitivity\\*v58Sights\\.active\\(\\)\\.sensitivity:1/);
+  assert.ok(html.includes("{name:'2x',zoom:2,sensitivity:.62}"));
+  assert.ok(html.includes("{name:'4x',zoom:4,sensitivity:.36}"));
+  assert.ok(html.includes("{name:'8x',zoom:8,sensitivity:.23}"));
+  assert.ok(html.includes('targetFov=baseFov/(aiming?v58Sights.active().zoom:1)'));
+  assert.ok(html.includes("fireStability=channel==='fire'?clamp"));
+  assert.ok(html.includes("adsSensitivity=clamp(finite(Number($('adsSensitivity').value)||.9),.55,2.2)"));
+  assert.ok(html.includes("sightFactor=this.mode==='ADS'&&window.v36FlightMode==='landed'?adsSensitivity*v58Sights.active().sensitivity:1"));
 });
 
 test('V58.1 aircraft and parachute have their own responsive camera route', () => {
