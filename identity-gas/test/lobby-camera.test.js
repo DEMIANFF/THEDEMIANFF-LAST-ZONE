@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const htmlPath = path.join(__dirname, '../../app/src/main/assets/index.html');
-const html = fs.readFileSync(htmlPath, 'utf8');
+const html = fs.readFileSync(htmlPath, 'utf8').replace(/\r\n?/g, '\n');
 
 test('lobby profile header opens the unified account panel', () => {
   assert.match(html, /id="v18Profile"[^>]*role="button"/);

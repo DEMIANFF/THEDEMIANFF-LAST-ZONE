@@ -69,6 +69,7 @@ test('flight camera pointer input remains active during aircraft and descent',()
 test('aircraft sequence starts, updates camera and exposes map and jump actions',()=>{
  assert.ok(html.includes("function v36Begin()"));
  assert.ok(html.includes("v58SetFlightMode('aircraft')"));
+ assert.ok(html.includes("function v36BuildAircraft()"));
  assert.ok(html.includes("function v36TickAircraft(dt)"));
  assert.ok(html.includes("function v372FlightMap()"));
  assert.ok(html.includes("function v36Jump()"));
@@ -102,9 +103,9 @@ test('airborne mode suppresses ADS and combat reticle until landing',()=>{
  assert.ok(html.includes("v58Sights.updateHud(false)"));
 });
 
-test('release is V58.9.0 and does not include online multiplayer V59',()=>{
- assert.ok(gradle.includes('versionCode 167'));
- assert.ok(gradle.includes("versionName '58.9.0-awm-exclusive-optics-flight'"));
+test('release is V59.1.0 and does not include online multiplayer V59',()=>{
+ assert.ok(gradle.includes('versionCode 168'));
+ assert.ok(gradle.includes("versionName '59.1.0-awm-exclusive-optics-flight'"));
  assert.ok(workflow.includes('v58-9-0-awm-camera-airdrop-release'));
  assert.ok(!gradle.includes("59.0.0"));
 });

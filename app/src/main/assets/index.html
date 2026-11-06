@@ -1125,7 +1125,7 @@ body.v475InMatch #v10Reticle{visibility:visible!important}
 </style>
 
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V58.9.0 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
+<div id="v22Edition">V59.1.0 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"><span class="v581Currency"><small>CR</small><b id="v18Credits">0</b></span><span class="v581Currency"><small>XP</small><b id="v18XP">0</b></span><button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <aside class="v17Left" aria-label="Navegación principal">
  <div class="v588SeasonCard"><small>TEMPORADA 01 · AURORA</small><strong>ÚLTIMA ZONA</strong><span>OPERACIÓN GLACIAL</span></div>
@@ -4425,6 +4425,7 @@ function v36DrawMap(id){
 }
 
 
+function v36BuildAircraft(){
  const g=new THREE.Group(),paint=mat('#69869c',.62,.25),light=mat('#aecbd3',.72,.1);
  const fuselage=new THREE.Mesh(new THREE.CylinderGeometry(.75,.9,11,10),paint);
  fuselage.rotation.z=Math.PI/2;g.add(fuselage);
@@ -5405,6 +5406,7 @@ try{const savedScope=Number(localStorage.getItem('v534_scope_index'));if(Number.
  const label=document.createElement('div');label.id='v58ScopeLabel';label.setAttribute('aria-live','off');controls.appendChild(label);
  document.addEventListener('keydown',e=>{if(e.code==='KeyV'&&!e.repeat&&running&&!paused&&!gameOver&&adsHeld&&window.v36FlightMode==='landed')v58Sights.cycle();});
 })();
+const v58Camera={
  mode:'FREE',blend:0,back:NaN,shoulder:NaN,height:NaN,anchorY:NaN,currentFov:NaN,targetYaw:0,targetPitch:.18,
  input(dx,dy,channel='free',elapsedMs=16){
   const finite=n=>Number.isFinite(n)?n:0;
