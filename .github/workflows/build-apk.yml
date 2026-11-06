@@ -306,7 +306,7 @@ jobs:
               'velocityGain=clamp(1-Math.max(0,velocity-.55)*.18,.58,1)',
               'maxYawRate=aiming?v58Sights.active().yawRate:5.2',
               'function flushCamera(dt){cameraDX=0;cameraDY=0;}',
-              'targetBack=baseBack*(1-.02*b)','targetFov=baseFov/(aiming?v58Sights.active().zoom:1)'
+              'targetBack=baseBack*(1-.02*b)','targetFov=2*Math.atan(Math.tan(baseFov*Math.PI/360)/zoom)*180/Math.PI'
           )
           for marker in required:
               if marker not in h: raise SystemExit('V58.8.0 component missing: '+marker)
@@ -752,7 +752,7 @@ jobs:
           assert 'targetHeight=(mobile?2.62:2.74)-.08*b' in h, 'V58.8.0: TPS shoulder height calibration missing'
           gradle=Path('app/build.gradle').read_text()
           assert 'versionCode 168' in gradle and "versionName '59.1.0-awm-exclusive-optics-flight'" in gradle, 'V57.6: release identity mismatch'
-          for token in ('id="v38TabAchievements"', 'id="v38AchievementsView"', 'v56RenderAchievements' if 'v56RenderAchievements' in h else 'function v38RenderAchievements()', 'v56StoreGrid', 'v56StoreArt', 'Array.from({length:30}', 'data-v18="passbuy"', 'pass_free_', 'pass_elite_', 'result.passElite=p.passElite===true', 'v58Sights.active().zoom', 'targetFov=baseFov/(aiming?v58Sights.active().zoom:1)', 'const d=v398ChuteOpen?16.5:14.5', 'this.anchorY+=(player.position.y-this.anchorY)', 'if(l.renderer&&now-l.last>(mobile?40:33)'):
+          for token in ('id="v38TabAchievements"', 'id="v38AchievementsView"', 'v56RenderAchievements' if 'v56RenderAchievements' in h else 'function v38RenderAchievements()', 'v56StoreGrid', 'v56StoreArt', 'Array.from({length:30}', 'data-v18="passbuy"', 'pass_free_', 'pass_elite_', 'result.passElite=p.passElite===true', 'v58Sights.active().zoom', 'targetFov=2*Math.atan(Math.tan(baseFov*Math.PI/360)/zoom)*180/Math.PI', 'const d=v398ChuteOpen?16.5:14.5', 'this.anchorY+=(player.position.y-this.anchorY)', 'if(l.renderer&&now-l.last>(mobile?40:33)'):
               assert token in h, 'V57.6: missing lobby/pass/camera component '+token
           for token in ('id="v500CloudBadge"', 'id="v533AccountShortcut"', 'id="v502CloudAccess"'):
               assert token not in h, 'V57.6: cloud shortcut must not be in the lobby: '+token
