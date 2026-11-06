@@ -950,7 +950,25 @@ body.v58OpticActive #v10Reticle::after{height:1px!important;width:34px!important
 #controls{z-index:150!important}
 #mobileBtns,#stickBase,#health,#weapon,#minimap,#zoneInfo,.top,#v362Settings,#v58ScopeButton,#pingButton{z-index:155!important}
 #v58ScopeButton:disabled{opacity:.72!important;cursor:default!important}
-</style></head><body><div id="game"></div><div id="v58OpticOverlay" aria-hidden="true"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de operaciones: eventos, misiones y logros">
+</style><style id="v589AwmOpticAndFlight">
+#v58OpticOverlay{display:none;position:fixed;inset:0;z-index:90;pointer-events:none;--v58-optic-aperture:34vmin;background:radial-gradient(circle at 50% 50%,transparent 0 calc(var(--v58-optic-aperture) - 7px),#03070bee calc(var(--v58-optic-aperture) + 2px),#020509fa 100%)}
+body.v58OpticActive #v58OpticOverlay{display:block}
+#v58OpticOverlay::before{content:'';position:absolute;left:50%;top:50%;width:calc(var(--v58-optic-aperture)*2);height:calc(var(--v58-optic-aperture)*2);transform:translate(-50%,-50%);border-radius:50%;border:8px solid #17212a;box-shadow:0 0 0 2px #050a0e,0 0 0 5px #75858b55,inset 0 0 18px #07131b99,0 0 22px #000b}
+#v58OpticOverlay::after{content:'';position:absolute;left:50%;top:50%;width:calc(var(--v58-optic-aperture)*1.94);height:calc(var(--v58-optic-aperture)*1.94);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse at 32% 19%,#d7f4ff16 0%,transparent 26%),radial-gradient(ellipse at 72% 88%,#8bd9e90a 0%,transparent 35%);box-shadow:inset 0 0 18px #80c4d01a}
+body.v58OpticActive #v10Reticle{display:block!important;width:7px!important;height:7px!important;border:1px solid #f2fff0!important;border-radius:50%!important;opacity:1!important;box-shadow:0 0 0 1px #001a20,0 0 8px #d7fff4!important;z-index:171!important}
+body.v58OpticActive #v10Reticle::before,body.v58OpticActive #v10Reticle::after{display:block!important;content:''!important;position:absolute!important;background:#eaffee!important;box-shadow:0 0 2px #001!important}
+body.v58OpticActive #v10Reticle::before{width:1px!important;height:34px!important;left:2px!important;top:-14px!important}
+body.v58OpticActive #v10Reticle::after{height:1px!important;width:34px!important;top:2px!important;left:-14px!important}
+#controls{z-index:150!important}
+#mobileBtns,#stickBase,#health,#weapon,#minimap,#zoneInfo,.top,#v362Settings,#v58ScopeButton,#pingButton{z-index:155!important}
+#v58ScopeButton:disabled{opacity:.72!important;cursor:default!important}
+#v37FlightHUD{gap:8px}
+#v37FlightHUD #v37FlightMapOpen{background:#17384e;color:#e6f9ff;border:1px solid #8fd6df}
+.v36ZoomBar{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;margin:4px auto 9px;padding:5px 8px;box-sizing:border-box;border:1px solid #75b9c488;border-radius:9px;background:#0b2333d9;color:#effaff;font:800 12px system-ui}
+.v36ZoomBar button{min-width:38px;min-height:32px;border:1px solid #9ad7dc;border-radius:7px;background:#173f53;color:#fff;font-size:19px;font-weight:900;touch-action:manipulation}
+.v36ZoomBar span{min-width:58px;text-align:center;color:#f0d6a3;font-variant-numeric:tabular-nums}
+@media(max-width:650px){.v36ZoomBar{gap:8px;margin:3px auto 6px;padding:4px}.v36ZoomBar button{min-width:34px;min-height:30px}}
+</style></head><body><div id="game"></div><div id="v58OpticOverlay" aria-hidden="true"></div><div id="v58OpticOverlay" aria-hidden="true"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de operaciones: eventos, misiones y logros">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
   <div class="v38OpsTabs"><button type="button" id="v38TabEvents" aria-selected="true">★ EVENTOS</button><button type="button" id="v38TabMissions" aria-selected="false">▣ MISIONES</button><button type="button" id="v38TabAchievements" aria-selected="false">✦ LOGROS</button></div>
@@ -970,7 +988,7 @@ body.v58OpticActive #v10Reticle::after{height:1px!important;width:34px!important
  <p id="v362EventStatus">Selecciona un desafío para participar.</p></div>
  </section>
 <div id="v36MapPanel" class="hidden"><h2>MAPA TÁCTICO · PUERTO AURORA</h2><div id="v36MapLabel">Toca un punto para marcar destino.</div><canvas id="v36MapCanvas" width="512" height="512"></canvas><div class="v36Buttons"><button id="v36Mark">MARCAR DESTINO</button><button id="v36MapClose">VOLVER AL COMBATE</button></div></div>
-<div id="v37FlightHUD" class="hidden"><button id="v37FlightJump" type="button">🪂 SALTAR</button></div><div id="v36DropPanel" class="hidden"><h2>OPERACIÓN ÚLTIMA ZONA · DESPLIEGUE</h2><div class="v36Plane">✈</div><div id="v36DropLabel">Elige el punto donde quieres aterrizar tocando el mapa.</div><canvas id="v36DropCanvas" width="512" height="512"></canvas><div class="v36Buttons"><button id="v36Jump">SALTAR EN PARACAÍDAS</button></div></div>
+<div id="v37FlightHUD" class="hidden"><button id="v37FlightMapOpen" type="button">▧ MAPA / DESTINO</button><button id="v37FlightJump" type="button">🪂 SALTAR</button></div><div id="v36DropPanel" class="hidden"><h2>OPERACIÓN ÚLTIMA ZONA · DESPLIEGUE</h2><div class="v36Plane">✈</div><div id="v36DropLabel">Elige el punto donde quieres aterrizar tocando el mapa.</div><canvas id="v36DropCanvas" width="512" height="512"></canvas><div class="v36Buttons"><button id="v36Jump">SALTAR EN PARACAÍDAS</button></div></div>
 <div id="v36ParachuteStatus" class="hidden">🪂 DESCENSO EN PARACAÍDAS</div><div id="damageFlash"></div><div id="v124Debug"></div><div id="v123InputTest"></div><div id="v122ControlState"></div><div id="v10Hint"></div><div id="v10Reticle"></div><div id="v13AimMode">⊕ MIRA LIBRE</div><div id="v9Event"></div><div id="v9Status"></div><div id="v8Damage"></div><div id="v8Combat"></div><div id="v8Muzzle"></div><div id="v7Compass">N</div><div id="v7status">TEMPORADA 01 · OPERACIÓN ÚLTIMA ZONA</div><button id="v362Settings" class="hidden" type="button" aria-label="Pausar y abrir configuración">⚙</button><button id="pingButton" aria-label="Marcar enemigo">⌖ MARCAR</button><div id="v362LootLegend">✚ BOTIQUÍN &nbsp; ◈ ESCUDO<br>▰ MUNICIÓN · ACÉRCATE PARA RECOGER</div><div id="v362EventHud" class="hidden" aria-live="polite"></div><div id="v7Toast"></div><div id="combatFeed"></div><div id="missionHud">MISIÓN: SOBREVIVE · ELIMINA · RECOGE</div><div id="fpsCounter"></div><div id="orientationTip" class="glass">↻ Gira tu teléfono horizontalmente para jugar con mayor comodidad.</div><div class="top"><div class="glass"><div class="brand">THEDEMIANFF // LAST ZONE</div><div class="stat">VIVOS <b id="alive">21</b> &nbsp; BAJAS <b id="kills">0</b></div></div><div id="rightTop" class="glass"><div class="stat">RONDA <b id="round">01</b> · <span id="timer">00:00</span></div><div class="stat" id="zoneText">ZONA SEGURA</div></div></div><canvas id="minimap" width="256" height="256"></canvas><div id="zoneInfo" class="glass">◉ Zona: <span id="zoneRadius">190</span> m<br>⌛ Cierre: <span id="zoneCountdown">00:45</span></div><div id="health" class="glass"><div class="stat">VIDA <span id="hpText">100</span> &nbsp; · &nbsp; ESCUDO <span id="armorText">50</span></div><div class="bars"><div id="hpBar"></div></div><div class="bars shield"><div id="armorBar" style="width:50%"></div></div></div><div id="weapon" class="glass"><div class="brand" id="gunName">AR-7 · ASALTO</div><strong id="ammo">30</strong> <small id="reserve">/ 180</small><div class="stat">BOTIQUINES <span id="meds">2</span> · <span id="weaponMode">AUTO</span></div><div id="v15Loadout" style="font-size:9px;color:#ffe0a0;margin-top:3px">ARMA 1/5 · CAMBIAR: ARMA</div></div><div id="cross"></div><div id="dmgDir" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);opacity:0;transition:opacity .2s;pointer-events:none;z-index:9"><div style="width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:26px solid #ff4d4d;filter:drop-shadow(0 0 6px #ff2a2a)"></div></div><div id="hit">✕</div><div id="toast" class="glass"></div><button id="settings" class="glass">⚙ PAUSA</button><div id="desktopHint">WASD mover · Ratón apuntar · Clic disparar · Shift correr · Espacio saltar · R recargar · H curar · 1-5 armas · Esc pausa</div><div id="hudEditor" class="hidden"><div class="hudEditorBar"><strong>✥ EDITOR HUD V26</strong><button id="v26Hud2" type="button">2 DEDOS</button><button id="v26Hud3" type="button">3 DEDOS</button><button id="v26Hud4" type="button">4 DEDOS</button><button id="v26HudProfileSave" type="button">GUARDAR PERFIL</button><button id="v26HudProfileLoad" type="button">CARGAR PERFIL</button><span>Arrastra cualquier botón</span><label>Tamaño <input id="hudScale" type="range" min="60" max="180" value="100" step="5"></label><label>Opacidad <input id="hudAlpha" type="range" min="30" max="100" value="90" step="5"></label><button id="hudReset" type="button">RESTAURAR HUD</button><button id="hudSave" type="button">✓ GUARDAR</button><button id="hudCancel" type="button">CANCELAR</button></div></div><div id="controls" class="hidden"><div id="lookArea"></div><div id="stickBase"><div id="stick"></div></div><div id="mobileBtns"><button id="sprint">CORRER</button><button id="jump">SALTAR</button><button id="fire">FUEGO</button><button id="heal">CURAR</button><button id="reload">RECARGA</button><button id="aimBtn">MIRA</button><button id="crouchBtn">AGACHAR</button><button id="switchGun">ARMA</button></div></div><div id="v443Entry" role="dialog" aria-label="Acceso a THEDEMIANFF LAST ZONE" style="position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at 66% 30%,#16475b,#0b1427 48%,#060912 95%);display:flex;align-items:center;justify-content:center;pointer-events:auto;color:#fff;font-family:system-ui,sans-serif">
  <div style="position:absolute;inset:0;pointer-events:none;opacity:.22;background:repeating-linear-gradient(130deg,transparent 0 70px,#31b9e5 72px,transparent 74px 155px)"></div>
  <div style="width:min(650px,90vw);max-height:92vh;overflow:auto;text-align:center;position:relative;padding:18px">
@@ -4364,7 +4382,7 @@ c.fillStyle=zoneTick>35?'#b95a3a18':'#00000020';c.fillRect(0,0,w,w);c.strokeStyl
 c.font='bold 14px sans-serif';c.fillStyle='#e8faff';c.fillText('N',w/2-5,17);c.font='bold 10px sans-serif';c.fillText('S',w/2-4,w-7);c.fillText('O',7,w/2);c.fillText('E',w-14,w/2);
 const [x,z]=point(player.position.x,player.position.z);const v487Danger=bots.some(b=>b.alive&&!b.airborne&&Math.hypot(b.x-player.position.x,b.z-player.position.z)<18);if(v487Danger){c.save();c.strokeStyle='#ff9a70';c.globalAlpha=.75;c.lineWidth=1.5;c.beginPath();c.arc(x,z,18/WORLD*w,0,Math.PI*2);c.stroke();c.restore();}c.save();c.translate(x,z);c.rotate(-camYaw);c.fillStyle=hp<30?'#ff9999':v487Danger?'#ffe2b4':'#fff';c.beginPath();c.moveTo(0,7);c.lineTo(-6,-6);c.lineTo(6,-6);c.closePath();c.fill();c.restore();if(v36Waypoint){const [wx,wz]=point(v36Waypoint.x,v36Waypoint.z);c.strokeStyle=Math.hypot(v36Waypoint.x-player.position.x,v36Waypoint.z-player.position.z)<15?'#8dfdce':'#ffaf46';c.lineWidth=3;c.beginPath();c.arc(wx,wz,6,0,Math.PI*2);c.stroke();}}
 
-window.v36FlightMode='idle';let v36Destination=null,v36Waypoint=null,v36MapPick=null,v36MapWasOpen=false,v36Chute=null,v36Aircraft=null,v398DropAge=0,v398ChuteOpen=false,v398MapRefresh=0;
+window.v36FlightMode='idle';let v36Destination=null,v36Waypoint=null,v36MapPick=null,v36MapWasOpen=false,v36Chute=null,v36Aircraft=null,v398DropAge=0,v398ChuteOpen=false,v398DeployBlend=0,v398MapRefresh=0,v36MapZoom=1;
 function v36Safe(x,z){
  x=clamp(x,-HALF+9,HALF-9);z=clamp(z,-HALF+9,HALF-9);
  if(!solid(x,z,3))return{x,z};
@@ -4376,32 +4394,37 @@ function v36Safe(x,z){
 }
 function v36DrawMap(id){
  if(!player)return;drawMap();
- const c=$(id).getContext('2d');c.clearRect(0,0,512,512);c.drawImage(mapCanvas,0,0,512,512);
+ const c=$(id).getContext('2d'),zoom=clamp(v36MapZoom,.75,2.1);
+ c.clearRect(0,0,512,512);
+ c.save();c.translate(256,256);c.scale(zoom,zoom);c.drawImage(mapCanvas,-256,-256,512,512);c.restore();
+ const mapPoint=(x,z)=>[256+(x/WORLD)*512*zoom,256+(z/WORLD)*512*zoom];
+ c.save();c.beginPath();c.rect(0,0,512,512);c.clip();
  c.font='bold 12px system-ui';c.textBaseline='bottom';
  for(const poi of window.v27AuroraPOI||[]){
-  const px=(poi.x/WORLD+.5)*512,pz=(poi.z/WORLD+.5)*512;
-  c.fillStyle='#e7f7ff';c.strokeStyle='#06283b';c.lineWidth=3;
+  const [px,pz]=mapPoint(poi.x,poi.z);c.fillStyle='#e7f7ff';c.strokeStyle='#06283b';c.lineWidth=3;
   const name=poi.name.replace(' DE LOS ',' · ').replace(' DE ',' ');
   const pxLabel=clamp(px-c.measureText(name).width/2,7,500-c.measureText(name).width);
-  c.strokeText(name,pxLabel,clamp(pz-8,16,505));
-  c.fillText(name,pxLabel,clamp(pz-8,16,505));
+  c.strokeText(name,pxLabel,clamp(pz-8,16,505));c.fillText(name,pxLabel,clamp(pz-8,16,505));
  }
- // V39.8: central aircraft corridor and live aircraft location on deployment map.
+ const selected=id==='v36DropCanvas'?v36Destination:v36MapPick||v36Waypoint;
  if(id==='v36DropCanvas'&&v36Aircraft){
-  const mapX=(v36Aircraft.position.x/WORLD+.5)*512;
-  c.save();c.strokeStyle='#67f0e0';c.lineWidth=3;c.setLineDash([11,8]);
-  c.beginPath();c.moveTo(8,256);c.lineTo(504,256);c.stroke();c.setLineDash([]);
-  c.fillStyle='#fff2bb';c.font='bold 18px system-ui';c.fillText('✈',clamp(mapX-9,8,485),251);c.restore();
+  const [ax,az]=mapPoint(v36Aircraft.position.x,v36Aircraft.position.z),[sx,sz]=mapPoint(-HALF+14,0),[ex,ez]=mapPoint(HALF-12,0);
+  c.save();c.strokeStyle='#67f0e0';c.lineWidth=3;c.setLineDash([11,8]);c.beginPath();c.moveTo(sx,sz);c.lineTo(ex,ez);c.stroke();c.setLineDash([]);
+  if(selected){const [tx,tz]=mapPoint(selected.x,selected.z);c.strokeStyle='#ffd27a';c.lineWidth=2.5;c.beginPath();c.moveTo(ax,az);c.lineTo(tx,tz);c.stroke();}
+  c.fillStyle='#fff2bb';c.font='bold 18px system-ui';c.fillText('✈',clamp(ax-9,8,485),clamp(az+7,18,500));c.restore();
  }
- c.fillStyle='#fff6cf';c.font='bold 13px system-ui';
- c.fillText('POSICIÓN X '+Math.round(player.position.x)+' · Z '+Math.round(player.position.z),12,500);
-
- const pos=id==='v36DropCanvas'?v36Destination:v36MapPick||v36Waypoint;
- if(pos){c.strokeStyle='#ffb14e';c.lineWidth=5;c.beginPath();c.arc((pos.x/WORLD+.5)*512,(pos.z/WORLD+.5)*512,12,0,Math.PI*2);c.stroke();}
+ if(id==='v36MapCanvas'&&selected){
+  const [px,pz]=mapPoint(player.position.x,player.position.z),[tx,tz]=mapPoint(selected.x,selected.z);
+  c.save();c.strokeStyle='#ffb14e';c.lineWidth=2.5;c.setLineDash([7,6]);c.beginPath();c.moveTo(px,pz);c.lineTo(tx,tz);c.stroke();c.restore();
+ }
+ if(selected){const [px,pz]=mapPoint(selected.x,selected.z);c.strokeStyle='#ffb14e';c.lineWidth=5;c.beginPath();c.arc(px,pz,12,0,Math.PI*2);c.stroke();c.fillStyle='#ffe8bd';c.font='bold 11px system-ui';c.fillText('DESTINO',clamp(px+12,8,445),clamp(pz-12,16,496));}
+ c.restore();
+ c.fillStyle='#fff6cf';c.font='bold 13px system-ui';c.fillText('ZOOM '+Math.round(zoom*100)+'%',12,24);
+ if(window.v36FlightMode==='aircraft'&&v36Aircraft)c.fillText('AVIÓN EN RUTA · SELECCIONA ATERRIZAJE',12,500);
+ else c.fillText('POSICIÓN X '+Math.round(player.position.x)+' · Z '+Math.round(player.position.z),12,500);
 }
 
 
-function v36BuildAircraft(){
  const g=new THREE.Group(),paint=mat('#69869c',.62,.25),light=mat('#aecbd3',.72,.1);
  const fuselage=new THREE.Mesh(new THREE.CylinderGeometry(.75,.9,11,10),paint);
  fuselage.rotation.z=Math.PI/2;g.add(fuselage);
@@ -4500,13 +4523,13 @@ function v36Begin(){
  v58FlightPointers.clear();
  if($('v18Mode').value==='training'){v58SetFlightMode('landed');$('v36MapButton').classList.add('hidden');return;}
  v58SetFlightMode('aircraft');
- v36Destination=v36Safe(0,0);v398DropAge=0;v398ChuteOpen=false;
+ v36Destination=v36Safe(0,0);v36MapZoom=1;v398DropAge=0;v398ChuteOpen=false;v398DeployBlend=0;
  paused=true;$('controls').classList.add('hidden');
  v36BuildAircraft();camYaw=.75;camPitch=.15;v58Camera.reset();player.visible=false;
  $('v36MapButton').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.remove('hidden');
  v36DrawMap('v36DropCanvas');
 }
-function v372FlightMap(){if(window.v36FlightMode!=='aircraft')return;$('v36DropPanel').classList.remove('hidden');$('v37FlightHUD').classList.add('hidden');v36DrawMap('v36DropCanvas');}
+function v372FlightMap(){if(window.v36FlightMode!=='aircraft')return;$('v36DropPanel').classList.remove('hidden');$('v37FlightHUD').classList.add('hidden');v36DrawMap('v36DropCanvas');} $('v37FlightMapOpen').addEventListener('click',e=>{e.preventDefault();v372FlightMap();});
 $('v37FlightJump').addEventListener('click',e=>{e.preventDefault();v36Jump();});
 const v37FlightMapButton=document.createElement('button');v37FlightMapButton.type='button';v37FlightMapButton.id='v37FlightMapReturn';v37FlightMapButton.textContent='VOLVER A VER EL AVIÓN';
 $('v36DropPanel').querySelector('.v36Buttons').prepend(v37FlightMapButton);
@@ -4574,8 +4597,9 @@ function v36StepFlight(dt){
  v398DropAge+=dt;
  const altitude=player.position.y-ground(player.position.x,player.position.z);
  if(!v398ChuteOpen&&(v398DropAge>=2.8||altitude<42)){
-  v398ChuteOpen=true;if(v36Chute)v36Chute.visible=true;
+  v398ChuteOpen=true;v398DeployBlend=0;if(v36Chute){v36Chute.visible=true;v36Chute.scale.setScalar(.06);}
  }
+ if(v398ChuteOpen&&v36Chute&&v398DeployBlend<1){v398DeployBlend=Math.min(1,v398DeployBlend+dt/.62);const deployEase=1-Math.pow(1-v398DeployBlend,3);v36Chute.scale.setScalar(.06+.94*deployEase);}
  const glideSpeed=v398ChuteOpen?13.5:21;
  const nx=clamp(player.position.x+dx*glideSpeed*dt,-HALF+9,HALF-9);
  const nz=clamp(player.position.z+dz*glideSpeed*dt,-HALF+9,HALF-9);
@@ -4606,12 +4630,12 @@ function v36StepFlight(dt){
   if(v36Chute){
    player.remove(v36Chute);
    v36Chute.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose();});
-   v36Chute=null;
+   v36Chute=null;v398DeployBlend=0;
   }
   $('v36ParachuteStatus').classList.add('hidden');$('v36MapButton').classList.add('hidden');
   v22ShoulderRig.anchorY=NaN;moveVX=moveVZ=0;toast('ATERRIZAJE COMPLETADO');
  }else{
-  $('v36ParachuteStatus').textContent=(v398ChuteOpen?'🪂 PARACAÍDAS':'↘ CAÍDA LIBRE')+' · '+Math.ceil(player.position.y-floor)+' m · JOYSTICK PARA DIRIGIR';
+  const destinationDistance=v36Destination?Math.round(Math.hypot(v36Destination.x-player.position.x,v36Destination.z-player.position.z)):null;$('v36ParachuteStatus').textContent=(v398ChuteOpen?'🪂 PARACAÍDAS':'↘ CAÍDA LIBRE')+' · '+Math.ceil(player.position.y-floor)+' m'+(destinationDistance===null?'':' · DESTINO '+destinationDistance+' m')+' · JOYSTICK PARA DIRIGIR';
   const d=v398ChuteOpen?16.5:14.5,focus=player.position,horizontal=d*Math.cos(camPitch);
   camera.position.set(focus.x-Math.sin(camYaw)*horizontal,focus.y+(v398ChuteOpen?5.7:4.8)+Math.sin(camPitch)*d,focus.z-Math.cos(camYaw)*horizontal);
   camera.lookAt(focus.x,focus.y+1.75,focus.z);
@@ -4619,7 +4643,7 @@ function v36StepFlight(dt){
 }
 function v36ChoosePoint(e,id){
  const bounds=$(id).getBoundingClientRect();
- const pos=v36Safe(((e.clientX-bounds.left)/bounds.width-.5)*WORLD,((e.clientY-bounds.top)/bounds.height-.5)*WORLD);
+ const px=(e.clientX-bounds.left)/bounds.width*512,pz=(e.clientY-bounds.top)/bounds.height*512,zoom=clamp(v36MapZoom,.75,2.1);const pos=v36Safe(((px-256)/(512*zoom))*WORLD,((pz-256)/(512*zoom))*WORLD);
  if(id==='v36DropCanvas'){v36Destination=pos;$('v36DropLabel').textContent='ATERRIZAJE X '+Math.round(pos.x)+' · Z '+Math.round(pos.z);}
  else{v36MapPick=pos;$('v36MapLabel').textContent='DESTINO X '+Math.round(pos.x)+' · Z '+Math.round(pos.z);}
  v36DrawMap(id);
@@ -4634,6 +4658,19 @@ function v36CloseMap(){
  $('v36MapPanel').classList.add('hidden');
  if(v36MapWasOpen){v36MapWasOpen=false;paused=false;clock.getDelta();}
 }
+function v36InstallMapZoom(panelId,canvasId,suffix){
+ const panel=$(panelId),canvas=$(canvasId);if(!panel||!canvas)return;
+ const bar=document.createElement('div');bar.className='v36ZoomBar';bar.id='v36ZoomBar'+suffix;
+ const out=document.createElement('button');out.type='button';out.textContent='−';out.setAttribute('aria-label','Alejar mapa');
+ const value=document.createElement('span');value.textContent='100%';value.id='v36ZoomValue'+suffix;
+ const into=document.createElement('button');into.type='button';into.textContent='+';into.setAttribute('aria-label','Acercar mapa');
+ const refresh=()=>{v36MapZoom=clamp(Math.round(v36MapZoom*10)/10,.75,2.1);value.textContent=Math.round(v36MapZoom*100)+'%';v36DrawMap(canvasId);};
+ out.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();v36MapZoom-=.15;refresh();});
+ into.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();v36MapZoom+=.15;refresh();});
+ bar.append(out,value,into);panel.insertBefore(bar,canvas);
+}
+v36InstallMapZoom('v36DropPanel','v36DropCanvas','Drop');
+v36InstallMapZoom('v36MapPanel','v36MapCanvas','Tactical');
 $('v36DropCanvas').addEventListener('pointerdown',e=>{e.preventDefault();v36ChoosePoint(e,'v36DropCanvas');});
 $('v36MapCanvas').addEventListener('pointerdown',e=>{e.preventDefault();v36ChoosePoint(e,'v36MapCanvas');});
 $('v36Jump').onclick=v36Jump;
@@ -5463,7 +5500,8 @@ function v58SetFlightMode(mode){
 function htmlFlightModeSupportsCamera(){return window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending';}
 window.THEDEMIANFF_CAMERA_SYSTEM=()=>({profile:'FREE_FIRE_THIRD_PERSON',mode:v58Camera.mode,blend:v58Camera.blend,distance:v58Camera.back,shoulder:v58Camera.shoulder,fov:camera?.fov,zoom:v58Sights.active().zoom,weaponScale:v58Sights.weaponScale(),ads:adsHeld&&window.v36FlightMode==='landed',flightMode:window.v36FlightMode,sight:v58Sights.active().name,awmExclusiveX8:v58Sights.isSniper(),opticOverlay:document.body.classList.contains('v58OpticActive')});
 window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>{const old=v58Camera.mode;v58Camera.mode=ads?'ADS':'FREE';try{return v58Camera.input(dx,dy,fire?'fire':'free');}finally{v58Camera.mode=old;}};
-window.THEDEMIANFF_FLIGHT_CAMERA_TEST=()=>({aircraftCameraInput:typeof v58FlightPointerDown==='function',parachuteCameraUpdate:typeof v58Camera.updateAngles==='function',crosshairHidden:document.body.classList.contains('v58FlightMode'),mode:window.v36FlightMode});
+window.THEDEMIANFF_FLIGHT_CAMERA_TEST=()=>({aircraftCameraInput:typeof v58FlightPointerDown==='function',parachuteCameraUpdate:typeof v58Camera.updateAngles==='function',crosshairHidden:document.body.classList.contains('v58FlightMode'),mode:window.v36FlightMode,mapZoom:v36MapZoom,parachuteDeployBlend:v398DeployBlend,mapZoomControls:!!document.getElementById('v36ZoomBarDrop')});
+window.THEDEMIANFF_AWM_TEST=()=>({weapon:weapons[5]?.name,mag:weapons[5]?.mag,range:weapons[5]?.range,scope:weapons[5]?.scope,profile:v58Sights.sniperProfile,exclusive:v58Sights.isSniper(),weaponCount:weapons.length,opticOverlay:!!document.getElementById('v58OpticOverlay')});
 let v586BuildingVisibilityClock=0;
 
 const v586BuildingRaycaster=new THREE.Raycaster();
