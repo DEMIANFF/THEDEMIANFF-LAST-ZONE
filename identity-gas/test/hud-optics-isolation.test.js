@@ -18,6 +18,32 @@ test('match HUD is hidden outside the active match and isolated while the tactic
  assert.ok(html.includes("document.body.classList.remove('v36MapOpen')"));
 });
 
+test('the in-match status is a single compact row without the old brand header',()=>{
+ const top=html.slice(html.indexOf('<div class="top">'),html.indexOf('<canvas id="minimap"'));
+ assert.ok(top.includes('id="matchStatus"'));
+ assert.ok(top.includes('id="alive"')&&top.includes('id="kills"'));
+ assert.ok(top.includes('id="round"')&&top.includes('id="timer"')&&top.includes('id="zoneText"'));
+ assert.doesNotMatch(top,/THEDEMIANFF \/\/ LAST ZONE|id="rightTop"/);
+ assert.ok(stateCss.includes('body.v58FlightMode #ui>#health,body.v58FlightMode #ui>#weapon{display:none!important}'));
+ assert.ok(stateCss.includes('body.v58OpticActive #ui>#minimap,body.v58OpticActive #ui>#zoneInfo{display:none!important}'));
+ assert.ok(stateCss.includes('body:has(#pausePanel:not(.hidden)) #ui>#controls'));
+});
+
+test('HUD profile is version resilient and stored in Android private preferences',()=>{
+ const java=fs.readFileSync(path.join(__dirname,'../../app/src/main/java/com/thedemianff/lastzone/MainActivity.java'),'utf8');
+ assert.ok(html.includes('function hudNormalizeLayout(value)'));
+ assert.ok(html.includes('native.saveHudProfile(payload)||saved'));
+ assert.ok(html.includes("native.readHudProfile():''"));
+ assert.ok(java.includes('readHudProfile()'));
+ assert.ok(java.includes('saveHudProfile(String json)'));
+ assert.ok(java.includes('thedemianff_hud_profile_v1'));
+});
+
+test('aim and crouch controls stay round and renderer diagnostics require an explicit debug flag',()=>{
+ assert.ok(stateCss.includes('#controls #mobileBtns #aimBtn,#controls #mobileBtns #crouchBtn{width:54px;height:54px;padding:0!important;border-radius:50%!important'));
+ assert.ok(html.includes("new URLSearchParams(location.search).get('debug')!=='1'"));
+});
+
 test('optic vignette leaves the entire touch HUD above it and passes pointer input through',()=>{
  assert.ok(stateCss.includes('#v58OpticOverlay{z-index:10!important;pointer-events:none!important}'));
  assert.ok(stateCss.includes('#v58OpticOverlay::before,#v58OpticOverlay::after{pointer-events:none!important}'));
@@ -31,4 +57,7 @@ test('2x, 4x and 8x scoped ADS use a clear eye-level view without the operator b
  assert.ok(html.includes('targetHeight=scoped ? 2.02 :'));
  assert.ok(html.includes('targetFov=2*Math.atan(Math.tan(baseFov*Math.PI/360)/zoom)*180/Math.PI'));
  assert.ok(html.includes("profile:'FREE_FIRE_HYBRID_TPS'"));
+ assert.doesNotMatch(html,/name:'PUNTO'|MIRA PUNTO/);
+ assert.ok(html.includes("{name:'2x',zoom:2"));
+ assert.ok(html.includes("{name:'4x',zoom:4"));
 });

@@ -723,11 +723,9 @@ body:has(#menu:not(.hidden)) #cross,body:has(#end:not(.hidden)) #cross,body:has(
 #cross:before{width:2px!important;height:14px!important;left:6px!important;top:0!important;background:#d9fff1!important;box-shadow:0 0 0 1px #061b22,0 0 7px #5fffd2!important}
 #cross:after{height:2px!important;width:14px!important;top:6px!important;left:0!important;background:#d9fff1!important;box-shadow:0 0 0 1px #061b22,0 0 7px #5fffd2!important}
 #v10Reticle{border-color:#b9ffe9!important;opacity:.96!important;box-shadow:0 0 0 1.5px #071820,0 0 9px #64f4cb88!important;background:transparent!important}
-#v10Reticle[data-scope="PUNTO"]{width:12px!important;height:12px!important;border-width:1.5px!important}
 #v10Reticle[data-scope="2x"]{width:10px!important;height:10px!important;border-width:1.5px!important}
 #v10Reticle[data-scope="4x"]{width:8px!important;height:8px!important;border-width:1.25px!important}
 #v10Reticle[data-scope="8x"]{width:7px!important;height:7px!important;border-width:1px!important}
-#v10Reticle.v58ADS[data-scope="PUNTO"]{width:12px!important;height:12px!important;opacity:.98!important}
 #v10Reticle.v58ADS[data-scope="2x"]{width:10px!important;height:10px!important;opacity:.98!important}
 #v10Reticle.v58ADS[data-scope="4x"]{width:8px!important;height:8px!important;opacity:.98!important}
 #v10Reticle.v58ADS[data-scope="8x"]{width:7px!important;height:7px!important;opacity:1!important}
@@ -741,7 +739,6 @@ body.v475InMatch:not(.v58FlightMode) #cross{display:block!important}
 #v10Reticle:before{width:1px;height:25px;left:5px;top:-7px}
 #v10Reticle:after{height:1px;width:25px;top:5px;left:-7px}
 body.v475InMatch:not(.v58FlightMode) #v10Reticle.v58ADS{display:block!important}
-#v10Reticle[data-scope="PUNTO"]{width:13px!important;height:13px!important}
 #v10Reticle[data-scope="2x"]{width:12px!important;height:12px!important}
 #v10Reticle[data-scope="4x"]{width:10px!important;height:10px!important}
 #v10Reticle[data-scope="8x"]{width:8px!important;height:8px!important}
@@ -1053,6 +1050,36 @@ body.v36MapOpen #ui > #settings,
 body.v36MapOpen #ui > #controls,
 body.v36MapOpen #v58ScopeButton{display:none!important}
 body.v36MapOpen #v58OpticOverlay{display:none!important}
+/* V59.3: concise match status and phase aware gameplay HUD. */
+#ui>.top{position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;left:12px!important;right:auto!important;transform:none!important;width:max-content!important;max-width:calc(100vw - 92px)!important;z-index:155!important;pointer-events:none!important}
+#ui>.top>.glass{display:flex!important;align-items:center!important;justify-content:center!important;gap:clamp(5px,1.2vw,14px)!important;padding:6px 10px!important;max-width:100%!important;white-space:nowrap!important;border-radius:12px!important;background:#091923d9!important;border:1px solid #87d9e65c!important;box-shadow:0 2px 12px #0005!important;backdrop-filter:blur(6px)}
+#ui>.top .brand{display:none!important}
+#ui>.top .stat{font-size:clamp(9px,1.2vw,12px)!important;line-height:1.1!important;white-space:nowrap!important}
+#ui>.top .stat b{font-size:clamp(11px,1.45vw,15px)!important}
+#ui>.top #zoneText{color:#bde9d5!important}
+#rightTop{display:contents!important;text-align:left!important}
+body.v58FlightMode #ui>#health,body.v58FlightMode #ui>#weapon{display:none!important}
+body.v58OpticActive #ui>#minimap,body.v58OpticActive #ui>#zoneInfo{display:none!important}
+body:has(#pausePanel:not(.hidden)) #ui>.top,
+body:has(#pausePanel:not(.hidden)) #ui>#minimap,
+body:has(#pausePanel:not(.hidden)) #ui>#zoneInfo,
+body:has(#pausePanel:not(.hidden)) #ui>#health,
+body:has(#pausePanel:not(.hidden)) #ui>#weapon,
+body:has(#pausePanel:not(.hidden)) #ui>#cross,
+body:has(#pausePanel:not(.hidden)) #ui>#v10Reticle,
+body:has(#pausePanel:not(.hidden)) #ui>#v13AimMode,
+body:has(#pausePanel:not(.hidden)) #ui>#controls,
+body:has(#pausePanel:not(.hidden)) #ui>#pingButton,
+body:has(#pausePanel:not(.hidden)) #ui>#v362LootLegend,
+body:has(#pausePanel:not(.hidden)) #ui>#v7status,
+body:has(#pausePanel:not(.hidden)) #v58OpticOverlay,
+body:has(#pausePanel:not(.hidden)) #v58ScopeButton{display:none!important}
+#ui>#v124Debug,#ui>#v122ControlState,#ui>#v123InputTest,#ui>#fpsCounter{display:none!important}
+#controls #mobileBtns #aimBtn,#controls #mobileBtns #crouchBtn{width:54px;height:54px;padding:0!important;border-radius:50%!important;aspect-ratio:1/1;display:grid;place-items:center;line-height:1;font-size:9px}
+body:has(#pausePanel:not(.hidden)) #ui>#v362Settings,
+body:has(#pausePanel:not(.hidden)) #ui>#settings,
+body:has(#pausePanel:not(.hidden)) #ui>#v36MapButton{display:none!important}
+@media(max-width:750px){#ui>.top{left:8px!important;max-width:calc(100vw - 92px)!important}#ui>.top>.glass{gap:5px!important;padding:5px 7px!important}#ui>.top .stat{font-size:9px!important}#ui>.top .stat b{font-size:11px!important}}
 </style></head><body><div id="game"></div><div id="v58OpticOverlay" aria-hidden="true"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de operaciones: eventos, misiones y logros">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
@@ -1074,7 +1101,7 @@ body.v36MapOpen #v58OpticOverlay{display:none!important}
  </section>
 <div id="v36MapPanel" class="hidden"><h2>MAPA TÁCTICO · PUERTO AURORA</h2><div id="v36MapLabel">Toca un punto para marcar destino.</div><canvas id="v36MapCanvas" width="512" height="512"></canvas><div class="v36Buttons"><button id="v36Mark">MARCAR DESTINO</button><button id="v36MapClose">VOLVER AL COMBATE</button></div></div>
 <div id="v37FlightHUD" class="hidden"><button id="v37FlightMapOpen" type="button">▧ MAPA / DESTINO</button><button id="v37FlightJump" type="button">🪂 SALTAR</button></div><div id="v36DropPanel" class="hidden"><h2>OPERACIÓN ÚLTIMA ZONA · DESPLIEGUE</h2><div class="v36Plane">✈</div><div id="v36DropLabel">Elige el punto donde quieres aterrizar tocando el mapa.</div><canvas id="v36DropCanvas" width="512" height="512"></canvas><div class="v36Buttons"><button id="v36Jump">SALTAR EN PARACAÍDAS</button></div></div>
-<div id="v36ParachuteStatus" class="hidden">🪂 DESCENSO EN PARACAÍDAS</div><div id="damageFlash"></div><div id="v124Debug"></div><div id="v123InputTest"></div><div id="v122ControlState"></div><div id="v10Hint"></div><div id="v10Reticle"></div><div id="v13AimMode">⊕ MIRA LIBRE</div><div id="v9Event"></div><div id="v9Status"></div><div id="v8Damage"></div><div id="v8Combat"></div><div id="v8Muzzle"></div><div id="v7Compass">N</div><div id="v7status">TEMPORADA 01 · OPERACIÓN ÚLTIMA ZONA</div><button id="v362Settings" class="hidden" type="button" aria-label="Pausar y abrir configuración">⚙</button><button id="pingButton" aria-label="Marcar enemigo">⌖ MARCAR</button><div id="v362LootLegend">✚ BOTIQUÍN &nbsp; ◈ ESCUDO<br>▰ MUNICIÓN · ACÉRCATE PARA RECOGER</div><div id="v362EventHud" class="hidden" aria-live="polite"></div><div id="v7Toast"></div><div id="combatFeed"></div><div id="missionHud">MISIÓN: SOBREVIVE · ELIMINA · RECOGE</div><div id="fpsCounter"></div><div id="orientationTip" class="glass">↻ Gira tu teléfono horizontalmente para jugar con mayor comodidad.</div><div class="top"><div class="glass"><div class="brand">THEDEMIANFF // LAST ZONE</div><div class="stat">VIVOS <b id="alive">21</b> &nbsp; BAJAS <b id="kills">0</b></div></div><div id="rightTop" class="glass"><div class="stat">RONDA <b id="round">01</b> · <span id="timer">00:00</span></div><div class="stat" id="zoneText">ZONA SEGURA</div></div></div><canvas id="minimap" width="256" height="256"></canvas><div id="zoneInfo" class="glass">◉ Zona: <span id="zoneRadius">190</span> m<br>⌛ Cierre: <span id="zoneCountdown">00:45</span></div><div id="health" class="glass"><div class="stat">VIDA <span id="hpText">100</span> &nbsp; · &nbsp; ESCUDO <span id="armorText">50</span></div><div class="bars"><div id="hpBar"></div></div><div class="bars shield"><div id="armorBar" style="width:50%"></div></div></div><div id="weapon" class="glass"><div class="brand" id="gunName">AR-7 · ASALTO</div><strong id="ammo">30</strong> <small id="reserve">/ 180</small><div class="stat">BOTIQUINES <span id="meds">2</span> · <span id="weaponMode">AUTO</span></div><div id="v15Loadout" style="font-size:9px;color:#ffe0a0;margin-top:3px">ARMA 1/5 · CAMBIAR: ARMA</div></div><div id="cross"></div><div id="dmgDir" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);opacity:0;transition:opacity .2s;pointer-events:none;z-index:9"><div style="width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:26px solid #ff4d4d;filter:drop-shadow(0 0 6px #ff2a2a)"></div></div><div id="hit">✕</div><div id="toast" class="glass"></div><button id="settings" class="glass">⚙ PAUSA</button><div id="desktopHint">WASD mover · Ratón apuntar · Clic disparar · Shift correr · Espacio saltar · R recargar · H curar · 1-5 armas · Esc pausa</div><div id="hudEditor" class="hidden"><div class="hudEditorBar"><strong>✥ EDITOR HUD V26</strong><button id="v26Hud2" type="button">2 DEDOS</button><button id="v26Hud3" type="button">3 DEDOS</button><button id="v26Hud4" type="button">4 DEDOS</button><button id="v26HudProfileSave" type="button">GUARDAR PERFIL</button><button id="v26HudProfileLoad" type="button">CARGAR PERFIL</button><span>Arrastra cualquier botón</span><label>Tamaño <input id="hudScale" type="range" min="60" max="180" value="100" step="5"></label><label>Opacidad <input id="hudAlpha" type="range" min="30" max="100" value="90" step="5"></label><button id="hudReset" type="button">RESTAURAR HUD</button><button id="hudSave" type="button">✓ GUARDAR</button><button id="hudCancel" type="button">CANCELAR</button></div></div><div id="controls" class="hidden"><div id="lookArea"></div><div id="stickBase"><div id="stick"></div></div><div id="mobileBtns"><button id="sprint">CORRER</button><button id="jump">SALTAR</button><button id="fire">FUEGO</button><button id="heal">CURAR</button><button id="reload">RECARGA</button><button id="aimBtn">MIRA</button><button id="crouchBtn">AGACHAR</button><button id="switchGun">ARMA</button></div></div><div id="v443Entry" role="dialog" aria-label="Acceso a THEDEMIANFF LAST ZONE" style="position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at 66% 30%,#16475b,#0b1427 48%,#060912 95%);display:flex;align-items:center;justify-content:center;pointer-events:auto;color:#fff;font-family:system-ui,sans-serif">
+<div id="v36ParachuteStatus" class="hidden">🪂 DESCENSO EN PARACAÍDAS</div><div id="damageFlash"></div><div id="v124Debug"></div><div id="v123InputTest"></div><div id="v122ControlState"></div><div id="v10Hint"></div><div id="v10Reticle"></div><div id="v13AimMode">⊕ MIRA LIBRE</div><div id="v9Event"></div><div id="v9Status"></div><div id="v8Damage"></div><div id="v8Combat"></div><div id="v8Muzzle"></div><div id="v7Compass">N</div><div id="v7status">TEMPORADA 01 · OPERACIÓN ÚLTIMA ZONA</div><button id="v362Settings" class="hidden" type="button" aria-label="Pausar y abrir configuración">⚙</button><button id="pingButton" aria-label="Marcar enemigo">⌖ MARCAR</button><div id="v362LootLegend">✚ BOTIQUÍN &nbsp; ◈ ESCUDO<br>▰ MUNICIÓN · ACÉRCATE PARA RECOGER</div><div id="v362EventHud" class="hidden" aria-live="polite"></div><div id="v7Toast"></div><div id="combatFeed"></div><div id="missionHud">MISIÓN: SOBREVIVE · ELIMINA · RECOGE</div><div id="fpsCounter"></div><div id="orientationTip" class="glass">↻ Gira tu teléfono horizontalmente para jugar con mayor comodidad.</div><div class="top"><div class="glass" id="matchStatus"><div class="stat">VIVOS <b id="alive">21</b></div><div class="stat">BAJAS <b id="kills">0</b></div><div class="stat">RONDA <b id="round">01</b> · <span id="timer">00:00</span></div><div class="stat" id="zoneText">ZONA SEGURA</div></div></div><canvas id="minimap" width="256" height="256"></canvas><div id="zoneInfo" class="glass">◉ Zona: <span id="zoneRadius">190</span> m<br>⌛ Cierre: <span id="zoneCountdown">00:45</span></div><div id="health" class="glass"><div class="stat">VIDA <span id="hpText">100</span> &nbsp; · &nbsp; ESCUDO <span id="armorText">50</span></div><div class="bars"><div id="hpBar"></div></div><div class="bars shield"><div id="armorBar" style="width:50%"></div></div></div><div id="weapon" class="glass"><div class="brand" id="gunName">AR-7 · ASALTO</div><strong id="ammo">30</strong> <small id="reserve">/ 180</small><div class="stat">BOTIQUINES <span id="meds">2</span> · <span id="weaponMode">AUTO</span></div><div id="v15Loadout" style="font-size:9px;color:#ffe0a0;margin-top:3px">ARMA 1/5 · CAMBIAR: ARMA</div></div><div id="cross"></div><div id="dmgDir" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);opacity:0;transition:opacity .2s;pointer-events:none;z-index:9"><div style="width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:26px solid #ff4d4d;filter:drop-shadow(0 0 6px #ff2a2a)"></div></div><div id="hit">✕</div><div id="toast" class="glass"></div><button id="settings" class="glass">⚙ PAUSA</button><div id="desktopHint">WASD mover · Ratón apuntar · Clic disparar · Shift correr · Espacio saltar · R recargar · H curar · 1-5 armas · Esc pausa</div><div id="hudEditor" class="hidden"><div class="hudEditorBar"><strong>✥ EDITOR HUD V26</strong><button id="v26Hud2" type="button">2 DEDOS</button><button id="v26Hud3" type="button">3 DEDOS</button><button id="v26Hud4" type="button">4 DEDOS</button><button id="v26HudProfileSave" type="button">GUARDAR PERFIL</button><button id="v26HudProfileLoad" type="button">CARGAR PERFIL</button><span>Arrastra cualquier botón</span><label>Tamaño <input id="hudScale" type="range" min="60" max="180" value="100" step="5"></label><label>Opacidad <input id="hudAlpha" type="range" min="30" max="100" value="90" step="5"></label><button id="hudReset" type="button">RESTAURAR HUD</button><button id="hudSave" type="button">✓ GUARDAR</button><button id="hudCancel" type="button">CANCELAR</button></div></div><div id="controls" class="hidden"><div id="lookArea"></div><div id="stickBase"><div id="stick"></div></div><div id="mobileBtns"><button id="sprint">CORRER</button><button id="jump">SALTAR</button><button id="fire">FUEGO</button><button id="heal">CURAR</button><button id="reload">RECARGA</button><button id="aimBtn">MIRA</button><button id="crouchBtn">AGACHAR</button><button id="switchGun">ARMA</button></div></div><div id="v443Entry" role="dialog" aria-label="Acceso a THEDEMIANFF LAST ZONE" style="position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at 66% 30%,#16475b,#0b1427 48%,#060912 95%);display:flex;align-items:center;justify-content:center;pointer-events:auto;color:#fff;font-family:system-ui,sans-serif">
  <div style="position:absolute;inset:0;pointer-events:none;opacity:.22;background:repeating-linear-gradient(130deg,transparent 0 70px,#31b9e5 72px,transparent 74px 155px)"></div>
  <div style="width:min(650px,90vw);max-height:92vh;overflow:auto;text-align:center;position:relative;padding:18px">
  <div style="letter-spacing:.3em;color:#5fe5ff;font-size:clamp(10px,1.6vw,15px)">OPERACIÓN ÚLTIMA ZONA</div>
@@ -1210,7 +1237,7 @@ body.v475InMatch #v10Reticle{visibility:visible!important}
 </style>
 
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V59.2.0 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
+<div id="v22Edition">V59.3.0 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"><span class="v581Currency"><small>CR</small><b id="v18Credits">0</b></span><span class="v581Currency"><small>XP</small><b id="v18XP">0</b></span><button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <aside class="v17Left" aria-label="Navegación principal">
  <div class="v588SeasonCard"><small>TEMPORADA 01 · AURORA</small><strong>ÚLTIMA ZONA</strong><span>OPERACIÓN GLACIAL</span></div>
@@ -1950,6 +1977,7 @@ window.v424Debug=function(mode){
 };
 // Etiqueta informativa 20 s tras crear el renderizador (no interactiva: pointer-events:none).
 (function(){
+ if(new URLSearchParams(location.search).get('debug')!=='1')return;
  let t0=0;const timer=setInterval(function(){
   try{
    if(!renderer)return;
@@ -5458,7 +5486,6 @@ try{localStorage.setItem(V58_CAMERA_MIGRATION_KEY,'1');}catch{}
 const v58Sights={
  index:0,
  profiles:[
-  {name:'PUNTO',zoom:1,sensitivity:1,yawRate:5.2,pitchRate:3.8},
   {name:'2x',zoom:2,sensitivity:.72,yawRate:3.2,pitchRate:2.4},
   {name:'4x',zoom:4,sensitivity:.52,yawRate:2.0,pitchRate:1.5}
  ],
@@ -5470,7 +5497,7 @@ const v58Sights={
   if(!adsHeld||window.v36FlightMode!=='landed'||!running||paused||gameOver)return;
   if(this.isSniper()){this.index=0;toast('AWM · MIRA FIJA 8X');this.updateHud(true);return;}
   this.index=(this.index+1)%this.profiles.length;
-  try{localStorage.setItem('v534_scope_index',String(this.index));}catch(e){}
+  try{localStorage.setItem('thedemianff-v593-optic-index',String(this.index));}catch(e){}
   this.updateHud(true);
  },
  updateHud(isADS=adsHeld){
@@ -5485,10 +5512,10 @@ const v58Sights={
   if(label){label.textContent=visible?active.name:'';label.style.display=visible&&!opticVisible?'block':'none';}
  }
 };
-try{const savedScope=Number(localStorage.getItem('v534_scope_index'));if(Number.isInteger(savedScope)&&savedScope>=0&&savedScope<v58Sights.profiles.length)v58Sights.index=savedScope;}catch(e){}
+try{const savedRaw=localStorage.getItem('thedemianff-v593-optic-index');let savedScope=savedRaw===null?NaN:Number(savedRaw);if(!Number.isInteger(savedScope)){const legacy=Number(localStorage.getItem('v534_scope_index'));savedScope=legacy===2?1:0;localStorage.setItem('thedemianff-v593-optic-index',String(savedScope));}if(savedScope>=0&&savedScope<v58Sights.profiles.length)v58Sights.index=savedScope;}catch(e){}
 (function initV58ScopeSelector(){
  const controls=document.getElementById('controls');if(!controls)return;
- const button=document.createElement('button');button.id='v58ScopeButton';button.type='button';button.textContent='MIRA PUNTO';button.setAttribute('aria-label','Cambiar aumento óptico permitido para el arma equipada');button.addEventListener('click',()=>v58Sights.cycle());document.body.appendChild(button);
+ const button=document.createElement('button');button.id='v58ScopeButton';button.type='button';button.textContent='MIRA 2X';button.setAttribute('aria-label','Cambiar aumento óptico permitido para el arma equipada');button.addEventListener('click',()=>v58Sights.cycle());document.body.appendChild(button);
  const label=document.createElement('div');label.id='v58ScopeLabel';label.setAttribute('aria-live','off');controls.appendChild(label);
  document.addEventListener('keydown',e=>{if(e.code==='KeyV'&&!e.repeat&&running&&!paused&&!gameOver&&adsHeld&&window.v36FlightMode==='landed')v58Sights.cycle();});
 })();
@@ -5707,7 +5734,7 @@ function aimAssistPull(dt){
   v58Camera.targetPitch=clamp(v58Camera.targetPitch+clamp(best.pitchError*strength*.30,-.002,.002),-.70,.90);
 }
 function flushCamera(dt){cameraDX=0;cameraDY=0;}
-function pause(){if(!running||window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')return;if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);v123ResetInputs();$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');settingsFromMenu=false;paused=true;v372RefreshSettingsContext();fireHeld=false;fireTouch=null;adsHeld=false;sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)';$('pausePanel').classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();}function resume(){v123ResetInputs();clock.getDelta();paused=false;$('pausePanel').classList.add('hidden');if(!mobile)renderer.domElement.requestPointerLock?.();}
+function pause(){if(!running||window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending')return;if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);v123ResetInputs();$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');settingsFromMenu=false;paused=true;v372RefreshSettingsContext();fireHeld=false;fireTouch=null;adsHeld=false;v58Sights.updateHud(false);sprintHeld=false;joyX=joyY=0;stickTouch=lookTouch=null;keys={};moveVX=moveVZ=0;cameraDX=cameraDY=0;stick.style.transform='translate(-50%,-50%)';$('pausePanel').classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();}function resume(){v123ResetInputs();clock.getDelta();paused=false;$('pausePanel').classList.add('hidden');v58Sights.updateHud(false);if(!mobile)renderer.domElement.requestPointerLock?.();}
 function v23LeaveMatch(){
  if(!running||!paused)return;
  if(!window.confirm('¿Abandonar la partida y volver al lobby?'))return;
@@ -6178,8 +6205,29 @@ const hudIds=['stickBase','sprint','jump','fire','heal','reload','aimBtn','switc
 const HUD_KEY='thedemianff-hud-v12';
 const V26_HUD_PRESETS='thedemianff-v26-hud-presets';
 let hudLayout=null,hudEditing=false,hudSelected='fire',hudDrag=null,hudBefore=null,hudReturnToGame=false;
-function hudRead(){try{const v=JSON.parse(localStorage.getItem(HUD_KEY)||'null');if(!v||typeof v!=='object')return null;const base=hudDefault();for(const id of hudIds){if(v[id]&&typeof v[id]==='object')base[id]={...base[id],...v[id]}}return base}catch{return null}}
-function hudSaveLocal(){try{localStorage.setItem(HUD_KEY,JSON.stringify(hudLayout))}catch{}}
+function hudNormalizeLayout(value){
+ const source=value&&typeof value==='object'?(value.layout&&typeof value.layout==='object'?value.layout:value):null;
+ if(!source)return null;
+ const base=hudDefault();let found=false;
+ for(const id of hudIds){const item=source[id];if(!item||typeof item!=='object')continue;found=true;
+  for(const key of ['x','y','size','alpha']){const n=Number(item[key]);if(Number.isFinite(n))base[id][key]=n;}
+ }
+ return found?base:null;
+}
+function hudProfileJson(){return JSON.stringify({schema:1,savedAt:Date.now(),layout:hudNormalizeLayout(hudLayout||hudDefault())})}
+function hudProfileStore(){
+ try{const layout=hudNormalizeLayout(hudLayout||hudDefault());if(!layout)return false;hudLayout=layout;const payload=hudProfileJson(),native=window.THEDEMIANFFGame;let saved=false;
+  try{localStorage.setItem(HUD_KEY,JSON.stringify(layout));localStorage.setItem(V26_HUD_PRESETS,payload);saved=true}catch{}
+  try{if(native&&typeof native.saveHudProfile==='function')saved=native.saveHudProfile(payload)||saved}catch{}
+  return saved;
+ }catch{return false}
+}
+function hudRead(){
+ try{const local=hudNormalizeLayout(JSON.parse(localStorage.getItem(HUD_KEY)||'null'));if(local)return local}catch{}
+ try{const native=window.THEDEMIANFFGame,raw=native&&typeof native.readHudProfile==='function'?native.readHudProfile():'';if(raw)return hudNormalizeLayout(JSON.parse(raw))}catch{}
+ return null;
+}
+function hudSaveLocal(){hudProfileStore()}
 function hudDefault(){
  const vw=innerWidth,vh=innerHeight;
  const pts={stickBase:[.115,.77],sprint:[.72,.63],jump:[.82,.61],fire:[.925,.70],heal:[.72,.79],reload:[.82,.79],aimBtn:[.82,.92],switchGun:[.92,.92],crouchBtn:[.72,.92]};
@@ -6218,12 +6266,17 @@ function v26HudPreset(fingers){
  if(fingers===4){p.fire.x=.83;p.fire.y=.40;p.aimBtn.x=.17;p.aimBtn.y=.34;p.jump.x=.90;p.jump.y=.68;p.reload.x=.76;p.reload.y=.82;}
  hudLayout=p;hudApply();
 }
-function v26HudSaveProfile(){try{localStorage.setItem(V26_HUD_PRESETS,JSON.stringify(hudLayout));toast('PERFIL HUD GUARDADO')}catch{toast('NO SE PUDO GUARDAR HUD')}}
-function v26HudLoadProfile(){try{const p=JSON.parse(localStorage.getItem(V26_HUD_PRESETS)||'null');if(!p)throw Error('empty');hudLayout={...hudDefault(),...p};hudApply();toast('PERFIL HUD CARGADO')}catch{toast('NO HAY PERFIL HUD')}}
+function v26HudSaveProfile(){toast(hudProfileStore()?'PERFIL HUD GUARDADO':'NO SE PUDO GUARDAR HUD')}
+function v26HudLoadProfile(){
+ let profile=null;try{const native=window.THEDEMIANFFGame,raw=native&&typeof native.readHudProfile==='function'?native.readHudProfile():'';if(raw)profile=hudNormalizeLayout(JSON.parse(raw));}catch{}
+ if(!profile)for(const key of [V26_HUD_PRESETS,'thedemianff-hud-profile-v1','thedemianff-hud-profile',HUD_KEY]){try{profile=hudNormalizeLayout(JSON.parse(localStorage.getItem(key)||'null'));if(profile)break}catch{}}
+ if(!profile){toast('NO HAY PERFIL HUD');return}
+ hudLayout=profile;hudApply();hudSaveLocal();toast('PERFIL HUD CARGADO');
+}
 function hudBegin(){hudReturnToGame=running;v123ResetInputs();
  hudBefore=hudLayout?JSON.parse(JSON.stringify(hudLayout)):null;
  hudLayout=hudLayout||hudDefault();hudEditing=true;paused=true;
- fireHeld=false;fireTouch=null;sprintHeld=false;adsHeld=false;$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');joyX=joyY=0;stickTouch=lookTouch=null;
+ fireHeld=false;fireTouch=null;sprintHeld=false;adsHeld=false;v58Sights.updateHud(false);$('sprint').classList.remove('sprintActive');$('aimBtn').classList.remove('adsActive');joyX=joyY=0;stickTouch=lookTouch=null;
  $('pausePanel').classList.add('hidden');$('menu').classList.add('hidden');
  $('controls').classList.remove('hidden');$('controls').classList.add('hudEditing');
  $('hudEditor').classList.remove('hidden');

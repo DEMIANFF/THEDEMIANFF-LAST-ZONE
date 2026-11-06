@@ -473,6 +473,7 @@ public class MainActivity extends Activity {
   // Private on-device recovery slot survives ordinary in-place APK updates.
   // It does NOT survive every uninstall, factory reset or data deletion.
   private static final String GUEST_PREFS="thedemianff_guest_auto_v1";
+  private static final String HUD_PREFS="thedemianff_hud_profile_v1";
   public final class GuestStorageBridge {
     @JavascriptInterface public String readProgress() {
       return getSharedPreferences(GUEST_PREFS,MODE_PRIVATE).getString("progress","");
@@ -552,6 +553,29 @@ public class MainActivity extends Activity {
     }
   }
   public final class GameBridge {
+    @JavascriptInterface public String readHudProfile() {
+      return getSharedPreferences(HUD_PREFS,MODE_PRIVATE).getString("profile","");
+    }
+    @JavascriptInterface public boolean saveHudProfile(String json) {
+      if(json==null||json.length()<10||json.length()>32768)return false;
+      try{
+        org.json.JSONObject root=new org.json.JSONObject(json);
+        org.json.JSONObject layout=root.optJSONObject("layout");
+        if(root.optInt("schema",0)!=1||layout==null||layout.length()<1||layout.length()>16)return false;
+        boolean valid=false;
+        for(String key:new String[]{"stickBase","sprint","jump","fire","heal","reload","aimBtn","switchGun","crouchBtn"}) {
+          org.json.JSONObject item=layout.optJSONObject(key);
+          if(item==null)continue;
+          double x=item.optDouble("x",Double.NaN),y=item.optDouble("y",Double.NaN);
+          double size=item.optDouble("size",Double.NaN),alpha=item.optDouble("alpha",Double.NaN);
+          if(!Double.isFinite(x)||!Double.isFinite(y)||!Double.isFinite(size)||!Double.isFinite(alpha)||
+             x<0||x>1||y<0||y>1||size<32||size>220||alpha<.2||alpha>1)return false;
+          valid=true;
+        }
+        if(!valid)return false;
+        return getSharedPreferences(HUD_PREFS,MODE_PRIVATE).edit().putString("profile",json).commit();
+      }catch(Exception e){return false;}
+    }
     @JavascriptInterface public void exitGame() {
       runOnUiThread(() -> { if(web!=null)web.stopLoading(); finish(); });
     }

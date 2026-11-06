@@ -13,15 +13,15 @@ test('AWM is the sixth weapon with sniper-class handling and dedicated 8x scope'
  assert.ok(html.includes("weaponIndex===5?.94"));
 });
 
-test('generic weapons expose only point, 2x and 4x; 8x is outside the cycle',()=>{
+test('generic weapons expose only 2x and 4x; 8x is exclusive to the AWM',()=>{
  const sightStart=html.indexOf('const v58Sights=');
  const profileStart=html.indexOf('profiles:[',sightStart);
  const sniperStart=html.indexOf('sniperProfile:',profileStart);
  assert.ok(sightStart>=0&&profileStart>sightStart&&sniperStart>profileStart);
  const genericProfiles=html.slice(profileStart,sniperStart);
- assert.ok(genericProfiles.includes("{name:'PUNTO',zoom:1"));
  assert.ok(genericProfiles.includes("{name:'2x',zoom:2"));
  assert.ok(genericProfiles.includes("{name:'4x',zoom:4"));
+ assert.doesNotMatch(genericProfiles,/PUNTO|zoom:1/);
  assert.doesNotMatch(genericProfiles,/zoom:8|name:'8x'/);
  assert.ok(html.includes("sniperProfile:{name:'8x',zoom:8,sensitivity:.22,yawRate:.72,pitchRate:.54}"));
  assert.ok(html.includes("if(this.isSniper()){this.index=0;toast('AWM · MIRA FIJA 8X')"));
@@ -103,9 +103,9 @@ test('airborne mode suppresses ADS and combat reticle until landing',()=>{
  assert.ok(html.includes("v58Sights.updateHud(false)"));
 });
 
-test('release is V59.2.0 and does not include online multiplayer V59',()=>{
- assert.ok(gradle.includes('versionCode 169'));
- assert.ok(gradle.includes("versionName '59.2.0-hud-optic-state-fix'"));
+test('release is V59.3.0 and does not include online multiplayer V59',()=>{
+ assert.ok(gradle.includes('versionCode 170'));
+ assert.ok(gradle.includes("versionName '59.3.0-hud-phase-profile-fix'"));
  assert.ok(workflow.includes('v58-9-0-awm-camera-airdrop-release'));
  assert.ok(!gradle.includes("59.0.0"));
 });

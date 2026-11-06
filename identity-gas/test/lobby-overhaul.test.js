@@ -12,7 +12,7 @@ const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
 test('V57.6 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.ok(html.includes("V59.2.0 · CENTRO DE OPERACIONES"));
+  assert.ok(html.includes("V59.3.0 · CENTRO DE OPERACIONES"));
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -69,7 +69,7 @@ test('Aurora pass has 30 persistent free and Elite reward tiers without real-mon
   assert.match(html, /p\.claimed\.push\(key\)/);
 });
 
-test('V59.2.0 keeps third-person hip fire and moves scoped ADS to a clear optic view', () => {
+test('V59.3.0 keeps third-person hip fire and moves scoped ADS to a clear optic view', () => {
   assert.match(html, /targetHeight=scoped \? 2\.02 : \(mobile\?2\.62:2\.74\)-\.08\*b/);
   assert.ok(html.includes("this.anchorY+=(player.position.y-this.anchorY)*(1-Math.exp(-t*(aiming?8.5:7.5)*(1-.20*smooth)))"));
   assert.match(html, /v58Camera\.update\(dt\)/);
@@ -78,7 +78,7 @@ test('V59.2.0 keeps third-person hip fire and moves scoped ADS to a clear optic 
   assert.ok(html.includes('if(player)player.visible=!scoped;'));
 });
 
-test('V59.2.0 scoped ADS uses an eye-level view and gives x8 exclusively to the AWM',()=>{
+test('V59.3.0 scoped ADS uses an eye-level view and gives x8 exclusively to the AWM',()=>{
   assert.ok(html.includes("{name:'2x',zoom:2,sensitivity:.72,yawRate:3.2,pitchRate:2.4}"));
   assert.ok(html.includes("{name:'4x',zoom:4,sensitivity:.52,yawRate:2.0,pitchRate:1.5}"));
   assert.ok(html.includes("sniperProfile:{name:'8x',zoom:8,sensitivity:.22,yawRate:.72,pitchRate:.54}"));
@@ -92,7 +92,7 @@ test('V59.2.0 scoped ADS uses an eye-level view and gives x8 exclusively to the 
   assert.ok(html.includes('targetHeight=scoped ? 2.02 :'));
 });
 
-test('V59.2.0 aircraft and parachute have their own responsive camera route', () => {
+test('V59.3.0 aircraft and parachute have their own responsive camera route', () => {
   assert.match(html, /function v58FlightPointerDown\(e\)/);
   assert.match(html, /function v58FlightPointerMove\(e\)/);
   assert.match(html, /const radius=22,look=v36Aircraft\.position/);
@@ -103,15 +103,15 @@ test('V59.2.0 aircraft and parachute have their own responsive camera route', ()
   assert.match(html, /l\.camera\.position\.set\(0,1\.92,7\.9\)/);
 });
 
-test('Android release is V59.2.0 with monotonic version code', () => {
-  assert.match(gradle, /versionCode 169/);
-  assert.ok(gradle.includes("versionName '59.2.0-hud-optic-state-fix'"));
+test('Android release is V59.3.0 with monotonic version code', () => {
+  assert.match(gradle, /versionCode 170/);
+  assert.ok(gradle.includes("versionName '59.3.0-hud-phase-profile-fix'"));
 });
 
-test('V59.2.0 Android package metadata and lobby label match', () => {
-  assert.match(gradle, /versionCode 169/);
-  assert.ok(gradle.includes("versionName '59.2.0-hud-optic-state-fix'"));
-  assert.ok(html.includes("V59.2.0 · CENTRO DE OPERACIONES"));
+test('V59.3.0 Android package metadata and lobby label match', () => {
+  assert.match(gradle, /versionCode 170/);
+  assert.ok(gradle.includes("versionName '59.3.0-hud-phase-profile-fix'"));
+  assert.ok(html.includes("V59.3.0 · CENTRO DE OPERACIONES"));
 });
 
 test('V57.6 activates the authored Aurora battle royale environment and visual resources', () => {
@@ -152,9 +152,9 @@ test('V57.6 visual roots dispose their private materials while shared GPU geomet
 });
 
 test('Android release version remains monotonic after the camera rebuild', () => {
-  assert.match(gradle, /versionCode 169/);
-  assert.ok(gradle.includes("versionName '59.2.0-hud-optic-state-fix'"));
-  assert.ok(html.includes("V59.2.0 · CENTRO DE OPERACIONES"));
+  assert.match(gradle, /versionCode 170/);
+  assert.ok(gradle.includes("versionName '59.3.0-hud-phase-profile-fix'"));
+  assert.ok(html.includes("V59.3.0 · CENTRO DE OPERACIONES"));
 });
 test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
   assert.match(html, /function v576RegisterOpenBuilding/);
@@ -193,11 +193,11 @@ test('release APK artifact name follows Gradle version instead of a stale V40 la
   assert.ok(workflow.includes('APP_VERSION='+"'+version.group(1)"));
   assert.ok(workflow.includes('THEDEMIANFF-${{ env.APP_VERSION }}-APK-RELEASE-FIRMADA'));
   assert.doesNotMatch(workflow, /THEDEMIANFF-V40-APK-RELEASE-FIRMA-PERMANENTE/);
-  assert.ok(workflow.includes("versionName '59.2.0-hud-optic-state-fix'"));
+  assert.ok(workflow.includes("versionName '59.3.0-hud-phase-profile-fix'"));
 });
 
-test('V59.2.0 package and lobby labels identify the Free Fire camera release', () => {
-  assert.match(gradle, /versionCode 169/);
-  assert.ok(gradle.includes("versionName '59.2.0-hud-optic-state-fix'"));
-  assert.ok(html.includes("V59.2.0 · CENTRO DE OPERACIONES"));
+test('V59.3.0 package and lobby labels identify the Free Fire camera release', () => {
+  assert.match(gradle, /versionCode 170/);
+  assert.ok(gradle.includes("versionName '59.3.0-hud-phase-profile-fix'"));
+  assert.ok(html.includes("V59.3.0 · CENTRO DE OPERACIONES"));
 });

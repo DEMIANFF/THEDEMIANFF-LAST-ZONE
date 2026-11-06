@@ -108,7 +108,7 @@ test('V58.3.0 camera follows with damped shoulder, vertical and horizontal smoot
   assert.ok(html.includes("this.anchorY+=(player.position.y-this.anchorY)*(1-Math.exp(-t*(aiming?8.5:7.5)*(1-.20*smooth)))"));
   assert.match(html, /obstructed\?1-Math\.exp\(-t\*24\):followXZ/);
 });
-test('V59.2.0 moves scoped ADS to an unobstructed view while preserving optic diagnostics', () => {
+test('V59.3.0 moves scoped ADS to an unobstructed view while preserving optic diagnostics', () => {
   assert.match(html, /weaponScale\(\)\{const zoom=clamp\(Number\(this\.active\(\)\.zoom\)\|\|1,1,8\);return Math\.pow\(zoom,-\.82\);\}/);
   assert.match(html, /const sightScale=aiming\?v58Sights\.weaponScale\(\):1/);
   assert.match(html, /zoom:v58Sights\.active\(\)\.zoom,scoped:v58Sights\.active\(\)\.zoom>1&&adsHeld/);
@@ -120,7 +120,8 @@ test('V58.3.0 provides one clean free-look dot and a separate ADS sight reticle'
   assert.match(html, /body\.v475InMatch:not\(\.v58FlightMode\) #cross/);
   assert.match(html, /body\.v475InMatch:not\(\.v58FlightMode\) #v10Reticle\.v58ADS/);
   assert.match(html, /#v10Reticle:before,#v10Reticle:after/);
-  for (const scope of ['PUNTO','2x','4x','8x']) assert.ok(html.includes('#v10Reticle[data-scope="' + scope + '"]'));
+  for (const scope of ['2x','4x','8x']) assert.ok(html.includes('#v10Reticle[data-scope="' + scope + '"]'));
+  assert.doesNotMatch(html,/name:'PUNTO'|data-scope="PUNTO"/);
 });
 test('V57.6 removes grey blocks and opens the house and district entrances', () => {
   assert.doesNotMatch(html, /new THREE\.BoxGeometry\(3,3\+j%3\*2,3\),darkIce/);
