@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 170
-        versionName '59.3.0-hud-phase-profile-fix'
+        versionCode 171
+        versionName '59.4.0-tps-fov-reset'
     }
     signingConfigs {
         persistentRelease {
