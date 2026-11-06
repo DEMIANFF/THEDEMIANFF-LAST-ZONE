@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 140
-        versionName '59.0.0-awm-camera-airdrop'
+        versionCode 167
+        versionName '58.9.0-awm-exclusive-optics-flight'
     }
     signingConfigs {
         persistentRelease {
@@ -63,5 +63,4 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.android.gms:play-services-auth:21.3.0'
     implementation 'com.google.firebase:firebase-firestore'
-    implementation 'com.google.firebase:firebase-functions'
 }
