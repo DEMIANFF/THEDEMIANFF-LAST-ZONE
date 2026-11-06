@@ -101,13 +101,13 @@ test('V58.8.0 aircraft and parachute have their own responsive camera route', ()
 });
 
 test('Android release is V58.8.0 with monotonic version code', () => {
-  assert.match(gradle, /versionCode 166/);
-  assert.match(gradle, /versionName '58.8.2-lobby-runtime-guard'/);
+  assert.match(gradle, /versionCode 167/);
+  assert.match(gradle, /versionName '58.9.0-awm-exclusive-optics-flight'/);
 });
 
 test('V58.8.0 Android package metadata and lobby label match', () => {
-  assert.match(gradle, /versionCode 166/);
-  assert.match(gradle, /versionName '58.8.2-lobby-runtime-guard'/);
+  assert.match(gradle, /versionCode 167/);
+  assert.match(gradle, /versionName '58.9.0-awm-exclusive-optics-flight'/);
   assert.match(html, /V58.8.0 · CENTRO DE OPERACIONES/);
 });
 
@@ -149,8 +149,8 @@ test('V57.6 visual roots dispose their private materials while shared GPU geomet
 });
 
 test('Android release version remains monotonic after the camera rebuild', () => {
-  assert.match(gradle, /versionCode 166/);
-  assert.match(gradle, /versionName '58.8.2-lobby-runtime-guard'/);
+  assert.match(gradle, /versionCode 167/);
+  assert.match(gradle, /versionName '58.9.0-awm-exclusive-optics-flight'/);
   assert.match(html, /V58.8.0 · CENTRO DE OPERACIONES/);
 });
 test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
@@ -190,11 +190,11 @@ test('release APK artifact name follows Gradle version instead of a stale V40 la
   assert.ok(workflow.includes('APP_VERSION='+"'+version.group(1)"));
   assert.ok(workflow.includes('THEDEMIANFF-${{ env.APP_VERSION }}-APK-RELEASE-FIRMADA'));
   assert.doesNotMatch(workflow, /THEDEMIANFF-V40-APK-RELEASE-FIRMA-PERMANENTE/);
-  assert.ok(workflow.includes("versionName '58.8.2-lobby-runtime-guard'"));
+  assert.ok(workflow.includes("versionName '58.9.0-awm-exclusive-optics-flight'"));
 });
 
 test('V58.8.0 package and lobby labels identify the Free Fire camera release', () => {
-  assert.match(gradle, /versionCode 166/);
+  assert.match(gradle, /versionCode 167/);
   assert.match(gradle, /versionName '58\.8\.2-lobby-runtime-guard'/);
   assert.match(html, /V58\.8\.0 · CENTRO DE OPERACIONES/);
 });
