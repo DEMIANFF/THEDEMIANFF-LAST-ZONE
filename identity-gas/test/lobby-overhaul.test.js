@@ -108,7 +108,7 @@ test('Android release is V58.9.0 with monotonic version code', () => {
 
 test('V58.9.0 Android package metadata and lobby label match', () => {
   assert.match(gradle, /versionCode 167/);
-  assert.match(gradle, /versionName '58.9.0-awm-exclusive-optics-flight'/);
+  assert.ok(gradle.includes("versionName '58.9.0-awm-exclusive-optics-flight'"));
   assert.match(html, /V58.9.0 · CENTRO DE OPERACIONES/);
 });
 
@@ -151,7 +151,7 @@ test('V57.6 visual roots dispose their private materials while shared GPU geomet
 
 test('Android release version remains monotonic after the camera rebuild', () => {
   assert.match(gradle, /versionCode 167/);
-  assert.match(gradle, /versionName '58.9.0-awm-exclusive-optics-flight'/);
+  assert.ok(gradle.includes("versionName '58.9.0-awm-exclusive-optics-flight'"));
   assert.match(html, /V58.9.0 · CENTRO DE OPERACIONES/);
 });
 test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
@@ -196,6 +196,6 @@ test('release APK artifact name follows Gradle version instead of a stale V40 la
 
 test('V58.9.0 package and lobby labels identify the Free Fire camera release', () => {
   assert.match(gradle, /versionCode 167/);
-  assert.match(gradle, /versionName '58\\.9\\.0-awm-exclusive-optics-flight'/);
+  assert.ok(gradle.includes("versionName '58.9.0-awm-exclusive-optics-flight'"));
   assert.match(html, /V58\.8\.0 · CENTRO DE OPERACIONES/);
 });
