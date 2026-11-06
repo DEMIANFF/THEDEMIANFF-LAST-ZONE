@@ -466,6 +466,7 @@ public class MainActivity extends Activity {
   // Load bundled models via a secure HTTPS origin, matching browser HTTP semantics.
   private static final String GAME_ORIGIN="https://appassets.androidplatform.net";
   private static final String GAME_PREFIX="/assets/";
+  private static final String GAME_BUILD="59.5.0-hud-cache-refresh";
   private ValueCallback<Uri[]> backupFileCallback;
   private static final int BACKUP_FILE_REQUEST=3021;
   private static final int BACKUP_SAVE_REQUEST=3022;
@@ -652,7 +653,16 @@ public class MainActivity extends Activity {
             if(relative.endsWith(".glb"))mime="model/gltf-binary";
             if(relative.endsWith(".html"))mime="text/html";
             if(mime==null)mime="application/octet-stream";
-            WebResourceResponse response=new WebResourceResponse(mime,"UTF-8",body);
+            WebResourceResponse response;
+            if(relative.endsWith(".html")) {
+              Map<String,String> headers=new HashMap<>();
+              headers.put("Cache-Control","no-store, no-cache, must-revalidate");
+              headers.put("Pragma","no-cache");
+              headers.put("Expires","0");
+              response=new WebResourceResponse(mime,"UTF-8",headers,body);
+            } else {
+              response=new WebResourceResponse(mime,"UTF-8",body);
+            }
             response.setStatusCodeAndReasonPhrase(200,"OK");
             return response;
           }catch(IOException e){
@@ -668,7 +678,7 @@ public class MainActivity extends Activity {
       }
     });
     setContentView(web);
-    web.loadUrl(GAME_ORIGIN+GAME_PREFIX+"index.html");
+    web.loadUrl(GAME_ORIGIN+GAME_PREFIX+"index.html?build="+GAME_BUILD);
   }
   @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
     super.onActivityResult(requestCode,resultCode,data);

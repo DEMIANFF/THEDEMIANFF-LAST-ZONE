@@ -58,9 +58,9 @@ test('lobby module routing keeps player identity and mode selection intact',()=>
  assert.match(html,/v588RefreshLobbyHud\(\);/);
  assert.match(html,/v18ModeLabel/);
 });
-test('V59.4.0 AWM and aerial systems are enabled in CI; live V59 multiplayer is excluded',()=>{
- assert.match(gradle,/versionCode 171/);
- assert.ok(gradle.includes("versionName '59.4.0-tps-fov-reset'"));
+test('V59.5.0 AWM and aerial systems are enabled in CI; live V59 multiplayer is excluded',()=>{
+ assert.match(gradle,/versionCode 172/);
+ assert.ok(gradle.includes("versionName '59.5.0-hud-cache-refresh'"));
  assert.ok(workflow.includes('v58-9-0-awm-camera-airdrop-release'));
  assert.doesNotMatch(gradle,/59\.0\.0/);
 });

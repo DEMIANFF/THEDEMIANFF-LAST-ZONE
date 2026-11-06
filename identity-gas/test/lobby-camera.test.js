@@ -108,7 +108,7 @@ test('V58.3.0 camera follows with damped shoulder, vertical and horizontal smoot
   assert.ok(html.includes("this.anchorY+=(player.position.y-this.anchorY)*(1-Math.exp(-t*(aiming?8.5:7.5)*(1-.20*smooth)))"));
   assert.match(html, /obstructed\?1-Math\.exp\(-t\*24\):followXZ/);
 });
-test('V59.4.0 moves scoped ADS to an unobstructed view while preserving optic diagnostics', () => {
+test('V59.5.0 moves scoped ADS to an unobstructed view while preserving optic diagnostics', () => {
   assert.match(html, /weaponScale\(\)\{const zoom=clamp\(Number\(this\.active\(\)\.zoom\)\|\|1,1,8\);return Math\.pow\(zoom,-\.82\);\}/);
   assert.match(html, /const sightScale=aiming\?v58Sights\.weaponScale\(\):1/);
   assert.match(html, /zoom:v58Sights\.active\(\)\.zoom,scoped:v58Sights\.active\(\)\.zoom>1&&adsHeld/);
