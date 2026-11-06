@@ -4,6 +4,6 @@
   "description": "Tests for the Google Apps Script player ID service",
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.js",
-    "check": "node --check < Code.gs && node --check scripts/check-game-html.js && node scripts/check-game-html.js && node --check test/identity.test.js && node --check test/account-isolation.test.js && node --check test/lobby-camera.test.js && node --check test/lobby-overhaul.test.js && node --check test/gameplay-quality.test.js && node --check test/lobby-professional.test.js && node --check test/awm-flight-integration.test.js"
+    "check": "node --check < Code.gs && node --check scripts/check-game-html.js && node scripts/check-game-html.js && node --check test/identity.test.js && node --check test/account-isolation.test.js && node --check test/lobby-camera.test.js && node --check test/lobby-overhaul.test.js && node --check test/gameplay-quality.test.js && node --check test/lobby-professional.test.js && node --check test/awm-flight-integration.test.js && node --check test/hud-optics-isolation.test.js"
   }
 }

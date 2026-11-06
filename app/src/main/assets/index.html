@@ -968,6 +968,91 @@ body.v58OpticActive #v10Reticle::after{height:1px!important;width:34px!important
 .v36ZoomBar button{min-width:38px;min-height:32px;border:1px solid #9ad7dc;border-radius:7px;background:#173f53;color:#fff;font-size:19px;font-weight:900;touch-action:manipulation}
 .v36ZoomBar span{min-width:58px;text-align:center;color:#f0d6a3;font-variant-numeric:tabular-nums}
 @media(max-width:650px){.v36ZoomBar{gap:8px;margin:3px auto 6px;padding:4px}.v36ZoomBar button{min-width:34px;min-height:30px}}
+</style><style id="v592HudStateIsolation">
+/* Keep the world below its overlays and the complete touch HUD above the optic vignette. */
+#game{z-index:0!important}
+#v58OpticOverlay{z-index:10!important;pointer-events:none!important}
+#v58OpticOverlay::before,#v58OpticOverlay::after{pointer-events:none!important}
+#ui{z-index:20!important}
+#v36MapPanel{z-index:200!important}
+
+/* Combat status belongs only to an active match, never to the lobby or access screen. */
+body:not(.v475InMatch) #ui > .top,
+body:not(.v475InMatch) #ui > #minimap,
+body:not(.v475InMatch) #ui > #zoneInfo,
+body:not(.v475InMatch) #ui > #health,
+body:not(.v475InMatch) #ui > #weapon,
+body:not(.v475InMatch) #ui > #cross,
+body:not(.v475InMatch) #ui > #v10Reticle,
+body:not(.v475InMatch) #ui > #v13AimMode,
+body:not(.v475InMatch) #ui > #v36MapButton,
+body:not(.v475InMatch) #ui > #v362Settings,
+body:not(.v475InMatch) #ui > #pingButton,
+body:not(.v475InMatch) #ui > #v362LootLegend,
+body:not(.v475InMatch) #ui > #v362EventHud,
+body:not(.v475InMatch) #ui > #v7Toast,
+body:not(.v475InMatch) #ui > #combatFeed,
+body:not(.v475InMatch) #ui > #missionHud,
+body:not(.v475InMatch) #ui > #fpsCounter,
+body:not(.v475InMatch) #ui > #desktopHint,
+body:not(.v475InMatch) #ui > #v7status,
+body:not(.v475InMatch) #ui > #v7Compass,
+body:not(.v475InMatch) #ui > #v8Combat,
+body:not(.v475InMatch) #ui > #v8Damage,
+body:not(.v475InMatch) #ui > #v8Muzzle,
+body:not(.v475InMatch) #ui > #dmgDir,
+body:not(.v475InMatch) #ui > #hit,
+body:not(.v475InMatch) #ui > #toast,
+body:not(.v475InMatch) #ui > #damageFlash,
+body:not(.v475InMatch) #ui > #v122ControlState,
+body:not(.v475InMatch) #ui > #v123InputTest,
+body:not(.v475InMatch) #ui > #v124Debug,
+body:not(.v475InMatch) #ui > #orientationTip,
+body:not(.v475InMatch) #ui > #settings,
+body:not(.v475InMatch) #ui > #controls,
+body:not(.v475InMatch) #ui > #v36ParachuteStatus,
+body:not(.v475InMatch) #ui > #v37FlightHUD,
+body:not(.v475InMatch) #ui > #v36MapPanel,
+body:not(.v475InMatch) #ui > #v36DropPanel,
+body:not(.v475InMatch) #v58OpticOverlay,
+body:not(.v475InMatch) #v58ScopeButton{display:none!important}
+
+/* The tactical map is modal: paused combat controls must not compete with map taps. */
+body.v36MapOpen #ui > .top,
+body.v36MapOpen #ui > #minimap,
+body.v36MapOpen #ui > #zoneInfo,
+body.v36MapOpen #ui > #health,
+body.v36MapOpen #ui > #weapon,
+body.v36MapOpen #ui > #cross,
+body.v36MapOpen #ui > #v10Reticle,
+body.v36MapOpen #ui > #v13AimMode,
+body.v36MapOpen #ui > #v36MapButton,
+body.v36MapOpen #ui > #v362Settings,
+body.v36MapOpen #ui > #pingButton,
+body.v36MapOpen #ui > #v362LootLegend,
+body.v36MapOpen #ui > #v362EventHud,
+body.v36MapOpen #ui > #v7Toast,
+body.v36MapOpen #ui > #combatFeed,
+body.v36MapOpen #ui > #missionHud,
+body.v36MapOpen #ui > #fpsCounter,
+body.v36MapOpen #ui > #desktopHint,
+body.v36MapOpen #ui > #v7status,
+body.v36MapOpen #ui > #v7Compass,
+body.v36MapOpen #ui > #v8Combat,
+body.v36MapOpen #ui > #v8Damage,
+body.v36MapOpen #ui > #v8Muzzle,
+body.v36MapOpen #ui > #dmgDir,
+body.v36MapOpen #ui > #hit,
+body.v36MapOpen #ui > #toast,
+body.v36MapOpen #ui > #damageFlash,
+body.v36MapOpen #ui > #v122ControlState,
+body.v36MapOpen #ui > #v123InputTest,
+body.v36MapOpen #ui > #v124Debug,
+body.v36MapOpen #ui > #orientationTip,
+body.v36MapOpen #ui > #settings,
+body.v36MapOpen #ui > #controls,
+body.v36MapOpen #v58ScopeButton{display:none!important}
+body.v36MapOpen #v58OpticOverlay{display:none!important}
 </style></head><body><div id="game"></div><div id="v58OpticOverlay" aria-hidden="true"></div><section id="v38Operations" class="hidden" role="dialog" aria-modal="true" aria-label="Centro de operaciones: eventos, misiones y logros">
  <div class="v38OpsCard">
   <div class="v38OpsTop"><div><small>OPERACIÓN ÚLTIMA ZONA · TEMPORADA 01</small><h2>◈ EVENTOS</h2></div><button type="button" id="v38OpsClose" aria-label="Cerrar eventos">✕</button></div>
@@ -1125,7 +1210,7 @@ body.v475InMatch #v10Reticle{visibility:visible!important}
 </style>
 
 <div id="menu" class="v17Lobby" style="z-index:50">
-<div id="v22Edition">V59.1.0 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
+<div id="v22Edition">V59.2.0 · CENTRO DE OPERACIONES</div><div id="v494ModelStatus" aria-live="polite">OPERADOR 3D · VERIFICANDO MODELO</div><div class="v17Sky"><div class="v17Sun"></div><div class="v17Skyline"></div><div class="v17Sea"></div><div class="v17Platform"></div><div class="v502AuroraMountains" aria-hidden="true"></div><div class="v502AuroraMist" aria-hidden="true"></div><div class="v502HangarLight" aria-hidden="true"></div></div>
 <div class="v17Top"><div class="v17Profile" id="v18Profile" style="cursor:pointer" role="button" tabindex="0" aria-label="Abrir estadísticas del jugador"><span class="v17Avatar" id="v536LobbyAvatar">D</span><span class="v45ProfileName"><b id="v536LobbyName">THEDEMIANFF</b><small id="v536LobbyId">ID PENDIENTE</small><small><span id="v18Level">NV. 1</span> · OPERADOR</small><small id="v45LobbyRecord">0 partidas · 0 victorias · 0 bajas</small><span class="v45XPTrack" aria-label="Progreso de nivel"><span id="v45XPFill"></span></span></span><span class="v17Rank">✦</span></div><div class="v17Currencies"><span class="v581Currency"><small>CR</small><b id="v18Credits">0</b></span><span class="v581Currency"><small>XP</small><b id="v18XP">0</b></span><button id="menuSettings" class="v17Gear" aria-label="Ajustes">⚙</button></div></div>
 <aside class="v17Left" aria-label="Navegación principal">
  <div class="v588SeasonCard"><small>TEMPORADA 01 · AURORA</small><strong>ÚLTIMA ZONA</strong><span>OPERACIÓN GLACIAL</span></div>
@@ -3717,7 +3802,7 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  group.userData.v40PickupHalo=halo;group.userData.v362Glow=beacon;scene.add(group);
  const pickup={type,x,z,group,phase:rand(0,6)};pickups.push(pickup);return pickup;
 }
-function reset(){v58FlightPointers?.clear?.();v58SetFlightMode('idle');v586RestoreBuildingVisibility();v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v480Pulse=0;v480FrameCount=0;v480Snapshot.fill(null);v583ZoneHudClock=0;v484NoAmmoNotice=-10;v489AutoSwaps=0;v489DryFires=0;v489LastDryFire=-10;v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+function reset(){document.body.classList.remove('v36MapOpen','v58OpticActive');v58FlightPointers?.clear?.();v58SetFlightMode('idle');v586RestoreBuildingVisibility();v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v480Pulse=0;v480FrameCount=0;v480Snapshot.fill(null);v583ZoneHudClock=0;v484NoAmmoNotice=-10;v489AutoSwaps=0;v489DryFires=0;v489LastDryFire=-10;v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');document.body.classList.remove('v36MapOpen');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(window.v396VisualRoot){v583DisposeVisualRoot(window.v396VisualRoot);window.v396VisualRoot=null;}
 if(window.v397VisualRoot){v583DisposeVisualRoot(window.v397VisualRoot);window.v397VisualRoot=null;}
 if(scene){
@@ -3864,7 +3949,7 @@ let v469HealTimer=0;function swap(n){
 }function damage(amount,fromX,fromZ){if(!running||gameOver||!Number.isFinite(amount)||amount<=0||hp<=0)return;
 if(v469HealTimer>0){v469HealTimer=0;toast('BOTIQUÍN INTERRUMPIDO POR DAÑO');}
 amount=Math.min(amount,250);let absorbed=Math.max(0,Math.min(armor,amount*.55));armor=Math.max(0,armor-absorbed);hp=Math.max(0,hp-(amount-absorbed));damageFlash=Math.max(damageFlash,.25);if(Number.isFinite(fromX)&&Number.isFinite(fromZ)&&player)showDmgDir(fromX,fromZ);if(hp<=0){hp=0;finish(false);}updateHud()}function showDmgDir(fx,fz){if(!player||!Number.isFinite(fx)||!Number.isFinite(fz))return;const ang=Math.atan2(fx-player.position.x,fz-player.position.z);let rel=ang-camYaw;rel=Math.atan2(Math.sin(rel),Math.cos(rel));const el=$('dmgDir');if(!el)return;el.style.transform=`translate(-50%,-50%) rotate(${rel}rad)`;el.style.opacity=.92;clearTimeout(showDmgDir.t);showDmgDir.t=setTimeout(()=>el.style.opacity=0,900);}
-function finish(win){if(gameOver)return;gameOver=true;document.body.classList.remove('v475InMatch');const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;v469HealTimer=0;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
+function finish(win){if(gameOver)return;gameOver=true;document.body.classList.remove('v475InMatch');document.body.classList.remove('v36MapOpen','v58OpticActive');const v18Reward=v18RecordMatch(win);if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);running=false;paused=false;v469HealTimer=0;fireHeld=false;fireTouch=null;adsHeld=false;damageFlash=0;hitFlash=0;toastTime=0;$('damageFlash').style.opacity=0;$('hit').style.opacity=0;$('toast').style.opacity=0;if($('dmgDir'))$('dmgDir').style.opacity=0;$('end').classList.remove('hidden');$('endTitle').innerHTML=win?'¡<em>VICTORIA!</em>':'ELIMINADO';$('endEyebrow').textContent=win?'ÚLTIMO SUPERVIVIENTE':'MISIÓN TERMINADA';$('endStats').textContent=`${kills} bajas · ${fmt(time)} de supervivencia · +${v18Reward} créditos · ${win?'Has dominado la isla.':'Inténtalo de nuevo.'}`;$('controls').classList.add('hidden');if(document.pointerLockElement)document.exitPointerLock();}
 let moveVX=0,moveVZ=0,v14Recoil=0,v395SwapTime=0,v395ReloadDuration=0;
 // V47.4: rival squads fight one another, not just the human player.
 // Bounded to one tactical exchange per heartbeat for low-end mobile stability.
@@ -4652,11 +4737,12 @@ function v36ChoosePoint(e,id){
 
 function v36OpenMap(){
  if(!running||paused||window.v36FlightMode!=='landed')return;
- paused=true;v36MapWasOpen=true;v36MapPick=v36Waypoint;
+ v123ResetInputs();adsHeld=false;$('aimBtn').classList.remove('adsActive');v58Sights.updateHud(false);
+ paused=true;v36MapWasOpen=true;v36MapPick=v36Waypoint;document.body.classList.add('v36MapOpen');
  $('v36MapPanel').classList.remove('hidden');v36DrawMap('v36MapCanvas');
 }
 function v36CloseMap(){
- $('v36MapPanel').classList.add('hidden');
+ $('v36MapPanel').classList.add('hidden');document.body.classList.remove('v36MapOpen');
  if(v36MapWasOpen){v36MapWasOpen=false;paused=false;clock.getDelta();}
 }
 function v36InstallMapZoom(panelId,canvasId,suffix){
@@ -5220,14 +5306,14 @@ function start(){
  const launchButton=$('start');
  if(launchButton){launchButton.disabled=true;launchButton.textContent='PREPARANDO PARTIDA...';}
  try{
-unlockAudio();v123ResetInputs();document.body.classList.remove('v475InMatch');startStage='webgl-renderer';if(!renderer){renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:'high-performance',precision:'highp',stencil:false});renderer.setPixelRatio(mobile?Math.min(v38FhdRatio(),1):v38FhdRatio());
+unlockAudio();v123ResetInputs();document.body.classList.remove('v475InMatch');document.body.classList.remove('v36MapOpen','v58OpticActive');startStage='webgl-renderer';if(!renderer){renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:'high-performance',precision:'highp',stencil:false});renderer.setPixelRatio(mobile?Math.min(v38FhdRatio(),1):v38FhdRatio());
  // V40.5: controlled WebGL lifecycle for Android memory pressure.
  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();v405ContextLost=true;console.warn('[V40.5] WebGL context lost');},false);
  renderer.domElement.addEventListener('webglcontextrestored',()=>{v405ContextLost=false;v405ContextRestores++;v26Performance.scale=Math.min(v26Performance.scale,.64);v26ApplyPixelRatio();},false);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!mobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;// V40 screenshot-driven calibration: prevent blown-out white snow and preserve architecture edges.
  renderer.toneMappingExposure=.72;if('outputColorSpace' in renderer && THREE.SRGBColorSpace)renderer.outputColorSpace=THREE.SRGBColorSpace;else renderer.outputEncoding=THREE.sRGBEncoding;$('game').appendChild(renderer.domElement);camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,480);window.addEventListener('resize',resize);renderer.domElement.addEventListener('click',()=>{if(running&&!paused&&!mobile){const pl=renderer.domElement.requestPointerLock?.();if(pl&&pl.catch)pl.catch(()=>{})}});document.addEventListener('mousemove',e=>{if(running&&!paused&&!mobile)aim(e.movementX,e.movementY)});document.addEventListener('mousedown',e=>{if(e.button===0&&running&&!paused)fireHeld=true});document.addEventListener('mouseup',()=>fireHeld=false);requestAnimationFrame(frame);}startStage='world-reset';reset();v470StartSoundPending=true;running=true;paused=false;document.body.classList.add('v475InMatch');$('v362Settings').classList.remove('hidden');$('v18Panel').classList.add('hidden');$('menu').classList.add('hidden');$('end').classList.add('hidden');$('pausePanel').classList.add('hidden');if(mobile)$('controls').classList.remove('hidden');else renderer.domElement.requestPointerLock?.();clock.getDelta();applyPrefs();$('v362Settings').classList.remove('hidden');$('v362Events').classList.add('hidden');startStage='flight-sequence';v36Begin();if(launchButton){launchButton.disabled=false;launchButton.textContent='▶ INICIAR PARTIDA';}
  }catch(error){
   running=false;paused=true;
-  document.body.classList.remove('v475InMatch');
+  document.body.classList.remove('v475InMatch');document.body.classList.remove('v36MapOpen','v58OpticActive');
   $('controls').classList.add('hidden');
   $('menu').classList.remove('hidden');
   $('end').classList.add('hidden');
@@ -5457,11 +5543,12 @@ const v58Camera={
  update(dt){
   if(!camera||!player)return;
   const t=clamp(Number(dt)||0,0,.08);this.updateAngles(t);
-  const aiming=this.mode==='ADS',goal=aiming?1:0;this.blend+=(goal-this.blend)*(1-Math.exp(-t*8.5));const b=this.blend;
+  const aiming=this.mode==='ADS',scoped=aiming&&v58Sights.active().zoom>1,goal=aiming?1:0;this.blend+=(goal-this.blend)*(1-Math.exp(-t*8.5));const b=this.blend;
+  if(player)player.visible=!scoped;
   const baseBack=clamp(Number($('v26CameraDistance').value)||11.2,8.5,13.5);
   const baseShoulder=-clamp(Number($('v26CameraShoulder').value)||1.25,.8,1.8);
-  // ADS keeps the third-person operator framing; magnification comes from FOV, not a body-closing camera move.
-  const targetBack=baseBack*(1-.02*b),targetShoulder=baseShoulder*(1-.08*b),targetHeight=(mobile?2.62:2.74)-.08*b;
+  // Hip fire keeps the third-person shoulder view; scoped ADS shifts to a clear eye-level optic view.
+  const targetBack=scoped ? .34 : baseBack*(1-.02*b),targetShoulder=scoped ? 0 : baseShoulder*(1-.08*b),targetHeight=scoped ? 2.02 : (mobile?2.62:2.74)-.08*b;
   if(!Number.isFinite(this.back)){this.back=targetBack;this.shoulder=targetShoulder;this.height=targetHeight;this.anchorY=player.position.y;}
   const follow=1-Math.exp(-t*8.5);
   this.back+=(targetBack-this.back)*follow;this.shoulder+=(targetShoulder-this.shoulder)*follow;this.height+=(targetHeight-this.height)*follow;
@@ -5500,7 +5587,7 @@ function v58SetFlightMode(mode){
  v58Sights.updateHud(false);
 }
 function htmlFlightModeSupportsCamera(){return window.v36FlightMode==='aircraft'||window.v36FlightMode==='descending';}
-window.THEDEMIANFF_CAMERA_SYSTEM=()=>({profile:'FREE_FIRE_THIRD_PERSON',mode:v58Camera.mode,blend:v58Camera.blend,distance:v58Camera.back,shoulder:v58Camera.shoulder,fov:camera?.fov,zoom:v58Sights.active().zoom,weaponScale:v58Sights.weaponScale(),ads:adsHeld&&window.v36FlightMode==='landed',flightMode:window.v36FlightMode,sight:v58Sights.active().name,awmExclusiveX8:v58Sights.isSniper(),opticOverlay:document.body.classList.contains('v58OpticActive')});
+window.THEDEMIANFF_CAMERA_SYSTEM=()=>({profile:'FREE_FIRE_HYBRID_TPS',mode:v58Camera.mode,blend:v58Camera.blend,distance:v58Camera.back,shoulder:v58Camera.shoulder,fov:camera?.fov,zoom:v58Sights.active().zoom,scoped:v58Sights.active().zoom>1&&adsHeld,operatorVisible:player?.visible!==false,weaponScale:v58Sights.weaponScale(),ads:adsHeld&&window.v36FlightMode==='landed',flightMode:window.v36FlightMode,sight:v58Sights.active().name,awmExclusiveX8:v58Sights.isSniper(),opticOverlay:document.body.classList.contains('v58OpticActive')});
 window.THEDEMIANFF_CAMERA_TEST=(dx,dy,ads=false,fire=false)=>{const old=v58Camera.mode;v58Camera.mode=ads?'ADS':'FREE';try{return v58Camera.input(dx,dy,fire?'fire':'free');}finally{v58Camera.mode=old;}};
 window.THEDEMIANFF_FLIGHT_CAMERA_TEST=()=>({aircraftCameraInput:typeof v58FlightPointerDown==='function',parachuteCameraUpdate:typeof v58Camera.updateAngles==='function',crosshairHidden:document.body.classList.contains('v58FlightMode'),mode:window.v36FlightMode,mapZoom:v36MapZoom,parachuteDeployBlend:v398DeployBlend,mapZoomControls:!!document.getElementById('v36ZoomBarDrop')});
 window.THEDEMIANFF_AWM_TEST=()=>({weapon:weapons[5]?.name,mag:weapons[5]?.mag,range:weapons[5]?.range,scope:weapons[5]?.scope,profile:v58Sights.sniperProfile,exclusive:v58Sights.isSniper(),weaponCount:weapons.length,opticOverlay:!!document.getElementById('v58OpticOverlay')});
@@ -5624,7 +5711,7 @@ function pause(){if(!running||window.v36FlightMode==='aircraft'||window.v36Fligh
 function v23LeaveMatch(){
  if(!running||!paused)return;
  if(!window.confirm('¿Abandonar la partida y volver al lobby?'))return;
- v123ResetInputs();running=false;paused=false;gameOver=true;document.body.classList.remove('v475InMatch');
+ v123ResetInputs();running=false;paused=false;gameOver=true;document.body.classList.remove('v475InMatch');document.body.classList.remove('v36MapOpen','v58OpticActive');
  fireHeld=false;adsHeld=false;sprintHeld=false;keys={};
  if(ambientBus&&audioContext)ambientBus.gain.setTargetAtTime(0,audioContext.currentTime,.12);
  $('pausePanel').classList.add('hidden');$('controls').classList.add('hidden');$('end').classList.add('hidden');$('v18Panel').classList.add('hidden');$('v362Settings').classList.add('hidden');$('v362Events').classList.add('hidden');$('v362EventHud').classList.add('hidden');$('menu').classList.remove('hidden');

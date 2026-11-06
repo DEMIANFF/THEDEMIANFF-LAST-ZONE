@@ -103,9 +103,9 @@ test('airborne mode suppresses ADS and combat reticle until landing',()=>{
  assert.ok(html.includes("v58Sights.updateHud(false)"));
 });
 
-test('release is V59.1.0 and does not include online multiplayer V59',()=>{
- assert.ok(gradle.includes('versionCode 168'));
- assert.ok(gradle.includes("versionName '59.1.0-awm-exclusive-optics-flight'"));
+test('release is V59.2.0 and does not include online multiplayer V59',()=>{
+ assert.ok(gradle.includes('versionCode 169'));
+ assert.ok(gradle.includes("versionName '59.2.0-hud-optic-state-fix'"));
  assert.ok(workflow.includes('v58-9-0-awm-camera-airdrop-release'));
  assert.ok(!gradle.includes("59.0.0"));
 });
