@@ -659,7 +659,7 @@ public class MainActivity extends Activity {
               headers.put("Cache-Control","no-store, no-cache, must-revalidate");
               headers.put("Pragma","no-cache");
               headers.put("Expires","0");
-              response=new WebResourceResponse(mime,"UTF-8",headers,body);
+              response=new WebResourceResponse(mime,"UTF-8",200,"OK",headers,body);
             } else {
               response=new WebResourceResponse(mime,"UTF-8",body);
             }

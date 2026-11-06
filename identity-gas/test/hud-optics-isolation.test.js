@@ -71,6 +71,7 @@ test('Android always loads the current bundled screen and release verifies the p
  assert.ok(java.includes('GAME_BUILD="59.5.0-hud-cache-refresh"'));
  assert.ok(java.includes('index.html?build="+GAME_BUILD'));
  assert.ok(java.includes('Cache-Control","no-store, no-cache, must-revalidate'));
+ assert.ok(java.includes('"UTF-8",200,"OK",headers,body'));
  assert.ok(workflow.includes("bundled=apk.read('assets/index.html')"));
  assert.ok(workflow.includes('if bundled != source:'));
 });
