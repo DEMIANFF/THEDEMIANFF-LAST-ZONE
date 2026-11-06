@@ -12,7 +12,7 @@ const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
 test('V57.6 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.match(html, /V58\\.9\\.0 · CENTRO DE OPERACIONES/);
+  assert.ok(html.includes("V58.9.0 · CENTRO DE OPERACIONES"));
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -103,7 +103,7 @@ test('V58.9.0 aircraft and parachute have their own responsive camera route', ()
 
 test('Android release is V58.9.0 with monotonic version code', () => {
   assert.match(gradle, /versionCode 167/);
-  assert.match(gradle, /versionName '58.9.0-awm-exclusive-optics-flight'/);
+  assert.ok(gradle.includes("versionName '58.9.0-awm-exclusive-optics-flight'"));
 });
 
 test('V58.9.0 Android package metadata and lobby label match', () => {
