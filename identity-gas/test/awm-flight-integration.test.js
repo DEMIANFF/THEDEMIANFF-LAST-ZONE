@@ -72,7 +72,7 @@ test('aircraft sequence starts, updates camera and exposes map and jump actions'
  assert.ok(html.includes("function v36TickAircraft(dt)"));
  assert.ok(html.includes("function v372FlightMap()"));
  assert.ok(html.includes("function v36Jump()"));
- assert.ok(html.includes("v37FlightJump.addEventListener"));
+ assert.ok(html.includes("$('v37FlightJump').addEventListener"));
  assert.ok(html.includes("camera.lookAt(look.x,look.y+1.25,look.z)"));
 });
 

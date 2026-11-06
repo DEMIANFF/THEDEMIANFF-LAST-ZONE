@@ -27,7 +27,7 @@ test('identity and statistics are no longer duplicated in the lobby navigation',
 test('V58.3.0 uses a pulled-back Free Fire third-person camera with stable shoulder follow and smooth zoom', () => {
   assert.match(html, /id="v26CameraDistance"[^>]*min="8\.5" max="13\.5" step="\.25" value="11\.2"/);
   assert.match(html, /id="v26CameraShoulder"[^>]*min="\.8" max="1\.8" step="\.05" value="1\.25"/);
-  assert.match(html, /const v58Camera=\{/);
+  assert.ok(html.includes("mode:'FREE',blend:0,back:NaN,shoulder:NaN,height:NaN,anchorY:NaN,currentFov:NaN,targetYaw:0,targetPitch:.18,"));
   assert.match(html, /profile:'FREE_FIRE_THIRD_PERSON'/);
   assert.match(html, /targetBack=baseBack\*\(1-\.02\*b\)/);
   assert.match(html, /targetShoulder=baseShoulder\*\(1-\.08\*b\)/);
@@ -35,7 +35,7 @@ test('V58.3.0 uses a pulled-back Free Fire third-person camera with stable shoul
   assert.match(html, /v404SafeCameraTarget\(desired\)/);
   assert.match(html, /v586UpdateBuildingVisibility\(t\)/);
   assert.match(html, /this\.currentFov\+=\(targetFov-this\.currentFov\)/);
-  assert.match(html, /c\.gun\.scale\.setScalar\(activeIndex===4\?\.86:activeIndex===0\?\.80:\.78\)/);
+  assert.ok(html.includes('c.gun.scale.setScalar(activeIndex===5?.94:activeIndex===4?.86:activeIndex===0?.80:.78)'));
 });
 
 test('repeated identical gameplay notices are throttled', () => {
@@ -77,8 +77,8 @@ test('V58.3.0 keeps a wider shoulder frame and a centered sight ray', () => {
   assert.match(html, /baseShoulder=-clamp\(Number\(\$\('v26CameraShoulder'\)\.value\)\|\|1\.25,\.8,1\.8\)/);
   assert.match(html, /targetBack=baseBack\*\(1-\.02\*b\),targetShoulder=baseShoulder\*\(1-\.08\*b\),targetHeight=\(mobile\?2\.62:2\.74\)-\.08\*b/);
   assert.ok(html.includes('player.position.x+Math.cos(camYaw)*this.shoulder-Math.sin(camYaw)*this.back'));
-  assert.match(html, /reticle\.dataset\.scope=this\.active\(\)\.name/);
-  assert.match(html, /#cross,#v10Reticle\{[^}]*z-index:140!important/);
+  assert.ok(html.includes('reticle.dataset.scope=active.name'));
+  assert.ok(html.includes('#cross,#v10Reticle{left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;pointer-events:none!important;z-index:10!important}'));
 });
 
 test('V58.3.0 hides crosshair and all sights in plane and parachute states', () => {
