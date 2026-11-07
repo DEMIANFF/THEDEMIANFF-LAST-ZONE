@@ -19,5 +19,52 @@ test('safe-zone damage interrupts healing and refreshes HUD at bounded cadence',
 test('stored progression is bounded, deduplicated and internally consistent',()=>{const normalize=evaluateFunction('v583NormalizeProgress','let v18Progress=');const v=normalize({credits:150,xp:900,matches:4,wins:9,kills:7,best:12,skin:2,unlocked:[0,2,2,40],weapon:99,claimed:['a','a',4],passElite:true,eventCompletions:3,playerId:'00042',playerName:'Operador Aurora'});assert.equal(v.credits,150);assert.equal(v.wins,4);assert.equal(v.best,7);assert.deepEqual(Array.from(v.unlocked),[0,2]);assert.equal(v.skin,2);assert.equal(v.weapon,0);assert.deepEqual(Array.from(v.claimed),['a']);assert.equal(v.playerId,'00042');assert.equal(v.playerName,'Operador Aurora');const bad=normalize({credits:-5,xp:1e12,matches:1,wins:3,kills:2,best:9,skin:4,unlocked:[0],weapon:20,playerName:'<script>'});assert.equal(bad.credits,0);assert.equal(bad.xp,0);assert.equal(bad.wins,1);assert.equal(bad.best,2);assert.equal(bad.skin,0);assert.equal(bad.weapon,0);assert.equal(bad.playerName,undefined);});
 test('Lila locomotion blends pace on touch start and stop',()=>{assert.match(html,/c\.v583AnimPace=Number\.isFinite\(c\.v583AnimPace\)\?c\.v583AnimPace:rawPace/);assert.match(html,/Math\.exp\(-dt\*14\)/);assert.match(html,/const pace=clamp\(c\.v583AnimPace,0,1\)/);});
 test('mobile render settings guard invalid values and expose QA telemetry',()=>{assert.match(html,/const quality=Number\.isFinite\(rawQuality\)\?clamp\(rawQuality,\.45,1\.25\):\.8/);assert.match(html,/if\(!Number\.isFinite\(fps\)\|\|!renderer\|\|!running/);assert.match(html,/window\.THEDEMIANFF_V583_QUALITY=\(\)=>\(/);for(const field of ['activeBots','pickups','effects','worldObjects','contextLost','contextRestores','flightMode'])assert.ok(html.includes(field));});
-test('V59.5.0 package and workflow identify AWM and aerial systems',()=>{assert.ok(gradle.includes("versionCode 172"));assert.ok(gradle.includes("versionName '59.5.0-hud-cache-refresh'"));assert.ok(workflow.includes("v58-9-0-awm-camera-airdrop-release"));assert.ok(html.includes("AWM · FRANCOTIRADOR"));});
+test('V59.5.0 package and workflow identify AWM and aerial systems',()=>{assert.ok(gradle.includes("versionCode 173"));assert.ok(gradle.includes("versionName '60.0.0-aurora-royale-integration'"));assert.ok(workflow.includes("v58-9-0-awm-camera-airdrop-release"));assert.ok(html.includes("AWM · FRANCOTIRADOR"));});
 test('live multiplayer scope is documented honestly',()=>{assert.match(audit,/Not implemented as live networking/);assert.match(audit,/authoritative server tick/);assert.match(audit,/not a live 100-player online match client/);});
+
+test('V60 ammunition pickups feed only the selected caliber pool and respect the backpack',()=>{
+ const loop=html.slice(html.indexOf('for(let i=pickups.length-1'),html.indexOf('for(let i=effects.length-1'));
+ assert.match(loop,/const weapon=weapons\[weaponIndex\],portion=/);
+ assert.match(loop,/v63Inventory\.addAmmo\(weapon,portion,meds,armor\)/);
+ assert.match(loop,/weapon\.caliber/);
+ assert.doesNotMatch(loop,/for\(let j=0;j<weapons\.length;j\+\+\)/);
+});
+
+test('V60 reserves are shared by caliber and expand with backpack tiers',()=>{
+ const create=evaluateFunction('v63CreateInventoryModel','const v63WeaponCalibers=');
+ const defs=[
+  {name:'DMR',caliber:'7.62 mm',reserve:60,reserveMax:60},
+  {name:'LMG',caliber:'7.62 mm',reserve:180,reserveMax:180},
+  {name:'SMG',caliber:'9 mm',reserve:210,reserveMax:210},
+  {name:'Shotgun',caliber:'12 Gauge',reserve:36,reserveMax:36},
+  {name:'Rifle',caliber:'5.56 mm',reserve:180,reserveMax:180},
+  {name:'AWM',caliber:'.300 Magnum',reserve:5,reserveMax:30}
+ ];
+ const inventory=create(defs);
+ assert.equal(inventory.getReserve(defs[0]),180);
+ assert.equal(inventory.status(2,50),'MOCHILA LIGERA · 13/14 ESPACIOS');
+ inventory.setReserve(defs[0],45);
+ assert.equal(inventory.getReserve(defs[1]),45);
+ assert.equal(inventory.addAmmo(defs[1],15,2,50),15);
+ assert.equal(inventory.getReserve(defs[0]),60);
+ assert.equal(inventory.getReserve(defs[2]),210);
+ inventory.setReserve(defs[5],0);
+ assert.equal(inventory.addAmmo(defs[5],50,2,50),30);
+ assert.equal(inventory.upgradeBackpack(),true);
+ assert.equal(inventory.medLimit(),8);
+ inventory.setReserve(defs[5],0);
+ assert.equal(inventory.addAmmo(defs[5],50,2,50),45);
+ assert.equal(inventory.getReserve(defs[5]),45);
+ assert.equal(inventory.upgradeBackpack(),true);
+ assert.equal(inventory.medLimit(),12);
+ assert.equal(inventory.upgradeBackpack(),false);
+ assert.equal(inventory.snapshot(2,50).ammo.length,5);
+ assert.equal(inventory.rarity('backpack'),'ÉPICO');
+});
+
+test('V60 supply crates and enemy drops include upgrade loot and preserve rarity cues',()=>{
+ assert.match(html,/backpack:\{shell:'#493965'.*label:'MOCHILA'/s);
+ assert.ok(html.includes("['backpack',0,5]"));
+ assert.match(html,/rarity:v63Inventory\.rarity\(type\)/);
+ assert.ok(html.includes("type==='backpack'?'ÉPICO'"));
+});
