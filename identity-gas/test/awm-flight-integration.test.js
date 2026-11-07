@@ -103,11 +103,33 @@ test('airborne mode suppresses ADS and combat reticle until landing',()=>{
  assert.ok(html.includes("v58Sights.updateHud(false)"));
 });
 
-test('release is V59.5.0 and does not include online multiplayer V59',()=>{
- assert.ok(gradle.includes('versionCode 173'));
- assert.ok(gradle.includes("versionName '60.0.0-aurora-royale-integration'"));
+test('release V65 is an installable upgrade with a higher Android version code',()=>{
+ assert.ok(gradle.includes('versionCode 174'));
+ assert.ok(gradle.includes("versionName '65.0.0-aurora-royale-quality-pass'"));
  assert.ok(workflow.includes('v58-9-0-awm-camera-airdrop-release'));
  assert.ok(!gradle.includes("59.0.0"));
+});
+
+test('AWM needs a manual bolt cycle after a shot and exposes the action',()=>{
+ assert.match(html,/weaponIndex===5&&\(w\.needsCycle\|\|v60AwmCycleTimer>0\)/);
+ assert.match(html,/if\(weaponIndex===5\)\{w\.needsCycle=true;v60UpdateAwmCycleButton\(\)\}/);
+ assert.ok(html.includes('function v60CycleAWM()'));
+ assert.ok(html.includes('id="v60BoltButton"'));
+ assert.ok(html.includes("e.code==='KeyB'"));
+});
+
+test('descent keeps tactical map access and deploys a golden winged glider',()=>{
+ const start=html.indexOf('function v36OpenMap(){'),end=html.indexOf('function v36CloseMap()',start);
+ assert.ok(start>=0&&end>start);
+ assert.match(html.slice(start,end),/v36FlightMode!=='descending'/);
+ assert.ok(html.includes("document.body.classList.add('v60DescendingMap')"));
+ assert.ok(html.includes('function v60BuildGoldenGlider(target)'));
+ assert.ok(html.includes('v60BuildGoldenGlider(v36Chute)'));
+ assert.ok(!html.includes('new THREE.SphereGeometry(3.5,12,6,0,Math.PI*2,0,Math.PI*.5)'));
+});
+
+test('ground collision height follows the visible elevation function',()=>{
+ assert.ok(html.includes('function ground(x,z){return h(x,z)}'));
 });
 
 test('the AWM is reachable as weapon six from desktop controls',()=>{

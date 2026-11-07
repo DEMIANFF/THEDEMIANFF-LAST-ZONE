@@ -59,8 +59,8 @@ test('lobby module routing keeps player identity and mode selection intact',()=>
  assert.match(html,/v18ModeLabel/);
 });
 test('V59.5.0 AWM and aerial systems are enabled in CI; live V59 multiplayer is excluded',()=>{
- assert.match(gradle,/versionCode 173/);
- assert.ok(gradle.includes("versionName '60.0.0-aurora-royale-integration'"));
+ assert.match(gradle,/versionCode 174/);
+ assert.ok(gradle.includes("versionName '65.0.0-aurora-royale-quality-pass'"));
  assert.ok(workflow.includes('v58-9-0-awm-camera-airdrop-release'));
  assert.doesNotMatch(gradle,/59\.0\.0/);
 });

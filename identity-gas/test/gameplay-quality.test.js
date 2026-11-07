@@ -19,7 +19,7 @@ test('safe-zone damage interrupts healing and refreshes HUD at bounded cadence',
 test('stored progression is bounded, deduplicated and internally consistent',()=>{const normalize=evaluateFunction('v583NormalizeProgress','let v18Progress=');const v=normalize({credits:150,xp:900,matches:4,wins:9,kills:7,best:12,skin:2,unlocked:[0,2,2,40],weapon:99,claimed:['a','a',4],passElite:true,eventCompletions:3,playerId:'00042',playerName:'Operador Aurora'});assert.equal(v.credits,150);assert.equal(v.wins,4);assert.equal(v.best,7);assert.deepEqual(Array.from(v.unlocked),[0,2]);assert.equal(v.skin,2);assert.equal(v.weapon,0);assert.deepEqual(Array.from(v.claimed),['a']);assert.equal(v.playerId,'00042');assert.equal(v.playerName,'Operador Aurora');const bad=normalize({credits:-5,xp:1e12,matches:1,wins:3,kills:2,best:9,skin:4,unlocked:[0],weapon:20,playerName:'<script>'});assert.equal(bad.credits,0);assert.equal(bad.xp,0);assert.equal(bad.wins,1);assert.equal(bad.best,2);assert.equal(bad.skin,0);assert.equal(bad.weapon,0);assert.equal(bad.playerName,undefined);});
 test('Lila locomotion blends pace on touch start and stop',()=>{assert.match(html,/c\.v583AnimPace=Number\.isFinite\(c\.v583AnimPace\)\?c\.v583AnimPace:rawPace/);assert.match(html,/Math\.exp\(-dt\*14\)/);assert.match(html,/const pace=clamp\(c\.v583AnimPace,0,1\)/);});
 test('mobile render settings guard invalid values and expose QA telemetry',()=>{assert.match(html,/const quality=Number\.isFinite\(rawQuality\)\?clamp\(rawQuality,\.45,1\.25\):\.8/);assert.match(html,/if\(!Number\.isFinite\(fps\)\|\|!renderer\|\|!running/);assert.match(html,/window\.THEDEMIANFF_V583_QUALITY=\(\)=>\(/);for(const field of ['activeBots','pickups','effects','worldObjects','contextLost','contextRestores','flightMode'])assert.ok(html.includes(field));});
-test('V59.5.0 package and workflow identify AWM and aerial systems',()=>{assert.ok(gradle.includes("versionCode 173"));assert.ok(gradle.includes("versionName '60.0.0-aurora-royale-integration'"));assert.ok(workflow.includes("v58-9-0-awm-camera-airdrop-release"));assert.ok(html.includes("AWM · FRANCOTIRADOR"));});
+test('V65 package and workflow identify the quality-pass release',()=>{assert.ok(gradle.includes("versionCode 174"));assert.ok(gradle.includes("versionName '65.0.0-aurora-royale-quality-pass'"));assert.ok(workflow.includes("v58-9-0-awm-camera-airdrop-release"));assert.ok(html.includes("AWM · FRANCOTIRADOR"));});
 test('live multiplayer scope is documented honestly',()=>{assert.match(audit,/Not implemented as live networking/);assert.match(audit,/authoritative server tick/);assert.match(audit,/not a live 100-player online match client/);});
 
 test('V60 ammunition pickups feed only the selected caliber pool and respect the backpack',()=>{
@@ -60,6 +60,35 @@ test('V60 reserves are shared by caliber and expand with backpack tiers',()=>{
  assert.equal(inventory.upgradeBackpack(),false);
  assert.equal(inventory.snapshot(2,50).ammo.length,5);
  assert.equal(inventory.rarity('backpack'),'ÉPICO');
+});
+
+test('V63 backpack returns actual occupied slots and empty spaces',()=>{
+ const create=evaluateFunction('v63CreateInventoryModel','const v63WeaponCalibers=');
+ const defs=[
+  {name:'AR',caliber:'5.56 mm',reserve:180,reserveMax:180},
+  {name:'DMR',caliber:'7.62 mm',reserve:180,reserveMax:180},
+  {name:'SMG',caliber:'9 mm',reserve:210,reserveMax:210},
+  {name:'Shotgun',caliber:'12 Gauge',reserve:36,reserveMax:36},
+  {name:'LMG',caliber:'7.62 mm',reserve:180,reserveMax:180},
+  {name:'AWM',caliber:'.300 Magnum',reserve:30,reserveMax:30}
+ ];
+ const inventory=create(defs),snapshot=inventory.snapshot(2,50);
+ assert.equal(snapshot.slots.length,14);assert.equal(snapshot.usedSlots,13);
+ assert.equal(snapshot.slots[0].type,'weapon');assert.equal(snapshot.slots[13].type,'empty');
+ assert.equal(snapshot.slots[13].slot,14);assert.equal(snapshot.items.filter(item=>item.type==='ammo').length,5);
+ assert.equal(inventory.canAddStack(2,50),true);
+ assert.equal(inventory.status(2,50),'MOCHILA LIGERA · 13/14 ESPACIOS');
+ inventory.upgradeBackpack();assert.equal(inventory.snapshot(2,50).slots.length,18);
+});
+
+test('inventory screen renders safely and only opens on landed mode',()=>{
+ assert.ok(html.includes('id="v63InventoryPanel"'));assert.ok(html.includes('id="v63InventoryGrid"'));
+ assert.match(html,/function v63RenderInventory\(\)/);
+ assert.match(html,/function v63OpenInventory\(\)[\s\S]{0,180}v36FlightMode!=='landed'/);
+});
+
+test('terrain collision height follows the rendered height map',()=>{
+ assert.ok(html.includes('function ground(x,z){return h(x,z)}'));
 });
 
 test('V60 supply crates and enemy drops include upgrade loot and preserve rarity cues',()=>{

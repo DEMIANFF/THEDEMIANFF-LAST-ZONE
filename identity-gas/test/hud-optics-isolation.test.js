@@ -66,9 +66,9 @@ test('Android always loads the current bundled screen and release verifies the p
  const java=fs.readFileSync(path.join(__dirname,'../../app/src/main/java/com/thedemianff/lastzone/MainActivity.java'),'utf8');
  const gradle=fs.readFileSync(path.join(__dirname,'../../app/build.gradle'),'utf8');
  const workflow=fs.readFileSync(path.join(__dirname,'../../.github/workflows/build-apk.yml'),'utf8');
- assert.ok(gradle.includes('versionCode 173'));
- assert.ok(gradle.includes("versionName '60.0.0-aurora-royale-integration'"));
- assert.ok(java.includes('GAME_BUILD="60.0.0-aurora-royale-integration"'));
+ assert.ok(gradle.includes('versionCode 174'));
+ assert.ok(gradle.includes("versionName '65.0.0-aurora-royale-quality-pass'"));
+ assert.ok(java.includes('GAME_BUILD="65.0.0-aurora-royale-quality-pass"'));
  assert.ok(java.includes('index.html?build="+GAME_BUILD'));
  assert.ok(java.includes('Cache-Control","no-store, no-cache, must-revalidate'));
  assert.ok(java.includes('"UTF-8",200,"OK",headers,body'));
