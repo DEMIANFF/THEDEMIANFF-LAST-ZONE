@@ -6,8 +6,8 @@ android {
         applicationId 'com.thedemianff.lastzone'
         minSdk 26
         targetSdk 35
-        versionCode 172
-        versionName '59.5.0-hud-cache-refresh'
+        versionCode 173
+        versionName '60.0.0-aurora-royale-integration'
     }
     signingConfigs {
         persistentRelease {
