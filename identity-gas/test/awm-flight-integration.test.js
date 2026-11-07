@@ -104,8 +104,13 @@ test('airborne mode suppresses ADS and combat reticle until landing',()=>{
 });
 
 test('release is V59.5.0 and does not include online multiplayer V59',()=>{
- assert.ok(gradle.includes('versionCode 172'));
- assert.ok(gradle.includes("versionName '59.5.0-hud-cache-refresh'"));
+ assert.ok(gradle.includes('versionCode 173'));
+ assert.ok(gradle.includes("versionName '60.0.0-aurora-royale-integration'"));
  assert.ok(workflow.includes('v58-9-0-awm-camera-airdrop-release'));
  assert.ok(!gradle.includes("59.0.0"));
+});
+
+test('the AWM is reachable as weapon six from desktop controls',()=>{
+ assert.match(html,/if\(e\.code==='Digit6'\)swap\(5\)/);
+ assert.ok(html.includes('1-6 armas'));
 });
