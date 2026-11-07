@@ -1,46 +1,28 @@
-# THEDEMIANFF V20 — Android offline (proyecto fuente)
+# THEDEMIANFF LAST ZONE — V60.0.0
 
-## Alcance real
-Este proyecto empaqueta la versión V18 **probada en el Motorola Edge 60 Fusion**
-dentro de un WebView Android con aceleración GPU, pantalla completa y orientación horizontal.
-Incluye enemigos IA, mapa, armas, cámaras, menús y progresión local de V18.
+## Alcance
 
-**No es todavía un APK compilado**, ni un cliente Unity, ni multijugador.
-La aplicación no solicita permiso INTERNET: una vez compilada con `three.min.js`
-incluido, puede iniciarse y jugarse en modo avión.
+Aplicación Android con WebView y Three.js que presenta una partida individual de Battle Royale contra rivales controlados por IA. Incluye Base Aurora, edificios e interiores, colisiones, botín, zona segura, avión, paracaídas, pantalla de resultados y lobby con perfil y progresión.
 
-## Cómo generar APK
-1. Abrir esta carpeta como proyecto en Android Studio con JDK 17.
-2. Esperar sincronización Gradle (Android Gradle Plugin 8.7.3 y SDK 35).
-3. La primera compilación requiere Internet para Gradle y para descargar
-   `three.min.js` versión 0.160.1 dentro de los assets. Si no hay Internet
-   en la compilación, colocar manualmente el archivo en
-   `app/src/main/assets/three.min.js`.
-4. Compilar con Build > Build APK(s) o `gradle assembleDebug`.
-5. Instalar `app/build/outputs/apk/debug/app-debug.apk` en el Motorola.
-6. Activar modo avión y comprobar que menú, mapa, bots, sonidos, controles y
-   reinicios funcionan sin conexión.
+El arsenal contiene seis armas. La AWM conserva su mira x8 exclusiva. El inventario V60 comparte munición por calibre y añade mochilas de tres niveles con distinta capacidad. La partida no ofrece multijugador en línea.
 
-## Límites
-- No hay servicios de cuenta remotos, sincronización ni pagos.
-- Los datos de progreso se guardan localmente con localStorage del WebView.
-- El rendimiento del WebView puede variar frente a Chrome; medir FPS y temperatura.
-- El código fuente HTML usa Three.js 0.160.1: conservar esa versión al empaquetar.
-- No cambiar el identificador de paquete después de publicar sin plan de migración.
-- No hay garantía de funcionamiento hasta compilar y probar en dispositivo.
+## Cuenta y progreso
 
-## Próxima fase
-Perfil de rendimiento, ajustes táctiles específicos de WebView, guardado local
-robusto, pruebas de regresión y luego migración progresiva a motor nativo si
-las limitaciones de gráficos y red lo justifican.
+El proyecto conserva el acceso Google/invitado, Firebase Auth y Firestore, además del servicio de identidad identity-gas. El servicio requiere su despliegue y configuración para asignar IDs en producción. La progresión local usa el almacenamiento de la aplicación y el respaldo en la nube depende de la cuenta y configuración disponibles.
 
-## Compilación en la nube desde el teléfono
-El proyecto incluye `.github/workflows/build-apk.yml`. Al subir los archivos
-**del interior de esta carpeta** a la raíz de un repositorio GitHub, la acción
-de GitHub compila una APK debug y la publica como artefacto descargable.
-Se puede iniciar desde GitHub > Actions > Compilar APK offline THEDEMIANFF >
-Run workflow. GitHub Actions necesita Internet durante la compilación,
-pero la APK resultante no lo necesita para jugar.
+## Versión y firma
 
-El flujo no está ejecutado ni verificado en GitHub: si la compilación falla,
-compartir el registro del error para corregirlo.
+- versionName: 60.0.0-aurora-royale-integration
+- versionCode: 173, superior al 158 de V58.2.1 y al 167 de V58.9.0.
+- El flujo de compilación usa la configuración de firma permanente existente cuando está disponible. Este trabajo no cambia el keystore ni la firma.
+- Una APK debug usa firma de desarrollo y no sustituye una instalación release.
+
+## Compilar
+
+Se requiere JDK 17, Android SDK 35 y Android Gradle Plugin 8.7.3. El flujo de GitHub Actions ejecuta las pruebas de identidad e integración, valida los recursos y compila APK. La APK release firmada solo se publica si el repositorio tiene configurado el secreto del keystore permanente; en otro caso el flujo publica una APK debug de prueba.
+
+## Dispositivo y límites de verificación
+
+El motor ajusta la resolución interna, el pixel ratio y las sombras para WebGL móvil y expone telemetría de rendimiento. Esta configuración se prepara para móviles como Motorola Edge 60 Fusion, pero no se declara una prueba física en ese teléfono sin evidencia directa. FPS, temperatura, cámara táctil, AWM, planeador y recuperación real de cuenta todavía deben validarse en el dispositivo.
+
+El juego es una simulación local contra IA; no es un cliente de partidas multijugador en línea. Conserva Three.js 0.160.1 y el identificador Android com.thedemianff.lastzone.
