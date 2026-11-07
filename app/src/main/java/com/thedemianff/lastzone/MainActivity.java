@@ -466,7 +466,7 @@ public class MainActivity extends Activity {
   // Load bundled models via a secure HTTPS origin, matching browser HTTP semantics.
   private static final String GAME_ORIGIN="https://appassets.androidplatform.net";
   private static final String GAME_PREFIX="/assets/";
-  private static final String GAME_BUILD="59.5.0-hud-cache-refresh";
+  private static final String GAME_BUILD="60.0.0-aurora-royale-integration";
   private ValueCallback<Uri[]> backupFileCallback;
   private static final int BACKUP_FILE_REQUEST=3021;
   private static final int BACKUP_SAVE_REQUEST=3022;
