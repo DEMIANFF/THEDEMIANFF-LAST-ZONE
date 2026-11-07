@@ -14,10 +14,53 @@ test('world spawn fallback scans and fails closed instead of choosing blocked gr
 test('AI enemy spawns reserve space from player, terrain and living bots',()=>{assert.match(html,/function v583SafeBotSpawn\(minR=17\)/);assert.match(html,/Math\.hypot\(x-b\.x,z-b\.z\)<5\.2/);assert.match(html,/const p=v583SafeBotSpawn\(minR\)/);});
 test('landing recovery has a full fallback after local relocation attempts',()=>{const landing=html.slice(html.indexOf('function v404ResolveLanding'),html.indexOf('function v404SafeCameraTarget'));assert.match(landing,/radius<=24/);assert.match(landing,/const fallback=safePos\(0\)/);assert.match(landing,/!solid\(fallback\.x,fallback\.z,\.65\)/);});
 test('loot spawns only in clear ground, is bounded and supply links only actual spawned pickups',()=>{const pickup=html.slice(html.indexOf('function spawnPickup'),html.indexOf('function reset'));assert.match(pickup,/pickups\.length>=96/);assert.match(pickup,/v583FindNearbyClearPoint\(x,z,\.9,12\)/);assert.match(pickup,/return pickup/);assert.match(html,/if\(spawned\)\{spawned\.v476Cache=cache;cache\.remaining\+\+;\}/);});
-test('ammo loot replenishes only the selected weapon and gives AWM its sniper pickup amount',()=>{const loop=html.slice(html.indexOf('for(let i=pickups.length-1'),html.indexOf('for(let i=effects.length-1'));assert.match(loop,/const weapon=weapons\[weaponIndex\],maximum=weapon\?\(weapon\.reserveMax\?\?weapon\.mag\*10\):0/);assert.match(loop,/const portion=weaponIndex===5\?3:weaponIndex===3\?6:weaponIndex===1\?12:Math\.round\(\(weapon\?\.mag\|\|1\)\*1\.2\)/);assert.match(loop,/Math\.min\(portion,maximum-weapon\.reserve\)/);assert.match(loop,/weapon\.reserve\+=added/);assert.doesNotMatch(loop,/for\(let j=0;j<weapons\.length;j\+\+\)/);});
+test('V60 ammunition pickups feed only the selected caliber pool and respect the backpack',()=>{
+ const loop=html.slice(html.indexOf('for(let i=pickups.length-1'),html.indexOf('for(let i=effects.length-1'));
+ assert.match(loop,/const weapon=weapons\[weaponIndex\],portion=/);
+ assert.match(loop,/v63Inventory\.addAmmo\(weapon,portion,meds,armor\)/);
+ assert.match(loop,/weapon\.caliber/);
+ assert.doesNotMatch(loop,/for\(let j=0;j<weapons\.length;j\+\+\)/);
+});
+test('V60 reserves are shared by caliber and expand with backpack tiers',()=>{
+ const create=evaluateFunction('v63CreateInventoryModel','const v63WeaponCalibers=');
+ const defs=[
+  {name:'DMR',caliber:'7.62 mm',reserve:60,reserveMax:60},
+  {name:'LMG',caliber:'7.62 mm',reserve:180,reserveMax:180},
+  {name:'SMG',caliber:'9 mm',reserve:210,reserveMax:210},
+  {name:'Shotgun',caliber:'12 Gauge',reserve:36,reserveMax:36},
+  {name:'Rifle',caliber:'5.56 mm',reserve:180,reserveMax:180},
+  {name:'AWM',caliber:'.300 Magnum',reserve:5,reserveMax:30}
+ ];
+ const inventory=create(defs);
+ assert.equal(inventory.getReserve(defs[0]),180);
+ assert.equal(inventory.status(2,50),'MOCHILA LIGERA · 13/14 ESPACIOS');
+ inventory.setReserve(defs[0],45);
+ assert.equal(inventory.getReserve(defs[1]),45);
+ assert.equal(inventory.addAmmo(defs[1],15,2,50),15);
+ assert.equal(inventory.getReserve(defs[0]),60);
+ assert.equal(inventory.getReserve(defs[2]),210);
+ inventory.setReserve(defs[5],0);
+ assert.equal(inventory.addAmmo(defs[5],50,2,50),30);
+ assert.equal(inventory.upgradeBackpack(),true);
+ assert.equal(inventory.medLimit(),8);
+ inventory.setReserve(defs[5],0);
+ assert.equal(inventory.addAmmo(defs[5],50,2,50),45);
+ assert.equal(inventory.getReserve(defs[5]),45);
+ assert.equal(inventory.upgradeBackpack(),true);
+ assert.equal(inventory.medLimit(),12);
+ assert.equal(inventory.upgradeBackpack(),false);
+ assert.equal(inventory.snapshot(2,50).ammo.length,5);
+ assert.equal(inventory.rarity('backpack'),'ÉPICO');
+});
+test('V60 supply crates and enemy drops include upgrade loot and preserve rarity cues',()=>{
+ assert.match(html,/backpack:\{shell:'#493965'.*label:'MOCHILA'/s);
+ assert.ok(html.includes("['backpack',0,5]"));
+ assert.match(html,/rarity:v63Inventory\.rarity\(type\)/);
+ assert.ok(html.includes("type==='backpack'?'ÉPICO'"));
+});
 test('safe-zone damage interrupts healing and refreshes HUD at bounded cadence',()=>{const amount=evaluateFunction('v583ZoneDamageAmount','function v583ApplyZoneDamage');assert.equal(amount(1,0),2.5);assert.equal(amount(2,3),10.4);assert.equal(amount(-1,2),0);assert.match(html,/BOTIQUÍN INTERRUMPIDO POR LA ZONA/);assert.match(html,/v583ZoneHudClock=\.40;updateHud\(\)/);assert.match(html,/v583ApplyZoneDamage\(dt\)\)return/);});
 test('stored progression is bounded, deduplicated and internally consistent',()=>{const normalize=evaluateFunction('v583NormalizeProgress','let v18Progress=');const v=normalize({credits:150,xp:900,matches:4,wins:9,kills:7,best:12,skin:2,unlocked:[0,2,2,40],weapon:99,claimed:['a','a',4],passElite:true,eventCompletions:3,playerId:'00042',playerName:'Operador Aurora'});assert.equal(v.credits,150);assert.equal(v.wins,4);assert.equal(v.best,7);assert.deepEqual(Array.from(v.unlocked),[0,2]);assert.equal(v.skin,2);assert.equal(v.weapon,0);assert.deepEqual(Array.from(v.claimed),['a']);assert.equal(v.playerId,'00042');assert.equal(v.playerName,'Operador Aurora');const bad=normalize({credits:-5,xp:1e12,matches:1,wins:3,kills:2,best:9,skin:4,unlocked:[0],weapon:20,playerName:'<script>'});assert.equal(bad.credits,0);assert.equal(bad.xp,0);assert.equal(bad.wins,1);assert.equal(bad.best,2);assert.equal(bad.skin,0);assert.equal(bad.weapon,0);assert.equal(bad.playerName,undefined);});
 test('Lila locomotion blends pace on touch start and stop',()=>{assert.match(html,/c\.v583AnimPace=Number\.isFinite\(c\.v583AnimPace\)\?c\.v583AnimPace:rawPace/);assert.match(html,/Math\.exp\(-dt\*14\)/);assert.match(html,/const pace=clamp\(c\.v583AnimPace,0,1\)/);});
 test('mobile render settings guard invalid values and expose QA telemetry',()=>{assert.match(html,/const quality=Number\.isFinite\(rawQuality\)\?clamp\(rawQuality,\.45,1\.25\):\.8/);assert.match(html,/if\(!Number\.isFinite\(fps\)\|\|!renderer\|\|!running/);assert.match(html,/window\.THEDEMIANFF_V583_QUALITY=\(\)=>\(/);for(const field of ['activeBots','pickups','effects','worldObjects','contextLost','contextRestores','flightMode'])assert.ok(html.includes(field));});
-test('V58.9.0 package and workflow identify AWM and aerial systems',()=>{assert.ok(gradle.includes("versionCode 167"));assert.ok(gradle.includes("versionName '58.9.0-awm-exclusive-optics-flight'"));assert.ok(workflow.includes("v58-9-0-awm-camera-airdrop-release"));assert.ok(html.includes("AWM · FRANCOTIRADOR"));});
+test('V58.9.0 package and workflow identify AWM and aerial systems',()=>{assert.ok(gradle.includes("versionCode 168"));assert.ok(gradle.includes("versionName '60.0.0-aurora-royale-integration'"));assert.ok(workflow.includes("codex/v60-v65-integration"));assert.ok(html.includes("AWM · FRANCOTIRADOR"));});
 test('live multiplayer scope is documented honestly',()=>{assert.match(audit,/Not implemented as live networking/);assert.match(audit,/authoritative server tick/);assert.match(audit,/not a live 100-player online match client/);});
