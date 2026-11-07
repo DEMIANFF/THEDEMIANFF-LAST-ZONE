@@ -12,7 +12,7 @@ const menuEnd = html.indexOf('</div><div id="end"', menuStart);
 const menu = html.slice(menuStart, menuEnd > menuStart ? menuEnd : undefined);
 
 test('V57.6 uses one clean lobby navigation and removes cloud shortcuts from the lobby', () => {
-  assert.ok(html.includes("V59.5.0 · CENTRO DE OPERACIONES"));
+  assert.ok(html.includes("V60.0.0 · CENTRO DE OPERACIONES"));
   for (const section of ['TIENDA', 'PASE AURORA', 'OPERADORES', 'EVENTOS Y OBJETIVOS', 'ARSENAL', 'INVENTARIO', 'EQUIPAMIENTOS', 'SOCIAL']) {
     assert.ok(menu.includes(section), 'missing lobby section: ' + section);
   }
@@ -104,14 +104,14 @@ test('V59.5.0 aircraft and parachute have their own responsive camera route', ()
 });
 
 test('Android release is V59.5.0 with monotonic version code', () => {
-  assert.match(gradle, /versionCode 172/);
-  assert.ok(gradle.includes("versionName '59.5.0-hud-cache-refresh'"));
+  assert.match(gradle, /versionCode 173/);
+  assert.ok(gradle.includes("versionName '60.0.0-aurora-royale-integration'"));
 });
 
 test('V59.5.0 Android package metadata and lobby label match', () => {
-  assert.match(gradle, /versionCode 172/);
-  assert.ok(gradle.includes("versionName '59.5.0-hud-cache-refresh'"));
-  assert.ok(html.includes("V59.5.0 · CENTRO DE OPERACIONES"));
+  assert.match(gradle, /versionCode 173/);
+  assert.ok(gradle.includes("versionName '60.0.0-aurora-royale-integration'"));
+  assert.ok(html.includes("V60.0.0 · CENTRO DE OPERACIONES"));
 });
 
 test('V57.6 activates the authored Aurora battle royale environment and visual resources', () => {
@@ -152,9 +152,9 @@ test('V57.6 visual roots dispose their private materials while shared GPU geomet
 });
 
 test('Android release version remains monotonic after the camera rebuild', () => {
-  assert.match(gradle, /versionCode 172/);
-  assert.ok(gradle.includes("versionName '59.5.0-hud-cache-refresh'"));
-  assert.ok(html.includes("V59.5.0 · CENTRO DE OPERACIONES"));
+  assert.match(gradle, /versionCode 173/);
+  assert.ok(gradle.includes("versionName '60.0.0-aurora-royale-integration'"));
+  assert.ok(html.includes("V60.0.0 · CENTRO DE OPERACIONES"));
 });
 test('V57.6 opens the homes and removes free-standing grey block obstacles', () => {
   assert.match(html, /function v576RegisterOpenBuilding/);
@@ -193,11 +193,11 @@ test('release APK artifact name follows Gradle version instead of a stale V40 la
   assert.ok(workflow.includes('APP_VERSION='+"'+version.group(1)"));
   assert.ok(workflow.includes('THEDEMIANFF-${{ env.APP_VERSION }}-APK-RELEASE-FIRMADA'));
   assert.doesNotMatch(workflow, /THEDEMIANFF-V40-APK-RELEASE-FIRMA-PERMANENTE/);
-  assert.ok(workflow.includes("versionName '59.5.0-hud-cache-refresh'"));
+  assert.ok(workflow.includes("versionName '60.0.0-aurora-royale-integration'"));
 });
 
 test('V59.5.0 package and lobby labels identify the Free Fire camera release', () => {
-  assert.match(gradle, /versionCode 172/);
-  assert.ok(gradle.includes("versionName '59.5.0-hud-cache-refresh'"));
-  assert.ok(html.includes("V59.5.0 · CENTRO DE OPERACIONES"));
+  assert.match(gradle, /versionCode 173/);
+  assert.ok(gradle.includes("versionName '60.0.0-aurora-royale-integration'"));
+  assert.ok(html.includes("V60.0.0 · CENTRO DE OPERACIONES"));
 });
