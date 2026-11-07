@@ -4445,7 +4445,7 @@ v470JumpPose=Math.max(0,v470JumpPose-dt*2.0);v470LandingPose=Math.max(0,v470Land
 v58Camera.update(dt);
 // Fire after the camera has been aimed this frame, avoiding one-frame stale shots.
 if(fireHeld)shoot();
-else if(mobile&&$('autoFire').checked){for(const b of bots){if(!b.alive)continue;const dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);if(d<45&&Math.abs(Math.atan2(Math.sin(angle-camYaw),Math.cos(angle-camYaw)))<.075&&!blocked(player.position.x,player.position.z,b.x,b.z)){shoot();break;}}}
+else if(mobile&&weaponIndex!==5&&$('autoFire').checked){for(const b of bots){if(!b.alive)continue;const dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz),angle=Math.atan2(dx,dz);if(d<45&&Math.abs(Math.atan2(Math.sin(angle-camYaw),Math.cos(angle-camYaw)))<.075&&!blocked(player.position.x,player.position.z,b.x,b.z)){shoot();break;}}}
 v14Recoil=Math.max(0,v14Recoil-dt*(weaponIndex===1?6.5:weaponIndex===3?6:8.5));
 // V39.5: cosmetic-only animation envelope; does not change camera, aiming or weapon timing.
 v395SwapTime=Math.max(0,v395SwapTime-dt);
@@ -4968,7 +4968,7 @@ $('v36Jump').onclick=v36Jump;
 $('v36MapButton').onclick=v36OpenMap;
 mapCanvas.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(window.v36FlightMode==='aircraft')v372FlightMap();else v36OpenMap();});
 $('v36MapClose').onclick=v36CloseMap;
-$('v36Mark').onclick=()=>{if(v36MapPick){v36Waypoint=v36MapPick;toast('DESTINO MARCADO EN MAPA');}v36CloseMap();};
+$('v36Mark').onclick=()=>{if(v36MapPick){v36Waypoint=v36MapPick;if(window.v36FlightMode==='descending')v36Destination=v36MapPick;toast('DESTINO MARCADO EN MAPA');}v36CloseMap();};
 // V18 local progression and functioning lobby modules. No simulated online purchases.
 const V18_STORAGE='thedemianff_progress_v18';
  let v18ActiveEvent=null;

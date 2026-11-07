@@ -119,6 +119,7 @@ test('AWM needs a manual bolt cycle after a shot and exposes the action',()=>{
  assert.match(html,/weaponIndex===5&&\(w\.needsCycle\|\|v60AwmCycleTimer>0\|\|v60AwmNeedsNewPress\)/);
  assert.ok(html.includes('id="v60BoltButton"'));
  assert.ok(html.includes("e.code==='KeyB'"));
+ assert.ok(html.includes("else if(mobile&&weaponIndex!==5&&$('autoFire').checked)"));
 });
 
 test('descent keeps tactical map access and deploys a golden winged glider',()=>{
@@ -126,6 +127,7 @@ test('descent keeps tactical map access and deploys a golden winged glider',()=>
  assert.ok(start>=0&&end>start);
  assert.match(html.slice(start,end),/v36FlightMode!=='descending'/);
  assert.ok(html.includes("document.body.classList.add('v60DescendingMap')"));
+ assert.ok(html.includes("if(window.v36FlightMode==='descending')v36Destination=v36MapPick"));
  assert.ok(html.includes('function v60BuildGoldenGlider(target)'));
  assert.ok(html.includes('v60BuildGoldenGlider(v36Chute)'));
  assert.ok(!html.includes('new THREE.SphereGeometry(3.5,12,6,0,Math.PI*2,0,Math.PI*.5)'));
