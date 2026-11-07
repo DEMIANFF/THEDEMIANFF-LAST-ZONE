@@ -114,6 +114,9 @@ test('AWM needs a manual bolt cycle after a shot and exposes the action',()=>{
  assert.match(html,/weaponIndex===5&&\(w\.needsCycle\|\|v60AwmCycleTimer>0\)/);
  assert.match(html,/if\(weaponIndex===5\)\{w\.needsCycle=true;v60UpdateAwmCycleButton\(\)\}/);
  assert.ok(html.includes('function v60CycleAWM()'));
+ assert.ok(html.includes('v60AwmNeedsNewPress'));
+ assert.ok(html.includes('v60AwmNeedsNewPress=false'));
+ assert.match(html,/weaponIndex===5&&\(w\.needsCycle\|\|v60AwmCycleTimer>0\|\|v60AwmNeedsNewPress\)/);
  assert.ok(html.includes('id="v60BoltButton"'));
  assert.ok(html.includes("e.code==='KeyB'"));
 });
