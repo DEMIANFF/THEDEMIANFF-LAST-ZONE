@@ -1,6 +1,6 @@
 # V60–V65 — Integración del Battle Royale
 
-Se parte de v58-integration-audit y se aprovecha su descendiente directo v58-9-0-awm-camera-airdrop-release (19 commits por delante y sin divergencia). Esto conserva la cámara V58, Firebase/Google/invitado y identity-gas, sin portar la historia divergente de v59-0-awm-camera-airdrop cuyo versionCode es 140.
+La base es codex/recover-v58-9-ci, descendiente directo por 30 commits de v58-9-0-awm-camera-airdrop-release, que a su vez desciende de v58-integration-audit. Se usa la cadena de recuperación que restaura la declaración del controlador de cámara V58 y ya tuvo una ejecución de Actions correcta (#739). La rama V59 divergente no se incorporó.
 
 ## Entregas integradas
 
