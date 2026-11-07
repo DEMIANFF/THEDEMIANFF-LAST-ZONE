@@ -123,7 +123,7 @@ jobs:
               assert token not in html, 'V57.6: grey clutter or translucent zone volume remains '+token
           for token in ('body.v475InMatch:not(.v58FlightMode) #cross', 'body.v475InMatch:not(.v58FlightMode) #v10Reticle.v58ADS', 'body.v58FlightMode #v58ScopeButton', 'body.v58FlightMode #v58ScopeLabel', "document.body.classList.contains('v475InMatch')&&isADS&&running", 'min="8.5" max="13.5" step=".25" value="11.2"', "baseShoulder=-clamp(Number($('v26CameraShoulder').value)||1.25,.8,1.8)", 'targetShoulder=baseShoulder*(1-.08*b)', 'id="v584MatchOnlyAimHUD"'):
               assert token in html, 'V57.6: match-only aim or right-shoulder camera guard missing '+token
-          for token in ("baseShoulder=-clamp(Number($('v26CameraShoulder').value)||1.25,.8,1.8)", 'targetShoulder=baseShoulder*(1-.08*b)', 'reticle.dataset.scope=this.active().name', 'const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction)', 'id="v582RightShoulderAim"'):
+          for token in ("baseShoulder=-clamp(Number($('v26CameraShoulder').value)||1.25,.8,1.8)", 'targetShoulder=baseShoulder*(1-.08*b)', 'reticle.dataset.scope=active.name', 'const start=camera.position.clone(),direction=new THREE.Vector3();camera.getWorldDirection(direction)', 'id="v582RightShoulderAim"'):
               assert token in html, 'V57.6: missing right-shoulder aiming correction '+token
           for token in ('UNAUTHENTICATED', 'GOOGLE_REQUIRED', 'REGISTRY_CORRUPT', 'RESOURCE_EXHAUSTED', 'BUSY'):
               assert token in java, 'V55.4: free identity error mapping missing: '+token
@@ -847,7 +847,7 @@ jobs:
           import re, subprocess
           h=Path('app/src/main/assets/index.html').read_text(encoding='utf-8')
           gradle=Path('app/build.gradle').read_text(encoding='utf-8')
-          checks=('const v58Sights={','const v58Camera={',"profile:'FREE_FIRE_THIRD_PERSON'",'this.updateAngles(t);','v58Camera.updateAngles(dt);','function v58FlightPointerDown(e)','function v58FlightPointerMove(e)',"v58SetFlightMode('aircraft')","v58SetFlightMode('descending')","v58SetFlightMode('landed')",'v58Camera.update(dt)','body.v58FlightMode #cross','body.v58FlightMode #v10Reticle','v58Sights.active().zoom','reticle.dataset.scope=this.active().name','v404SafeCameraTarget(desired)','v586UpdateBuildingVisibility(t);')
+          checks=('const v58Sights={','const v58Camera={',"profile:'FREE_FIRE_THIRD_PERSON'",'this.updateAngles(t);','v58Camera.updateAngles(dt);','function v58FlightPointerDown(e)','function v58FlightPointerMove(e)',"v58SetFlightMode('aircraft')","v58SetFlightMode('descending')","v58SetFlightMode('landed')",'v58Camera.update(dt)','body.v58FlightMode #cross','body.v58FlightMode #v10Reticle','v58Sights.active().zoom','reticle.dataset.scope=active.name','v404SafeCameraTarget(desired)','v586UpdateBuildingVisibility(t);')
           for token in checks: assert token in h, 'V58.8.0 missing: '+token
           assert 'const v432Camera={' not in h and 'const v434Optics={' not in h
           assert 'v372PlaneTouch' not in h
