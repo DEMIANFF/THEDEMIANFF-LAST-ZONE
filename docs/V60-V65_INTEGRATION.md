@@ -22,3 +22,12 @@ El flujo no afirma multijugador en línea. La configuración de rendimiento sirv
 ## Publicación
 
 app/build.gradle usa versionCode 173, superior a V58.2.1 (158) y V58.9.0 (167). El workflow conserva la configuración de keystore existente y publica el artefacto release solo cuando el secreto permanente está presente. No se requiere ni se crea un keystore nuevo.
+
+## V65 quality pass — `codex/v60-v65-quality-fixes`
+
+- **AWM:** cada disparo exige accionar manualmente el cerrojo antes de permitir otro; el perfil x8 continúa exclusivo de AWM.
+- **Despliegue:** el mapa táctico puede abrirse durante el descenso; la cámara de vuelo V58 se conserva. El operador despliega un planeador alado dorado de bajo coste geométrico, con costillas y líneas de suspensión.
+- **Terreno:** la altura física usa la misma función de elevación de la malla visible, alineando suelo, colisiones y aterrizajes.
+- **Inventario:** la mochila expone una matriz de casillas para armas, reservas por calibre, botiquines, blindaje y espacios vacíos. Los pickups respetan capacidad de pila y espacio.
+- **APK:** `versionCode 174`, `versionName 65.0.0-aurora-royale-quality-pass`. Se conserva la configuración de firma existente; no se cambian credenciales de Firebase ni el keystore.
+- **Aceptación pendiente:** Actions y pruebas Android reales. La validación automatizada no sustituye la comprobación táctil, visual y de rendimiento en Motorola Edge 60 Fusion.
