@@ -112,7 +112,7 @@ test('release V65 is an installable upgrade with a higher Android version code',
 
 test('AWM needs a manual bolt cycle after a shot and exposes the action',()=>{
  assert.match(html,/weaponIndex===5&&\(w\.needsCycle\|\|v60AwmCycleTimer>0\)/);
- assert.match(html,/if\(weaponIndex===5\)\{w\.needsCycle=true;v60UpdateAwmCycleButton\(\)\}/);
+ assert.ok(html.includes('if(weaponIndex===5){w.needsCycle=true;v60UpdateAwmCycleButton();}'));
  assert.ok(html.includes('function v60CycleAWM()'));
  assert.ok(html.includes('v60AwmNeedsNewPress'));
  assert.ok(html.includes('v60AwmNeedsNewPress=false'));
