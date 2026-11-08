@@ -58,6 +58,7 @@ func _ready() -> void:
         _avatar = operator_scene.instantiate() as Node3D
         _avatar.name = "AuroraFemaleRiggedOperator"
         add_child(_avatar)
+        _normalize_avatar_scale(_avatar)
         _animator = _avatar.find_child("*AnimationPlayer*", true, false) as AnimationPlayer
         if _animator == null:
             _animator = _avatar.find_child("AnimationPlayer", true, false) as AnimationPlayer
@@ -101,6 +102,32 @@ func _physics_process(delta: float) -> void:
         var state: String = "run" if speed >= 5.5 else "walk" if speed >= 1.0 else "idle"
         if state != _current_clip:
             _play_matching_animation(state)
+
+
+func _normalize_avatar_scale(visual: Node3D) -> void:
+    # Imported FBX rigs may measure in centimetres; bound actual transformed
+    # mesh geometry and fit the visible body to the 1.82m native collider.
+    var min_y: float = INF
+    var max_y: float = -INF
+    var min_x: float = INF
+    var max_x: float = -INF
+    for child in visual.find_children("*", "MeshInstance3D", true, false):
+        var part := child as MeshInstance3D
+        var bounds: AABB = part.get_aabb()
+        for endpoint in range(8):
+            var vertex: Vector3 = visual.to_local(part.to_global(bounds.get_endpoint(endpoint)))
+            min_y = minf(min_y,vertex.y)
+            max_y = maxf(max_y,vertex.y)
+            min_x = minf(min_x,vertex.x)
+            max_x = maxf(max_x,vertex.x)
+    if not is_finite(min_y) or not is_finite(max_y) or max_y-min_y < .01:
+        push_warning("Aurora model AABB unavailable")
+        return
+    var height: float = max_y-min_y
+    var factor: float = clampf(1.76/height,.00001,100.0)
+    visual.scale=Vector3.ONE*factor
+    visual.position.y=-min_y*factor
+    print("AURORA_MODEL_FIT original_height=",height," original_width=",max_x-min_x," scale=",factor)
 
 
 func set_ads(ads: bool, zoom: float) -> void:
