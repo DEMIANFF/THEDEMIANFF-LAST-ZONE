@@ -111,6 +111,8 @@ func _normalize_avatar_scale(visual: Node3D) -> void:
     var max_y: float = -INF
     var min_x: float = INF
     var max_x: float = -INF
+    var min_z: float = INF
+    var max_z: float = -INF
     for child in visual.find_children("*", "MeshInstance3D", true, false):
         var part := child as MeshInstance3D
         var bounds: AABB = part.get_aabb()
@@ -120,14 +122,25 @@ func _normalize_avatar_scale(visual: Node3D) -> void:
             max_y = maxf(max_y,vertex.y)
             min_x = minf(min_x,vertex.x)
             max_x = maxf(max_x,vertex.x)
+            min_z = minf(min_z,vertex.z)
+            max_z = maxf(max_z,vertex.z)
     if not is_finite(min_y) or not is_finite(max_y) or max_y-min_y < .01:
         push_warning("Aurora model AABB unavailable")
         return
-    var height: float = max_y-min_y
+    # This CC0 FBX rig arrives on Z-up in Godot. Determine that from its
+    # geometry extents, then rotate the *whole* skinned visual + animations.
+    var original_y_height: float = max_y-min_y
+    var original_z_length: float = max_z-min_z
+    var z_up: bool = original_z_length > original_y_height*1.22
+    var height: float = original_z_length if z_up else original_y_height
     var factor: float = clampf(1.76/height,.00001,100.0)
     visual.scale=Vector3.ONE*factor
-    visual.position.y=-min_y*factor
-    print("AURORA_MODEL_FIT original_height=",height," original_width=",max_x-min_x," scale=",factor)
+    if z_up:
+        visual.rotation.x = PI*.5
+        visual.position.y = max_z*factor
+    else:
+        visual.position.y = -min_y*factor
+    print("AURORA_MODEL_FIT y_range=",original_y_height," z_range=",original_z_length," width=",max_x-min_x," z_up=",z_up," scale=",factor)
 
 
 func set_ads(ads: bool, zoom: float) -> void:

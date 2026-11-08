@@ -57,6 +57,20 @@ func _verify() -> void:
             push_error("Imported rig lacks the three authored locomotion clips")
             quit(11)
             return
+        var ground_y: float = operator.global_position.y
+        var visual_min: float = INF
+        var visual_max: float = -INF
+        for mesh in rig.find_children("*", "MeshInstance3D", true, false):
+            var part := mesh as MeshInstance3D
+            var bounds: AABB = part.get_aabb()
+            for i in range(8):
+                var y: float = part.to_global(bounds.get_endpoint(i)).y
+                visual_min = minf(visual_min,y)
+                visual_max = maxf(visual_max,y)
+        if absf((visual_max-visual_min)-1.76)>.26 or absf(visual_min-ground_y)>.40:
+            push_error("FBX body orientation or floor contact invalid: height="+str(visual_max-visual_min)+" bottom="+str(visual_min-ground_y))
+            quit(12)
+            return
         if rig.find_children("*", "Skeleton3D", true, false).is_empty():
             push_error("Imported operator has no Skeleton3D")
             quit(10)
