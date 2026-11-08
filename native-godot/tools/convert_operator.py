@@ -11,6 +11,7 @@ import bpy
 import sys
 from pathlib import Path
 import math
+from mathutils import Vector, Quaternion
 
 args = sys.argv[sys.argv.index("--") + 1:]
 fbx, atlas, out = map(Path, args[:3])
@@ -28,6 +29,7 @@ assert armatures, 'FBX source contains no skeleton; abort'
 arm = max(armatures, key=lambda o: len(o.data.bones))
 print('OPERATOR_MESHES', len(meshes), 'BONES', len(arm.data.bones))
 print('BONE_NAMES', ','.join(b.name for b in arm.data.bones)[:2000])
+print('ARM_DIRECTION', [(b.name, (b.tail_local-b.head_local)[:]) for b in arm.data.bones if b.name.endswith(('LeftArm','RightArm'))])
 # Mobile optimization: discard unneeded ARKit facial morph targets, keep the full rig.
 for obj in meshes:
     if obj.data.shape_keys:
@@ -109,7 +111,7 @@ for clip_name, amplitude, frames in [('AuroraIdle', 0.012, 60),
             assigned = role(bone.name)
             if not assigned:
                 continue
-            bone.rotation_mode = 'XYZ'
+            bone.rotation_mode = 'QUATERNION' if assigned in {'arm_l','arm_r'} else 'XYZ'
             if assigned == 'leg_l':
                 offset = amplitude * math.sin(phase)
             elif assigned == 'leg_r':
@@ -120,8 +122,24 @@ for clip_name, amplitude, frames in [('AuroraIdle', 0.012, 60),
                 offset = amplitude * .6 * math.sin(phase)
             else:
                 offset = min(.035, amplitude * .14) * math.sin(phase)
-            bone.rotation_euler[0] = offset
-            bone.keyframe_insert(data_path='rotation_euler', frame=frame, group=bone.name)
+            if assigned.startswith('arm_'):
+                # FBX base is a straight T-pose. Rotate each upper arm in the
+                # armature's *Y axis* toward gravity (-Z in Blender's Z-up FBX).
+                # Bone-local axes come from its REST matrix to avoid bad bone rolls.
+                rest = bone.bone.matrix_local.to_3x3()
+                lower_axis = (rest.inverted() @ Vector((0, 1, 0))).normalized()
+                swing_axis = (rest.inverted() @ Vector((1, 0, 0))).normalized()
+                arm_direction = bone.bone.tail_local.x - bone.bone.head_local.x
+                downward_sign = 1.0 if arm_direction > 0 else -1.0
+                # Keep arms 50 degrees below a T-pose, with gentle reciprocal
+                # breathing/walk swing. This is authored skeletal motion.
+                lower = Quaternion(lower_axis, downward_sign * 0.90)
+                swing = Quaternion(swing_axis, offset)
+                bone.rotation_quaternion = lower @ swing
+                bone.keyframe_insert(data_path='rotation_quaternion', frame=frame, group=bone.name)
+            else:
+                bone.rotation_euler[0] = offset
+                bone.keyframe_insert(data_path='rotation_euler', frame=frame, group=bone.name)
     track = arm.animation_data.nla_tracks.new()
     track.name = clip_name
     strip = track.strips.new(clip_name, 1, action)
