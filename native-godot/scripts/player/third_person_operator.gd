@@ -8,7 +8,13 @@ const GRAVITY: float = 17.5
 const LOOK_SENSITIVITY: float = 0.0032
 const TOUCH_DEADZONE: float = 0.12
 
+signal training_health_changed(value: float)
 @export var approved_operator_scene: PackedScene
+var training_health: float = 100.0
+var training_knockouts: int = 0
+var _training_immunity: float = 0.0
+var _sprint_touch: bool = false
+var _jump_requested: bool = false
 
 var _yaw: float = 0.0
 var _pitch: float = -0.14
@@ -58,7 +64,7 @@ func _ready() -> void:
         _avatar = operator_scene.instantiate() as Node3D
         _avatar.name = "AuroraFemaleRiggedOperator"
         add_child(_avatar)
-        _normalize_avatar_scale(_avatar)
+        fit_operator_visual(_avatar)
         _animator = _avatar.find_child("*AnimationPlayer*", true, false) as AnimationPlayer
         if _animator == null:
             _animator = _avatar.find_child("AnimationPlayer", true, false) as AnimationPlayer
@@ -68,6 +74,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+    _training_immunity=maxf(0.0,_training_immunity-delta)
     var control := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
     if _move_axis.length() > TOUCH_DEADZONE:
         control = _move_axis
@@ -75,7 +82,7 @@ func _physics_process(delta: float) -> void:
     var relative_direction := Vector3(control.x, 0.0, control.y)
     var facing := Basis(Vector3.UP, _yaw)
     var world_direction := (facing * relative_direction).normalized()
-    var run_fast := Input.is_action_pressed("run")
+    var run_fast := Input.is_action_pressed("run") or _sprint_touch
     var target_speed := RUN_SPEED if run_fast else WALK_SPEED
     var target_velocity := world_direction * target_speed
 
@@ -83,8 +90,9 @@ func _physics_process(delta: float) -> void:
     velocity.z = move_toward(velocity.z, target_velocity.z, ACCELERATION * delta)
     if not is_on_floor():
         velocity.y -= GRAVITY * delta
-    elif Input.is_action_just_pressed("jump"):
+    elif Input.is_action_just_pressed("jump") or _jump_requested:
         velocity.y = 5.4
+        _jump_requested = false
     else:
         velocity.y = 0.0
 
@@ -104,7 +112,7 @@ func _physics_process(delta: float) -> void:
             _play_matching_animation(state)
 
 
-func _normalize_avatar_scale(visual: Node3D) -> void:
+func fit_operator_visual(visual: Node3D) -> void:
     # Imported FBX rigs may measure in centimetres; bound actual transformed
     # mesh geometry and fit the visible body to the 1.82m native collider.
     var min_y: float = INF
@@ -141,6 +149,29 @@ func _normalize_avatar_scale(visual: Node3D) -> void:
     else:
         visual.position.y = -min_y*factor
     print("AURORA_MODEL_FIT y_range=",original_y_height," z_range=",original_z_length," width=",max_x-min_x," z_up=",z_up," scale=",factor)
+
+
+func receive_training_hit(amount: float) -> void:
+    if amount<=0 or _training_immunity>0:
+        return
+    training_health=maxf(0.0,training_health-amount)
+    training_health_changed.emit(training_health)
+    _training_immunity=.42
+    if training_health<=0:
+        training_knockouts+=1
+        training_health=100.0
+        _training_immunity=3.0
+        velocity=Vector3.ZERO
+        global_position=Vector3(0,0,0)
+        training_health_changed.emit(training_health)
+
+
+func set_touch_run(active: bool) -> void:
+    _sprint_touch=active
+
+
+func touch_jump() -> void:
+    _jump_requested=true
 
 
 func set_ads(ads: bool, zoom: float) -> void:
