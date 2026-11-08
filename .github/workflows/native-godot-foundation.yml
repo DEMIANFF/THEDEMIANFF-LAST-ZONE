@@ -1,7 +1,7 @@
-name: V71 Godot native foundation — scene boot
+name: V72 Godot native Aurora visual slice
 on:
   push:
-    branches: [codex/v71-native-battle-royale-foundation]
+    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice]
     paths:
       - 'native-godot/**'
       - 'docs/V71_REAL_BATTLE_ROYALE_MASTER_PLAN.md'

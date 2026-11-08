@@ -29,9 +29,18 @@ func _verify() -> void:
         push_error("Collision shape was not built")
         quit(4)
         return
+    if main.get_node_or_null("PuertoAuroraSector") == null:
+        push_error("Missing realistic Aurora district")
+        quit(6)
+        return
+    var district := main.get_node("PuertoAuroraSector")
+    if district.get_node_or_null("CENTRO_DE_EXPLORACION/AngledMetalRoof") == null:
+        push_error("District roofs not assembled")
+        quit(7)
+        return
     if operator.get_node_or_null("CameraPivot/ThirdPersonCamera") == null:
         push_error("Native third-person camera not found")
         quit(5)
         return
-    print("V71 headless scene OK: terrain, collision, touch-controller, 3rd-person camera")
+    print("V72 visual slice OK: terrain, physical structures, district, camera")
     quit(0)
