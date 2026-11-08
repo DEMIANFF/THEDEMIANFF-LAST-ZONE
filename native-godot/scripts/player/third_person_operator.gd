@@ -11,6 +11,7 @@ const TOUCH_DEADZONE: float = 0.12
 signal training_health_changed(value: float)
 @export var approved_operator_scene: PackedScene
 var training_health: float = 100.0
+var respawn_point: Vector3 = Vector3.ZERO
 var training_knockouts: int = 0
 var _training_immunity: float = 0.0
 var _sprint_touch: bool = false
@@ -162,7 +163,7 @@ func receive_training_hit(amount: float) -> void:
         training_health=100.0
         _training_immunity=3.0
         velocity=Vector3.ZERO
-        global_position=Vector3(0,0,0)
+        global_position=respawn_point
         training_health_changed.emit(training_health)
 
 

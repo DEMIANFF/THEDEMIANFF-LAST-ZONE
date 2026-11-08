@@ -3,6 +3,7 @@ extends Node3D
 const AR_DAMAGE: int=26
 const AWM_DAMAGE: int=115
 const AWM_BOLT_SECONDS: float=.50
+const BOT = preload("res://scripts/ai/aurora_bot.gd")
 
 var operator: CharacterBody3D
 var hud: CanvasLayer
@@ -14,7 +15,9 @@ var trigger_held: bool=false
 var aim_active: bool=false
 var cooldown: float=0.0
 var reload_timer: float=0.0
-var _targets: Array[StaticBody3D]=[]
+var _targets: Array[CharacterBody3D]=[]
+var _weapon_model: Node3D
+var eliminations: int = 0
 
 
 func _ready() -> void:
@@ -61,6 +64,8 @@ func _on_weapon() -> void:
     cooldown=.20
     reload_timer=0
     aim_active=false
+    if _weapon_model:
+        _weapon_model.visible=weapon_index==0  # AK visual only until original AWM model is ready.
     operator.set_ads(false,1.0)
     hud.set_aim(false,"MIRA LIBRE")
     _sync_hud()
@@ -105,15 +110,9 @@ func _shoot() -> void:
     if hit.is_empty():
         return
     var body=hit.get("collider")
-    if body is StaticBody3D and body.is_in_group("training_target"):
-        var hp: int=int(body.get_meta("target_hp",100))
-        hp-=AWM_DAMAGE if weapon_index==1 else AR_DAMAGE
-        body.set_meta("target_hp",hp)
-        if hp<=0:
-            hud.impact("OBJETIVO NEUTRALIZADO")
-            body.set_meta("target_hp",100)
-        else:
-            hud.impact("IMPACTO CONFIRMADO / "+str(maxi(0,hp))+" VIDA")
+    if body is CharacterBody3D and body.is_in_group("training_target"):
+        var eliminated: bool=body.take_training_damage(float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE))
+        hud.impact("ENEMIGO NEUTRALIZADO" if eliminated else "IMPACTO CONFIRMADO")
 
 
 func _sync_hud() -> void:
@@ -121,79 +120,69 @@ func _sync_hud() -> void:
 
 
 func _make_targets() -> void:
+    # Four real skinned training opponents, independently moving and damageable.
+    # Bounded LOS: walls and rocks block attacks; NPCs are not online players.
     var points: Array[Vector2]=[
-        Vector2(0,-28),Vector2(-12,-14),Vector2(33,8),
-        Vector2(-31,-47),Vector2(58,-4),Vector2(30,-58)]
+        Vector2(0,-27), Vector2(-28,-24),
+        Vector2(41,-10), Vector2(12,-51)]
     for i in range(points.size()):
-        var p: Vector2=points[i]
-        var dummy:=StaticBody3D.new()
-        dummy.name="TrainingDummy"+str(i+1)
-        dummy.add_to_group("training_target")
-        dummy.position=Vector3(p.x,terrain.height_at(p.x,p.y)+.9,p.y)
-        dummy.set_meta("target_hp",100)
-        add_child(dummy)
-        var shape:=CollisionShape3D.new()
-        var capsule:=CapsuleShape3D.new()
-        capsule.radius=.48
-        capsule.height=1.75
-        shape.shape=capsule
-        dummy.add_child(shape)
-        var torso:=MeshInstance3D.new()
-        torso.mesh=CapsuleMesh.new()
-        torso.mesh.radius=.44
-        torso.mesh.height=1.65
-        var material:=StandardMaterial3D.new()
-        material.albedo_color=Color(.68,.39,.24)
-        material.metallic=.42
-        material.roughness=.48
-        torso.material_override=material
-        dummy.add_child(torso)
-        var ring:=MeshInstance3D.new()
-        ring.mesh=TorusMesh.new()
-        ring.mesh.inner_radius=.22
-        ring.mesh.outer_radius=.30
-        ring.rotation.x=PI*.5
-        ring.position=Vector3(0,.14,.43)
-        var ring_material:=StandardMaterial3D.new()
-        ring_material.albedo_color=Color(.82,.91,.93)
-        ring.material_override=ring_material
-        dummy.add_child(ring)
-        _targets.append(dummy)
+        var bot: CharacterBody3D=BOT.new()
+        bot.name="AuroraPatrol"+str(i+1)
+        bot.terrain=terrain
+        bot.operator=operator
+        bot.spawn_coordinates=points[i]
+        bot.eliminated.connect(_on_bot_eliminated)
+        add_child(bot)
+        _targets.append(bot)
+
+
+func _on_bot_eliminated(_agent: CharacterBody3D) -> void:
+    eliminations+=1
+    hud.impact("BAJA CONFIRMADA  /  "+str(eliminations))
 
 
 func _draw_weapon_rig() -> void:
-    var rig:=Node3D.new()
-    rig.name="VisibleTrainingRifle"
-    rig.position=Vector3(.43,1.32,-.26)
-    operator.add_child(rig)
-    var gun_material:=StandardMaterial3D.new()
-    gun_material.albedo_color=Color(.11,.16,.20)
-    gun_material.metallic=.72
-    gun_material.roughness=.37
-    for data in [
-        [Vector3(0,0,-.33),.09,.92],
-        [Vector3(0,.09,-.65),.042,.84],
-        [Vector3(.02,-.15,-.1),.075,.24]
-    ]:
-        var segment:=MeshInstance3D.new()
-        var cylinder:=CylinderMesh.new()
-        cylinder.top_radius=data[1]
-        cylinder.bottom_radius=data[1]
-        cylinder.height=data[2]
-        cylinder.radial_segments=10
-        segment.mesh=cylinder
-        segment.rotation.x=PI*.5
-        segment.position=data[0]
-        segment.material_override=gun_material
-        rig.add_child(segment)
-    var optic:=MeshInstance3D.new()
-    var optic_mesh:=CylinderMesh.new()
-    optic_mesh.top_radius=.09
-    optic_mesh.bottom_radius=.09
-    optic_mesh.height=.31
-    optic_mesh.radial_segments=14
-    optic.mesh=optic_mesh
-    optic.rotation.x=PI*.5
-    optic.position=Vector3(0,.18,-.30)
-    optic.material_override=gun_material
-    rig.add_child(optic)
+    # Reuse an actual AK-74 glTF model already included in this user's repo,
+    # rather than rendering the old three-cylinder proxy rifle.
+    const PATH: String="res://assets/weapons/ak74-tactical.glb"
+    if not ResourceLoader.exists(PATH):
+        push_warning("AK-74 mesh not installed: suppress placeholder geometry")
+        return
+    var source:=load(PATH) as PackedScene
+    if source == null:
+        return
+    _weapon_model=source.instantiate() as Node3D
+    _weapon_model.name="AK74TacticalVisual"
+    var mount:=Node3D.new()
+    mount.name="ShoulderWeaponMount"
+    mount.position=Vector3(.37,1.22,-.34)
+    operator.add_child(mount)
+    mount.add_child(_weapon_model)
+
+    var small: Vector3=Vector3(INF,INF,INF)
+    var large: Vector3=Vector3(-INF,-INF,-INF)
+    for candidate in _weapon_model.find_children("*","MeshInstance3D",true,false):
+        var mesh:=candidate as MeshInstance3D
+        var aabb: AABB=mesh.get_aabb()
+        for i in range(8):
+            var v: Vector3=_weapon_model.to_local(mesh.to_global(aabb.get_endpoint(i)))
+            small=small.min(v)
+            large=large.max(v)
+    var size: Vector3=large-small
+    var length: float=maxf(size.x,maxf(size.y,size.z))
+    if not is_finite(length) or length<=.0001:
+        push_warning("AK mesh has no usable bounds")
+        _weapon_model.visible=false
+        return
+    var factor: float=clampf(1.06/length,.00001,100.0)
+    var rot:=Vector3.ZERO
+    if size.x>size.y and size.x>size.z:
+        rot.y=PI*.5
+    elif size.y>size.z:
+        rot.x=-PI*.5
+    else:
+        rot.y=PI
+    _weapon_model.rotation=rot
+    _weapon_model.scale=Vector3.ONE*factor
+    _weapon_model.position=-(_weapon_model.quaternion*(small+size*.5))*factor
+    print("AURORA_REAL_AK74 fitted length=",length," scale=",factor," axis_extents=",size)

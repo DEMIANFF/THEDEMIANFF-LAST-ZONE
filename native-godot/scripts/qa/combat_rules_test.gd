@@ -7,6 +7,10 @@ func _verify() -> void:
     root.add_child(game)
     await process_frame
     var combat: Node3D = game.get_node("CombatRange")
+    if combat._targets.size()!=4:
+        push_error("V73: expected four real humanoid patrols")
+        quit(6)
+        return
     combat.weapon_index=1
     combat.cooldown=0.0
     var before: int = combat.ammo[1]
