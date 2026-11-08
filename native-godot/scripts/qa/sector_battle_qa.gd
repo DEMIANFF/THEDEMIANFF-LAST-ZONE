@@ -41,6 +41,11 @@ func _verify() -> void:
         push_error("Battle did not create one player + eight AI opponents")
         quit(82)
         return
+    var danger:=director.get_node_or_null("AuroraClosingZone/SectorBoundaryMesh") as MeshInstance3D
+    if danger==null or danger.mesh==null:
+        push_error("Shrinking danger zone has no in-world 3D boundary")
+        quit(94)
+        return
     if director.get_loot_remaining()!=16:
         push_error("Battle did not spawn the 16 world loot capsules")
         quit(83)
@@ -66,6 +71,10 @@ func _verify() -> void:
         return
     operator.global_position=operator.respawn_point
     director._process(120.0)
+    if absf(director._zone_visual.safe_radius-director.radius)>.5:
+        push_error("Rendered hazard radius desynchronized from damage circle")
+        quit(95)
+        return
     if director.radius>=director.INITIAL_RADIUS or director.radius<director.FINAL_RADIUS:
         push_error("Zone not shrinking over round time")
         quit(87)

@@ -189,6 +189,11 @@ func _battle_down() -> void:
     start_battle_requested.emit()
 
 
+func set_sector_zone(center: Vector2,radius: float) -> void:
+    if _training_radar:
+        _training_radar.call("set_zone",center,radius)
+
+
 func set_battle_button(label: String) -> void:
     if _battle_button:
         _battle_button.text=label

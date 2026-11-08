@@ -5,6 +5,9 @@ extends Control
 var player: CharacterBody3D
 var opponents: Array[CharacterBody3D]=[]
 var _tick: float=0.0
+var _zone_enabled: bool=false
+var _zone_world_center: Vector2=Vector2.ZERO
+var _zone_radius: float=90.0
 
 
 func _ready() -> void:
@@ -23,6 +26,13 @@ func _ready() -> void:
 func set_sources(player_character: CharacterBody3D, enemies: Array[CharacterBody3D]) -> void:
     player=player_character
     opponents=enemies.duplicate()
+    queue_redraw()
+
+
+func set_zone(center: Vector2,radius: float) -> void:
+    _zone_enabled=true
+    _zone_world_center=center
+    _zone_radius=maxf(3.0,radius)
     queue_redraw()
 
 
@@ -48,13 +58,19 @@ func _draw() -> void:
     if player==null or not is_instance_valid(player):
         return
     var yaw: float=float(player.get("_yaw"))
+    var world_range: float=130.0 if _zone_enabled else 60.0
+    if _zone_enabled:
+        var offset: Vector2=_zone_world_center-Vector2(player.global_position.x,player.global_position.z)
+        var screen_position: Vector2=center+offset.rotated(-yaw)*(radius/world_range)
+        var mapped_radius: float=_zone_radius*radius/world_range
+        draw_arc(screen_position,mapped_radius,0,TAU,72,Color(.42,.97,1.0,.91),2.7,true)
     for bot in opponents:
         if not is_instance_valid(bot) or not bot.visible:
             continue
         var relative:=Vector2(bot.global_position.x-player.global_position.x,
                               bot.global_position.z-player.global_position.z)
-        if relative.length()>60.0:
+        if relative.length()>world_range:
             continue
-        var dot: Vector2=center+relative.rotated(-yaw)*(radius/60.0)
+        var dot: Vector2=center+relative.rotated(-yaw)*(radius/world_range)
         draw_circle(dot,5.3,Color(.98,.41,.27))
         draw_arc(dot,8.0,0,TAU,12,Color(1.0,.80,.63,.6),1.0)

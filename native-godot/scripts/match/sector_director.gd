@@ -5,6 +5,7 @@ extends Node3D
 signal round_ended(victory: bool)
 
 const LOOT = preload("res://scripts/match/aurora_loot.gd")
+const ZONE_VISUAL = preload("res://scripts/match/aurora_zone_visual.gd")
 const INITIAL_RADIUS: float = 90.0
 const FINAL_RADIUS: float = 12.0
 const SHRINK_DURATION: float = 280.0
@@ -22,9 +23,16 @@ var radius: float = INITIAL_RADIUS
 var _damage_clock: float = 0.0
 var _ui_clock: float = 0.0
 var _loot: Array[Area3D] = []
+var _zone_visual: Node3D
 
 
 func _ready() -> void:
+    _zone_visual=ZONE_VISUAL.new()
+    _zone_visual.name="AuroraClosingZone"
+    _zone_visual.terrain=terrain
+    _zone_visual.world_center=CENTER
+    add_child(_zone_visual)
+    _zone_visual.visible=false
     hud.start_battle_requested.connect(start_sector_battle)
     player.player_eliminated.connect(_on_player_eliminated)
     hud.set_sector_state("ENTRENAMIENTO",4,0.0,0)
@@ -41,6 +49,9 @@ func start_sector_battle() -> void:
     match_ended = false
     elapsed = 0.0
     radius = INITIAL_RADIUS
+    _zone_visual.visible=true
+    _zone_visual.set_safe_radius(radius,true)
+    hud.set_sector_zone(CENTER,radius)
     _damage_clock=0.0
     _ui_clock=0.0
     player.begin_sector_battle()
@@ -57,6 +68,8 @@ func _process(delta: float) -> void:
     elapsed += delta
     var progress: float = clampf(elapsed/SHRINK_DURATION,0.0,1.0)
     radius = lerpf(INITIAL_RADIUS,FINAL_RADIUS,pow(progress,1.13))
+    _zone_visual.set_safe_radius(radius)
+    hud.set_sector_zone(CENTER,radius)
     _ui_clock-=delta
     if _ui_clock<=0:
         _ui_clock=.33
