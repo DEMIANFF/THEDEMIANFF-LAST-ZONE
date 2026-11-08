@@ -2,6 +2,9 @@ extends Node3D
 ## Native scene assembly. No block-built buildings or cubic player meshes.
 const TERRAIN = preload("res://scripts/world/island_terrain.gd")
 const OPERATOR = preload("res://scripts/player/third_person_operator.gd")
+const DISTRICT = preload("res://scripts/world/aurora_district.gd")
+const HUD = preload("res://scripts/ui/native_hud.gd")
+const COMBAT = preload("res://scripts/combat/training_combat.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
@@ -12,6 +15,10 @@ func _ready() -> void:
     island = TERRAIN.new()
     island.name = "AuroraTerrain"
     add_child(island)
+    var district = DISTRICT.new()
+    district.name = "PuertoAuroraSector"
+    district.terrain = island
+    add_child(district)
 
     var water := MeshInstance3D.new()
     water.name = "SeaSurface"
@@ -24,6 +31,9 @@ func _ready() -> void:
     sea_material.metallic = 0.11
     sea_material.roughness = 0.23
     sea_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+    sea_material.emission_enabled = true
+    sea_material.emission = Color(0.01, 0.12, 0.15)
+    sea_material.emission_energy_multiplier = 0.24
     water.material_override = sea_material
     add_child(water)
 
@@ -31,6 +41,17 @@ func _ready() -> void:
     operator.name = "Operator"
     add_child(operator)
     operator.global_position = Vector3(0.0, island.height_at(0.0, 0.0) + 1.2, 0.0)
+
+    var hud = HUD.new()
+    hud.name = "TrainingHUD"
+    add_child(hud)
+
+    var combat = COMBAT.new()
+    combat.name = "CombatRange"
+    combat.operator = operator
+    combat.terrain = island
+    combat.hud = hud
+    add_child(combat)
 
 
 func _set_up_lighting() -> void:

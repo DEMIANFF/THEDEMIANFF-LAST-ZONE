@@ -29,9 +29,51 @@ func _verify() -> void:
         push_error("Collision shape was not built")
         quit(4)
         return
+    if main.get_node_or_null("PuertoAuroraSector") == null:
+        push_error("Missing realistic Aurora district")
+        quit(6)
+        return
+    var district := main.get_node("PuertoAuroraSector")
+    if district.get_node_or_null("CENTRO_DE_EXPLORACION/AngledMetalRoof") == null:
+        push_error("District roofs not assembled")
+        quit(7)
+        return
     if operator.get_node_or_null("CameraPivot/ThirdPersonCamera") == null:
         push_error("Native third-person camera not found")
         quit(5)
         return
-    print("V71 headless scene OK: terrain, collision, touch-controller, 3rd-person camera")
+    if main.get_node_or_null("TrainingHUD") == null or main.get_node_or_null("CombatRange") == null:
+        push_error("Missing native combat HUD or target range")
+        quit(8)
+        return
+    if OS.get_environment("AURORA_REQUIRE_OPERATOR") == "1":
+        var rig := operator.get_node_or_null("AuroraFemaleRiggedOperator")
+        if rig == null:
+            push_error("Requested CC0 operator not imported into native scene")
+            quit(9)
+            return
+        var clips := rig.find_child("AnimationPlayer", true, false) as AnimationPlayer
+        if clips == null or clips.get_animation_list().size() < 3:
+            push_error("Imported rig lacks the three authored locomotion clips")
+            quit(11)
+            return
+        var ground_y: float = operator.global_position.y
+        var visual_min: float = INF
+        var visual_max: float = -INF
+        for mesh in rig.find_children("*", "MeshInstance3D", true, false):
+            var part := mesh as MeshInstance3D
+            var bounds: AABB = part.get_aabb()
+            for i in range(8):
+                var y: float = part.to_global(bounds.get_endpoint(i)).y
+                visual_min = minf(visual_min,y)
+                visual_max = maxf(visual_max,y)
+        if absf((visual_max-visual_min)-1.76)>.26 or absf(visual_min-ground_y)>.40:
+            push_error("FBX body orientation or floor contact invalid: height="+str(visual_max-visual_min)+" bottom="+str(visual_min-ground_y))
+            quit(12)
+            return
+        if rig.find_children("*", "Skeleton3D", true, false).is_empty():
+            push_error("Imported operator has no Skeleton3D")
+            quit(10)
+            return
+    print("V72 slice OK: island, structures, camera, touch HUD, actual weapon rays, rig check")
     quit(0)

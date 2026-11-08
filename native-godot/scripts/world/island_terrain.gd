@@ -30,6 +30,7 @@ func height_at(x: float, z: float) -> float:
 func _ready() -> void:
     var vertices := PackedVector3Array()
     var normals := PackedVector3Array()
+    var colors := PackedColorArray()
     var uvs := PackedVector2Array()
     var indices := PackedInt32Array()
     var grid_width := CELLS + 1
@@ -42,7 +43,16 @@ func _ready() -> void:
             vertices.append(Vector3(x, y, z))
             var gradient_x := height_at(x - HEIGHT_STEP, z) - height_at(x + HEIGHT_STEP, z)
             var gradient_z := height_at(x, z - HEIGHT_STEP) - height_at(x, z + HEIGHT_STEP)
-            normals.append(Vector3(gradient_x, 2.0 * HEIGHT_STEP, gradient_z).normalized())
+            var normal := Vector3(gradient_x, 2.0 * HEIGHT_STEP, gradient_z).normalized()
+            normals.append(normal)
+            var rock := Color(0.35, 0.45, 0.49)
+            var snow := Color(0.79, 0.88, 0.90)
+            var upper_snow := clampf((y + 1.0) / 23.0, 0.0, 1.0)
+            var slope_rock := clampf((0.83 - normal.y) * 3.7, 0.0, 1.0)
+            var coastal := clampf((y - sea_level - 0.5) / 5.0, 0.0, 1.0)
+            var coastal_color := Color(0.46, 0.55, 0.55).lerp(rock, coastal)
+            var natural := coastal_color.lerp(snow, upper_snow * (1.0 - slope_rock))
+            colors.append(natural)
             uvs.append(Vector2(float(x_index) / float(CELLS), float(z_index) / float(CELLS)))
 
     for z_index in range(CELLS):
@@ -54,6 +64,7 @@ func _ready() -> void:
     var arrays: Array = []
     arrays.resize(Mesh.ARRAY_MAX)
     arrays[Mesh.ARRAY_VERTEX] = vertices
+    arrays[Mesh.ARRAY_COLOR] = colors
     arrays[Mesh.ARRAY_NORMAL] = normals
     arrays[Mesh.ARRAY_TEX_UV] = uvs
     arrays[Mesh.ARRAY_INDEX] = indices
@@ -61,7 +72,8 @@ func _ready() -> void:
     var surface := ArrayMesh.new()
     surface.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
     var terrain_material := StandardMaterial3D.new()
-    terrain_material.albedo_color = Color(0.67, 0.77, 0.79)
+    terrain_material.albedo_color = Color.WHITE
+    terrain_material.vertex_color_use_as_albedo = true
     terrain_material.roughness = 0.9
     surface.surface_set_material(0, terrain_material)
 

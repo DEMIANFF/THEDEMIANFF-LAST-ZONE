@@ -1,0 +1,115 @@
+name: V72 Aurora Native Preview APK (separate from V70)
+on:
+  push:
+    branches: [codex/v72-native-visual-slice]
+    paths:
+      - 'native-godot/**'
+      - '.github/workflows/native-godot-preview-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 48
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare CC0 female operator source (pinned and verified)
+        run: bash native-godot/tools/fetch_operator.sh /tmp/aurora-operator
+      - name: Install Blender FBX importer / GLB exporter
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy > /tmp/aurora-blender-install.log
+          blender --background --version | head -n 2
+      - name: Generate real skinned female operator from verified CC0 source
+        run: |
+          blender -b --python native-godot/tools/convert_operator.py -- \
+            /tmp/aurora-operator/attractor_mechanic_tpose.fbx \
+            /tmp/aurora-operator/attractor_mechanic_tpose.png \
+            native-godot/assets/characters/aurora_operator.glb
+          python3 - <<'PY'
+          import json,struct
+          from pathlib import Path
+          f=Path('native-godot/assets/characters/aurora_operator.glb')
+          data=f.read_bytes()
+          magic,ver,total=struct.unpack_from('<III',data)
+          assert magic==0x46546c67 and ver==2 and total==len(data)
+          chunk_length,chunk_type=struct.unpack_from('<II',data,12)
+          assert chunk_type==0x4e4f534a
+          scene=json.loads(data[20:20+chunk_length])
+          print('Skinned GLB:',f.stat().st_size,'bytes',len(scene.get('skins',[])),'skins',len(scene.get('animations',[])),'clips',len(scene.get('meshes',[])),'meshes')
+          assert len(scene.get('skins',[]))>=1,'Rigged character has no skin'
+          assert len(scene.get('animations',[]))>=1,'Character has no animation clips'
+          PY
+      - name: Install Godot 4.7.2 editor
+        run: |
+          curl -fL --retry 3 --retry-delay 3 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip' -o /tmp/aurora-godot.zip
+          unzip -q /tmp/aurora-godot.zip -d /tmp
+          sudo install -m 0755 /tmp/Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot
+          godot --headless --version
+      - name: Install matching Godot Android export templates
+        run: |
+          curl -fL --retry 3 --retry-delay 4 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz' -o /tmp/aurora-templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          unzip -jo /tmp/aurora-templates.tpz 'templates/android_debug.apk' 'templates/android_release.apk' -d "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          echo 4.7.2.stable > "$HOME/.local/share/godot/export_templates/4.7.2.stable/version.txt"
+          test -s "$HOME/.local/share/godot/export_templates/4.7.2.stable/android_debug.apk"
+          rm /tmp/aurora-templates.tpz
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+      - name: Install Android platform and SDK build tools
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.1" "platform-tools" >/dev/null
+      - name: Configure Godot Android SDK and debug signing
+        run: |
+          mkdir -p "$HOME/.config/godot" "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          cat > "$HOME/.config/godot/editor_settings-4.7.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOF
+      - name: Import 3D models and parse project
+        run: godot --headless --path native-godot --editor --quit
+      - name: Smoke-test scene with imported character asset
+        env:
+          AURORA_REQUIRE_OPERATOR: "1"
+        run: godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
+      - name: Capture optional rendered scene from software OpenGL
+        continue-on-error: true
+        run: |
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-xvfb.log
+          mkdir -p native-godot/out
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_preview.gd
+          test -s native-godot/out/aurora-native-v72-preview.png
+      - name: Export distinct Android debug APK
+        run: |
+          mkdir -p native-godot/out
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V72-AURORA-NATIVE-PREVIEW.apk
+          test -s native-godot/out/THEDEMIANFF-V72-AURORA-NATIVE-PREVIEW.apk
+      - name: Verify APK namespace, checksum and package signature
+        run: |
+          APK=native-godot/out/THEDEMIANFF-V72-AURORA-NATIVE-PREVIEW.apk
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -n 3
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview"
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --print-certs "$APK"
+          unzip -t "$APK" | tail -n 1
+          sha256sum "$APK" | tee native-godot/out/SHA256SUMS.txt
+          echo "::notice::This is a DIFFERENT package and temporary debug signing identity; installing it cannot replace or erase signed V70."
+      - uses: actions/upload-artifact@v4
+        with:
+          name: THEDEMIANFF-V72-AURORA-NATIVE-PREVIEW-DEBUG
+          path: |
+            native-godot/out/THEDEMIANFF-V72-AURORA-NATIVE-PREVIEW.apk
+            native-godot/out/SHA256SUMS.txt
+            native-godot/out/aurora-native-v72-preview.png
+          retention-days: 14

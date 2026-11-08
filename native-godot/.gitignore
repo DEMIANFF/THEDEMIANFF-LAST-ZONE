@@ -1,0 +1,4 @@
+.godot/
+out/
+assets/characters/*.glb
+*.import
