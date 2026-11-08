@@ -81,7 +81,7 @@ func _ready() -> void:
         _animator = _avatar.find_child("*AnimationPlayer*", true, false) as AnimationPlayer
         if _animator == null:
             _animator = _avatar.find_child("AnimationPlayer", true, false) as AnimationPlayer
-        _play_matching_animation("idle")
+        _play_matching_animation("AuroraArmedIdle")
     else:
         push_warning("CC0 female operator GLB not yet generated. No cube character substituted.")
 

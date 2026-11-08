@@ -52,6 +52,10 @@ func _verify() -> void:
         quit(13)
         return
     if OS.get_environment("AURORA_REQUIRE_OPERATOR") == "1":
+        if operator.find_child("AWMPrecisionRifleVisual", true, false)==null:
+            push_error("AWM is gameplay-only; no physical 3D mesh was imported")
+            quit(16)
+            return
         if operator.find_child("AK74TacticalVisual", true, false)==null:
             push_error("V73 imported AK-74 missing; no proxy rifle accepted")
             quit(14)
