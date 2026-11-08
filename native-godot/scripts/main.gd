@@ -5,6 +5,8 @@ const OPERATOR = preload("res://scripts/player/third_person_operator.gd")
 const DISTRICT = preload("res://scripts/world/aurora_district.gd")
 const HUD = preload("res://scripts/ui/native_hud.gd")
 const COMBAT = preload("res://scripts/combat/training_combat.gd")
+const SECTOR_MATCH = preload("res://scripts/match/sector_director.gd")
+const NATURE = preload("res://scripts/world/aurora_nature.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
@@ -19,6 +21,10 @@ func _ready() -> void:
     district.name = "PuertoAuroraSector"
     district.terrain = island
     add_child(district)
+    var nature: Node3D=NATURE.new()
+    nature.name="AuroraNature"
+    nature.terrain=island
+    add_child(nature)
 
     var water := MeshInstance3D.new()
     water.name = "SeaSurface"
@@ -47,6 +53,7 @@ func _ready() -> void:
     hud.name = "TrainingHUD"
     add_child(hud)
     operator.training_health_changed.connect(hud.set_health)
+    operator.player_damaged.connect(hud.show_damage_feedback)
     hud.run_pressed.connect(func(): operator.set_touch_run(true))
     hud.run_released.connect(func(): operator.set_touch_run(false))
     hud.jump_pressed.connect(operator.touch_jump)
@@ -61,21 +68,39 @@ func _ready() -> void:
     combat.hud = hud
     add_child(combat)
     hud.set_training_radar_sources(operator,combat._targets)
+    var match_director: Node3D=SECTOR_MATCH.new()
+    match_director.name="AuroraSectorMatch"
+    match_director.player=operator
+    match_director.combat=combat
+    match_director.terrain=island
+    match_director.hud=hud
+    add_child(match_director)
 
 
 func _set_up_lighting() -> void:
     var environment_node := WorldEnvironment.new()
     environment_node.name = "AuroraAtmosphere"
     var world_env := Environment.new()
-    world_env.background_mode = Environment.BG_COLOR
-    world_env.background_color = Color(0.53, 0.68, 0.78)
-    world_env.ambient_light_energy = 0.75
+    # Aurora sky gradient: actual Godot procedural atmospheric material,
+    # independent from copyrighted/static game art references.
+    var sky:=Sky.new()
+    var sky_gradient:=ProceduralSkyMaterial.new()
+    sky_gradient.sky_top_color=Color(.055,.13,.26)
+    sky_gradient.sky_horizon_color=Color(.44,.65,.78)
+    sky_gradient.ground_bottom_color=Color(.11,.23,.30)
+    sky_gradient.ground_horizon_color=Color(.47,.69,.76)
+    sky_gradient.use_debanding=true
+    sky.sky_material=sky_gradient
+    world_env.background_mode=Environment.BG_SKY
+    world_env.sky=sky
+    world_env.ambient_light_energy = 0.82
     environment_node.environment = world_env
     add_child(environment_node)
 
     var sun := DirectionalLight3D.new()
     sun.name = "ArcticSun"
     sun.rotation = Vector3(-0.89, -0.42, 0.0)
-    sun.light_energy = 1.05
+    sun.light_color=Color(.92,.97,1.0)
+    sun.light_energy = 1.25
     sun.shadow_enabled = false  # Enabled selectively after real-device benchmark.
     add_child(sun)

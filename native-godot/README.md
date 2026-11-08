@@ -28,3 +28,8 @@ For production visuals, first acquire/create and license-audit operator rig, cli
 - The same skinned female temporary operator GLB is instanced for four offline training bots (not real multiplayer). Bots patrol, scan line-of-sight, investigate and apply bounded damage, with respawn.
 - Player health, touch sprint, jump and camera/control response added.
 - The animation-generation pipeline now aims upper arms downward using each bone's rest orientation; screenshots and device playtesting remain required.
+
+## V74: Aurora offline sector royale (limited vertical slice)
+The new **INICIAR BR** button starts a physically simulated **9-fighter** mini-battle (player + 8 AI), including AI-vs-AI line-of-sight combat, permanent enemy eliminations, a hazard circle that shrinks and causes health loss, 16 world-loot auto-collect pickups, ammo/medkits, alive counter, victory/defeat, and restart. The original training sandbox remains available before the match starts. The sector is a small portion of Puerto Aurora, NOT an 8x8 km /100-server-player BR.
+
+Automated tests: `scripts/qa/sector_battle_qa.gd` plus movement/camera/weapon checks. No Android phone performance claim until the user tests it. Debug package ID V74 `com.thedemianff.lastzone.nativepreview74` isolates it from V70 and saved Firebase data.

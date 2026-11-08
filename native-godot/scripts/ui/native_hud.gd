@@ -13,6 +13,7 @@ signal run_pressed
 signal run_released
 signal jump_pressed
 signal movement_axis_changed(value: Vector2)
+signal start_battle_requested
 const VIRTUAL_PAD = preload("res://scripts/ui/virtual_joystick.gd")
 const DIRECTIONAL_FIRE = preload("res://scripts/ui/directional_fire_pad.gd")
 const TACTICAL_RETICLE = preload("res://scripts/ui/scope_reticle.gd")
@@ -36,6 +37,13 @@ var _medkit_button: Button
 var _training_radar: Control
 var _crouching: bool = false
 var _reticle: Control
+var _battle_button: Button
+var _battle_status: Label
+var _eliminations_label: Label
+var _health_meter: ProgressBar
+var _damage_flash: ColorRect
+var _result_window: PanelContainer
+var _result_text: Label
 
 
 func _ready() -> void:
@@ -44,6 +52,12 @@ func _ready() -> void:
     root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     root.mouse_filter = Control.MOUSE_FILTER_IGNORE
     add_child(root)
+    _damage_flash=ColorRect.new()
+    _damage_flash.name="DamageFlash"
+    _damage_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    _damage_flash.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _damage_flash.color=Color(.80,.12,.10,0.0)
+    root.add_child(_damage_flash)
 
     var header := PanelContainer.new()
     header.name = "AuroraHeader"
@@ -72,7 +86,30 @@ func _ready() -> void:
     _weapon = _text(root, "AR-7  /  ASALTO",.76,.085,21,Color(.90,.96,1),HORIZONTAL_ALIGNMENT_RIGHT)
     _ammo = _text(root, "30 / 180",.79,.137,22,Color(1,.79,.49),HORIZONTAL_ALIGNMENT_RIGHT)
     _fps = _text(root,"FPS —",.865,.028,13,Color(.67,.94,.81),HORIZONTAL_ALIGNMENT_RIGHT)
+    _eliminations_label=_text(root,"BAJAS 0",.72,.027,16,Color(.99,.63,.55),HORIZONTAL_ALIGNMENT_LEFT)
     _health_label = _text(root,"SALUD 100 / 100",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
+    _health_meter=ProgressBar.new()
+    _health_meter.name="PlayerHealthMeter"
+    _health_meter.anchor_left=.02
+    _health_meter.anchor_right=.02
+    _health_meter.anchor_top=.152
+    _health_meter.anchor_bottom=.152
+    _health_meter.offset_left=0
+    _health_meter.offset_right=180
+    _health_meter.offset_top=0
+    _health_meter.offset_bottom=12
+    _health_meter.show_percentage=false
+    _health_meter.value=100
+    _health_meter.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    var health_bg:=StyleBoxFlat.new()
+    health_bg.bg_color=Color(.07,.12,.14,.91)
+    var health_fill:=StyleBoxFlat.new()
+    health_fill.bg_color=Color(.27,.78,.58,.93)
+    _health_meter.add_theme_stylebox_override("background",health_bg)
+    _health_meter.add_theme_stylebox_override("fill",health_fill)
+    root.add_child(_health_meter)
+    _battle_button=_button(root,"INICIAR BR",.63,.035,139,52,Color(.25,.39,.49),_battle_down)
+    _battle_status=_text(root,"ENTRENAMIENTO",.46,.125,15,Color(.98,.85,.61),HORIZONTAL_ALIGNMENT_CENTER)
 
     _training_radar=TRAINING_RADAR.new()
     _training_radar.anchor_left=.017
@@ -84,6 +121,30 @@ func _ready() -> void:
     _training_radar.offset_top=0
     _training_radar.offset_bottom=162
     root.add_child(_training_radar)
+
+    _result_window=PanelContainer.new()
+    _result_window.name="SectorMatchResult"
+    _result_window.anchor_left=.32
+    _result_window.anchor_right=.68
+    _result_window.anchor_top=.30
+    _result_window.anchor_bottom=.63
+    _result_window.visible=false
+    _result_window.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    var end_bg:=StyleBoxFlat.new()
+    end_bg.bg_color=Color(.035,.095,.17,.91)
+    end_bg.border_color=Color(.51,.88,.97)
+    end_bg.set_border_width_all(2)
+    end_bg.set_corner_radius_all(15)
+    _result_window.add_theme_stylebox_override("panel",end_bg)
+    root.add_child(_result_window)
+    _result_text=Label.new()
+    _result_text.name="MatchResultsText"
+    _result_text.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _result_text.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+    _result_text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    _result_text.add_theme_font_size_override("font_size",23)
+    _result_text.add_theme_color_override("font_color",Color(.91,.98,1.0))
+    _result_window.add_child(_result_text)
 
     _reticle = TACTICAL_RETICLE.new()
     _reticle.name = "AimReticle"
@@ -180,6 +241,53 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
     return button
 
 
+func _battle_down() -> void:
+    start_battle_requested.emit()
+
+
+func set_eliminations(kills: int) -> void:
+    if _eliminations_label:
+        _eliminations_label.text="BAJAS "+str(kills)
+
+
+func show_damage_feedback(amount: float) -> void:
+    if _damage_flash:
+        _damage_flash.color.a=clampf(amount/80.0,.12,.25)
+
+
+func clear_match_result() -> void:
+    if _result_window:
+        _result_window.visible=false
+
+
+func show_match_result(victory: bool,kills: int,seconds_alive: int) -> void:
+    if not _result_window or not _result_text:
+        return
+    var summary: String="VICTORIA AURORA" if victory else "ELIMINADA"
+    var minutes: String=str(int(seconds_alive/60)).pad_zeros(2)
+    var seconds: String=str(seconds_alive%60).pad_zeros(2)
+    _result_text.text=summary+"\nBAJAS: "+str(kills)+"  |  TIEMPO: "+minutes+":"+seconds+"\nPULSA REINICIAR BR"
+    _result_window.visible=true
+
+
+func set_sector_zone(center: Vector2,radius: float) -> void:
+    if _training_radar:
+        _training_radar.call("set_zone",center,radius)
+
+
+func set_battle_button(label: String) -> void:
+    if _battle_button:
+        _battle_button.text=label
+        _battle_button.disabled=label=="EN PARTIDA"
+
+
+func set_sector_state(status: String, alive: int, safe_radius: float, elapsed_seconds: int) -> void:
+    if _battle_status:
+        _battle_status.text=status+"  |  "+str(alive)+" VIVOS  |  "+str(roundi(safe_radius))+"m  |  "+str(int(elapsed_seconds/60)).pad_zeros(2)+":"+str(elapsed_seconds%60).pad_zeros(2)
+    if _status:
+        _status.text="THEDEMIANFF / AURORA     "+status
+
+
 func _fire_down() -> void:
     fire_pressed.emit()
 
@@ -241,6 +349,8 @@ func _crouch_down() -> void:
 
 
 func set_health(value: float) -> void:
+    if _health_meter:
+        _health_meter.value=clampf(value,0.0,100.0)
     if _health_label:
         _health_label.text="SALUD "+str(roundi(value))+" / 100"
         _health_label.add_theme_color_override("font_color",Color(.98,.45,.38) if value<30.0 else Color(.71,.98,.82))
@@ -270,6 +380,8 @@ func impact(message: String) -> void:
 
 
 func _process(delta: float) -> void:
+    if _damage_flash and _damage_flash.color.a>0:
+        _damage_flash.color.a=maxf(0.0,_damage_flash.color.a-delta*.38)
     _fps_clock-=delta
     if _fps_clock<=0:
         _fps_clock=.6

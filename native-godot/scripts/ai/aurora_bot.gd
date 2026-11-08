@@ -1,7 +1,7 @@
 extends CharacterBody3D
 ## Aurora V73 offline training opponent: rigged glTF visual, bounded ray-LOS,
 ## grounded patrol and actual damage. This is not a networked human player.
-signal eliminated(agent: CharacterBody3D)
+signal eliminated(agent: CharacterBody3D, killer: Node3D)
 
 const WALK_SPEED: float = 1.85
 const CHASE_SPEED: float = 2.45
@@ -13,6 +13,10 @@ var terrain: StaticBody3D
 var operator: CharacterBody3D
 var spawn_coordinates: Vector2 = Vector2.ZERO
 var health: float = 100.0
+var sector_battle: bool = false
+var respawn_enabled: bool = true
+var _foes: Array[CharacterBody3D] = []
+var _target_actor: CharacterBody3D
 var _anchor: Vector3
 var _idle_phase: float = 0.0
 var _sense_clock: float = 0.0
@@ -77,13 +81,14 @@ func _physics_process(dt: float) -> void:
         _sense_clock=.22+float(get_instance_id()%5)*.025
         _sense_player()
 
-    var delta_to_player: Vector3=operator.global_position-global_position
+    var target: CharacterBody3D = _target_actor if _target_visible and is_instance_valid(_target_actor) else operator
+    var delta_to_player: Vector3=target.global_position-global_position
     delta_to_player.y=0
     var distance: float=delta_to_player.length()
     var destination: Vector3
     var target_speed: float=WALK_SPEED
     if _target_visible and distance < SIGHT_RANGE:
-        _last_seen=operator.global_position
+        _last_seen=target.global_position
         _alert_time=2.9
     if _alert_time>0:
         var flank: Vector3=Vector3(-delta_to_player.z,0,delta_to_player.x).normalized()
@@ -108,8 +113,11 @@ func _physics_process(dt: float) -> void:
 
     if _target_visible and distance<SHOOT_RANGE and _attack_clock<=0:
         _attack_clock=1.0+float(get_instance_id()%4)*.18
-        if operator.has_method("receive_training_hit"):
-            operator.receive_training_hit(4.0)
+        if _target_actor==operator:
+            if not operator.royale_eliminated:
+                operator.receive_training_hit(5.0)
+        elif is_instance_valid(_target_actor) and _target_actor.health>0:
+            _target_actor.take_training_damage(22.0, self)
     if _animation:
         var action: String="AuroraWalk" if Vector2(velocity.x,velocity.z).length()>.8 else "AuroraIdle"
         if action!=_clip:
@@ -119,37 +127,82 @@ func _physics_process(dt: float) -> void:
 
 func _sense_player() -> void:
     _target_visible=false
-    if operator == null or global_position.distance_to(operator.global_position)>SIGHT_RANGE:
-        return
-    var source: Vector3=global_position+Vector3.UP*1.35
-    var destination: Vector3=operator.global_position+Vector3.UP*1.15
-    var query:=PhysicsRayQueryParameters3D.create(source,destination)
-    query.exclude=[get_rid()]
-    var result: Dictionary=get_world_3d().direct_space_state.intersect_ray(query)
-    _target_visible = result.get("collider") == operator
+    _target_actor=null
+    var closest: CharacterBody3D=null
+    var best: float=SIGHT_RANGE
+    var choices: Array[CharacterBody3D]=[operator]
+    if sector_battle:
+        choices.append_array(_foes)
+    for foe in choices:
+        if foe==self or not is_instance_valid(foe):
+            continue
+        if foe==operator and operator.royale_eliminated:
+            continue
+        if foe!=operator and foe.health<=0:
+            continue
+        var distance: float=global_position.distance_to(foe.global_position)
+        if distance < best:
+            var source: Vector3=global_position+Vector3.UP*1.35
+            var endpoint: Vector3=foe.global_position+Vector3.UP*1.14
+            var ray:=PhysicsRayQueryParameters3D.create(source,endpoint)
+            ray.exclude=[get_rid()]
+            var hit: Dictionary=get_world_3d().direct_space_state.intersect_ray(ray)
+            if hit.get("collider")==foe:
+                closest=foe
+                best=distance
+    if closest != null:
+        _target_visible=true
+        _target_actor=closest
 
 
-func take_training_damage(damage: float) -> bool:
+func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
+    sector_battle=true
+    respawn_enabled=false
+    _foes=actors.duplicate()
+    health=100.0
+    visible=true
+    var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
+    if collider:
+        collider.set_deferred("disabled",false)
+    set_physics_process(true)
+    velocity=Vector3.ZERO
+    global_position=_anchor
+    _target_visible=false
+    _target_actor=null
+    _attack_clock=1.3
+    _alert_time=0.0
+
+
+func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
     if health<=0:
         return false
     health=maxf(0,health-damage)
-    _last_seen=operator.global_position
+    _last_seen=operator.global_position if _target_actor==null else _target_actor.global_position
     _alert_time=5.5
     if health<=0:
         _dead_time=7.0
         visible=false
+        var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
+        if collider:
+            collider.set_deferred("disabled",true)
         set_physics_process(false)
-        # A timer is needed because a halted physics process cannot respawn.
-        get_tree().create_timer(_dead_time).timeout.connect(_respawn)
-        eliminated.emit(self)
+        if respawn_enabled:
+            # Keep original training respawn; BR eliminates permanently.
+            get_tree().create_timer(_dead_time).timeout.connect(_respawn)
+        eliminated.emit(self,attacker)
         return true
     return false
 
 
 func _respawn() -> void:
+    if not respawn_enabled:
+        return
     health=100
     global_position=_anchor
     visible=true
+    var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
+    if collider:
+        collider.set_deferred("disabled",false)
     velocity=Vector3.ZERO
     _alert_time=0
     _target_visible=false

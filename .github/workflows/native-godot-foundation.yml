@@ -1,7 +1,7 @@
-name: V73.2 TPS cameras and touch controls QA
+name: V74 Aurora Offline Royale Sector QA
 on:
   push:
-    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag]
+    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale]
     paths:
       - 'native-godot/**'
       - 'docs/V71_REAL_BATTLE_ROYALE_MASTER_PLAN.md'
@@ -34,3 +34,5 @@ jobs:
         run: godot --headless --path native-godot --script res://scripts/qa/camera_fire_qa.gd
       - name: Test simultaneous moving aiming firing and jumping
         run: godot --headless --path native-godot --script res://scripts/qa/multitouch_combat_qa.gd
+      - name: Test offline sector battle elimination and loot
+        run: godot --headless --path native-godot --script res://scripts/qa/sector_battle_qa.gd

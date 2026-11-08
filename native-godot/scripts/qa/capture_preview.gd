@@ -7,10 +7,13 @@ func _capture() -> void:
     var instance: Node3D = scene.instantiate()
     root.add_child(instance)
     await process_frame
-    await process_frame
-    await process_frame
+    # The CI image must show actual battle mode, not only the old training scene.
+    var hud:=instance.get_node("TrainingHUD") as CanvasLayer
+    hud._battle_down()
+    for n in range(6):
+        await process_frame
     var screenshot: Image = root.get_texture().get_image()
-    var result: Error = screenshot.save_png("res://out/aurora-native-v73-2-preview.png")
+    var result: Error = screenshot.save_png("res://out/aurora-native-v74-preview.png")
     if result != OK:
         push_error("Render capture failed: "+str(result))
         quit(1)
