@@ -95,10 +95,11 @@ jobs:
         run: |
           mkdir -p native-godot/out
           godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V73-AURORA-NATIVE-PREVIEW.apk
-          test -s native-godot/out/THEDEMIANFF-V72-AURORA-NATIVE-PREVIEW.apk
+          test -s native-godot/out/THEDEMIANFF-V73-AURORA-NATIVE-PREVIEW.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V73-AURORA-NATIVE-PREVIEW.apk
       - name: Verify APK namespace, checksum and package signature
         run: |
-          APK=native-godot/out/THEDEMIANFF-V72-AURORA-NATIVE-PREVIEW.apk
+          APK=native-godot/out/THEDEMIANFF-V73-AURORA-NATIVE-PREVIEW.apk
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -n 3
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview73"
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --print-certs "$APK"
@@ -109,7 +110,7 @@ jobs:
         with:
           name: THEDEMIANFF-V73-AURORA-NATIVE-QUALITY-PREVIEW
           path: |
-            native-godot/out/THEDEMIANFF-V72-AURORA-NATIVE-PREVIEW.apk
+            native-godot/out/THEDEMIANFF-V73-AURORA-NATIVE-PREVIEW.apk
             native-godot/out/SHA256SUMS.txt
             native-godot/out/aurora-native-v73-preview.png
           retention-days: 14
