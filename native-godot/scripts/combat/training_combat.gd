@@ -19,6 +19,7 @@ var reload_timer: float=0.0
 var _targets: Array[CharacterBody3D]=[]
 var _weapon_model: Node3D
 var eliminations: int = 0
+var medkits_remaining: int = 2
 
 
 func _ready() -> void:
@@ -28,9 +29,11 @@ func _ready() -> void:
     hud.reload_pressed.connect(_on_reload)
     hud.weapon_pressed.connect(_on_weapon)
     hud.fire_aim_changed.connect(operator.fire_aim_delta)
+    hud.heal_pressed.connect(_on_heal)
     _make_targets()
     _draw_weapon_rig()
     _sync_hud()
+    hud.set_medkit_count(medkits_remaining)
 
 
 func _process(dt: float) -> void:
@@ -87,6 +90,19 @@ func _on_aim() -> void:
     operator.set_ads(aim_active,current_zoom)
     var label: String = "MIRA LIBRE" if not aim_active else "AWM / 8X" if weapon_index==1 else "AR / "+str(int(current_zoom))+"X"
     hud.set_aim(aim_active,label,current_zoom)
+
+
+func _on_heal() -> void:
+    if medkits_remaining<=0:
+        hud.impact("SIN BOTIQUINES")
+        return
+    if operator.training_health>=99.5:
+        hud.impact("SALUD COMPLETA")
+        return
+    medkits_remaining-=1
+    operator.receive_training_heal(45.0)
+    hud.set_medkit_count(medkits_remaining)
+    hud.impact("BOTIQUIN +45 VIDA")
 
 
 func _on_reload() -> void:

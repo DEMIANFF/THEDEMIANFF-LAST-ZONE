@@ -5,6 +5,7 @@ signal fire_pressed
 signal fire_released
 signal fire_aim_changed(relative: Vector2)
 signal crouch_pressed
+signal heal_pressed
 signal aim_pressed
 signal reload_pressed
 signal weapon_pressed
@@ -15,6 +16,7 @@ signal movement_axis_changed(value: Vector2)
 const VIRTUAL_PAD = preload("res://scripts/ui/virtual_joystick.gd")
 const DIRECTIONAL_FIRE = preload("res://scripts/ui/directional_fire_pad.gd")
 const TACTICAL_RETICLE = preload("res://scripts/ui/scope_reticle.gd")
+const TRAINING_RADAR = preload("res://scripts/ui/aurora_training_radar.gd")
 
 var _weapon: Label
 var _ammo: Label
@@ -30,6 +32,8 @@ var _run_latched: bool = false
 var _run_button: Button
 var _crouch_button: Button
 var _aim_button: Button
+var _medkit_button: Button
+var _training_radar: Control
 var _crouching: bool = false
 var _reticle: Control
 
@@ -70,6 +74,17 @@ func _ready() -> void:
     _fps = _text(root,"FPS —",.865,.028,13,Color(.67,.94,.81),HORIZONTAL_ALIGNMENT_RIGHT)
     _health_label = _text(root,"SALUD 100 / 100",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
 
+    _training_radar=TRAINING_RADAR.new()
+    _training_radar.anchor_left=.017
+    _training_radar.anchor_right=.017
+    _training_radar.anchor_top=.175
+    _training_radar.anchor_bottom=.175
+    _training_radar.offset_left=0
+    _training_radar.offset_right=178
+    _training_radar.offset_top=0
+    _training_radar.offset_bottom=162
+    root.add_child(_training_radar)
+
     _reticle = TACTICAL_RETICLE.new()
     _reticle.name = "AimReticle"
     _reticle.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -98,6 +113,7 @@ func _ready() -> void:
     _run_button=_button(root,"CORRER",.11,.61,82,57,Color(.09,.30,.36),_run_down,_run_up)
     _button(root,"SALTAR",.685,.82,76,54,Color(.12,.34,.41),_jump_down)
     _crouch_button=_button(root,"AGACHAR",.68,.70,80,53,Color(.16,.30,.36),_crouch_down)
+    _medkit_button=_button(root,"CURAR 2",.575,.855,84,56,Color(.20,.36,.29),_heal_down)
     var pad: Control=VIRTUAL_PAD.new()
     pad.name="MovePad"
     pad.anchor_left=.05
@@ -201,6 +217,20 @@ func _run_up() -> void:
 
 func _jump_down() -> void:
     jump_pressed.emit()
+
+
+func _heal_down() -> void:
+    heal_pressed.emit()
+
+
+func set_medkit_count(count: int) -> void:
+    if _medkit_button:
+        _medkit_button.text="CURAR "+str(count)
+
+
+func set_training_radar_sources(character: CharacterBody3D, enemies: Array[CharacterBody3D]) -> void:
+    if _training_radar:
+        _training_radar.call("set_sources",character,enemies)
 
 
 func _crouch_down() -> void:

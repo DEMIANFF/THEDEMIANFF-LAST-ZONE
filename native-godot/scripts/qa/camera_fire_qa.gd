@@ -117,5 +117,17 @@ func _verify() -> void:
         push_error("Crouch button failed to restore stand")
         quit(63)
         return
-    print("TPS_QA PASS: third-person free look, fire drag, optical zoom and crouch")
+    var radar:=game.get_node_or_null("TrainingHUD/AuroraTacticalOverlay/AuroraTrainingRadar")
+    if radar==null:
+        push_error("Tactical radar missing")
+        quit(64)
+        return
+    player.training_health=46.0
+    var before_medkits: int=combat.medkits_remaining
+    combat._on_heal()
+    if absf(player.training_health-91.0)>.01 or combat.medkits_remaining!=before_medkits-1:
+        push_error("Training medkit did not heal actual player health / consume inventory")
+        quit(65)
+        return
+    print("TPS_QA PASS: free look, fire drag, optics, crouch, real radar and medkit")
     quit(0)

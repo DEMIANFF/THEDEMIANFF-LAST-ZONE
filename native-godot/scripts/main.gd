@@ -60,6 +60,7 @@ func _ready() -> void:
     combat.terrain = island
     combat.hud = hud
     add_child(combat)
+    hud.set_training_radar_sources(operator,combat._targets)
 
 
 func _set_up_lighting() -> void:

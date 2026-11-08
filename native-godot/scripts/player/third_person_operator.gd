@@ -199,6 +199,13 @@ func receive_training_hit(amount: float) -> void:
         training_health_changed.emit(training_health)
 
 
+func receive_training_heal(amount: float) -> void:
+    if amount<=0:
+        return
+    training_health=minf(100.0,training_health+amount)
+    training_health_changed.emit(training_health)
+
+
 func set_touch_move_axis(direction: Vector2) -> void:
     _move_axis=direction.limit_length(1.0)
 
