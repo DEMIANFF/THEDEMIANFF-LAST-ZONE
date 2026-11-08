@@ -26,6 +26,10 @@ var medkits_remaining: int = 2
 var sector_battle_active: bool = false
 var tracer_events: int = 0
 const TRACER_CAPACITY: int=8
+# Visual effect length is bounded. Damage range and obstruction checks are
+# unchanged; the 90 m yellow streak on Android was just a drawn cylinder.
+const TRACER_MAX_LENGTH: float=24.0
+const TRACER_LIFETIME: float=0.075
 var _tracers: Array[MeshInstance3D]=[]
 var _tracer_lifetimes: Array[float]=[]
 var _tracer_cursor: int=0
@@ -311,16 +315,17 @@ func _prepare_tracers() -> void:
 
 
 func _spawn_tracer(from: Vector3,to: Vector3) -> void:
-    var distance: float=minf(from.distance_to(to),90.0)
-    if distance<=.01:
+    var span: Vector3=to-from
+    if not span.is_finite() or span.length_squared()<=.0001:
         return
+    var distance: float=minf(span.length(),TRACER_MAX_LENGTH)
     var visual: MeshInstance3D=_tracers[_tracer_cursor]
-    var heading: Vector3=(to-from).normalized()
+    var heading: Vector3=span.normalized()
     var radius: float=.014 if weapon_index==0 else .024
     visual.global_transform=Transform3D(Basis(Quaternion(Vector3.UP,heading)).scaled(Vector3(radius,distance,radius)),from+heading*distance*.5)
     visual.material_override=_tracer_materials[weapon_index]
     visual.visible=true
-    _tracer_lifetimes[_tracer_cursor]=.11
+    _tracer_lifetimes[_tracer_cursor]=TRACER_LIFETIME
     _tracer_cursor=(_tracer_cursor+1)%TRACER_CAPACITY
     tracer_events+=1
 

@@ -32,6 +32,8 @@ var _camera_collision_shape:=SphereShape3D.new()
 var _camera_collision_query:=PhysicsShapeQueryParameters3D.new()
 var _yaw: float = 0.0
 var _pitch: float = -0.14
+# Additive recoil kick; does not overwrite user-selected aiming pitch.
+var _recoil_pitch: float = 0.0
 var _desired_yaw: float = 0.0
 var _desired_pitch: float = -0.14
 var _look_touch: int = -1
@@ -128,7 +130,8 @@ func _physics_process(delta: float) -> void:
     # Delta-time camera smoothing avoids abrupt yaw/pitch changes on quick swipes.
     var smooth: float = 1.0 - exp(-delta * 19.0)
     _yaw = rotate_toward(_yaw, _desired_yaw, minf(absf(angle_difference(_yaw,_desired_yaw))*smooth,delta*7.5))
-    _pitch = lerpf(_pitch, _desired_pitch, smooth)
+    _recover_recoil(delta)
+    _pitch = lerpf(_pitch, clampf(_desired_pitch + _recoil_pitch, -0.55, 0.62), smooth)
     _camera_pivot.rotation.x = _pitch
     var relative_direction := Vector3(control.x, 0.0, control.y)
     var facing := Basis(Vector3.UP, _yaw)
@@ -246,6 +249,7 @@ func begin_aircraft() -> void:
     air_mode="aircraft"
     velocity=Vector3.ZERO
     _ads_active=false
+    _recoil_pitch=0.0
     _jump_requested=false
     _current_clip=""
     _fire_held=false
@@ -533,7 +537,14 @@ func _collision_safe_camera_distance(requested: float) -> float:
 
 
 func apply_recoil(amount: float) -> void:
-    _desired_pitch = clampf(_desired_pitch - amount, -0.55, 0.62)
+    # Positive X-pitch raises the sight. Preserve the manual aim, so long
+    # bursts never drag the crosshair away indefinitely.
+    if is_finite(amount) and amount>0.0:
+        _recoil_pitch=minf(_recoil_pitch+amount,0.09)
+
+
+func _recover_recoil(delta: float) -> void:
+    _recoil_pitch=move_toward(_recoil_pitch,0.0,maxf(0.0,delta)*(0.22 if _ads_active else 0.32))
 
 
 func _play_matching_animation(requested: String) -> void:
@@ -653,6 +664,7 @@ func reset_controls() -> void:
     _jump_requested=false
     _fire_held=false
     _ads_active=false
+    _recoil_pitch=0.0
     _combat_action=""
     _combat_action_seconds=0.0
     if _animation_controller:

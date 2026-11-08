@@ -110,16 +110,21 @@ func _load_visual(path: String, display_name: String) -> Node3D:
 
 
 func _process(_delta: float) -> void:
-    if not attachment_uses_hand or operator==null or right_hand_socket==null:
+    _align_mount_to_sight()
+
+
+func _align_mount_to_sight() -> void:
+    if not attachment_uses_hand or not is_instance_valid(operator) or right_hand_socket==null:
         return
-    # BoneAttachment is the POSITION driver. Its inherited wrist orientation
-    # can point the rifle at the ceiling depending on retarget/pose-bone roll.
-    # Keep the rifle physically on the hand but align its forward axis with
-    # the player's combat heading until full hand IK is authored.
-    var direction_basis:=Basis(Vector3.UP,operator.global_rotation.y)
+    # The bone drives the grip position; the camera's actual pitch and yaw
+    # drive the barrel, rather than the old yaw-only world heading.
+    var camera: Camera3D=operator.get_view_camera()
+    var forward: Vector3=-camera.global_basis.z if camera else -operator.global_basis.z
+    if not forward.is_finite() or forward.length_squared()<0.9:
+        return
+    var basis: Basis=Basis.looking_at(forward.normalized(),Vector3.UP)
     var grip_world: Vector3=right_hand_socket.global_position
-    mount.global_transform=Transform3D(direction_basis,
-        grip_world + direction_basis*Vector3(.01,-.055,-.07))
+    mount.global_transform=Transform3D(basis,grip_world+basis*Vector3(.01,-.055,-.07))
 
 
 func equip(index: int) -> void:
@@ -159,5 +164,6 @@ func equipped_global_length() -> float:
 
 
 func muzzle_position() -> Vector3:
-    # The authored weapon bounds are normalised around the grip in -Z.
+    # Input may fire between render frames: align before computing the ray.
+    _align_mount_to_sight()
     return mount.to_global(Vector3(0,.03,-1.10 if selected_weapon==1 else -.78))
