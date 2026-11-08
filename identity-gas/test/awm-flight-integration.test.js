@@ -7,7 +7,7 @@ const gradle=fs.readFileSync(path.join(__dirname,'../../app/build.gradle'),'utf8
 const workflow=fs.readFileSync(path.join(__dirname,'../../.github/workflows/build-apk.yml'),'utf8');
 
 test('AWM is the sixth weapon with sniper-class handling and dedicated 8x scope',()=>{
- assert.ok(html.includes("{name:'AWM · FRANCOTIRADOR',type:'sniper',scope:'8x',damage:118,rate:1.28,mag:5,ammo:5,reserve:30,reserveMax:30,reload:3.45,spread:.0018,range:260}"));
+ assert.ok(html.includes("{name:'AWM · FRANCOTIRADOR',type:'sniper',scope:'8x',damage:118,rate:.50,mag:5,ammo:5,reserve:30,reserveMax:30,reload:3.45,spread:.0018,range:260}"));
  assert.equal((html.match(/scope:'8x'/g)||[]).length,1);
  assert.ok(html.includes("isSniper(){return weaponIndex===5&&weapons[weaponIndex]?.scope==='8x';}"));
  assert.ok(html.includes("weaponIndex===5?.94"));
@@ -104,21 +104,20 @@ test('airborne mode suppresses ADS and combat reticle until landing',()=>{
 });
 
 test('release V65 is an installable upgrade with a higher Android version code',()=>{
- assert.ok(gradle.includes('versionCode 174'));
- assert.ok(gradle.includes("versionName '65.0.0-aurora-royale-quality-pass'"));
+ assert.ok(gradle.includes('versionCode 175'));
+ assert.ok(gradle.includes("versionName '70.0.0-aurora-unified'"));
  assert.ok(workflow.includes('v58-9-0-awm-camera-airdrop-release'));
  assert.ok(!gradle.includes("59.0.0"));
 });
 
-test('AWM needs a manual bolt cycle after a shot and exposes the action',()=>{
- assert.match(html,/weaponIndex===5&&\(w\.needsCycle\|\|v60AwmCycleTimer>0\)/);
- assert.ok(html.includes('if(weaponIndex===5){w.needsCycle=true;v60UpdateAwmCycleButton();}'));
- assert.ok(html.includes('function v60CycleAWM()'));
- assert.ok(html.includes('v60AwmNeedsNewPress'));
- assert.ok(html.includes('v60AwmNeedsNewPress=false'));
- assert.match(html,/weaponIndex===5&&\(w\.needsCycle\|\|v60AwmCycleTimer>0\|\|v60AwmNeedsNewPress\)/);
- assert.ok(html.includes('id="v60BoltButton"'));
- assert.ok(html.includes("e.code==='KeyB'"));
+test('V70 AWM cycles automatically after each shot and needs a fresh press',()=>{
+ assert.ok(html.includes("damage:118,rate:.50"));
+ assert.ok(html.includes("const v60AwmCycleDuration=.50"));
+ assert.ok(html.includes("if(weaponIndex===5){w.needsCycle=true;v60CycleAWM();}"));
+ assert.ok(html.includes("v60AwmNeedsNewPress=true"));
+ assert.ok(html.includes("manualCycleRequired:false,autoCycleSeconds:v60AwmCycleDuration"));
+ assert.ok(!html.includes("addEventListener('click',v60CycleAWM)"));
+ assert.ok(!html.includes("if(e.code==='KeyB')v60CycleAWM()"));
  assert.ok(html.includes("else if(mobile&&weaponIndex!==5&&$('autoFire').checked)"));
 });
 
