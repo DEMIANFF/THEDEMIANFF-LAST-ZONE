@@ -42,17 +42,25 @@ func request_jump_or_parachute() -> void:
 
 func _route_point(progress: float) -> Vector3:
     var z: float=lerpf(ROUTE_START_Z,ROUTE_END_Z,clampf(progress,0.0,1.0))
-    return Vector3(0.0,terrain.height_at(0.0,z)+FLIGHT_ALTITUDE,z)
+    return Vector3(0.0,FLIGHT_ALTITUDE,z)
 
 
 func _physics_process(delta: float) -> void:
     if phase=="aircraft":
         elapsed+=delta
         player.global_position=_route_point(elapsed/FLIGHT_SECONDS)
+        if _craft:
+            _craft.global_position=player.global_position+Vector3(0,.7,-1)
         if _drop_requested or elapsed>=FLIGHT_SECONDS:
             jump_from_aircraft()
     elif phase=="freefall":
-        var clearance: float=player.global_position.y-terrain.height_at(player.global_position.x,player.global_position.z)
+        var ray:=PhysicsRayQueryParameters3D.create(player.global_position,player.global_position-Vector3.UP*200)
+        ray.exclude=[player.get_rid()]
+        var surface: Dictionary=player.get_world_3d().direct_space_state.intersect_ray(ray)
+        var ground_y: float=terrain.height_at(player.global_position.x,player.global_position.z)
+        if not surface.is_empty():
+            ground_y=surface.position.y
+        var clearance: float=player.global_position.y-ground_y
         if clearance<26.0:
             deploy_parachute()
 
@@ -64,7 +72,7 @@ func jump_from_aircraft() -> void:
     if _craft:
         _craft.queue_free()
         _craft=null
-    player.begin_freefall()
+    player.begin_freefall(Vector3(0,0,(ROUTE_END_Z-ROUTE_START_Z)/FLIGHT_SECONDS))
     hud.set_air_stage("freefall")
     hud.impact("CAÍDA LIBRE / MUEVE EL JOYSTICK")
 
@@ -94,6 +102,9 @@ func _build_craft() -> void:
     _craft.name="AuroraTransportAircraft"
     _craft.position=Vector3(0,.7,-1)
     player.add_child(_craft)
+    _craft.top_level=true
+    _craft.global_position=player.global_position+Vector3(0,.7,-1)
+    _craft.global_rotation=Vector3.ZERO
     var wing_material:=StandardMaterial3D.new()
     wing_material.albedo_color=Color(.15,.26,.35)
     wing_material.metallic=.45

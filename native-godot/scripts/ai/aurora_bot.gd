@@ -28,6 +28,9 @@ var _dead_time: float = 0.0
 var _rig: Node3D
 var _animation: AnimationPlayer
 var _clip: String = ""
+var safe_center: Vector2=Vector2.ZERO
+var safe_radius: float=INF
+var _avoid_side: float=1.0
 
 
 func _ready() -> void:
@@ -44,6 +47,7 @@ func _ready() -> void:
     _anchor = Vector3(spawn_coordinates.x, terrain.height_at(spawn_coordinates.x,spawn_coordinates.y)+.15, spawn_coordinates.y)
     global_position = _anchor
     _idle_phase = float(get_instance_id()%41)*.31
+    _avoid_side=1.0 if get_instance_id()%2==0 else -1.0
 
     var shape := CollisionShape3D.new()
     shape.name = "OpponentCollider"
@@ -98,10 +102,20 @@ func _physics_process(dt: float) -> void:
         _idle_phase+=dt*.31
         destination=_anchor+Vector3(cos(_idle_phase)*4.0,0,sin(_idle_phase)*4.0)
 
+    if sector_battle and Vector2(global_position.x,global_position.z).distance_to(safe_center)>safe_radius-4.0:
+        destination=Vector3(safe_center.x,global_position.y,safe_center.y)
+        target_speed=CHASE_SPEED
     var direction: Vector3=destination-global_position
     direction.y=0
     if direction.length()>.75:
-        var step: Vector3=direction.normalized()*target_speed
+        var heading: Vector3=direction.normalized()
+        if test_move(global_transform,heading*1.0):
+            for angle in [PI/3,PI/2,PI*2/3,PI]:
+                var candidate: Vector3=heading.rotated(Vector3.UP,angle*_avoid_side)
+                if not test_move(global_transform,candidate*1.0):
+                    heading=candidate
+                    break
+        var step: Vector3=heading*target_speed
         velocity.x=move_toward(velocity.x,step.x,9.0*dt)
         velocity.z=move_toward(velocity.z,step.z,9.0*dt)
         rotation.y=lerp_angle(rotation.y,atan2(-direction.x,-direction.z),minf(1.0,dt*7.0))
@@ -111,7 +125,7 @@ func _physics_process(dt: float) -> void:
     velocity.y-=GRAVITY*dt
     move_and_slide()
 
-    if _target_visible and distance<SHOOT_RANGE and _attack_clock<=0:
+    if _target_visible and distance<SHOOT_RANGE and _attack_clock<=0 and _has_line_of_fire(_target_actor):
         _attack_clock=1.0+float(get_instance_id()%4)*.18
         if _target_actor==operator:
             if not operator.royale_eliminated:
@@ -142,12 +156,7 @@ func _sense_player() -> void:
             continue
         var distance: float=global_position.distance_to(foe.global_position)
         if distance < best:
-            var source: Vector3=global_position+Vector3.UP*1.35
-            var endpoint: Vector3=foe.global_position+Vector3.UP*1.14
-            var ray:=PhysicsRayQueryParameters3D.create(source,endpoint)
-            ray.exclude=[get_rid()]
-            var hit: Dictionary=get_world_3d().direct_space_state.intersect_ray(ray)
-            if hit.get("collider")==foe:
+            if _has_line_of_fire(foe):
                 closest=foe
                 best=distance
     if closest != null:
@@ -208,3 +217,10 @@ func _respawn() -> void:
     _target_visible=false
     _dead_time=0
     set_physics_process(true)
+
+func _has_line_of_fire(foe: CharacterBody3D) -> bool:
+    if not is_instance_valid(foe):
+        return false
+    var ray:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*1.35,foe.global_position+Vector3.UP*1.0)
+    ray.exclude=[get_rid()]
+    return get_world_3d().direct_space_state.intersect_ray(ray).get("collider")==foe

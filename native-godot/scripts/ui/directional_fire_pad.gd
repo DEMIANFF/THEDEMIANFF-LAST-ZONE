@@ -38,14 +38,14 @@ func _draw() -> void:
 func _gui_input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
-        if touch.pressed and _finger == -1:
+        if touch.pressed and not touch.canceled and _finger == -1:
             _finger = touch.index
             _last_point = touch.position
             _knob = Vector2.ZERO
             pressed.emit()
             accept_event()
             queue_redraw()
-        elif not touch.pressed and touch.index == _finger:
+        elif (not touch.pressed or touch.canceled) and touch.index == _finger:
             _finger = -1
             _knob = Vector2.ZERO
             released.emit()
@@ -88,3 +88,15 @@ func _gui_input(event: InputEvent) -> void:
 
 func get_fire_held() -> bool:
     return _finger >= 0 or _mouse
+
+
+func reset() -> void:
+    _finger=-1
+    _mouse=false
+    _knob=Vector2.ZERO
+    released.emit()
+    queue_redraw()
+
+func _notification(what: int) -> void:
+    if what==NOTIFICATION_APPLICATION_FOCUS_OUT or (what==NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree()):
+        reset()

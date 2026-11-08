@@ -107,12 +107,25 @@ func _sloped_roof(parent: Node3D, w: float, d: float, h: float) -> void:
     for side in [-1.0, 1.0]:
         var edge_f := Vector3(left if side < 0 else right, h, front)
         var edge_b := Vector3(left if side < 0 else right, h, back)
-        for pt in [ridge_front, edge_f, edge_b, ridge_front, edge_b, ridge_back]:
+        var triangles: Array=[ridge_front, edge_f, edge_b, ridge_front, edge_b, ridge_back] if side<0 else [ridge_front, edge_b, edge_f, ridge_front, ridge_back, edge_b]
+        for pt in triangles:
             surface.add_vertex(pt)
     surface.generate_normals()
     roof.mesh = surface.commit()
     roof.material_override = roof_mat
     parent.add_child(roof)
+    # A closed convex roof blocks capsules from above and below. A one-sided
+    # triangle surface can let a descending body through its reversed face.
+    var body:=StaticBody3D.new()
+    body.name="RoofCollider"
+    var collider:=CollisionShape3D.new()
+    var shape:=ConvexPolygonShape3D.new()
+    shape.points=PackedVector3Array([ridge_front,ridge_back,
+        Vector3(left,h,front),Vector3(left,h,back),Vector3(right,h,front),Vector3(right,h,back),
+        Vector3(left,h-.12,front),Vector3(left,h-.12,back),Vector3(right,h-.12,front),Vector3(right,h-.12,back)])
+    collider.shape=shape
+    body.add_child(collider)
+    parent.add_child(body)
     _beam(parent, "RidgeCap", ridge_front, ridge_back, 0.13, trim)
     _beam(parent, "LeftGutter", Vector3(left,h,front), Vector3(left,h,back), 0.14, prop_metal)
     _beam(parent, "RightGutter", Vector3(right,h,front), Vector3(right,h,back), 0.14, prop_metal)

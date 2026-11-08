@@ -213,6 +213,38 @@ def _aim_arm_poses():
 
 armed_pose=_aim_arm_poses()
 
+def pose_crouch(phase, walking):
+    # Source FBX has Y-up coordinates and centimetre-scale bone offsets.
+    # Solve each thigh/shin chain to its authored foot target after lowering hips.
+    hips = arm.pose.bones["rig:Hips"]
+    hips.location = Vector((0.0, -58.0, 0.0))
+    hips.keyframe_insert(data_path="location")
+    for side, sign in [("Left", 1.0), ("Right", -1.0)]:
+        thigh = arm.pose.bones["rig:" + side + "UpLeg"]
+        shin = arm.pose.bones["rig:" + side + "Leg"]
+        foot = arm.pose.bones["rig:" + side + "Foot"]
+        original_hip = thigh.bone.head_local
+        original_knee = shin.bone.head_local
+        original_foot = foot.bone.head_local
+        hip = original_hip + hips.location
+        target = original_foot.copy()
+        if walking:
+            target.z += math.sin(phase) * sign * 12.0
+            target.y += max(0.0, math.cos(phase) * sign) * 3.0
+        upper_rest = original_knee - original_hip
+        lower_rest = original_foot - original_knee
+        direction = (target - hip).normalized()
+        distance = (target - hip).length
+        along = (upper_rest.length_squared - lower_rest.length_squared + distance**2) / (2.0 * distance)
+        bend = (Vector((0,0,1)) - direction * direction.z).normalized()
+        knee = hip + direction * along + bend * math.sqrt(max(0.0, upper_rest.length_squared - along**2))
+        upper = upper_rest.rotation_difference(knee - hip)
+        lower = lower_rest.rotation_difference(target - knee)
+        for bone, rotation in [(thigh, upper), (shin, upper.inverted() @ lower), (foot, lower.inverted())]:
+            bone.rotation_mode = "QUATERNION"
+            bone.rotation_quaternion = rotation
+            bone.keyframe_insert(data_path="rotation_quaternion")
+
 clips=[
     ('AuroraIdle',.012,60,False),
     ('AuroraWalk',.23,32,False),
@@ -233,13 +265,14 @@ clips=[
 for clip_name, amplitude, frames, armed in clips:
     action = bpy.data.actions.new(clip_name)
     arm.animation_data.action = action
+    crouched = clip_name.startswith("AuroraCrouch")
     for frame in [1, 1 + frames // 4, 1 + frames // 2,
                   1 + 3 * frames // 4, 1 + frames]:
         phase = math.tau * (frame - 1) / frames
         scene.frame_set(frame)
         for bone in arm.pose.bones:
             assigned = role(bone.name)
-            if not assigned:
+            if not assigned or (crouched and assigned.startswith("leg_")):
                 continue
             bone.rotation_mode = 'QUATERNION' if assigned.startswith(('arm_','forearm_')) else 'XYZ'
             if assigned == 'leg_l':
@@ -264,6 +297,18 @@ for clip_name, amplitude, frames, armed in clips:
             else:
                 bone.rotation_euler[0] = offset
                 bone.keyframe_insert(data_path='rotation_euler', frame=frame, group=bone.name)
+        if crouched:
+            pose_crouch(phase, clip_name == "AuroraCrouchWalk")
+        else:
+            hips = arm.pose.bones["rig:Hips"]
+            hips.location = Vector((0,0,0))
+            hips.keyframe_insert(data_path="location", frame=frame)
+            for side in ("Left","Right"):
+                for suffix in ("Leg","Foot"):
+                    bone = arm.pose.bones["rig:" + side + suffix]
+                    bone.rotation_mode = "QUATERNION"
+                    bone.rotation_quaternion = Quaternion((1,0,0,0))
+                    bone.keyframe_insert(data_path="rotation_quaternion", frame=frame)
     track = arm.animation_data.nla_tracks.new()
     track.name = clip_name
     strip = track.strips.new(clip_name, 1, action)

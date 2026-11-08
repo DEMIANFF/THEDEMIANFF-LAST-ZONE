@@ -30,6 +30,8 @@ var _flight: Node3D
 var _records: RefCounted
 var _match_id: int=0
 var last_match_saved: bool=false
+var _pending_result: Dictionary={}
+var _save_clock: float=0.0
 
 
 func _ready() -> void:
@@ -56,8 +58,14 @@ func _ready() -> void:
 
 
 func begin_aircraft_phase() -> void:
+    if not retry_result():
+        return
     if mode=="aircraft" or mode=="freefall" or mode=="parachute":
         return
+    if not _ready_for_round():
+        return
+    combat.end_sector_battle()
+    hud.reset_controls()
     mode="aircraft"
     match_ended=false
     hud.clear_match_result()
@@ -73,6 +81,8 @@ func _on_airdrop_landed() -> void:
 
 
 func start_sector_battle(from_airdrop: bool=false) -> void:
+    if not retry_result() or not _ready_for_round():
+        return
     # A repeatable elimination round, not an endless training target spawner.
     for old in _loot:
         if is_instance_valid(old):
@@ -82,7 +92,6 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     match_ended = false
     # One unique completed match ID is committed only after actual victory
     # or defeat. Abandoning a round does not fabricate completed statistics.
-    _records.reload()
     _match_id=_records.next_match_id()
     last_match_saved=false
     elapsed = 0.0
@@ -95,13 +104,27 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     player.begin_sector_battle(from_airdrop)
     combat.begin_sector_battle()
     hud.clear_match_result()
+    hud.reset_controls()
+    hud.set_match_controls(true)
     _spawn_loot()
     hud.set_battle_button("EN PARTIDA")
     hud.set_sector_state("BATALLA SECTOR",combat.active_fighter_count(),radius,0)
     hud.impact("BATALLA AURORA / SOLO - "+str(combat.active_fighter_count())+" PARTICIPANTES")
 
 
+func _ready_for_round() -> bool:
+    if not _records.reload() or not _records.retry_pending():
+        hud.impact("REGISTRO LOCAL PENDIENTE DE RECUPERAR")
+        return false
+    return true
+
+
 func _process(delta: float) -> void:
+    if match_ended and not last_match_saved:
+        _save_clock-=delta
+        if _save_clock<=0.0:
+            _save_clock=1.0
+            retry_result()
     if mode != "sector_battle" or match_ended:
         return
     elapsed += delta
@@ -111,6 +134,9 @@ func _process(delta: float) -> void:
     _ui_clock-=delta
     if _ui_clock<=0:
         _ui_clock=.33
+        for bot in combat._targets:
+            bot.safe_center=CENTER
+            bot.safe_radius=radius
         hud.set_sector_zone(CENTER,radius)
         hud.set_sector_state("ZONA EN CIERRE",combat.active_fighter_count(),radius,int(elapsed))
     _damage_clock+=delta
@@ -148,9 +174,10 @@ func _finish(victory: bool) -> void:
     match_ended = true
     combat.end_sector_battle()
     player.end_sector_battle()
-    last_match_saved=_records.record_result(_match_id,victory,combat.eliminations,int(elapsed))
-    if not last_match_saved:
-        push_error("Offline match result was NOT saved; do not report persistence as success")
+    hud.reset_controls()
+    hud.set_match_controls(false)
+    _pending_result={"id":_match_id,"victory":victory,"kills":combat.eliminations,"seconds":int(elapsed)}
+    retry_result()
     hud.set_sector_state("VICTORIA AURORA" if victory else "ELIMINADA / AURORA", combat.active_fighter_count(),radius,int(elapsed))
     hud.set_battle_button("REINICIAR BR")
     hud.show_match_result(victory,combat.eliminations,int(elapsed))
@@ -187,3 +214,21 @@ func get_loot_remaining() -> int:
         if is_instance_valid(pickup) and not pickup.collected:
             count += 1
     return count
+
+func retry_result() -> bool:
+    if _pending_result.is_empty():
+        return true
+    var result: Dictionary=_pending_result
+    if not _records.retry_pending():
+        hud.impact("GUARDADO PENDIENTE / REINTENTANDO")
+        return false
+    if _records.next_match_id()<=int(result.id):
+        last_match_saved=_records.record_result(int(result.id),bool(result.victory),int(result.kills),int(result.seconds))
+    else:
+        last_match_saved=true
+    if last_match_saved:
+        _pending_result.clear()
+        hud.impact("RESULTADO GUARDADO")
+    else:
+        hud.impact("GUARDADO PENDIENTE / REINTENTANDO")
+    return last_match_saved

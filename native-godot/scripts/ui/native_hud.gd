@@ -15,6 +15,7 @@ signal jump_pressed
 signal movement_axis_changed(value: Vector2)
 signal start_battle_requested
 signal leave_to_lobby_requested
+const SAFE_SCREEN=preload("res://scripts/ui/safe_screen.gd")
 const VIRTUAL_PAD = preload("res://scripts/ui/virtual_joystick.gd")
 const DIRECTIONAL_FIRE = preload("res://scripts/ui/directional_fire_pad.gd")
 const TACTICAL_RETICLE = preload("res://scripts/ui/scope_reticle.gd")
@@ -192,6 +193,8 @@ func _ready() -> void:
     pad.offset_bottom=215
     root.add_child(pad)
     pad.connect("vector_changed",func(axis: Vector2): movement_axis_changed.emit(axis))
+    get_viewport().size_changed.connect(_layout)
+    _layout.call_deferred()
 
 
 func _text(parent: Control,value: String,x: float,y: float,size: int,color: Color,align: HorizontalAlignment) -> Label:
@@ -251,6 +254,7 @@ func _return_lobby() -> void:
 
 
 func set_air_stage(value: String) -> void:
+    reset_controls()
     air_stage=value
     var airborne: bool=value!="ground"
     var overlay: Control=get_node("AuroraTacticalOverlay") as Control
@@ -276,6 +280,7 @@ func set_air_stage(value: String) -> void:
         _battle_button.disabled=airborne or _battle_button.text=="EN PARTIDA"
     if _status and airborne:
         _status.text="AURORA / "+("RUTA AÉREA" if value=="aircraft" else "CAÍDA LIBRE" if value=="freefall" else "ATERRIZAJE")
+    _layout()
     if _hint and airborne:
         _hint.text="CONTROLA LA CÁMARA" if value=="aircraft" else "JOYSTICK PARA DIRIGIR"
 
@@ -318,6 +323,7 @@ func set_battle_button(label: String) -> void:
     if _battle_button:
         _battle_button.text=label
         _battle_button.disabled=label=="EN PARTIDA"
+        _battle_button.visible=label in ["INICIAR BR","REINICIAR BR"]
 
 
 func set_sector_state(status: String, alive: int, safe_radius: float, elapsed_seconds: int) -> void:
@@ -434,3 +440,75 @@ func _process(delta: float) -> void:
         _hit_timer=maxf(0,_hit_timer-delta)
         if _hit_timer==0 and _hit:
             _hit.text=""
+
+func _place(control: Control, rect: Rect2) -> void:
+    control.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+    control.position=rect.position
+    control.size=rect.size
+
+
+func _layout() -> void:
+    var root: Control=get_node("AuroraTacticalOverlay")
+    var safe: Rect2=SAFE_SCREEN.rect(get_viewport())
+    var origin: Vector2=safe.position
+    var w: float=safe.size.x
+    var h: float=safe.size.y
+    root.get_node("AuroraHeader").visible=false
+    _place(_training_radar,Rect2(origin+Vector2(24,62),Vector2(156,142)))
+    _place(_health_label,Rect2(origin+Vector2(24,h-350),Vector2(210,30)))
+    _place(_health_meter,Rect2(origin+Vector2(24,h-318),Vector2(210,10)))
+    _place(_weapon,Rect2(origin+Vector2(w-260,16),Vector2(230,30)))
+    _place(_ammo,Rect2(origin+Vector2(w-210,48),Vector2(180,32)))
+    _place(_fps,Rect2(origin+Vector2(24,18),Vector2(90,24)))
+    _place(_eliminations_label,Rect2(origin+Vector2(w-360,24),Vector2(90,24)))
+    _place(_battle_status,Rect2(origin+Vector2(w*.5-220,24),Vector2(440,30)))
+    _place(_battle_button,Rect2(origin+Vector2(w*.5-90,64),Vector2(180,46)))
+    _place(_exit_button,Rect2(origin+Vector2(w-118,100),Vector2(92,44)))
+    _place(_hint,Rect2(origin+Vector2(w*.5-210,h-32),Vector2(420,24)))
+    _hint.add_theme_font_size_override("font_size",11)
+    _place(_hit,Rect2(origin+Vector2(w*.5-300,128),Vector2(600,50)))
+    _hit.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    _place(root.get_node("MovePad"),Rect2(origin+Vector2(40,h-235),Vector2(210,210)))
+    _place(_run_button,Rect2(origin+Vector2(90,h-294),Vector2(110,52)))
+    _place(root.get_node("DirectionalFirePad"),Rect2(origin+Vector2(w-172,h-257),Vector2(144,144)))
+    _place(_aim_button,Rect2(origin+Vector2(w-300,h-260),Vector2(82,60)))
+    _place(root.get_node("RECARGA"),Rect2(origin+Vector2(w-310,h-175),Vector2(86,58)))
+    _place(root.get_node("ARMA"),Rect2(origin+Vector2(w-235,h-107),Vector2(86,58)))
+    _place(_crouch_button,Rect2(origin+Vector2(w-422,h-180),Vector2(92,56)))
+    _place(_medkit_button,Rect2(origin+Vector2(w-422,h-107),Vector2(92,56)))
+    _jump_button.custom_minimum_size=Vector2.ZERO
+    var jump_rect:=Rect2(origin+Vector2(w-135,h-107),Vector2(100,58))
+    if air_stage!="ground":
+        jump_rect=Rect2(origin+Vector2(w-220,h-118),Vector2(190,64))
+    _place(_jump_button,jump_rect)
+
+
+func is_action_at(point: Vector2) -> bool:
+    var root: Control=get_node("AuroraTacticalOverlay")
+    for control in root.get_children():
+        if control is Control and control.is_visible_in_tree() and control.mouse_filter!=Control.MOUSE_FILTER_IGNORE and control.get_global_rect().has_point(point):
+            return true
+    return false
+
+
+func reset_controls() -> void:
+    var root: Control=get_node("AuroraTacticalOverlay")
+    root.get_node("MovePad").reset()
+    root.get_node("DirectionalFirePad").reset()
+    _run_latched=false
+    _run_button.text="CORRER"
+    run_released.emit()
+
+
+func set_match_controls(enabled: bool) -> void:
+    var root: Control=get_node("AuroraTacticalOverlay")
+    for control in root.get_children():
+        if control is Button and control!=_battle_button and control!=_exit_button:
+            control.disabled=not enabled
+    root.get_node("MovePad").visible=enabled
+    root.get_node("DirectionalFirePad").visible=enabled
+
+
+func _notification(what: int) -> void:
+    if what==NOTIFICATION_APPLICATION_FOCUS_OUT and is_node_ready():
+        reset_controls()

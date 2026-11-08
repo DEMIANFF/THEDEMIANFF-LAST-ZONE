@@ -1,7 +1,7 @@
-name: V75.1 Real BR Match Ledger and Movement Fix APK
+name: V75.2 Real BR Match Ledger and Movement Fix APK
 on:
   push:
-    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression]
+    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery]
     paths:
       - 'native-godot/**'
       - '.github/workflows/native-godot-preview-apk.yml'
@@ -96,64 +96,59 @@ jobs:
           EOF
       - name: Import 3D models and parse project
         run: godot --headless --path native-godot --editor --quit
-      - name: Smoke-test scene with imported character asset
-        env:
-          AURORA_REQUIRE_OPERATOR: "1"
-        run: godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
-      - name: Verify AR / AWM skinned hand mounts, global size and arm animations
-        run: godot --headless --path native-godot --script res://scripts/qa/weapon_visual_qa.gd
-      - name: 'Reproduce Motorola video: collision, walk, jump, sprint and joystick'
-        run: |
-          godot --headless --path native-godot --script res://scripts/qa/motorola_control_audit.gd
-          godot --headless --path native-godot --script res://scripts/qa/mobile_touch_routing_test.gd
-      - name: Verify all TPS camera and fire gesture modes
-        run: |
-          godot --headless --path native-godot --script res://scripts/qa/camera_fire_qa.gd
-          godot --headless --path native-godot --script res://scripts/qa/multitouch_combat_qa.gd
-          godot --headless --path native-godot --script res://scripts/qa/sector_battle_qa.gd
-      - name: Validate welcome screen lobby air drop parachute and landing
-        run: godot --headless --path native-godot --script res://scripts/qa/launch_airdrop_qa.gd
-      - name: Validate locally saved results, match restart and crouch clearance
-        run: |
-          godot --headless --path native-godot --script res://scripts/qa/persistent_match_qa.gd
-          godot --headless --path native-godot --script res://scripts/qa/crouch_collision_qa.gd
+      - name: Run complete native QA and Motorola regressions
+        run: bash native-godot/tools/run_qa.sh
       - name: Capture actual Godot scene with software OpenGL
         continue-on-error: false
         run: |
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-xvfb.log
           mkdir -p native-godot/out
           xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_preview.gd
-          test -s native-godot/out/aurora-native-v75-1-preview.png
+          test -s native-godot/out/aurora-native-v75-2-preview.png
           xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_frontend_preview.gd
-          test -s native-godot/out/aurora-v75-1-welcome.png
-          test -s native-godot/out/aurora-v75-1-lobby.png
+          test -s native-godot/out/aurora-v75-2-welcome.png
+          test -s native-godot/out/aurora-v75-2-lobby.png
           xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_weapon_preview.gd
           test -s native-godot/out/aurora-v74-1-ak74.png
           test -s native-godot/out/aurora-v74-1-awm.png
+      - name: Render expanded Motorola layout and verify absence of side bars
+        run: xvfb-run -a -s "-screen 0 2712x1220x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_responsive_preview.gd > native-godot/out/qa/responsive-render.log 2>&1
       - name: Export distinct Android debug APK
         run: |
+          if grep -E "SCRIPT ERROR:|ERROR:" native-godot/out/qa/responsive-render.log; then exit 1; fi
           mkdir -p native-godot/out
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V75.1-BR-PROGRESO-REAL.apk
-          test -s native-godot/out/THEDEMIANFF-V75.1-BR-PROGRESO-REAL.apk
-          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V75.1-BR-PROGRESO-REAL.apk
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V75.2-MOTOROLA.apk
+          test -s native-godot/out/THEDEMIANFF-V75.2-MOTOROLA.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V75.2-MOTOROLA.apk
       - name: Verify APK namespace, checksum and package signature
         run: |
-          APK=native-godot/out/THEDEMIANFF-V75.1-BR-PROGRESO-REAL.apk
+          APK=native-godot/out/THEDEMIANFF-V75.2-MOTOROLA.apk
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -n 3
-          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview751"
-          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview752"
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "$APK" | tee native-godot/out/signature.txt
+          "$ANDROID_HOME/build-tools/35.0.1/zipalign" -c -P 16 -v 4 "$APK" > native-godot/out/alignment.txt
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" > native-godot/out/badging.txt
+          grep -Fx "native-code: 'arm64-v8a'" native-godot/out/badging.txt
+          grep -Fx "application-debuggable" native-godot/out/badging.txt
+          { git rev-parse HEAD; godot --headless --version; blender --background --version | head -n 1; } > native-godot/out/BUILD.txt
           unzip -t "$APK" | tail -n 1
           sha256sum "$APK" | tee native-godot/out/SHA256SUMS.txt
-          echo "::notice::V75.1 saves only local offline sector results; it does NOT sync V70/Firebase. 9-participant sector, not 100 network users. Physical Android QA required."
+          echo "::notice::V75.2 saves only local offline sector results; it does NOT sync V70/Firebase. 9-participant sector, not 100 network users. Physical Android QA required."
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIANFF-V75.1-PROGRESO-REAL-PREVIEW
+          name: THEDEMIANFF-V75.2-MOTOROLA-PREVIEW
           path: |
-            native-godot/out/THEDEMIANFF-V75.1-BR-PROGRESO-REAL.apk
+            native-godot/out/THEDEMIANFF-V75.2-MOTOROLA.apk
             native-godot/out/SHA256SUMS.txt
-            native-godot/out/aurora-native-v75-1-preview.png
-            native-godot/out/aurora-v75-1-welcome.png
-            native-godot/out/aurora-v75-1-lobby.png
+            native-godot/out/aurora-native-v75-2-preview.png
+            native-godot/out/aurora-v75-2-welcome.png
+            native-godot/out/aurora-v75-2-lobby.png
             native-godot/out/aurora-v74-1-ak74.png
             native-godot/out/aurora-v74-1-awm.png
+            native-godot/out/v752-motorola-*.png
+            native-godot/out/qa/
+            native-godot/out/BUILD.txt
+            native-godot/out/signature.txt
+            native-godot/out/badging.txt
+            native-godot/out/alignment.txt
           retention-days: 14

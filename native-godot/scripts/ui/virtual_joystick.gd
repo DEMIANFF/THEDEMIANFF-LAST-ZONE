@@ -22,11 +22,11 @@ func _draw() -> void:
 func _gui_input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:
         var touch:=event as InputEventScreenTouch
-        if touch.pressed and _finger==-1:
+        if touch.pressed and not touch.canceled and _finger==-1:
             _finger=touch.index
             _set_axis(touch.position)
             accept_event()
-        elif not touch.pressed and touch.index==_finger:
+        elif (not touch.pressed or touch.canceled) and touch.index==_finger:
             _finger=-1
             _set_axis(size*.5)
             accept_event()
@@ -50,3 +50,13 @@ func _set_axis(point: Vector2) -> void:
     _axis=v if v.length()>.11 else Vector2.ZERO
     vector_changed.emit(_axis)
     queue_redraw()
+
+
+func reset() -> void:
+    _finger=-1
+    _mouse=false
+    _set_axis(size*.5)
+
+func _notification(what: int) -> void:
+    if what==NOTIFICATION_APPLICATION_FOCUS_OUT or (what==NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree()):
+        reset()

@@ -2,3 +2,7 @@
 out/
 assets/characters/*.glb
 *.import
+*.gd.uid
+assets/weapons/aurora_awm.glb
+assets/weapons/ak74-tactical_*.png
+assets/characters/aurora_operator_*.jpg

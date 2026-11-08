@@ -41,6 +41,10 @@ func _ready() -> void:
 
 
 func _process(dt: float) -> void:
+    if not operator.can_act():
+        trigger_held=false
+        reload_timer=0.0
+        return
     cooldown=maxf(0,cooldown-dt)
     if reload_timer>0:
         reload_timer=maxf(0,reload_timer-dt)
@@ -56,6 +60,8 @@ func _process(dt: float) -> void:
 
 
 func _on_fire_pressed() -> void:
+    if not operator.can_act():
+        return
     if operator.royale_eliminated or operator.round_finished:
         return
     trigger_held=true
@@ -72,6 +78,8 @@ func _on_fire_released() -> void:
 
 
 func _on_weapon() -> void:
+    if not operator.can_act():
+        return
     weapon_index=1-weapon_index
     trigger_held=false
     operator.set_firing(false)
@@ -88,6 +96,8 @@ func _on_weapon() -> void:
 
 
 func _on_aim() -> void:
+    if not operator.can_act():
+        return
     # AR cycles through free -> x2 -> x4 -> free. AWM has its exclusive x8.
     if weapon_index == 1:
         current_zoom = 1.0 if current_zoom >= 8.0 else 8.0
@@ -100,6 +110,8 @@ func _on_aim() -> void:
 
 
 func _on_heal() -> void:
+    if not operator.can_act():
+        return
     if operator.royale_eliminated:
         return
     if medkits_remaining<=0:
@@ -115,6 +127,8 @@ func _on_heal() -> void:
 
 
 func _on_reload() -> void:
+    if not operator.can_act():
+        return
     if reload_timer>0:
         return
     var cap: int=5 if weapon_index==1 else 30
@@ -127,6 +141,8 @@ func _on_reload() -> void:
 
 
 func _shoot() -> void:
+    if not operator.can_act():
+        return
     if operator.royale_eliminated or cooldown>0 or reload_timer>0:
         return
     if ammo[weapon_index]<=0:
@@ -161,6 +177,7 @@ func _shoot() -> void:
 
 func end_sector_battle() -> void:
     sector_battle_active=false
+    reload_timer=0.0
     trigger_held=false
     operator.set_firing(false)
     for bot in _targets:

@@ -1,6 +1,7 @@
 extends Control
 ## Original Aurora front-end. Free Fire is UX reference ONLY; no copied layout,
 ## assets or proprietary game branding. Incomplete service tabs say so.
+const SAFE_SCREEN=preload("res://scripts/ui/safe_screen.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 
@@ -31,7 +32,8 @@ func _ready() -> void:
     bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     bg.color=Color(.018,.038,.082,1)
     bg.mouse_filter=Control.MOUSE_FILTER_IGNORE
-    _surface.add_child(bg)
+    add_child(bg)
+    move_child(bg,0)
     var line:=ColorRect.new()
     line.name="AuroraBlueAccent"
     line.anchor_left=.045
@@ -46,11 +48,13 @@ func _ready() -> void:
     _page.name="Page"
     _page.anchor_left=.07
     _page.anchor_right=.63
-    _page.anchor_top=.20
+    _page.anchor_top=.10
     _page.anchor_bottom=.94
-    _page.add_theme_constant_override("separation",14)
+    _page.add_theme_constant_override("separation",12)
     _surface.add_child(_page)
     _build_preview()
+    get_viewport().size_changed.connect(_layout_safe)
+    _layout_safe.call_deferred()
     _welcome()
 
 
@@ -121,9 +125,10 @@ func _show_lobby() -> void:
     _clear_page()
     _label("AURORA / CENTRO DE OPERACIONES",29)
     _label("Modo: entrenamiento o combate de sector (9 participantes simulados)",17)
-    var actions:=HBoxContainer.new()
+    var actions:=HFlowContainer.new()
     actions.name="PlayModes"
-    actions.add_theme_constant_override("separation",16)
+    actions.add_theme_constant_override("h_separation",12)
+    actions.add_theme_constant_override("v_separation",10)
     _page.add_child(actions)
     var training:=_button("ENTRENAMIENTO",Callable(self,"_launch").bind(false),246)
     training.name="TrainingButton"
@@ -132,9 +137,10 @@ func _show_lobby() -> void:
     battle.name="BattleButton"
     actions.add_child(battle)
 
-    var tabs:=HBoxContainer.new()
+    var tabs:=HFlowContainer.new()
     tabs.name="LobbyTabs"
-    tabs.add_theme_constant_override("separation",8)
+    tabs.add_theme_constant_override("h_separation",8)
+    tabs.add_theme_constant_override("v_separation",8)
     _page.add_child(tabs)
     for tab in ["PERSONAJE","ARMAS","MISIONES","TIENDA","CUENTA"]:
         var tab_name: String=tab
@@ -155,8 +161,8 @@ func _select_tab(tab: String) -> void:
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot() if _offline_records else {}
             _info.text="OPERADORA / LILA EN DESARROLLO\nModelo 3D provisional; rig definitivo pendiente."
-            _info.text+="\nREGISTRO LOCAL  •  "+str(stats.get("played",0))+" partidas  /  "+str(stats.get("wins",0))+" victorias  /  "+str(stats.get("kills",0))+" bajas"
-            _info.text+="\nRécord de bajas: "+str(stats.get("best_kills",0))+"  •  mejor supervivencia: "+str(stats.get("longest_survival_seconds",0))+" s"
+            _info.text+="\nREGISTRO LOCAL  •  "+str(int(stats.get("played",0)))+" partidas  /  "+str(int(stats.get("wins",0)))+" victorias  /  "+str(int(stats.get("kills",0)))+" bajas"
+            _info.text+="\nRécord de bajas: "+str(int(stats.get("best_kills",0)))+"  •  mejor supervivencia: "+str(int(stats.get("longest_survival_seconds",0)))+" s"
         "ARMAS":
             _info.text="ARSENAL  /  AK-74 + AWM\nAR: x2/x4. AWM: x8, cinco cartuchos y cerrojo automático de 0,5 s."
         "MISIONES":
@@ -168,7 +174,7 @@ func _select_tab(tab: String) -> void:
             else:
                 var recent: Dictionary=latest[0]
                 _info.text+="\nÚltima partida: "+("VICTORIA" if recent.get("victory",false) else "DERROTA")
-                _info.text+="  •  "+str(recent.get("kills",0))+" bajas  •  "+str(recent.get("survived_seconds",0))+" segundos"
+                _info.text+="  •  "+str(int(recent.get("kills",0)))+" bajas  •  "+str(int(recent.get("survived_seconds",0)))+" segundos"
             _info.text+="\nMisiones con recompensas y cuenta en la nube: pendientes."
         "TIENDA":
             _info.text="TIENDA  /  NO DISPONIBLE\nSin compras ni moneda simulada. Integración futura."
@@ -207,6 +213,8 @@ func _activate_game(battle: bool) -> void:
 
 func _return_to_lobby() -> void:
     if _game!=null and is_instance_valid(_game):
+        if not _game.get_node("AuroraSectorMatch").retry_result():
+            return
         var old: Node3D=_game
         _game=null
         old.get_parent().remove_child(old)
@@ -261,9 +269,9 @@ func _build_preview() -> void:
     camera.name="LobbyPortraitCamera"
     camera.position=Vector3(0,1.22,3.45)
     camera.fov=39
-    camera.look_at(Vector3(0,.88,0),Vector3.UP)
     camera.current=true
     stage3d.add_child(camera)
+    camera.look_at(Vector3(0,.88,0),Vector3.UP)
     var podium:=MeshInstance3D.new()
     podium.name="PortraitPlatform"
     var disk:=CylinderMesh.new()
@@ -341,3 +349,9 @@ func _fit_avatar_for_preview(visual: Node3D) -> void:
 
 func _game_active() -> bool:
     return _game!=null and is_instance_valid(_game)
+
+func _layout_safe() -> void:
+    var safe: Rect2=SAFE_SCREEN.rect(get_viewport())
+    _surface.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+    _surface.position=safe.position
+    _surface.size=safe.size

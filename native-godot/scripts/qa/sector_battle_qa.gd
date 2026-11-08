@@ -92,8 +92,14 @@ func _verify() -> void:
     # Assert actual bot-to-bot damage path, not merely a configured opponent list.
     var challenger: CharacterBody3D=combat._targets[0]
     var rival: CharacterBody3D=combat._targets[1]
-    challenger.global_position=Vector3(4.0,game.get_node("AuroraTerrain").height_at(4.0,-40.0)+.2,-40.0)
-    rival.global_position=Vector3(7.0,game.get_node("AuroraTerrain").height_at(7.0,-40.0)+.2,-40.0)
+    # Synchronize actual physics proxies in open space before checking a valid shot.
+    challenger.set_physics_process(false)
+    rival.set_physics_process(false)
+    var clear_y: float=game.get_node("AuroraTerrain").height_at(105.0,20.0)+2.0
+    challenger.global_position=Vector3(105.0,clear_y,17.0)
+    rival.global_position=Vector3(105.0,clear_y,23.0)
+    await physics_frame
+    await physics_frame
     challenger._target_actor=rival
     challenger._target_visible=true
     challenger._sense_clock=4.0

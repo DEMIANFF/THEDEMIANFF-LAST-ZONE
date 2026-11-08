@@ -8,6 +8,8 @@ const LIMIT: int=12
 var file_path: String
 var _data: Dictionary
 var _loaded_backup: bool=false
+var _pending: Dictionary={}
+var _load_failed: bool=false
 
 
 func _init(path: String="user://profiles/aurora_local_v1.json") -> void:
@@ -40,11 +42,13 @@ func _valid(value: Variant) -> bool:
         var v: Variant=d.get(key)
         if not (v is int or v is float):
             return false
-        if int(v)<0:
+        if not is_finite(float(v)) or float(v)!=float(int(v)) or int(v)<0:
             return false
     if int(d.get("next_match_id",0))<1 or int(d.get("wins",0))>int(d.get("played",0)):
         return false
     if not (d.get("history") is Array):
+        return false
+    if int(d["next_match_id"])!=int(d["played"])+1:
         return false
     var records: Array=d["history"]
     if records.size()>LIMIT:
@@ -52,7 +56,15 @@ func _valid(value: Variant) -> bool:
     for record in records:
         if not (record is Dictionary):
             return false
-        if not record.has("match_id") or not record.has("victory"):
+        if not (record.get("victory") is bool):
+            return false
+        for key in ["match_id","kills","survived_seconds","saved_at_unix"]:
+            var field: Variant=record.get(key)
+            if not (field is float or field is int) or not is_finite(float(field)) or float(field)!=float(int(field)) or int(field)<0:
+                return false
+        if int(record["match_id"])!=int(d["played"])-records.find(record):
+            return false
+        if int(record["kills"])>100 or int(record["survived_seconds"])>86400:
             return false
     return true
 
@@ -61,26 +73,61 @@ func _load_file(path: String) -> Dictionary:
     if not FileAccess.file_exists(path):
         return {}
     var contents: String=FileAccess.get_file_as_string(path)
-    var parsed: Variant=JSON.parse_string(contents)
+    var parser:=JSON.new()
+    if parser.parse(contents)!=OK:
+        return {}
+    var parsed: Variant=parser.data
+    if parsed is Dictionary and parsed.has("payload"):
+        var payload: Variant=parsed.get("payload")
+        if not (payload is String) or payload.sha256_text()!=parsed.get("sha256"):
+            return {}
+        if parser.parse(payload)!=OK:
+            return {}
+        parsed=parser.data
     if _valid(parsed):
+        # JSON parses numbers as floats; keep the ledger's canonical integer
+        # types before comparing the verified journal with the in-memory data.
+        for key in ["schema","next_match_id","played","wins","kills","survival_seconds","best_kills","longest_survival_seconds"]:
+            parsed[key]=int(parsed[key])
+        for record in parsed["history"]:
+            for key in ["match_id","kills","survived_seconds","saved_at_unix"]:
+                record[key]=int(record[key])
         return parsed
     return {}
 
 
 func reload() -> bool:
     _loaded_backup=false
+    _load_failed=false
     var primary: Dictionary=_load_file(file_path)
-    if not primary.is_empty():
-        _data=primary
-        return true
-    var backup: Dictionary=_load_file(file_path+".bak")
-    if not backup.is_empty():
-        _data=backup
-        _loaded_backup=true
-        push_warning("Recovered Aurora offline stats from local backup")
+    var best: Dictionary=primary
+    for suffix in [".bak",".tmp"]:
+        var candidate: Dictionary=_load_file(file_path+suffix)
+        if not candidate.is_empty() and (best.is_empty() or int(candidate["next_match_id"])>int(best["next_match_id"])):
+            best=candidate
+    if not best.is_empty():
+        _data=best
+        _loaded_backup=primary!=best
+        if _loaded_backup:
+            _pending=best.duplicate(true)
         return true
     _data=_defaults()
-    return not FileAccess.file_exists(file_path) and not FileAccess.file_exists(file_path+".bak")
+    _load_failed=FileAccess.file_exists(file_path) or FileAccess.file_exists(file_path+".bak")
+    return not _load_failed
+
+
+func retry_pending() -> bool:
+    if _load_failed:
+        return false
+    if _pending.is_empty():
+        return true
+    var previous: Dictionary=_data
+    _data=_pending.duplicate(true)
+    if not _write_atomic():
+        _data=previous
+        return false
+    _pending.clear()
+    return true
 
 
 func snapshot() -> Dictionary:
@@ -92,6 +139,10 @@ func next_match_id() -> int:
 
 
 func record_result(match_id: int,victory: bool,kills: int,survived_seconds: int) -> bool:
+    if not retry_pending():
+        return false
+    if not reload():
+        return false
     # Monotonic ID provides idempotence: repeated _finish() cannot double-count.
     if match_id<=0 or match_id!=next_match_id():
         return false
@@ -116,6 +167,7 @@ func record_result(match_id: int,victory: bool,kills: int,survived_seconds: int)
     if history.size()>LIMIT:
         history.resize(LIMIT)
     if not _write_atomic():
+        _pending=_data.duplicate(true)
         _data=previous
         return false
     return true
@@ -127,21 +179,29 @@ func _write_atomic() -> bool:
     var temporary: String=ProjectSettings.globalize_path(file_path+".tmp")
     var dir: String=target.get_base_dir()
     if DirAccess.make_dir_recursive_absolute(dir)!=OK:
-        push_error("Aurora offline stats directory creation failed")
+        push_warning("Aurora offline stats directory creation failed")
         return false
-    var output:=FileAccess.open(temporary,FileAccess.WRITE)
-    if output==null:
-        push_error("Aurora offline stats temporary file could not be opened")
-        return false
-    output.store_string(JSON.stringify(_data))
-    output.flush()
-    output.close()
+    # Preserve the complete journal during promotion retries.
+    if _load_file(file_path+".tmp")!=_data:
+        var output:=FileAccess.open(temporary,FileAccess.WRITE)
+        if output==null:
+            push_warning("Aurora offline stats temporary file could not be opened")
+            return false
+        var payload: String=JSON.stringify(_data)
+        output.store_string(JSON.stringify({"payload":payload,"sha256":payload.sha256_text()}))
+        output.flush()
+        var write_error: Error=output.get_error()
+        output.close()
+        if write_error!=OK or _load_file(file_path+".tmp")!=_data:
+            return false
     if FileAccess.file_exists(target) and not _loaded_backup:
-        if DirAccess.copy_absolute(target,backup)!=OK:
-            push_error("Aurora offline stats backup failed; retaining previous save")
+        if DirAccess.dir_exists_absolute(backup):
+            return false
+        if not _load_file(file_path).is_empty() and DirAccess.copy_absolute(target,backup)!=OK:
+            push_warning("Aurora offline stats backup failed; retaining previous save")
             return false
     if DirAccess.rename_absolute(temporary,target)!=OK:
-        push_error("Aurora offline stats atomic commit failed; retaining previous save")
+        push_warning("Aurora offline stats atomic commit failed; retaining previous save")
         return false
     _loaded_backup=false
     return true

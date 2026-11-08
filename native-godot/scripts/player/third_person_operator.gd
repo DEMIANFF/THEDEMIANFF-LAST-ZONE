@@ -103,17 +103,17 @@ func _physics_process(delta: float) -> void:
         return
     _training_immunity=maxf(0.0,_training_immunity-delta)
     var control := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
-    if _move_axis.length() > TOUCH_DEADZONE:
+    if _move_axis.length() > 0.0:
         control = _move_axis
 
     # Delta-time camera smoothing avoids abrupt yaw/pitch changes on quick swipes.
     var smooth: float = 1.0 - exp(-delta * 19.0)
-    _yaw = lerp_angle(_yaw, _desired_yaw, smooth)
+    _yaw = rotate_toward(_yaw, _desired_yaw, minf(absf(angle_difference(_yaw,_desired_yaw))*smooth,delta*7.5))
     _pitch = lerpf(_pitch, _desired_pitch, smooth)
     _camera_pivot.rotation.x = _pitch
     var relative_direction := Vector3(control.x, 0.0, control.y)
     var facing := Basis(Vector3.UP, _yaw)
-    var world_direction := (facing * relative_direction).normalized()
+    var world_direction := (facing * relative_direction).limit_length(1.0)
     var run_fast := (Input.is_action_pressed("run") or _sprint_touch) and not _crouching
     var target_speed: float = WALK_SPEED
     if _crouching:
@@ -135,11 +135,11 @@ func _physics_process(delta: float) -> void:
     # Camera yaw is independent of the player body while freely looking around.
     # On forward motion, the body faces movement; on ADS/fire it faces the reticle.
     var move_strength: float = world_direction.length_squared()
-    if move_strength > 0.002:
+    if _ads_active or _fire_held:
+        rotation.y = lerp_angle(rotation.y, _yaw, 1.0 - exp(-delta * 14.0))
+    elif move_strength > 0.002:
         var move_yaw: float = atan2(-world_direction.x, -world_direction.z)
         rotation.y = lerp_angle(rotation.y, move_yaw, 1.0 - exp(-delta * 13.0))
-    elif _ads_active or _fire_held:
-        rotation.y = lerp_angle(rotation.y, _yaw, 1.0 - exp(-delta * 14.0))
     _camera_pivot.rotation.y = wrapf(_yaw - rotation.y, -PI, PI)
     _camera_pivot.rotation.x = _pitch
     move_and_slide()
@@ -149,7 +149,7 @@ func _physics_process(delta: float) -> void:
         _camera.fov = lerpf(_camera.fov, desired_fov, 1.0 - exp(-delta * 11.0))
         var desired_distance: float = 1.15 if _ads_active and _ads_zoom >= 6.0 else 3.65 if _ads_active else 4.6
         var safe_distance: float = _collision_safe_camera_distance(desired_distance)
-        _camera.position.z = lerpf(_camera.position.z, safe_distance, 1.0 - exp(-delta * 15.0))
+        _camera.position.z = minf(safe_distance,lerpf(_camera.position.z, safe_distance, 1.0 - exp(-delta * 15.0)))
         _camera.position.x = lerpf(_camera.position.x, .16 if _ads_active and _ads_zoom >= 6.0 else .38, 1.0 - exp(-delta * 11.0))
         if _avatar:
             _avatar.visible = not (_ads_active and _ads_zoom >= 6.0)
@@ -164,9 +164,9 @@ func _physics_process(delta: float) -> void:
             clip="AuroraCrouchWalk" if speed>=.75 else "AuroraCrouch"
         elif not is_on_floor():
             clip="AuroraJump"
-        if _ads_active:
+        if _ads_active and not _crouching and speed<1.0:
             clip="AuroraAimAWM" if _weapon_index==1 else "AuroraAim"
-        if _combat_action!="":
+        if _combat_action!="" and not _crouching:
             clip=_combat_action
         if clip!=_current_clip:
             _play_matching_animation(clip)
@@ -215,6 +215,10 @@ func fit_operator_visual(visual: Node3D) -> void:
 
 
 func begin_aircraft() -> void:
+    reset_controls()
+    round_finished=false
+    royale_eliminated=false
+    _apply_crouch(false)
     air_mode="aircraft"
     velocity=Vector3.ZERO
     _ads_active=false
@@ -228,11 +232,11 @@ func begin_aircraft() -> void:
         _parachute_visual.visible=false
 
 
-func begin_freefall() -> void:
+func begin_freefall(inherited_velocity: Vector3=Vector3.ZERO) -> void:
     if air_mode!="aircraft":
         return
     air_mode="freefall"
-    velocity=Vector3(0,-4.0,0)
+    velocity=Vector3(inherited_velocity.x,-4.0,inherited_velocity.z)
     _current_clip=""
     if _avatar:
         _avatar.visible=true
@@ -249,13 +253,14 @@ func deploy_parachute() -> void:
 
 func _air_step(delta: float) -> void:
     var alpha: float=1.0-exp(-delta*16.0)
-    _yaw=lerp_angle(_yaw,_desired_yaw,alpha)
+    _yaw=rotate_toward(_yaw,_desired_yaw,minf(absf(angle_difference(_yaw,_desired_yaw))*alpha,delta*7.5))
     _pitch=lerpf(_pitch,_desired_pitch,alpha)
     _camera_pivot.rotation.y=wrapf(_yaw-rotation.y,-PI,PI)
     _camera_pivot.rotation.x=_pitch
     if _camera:
         var camera_distance: float=7.1 if air_mode=="aircraft" else 6.4
-        _camera.position.z=lerpf(_camera.position.z,camera_distance,alpha)
+        var safe_distance: float=_collision_safe_camera_distance(camera_distance)
+        _camera.position.z=minf(safe_distance,lerpf(_camera.position.z,safe_distance,alpha))
         _camera.position.x=lerpf(_camera.position.x,.35,alpha)
         _camera.fov=lerpf(_camera.fov,76.0,alpha)
     if air_mode=="aircraft":
@@ -263,7 +268,7 @@ func _air_step(delta: float) -> void:
         return
 
     var axis: Vector2=Input.get_vector("move_left","move_right","move_forward","move_backward")
-    if _move_axis.length()>TOUCH_DEADZONE:
+    if _move_axis.length()>0.0:
         axis=_move_axis
     var steering: Vector3=Basis(Vector3.UP,_yaw)*Vector3(axis.x,0,axis.y)
     var speed: float=8.5 if air_mode=="freefall" else 5.7
@@ -277,6 +282,7 @@ func _air_step(delta: float) -> void:
     if steering.length_squared()>.02:
         rotation.y=lerp_angle(rotation.y,atan2(-steering.x,-steering.z),alpha)
     move_and_slide()
+    _camera_pivot.rotation.y=wrapf(_yaw-rotation.y,-PI,PI)
     if _animator:
         var clip: String="AuroraFreefall" if air_mode=="freefall" else "AuroraParachute"
         if _current_clip!=clip:
@@ -351,11 +357,11 @@ func receive_training_hit(amount: float) -> void:
 func end_sector_battle() -> void:
     round_finished=true
     velocity=Vector3.ZERO
-    set_firing(false)
-    set_touch_move_axis(Vector2.ZERO)
+    reset_controls()
 
 
 func begin_sector_battle(from_airdrop: bool=false) -> void:
+    reset_controls()
     round_finished=false
     battle_royale_active = true
     royale_eliminated = false
@@ -372,7 +378,7 @@ func begin_sector_battle(from_airdrop: bool=false) -> void:
 
 
 func receive_training_heal(amount: float) -> void:
-    if royale_eliminated:
+    if royale_eliminated or round_finished:
         return
     if amount<=0:
         return
@@ -381,15 +387,18 @@ func receive_training_heal(amount: float) -> void:
 
 
 func set_touch_move_axis(direction: Vector2) -> void:
-    _move_axis=direction.limit_length(1.0)
+    var strength: float=direction.length()
+    _move_axis=Vector2.ZERO
+    if direction.is_finite() and strength>TOUCH_DEADZONE and not round_finished and not royale_eliminated:
+        _move_axis=direction.normalized()*clampf((strength-TOUCH_DEADZONE)/(1.0-TOUCH_DEADZONE),0.0,1.0)
 
 
 func set_touch_run(active: bool) -> void:
-    _sprint_touch=active
+    _sprint_touch=active and can_act()
 
 
 func touch_jump() -> void:
-    if air_mode=="ground":
+    if can_act():
         _jump_requested=true
 
 
@@ -415,7 +424,8 @@ func play_weapon_action(action: String, seconds: float) -> void:
             return
     _combat_action=requested
     _combat_action_seconds=maxf(0.05,seconds)
-    _play_matching_animation(requested)
+    if not _crouching:
+        _play_matching_animation(requested)
 
 
 func set_firing(active: bool) -> void:
@@ -423,12 +433,18 @@ func set_firing(active: bool) -> void:
 
 
 func set_crouch(active: bool) -> void:
+    if not can_act():
+        return
     if _crouching==active:
         return
     if not active and not _can_stand():
         # Refuse to stretch collision into an overhead obstacle.
         crouch_state_changed.emit(true)
         return
+    _apply_crouch(active)
+
+
+func _apply_crouch(active: bool) -> void:
     _crouching=active
     var collider:=get_node_or_null("CapsuleCollider") as CollisionShape3D
     if collider:
@@ -472,17 +488,20 @@ func get_view_camera() -> Camera3D:
 func _collision_safe_camera_distance(requested: float) -> float:
     if not is_inside_tree():
         return requested
-    var eye: Vector3 = _camera_pivot.global_position
-    var offset: Vector3 = Vector3(.38, .18, requested)
-    var desired: Vector3 = _camera_pivot.to_global(offset)
-    var ray := PhysicsRayQueryParameters3D.create(eye, desired)
-    ray.exclude = [get_rid()]
-    var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(ray)
-    if hit.is_empty():
-        return requested
-    var length: float = eye.distance_to(desired)
-    var hit_distance: float = eye.distance_to(hit.position)
-    return clampf(requested * hit_distance / maxf(.01, length) - .23, .55, requested)
+    var shoulder: Vector3=Vector3(_camera.position.x,_camera.position.y,0)
+    var shape:=SphereShape3D.new()
+    shape.radius=.20
+    var query:=PhysicsShapeQueryParameters3D.new()
+    query.shape=shape
+    query.transform=Transform3D(Basis(),_camera_pivot.to_global(shoulder))
+    query.motion=_camera_pivot.global_basis.z*requested
+    query.exclude=[get_rid()]
+    query.collision_mask=1
+    var space:=get_world_3d().direct_space_state
+    if not space.intersect_shape(query,1).is_empty():
+        return 0.0
+    var fractions: PackedFloat32Array=space.cast_motion(query)
+    return maxf(0.0,requested*fractions[0]-.05)
 
 
 func apply_recoil(amount: float) -> void:
@@ -497,6 +516,9 @@ func _play_matching_animation(requested: String) -> void:
         print("AURORA_AVAILABLE_ANIMATIONS ",animations)
     for name in animations:
         if name.to_lower()==requested.to_lower():
+            var animation: Animation=_animator.get_animation(name)
+            if name!="AuroraFire" and name!="AuroraJump" and name!="AuroraReloadAWM":
+                animation.loop_mode=Animation.LOOP_LINEAR
             _animator.play(name,.14)
             if _current_clip=="":
                 _animator.advance(.15)
@@ -518,10 +540,12 @@ func _play_matching_animation(requested: String) -> void:
 ## Touch input must be captured BEFORE GUI dispatch: buttons and overlays may
 ## consume ScreenDrag so _unhandled_input never sees joystick movement.
 func _input(event: InputEvent) -> void:
+    if royale_eliminated or round_finished:
+        return
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         var viewport_width := get_viewport().get_visible_rect().size.x
-        if touch.pressed:
+        if touch.pressed and not touch.canceled:
             if touch.position.x >= viewport_width * 0.48 and _look_touch == -1 and not _touch_over_action_buttons(touch.position):
                 _look_touch = touch.index
             # Left-side touch is owned by MovePad._gui_input.
@@ -543,20 +567,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _touch_over_action_buttons(at: Vector2) -> bool:
-    # A fire/reload/jump/ADS press must not also become a camera-look finger.
-    var area: Vector2=get_viewport().get_visible_rect().size
-    var positions := [
-        Vector4(.905,.70,182.0,172.0),
-        Vector4(.778,.66,74.0,62.0),
-        Vector4(.790,.80,81.0,59.0),
-        Vector4(.905,.87,79.0,59.0),
-        Vector4(.685,.82,76.0,54.0)]
-    for b in positions:
-        var x: float=area.x*b.x
-        var y: float=area.y*b.y
-        if absf(at.x-x)<=b.z*.58 and absf(at.y-y)<=b.w*.58:
-            return true
-    return false
+    var hud:=get_parent().get_node_or_null("TrainingHUD")
+    return hud!=null and hud.is_action_at(at)
 
 
 func _touch_over_run_button(at: Vector2) -> bool:
@@ -570,7 +582,7 @@ func _touch_over_run_button(at: Vector2) -> bool:
 func _turn_camera(delta: Vector2, from_fire: bool=false) -> void:
     if not delta.is_finite():
         return
-    var limited: Vector2 = delta.limit_length(74.0)
+    var limited: Vector2 = delta
     # Precision slowdown in sights, but keep 360-degree continuous yaw.
     var zoom_factor: float = 1.0
     if _ads_active:
@@ -596,3 +608,23 @@ func _ensure_keyboard_actions() -> void:
         key.physical_keycode = mapping[action]
         if not InputMap.action_has_event(action, key):
             InputMap.action_add_event(action, key)
+
+
+func can_act() -> bool:
+    return air_mode=="ground" and not royale_eliminated and not round_finished
+
+
+func reset_controls() -> void:
+    _move_axis=Vector2.ZERO
+    _look_touch=-1
+    _sprint_touch=false
+    _jump_requested=false
+    _fire_held=false
+    _ads_active=false
+    _combat_action=""
+    _combat_action_seconds=0.0
+
+
+func _notification(what: int) -> void:
+    if what==NOTIFICATION_APPLICATION_FOCUS_OUT:
+        reset_controls()

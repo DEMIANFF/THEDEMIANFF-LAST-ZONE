@@ -1,7 +1,7 @@
-name: V75.1 Durable BR Match Results and Stance Quality QA
+name: V75.2 Durable BR Match Results and Stance Quality QA
 on:
   push:
-    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression]
+    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery]
     paths:
       - 'native-godot/**'
       - 'docs/V71_REAL_BATTLE_ROYALE_MASTER_PLAN.md'
@@ -20,26 +20,15 @@ jobs:
           unzip -q /tmp/godot.zip -d /tmp
           sudo install -m 0755 /tmp/Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot
           godot --headless --version
-      - name: Import and parse native Godot project
-        run: godot --headless --path native-godot --editor --quit
-      - name: Boot native terrain physics and camera
-        run: godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
-      - name: Test native AWM and AR trigger rules
-        run: godot --headless --path native-godot --script res://scripts/qa/combat_rules_test.gd
-      - name: Reproduce Motorola floor, walk, run and jump defects
-        run: godot --headless --path native-godot --script res://scripts/qa/motorola_control_audit.gd
-      - name: Test on-screen swipe-to-walk dispatch
-        run: godot --headless --path native-godot --script res://scripts/qa/mobile_touch_routing_test.gd
-      - name: Three cameras, fire dragging, x2 x4 x8 optics and crouch QA
-        run: godot --headless --path native-godot --script res://scripts/qa/camera_fire_qa.gd
-      - name: Test simultaneous moving aiming firing and jumping
-        run: godot --headless --path native-godot --script res://scripts/qa/multitouch_combat_qa.gd
-      - name: Test offline sector battle elimination and loot
-        run: godot --headless --path native-godot --script res://scripts/qa/sector_battle_qa.gd
-
-      - name: Verify original loading lobby and playable BR flight sequence
-        run: godot --headless --path native-godot --script res://scripts/qa/launch_airdrop_qa.gd
-      - name: Verify durable local battle results, backup and idempotence
-        run: godot --headless --path native-godot --script res://scripts/qa/persistent_match_qa.gd
-      - name: Verify crouch collider, low-ceiling blocking and matching HUD state
-        run: godot --headless --path native-godot --script res://scripts/qa/crouch_collision_qa.gd
+      - name: Prepare visual test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy
+          bash native-godot/tools/prepare_assets.sh /tmp/aurora-operator
+      - name: Run complete native QA with imported operator and weapons
+        run: bash native-godot/tools/run_qa.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: V75.2-GODOT-QA-LOGS
+          path: native-godot/out/qa
