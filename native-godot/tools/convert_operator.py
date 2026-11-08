@@ -126,15 +126,13 @@ for clip_name, amplitude, frames in [('AuroraIdle', 0.012, 60),
                 # FBX base is a straight T-pose. Rotate each upper arm in the
                 # armature's *Y axis* toward gravity (-Z in Blender's Z-up FBX).
                 # Bone-local axes come from its REST matrix to avoid bad bone rolls.
-                rest = bone.bone.matrix_local.to_3x3()
-                lower_axis = (rest.inverted() @ Vector((0, 1, 0))).normalized()
-                swing_axis = (rest.inverted() @ Vector((1, 0, 0))).normalized()
-                arm_direction = bone.bone.tail_local.x - bone.bone.head_local.x
-                downward_sign = 1.0 if arm_direction > 0 else -1.0
-                # Keep arms 50 degrees below a T-pose, with gentle reciprocal
-                # breathing/walk swing. This is authored skeletal motion.
-                lower = Quaternion(lower_axis, downward_sign * 0.90)
-                swing = Quaternion(swing_axis, offset)
+                # The audited FBX rig stores both upper arms along their
+                # local +Y bone axis. Rotate around local X so the limbs
+                # descend along the source +Z direction (screen -Y after
+                # Godot's Z-up conversion). Different arm names do not
+                # reverse the X axis; the earlier world-Y solution twisted.
+                lower = Quaternion(Vector((1, 0, 0)), 1.18)
+                swing = Quaternion(Vector((0, 0, 1)), offset)
                 bone.rotation_quaternion = lower @ swing
                 bone.keyframe_insert(data_path='rotation_quaternion', frame=frame, group=bone.name)
             else:
