@@ -28,3 +28,5 @@ jobs:
         run: godot --headless --path native-godot --script res://scripts/qa/combat_rules_test.gd
       - name: Reproduce Motorola floor, walk, run and jump defects
         run: godot --headless --path native-godot --script res://scripts/qa/motorola_control_audit.gd
+      - name: Test on-screen swipe-to-walk dispatch
+        run: godot --headless --path native-godot --script res://scripts/qa/mobile_touch_routing_test.gd
