@@ -73,8 +73,10 @@ func _verify() -> void:
     await physics_frame
     var sprint: bool=bool(operator.get("_sprint_touch"))
     hud.call("_run_up")
-    if not sprint or bool(operator.get("_sprint_touch")):
-        push_error("MOTOROLA_AUDIT FAIL: run button signal did not toggle sprint")
+    var held_after_release: bool=bool(operator.get("_sprint_touch"))
+    hud.call("_run_down")
+    if not sprint or not held_after_release or bool(operator.get("_sprint_touch")):
+        push_error("MOTOROLA_AUDIT FAIL: tap-to-sprint state does not persist or deactivate")
         quit(24)
         return
     print("MOTOROLA_AUDIT PASS: terrain grounding, analogue walking, touch jumping, sprint signal")

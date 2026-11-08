@@ -123,8 +123,8 @@ func _make_targets() -> void:
     # Four real skinned training opponents, independently moving and damageable.
     # Bounded LOS: walls and rocks block attacks; NPCs are not online players.
     var points: Array[Vector2]=[
-        Vector2(0,-27), Vector2(-28,-24),
-        Vector2(41,-10), Vector2(12,-51)]
+        Vector2(-3,-14), Vector2(-14,-24),
+        Vector2(33,-10), Vector2(12,-43)]
     for i in range(points.size()):
         var bot: CharacterBody3D=BOT.new()
         bot.name="AuroraPatrol"+str(i+1)

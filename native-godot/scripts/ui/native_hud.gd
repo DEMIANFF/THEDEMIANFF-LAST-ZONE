@@ -22,6 +22,8 @@ var _hint: Label
 var _hit_timer: float = 0.0
 var _fps_clock: float = 0.0
 var _ads: bool = false
+var _run_latched: bool = false
+var _run_button: Button
 
 
 func _ready() -> void:
@@ -68,7 +70,7 @@ func _ready() -> void:
     _button(root,"MIRA",.778,.66,74,62,Color(.12,.39,.49),_aim_down)
     _button(root,"RECARGA",.790,.80,81,59,Color(.14,.30,.37),_reload_down)
     _button(root,"ARMA",.905,.87,79,59,Color(.19,.35,.41),_weapon_down)
-    _button(root,"CORRER",.11,.61,82,57,Color(.09,.30,.36),_run_down,_run_up)
+    _run_button=_button(root,"CORRER",.11,.61,82,57,Color(.09,.30,.36),_run_down,_run_up)
     _button(root,"SALTAR",.685,.82,76,54,Color(.12,.34,.41),_jump_down)
     var pad: Control=VIRTUAL_PAD.new()
     pad.name="MovePad"
@@ -105,7 +107,7 @@ func _text(parent: Control,value: String,x: float,y: float,size: int,color: Colo
     return l
 
 
-func _button(root: Control,label: String,x: float,y: float,w: float,h: float,color: Color,down: Callable,up: Callable=Callable()) -> void:
+func _button(root: Control,label: String,x: float,y: float,w: float,h: float,color: Color,down: Callable,up: Callable=Callable()) -> Button:
     var button := Button.new()
     button.name=label
     button.text=label
@@ -133,6 +135,7 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
     if up.is_valid():
         button.button_up.connect(up)
     root.add_child(button)
+    return button
 
 
 func _fire_down() -> void:
@@ -156,11 +159,18 @@ func _weapon_down() -> void:
 
 
 func _run_down() -> void:
-    run_pressed.emit()
+    # Tap-to-toggle sprint: a player can run using one left-side finger.
+    _run_latched = not _run_latched
+    if _run_latched:
+        run_pressed.emit()
+    else:
+        run_released.emit()
+    if _run_button:
+        _run_button.text = "CORRIENDO" if _run_latched else "CORRER"
 
 
 func _run_up() -> void:
-    run_released.emit()
+    pass  # Releasing the sprint button must not deactivate sprint.
 
 
 func _jump_down() -> void:
