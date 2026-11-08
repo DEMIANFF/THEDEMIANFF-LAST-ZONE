@@ -56,7 +56,7 @@ func _process(delta: float) -> void:
         return
     elapsed += delta
     var progress: float = clampf(elapsed/SHRINK_DURATION,0.0,1.0)
-    radius = lerpf(INITIAL_RADIUS,FINAL_RADIUS,powf(progress,1.13))
+    radius = lerpf(INITIAL_RADIUS,FINAL_RADIUS,pow(progress,1.13))
     _ui_clock-=delta
     if _ui_clock<=0:
         _ui_clock=.33
