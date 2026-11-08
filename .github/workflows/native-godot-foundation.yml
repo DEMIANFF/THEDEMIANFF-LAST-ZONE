@@ -1,7 +1,7 @@
-name: V72 Godot native Aurora visual slice
+name: V73 Godot native tactical combat and rig QA
 on:
   push:
-    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice]
+    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat]
     paths:
       - 'native-godot/**'
       - 'docs/V71_REAL_BATTLE_ROYALE_MASTER_PLAN.md'

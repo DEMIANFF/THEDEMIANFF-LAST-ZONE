@@ -21,3 +21,10 @@ godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
 ```
 
 For production visuals, first acquire/create and license-audit operator rig, clips, PBR materials and building meshes, then assign them to the operator and scene instances. Use original assets or properly licensed sources.
+
+## V73 tactical quality pass (preview, not release)
+- Original V72 signed APK is unchanged. This branch uses `com.thedemianff.lastzone.nativepreview73`, a separately installed debug package.
+- Real AK-74 GLB already present in the user's repository is reused as the assault-rifle visual, replacing a cylinder proxy. Its origin/licence must be audited before any public/commercial distribution.
+- The same skinned female temporary operator GLB is instanced for four offline training bots (not real multiplayer). Bots patrol, scan line-of-sight, investigate and apply bounded damage, with respawn.
+- Player health, touch sprint, jump and camera/control response added.
+- The animation-generation pipeline now aims upper arms downward using each bone's rest orientation; screenshots and device playtesting remain required.
