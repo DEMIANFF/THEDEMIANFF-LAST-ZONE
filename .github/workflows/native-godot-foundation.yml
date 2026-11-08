@@ -32,3 +32,5 @@ jobs:
         run: godot --headless --path native-godot --script res://scripts/qa/mobile_touch_routing_test.gd
       - name: Three cameras, fire dragging, x2 x4 x8 optics and crouch QA
         run: godot --headless --path native-godot --script res://scripts/qa/camera_fire_qa.gd
+      - name: Test simultaneous moving aiming firing and jumping
+        run: godot --headless --path native-godot --script res://scripts/qa/multitouch_combat_qa.gd

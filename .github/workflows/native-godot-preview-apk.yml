@@ -89,7 +89,9 @@ jobs:
           godot --headless --path native-godot --script res://scripts/qa/motorola_control_audit.gd
           godot --headless --path native-godot --script res://scripts/qa/mobile_touch_routing_test.gd
       - name: Verify all TPS camera and fire gesture modes
-        run: godot --headless --path native-godot --script res://scripts/qa/camera_fire_qa.gd
+        run: |
+          godot --headless --path native-godot --script res://scripts/qa/camera_fire_qa.gd
+          godot --headless --path native-godot --script res://scripts/qa/multitouch_combat_qa.gd
       - name: Capture actual Godot scene with software OpenGL
         continue-on-error: false
         run: |

@@ -26,3 +26,8 @@ Se ven enemigos de entrenamiento, pero IA no equivale a jugadores humanos ni com
 
 ## Pendiente
 Modelo Lila original con rig propio y transiciones naturales; ADS exacto con IK de hombro y soporte dual de manos; sonido/efectos y retroceso calibrado; cobertura y navegación de IA; escenarios y materiales de calidad; optimización; ciclo completo de battle royale. Proteger V70 y su guardado Firebase. No usar iconos/recursos extraídos de Free Fire: reproducimos patrones generales de interacción con diseño original.
+
+## HUD ampliado y test de 3 dedos
+- Radar Aurora de entrenamiento de 60 m basado en posiciones de los cuatro bots verdaderamente existentes; no marca usuarios humanos ni inventa jugadores de red.
+- Dos botiquines iniciales; botón CURAR recupera hasta 45 puntos de salud reales y descuenta una unidad, sin curar si la vida está completa.
+- `multitouch_combat_qa.gd` simula simultáneamente dedo izquierdo para caminar, dedo derecho para disparar/arrastrar cámara y botón SALTAR, con verificación de ascenso, distancia, cambio yaw y liberación de ambos punteros. La prueba es headless: física y enrutamiento de controles, no garantiza un multitouch real en Android.
