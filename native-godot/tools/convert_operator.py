@@ -224,6 +224,11 @@ clips=[
     ('AuroraAimAWM',.004,40,True),
     ('AuroraFire',.05,18,True),
     ('AuroraReloadAWM',.10,36,True),
+    ('AuroraJump',.12,30,True),
+    ('AuroraFreefall',.09,36,False),
+    ('AuroraParachute',.045,48,False),
+    ('AuroraCrouch',.01,48,True),
+    ('AuroraCrouchWalk',.10,28,True),
 ]
 for clip_name, amplitude, frames, armed in clips:
     action = bpy.data.actions.new(clip_name)

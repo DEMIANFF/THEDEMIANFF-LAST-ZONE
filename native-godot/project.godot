@@ -1,8 +1,8 @@
 config_version=5
 
 [application]
-config/name="THEDEMIANFF LAST ZONE | Aurora V74.1 Offline Royale Sector"
-run/main_scene="res://scenes/Main.tscn"
+config/name="THEDEMIANFF LAST ZONE | Aurora V75 Original Lobby and Air Drop"
+run/main_scene="res://scenes/Boot.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 

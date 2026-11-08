@@ -35,7 +35,9 @@ func _verify() -> void:
         return
     var available: PackedStringArray=animator.get_animation_list()
     for clip in ["AuroraArmedIdle","AuroraArmedWalk","AuroraArmedRun",
-                "AuroraAim","AuroraAimAWM","AuroraReloadAWM"]:
+                "AuroraAim","AuroraAimAWM","AuroraReloadAWM",
+                "AuroraJump","AuroraFreefall","AuroraParachute",
+                "AuroraCrouch","AuroraCrouchWalk"]:
         if not available.has(clip):
             push_error("Real rig missing armed pose animation: "+clip)
             quit(114)
