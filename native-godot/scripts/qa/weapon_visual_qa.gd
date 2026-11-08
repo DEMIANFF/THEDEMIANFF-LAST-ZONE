@@ -41,6 +41,19 @@ func _verify() -> void:
             quit(114)
             return
     await process_frame
+    for i in range(10):
+        await process_frame
+    # Combat hands must be *ahead* of the player, not folded behind the back.
+    # The former source FBX pose solver aimed towards the wrong signed Z axis.
+    var grip_world: Vector3=weapons.right_hand_socket.global_position
+    var torso: Vector3=player.global_position + Vector3.UP*1.25
+    var forward: Vector3=-player.global_transform.basis.z.normalized()
+    var ahead: float=(grip_world-torso).dot(forward)
+    print("V74_1_RIG_GRIP_AHEAD_METRES ",ahead)
+    if ahead<.05:
+        push_error("Weapon hand behind player's back, no usable aiming pose: "+str(ahead))
+        quit(125)
+        return
     if not weapons.ak.visible or weapons.awm.visible:
         push_error("AR/AK74 starting visual state wrong")
         quit(115)

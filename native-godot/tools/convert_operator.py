@@ -125,7 +125,7 @@ def _relaxed_arm_poses():
         # Reduce sideways extension to 35%, and place the wrist near hip height.
         # In the FBX scene the actual shoulder Y coordinate is ~159 cm;
         # down is -Y, not -Z. Earlier code pushed wrists behind the back.
-        target = shoulder + Vector((delta.x * .32, -delta.length * .69, -delta.length * .12))
+        target = shoulder + Vector((delta.x * .32, -delta.length * .69, delta.length * .05))
         axes = [
             Vector((1,0,0)), Vector((0,1,0)), Vector((0,0,1)),
             Vector((1,1,0)), Vector((1,-1,0)),
@@ -179,7 +179,7 @@ def _aim_arm_poses():
         target=shoulder_world+Vector((
             -math.copysign(total_arm_length*.30,shoulder_world.x),
             -total_arm_length*(.34 if side=="Right" else .38),
-            -total_arm_length*(.37 if side=="Right" else .62)))
+            total_arm_length*(.38 if side=="Right" else .62)))
         axes=[Vector((1,0,0)),Vector((0,1,0)),Vector((0,0,1)),
               Vector((1,1,0)),Vector((1,-1,0)),Vector((0,1,1))]
         angles=[-.85,-.52,-.30,0,.30,.52,.85]
