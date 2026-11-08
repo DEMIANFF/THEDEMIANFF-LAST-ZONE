@@ -6,6 +6,7 @@ signal round_ended(victory: bool)
 
 const LOOT = preload("res://scripts/match/aurora_loot.gd")
 const ZONE_VISUAL = preload("res://scripts/match/aurora_zone_visual.gd")
+const DROP_SEQUENCE = preload("res://scripts/match/airdrop_sequence.gd")
 const INITIAL_RADIUS: float = 90.0
 const FINAL_RADIUS: float = 12.0
 const SHRINK_DURATION: float = 280.0
@@ -24,6 +25,7 @@ var _damage_clock: float = 0.0
 var _ui_clock: float = 0.0
 var _loot: Array[Area3D] = []
 var _zone_visual: Node3D
+var _flight: Node3D
 
 
 func _ready() -> void:
@@ -33,13 +35,39 @@ func _ready() -> void:
     _zone_visual.world_center=CENTER
     add_child(_zone_visual)
     _zone_visual.visible=false
-    hud.start_battle_requested.connect(start_sector_battle)
+    _flight=DROP_SEQUENCE.new()
+    _flight.name="AuroraDeployment"
+    _flight.player=player
+    _flight.terrain=terrain
+    _flight.hud=hud
+    add_child(_flight)
+    _flight.touchdown.connect(_on_airdrop_landed)
+    player.landed_from_airdrop.connect(_flight.landed)
+    hud.jump_pressed.connect(_flight.request_jump_or_parachute)
+    hud.start_battle_requested.connect(begin_aircraft_phase)
     player.player_eliminated.connect(_on_player_eliminated)
     hud.set_sector_state("ENTRENAMIENTO",4,0.0,0)
     hud.set_battle_button("INICIAR BR")
 
 
-func start_sector_battle() -> void:
+func begin_aircraft_phase() -> void:
+    if mode=="aircraft" or mode=="freefall" or mode=="parachute":
+        return
+    mode="aircraft"
+    match_ended=false
+    hud.clear_match_result()
+    hud.set_battle_button("DESPLIEGUE")
+    hud.set_sector_state("AERONAVE / AURORA",9,INITIAL_RADIUS,0)
+    _flight.begin()
+
+
+func _on_airdrop_landed() -> void:
+    if mode!="aircraft":
+        return
+    start_sector_battle(true)
+
+
+func start_sector_battle(from_airdrop: bool=false) -> void:
     # A repeatable elimination round, not an endless training target spawner.
     for old in _loot:
         if is_instance_valid(old):
@@ -54,7 +82,7 @@ func start_sector_battle() -> void:
     hud.set_sector_zone(CENTER,radius)
     _damage_clock=0.0
     _ui_clock=0.0
-    player.begin_sector_battle()
+    player.begin_sector_battle(from_airdrop)
     combat.begin_sector_battle()
     hud.clear_match_result()
     _spawn_loot()

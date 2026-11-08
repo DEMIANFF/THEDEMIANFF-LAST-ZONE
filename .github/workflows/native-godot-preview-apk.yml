@@ -1,7 +1,7 @@
-name: V74.1 Aurora AR-AWM Weapon Rig and Optics APK
+name: V75 Aurora Native Offline BR Entry and Airdrop APK
 on:
   push:
-    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm]
+    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations]
     paths:
       - 'native-godot/**'
       - '.github/workflows/native-godot-preview-apk.yml'
@@ -111,38 +111,40 @@ jobs:
           godot --headless --path native-godot --script res://scripts/qa/camera_fire_qa.gd
           godot --headless --path native-godot --script res://scripts/qa/multitouch_combat_qa.gd
           godot --headless --path native-godot --script res://scripts/qa/sector_battle_qa.gd
+      - name: Validate welcome screen lobby air drop parachute and landing
+        run: godot --headless --path native-godot --script res://scripts/qa/launch_airdrop_qa.gd
       - name: Capture actual Godot scene with software OpenGL
         continue-on-error: false
         run: |
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-xvfb.log
           mkdir -p native-godot/out
           xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_preview.gd
-          test -s native-godot/out/aurora-native-v74-preview.png
+          test -s native-godot/out/aurora-native-v75-preview.png
           xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_weapon_preview.gd
           test -s native-godot/out/aurora-v74-1-ak74.png
           test -s native-godot/out/aurora-v74-1-awm.png
       - name: Export distinct Android debug APK
         run: |
           mkdir -p native-godot/out
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V74.1-AWM-RIG-TEST.apk
-          test -s native-godot/out/THEDEMIANFF-V74.1-AWM-RIG-TEST.apk
-          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V74.1-AWM-RIG-TEST.apk
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V75-AURORA-BR-ENTRADA.apk
+          test -s native-godot/out/THEDEMIANFF-V75-AURORA-BR-ENTRADA.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V75-AURORA-BR-ENTRADA.apk
       - name: Verify APK namespace, checksum and package signature
         run: |
-          APK=native-godot/out/THEDEMIANFF-V74.1-AWM-RIG-TEST.apk
+          APK=native-godot/out/THEDEMIANFF-V75-AURORA-BR-ENTRADA.apk
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -n 3
-          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview741"
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview75"
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --print-certs "$APK"
           unzip -t "$APK" | tail -n 1
           sha256sum "$APK" | tee native-godot/out/SHA256SUMS.txt
           echo "::notice::V74 only includes a 9-participant offline SECTOR match, not an 8 km/100-human-server battle royale. Physical Motorola QA is required."
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIANFF-V74.1-AWM-RIG-ARTICULADO
+          name: THEDEMIANFF-V75-AURORA-BR-PREVIEW
           path: |
-            native-godot/out/THEDEMIANFF-V74.1-AWM-RIG-TEST.apk
+            native-godot/out/THEDEMIANFF-V75-AURORA-BR-ENTRADA.apk
             native-godot/out/SHA256SUMS.txt
-            native-godot/out/aurora-native-v74-preview.png
+            native-godot/out/aurora-native-v75-preview.png
             native-godot/out/aurora-v74-1-ak74.png
             native-godot/out/aurora-v74-1-awm.png
           retention-days: 14

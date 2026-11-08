@@ -14,6 +14,7 @@ signal run_released
 signal jump_pressed
 signal movement_axis_changed(value: Vector2)
 signal start_battle_requested
+signal leave_to_lobby_requested
 const VIRTUAL_PAD = preload("res://scripts/ui/virtual_joystick.gd")
 const DIRECTIONAL_FIRE = preload("res://scripts/ui/directional_fire_pad.gd")
 const TACTICAL_RETICLE = preload("res://scripts/ui/scope_reticle.gd")
@@ -44,6 +45,9 @@ var _health_meter: ProgressBar
 var _damage_flash: ColorRect
 var _result_window: PanelContainer
 var _result_text: Label
+var _jump_button: Button
+var _exit_button: Button
+var air_stage: String="ground"
 
 
 func _ready() -> void:
@@ -172,9 +176,10 @@ func _ready() -> void:
     _button(root,"RECARGA",.790,.80,81,59,Color(.14,.30,.37),_reload_down)
     _button(root,"ARMA",.905,.87,79,59,Color(.19,.35,.41),_weapon_down)
     _run_button=_button(root,"CORRER",.11,.61,82,57,Color(.09,.30,.36),_run_down,_run_up)
-    _button(root,"SALTAR",.685,.82,76,54,Color(.12,.34,.41),_jump_down)
+    _jump_button=_button(root,"SALTAR",.685,.82,76,54,Color(.12,.34,.41),_jump_down)
     _crouch_button=_button(root,"AGACHAR",.68,.70,80,53,Color(.16,.30,.36),_crouch_down)
     _medkit_button=_button(root,"CURAR 2",.575,.855,84,56,Color(.20,.36,.29),_heal_down)
+    _exit_button=_button(root,"LOBBY",.936,.255,95,46,Color(.13,.27,.43),_return_lobby)
     var pad: Control=VIRTUAL_PAD.new()
     pad.name="MovePad"
     pad.anchor_left=.05
@@ -239,6 +244,35 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
         button.button_up.connect(up)
     root.add_child(button)
     return button
+
+
+func _return_lobby() -> void:
+    leave_to_lobby_requested.emit()
+
+
+func set_air_stage(value: String) -> void:
+    air_stage=value
+    var airborne: bool=value!="ground"
+    var overlay: Control=get_node("AuroraTacticalOverlay") as Control
+    for name in ["DirectionalFirePad","MIRA","RECARGA","ARMA","AGACHAR","CURAR 2"]:
+        var control: Control=overlay.get_node_or_null(name) as Control
+        if control:
+            control.visible=not airborne
+    var pad: Control=overlay.get_node_or_null("MovePad") as Control
+    if pad:
+        pad.visible=value!="aircraft"
+    if _reticle:
+        _reticle.visible=not airborne
+    if _jump_button:
+        _jump_button.text="SALTAR DEL AVIÓN" if value=="aircraft" else "PARACAÍDAS" if value=="freefall" else "DIRIGIR" if value=="parachute" else "SALTAR"
+        _jump_button.custom_minimum_size=Vector2(140,58) if airborne else Vector2.ZERO
+        _jump_button.disabled=value=="parachute"
+    if _battle_button:
+        _battle_button.disabled=airborne or _battle_button.text=="EN PARTIDA"
+    if _status and airborne:
+        _status.text="AURORA / "+("RUTA AÉREA" if value=="aircraft" else "CAÍDA LIBRE" if value=="freefall" else "ATERRIZAJE")
+    if _hint and airborne:
+        _hint.text="CONTROLA LA CÁMARA" if value=="aircraft" else "JOYSTICK PARA DIRIGIR"
 
 
 func _battle_down() -> void:

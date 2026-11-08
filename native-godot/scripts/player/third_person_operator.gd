@@ -11,6 +11,7 @@ const TOUCH_DEADZONE: float = 0.12
 signal training_health_changed(value: float)
 signal player_eliminated
 signal player_damaged(amount: float)
+signal landed_from_airdrop
 @export var approved_operator_scene: PackedScene
 var training_health: float = 100.0
 var battle_royale_active: bool = false
@@ -37,6 +38,8 @@ var _current_clip: String = ""
 var _weapon_index: int=0
 var _combat_action: String=""
 var _combat_action_seconds: float=0.0
+var air_mode: String="ground"
+var _parachute_visual: Node3D
 var _ads_active: bool = false
 var _ads_zoom: float = 1.0
 var _fire_held: bool = false
@@ -90,6 +93,9 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+    if air_mode!="ground":
+        _air_step(delta)
+        return
     if royale_eliminated:
         velocity=Vector3.ZERO
         return
@@ -152,6 +158,10 @@ func _physics_process(delta: float) -> void:
         var speed: float=Vector2(velocity.x,velocity.z).length()
         var locomotion: String="Run" if speed>=5.5 else "Walk" if speed>=1.0 else "Idle"
         var clip: String="AuroraArmed"+locomotion
+        if _crouching:
+            clip="AuroraCrouchWalk" if speed>=.75 else "AuroraCrouch"
+        elif not is_on_floor():
+            clip="AuroraJump"
         if _ads_active:
             clip="AuroraAimAWM" if _weapon_index==1 else "AuroraAim"
         if _combat_action!="":
@@ -202,6 +212,118 @@ func fit_operator_visual(visual: Node3D) -> void:
     print("AURORA_MODEL_FIT y_range=",original_y_height," z_range=",original_z_length," width=",max_x-min_x," z_up=",z_up," scale=",factor," tps_forward_adjusted=true")
 
 
+func begin_aircraft() -> void:
+    air_mode="aircraft"
+    velocity=Vector3.ZERO
+    _ads_active=false
+    _jump_requested=false
+    _current_clip=""
+    _fire_held=false
+    _training_immunity=999.0
+    if _avatar:
+        _avatar.visible=false
+    if _parachute_visual:
+        _parachute_visual.visible=false
+
+
+func begin_freefall() -> void:
+    if air_mode!="aircraft":
+        return
+    air_mode="freefall"
+    velocity=Vector3(0,-4.0,0)
+    _current_clip=""
+    if _avatar:
+        _avatar.visible=true
+
+
+func deploy_parachute() -> void:
+    if air_mode!="freefall":
+        return
+    air_mode="parachute"
+    _create_parachute()
+    _parachute_visual.visible=true
+    _current_clip=""
+
+
+func _air_step(delta: float) -> void:
+    var alpha: float=1.0-exp(-delta*16.0)
+    _yaw=lerp_angle(_yaw,_desired_yaw,alpha)
+    _pitch=lerpf(_pitch,_desired_pitch,alpha)
+    _camera_pivot.rotation.y=wrapf(_yaw-rotation.y,-PI,PI)
+    _camera_pivot.rotation.x=_pitch
+    if _camera:
+        var camera_distance: float=9.0 if air_mode=="aircraft" else 6.4
+        _camera.position.z=lerpf(_camera.position.z,camera_distance,alpha)
+        _camera.position.x=lerpf(_camera.position.x,.35,alpha)
+        _camera.fov=lerpf(_camera.fov,76.0,alpha)
+    if air_mode=="aircraft":
+        velocity=Vector3.ZERO
+        return
+
+    var axis: Vector2=Input.get_vector("move_left","move_right","move_forward","move_backward")
+    if _move_axis.length()>TOUCH_DEADZONE:
+        axis=_move_axis
+    var steering: Vector3=Basis(Vector3.UP,_yaw)*Vector3(axis.x,0,axis.y)
+    var speed: float=8.5 if air_mode=="freefall" else 5.7
+    var target: Vector3=steering.limit_length(1.0)*speed
+    velocity.x=move_toward(velocity.x,target.x,delta*10.0)
+    velocity.z=move_toward(velocity.z,target.z,delta*10.0)
+    if air_mode=="freefall":
+        velocity.y=maxf(-26.0,velocity.y-GRAVITY*1.20*delta)
+    else:
+        velocity.y=move_toward(velocity.y,-5.6,delta*35.0)
+    if steering.length_squared()>.02:
+        rotation.y=lerp_angle(rotation.y,atan2(-steering.x,-steering.z),alpha)
+    move_and_slide()
+    if _animator:
+        var clip: String="AuroraFreefall" if air_mode=="freefall" else "AuroraParachute"
+        if _current_clip!=clip:
+            _play_matching_animation(clip)
+    if is_on_floor():
+        air_mode="ground"
+        velocity=Vector3.ZERO
+        if _parachute_visual:
+            _parachute_visual.visible=false
+        _current_clip=""
+        landed_from_airdrop.emit()
+
+
+func _create_parachute() -> void:
+    if _parachute_visual!=null:
+        return
+    _parachute_visual=Node3D.new()
+    _parachute_visual.name="AuroraParachute"
+    add_child(_parachute_visual)
+    var canopy:=MeshInstance3D.new()
+    canopy.name="ParachuteCanopy"
+    var canopy_mesh:=CylinderMesh.new()
+    canopy_mesh.top_radius=.20
+    canopy_mesh.bottom_radius=2.25
+    canopy_mesh.height=.65
+    canopy_mesh.radial_segments=20
+    canopy.mesh=canopy_mesh
+    canopy.position.y=4.9
+    var material:=StandardMaterial3D.new()
+    material.albedo_color=Color(.24,.65,.84)
+    material.roughness=.72
+    canopy.material_override=material
+    _parachute_visual.add_child(canopy)
+    for angle in [0.0,PI*.5,PI,PI*1.5]:
+        var endpoint:=Vector3(cos(angle)*1.85,4.55,sin(angle)*1.85)
+        var start:=Vector3(cos(angle)*.18,1.5,sin(angle)*.18)
+        var diff:=endpoint-start
+        var cord:=MeshInstance3D.new()
+        cord.name="SuspensionLine"
+        var cord_mesh:=CylinderMesh.new()
+        cord_mesh.top_radius=.012
+        cord_mesh.bottom_radius=.012
+        cord_mesh.height=diff.length()
+        cord.mesh=cord_mesh
+        cord.position=(start+endpoint)*.5
+        cord.quaternion=Quaternion(Vector3.UP,diff.normalized())
+        _parachute_visual.add_child(cord)
+
+
 func receive_training_hit(amount: float) -> void:
     if amount<=0 or _training_immunity>0:
         return
@@ -224,12 +346,15 @@ func receive_training_hit(amount: float) -> void:
         training_health_changed.emit(training_health)
 
 
-func begin_sector_battle() -> void:
+func begin_sector_battle(from_airdrop: bool=false) -> void:
     battle_royale_active = true
     royale_eliminated = false
     training_health = 100.0
     velocity=Vector3.ZERO
-    global_position=respawn_point
+    if from_airdrop:
+        respawn_point=global_position
+    else:
+        global_position=respawn_point
     _training_immunity=2.0
     set_firing(false)
     set_touch_move_axis(Vector2.ZERO)
@@ -254,7 +379,8 @@ func set_touch_run(active: bool) -> void:
 
 
 func touch_jump() -> void:
-    _jump_requested=true
+    if air_mode=="ground":
+        _jump_requested=true
 
 
 func set_ads(ads: bool, zoom: float) -> void:

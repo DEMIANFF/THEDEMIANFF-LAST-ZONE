@@ -35,7 +35,7 @@ func _verify() -> void:
         quit(81)
         return
 
-    hud._battle_down()
+    director.start_sector_battle()
     await process_frame
     if director.mode!="sector_battle" or combat._targets.size()!=8 or combat.active_fighter_count()!=9:
         push_error("Battle did not create one player + eight AI opponents")
@@ -131,7 +131,7 @@ func _verify() -> void:
         quit(96)
         return
 
-    hud._battle_down()
+    director.start_sector_battle()
     await process_frame
     if director.match_ended or combat.active_fighter_count()!=9 or director.get_loot_remaining()!=16:
         push_error("New sector battle failed to reset fighters/loot")
