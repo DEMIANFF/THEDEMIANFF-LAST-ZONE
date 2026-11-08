@@ -10,6 +10,9 @@ var _info: Label
 var _game: Node3D
 var _primary: Button
 var _selected_tab: String = "PERSONAJE"
+var _preview_container: SubViewportContainer
+var _preview_avatar: Node3D
+var _preview_caption: Label
 
 
 func _ready() -> void:
@@ -40,11 +43,12 @@ func _ready() -> void:
     _page=VBoxContainer.new()
     _page.name="Page"
     _page.anchor_left=.07
-    _page.anchor_right=.93
+    _page.anchor_right=.63
     _page.anchor_top=.20
     _page.anchor_bottom=.94
     _page.add_theme_constant_override("separation",14)
     _surface.add_child(_page)
+    _build_preview()
     _welcome()
 
 
@@ -89,6 +93,10 @@ func _button(value: String, callback: Callable, width: float=260.0) -> Button:
 func _welcome() -> void:
     stage="welcome"
     visible=true
+    if _preview_container:
+        _preview_container.visible=false
+    if _preview_caption:
+        _preview_caption.visible=false
     _clear_page()
     _label("THEDEMIANFF   /   LAST ZONE",33)
     _label("AURORA  •  EL ÚLTIMO HORIZONTE",20)
@@ -102,6 +110,10 @@ func _welcome() -> void:
 func _show_lobby() -> void:
     stage="lobby"
     visible=true
+    if _preview_container:
+        _preview_container.visible=true
+    if _preview_caption:
+        _preview_caption.visible=true
     _clear_page()
     _label("AURORA / CENTRO DE OPERACIONES",29)
     _label("Modo: entrenamiento o combate de sector (9 participantes simulados)",17)
@@ -182,6 +194,131 @@ func _return_to_lobby() -> void:
         old.get_parent().remove_child(old)
         old.queue_free()
     _show_lobby()
+
+
+func _build_preview() -> void:
+    # Real native 3D viewport, not a copied Free Fire character illustration.
+    # Shows the current TEMPORARY CC0 operator. Final original Lila requires
+    # separately authored mesh, UVs, hair, original outfit and refined rig.
+    _preview_container=SubViewportContainer.new()
+    _preview_container.name="AvatarPreview"
+    _preview_container.anchor_left=.655
+    _preview_container.anchor_right=.96
+    _preview_container.anchor_top=.19
+    _preview_container.anchor_bottom=.89
+    _preview_container.stretch=true
+    _preview_container.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _preview_container.visible=false
+    _surface.add_child(_preview_container)
+
+    var viewport:=SubViewport.new()
+    viewport.name="PreviewViewport"
+    viewport.size=Vector2i(440,600)
+    viewport.own_world_3d=true
+    viewport.transparent_bg=true
+    viewport.render_target_update_mode=SubViewport.UPDATE_ALWAYS
+    _preview_container.add_child(viewport)
+    var stage3d:=Node3D.new()
+    stage3d.name="AuroraCharacterStage"
+    viewport.add_child(stage3d)
+    var ambient:=WorldEnvironment.new()
+    var env:=Environment.new()
+    env.background_mode=Environment.BG_COLOR
+    env.background_color=Color(.025,.06,.095)
+    env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
+    env.ambient_light_color=Color(.55,.72,.91)
+    env.ambient_light_energy=.85
+    ambient.environment=env
+    stage3d.add_child(ambient)
+    var key:=DirectionalLight3D.new()
+    key.rotation_degrees=Vector3(-36,35,0)
+    key.light_energy=1.25
+    stage3d.add_child(key)
+    var rim:=DirectionalLight3D.new()
+    rim.rotation_degrees=Vector3(26,-135,0)
+    rim.light_color=Color(.36,.75,1)
+    rim.light_energy=.85
+    stage3d.add_child(rim)
+    var camera:=Camera3D.new()
+    camera.name="LobbyPortraitCamera"
+    camera.position=Vector3(0,1.22,3.45)
+    camera.fov=39
+    camera.look_at(Vector3(0,.88,0),Vector3.UP)
+    camera.current=true
+    stage3d.add_child(camera)
+    var podium:=MeshInstance3D.new()
+    podium.name="PortraitPlatform"
+    var disk:=CylinderMesh.new()
+    disk.top_radius=1.0
+    disk.bottom_radius=1.08
+    disk.height=.09
+    podium.mesh=disk
+    podium.position.y=-.055
+    var metal:=StandardMaterial3D.new()
+    metal.albedo_color=Color(.045,.22,.32)
+    metal.metallic=.65
+    metal.roughness=.25
+    podium.material_override=metal
+    stage3d.add_child(podium)
+
+    if ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
+        var source:=load("res://assets/characters/aurora_operator.glb") as PackedScene
+        if source!=null:
+            _preview_avatar=source.instantiate() as Node3D
+            _preview_avatar.name="ProvisionalRig3D"
+            stage3d.add_child(_preview_avatar)
+            _fit_avatar_for_preview(_preview_avatar)
+            var anim:=_preview_avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
+            if anim and anim.has_animation("AuroraArmedIdle"):
+                anim.play("AuroraArmedIdle")
+                anim.advance(.1)
+
+    var caption:=Label.new()
+    caption.name="PreviewDisclosure"
+    caption.text="OPERADORA 3D PROVISIONAL  ·  LILA EN DESARROLLO"
+    caption.anchor_left=.65
+    caption.anchor_right=.99
+    caption.anchor_top=.90
+    caption.anchor_bottom=.90
+    caption.offset_bottom=35
+    caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    caption.add_theme_font_size_override("font_size",13)
+    caption.add_theme_color_override("font_color",Color(.62,.84,.96))
+    caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    caption.visible=false
+    _surface.add_child(caption)
+    _preview_caption=caption
+
+
+func _fit_avatar_for_preview(visual: Node3D) -> void:
+    var min_y: float=INF
+    var max_y: float=-INF
+    var min_z: float=INF
+    var max_z: float=-INF
+    for item in visual.find_children("*","MeshInstance3D",true,false):
+        var mesh:=item as MeshInstance3D
+        var aabb:=mesh.get_aabb()
+        for i in range(8):
+            var vertex: Vector3=visual.to_local(mesh.to_global(aabb.get_endpoint(i)))
+            min_y=minf(min_y,vertex.y)
+            max_y=maxf(max_y,vertex.y)
+            min_z=minf(min_z,vertex.z)
+            max_z=maxf(max_z,vertex.z)
+    if not is_finite(min_y) or not is_finite(max_y) or not is_finite(max_z):
+        return
+    var is_z_up: bool=(max_z-min_z)>(max_y-min_y)*1.22
+    var length: float=(max_z-min_z) if is_z_up else (max_y-min_y)
+    if length<=.001:
+        return
+    var factor: float=clampf(1.76/length,.00001,100.0)
+    visual.scale=Vector3.ONE*factor
+    if is_z_up:
+        visual.rotation.x=PI*.5
+        visual.position.y=max_z*factor
+    else:
+        visual.position.y=-min_y*factor
+    # Unlike TPS gameplay, the lobby preview faces the viewer.
+    visual.rotation.y=0.0
 
 
 func _game_active() -> bool:
