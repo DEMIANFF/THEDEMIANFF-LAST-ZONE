@@ -34,5 +34,5 @@ jobs:
         run: godot --headless --path native-godot --script res://scripts/qa/camera_fire_qa.gd
       - name: Test simultaneous moving aiming firing and jumping
         run: godot --headless --path native-godot --script res://scripts/qa/multitouch_combat_qa.gd
-      - name: Test real sector royale: loot, shrinking zone, eliminations and victory
+      - name: Test offline sector battle elimination and loot
         run: godot --headless --path native-godot --script res://scripts/qa/sector_battle_qa.gd
