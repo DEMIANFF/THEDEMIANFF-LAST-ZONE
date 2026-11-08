@@ -84,7 +84,7 @@ jobs:
         env:
           AURORA_REQUIRE_OPERATOR: "1"
         run: godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
-      - name: Reproduce Motorola video: collision, walk, jump, sprint and joystick
+      - name: 'Reproduce Motorola video: collision, walk, jump, sprint and joystick'
         run: |
           godot --headless --path native-godot --script res://scripts/qa/motorola_control_audit.gd
           godot --headless --path native-godot --script res://scripts/qa/mobile_touch_routing_test.gd
