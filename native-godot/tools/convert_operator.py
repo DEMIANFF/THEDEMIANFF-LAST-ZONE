@@ -277,7 +277,11 @@ def pose_ground_gait(phase, running):
         knee=hip+direction*along+bend*math.sqrt(max(0.0,upper_rest.length_squared-along*along))
         upper=upper_rest.rotation_difference(knee-hip)
         lower=lower_rest.rotation_difference(target-knee)
-        for bone,rotation in [(thigh,upper),(shin,upper.inverted() @ lower),(foot,lower.inverted())]:
+        # Keep a visible opposing thigh swing even when the fitted knee chain
+        # sits near its straight-leg extension; the old solver locked thighs
+        # during armed walking despite a moving ankle/pelvis.
+        swing_upper=upper @ Quaternion(Vector((1,0,0)),swing*(.25 if running else .19))
+        for bone,rotation in [(thigh,swing_upper),(shin,swing_upper.inverted() @ lower),(foot,lower.inverted())]:
             bone.rotation_mode='QUATERNION'
             bone.rotation_quaternion=rotation
             bone.keyframe_insert(data_path='rotation_quaternion')
