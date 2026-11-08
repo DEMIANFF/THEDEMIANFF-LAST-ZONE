@@ -81,15 +81,26 @@ func _set_up_lighting() -> void:
     var environment_node := WorldEnvironment.new()
     environment_node.name = "AuroraAtmosphere"
     var world_env := Environment.new()
-    world_env.background_mode = Environment.BG_COLOR
-    world_env.background_color = Color(0.53, 0.68, 0.78)
-    world_env.ambient_light_energy = 0.75
+    # Aurora sky gradient: actual Godot procedural atmospheric material,
+    # independent from copyrighted/static game art references.
+    var sky:=Sky.new()
+    var sky_gradient:=ProceduralSkyMaterial.new()
+    sky_gradient.sky_top_color=Color(.055,.13,.26)
+    sky_gradient.sky_horizon_color=Color(.44,.65,.78)
+    sky_gradient.ground_bottom_color=Color(.11,.23,.30)
+    sky_gradient.ground_horizon_color=Color(.47,.69,.76)
+    sky_gradient.use_debanding=true
+    sky.sky_material=sky_gradient
+    world_env.background_mode=Environment.BG_SKY
+    world_env.sky=sky
+    world_env.ambient_light_energy = 0.82
     environment_node.environment = world_env
     add_child(environment_node)
 
     var sun := DirectionalLight3D.new()
     sun.name = "ArcticSun"
     sun.rotation = Vector3(-0.89, -0.42, 0.0)
-    sun.light_energy = 1.05
+    sun.light_color=Color(.92,.97,1.0)
+    sun.light_energy = 1.25
     sun.shadow_enabled = false  # Enabled selectively after real-device benchmark.
     add_child(sun)
