@@ -146,7 +146,7 @@ func _make_building(at: Vector2, label: String, w: float, d: float, h: float, he
     _solid_panel(root,"RearGlass",Vector3(0,3.55,-d*.5),Vector3(opening,2.42,.04),glass,false)
     # Side walls with actual window apertures.
     for side in [-1.0,1.0]:
-        var x := side*w*.5
+        var x: float = float(side)*w*.5
         _solid_panel(root,"SideLower",Vector3(x,1.25,0),Vector3(thick,2.5,d),wall)
         _solid_panel(root,"SideUpper",Vector3(x,(h+4.6)*.5,0),Vector3(thick,h-4.6,d),wall)
         for z_sign in [-1.0,1.0]:
@@ -189,7 +189,7 @@ func _make_building(at: Vector2, label: String, w: float, d: float, h: float, he
 func _make_path(from: Vector2, to: Vector2, width: float) -> void:
     var surface := SurfaceTool.new()
     surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-    var n := max(5, int(from.distance_to(to) / 2))
+    var n: int = maxi(5, int(from.distance_to(to) / 2))
     for i in range(n):
         var p0 := from.lerp(to,float(i)/float(n))
         var p1 := from.lerp(to,float(i+1)/float(n))
