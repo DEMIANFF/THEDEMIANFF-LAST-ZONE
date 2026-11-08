@@ -74,7 +74,11 @@ func _verify() -> void:
         var visual_min: float = INF
         var visual_max: float = -INF
         for mesh in rig.find_children("*", "MeshInstance3D", true, false):
+            # The visual rig has a BoneAttachment with both separate rifles;
+            # those MUST NOT count toward the character's body height.
             var part := mesh as MeshInstance3D
+            if str(part.get_path()).contains("RightHandWeaponSocket"):
+                continue
             var bounds: AABB = part.get_aabb()
             for i in range(8):
                 var y: float = part.to_global(bounds.get_endpoint(i)).y

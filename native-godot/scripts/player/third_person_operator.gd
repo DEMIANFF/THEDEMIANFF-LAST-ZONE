@@ -34,6 +34,9 @@ var _camera: Camera3D
 var _avatar: Node3D
 var _animator: AnimationPlayer
 var _current_clip: String = ""
+var _weapon_index: int=0
+var _combat_action: String=""
+var _combat_action_seconds: float=0.0
 var _ads_active: bool = false
 var _ads_zoom: float = 1.0
 var _fire_held: bool = false
@@ -143,10 +146,18 @@ func _physics_process(delta: float) -> void:
         if _avatar:
             _avatar.visible = not (_ads_active and _ads_zoom >= 6.0)
     if _animator:
-        var speed: float = Vector2(velocity.x, velocity.z).length()
-        var state: String = "run" if speed >= 5.5 else "walk" if speed >= 1.0 else "idle"
-        if state != _current_clip:
-            _play_matching_animation(state)
+        _combat_action_seconds=maxf(0.0,_combat_action_seconds-delta)
+        if _combat_action_seconds<=0.0:
+            _combat_action=""
+        var speed: float=Vector2(velocity.x,velocity.z).length()
+        var locomotion: String="Run" if speed>=5.5 else "Walk" if speed>=1.0 else "Idle"
+        var clip: String="AuroraArmed"+locomotion
+        if _ads_active:
+            clip="AuroraAimAWM" if _weapon_index==1 else "AuroraAim"
+        if _combat_action!="":
+            clip=_combat_action
+        if clip!=_current_clip:
+            _play_matching_animation(clip)
 
 
 func fit_operator_visual(visual: Node3D) -> void:
@@ -249,6 +260,26 @@ func touch_jump() -> void:
 func set_ads(ads: bool, zoom: float) -> void:
     _ads_active = ads
     _ads_zoom = clampf(zoom, 1.0, 8.0)
+    _current_clip=""
+
+
+func set_equipped_weapon(index: int) -> void:
+    _weapon_index=clampi(index,0,1)
+    _current_clip=""
+
+
+func play_weapon_action(action: String, seconds: float) -> void:
+    var requested: String=""
+    match action:
+        "fire":
+            requested="AuroraFire"
+        "reload":
+            requested="AuroraReloadAWM" if _weapon_index==1 else "AuroraArmedIdle"
+        _:
+            return
+    _combat_action=requested
+    _combat_action_seconds=maxf(0.05,seconds)
+    _play_matching_animation(requested)
 
 
 func set_firing(active: bool) -> void:
@@ -306,12 +337,21 @@ func _play_matching_animation(requested: String) -> void:
     if _current_clip == "":
         print("AURORA_AVAILABLE_ANIMATIONS ",animations)
     for name in animations:
-        if name.to_lower().contains(requested):
-            _animator.play(name,0.16)
-            if _current_clip == "":
-                _animator.advance(.24)  # Bake initial pose before first camera frame.
-            _current_clip=requested
+        if name.to_lower()==requested.to_lower():
+            _animator.play(name,.14)
+            if _current_clip=="":
+                _animator.advance(.15)
+            _current_clip=name
             return
+    if requested.to_lower().begins_with("auroraarmed"):
+        var fallback: String=requested.replace("Armed","")
+        for name in animations:
+            if name.to_lower()==fallback.to_lower():
+                _animator.play(name,.14)
+                _current_clip=requested
+                return
+    if _current_clip=="":
+        push_warning("Missing required authored clip "+requested+" in "+str(animations))
     if _current_clip == "":
         push_warning("No matching Aurora animation for "+requested+" in "+str(animations))
 
