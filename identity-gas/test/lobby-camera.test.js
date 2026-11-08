@@ -54,7 +54,7 @@ test('unified account statistics use real JavaScript line breaks', () => {
 
 test('V58.3.0 applies touch samples with adaptive velocity damping and no queued camera drift', () => {
   assert.match(html, /input\(dx,dy,channel='free',elapsedMs=16\)/);
-  assert.match(html, /velocityGain=clamp\(1-Math\.max\(0,velocity-\.55\)\*\.18,\.58,1\)/);
+  assert.match(html, /v70SwipeLimiter=clamp\(Math\.max\(0,velocity-2\.4\)\*\.08,0,\.18\)/);
   assert.match(html, /maxYawRate=aiming\?v58Sights\.active\(\)\.yawRate:5\.2/);
   assert.match(html, /maxPitchRate=aiming\?v58Sights\.active\(\)\.pitchRate:3\.8/);
   assert.match(html, /function aim\(dx,dy,mode='free',elapsedMs=16\)/);
