@@ -157,11 +157,17 @@ func _play_matching_animation(requested: String) -> void:
     if _animator == null:
         return
     var animations: PackedStringArray = _animator.get_animation_list()
+    if _current_clip == "":
+        print("AURORA_AVAILABLE_ANIMATIONS ",animations)
     for name in animations:
         if name.to_lower().contains(requested):
             _animator.play(name,0.16)
+            if _current_clip == "":
+                _animator.advance(.24)  # Bake initial pose before first camera frame.
             _current_clip=requested
             return
+    if _current_clip == "":
+        push_warning("No matching Aurora animation for "+requested+" in "+str(animations))
 
 
 func _unhandled_input(event: InputEvent) -> void:
