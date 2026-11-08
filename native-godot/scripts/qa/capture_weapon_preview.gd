@@ -10,8 +10,14 @@ func _capture() -> void:
     var game: Node3D=scene.instantiate()
     root.add_child(game)
     var combat:=game.get_node("CombatRange") as Node3D
+    var camera:=game.get_node("Operator/CameraPivot/ThirdPersonCamera") as Camera3D
     for i in range(8):
         await process_frame
+    # QA-only camera framing to expose the rifle/arms; gameplay camera remains unchanged.
+    camera.position=Vector3(.58,.08,2.2)
+    camera.fov=61.0
+    combat._weapon_visuals._process(.016)
+    await process_frame
     var ak: Image=root.get_texture().get_image()
     if ak.save_png("res://out/aurora-v74-1-ak74.png")!=OK:
         push_error("Could not render AK-74 scene")
@@ -20,6 +26,10 @@ func _capture() -> void:
     combat._on_weapon()
     for i in range(10):
         await process_frame
+    camera.position=Vector3(.58,.08,2.2)
+    camera.fov=61.0
+    combat._weapon_visuals._process(.016)
+    await process_frame
     var awm: Image=root.get_texture().get_image()
     if awm.save_png("res://out/aurora-v74-1-awm.png")!=OK:
         push_error("Could not render AWM scene")

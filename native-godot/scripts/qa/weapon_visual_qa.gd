@@ -45,7 +45,13 @@ func _verify() -> void:
         push_error("AR/AK74 starting visual state wrong")
         quit(115)
         return
+    weapons._process(.016)
     var ak_length: float=weapons.equipped_global_length()
+    var ak_extents: Vector3=weapons.equipped_global_extents()
+    if ak_extents.y>maxf(ak_extents.x,ak_extents.z)*.90:
+        push_error("AK74 floats vertically in third person instead of horizontal combat carry")
+        quit(123)
+        return
     if ak_length<.70 or ak_length>2.0:
         push_error("AK74 globally tiny/huge after skinned-FBX scale: "+str(ak_length))
         quit(116)
@@ -56,7 +62,13 @@ func _verify() -> void:
         push_error("Switching to AWM did not display real AWM mesh")
         quit(117)
         return
+    weapons._process(.016)
     var awm_length: float=weapons.equipped_global_length()
+    var awm_extents: Vector3=weapons.equipped_global_extents()
+    if awm_extents.y>maxf(awm_extents.x,awm_extents.z)*.90:
+        push_error("AWM barrel floats vertically after rigging: "+str(awm_extents))
+        quit(124)
+        return
     if awm_length<.95 or awm_length>2.4:
         push_error("AWM globally tiny/huge after skinned-FBX scale: "+str(awm_length))
         quit(118)
@@ -86,5 +98,7 @@ func _verify() -> void:
         return
     print("V74.1 WEAPON VISUAL PASS: 2 real GLBs on hand socket, scale AK=",
           ak_length,"m AWM=",awm_length,
-          "m, six armed clips, x8 scoped one-shot AWM 0.5s")
+          "m, gun horizontal AR=",ak_extents,
+          " AWM=",awm_extents,
+          " arm clips, x8 scoped one-shot AWM 0.5s")
     quit(0)

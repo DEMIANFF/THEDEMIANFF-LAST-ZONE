@@ -109,6 +109,19 @@ func _load_visual(path: String, display_name: String) -> Node3D:
     return visual
 
 
+func _process(_delta: float) -> void:
+    if not attachment_uses_hand or operator==null or right_hand_socket==null:
+        return
+    # BoneAttachment is the POSITION driver. Its inherited wrist orientation
+    # can point the rifle at the ceiling depending on retarget/pose-bone roll.
+    # Keep the rifle physically on the hand but align its forward axis with
+    # the player's combat heading until full hand IK is authored.
+    var direction_basis:=Basis(Vector3.UP,operator.global_rotation.y)
+    var grip_world: Vector3=right_hand_socket.global_position
+    mount.global_transform=Transform3D(direction_basis,
+        grip_world + direction_basis*Vector3(.01,-.055,-.07))
+
+
 func equip(index: int) -> void:
     selected_weapon=clampi(index,0,1)
     if ak:
@@ -121,12 +134,11 @@ func currently_equipped() -> Node3D:
     return ak if selected_weapon==0 else awm
 
 
-func equipped_global_length() -> float:
-    # Physical world dimension, rather than the raw local GLB extent. The old
-    # rig bug left a valid-looking gun resource at ~1 cm in the world.
+func equipped_global_extents() -> Vector3:
+    # World-space bounding box is the actual observable orientation and size.
     var visual: Node3D=currently_equipped()
     if visual==null:
-        return 0.0
+        return Vector3.ZERO
     var smallest:=Vector3(INF,INF,INF)
     var largest:=Vector3(-INF,-INF,-INF)
     for item in visual.find_children("*","MeshInstance3D",true,false):
@@ -137,6 +149,10 @@ func equipped_global_length() -> float:
             smallest=smallest.min(world_point)
             largest=largest.max(world_point)
     if not smallest.is_finite() or not largest.is_finite():
-        return 0.0
-    var size: Vector3=largest-smallest
+        return Vector3.ZERO
+    return largest-smallest
+
+
+func equipped_global_length() -> float:
+    var size: Vector3=equipped_global_extents()
     return maxf(size.x,maxf(size.y,size.z))
