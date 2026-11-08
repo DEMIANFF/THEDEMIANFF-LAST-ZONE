@@ -2,6 +2,7 @@ extends Control
 ## Original Aurora front-end. Free Fire is UX reference ONLY; no copied layout,
 ## assets or proprietary game branding. Incomplete service tabs say so.
 const GAME = preload("res://scenes/Main.tscn")
+const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 
 var stage: String = "welcome"
 var _surface: Control
@@ -13,6 +14,7 @@ var _selected_tab: String = "PERSONAJE"
 var _preview_container: SubViewportContainer
 var _preview_avatar: Node3D
 var _preview_caption: Label
+var _offline_records: RefCounted
 
 
 func _ready() -> void:
@@ -108,6 +110,8 @@ func _welcome() -> void:
 
 
 func _show_lobby() -> void:
+    # Refresh from device storage after returning from a finished match.
+    _offline_records=MATCH_RECORDS.new()
     stage="lobby"
     visible=true
     if _preview_container:
@@ -149,11 +153,23 @@ func _select_tab(tab: String) -> void:
         return
     match tab:
         "PERSONAJE":
-            _info.text="OPERADORA  /  LILA EN DESARROLLO\nModelo de entrenamiento provisional. Rig facial, cabello y equipamiento final pendientes."
+            var stats: Dictionary=_offline_records.snapshot() if _offline_records else {}
+            _info.text="OPERADORA / LILA EN DESARROLLO\nModelo 3D provisional; rig definitivo pendiente."
+            _info.text+="\nREGISTRO LOCAL  •  "+str(stats.get("played",0))+" partidas  /  "+str(stats.get("wins",0))+" victorias  /  "+str(stats.get("kills",0))+" bajas"
+            _info.text+="\nRécord de bajas: "+str(stats.get("best_kills",0))+"  •  mejor supervivencia: "+str(stats.get("longest_survival_seconds",0))+" s"
         "ARMAS":
             _info.text="ARSENAL  /  AK-74 + AWM\nAR: x2/x4. AWM: x8, cinco cartuchos y cerrojo automático de 0,5 s."
         "MISIONES":
-            _info.text="MISIONES  /  PRÓXIMA ETAPA\nLas recompensas y objetivos persistentes aún no están implementados."
+            var stats: Dictionary=_offline_records.snapshot() if _offline_records else {}
+            var latest: Array=stats.get("history",[])
+            _info.text="HISTORIAL LOCAL DE PARTIDAS COMPLETADAS"
+            if latest.is_empty():
+                _info.text+="\nTodavía no hay resultados. Completa una partida BR."
+            else:
+                var recent: Dictionary=latest[0]
+                _info.text+="\nÚltima partida: "+("VICTORIA" if recent.get("victory",false) else "DERROTA")
+                _info.text+="  •  "+str(recent.get("kills",0))+" bajas  •  "+str(recent.get("survived_seconds",0))+" segundos"
+            _info.text+="\nMisiones con recompensas y cuenta en la nube: pendientes."
         "TIENDA":
             _info.text="TIENDA  /  NO DISPONIBLE\nSin compras ni moneda simulada. Integración futura."
         "CUENTA":
