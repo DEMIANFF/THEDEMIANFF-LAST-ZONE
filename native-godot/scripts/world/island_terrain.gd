@@ -58,8 +58,8 @@ func _ready() -> void:
     for z_index in range(CELLS):
         for x_index in range(CELLS):
             var index := z_index * grid_width + x_index
-            indices.append_array(PackedInt32Array([index, index + grid_width, index + 1]))
-            indices.append_array(PackedInt32Array([index + 1, index + grid_width, index + grid_width + 1]))
+            indices.append_array(PackedInt32Array([index, index + 1, index + grid_width]))
+            indices.append_array(PackedInt32Array([index + 1, index + grid_width + 1, index + grid_width]))
 
     var arrays: Array = []
     arrays.resize(Mesh.ARRAY_MAX)
@@ -75,6 +75,7 @@ func _ready() -> void:
     terrain_material.albedo_color = Color.WHITE
     terrain_material.vertex_color_use_as_albedo = true
     terrain_material.roughness = 0.9
+    terrain_material.cull_mode = BaseMaterial3D.CULL_DISABLED  # Visualize terrain from both sides during collision QA.
     surface.surface_set_material(0, terrain_material)
 
     var geometry := MeshInstance3D.new()
