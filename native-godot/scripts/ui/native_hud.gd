@@ -3,6 +3,8 @@ extends CanvasLayer
 ## Every button emits a real gameplay action; no decorative fake multiplayer.
 signal fire_pressed
 signal fire_released
+signal fire_aim_changed(relative: Vector2)
+signal crouch_pressed
 signal aim_pressed
 signal reload_pressed
 signal weapon_pressed
@@ -11,6 +13,8 @@ signal run_released
 signal jump_pressed
 signal movement_axis_changed(value: Vector2)
 const VIRTUAL_PAD = preload("res://scripts/ui/virtual_joystick.gd")
+const DIRECTIONAL_FIRE = preload("res://scripts/ui/directional_fire_pad.gd")
+const TACTICAL_RETICLE = preload("res://scripts/ui/scope_reticle.gd")
 
 var _weapon: Label
 var _ammo: Label
@@ -24,6 +28,9 @@ var _fps_clock: float = 0.0
 var _ads: bool = false
 var _run_latched: bool = false
 var _run_button: Button
+var _crouch_button: Button
+var _crouching: bool = false
+var _reticle: Control
 
 
 func _ready() -> void:
@@ -62,16 +69,34 @@ func _ready() -> void:
     _fps = _text(root,"FPS —",.865,.028,13,Color(.67,.94,.81),HORIZONTAL_ALIGNMENT_RIGHT)
     _health_label = _text(root,"SALUD 100 / 100",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
 
-    _text(root,"✛",.486,.485,29,Color(.93,.99,1),HORIZONTAL_ALIGNMENT_CENTER)
+    _reticle = TACTICAL_RETICLE.new()
+    _reticle.name = "AimReticle"
+    _reticle.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    _reticle.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    root.add_child(_reticle)
     _hint = _text(root,"ARRASTRA PARA GIRAR  ·  IZQUIERDA PARA MOVER",.23,.94,12,Color(.68,.86,.90),HORIZONTAL_ALIGNMENT_CENTER)
     _hit = _text(root,"",.36,.375,21,Color(1,.80,.41),HORIZONTAL_ALIGNMENT_CENTER)
 
-    _button(root,"FUEGO",.905,.71,112,106,Color(.69,.27,.13),_fire_down,_fire_up)
+    var fire_pad: Control = DIRECTIONAL_FIRE.new()
+    fire_pad.name="DirectionalFirePad"
+    fire_pad.anchor_left=.905
+    fire_pad.anchor_right=.905
+    fire_pad.anchor_top=.70
+    fire_pad.anchor_bottom=.70
+    fire_pad.offset_left=-86
+    fire_pad.offset_right=86
+    fire_pad.offset_top=-86
+    fire_pad.offset_bottom=86
+    root.add_child(fire_pad)
+    fire_pad.pressed.connect(_fire_down)
+    fire_pad.released.connect(_fire_up)
+    fire_pad.look_dragged.connect(func(delta: Vector2): fire_aim_changed.emit(delta))
     _button(root,"MIRA",.778,.66,74,62,Color(.12,.39,.49),_aim_down)
     _button(root,"RECARGA",.790,.80,81,59,Color(.14,.30,.37),_reload_down)
     _button(root,"ARMA",.905,.87,79,59,Color(.19,.35,.41),_weapon_down)
     _run_button=_button(root,"CORRER",.11,.61,82,57,Color(.09,.30,.36),_run_down,_run_up)
     _button(root,"SALTAR",.685,.82,76,54,Color(.12,.34,.41),_jump_down)
+    _crouch_button=_button(root,"AGACHAR",.68,.70,80,53,Color(.16,.30,.36),_crouch_down)
     var pad: Control=VIRTUAL_PAD.new()
     pad.name="MovePad"
     pad.anchor_left=.05
@@ -177,6 +202,13 @@ func _jump_down() -> void:
     jump_pressed.emit()
 
 
+func _crouch_down() -> void:
+    _crouching = not _crouching
+    crouch_pressed.emit()
+    if _crouch_button:
+        _crouch_button.text="LEVANTAR" if _crouching else "AGACHAR"
+
+
 func set_health(value: float) -> void:
     if _health_label:
         _health_label.text="SALUD "+str(roundi(value))+" / 100"
@@ -190,10 +222,12 @@ func set_weapon(name: String,loaded: int,reserve: int) -> void:
         _ammo.text=str(loaded)+" / "+str(reserve)
 
 
-func set_aim(active: bool,scope: String) -> void:
+func set_aim(active: bool,scope: String,zoom: float=1.0) -> void:
     _ads=active
+    if _reticle:
+        _reticle.set_zoom(zoom if active else 1.0)
     if _hint:
-        _hint.text=scope+"  ·  SUELTA Y VUELVE A PULSAR PARA DISPARAR" if active else "ARRASTRA PARA GIRAR  ·  IZQUIERDA PARA MOVER"
+        _hint.text=scope+"  ·  FUEGO Y ARRASTRA PARA PRECISION" if active else "CÁMARA LIBRE  ·  ARRASTRA FUEGO PARA APUNTAR"
 
 
 func impact(message: String) -> void:

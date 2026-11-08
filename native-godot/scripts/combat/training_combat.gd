@@ -13,6 +13,7 @@ var ammo: Array[int]=[30,5]
 var reserve: Array[int]=[180,30]
 var trigger_held: bool=false
 var aim_active: bool=false
+var current_zoom: float=1.0
 var cooldown: float=0.0
 var reload_timer: float=0.0
 var _targets: Array[CharacterBody3D]=[]
@@ -26,6 +27,7 @@ func _ready() -> void:
     hud.aim_pressed.connect(_on_aim)
     hud.reload_pressed.connect(_on_reload)
     hud.weapon_pressed.connect(_on_weapon)
+    hud.fire_aim_changed.connect(operator.fire_aim_delta)
     _make_targets()
     _draw_weapon_rig()
     _sync_hud()
@@ -48,6 +50,7 @@ func _process(dt: float) -> void:
 
 func _on_fire_pressed() -> void:
     trigger_held=true
+    operator.set_firing(true)
     if weapon_index==1:
         _shoot()  # One press, one bolt-action AWM round.
     elif cooldown<=0:
@@ -56,26 +59,34 @@ func _on_fire_pressed() -> void:
 
 func _on_fire_released() -> void:
     trigger_held=false
+    operator.set_firing(false)
 
 
 func _on_weapon() -> void:
     weapon_index=1-weapon_index
     trigger_held=false
+    operator.set_firing(false)
     cooldown=.20
     reload_timer=0
     aim_active=false
+    current_zoom=1.0
     if _weapon_model:
         _weapon_model.visible=weapon_index==0  # AK visual only until original AWM model is ready.
     operator.set_ads(false,1.0)
-    hud.set_aim(false,"MIRA LIBRE")
+    hud.set_aim(false,"MIRA LIBRE",1.0)
     _sync_hud()
 
 
 func _on_aim() -> void:
-    aim_active=not aim_active
-    var zoom: float=8.0 if weapon_index==1 else 2.0
-    operator.set_ads(aim_active,zoom)
-    hud.set_aim(aim_active,"AWM / MIRA 8X" if weapon_index==1 else "AR / MIRA 2X")
+    # AR cycles through free -> x2 -> x4 -> free. AWM has its exclusive x8.
+    if weapon_index == 1:
+        current_zoom = 1.0 if current_zoom >= 8.0 else 8.0
+    else:
+        current_zoom = 2.0 if current_zoom < 1.8 else 4.0 if current_zoom < 3.8 else 1.0
+    aim_active = current_zoom > 1.0
+    operator.set_ads(aim_active,current_zoom)
+    var label: String = "MIRA LIBRE" if not aim_active else "AWM / 8X" if weapon_index==1 else "AR / "+str(int(current_zoom))+"X"
+    hud.set_aim(aim_active,label,current_zoom)
 
 
 func _on_reload() -> void:
@@ -99,11 +110,14 @@ func _shoot() -> void:
     cooldown=AWM_BOLT_SECONDS if weapon_index==1 else .105
     _sync_hud()
     operator.apply_recoil(.02 if weapon_index==1 else .005)
-    var camera:=operator.get_node_or_null("CameraPivot/ThirdPersonCamera") as Camera3D
+    var camera:=operator.get_view_camera() as Camera3D
     if camera==null:
         return
-    var from: Vector3=camera.global_position
-    var direction: Vector3=-camera.global_transform.basis.z
+    # Fire down the exact centre of the active camera so the rendered sight
+    # and weapon ray have the same optical axis at every zoom level.
+    var screen_center: Vector2 = camera.get_viewport().get_visible_rect().size*.5
+    var from: Vector3=camera.project_ray_origin(screen_center)
+    var direction: Vector3=camera.project_ray_normal(screen_center)
     var query:=PhysicsRayQueryParameters3D.create(from,from+direction*250)
     query.exclude=[operator.get_rid()]
     var hit: Dictionary=operator.get_world_3d().direct_space_state.intersect_ray(query)
@@ -155,8 +169,31 @@ func _draw_weapon_rig() -> void:
     _weapon_model.name="AK74TacticalVisual"
     var mount:=Node3D.new()
     mount.name="ShoulderWeaponMount"
-    mount.position=Vector3(.37,1.22,-.34)
-    operator.add_child(mount)
+    var skeleton: Skeleton3D = null
+    var rig := operator.get_node_or_null("AuroraFemaleRiggedOperator")
+    if rig:
+        skeleton = rig.find_child("Skeleton3D",true,false) as Skeleton3D
+    var right_hand_bone: String=""
+    if skeleton:
+        for bone_id in range(skeleton.get_bone_count()):
+            var bname: String=skeleton.get_bone_name(bone_id)
+            if bname.to_lower().ends_with("righthand"):
+                right_hand_bone=bname
+                break
+    if skeleton and right_hand_bone != "":
+        var socket := BoneAttachment3D.new()
+        socket.name="RightHandWeaponSocket"
+        socket.bone_name=right_hand_bone
+        skeleton.add_child(socket)
+        socket.add_child(mount)
+        mount.position=Vector3(0,-.11,-.18)
+        mount.rotation=Vector3(-.12,0,PI*.5)
+        print("AK74_ATTACHMENT_TO_HAND ",right_hand_bone)
+    else:
+        # No fake claim of hand-attachment when an imported asset lacks a hand.
+        operator.add_child(mount)
+        mount.position=Vector3(.37,1.22,-.34)
+        push_warning("AK-74 could not attach to rig hand: temporary torso mount")
     mount.add_child(_weapon_model)
 
     var small: Vector3=Vector3(INF,INF,INF)
