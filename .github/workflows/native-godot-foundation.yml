@@ -1,7 +1,7 @@
-name: V75 Aurora Original Lobby Aircraft Parachute and Animation QA
+name: V75.1 Durable BR Match Results and Stance Quality QA
 on:
   push:
-    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations]
+    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression]
     paths:
       - 'native-godot/**'
       - 'docs/V71_REAL_BATTLE_ROYALE_MASTER_PLAN.md'
@@ -39,3 +39,7 @@ jobs:
 
       - name: Verify original loading lobby and playable BR flight sequence
         run: godot --headless --path native-godot --script res://scripts/qa/launch_airdrop_qa.gd
+      - name: Verify durable local battle results, backup and idempotence
+        run: godot --headless --path native-godot --script res://scripts/qa/persistent_match_qa.gd
+      - name: Verify crouch collider, low-ceiling blocking and matching HUD state
+        run: godot --headless --path native-godot --script res://scripts/qa/crouch_collision_qa.gd

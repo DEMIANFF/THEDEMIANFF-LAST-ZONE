@@ -7,6 +7,7 @@ signal round_ended(victory: bool)
 const LOOT = preload("res://scripts/match/aurora_loot.gd")
 const ZONE_VISUAL = preload("res://scripts/match/aurora_zone_visual.gd")
 const DROP_SEQUENCE = preload("res://scripts/match/airdrop_sequence.gd")
+const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const INITIAL_RADIUS: float = 90.0
 const FINAL_RADIUS: float = 12.0
 const SHRINK_DURATION: float = 280.0
@@ -26,9 +27,13 @@ var _ui_clock: float = 0.0
 var _loot: Array[Area3D] = []
 var _zone_visual: Node3D
 var _flight: Node3D
+var _records: RefCounted
+var _match_id: int=0
+var last_match_saved: bool=false
 
 
 func _ready() -> void:
+    _records=MATCH_RECORDS.new()
     _zone_visual=ZONE_VISUAL.new()
     _zone_visual.name="AuroraClosingZone"
     _zone_visual.terrain=terrain
@@ -75,6 +80,11 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _loot.clear()
     mode = "sector_battle"
     match_ended = false
+    # One unique completed match ID is committed only after actual victory
+    # or defeat. Abandoning a round does not fabricate completed statistics.
+    _records.reload()
+    _match_id=_records.next_match_id()
+    last_match_saved=false
     elapsed = 0.0
     radius = INITIAL_RADIUS
     _zone_visual.visible=true
@@ -136,10 +146,15 @@ func _finish(victory: bool) -> void:
     if match_ended:
         return
     match_ended = true
+    combat.end_sector_battle()
+    player.end_sector_battle()
+    last_match_saved=_records.record_result(_match_id,victory,combat.eliminations,int(elapsed))
+    if not last_match_saved:
+        push_error("Offline match result was NOT saved; do not report persistence as success")
     hud.set_sector_state("VICTORIA AURORA" if victory else "ELIMINADA / AURORA", combat.active_fighter_count(),radius,int(elapsed))
     hud.set_battle_button("REINICIAR BR")
     hud.show_match_result(victory,combat.eliminations,int(elapsed))
-    hud.impact("¡VICTORIA DEL SECTOR!" if victory else "PARTIDA TERMINADA / REINTENTAR")
+    hud.impact(("¡VICTORIA DEL SECTOR!" if victory else "PARTIDA TERMINADA / REINTENTAR") if last_match_saved else "ALERTA: NO SE GUARDO EL RESULTADO")
     round_ended.emit(victory)
 
 

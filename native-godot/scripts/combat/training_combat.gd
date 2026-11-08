@@ -56,7 +56,7 @@ func _process(dt: float) -> void:
 
 
 func _on_fire_pressed() -> void:
-    if operator.royale_eliminated:
+    if operator.royale_eliminated or operator.round_finished:
         return
     trigger_held=true
     operator.set_firing(true)
@@ -157,6 +157,15 @@ func _shoot() -> void:
     if body is CharacterBody3D and body.is_in_group("training_target"):
         var eliminated: bool=body.take_training_damage(float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE),operator)
         hud.impact("ENEMIGO NEUTRALIZADO" if eliminated else "IMPACTO CONFIRMADO")
+
+
+func end_sector_battle() -> void:
+    sector_battle_active=false
+    trigger_held=false
+    operator.set_firing(false)
+    for bot in _targets:
+        if is_instance_valid(bot):
+            bot.set_physics_process(false)
 
 
 func begin_sector_battle() -> void:

@@ -381,10 +381,14 @@ func set_training_radar_sources(character: CharacterBody3D, enemies: Array[Chara
 
 
 func _crouch_down() -> void:
-    _crouching = not _crouching
+    # Actual CharacterBody clearance decides whether standing is allowed.
     crouch_pressed.emit()
+
+
+func set_crouch_state(active: bool) -> void:
+    _crouching=active
     if _crouch_button:
-        _crouch_button.text="LEVANTAR" if _crouching else "AGACHAR"
+        _crouch_button.text="LEVANTAR" if active else "AGACHAR"
 
 
 func set_health(value: float) -> void:

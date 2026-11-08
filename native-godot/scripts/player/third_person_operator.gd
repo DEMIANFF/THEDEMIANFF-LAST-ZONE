@@ -12,10 +12,12 @@ signal training_health_changed(value: float)
 signal player_eliminated
 signal player_damaged(amount: float)
 signal landed_from_airdrop
+signal crouch_state_changed(active: bool)
 @export var approved_operator_scene: PackedScene
 var training_health: float = 100.0
 var battle_royale_active: bool = false
 var royale_eliminated: bool = false
+var round_finished: bool = false
 var respawn_point: Vector3 = Vector3.ZERO
 var training_knockouts: int = 0
 var _training_immunity: float = 0.0
@@ -96,7 +98,7 @@ func _physics_process(delta: float) -> void:
     if air_mode!="ground":
         _air_step(delta)
         return
-    if royale_eliminated:
+    if royale_eliminated or round_finished:
         velocity=Vector3.ZERO
         return
     _training_immunity=maxf(0.0,_training_immunity-delta)
@@ -346,7 +348,15 @@ func receive_training_hit(amount: float) -> void:
         training_health_changed.emit(training_health)
 
 
+func end_sector_battle() -> void:
+    round_finished=true
+    velocity=Vector3.ZERO
+    set_firing(false)
+    set_touch_move_axis(Vector2.ZERO)
+
+
 func begin_sector_battle(from_airdrop: bool=false) -> void:
+    round_finished=false
     battle_royale_active = true
     royale_eliminated = false
     training_health = 100.0
@@ -413,19 +423,42 @@ func set_firing(active: bool) -> void:
 
 
 func set_crouch(active: bool) -> void:
-    if _crouching == active:
+    if _crouching==active:
         return
-    _crouching = active
-    var collider := get_node_or_null("CapsuleCollider") as CollisionShape3D
+    if not active and not _can_stand():
+        # Refuse to stretch collision into an overhead obstacle.
+        crouch_state_changed.emit(true)
+        return
+    _crouching=active
+    var collider:=get_node_or_null("CapsuleCollider") as CollisionShape3D
     if collider:
-        var capsule := collider.shape as CapsuleShape3D
+        var capsule:=collider.shape as CapsuleShape3D
         if capsule:
-            capsule.height = 1.22 if active else 1.82
-        collider.position.y = .62 if active else .92
-    _camera_pivot.position.y = 1.13 if active else 1.55
+            capsule.height=1.22 if active else 1.82
+        collider.position.y=.62 if active else .92
+    _camera_pivot.position.y=1.13 if active else 1.55
     if _avatar:
-        _avatar.scale = _normal_visual_scale * (Vector3(.95,.72,.95) if active else Vector3.ONE)
-        _avatar.position.y = _normal_visual_y
+        # Mesh must never be artificially squashed to mimic crouching.
+        # Properly authored AuroraCrouch/AuroraCrouchWalk clips move joints.
+        _avatar.scale=_normal_visual_scale
+        _avatar.position.y=_normal_visual_y
+    _current_clip=""
+    crouch_state_changed.emit(_crouching)
+
+
+func _can_stand() -> bool:
+    if not is_inside_tree():
+        return true
+    var shape:=CapsuleShape3D.new()
+    shape.radius=.38
+    shape.height=1.82
+    var query:=PhysicsShapeQueryParameters3D.new()
+    query.shape=shape
+    query.transform=Transform3D(Basis(),global_position+Vector3.UP*.92)
+    query.collision_mask=collision_mask
+    query.exclude=[get_rid()]
+    var contacts: Array[Dictionary]=get_world_3d().direct_space_state.intersect_shape(query,2)
+    return contacts.is_empty()
 
 
 func fire_aim_delta(delta: Vector2) -> void:

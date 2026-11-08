@@ -1,5 +1,7 @@
 extends SceneTree
-## V74 offline single-device gameplay loop, not a claim of 100 network players.
+## Complete offline round integration; uses a SEPARATE test ledger path.
+const RECORDS=preload("res://scripts/persistence/offline_match_records.gd")
+const SAVE_PATH: String="user://qa/sector_integration_rounds.json"
 
 
 func _initialize() -> void:
@@ -13,6 +15,13 @@ func _verify() -> void:
     var combat:=game.get_node("CombatRange") as Node3D
     var operator:=game.get_node("Operator") as CharacterBody3D
     var hud:=game.get_node("TrainingHUD") as CanvasLayer
+    var save_path: String=ProjectSettings.globalize_path(SAVE_PATH)
+    DirAccess.make_dir_recursive_absolute(save_path.get_base_dir())
+    for suffix in ["",".bak",".tmp"]:
+        var p: String=ProjectSettings.globalize_path(SAVE_PATH+suffix)
+        if FileAccess.file_exists(p):
+            DirAccess.remove_absolute(p)
+    director._records=RECORDS.new(SAVE_PATH)
     if director==null:
         push_error("V74 director not created")
         quit(80)
@@ -130,13 +139,48 @@ func _verify() -> void:
         push_error("Victory results panel not displayed")
         quit(96)
         return
+    if not director.last_match_saved:
+        push_error("Winner results were not persisted")
+        quit(176)
+        return
+    var ledger: Dictionary=director._records.snapshot()
+    if int(ledger.get("played",0))!=1 or int(ledger.get("wins",0))!=1 or int(ledger.get("kills",0))!=1:
+        push_error("Integrated win ledger has incorrect matches/wins/player kills")
+        quit(177)
+        return
+    if not operator.round_finished or combat.sector_battle_active or combat.trigger_held:
+        push_error("Combat or player controls continued after finished round")
+        quit(178)
+        return
+    for bot in combat._targets:
+        if bot.is_physics_processing():
+            push_error("Enemy AI still attacks after the match result screen")
+            quit(179)
+            return
+    director._finish(true)
+    if int(director._records.snapshot().get("played",0))!=1:
+        push_error("Double finish persisted the victory twice")
+        quit(180)
+        return
 
     director.start_sector_battle()
     await process_frame
-    if director.match_ended or combat.active_fighter_count()!=9 or director.get_loot_remaining()!=16:
-        push_error("New sector battle failed to reset fighters/loot")
+    if director.match_ended or combat.active_fighter_count()!=9 or director.get_loot_remaining()!=16 or operator.round_finished:
+        push_error("New sector battle failed to reset fighters/loot/player controls")
         quit(91)
         return
-
-    print("V74 SECTOR BR PASS: 9 fighters, real supply pickup, zone damage+shrink, permanent eliminations, victory and retry")
+    if not combat.sector_battle_active:
+        push_error("New round did not re-enable combat")
+        quit(181)
+        return
+    for bot in combat._targets:
+        if not bot.is_physics_processing():
+            push_error("New round did not reactivate live opponent AI")
+            quit(182)
+            return
+    for suffix in ["",".bak",".tmp"]:
+        var p: String=ProjectSettings.globalize_path(SAVE_PATH+suffix)
+        if FileAccess.file_exists(p):
+            DirAccess.remove_absolute(p)
+    print("SECTOR BR PASS: actual loot, zone, elimination, victory, one saved result, frozen AI after match and clean restart")
     quit(0)
