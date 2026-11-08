@@ -98,6 +98,61 @@ def role(bone_name):
         return 'spine'
     return ''
 
+# Skeletal pose quality gate: optimize each actual upper-arm joint against
+# an anatomical hand target. Unlike fixed Euler guesses, this samples the FBX
+# rest matrices, and measures the resulting world-space wrist/shoulder points.
+def _relaxed_arm_poses():
+    result = {}
+    bpy.context.view_layer.update()
+    for side in ("Right", "Left"):
+        arm_name = next((b.name for b in arm.pose.bones if b.name.endswith(side + "Arm")), None)
+        hand_name = next((b.name for b in arm.pose.bones if b.name.endswith(side + "Hand")), None)
+        if not arm_name or not hand_name:
+            raise RuntimeError("Rig is missing " + side + "Arm/Hand")
+        upper = arm.pose.bones[arm_name]
+        hand = arm.pose.bones[hand_name]
+        upper.rotation_mode = 'QUATERNION'
+        upper.rotation_quaternion = Quaternion((1.0, 0.0, 0.0, 0.0))
+        bpy.context.view_layer.update()
+        shoulder = arm.matrix_world @ upper.matrix.translation
+        original_hand = arm.matrix_world @ hand.matrix.translation
+        delta = original_hand - shoulder
+        assert delta.length > 0.1, "Armature wrist is coincident with shoulder"
+        # Reduce sideways extension to 35%, and place the wrist near hip height.
+        target = shoulder + Vector((delta.x * .34, delta.y * .34, -delta.length * .78))
+        axes = [
+            Vector((1,0,0)), Vector((0,1,0)), Vector((0,0,1)),
+            Vector((1,1,0)), Vector((1,-1,0)),
+            Vector((1,0,1)), Vector((1,0,-1)),
+            Vector((0,1,1)), Vector((0,1,-1)),
+            Vector((1,1,1)), Vector((1,-1,1))]
+        angles = [-2.25,-1.90,-1.55,-1.20,-.86,-.52,0,.52,.86,1.20,1.55,1.90,2.25]
+        best = Quaternion((1.0,0.0,0.0,0.0))
+        base_cost = (original_hand-target).length_squared
+        cost = base_cost
+        for axis in axes:
+            for angle in angles:
+                candidate = Quaternion(axis.normalized(), angle)
+                upper.rotation_quaternion = candidate
+                bpy.context.view_layer.update()
+                wrist = arm.matrix_world @ hand.matrix.translation
+                error = (wrist - target).length_squared
+                if error < cost:
+                    best, cost = candidate.copy(), error
+        upper.rotation_quaternion = best
+        bpy.context.view_layer.update()
+        corrected_hand = arm.matrix_world @ hand.matrix.translation
+        result["arm_" + side.lower()[0]] = best.copy()
+        print("ANATOMICAL_ARM", side,
+              "shoulder", tuple(round(v,2) for v in shoulder),
+              "original_hand", tuple(round(v,2) for v in original_hand),
+              "new_hand", tuple(round(v,2) for v in corrected_hand),
+              "target", tuple(round(v,2) for v in target),
+              "cost_reduction", round(1.0-cost/max(base_cost,.001),3))
+    return result
+
+base_arm_pose = _relaxed_arm_poses()
+
 for clip_name, amplitude, frames in [('AuroraIdle', 0.012, 60),
                                      ('AuroraWalk', 0.23, 32),
                                      ('AuroraRun', 0.40, 24)]:
@@ -123,17 +178,10 @@ for clip_name, amplitude, frames in [('AuroraIdle', 0.012, 60),
             else:
                 offset = min(.035, amplitude * .14) * math.sin(phase)
             if assigned.startswith('arm_'):
-                # Compute a shoulder pose from real rest directions, not
-                # guessing FBX bone-local axes. The source is Blender Z-up:
-                # this rotates upper arms from T-pose toward the hips.
-                source_direction = (bone.bone.tail_local - bone.bone.head_local).normalized()
-                side = 1.0 if assigned == 'arm_r' else -1.0
-                destination = Vector((side * 0.30, 0.02, -0.95)).normalized()
-                world_adjust = source_direction.rotation_difference(destination)
-                rest_basis = bone.bone.matrix_local.to_quaternion()
-                bone_local = rest_basis.inverted() @ world_adjust @ rest_basis
+                # Optimized once from the actual FBX wrist locations.
+                # Apply locomotion swing over a relaxed natural arm pose.
                 swing = Quaternion(Vector((1, 0, 0)), offset)
-                bone.rotation_quaternion = bone_local @ swing
+                bone.rotation_quaternion = base_arm_pose[assigned] @ swing
                 bone.keyframe_insert(data_path='rotation_quaternion', frame=frame, group=bone.name)
             else:
                 bone.rotation_euler[0] = offset
