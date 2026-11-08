@@ -166,6 +166,8 @@ func _launch(battle: bool) -> void:
     if stage!="lobby":
         return
     stage="loading"
+    if _preview_container:
+        _preview_container.visible=false
     _clear_page()
     _label("PREPARANDO PUERTO AURORA",27)
     _label("Cargando terreno, colisiones, personaje, armas y patrullas...",18)
@@ -216,7 +218,7 @@ func _build_preview() -> void:
     viewport.size=Vector2i(440,600)
     viewport.own_world_3d=true
     viewport.transparent_bg=true
-    viewport.render_target_update_mode=SubViewport.UPDATE_ALWAYS
+    viewport.render_target_update_mode=SubViewport.UPDATE_WHEN_PARENT_VISIBLE
     _preview_container.add_child(viewport)
     var stage3d:=Node3D.new()
     stage3d.name="AuroraCharacterStage"
