@@ -56,6 +56,7 @@ func start_sector_battle() -> void:
     _ui_clock=0.0
     player.begin_sector_battle()
     combat.begin_sector_battle()
+    hud.clear_match_result()
     _spawn_loot()
     hud.set_battle_button("EN PARTIDA")
     hud.set_sector_state("BATALLA SECTOR",combat.active_fighter_count(),radius,0)
@@ -69,10 +70,10 @@ func _process(delta: float) -> void:
     var progress: float = clampf(elapsed/SHRINK_DURATION,0.0,1.0)
     radius = lerpf(INITIAL_RADIUS,FINAL_RADIUS,pow(progress,1.13))
     _zone_visual.set_safe_radius(radius)
-    hud.set_sector_zone(CENTER,radius)
     _ui_clock-=delta
     if _ui_clock<=0:
         _ui_clock=.33
+        hud.set_sector_zone(CENTER,radius)
         hud.set_sector_state("ZONA EN CIERRE",combat.active_fighter_count(),radius,int(elapsed))
     _damage_clock+=delta
     if _damage_clock>=TICK:
@@ -109,6 +110,7 @@ func _finish(victory: bool) -> void:
     match_ended = true
     hud.set_sector_state("VICTORIA AURORA" if victory else "ELIMINADA / AURORA", combat.active_fighter_count(),radius,int(elapsed))
     hud.set_battle_button("REINICIAR BR")
+    hud.show_match_result(victory,combat.eliminations,int(elapsed))
     hud.impact("¡VICTORIA DEL SECTOR!" if victory else "PARTIDA TERMINADA / REINTENTAR")
     round_ended.emit(victory)
 

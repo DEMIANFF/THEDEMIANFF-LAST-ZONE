@@ -10,6 +10,7 @@ const TOUCH_DEADZONE: float = 0.12
 
 signal training_health_changed(value: float)
 signal player_eliminated
+signal player_damaged(amount: float)
 @export var approved_operator_scene: PackedScene
 var training_health: float = 100.0
 var battle_royale_active: bool = false
@@ -195,6 +196,7 @@ func receive_training_hit(amount: float) -> void:
         return
     training_health=maxf(0.0,training_health-amount)
     training_health_changed.emit(training_health)
+    player_damaged.emit(amount)
     _training_immunity=.42
     if training_health<=0:
         if battle_royale_active:

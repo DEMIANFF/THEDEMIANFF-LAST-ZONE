@@ -53,6 +53,7 @@ func _ready() -> void:
     hud.name = "TrainingHUD"
     add_child(hud)
     operator.training_health_changed.connect(hud.set_health)
+    operator.player_damaged.connect(hud.show_damage_feedback)
     hud.run_pressed.connect(func(): operator.set_touch_run(true))
     hud.run_released.connect(func(): operator.set_touch_run(false))
     hud.jump_pressed.connect(operator.touch_jump)

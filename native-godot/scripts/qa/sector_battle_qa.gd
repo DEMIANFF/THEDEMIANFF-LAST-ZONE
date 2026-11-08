@@ -100,6 +100,11 @@ func _verify() -> void:
         push_error("Victory did not end the last-survivor round")
         quit(90)
         return
+    var result_panel:=game.get_node("TrainingHUD/AuroraTacticalOverlay/SectorMatchResult") as PanelContainer
+    if not result_panel.visible:
+        push_error("Victory results panel not displayed")
+        quit(96)
+        return
 
     hud._battle_down()
     await process_frame
