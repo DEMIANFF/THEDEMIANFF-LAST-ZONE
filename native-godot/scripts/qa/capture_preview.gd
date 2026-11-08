@@ -10,7 +10,7 @@ func _capture() -> void:
     await process_frame
     await process_frame
     var screenshot: Image = root.get_texture().get_image()
-    var result: Error = screenshot.save_png("res://out/aurora-native-v72-preview.png")
+    var result: Error = screenshot.save_png("res://out/aurora-native-v73-preview.png")
     if result != OK:
         push_error("Render capture failed: "+str(result))
         quit(1)

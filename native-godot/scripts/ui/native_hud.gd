@@ -6,12 +6,16 @@ signal fire_released
 signal aim_pressed
 signal reload_pressed
 signal weapon_pressed
+signal run_pressed
+signal run_released
+signal jump_pressed
 
 var _weapon: Label
 var _ammo: Label
 var _status: Label
 var _fps: Label
 var _hit: Label
+var _health_label: Label
 var _hint: Label
 var _hit_timer: float = 0.0
 var _fps_clock: float = 0.0
@@ -52,6 +56,7 @@ func _ready() -> void:
     _weapon = _text(root, "AR-7  /  ASALTO",.76,.085,21,Color(.90,.96,1),HORIZONTAL_ALIGNMENT_RIGHT)
     _ammo = _text(root, "30 / 180",.79,.137,22,Color(1,.79,.49),HORIZONTAL_ALIGNMENT_RIGHT)
     _fps = _text(root,"FPS —",.865,.028,13,Color(.67,.94,.81),HORIZONTAL_ALIGNMENT_RIGHT)
+    _health_label = _text(root,"SALUD 100 / 100",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
 
     _text(root,"✛",.486,.485,29,Color(.93,.99,1),HORIZONTAL_ALIGNMENT_CENTER)
     _hint = _text(root,"ARRASTRA PARA GIRAR  ·  IZQUIERDA PARA MOVER",.23,.94,12,Color(.68,.86,.90),HORIZONTAL_ALIGNMENT_CENTER)
@@ -61,6 +66,8 @@ func _ready() -> void:
     _button(root,"MIRA",.778,.66,74,62,Color(.12,.39,.49),_aim_down)
     _button(root,"RECARGA",.790,.80,81,59,Color(.14,.30,.37),_reload_down)
     _button(root,"ARMA",.905,.87,79,59,Color(.19,.35,.41),_weapon_down)
+    _button(root,"CORRER",.11,.61,82,57,Color(.09,.30,.36),_run_down,_run_up)
+    _button(root,"SALTAR",.685,.82,76,54,Color(.12,.34,.41),_jump_down)
     _text(root,"◯",.077,.77,94,Color(.55,.79,.81,.35),HORIZONTAL_ALIGNMENT_CENTER)
 
 
@@ -133,6 +140,24 @@ func _reload_down() -> void:
 
 func _weapon_down() -> void:
     weapon_pressed.emit()
+
+
+func _run_down() -> void:
+    run_pressed.emit()
+
+
+func _run_up() -> void:
+    run_released.emit()
+
+
+func _jump_down() -> void:
+    jump_pressed.emit()
+
+
+func set_health(value: float) -> void:
+    if _health_label:
+        _health_label.text="SALUD "+str(roundi(value))+" / 100"
+        _health_label.add_theme_color_override("font_color",Color(.98,.45,.38) if value<30.0 else Color(.71,.98,.82))
 
 
 func set_weapon(name: String,loaded: int,reserve: int) -> void:

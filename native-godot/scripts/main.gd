@@ -41,10 +41,16 @@ func _ready() -> void:
     operator.name = "Operator"
     add_child(operator)
     operator.global_position = Vector3(0.0, island.height_at(0.0, 0.0) + 1.2, 0.0)
+    operator.respawn_point=operator.global_position
 
     var hud = HUD.new()
     hud.name = "TrainingHUD"
     add_child(hud)
+    operator.training_health_changed.connect(hud.set_health)
+    hud.run_pressed.connect(func(): operator.set_touch_run(true))
+    hud.run_released.connect(func(): operator.set_touch_run(false))
+    hud.jump_pressed.connect(operator.touch_jump)
+    hud.set_health(operator.training_health)
 
     var combat = COMBAT.new()
     combat.name = "CombatRange"

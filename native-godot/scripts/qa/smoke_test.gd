@@ -46,7 +46,16 @@ func _verify() -> void:
         push_error("Missing native combat HUD or target range")
         quit(8)
         return
+    var opponent: Node=main.get_node_or_null("CombatRange/AuroraPatrol1")
+    if opponent == null or not opponent.is_in_group("training_target"):
+        push_error("V73 training enemy actor not loaded")
+        quit(13)
+        return
     if OS.get_environment("AURORA_REQUIRE_OPERATOR") == "1":
+        if main.get_node_or_null("Operator/ShoulderWeaponMount/AK74TacticalVisual")==null:
+            push_error("V73 imported AK-74 missing; no proxy rifle accepted")
+            quit(14)
+            return
         var rig := operator.get_node_or_null("AuroraFemaleRiggedOperator")
         if rig == null:
             push_error("Requested CC0 operator not imported into native scene")
@@ -75,5 +84,5 @@ func _verify() -> void:
             push_error("Imported operator has no Skeleton3D")
             quit(10)
             return
-    print("V72 slice OK: island, structures, camera, touch HUD, actual weapon rays, rig check")
+    print("V73 slice OK: real GLBs, rigged patrol, touch controls, physical ray combat")
     quit(0)

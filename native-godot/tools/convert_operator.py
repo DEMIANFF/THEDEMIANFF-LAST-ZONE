@@ -123,17 +123,17 @@ for clip_name, amplitude, frames in [('AuroraIdle', 0.012, 60),
             else:
                 offset = min(.035, amplitude * .14) * math.sin(phase)
             if assigned.startswith('arm_'):
-                # FBX base is a straight T-pose. Rotate each upper arm in the
-                # armature's *Y axis* toward gravity (-Z in Blender's Z-up FBX).
-                # Bone-local axes come from its REST matrix to avoid bad bone rolls.
-                # The audited FBX rig stores both upper arms along their
-                # local +Y bone axis. Rotate around local X so the limbs
-                # descend along the source +Z direction (screen -Y after
-                # Godot's Z-up conversion). Different arm names do not
-                # reverse the X axis; the earlier world-Y solution twisted.
-                lower = Quaternion(Vector((1, 0, 0)), 1.18)
-                swing = Quaternion(Vector((0, 0, 1)), offset)
-                bone.rotation_quaternion = lower @ swing
+                # Compute a shoulder pose from real rest directions, not
+                # guessing FBX bone-local axes. The source is Blender Z-up:
+                # this rotates upper arms from T-pose toward the hips.
+                source_direction = (bone.bone.tail_local - bone.bone.head_local).normalized()
+                side = 1.0 if assigned == 'arm_r' else -1.0
+                destination = Vector((side * 0.30, 0.02, -0.95)).normalized()
+                world_adjust = source_direction.rotation_difference(destination)
+                rest_basis = bone.bone.matrix_local.to_quaternion()
+                bone_local = rest_basis.inverted() @ world_adjust @ rest_basis
+                swing = Quaternion(Vector((1, 0, 0)), offset)
+                bone.rotation_quaternion = bone_local @ swing
                 bone.keyframe_insert(data_path='rotation_quaternion', frame=frame, group=bone.name)
             else:
                 bone.rotation_euler[0] = offset
