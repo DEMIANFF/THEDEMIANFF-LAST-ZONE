@@ -1,4 +1,14 @@
-# Godot V75.3 — current development preview
+# Godot V75.4 — aim and grounded locomotion recovery
+
+Based on V75.3: align firearm with camera pitch/yaw, additive recovering
+recoil, 24 m bounded tracer visuals (unchanged 250 m hitscan/cover), and
+improved provisional knee/ankle/pelvis locomotion animation.
+
+19 source QA suites including `v754_aim_pose_qa`, independent Android debug
+package `com.thedemianff.lastzone.nativepreview754`. The CC0 operator is NOT
+final Lila; left-hand IK/mocap and Motorola FPS/gesture tests remain pending.
+
+## Previous V75.3 development notes
 
 Base: `codex/v75-2-motorola-recovery` at `3a61df64b59de94bf1fb8ffad4b8bbf3a538e851`.
 Development branch: `codex/v75-3-battle-royale-improvements`.
