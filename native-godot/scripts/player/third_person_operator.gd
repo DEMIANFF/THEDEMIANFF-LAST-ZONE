@@ -202,14 +202,16 @@ func _play_matching_animation(requested: String) -> void:
         push_warning("No matching Aurora animation for "+requested+" in "+str(animations))
 
 
-func _unhandled_input(event: InputEvent) -> void:
+## Touch input must be captured BEFORE GUI dispatch: buttons and overlays may
+## consume ScreenDrag so _unhandled_input never sees joystick movement.
+func _input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         var viewport_width := get_viewport().get_visible_rect().size.x
         if touch.pressed:
             if touch.position.x >= viewport_width * 0.48 and _look_touch == -1:
                 _look_touch = touch.index
-            elif touch.position.x < viewport_width * 0.48 and _move_touch == -1:
+            elif touch.position.x < viewport_width * 0.48 and _move_touch == -1 and not _touch_over_run_button(touch.position):
                 _move_touch = touch.index
                 _move_origin = touch.position
         else:
@@ -230,6 +232,14 @@ func _unhandled_input(event: InputEvent) -> void:
         var mouse := event as InputEventMouseButton
         if mouse.button_index == MOUSE_BUTTON_RIGHT:
             Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if mouse.pressed else Input.MOUSE_MODE_VISIBLE
+
+
+func _touch_over_run_button(at: Vector2) -> bool:
+    # The HUD's CORRER button lives on the left half of the screen. It must
+    # not steal the unique movement pointer when held alongside the joystick.
+    var v: Vector2=get_viewport().get_visible_rect().size
+    var center:=Vector2(v.x*.11,v.y*.61)
+    return absf(at.x-center.x)<=45.0 and absf(at.y-center.y)<=35.0
 
 
 func _turn_camera(delta: Vector2) -> void:
