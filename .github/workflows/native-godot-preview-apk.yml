@@ -1,7 +1,7 @@
-name: V73 Aurora Native Quality Combat APK
+name: V73.1 Motorola Repair - Android APK
 on:
   push:
-    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat]
+    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes]
     paths:
       - 'native-godot/**'
       - '.github/workflows/native-godot-preview-apk.yml'
@@ -84,33 +84,37 @@ jobs:
         env:
           AURORA_REQUIRE_OPERATOR: "1"
         run: godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
-      - name: Capture optional rendered scene from software OpenGL
+      - name: Reproduce Motorola video: collision, walk, jump, sprint and joystick
+        run: |
+          godot --headless --path native-godot --script res://scripts/qa/motorola_control_audit.gd
+          godot --headless --path native-godot --script res://scripts/qa/mobile_touch_routing_test.gd
+      - name: Capture actual Godot scene with software OpenGL
         continue-on-error: false
         run: |
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-xvfb.log
           mkdir -p native-godot/out
           xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_preview.gd
-          test -s native-godot/out/aurora-native-v73-preview.png
+          test -s native-godot/out/aurora-native-v73-1-preview.png
       - name: Export distinct Android debug APK
         run: |
           mkdir -p native-godot/out
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V73-AURORA-NATIVE-PREVIEW.apk
-          test -s native-godot/out/THEDEMIANFF-V73-AURORA-NATIVE-PREVIEW.apk
-          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V73-AURORA-NATIVE-PREVIEW.apk
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V73.1-MOTOROLA-FIXES.apk
+          test -s native-godot/out/THEDEMIANFF-V73.1-MOTOROLA-FIXES.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V73.1-MOTOROLA-FIXES.apk
       - name: Verify APK namespace, checksum and package signature
         run: |
-          APK=native-godot/out/THEDEMIANFF-V73-AURORA-NATIVE-PREVIEW.apk
+          APK=native-godot/out/THEDEMIANFF-V73.1-MOTOROLA-FIXES.apk
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -n 3
-          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview73"
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview731"
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --print-certs "$APK"
           unzip -t "$APK" | tail -n 1
           sha256sum "$APK" | tee native-godot/out/SHA256SUMS.txt
-          echo "::notice::V73 has a distinct debug package from V70 and V72; device measurements are still required."
+          echo "::notice::V73.1 debug APK has a distinct app identifier. Manual Motorola validation is REQUIRED."
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIANFF-V73-AURORA-NATIVE-QUALITY-PREVIEW
+          name: THEDEMIANFF-V73.1-MOTOROLA-REPARACION
           path: |
-            native-godot/out/THEDEMIANFF-V73-AURORA-NATIVE-PREVIEW.apk
+            native-godot/out/THEDEMIANFF-V73.1-MOTOROLA-FIXES.apk
             native-godot/out/SHA256SUMS.txt
-            native-godot/out/aurora-native-v73-preview.png
+            native-godot/out/aurora-native-v73-1-preview.png
           retention-days: 14
