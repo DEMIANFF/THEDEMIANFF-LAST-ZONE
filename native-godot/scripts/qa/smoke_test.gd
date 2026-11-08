@@ -42,5 +42,9 @@ func _verify() -> void:
         push_error("Native third-person camera not found")
         quit(5)
         return
-    print("V72 visual slice OK: terrain, physical structures, district, camera")
+    if main.get_node_or_null("TrainingHUD") == null or main.get_node_or_null("CombatRange") == null:
+        push_error("Missing native combat HUD or target range")
+        quit(8)
+        return
+    print("V72 slice OK: island, structures, camera, touch HUD, real weapon rays, AI-independent training")
     quit(0)

@@ -3,6 +3,8 @@ extends Node3D
 const TERRAIN = preload("res://scripts/world/island_terrain.gd")
 const OPERATOR = preload("res://scripts/player/third_person_operator.gd")
 const DISTRICT = preload("res://scripts/world/aurora_district.gd")
+const HUD = preload("res://scripts/ui/native_hud.gd")
+const COMBAT = preload("res://scripts/combat/training_combat.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
@@ -39,6 +41,17 @@ func _ready() -> void:
     operator.name = "Operator"
     add_child(operator)
     operator.global_position = Vector3(0.0, island.height_at(0.0, 0.0) + 1.2, 0.0)
+
+    var hud = HUD.new()
+    hud.name = "TrainingHUD"
+    add_child(hud)
+
+    var combat = COMBAT.new()
+    combat.name = "CombatRange"
+    combat.operator = operator
+    combat.terrain = island
+    combat.hud = hud
+    add_child(combat)
 
 
 func _set_up_lighting() -> void:
