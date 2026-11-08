@@ -1,0 +1,26 @@
+name: V71 Godot native foundation — scene boot
+on:
+  push:
+    branches: [codex/v71-native-battle-royale-foundation]
+    paths:
+      - 'native-godot/**'
+      - 'docs/V71_REAL_BATTLE_ROYALE_MASTER_PLAN.md'
+      - '.github/workflows/native-godot-foundation.yml'
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Godot 4.7.2 editor
+        run: |
+          curl -fL --retry 3 --retry-delay 2 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip' -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          sudo install -m 0755 /tmp/Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot
+          godot --headless --version
+      - name: Import and parse native Godot project
+        run: godot --headless --path native-godot --editor --quit
+      - name: Boot native terrain physics and camera
+        run: godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
