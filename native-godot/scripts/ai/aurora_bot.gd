@@ -28,6 +28,15 @@ var _clip: String = ""
 
 func _ready() -> void:
     add_to_group("training_target")
+    var marker := Label3D.new()
+    marker.name = "TrainingTargetMarker"
+    marker.text = "ENEMIGO IA"
+    marker.font_size = 42
+    marker.pixel_size = .006
+    marker.position = Vector3(0, 2.25, 0)
+    marker.modulate = Color(1.0, .52, .32)
+    marker.no_depth_test = true
+    add_child(marker)
     _anchor = Vector3(spawn_coordinates.x, terrain.height_at(spawn_coordinates.x,spawn_coordinates.y)+.15, spawn_coordinates.y)
     global_position = _anchor
     _idle_phase = float(get_instance_id()%41)*.31

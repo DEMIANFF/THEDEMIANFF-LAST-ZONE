@@ -19,6 +19,8 @@ var _jump_requested: bool = false
 
 var _yaw: float = 0.0
 var _pitch: float = -0.14
+var _desired_yaw: float = 0.0
+var _desired_pitch: float = -0.14
 var _look_touch: int = -1
 var _move_touch: int = -1
 var _move_origin: Vector2 = Vector2.ZERO
@@ -80,6 +82,11 @@ func _physics_process(delta: float) -> void:
     if _move_axis.length() > TOUCH_DEADZONE:
         control = _move_axis
 
+    # Delta-time camera smoothing avoids abrupt yaw/pitch changes on quick swipes.
+    var smooth: float = 1.0 - exp(-delta * 19.0)
+    _yaw = lerp_angle(_yaw, _desired_yaw, smooth)
+    _pitch = lerpf(_pitch, _desired_pitch, smooth)
+    _camera_pivot.rotation.x = _pitch
     var relative_direction := Vector3(control.x, 0.0, control.y)
     var facing := Basis(Vector3.UP, _yaw)
     var world_direction := (facing * relative_direction).normalized()
@@ -103,9 +110,11 @@ func _physics_process(delta: float) -> void:
     if _camera:
         var desired_fov: float = clampf(74.0 / _ads_zoom, 9.0, 74.0) if _ads_active else 74.0
         _camera.fov = lerpf(_camera.fov, desired_fov, 1.0 - exp(-delta * 11.0))
-        var desired_distance: float = 2.15 if _ads_active else 4.6
+        var desired_distance: float = 3.8 if _ads_active else 4.6
         _camera.position.z = lerpf(_camera.position.z, desired_distance, 1.0 - exp(-delta * 9.0))
-        _camera.position.x = lerpf(_camera.position.x, .26 if _ads_active else .4, 1.0 - exp(-delta * 9.0))
+        _camera.position.x = lerpf(_camera.position.x, .35 if _ads_active else .4, 1.0 - exp(-delta * 9.0))
+        if _avatar:
+            _avatar.visible = not (_ads_active and _ads_zoom >= 6.0)
     if _animator:
         var speed: float = Vector2(velocity.x, velocity.z).length()
         var state: String = "run" if speed >= 5.5 else "walk" if speed >= 1.0 else "idle"
@@ -167,6 +176,10 @@ func receive_training_hit(amount: float) -> void:
         training_health_changed.emit(training_health)
 
 
+func set_touch_move_axis(direction: Vector2) -> void:
+    _move_axis=direction.limit_length(1.0)
+
+
 func set_touch_run(active: bool) -> void:
     _sprint_touch=active
 
@@ -181,8 +194,7 @@ func set_ads(ads: bool, zoom: float) -> void:
 
 
 func apply_recoil(amount: float) -> void:
-    _pitch = clampf(_pitch - amount,-0.68,0.75)
-    _camera_pivot.rotation.x = _pitch
+    _desired_pitch = clampf(_desired_pitch - amount, -0.52, 0.52)
 
 
 func _play_matching_animation(requested: String) -> void:
@@ -202,28 +214,25 @@ func _play_matching_animation(requested: String) -> void:
         push_warning("No matching Aurora animation for "+requested+" in "+str(animations))
 
 
-func _unhandled_input(event: InputEvent) -> void:
+## Touch input must be captured BEFORE GUI dispatch: buttons and overlays may
+## consume ScreenDrag so _unhandled_input never sees joystick movement.
+func _input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         var viewport_width := get_viewport().get_visible_rect().size.x
         if touch.pressed:
-            if touch.position.x >= viewport_width * 0.48 and _look_touch == -1:
+            if touch.position.x >= viewport_width * 0.48 and _look_touch == -1 and not _touch_over_action_buttons(touch.position):
                 _look_touch = touch.index
-            elif touch.position.x < viewport_width * 0.48 and _move_touch == -1:
-                _move_touch = touch.index
-                _move_origin = touch.position
+            # Left-side touch is owned by MovePad._gui_input.
         else:
             if touch.index == _look_touch:
                 _look_touch = -1
-            if touch.index == _move_touch:
-                _move_touch = -1
-                _move_axis = Vector2.ZERO
+            # Movement release comes from GUI joystick signal.
     elif event is InputEventScreenDrag:
         var drag := event as InputEventScreenDrag
         if drag.index == _look_touch:
             _turn_camera(drag.relative)
-        elif drag.index == _move_touch:
-            _move_axis = ((drag.position - _move_origin) / 75.0).limit_length(1.0)
+        # Left-side drag is captured by the independent GUI joystick.
     elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
         _turn_camera((event as InputEventMouseMotion).relative)
     elif event is InputEventMouseButton:
@@ -232,13 +241,37 @@ func _unhandled_input(event: InputEvent) -> void:
             Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if mouse.pressed else Input.MOUSE_MODE_VISIBLE
 
 
+func _touch_over_action_buttons(at: Vector2) -> bool:
+    # A fire/reload/jump/ADS press must not also become a camera-look finger.
+    var area: Vector2=get_viewport().get_visible_rect().size
+    var positions := [
+        Vector4(.905,.71,112.0,106.0),
+        Vector4(.778,.66,74.0,62.0),
+        Vector4(.790,.80,81.0,59.0),
+        Vector4(.905,.87,79.0,59.0),
+        Vector4(.685,.82,76.0,54.0)]
+    for b in positions:
+        var x: float=area.x*b.x
+        var y: float=area.y*b.y
+        if absf(at.x-x)<=b.z*.58 and absf(at.y-y)<=b.w*.58:
+            return true
+    return false
+
+
+func _touch_over_run_button(at: Vector2) -> bool:
+    # The HUD's CORRER button lives on the left half of the screen. It must
+    # not steal the unique movement pointer when held alongside the joystick.
+    var v: Vector2=get_viewport().get_visible_rect().size
+    var center:=Vector2(v.x*.11,v.y*.61)
+    return absf(at.x-center.x)<=45.0 and absf(at.y-center.y)<=35.0
+
+
 func _turn_camera(delta: Vector2) -> void:
     if not delta.is_finite():
         return
     var limited := delta.limit_length(64.0)
-    _yaw -= limited.x * LOOK_SENSITIVITY
-    _pitch = clampf(_pitch - limited.y * LOOK_SENSITIVITY, -0.68, 0.75)
-    _camera_pivot.rotation.x = _pitch
+    _desired_yaw -= limited.x * LOOK_SENSITIVITY
+    _desired_pitch = clampf(_desired_pitch - limited.y * LOOK_SENSITIVITY, -0.52, 0.52)
 
 
 func _ensure_keyboard_actions() -> void:
