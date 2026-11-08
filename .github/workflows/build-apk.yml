@@ -292,6 +292,21 @@ jobs:
           if 'start()' in section: raise SystemExit('Eventos no deben iniciar partidas')
           print('V38.1 interacciones estáticas OK')
           PY
+      - name: Validar sintaxis del motor HTML V70
+        run: |
+          node - <<'JS'
+          const fs=require('node:fs'),vm=require('node:vm');
+          const html=fs.readFileSync('app/src/main/assets/index.html','utf8');
+          const matches=[...html.matchAll(/<script\\b[^>]*>([\\s\\S]*?)<\\/script>/gi)];
+          let checked=0;
+          for(const match of matches){
+            const code=match[1].trim();
+            if(!code)continue;
+            new vm.Script(code,{filename:'THEDEMIANFF-index-inline-'+(++checked)+'.js'});
+          }
+          if(checked===0)throw Error('No hay JavaScript ejecutable para validar');
+          console.log('V70: '+checked+' bloque(s) de JavaScript sintácticamente válidos');
+          JS
       - name: V58.8.0 validar cámara TPS, vuelo, ADS y respuesta táctil
         run: |
           python3 - <<'PY'
@@ -303,7 +318,7 @@ jobs:
               'function v58FlightPointerEnd(e)','function v58SetFlightMode(mode){','v58Camera.updateAngles(dt);',
               "v58SetFlightMode('aircraft')","v58SetFlightMode('descending')","v58SetFlightMode('landed')",
               'body.v58FlightMode #cross','body.v58FlightMode #v10Reticle',
-              'velocityGain=clamp(1-Math.max(0,velocity-.55)*.18,.58,1)',
+              'velocityGain=clamp(1-Math.max(0,velocity-.55)*.18-v70SwipeLimiter,.52,1)',
               'maxYawRate=aiming?v58Sights.active().yawRate:5.2',
               'function flushCamera(dt){cameraDX=0;cameraDY=0;}',
               'targetBack=scoped ? .34 : baseBack*(1-.02*b)','targetFov=2*Math.atan(Math.tan(baseFov*Math.PI/360)/zoom)*180/Math.PI'
