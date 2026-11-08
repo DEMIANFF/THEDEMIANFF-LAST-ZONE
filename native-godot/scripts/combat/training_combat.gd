@@ -20,6 +20,7 @@ var _targets: Array[CharacterBody3D]=[]
 var _weapon_model: Node3D
 var eliminations: int = 0
 var medkits_remaining: int = 2
+var sector_battle_active: bool = false
 
 
 func _ready() -> void:
@@ -52,6 +53,8 @@ func _process(dt: float) -> void:
 
 
 func _on_fire_pressed() -> void:
+    if operator.royale_eliminated:
+        return
     trigger_held=true
     operator.set_firing(true)
     if weapon_index==1:
@@ -93,6 +96,8 @@ func _on_aim() -> void:
 
 
 func _on_heal() -> void:
+    if operator.royale_eliminated:
+        return
     if medkits_remaining<=0:
         hud.impact("SIN BOTIQUINES")
         return
@@ -117,7 +122,7 @@ func _on_reload() -> void:
 
 
 func _shoot() -> void:
-    if cooldown>0 or reload_timer>0:
+    if operator.royale_eliminated or cooldown>0 or reload_timer>0:
         return
     if ammo[weapon_index]<=0:
         _on_reload()
@@ -143,6 +148,71 @@ func _shoot() -> void:
     if body is CharacterBody3D and body.is_in_group("training_target"):
         var eliminated: bool=body.take_training_damage(float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE))
         hud.impact("ENEMIGO NEUTRALIZADO" if eliminated else "IMPACTO CONFIRMADO")
+
+
+func begin_sector_battle() -> void:
+    sector_battle_active=true
+    trigger_held=false
+    operator.set_firing(false)
+    aim_active=false
+    current_zoom=1.0
+    operator.set_ads(false,1.0)
+    weapon_index=0
+    cooldown=0.0
+    reload_timer=0.0
+    ammo=[30,5]
+    reserve=[90,12]
+    medkits_remaining=2
+    eliminations=0
+    # 8 bots + player = 9 fighters in the explicitly limited sector pilot.
+    var additional_spawns: Array[Vector2]=[
+        Vector2(-47,-10),Vector2(55,-17),Vector2(26,-55),Vector2(-35,-48)]
+    while _targets.size()<8:
+        var i: int=_targets.size()
+        var bot: CharacterBody3D=BOT.new()
+        bot.name="AuroraPatrol"+str(i+1)
+        bot.terrain=terrain
+        bot.operator=operator
+        bot.spawn_coordinates=additional_spawns[i-4]
+        bot.eliminated.connect(_on_bot_eliminated)
+        add_child(bot)
+        _targets.append(bot)
+    for bot in _targets:
+        bot.configure_sector_battle(_targets)
+    if _weapon_model:
+        _weapon_model.visible=true
+    hud.set_training_radar_sources(operator,_targets)
+    hud.set_aim(false,"MIRA LIBRE",1.0)
+    hud.set_medkit_count(medkits_remaining)
+    _sync_hud()
+
+
+func active_fighter_count() -> int:
+    var count: int=0 if operator.royale_eliminated else 1
+    for bot in _targets:
+        if is_instance_valid(bot) and bot.health>0:
+            count+=1
+    return count
+
+
+func collect_sector_loot(kind: String) -> bool:
+    if not sector_battle_active or operator.royale_eliminated:
+        return false
+    match kind:
+        "medkit":
+            medkits_remaining=mini(medkits_remaining+1,5)
+            hud.set_medkit_count(medkits_remaining)
+            hud.impact("BOTIQUIN RECOGIDO +1")
+        "ammo_ar":
+            reserve[0]+=45
+            hud.impact("MUNICION AR +45")
+        "ammo_awm":
+            reserve[1]+=8
+            hud.impact("MUNICION AWM +8")
+        _:
+            return false
+    _sync_hud()
+    return true
 
 
 func _sync_hud() -> void:

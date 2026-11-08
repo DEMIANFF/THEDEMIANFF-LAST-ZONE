@@ -9,8 +9,11 @@ const LOOK_SENSITIVITY: float = 0.0032
 const TOUCH_DEADZONE: float = 0.12
 
 signal training_health_changed(value: float)
+signal player_eliminated
 @export var approved_operator_scene: PackedScene
 var training_health: float = 100.0
+var battle_royale_active: bool = false
+var royale_eliminated: bool = false
 var respawn_point: Vector3 = Vector3.ZERO
 var training_knockouts: int = 0
 var _training_immunity: float = 0.0
@@ -83,6 +86,9 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+    if royale_eliminated:
+        velocity=Vector3.ZERO
+        return
     _training_immunity=maxf(0.0,_training_immunity-delta)
     var control := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
     if _move_axis.length() > TOUCH_DEADZONE:
@@ -191,6 +197,12 @@ func receive_training_hit(amount: float) -> void:
     training_health_changed.emit(training_health)
     _training_immunity=.42
     if training_health<=0:
+        if battle_royale_active:
+            royale_eliminated=true
+            velocity=Vector3.ZERO
+            set_firing(false)
+            player_eliminated.emit()
+            return
         training_knockouts+=1
         training_health=100.0
         _training_immunity=3.0
@@ -199,7 +211,21 @@ func receive_training_hit(amount: float) -> void:
         training_health_changed.emit(training_health)
 
 
+func begin_sector_battle() -> void:
+    battle_royale_active = true
+    royale_eliminated = false
+    training_health = 100.0
+    velocity=Vector3.ZERO
+    global_position=respawn_point
+    _training_immunity=2.0
+    set_firing(false)
+    set_touch_move_axis(Vector2.ZERO)
+    training_health_changed.emit(training_health)
+
+
 func receive_training_heal(amount: float) -> void:
+    if royale_eliminated:
+        return
     if amount<=0:
         return
     training_health=minf(100.0,training_health+amount)

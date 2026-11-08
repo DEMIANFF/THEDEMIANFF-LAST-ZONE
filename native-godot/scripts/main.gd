@@ -5,6 +5,7 @@ const OPERATOR = preload("res://scripts/player/third_person_operator.gd")
 const DISTRICT = preload("res://scripts/world/aurora_district.gd")
 const HUD = preload("res://scripts/ui/native_hud.gd")
 const COMBAT = preload("res://scripts/combat/training_combat.gd")
+const SECTOR_MATCH = preload("res://scripts/match/sector_director.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
@@ -61,6 +62,13 @@ func _ready() -> void:
     combat.hud = hud
     add_child(combat)
     hud.set_training_radar_sources(operator,combat._targets)
+    var match_director: Node3D=SECTOR_MATCH.new()
+    match_director.name="AuroraSectorMatch"
+    match_director.player=operator
+    match_director.combat=combat
+    match_director.terrain=island
+    match_director.hud=hud
+    add_child(match_director)
 
 
 func _set_up_lighting() -> void:

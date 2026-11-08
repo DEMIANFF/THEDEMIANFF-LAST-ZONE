@@ -13,6 +13,7 @@ signal run_pressed
 signal run_released
 signal jump_pressed
 signal movement_axis_changed(value: Vector2)
+signal start_battle_requested
 const VIRTUAL_PAD = preload("res://scripts/ui/virtual_joystick.gd")
 const DIRECTIONAL_FIRE = preload("res://scripts/ui/directional_fire_pad.gd")
 const TACTICAL_RETICLE = preload("res://scripts/ui/scope_reticle.gd")
@@ -36,6 +37,8 @@ var _medkit_button: Button
 var _training_radar: Control
 var _crouching: bool = false
 var _reticle: Control
+var _battle_button: Button
+var _battle_status: Label
 
 
 func _ready() -> void:
@@ -73,6 +76,8 @@ func _ready() -> void:
     _ammo = _text(root, "30 / 180",.79,.137,22,Color(1,.79,.49),HORIZONTAL_ALIGNMENT_RIGHT)
     _fps = _text(root,"FPS —",.865,.028,13,Color(.67,.94,.81),HORIZONTAL_ALIGNMENT_RIGHT)
     _health_label = _text(root,"SALUD 100 / 100",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
+    _battle_button=_button(root,"INICIAR BR",.63,.035,139,52,Color(.25,.39,.49),_battle_down)
+    _battle_status=_text(root,"ENTRENAMIENTO",.46,.125,15,Color(.98,.85,.61),HORIZONTAL_ALIGNMENT_CENTER)
 
     _training_radar=TRAINING_RADAR.new()
     _training_radar.anchor_left=.017
@@ -178,6 +183,23 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
         button.button_up.connect(up)
     root.add_child(button)
     return button
+
+
+func _battle_down() -> void:
+    start_battle_requested.emit()
+
+
+func set_battle_button(label: String) -> void:
+    if _battle_button:
+        _battle_button.text=label
+        _battle_button.disabled=label=="EN PARTIDA"
+
+
+func set_sector_state(status: String, alive: int, safe_radius: float, elapsed_seconds: int) -> void:
+    if _battle_status:
+        _battle_status.text=status+"  |  "+str(alive)+" VIVOS  |  "+str(roundi(safe_radius))+"m  |  "+str(elapsed_seconds/60).pad_zeros(2)+":"+str(elapsed_seconds%60).pad_zeros(2)
+    if _status:
+        _status.text="THEDEMIANFF / AURORA     "+status
 
 
 func _fire_down() -> void:
