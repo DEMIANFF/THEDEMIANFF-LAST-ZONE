@@ -87,6 +87,10 @@ func _verify() -> void:
     player.set_touch_move_axis(Vector2.ZERO)
     var district=game.get_node("PuertoAuroraSector")
     var building: Node3D=district.get_node("CENTRO_DE_EXPLORACION")
+    var roof_mesh: Mesh=building.get_node("AngledMetalRoof").mesh
+    var normals: PackedVector3Array=roof_mesh.surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
+    for normal in normals:
+        check(normal.y>.9,"roof faces point inside the building")
     var ray:=PhysicsRayQueryParameters3D.create(building.global_position+Vector3(.5,20,0),building.global_position+Vector3(.5,-5,0))
     ray.exclude=[player.get_rid()]
     var hit: Dictionary=player.get_world_3d().direct_space_state.intersect_ray(ray)

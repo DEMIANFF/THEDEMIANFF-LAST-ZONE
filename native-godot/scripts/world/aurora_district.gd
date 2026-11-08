@@ -107,7 +107,7 @@ func _sloped_roof(parent: Node3D, w: float, d: float, h: float) -> void:
     for side in [-1.0, 1.0]:
         var edge_f := Vector3(left if side < 0 else right, h, front)
         var edge_b := Vector3(left if side < 0 else right, h, back)
-        var triangles: Array=[ridge_front, edge_f, edge_b, ridge_front, edge_b, ridge_back] if side<0 else [ridge_front, edge_b, edge_f, ridge_front, ridge_back, edge_b]
+        var triangles: Array=[ridge_front, edge_b, edge_f, ridge_front, ridge_back, edge_b] if side<0 else [ridge_front, edge_f, edge_b, ridge_front, edge_b, ridge_back]
         for pt in triangles:
             surface.add_vertex(pt)
     surface.generate_normals()

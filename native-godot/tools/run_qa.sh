@@ -20,5 +20,17 @@ for script in smoke_test combat_rules_test motorola_control_audit mobile_touch_r
     exit 1
   fi
   if grep -E 'SCRIPT ERROR:|ERROR:' "$LOGS/$script.log"; then exit 1; fi
+  marker='PASS'
+  case "$script" in
+    smoke_test) marker='TPS HUD OK';;
+    combat_rules_test) marker='AR automatic fire verified';;
+    v752_regression_qa) marker='V752_COVER blocked=100 clear=';;
+    responsive_layout_qa) marker='RESPONSIVE_LAYOUT (1024, 768)';;
+  esac
+  if ! grep -Fq "$marker" "$LOGS/$script.log"; then
+    echo "Incomplete test: $script"
+    cat "$LOGS/$script.log"
+    exit 1
+  fi
   echo "$script PASS"
 done

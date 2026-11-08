@@ -38,8 +38,8 @@ func _ready() -> void:
     line.name="AuroraBlueAccent"
     line.anchor_left=.045
     line.anchor_right=.955
-    line.anchor_top=.18
-    line.anchor_bottom=.18
+    line.anchor_top=.16
+    line.anchor_bottom=.16
     line.offset_bottom=3
     line.color=Color(.12,.73,.92)
     line.mouse_filter=Control.MOUSE_FILTER_IGNORE
