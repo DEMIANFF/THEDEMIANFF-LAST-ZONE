@@ -46,5 +46,15 @@ func _verify() -> void:
         push_error("Missing native combat HUD or target range")
         quit(8)
         return
-    print("V72 slice OK: island, structures, camera, touch HUD, real weapon rays, AI-independent training")
+    if OS.get_environment("AURORA_REQUIRE_OPERATOR") == "1":
+        var rig := operator.get_node_or_null("AuroraFemaleRiggedOperator")
+        if rig == null:
+            push_error("Requested CC0 operator not imported into native scene")
+            quit(9)
+            return
+        if rig.find_children("*", "Skeleton3D", true, false).is_empty():
+            push_error("Imported operator has no Skeleton3D")
+            quit(10)
+            return
+    print("V72 slice OK: island, structures, camera, touch HUD, actual weapon rays, rig check")
     quit(0)
