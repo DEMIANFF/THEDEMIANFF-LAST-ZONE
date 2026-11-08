@@ -226,8 +226,6 @@ clips=[
     ('AuroraReloadAWM',.10,36,True),
 ]
 for clip_name, amplitude, frames, armed in clips:
-                                     ('AuroraWalk', 0.23, 32),
-                                     ('AuroraRun', 0.40, 24)]:
     action = bpy.data.actions.new(clip_name)
     arm.animation_data.action = action
     for frame in [1, 1 + frames // 4, 1 + frames // 2,
