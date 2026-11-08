@@ -24,6 +24,10 @@ func _verify() -> void:
         " feet_delta=", initial_position.y-floor_height,
         " is_on_floor=", operator.is_on_floor(),
         " velocity=", operator.velocity)
+    if combat._targets.size() != 4:
+        push_error("MOTOROLA_AUDIT FAIL: expected four training enemies")
+        quit(25)
+        return
     for i in range(combat._targets.size()):
         var bot := combat._targets[i] as CharacterBody3D
         print("MOTOROLA_AUDIT bot_",i,
@@ -31,6 +35,10 @@ func _verify() -> void:
             " visible=",bot.visible,
             " alive=",bot.get("health"),
             " floor=",bot.is_on_floor())
+        if not bot.is_on_floor():
+            push_error("MOTOROLA_AUDIT FAIL: enemy falling through ground "+bot.name)
+            quit(26)
+            return
     if not operator.is_on_floor():
         push_error("MOTOROLA_AUDIT FAIL: character never achieved floor contact before jump")
         quit(21)
