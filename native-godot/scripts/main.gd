@@ -50,6 +50,7 @@ func _ready() -> void:
     hud.run_pressed.connect(func(): operator.set_touch_run(true))
     hud.run_released.connect(func(): operator.set_touch_run(false))
     hud.jump_pressed.connect(operator.touch_jump)
+    hud.crouch_pressed.connect(func(): operator.set_crouch(not operator._crouching))
     hud.movement_axis_changed.connect(operator.set_touch_move_axis)
     hud.set_health(operator.training_health)
 

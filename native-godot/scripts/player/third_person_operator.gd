@@ -97,7 +97,11 @@ func _physics_process(delta: float) -> void:
     var facing := Basis(Vector3.UP, _yaw)
     var world_direction := (facing * relative_direction).normalized()
     var run_fast := (Input.is_action_pressed("run") or _sprint_touch) and not _crouching
-    var target_speed := WALK_SPEED * 0.52 if _crouching else RUN_SPEED if run_fast else WALK_SPEED
+    var target_speed: float = WALK_SPEED
+    if _crouching:
+        target_speed = WALK_SPEED * .52
+    elif run_fast:
+        target_speed = RUN_SPEED
     var target_velocity := world_direction * target_speed
 
     velocity.x = move_toward(velocity.x, target_velocity.x, ACCELERATION * delta)

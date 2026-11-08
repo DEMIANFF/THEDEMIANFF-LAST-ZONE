@@ -29,6 +29,7 @@ var _ads: bool = false
 var _run_latched: bool = false
 var _run_button: Button
 var _crouch_button: Button
+var _aim_button: Button
 var _crouching: bool = false
 var _reticle: Control
 
@@ -91,7 +92,7 @@ func _ready() -> void:
     fire_pad.pressed.connect(_fire_down)
     fire_pad.released.connect(_fire_up)
     fire_pad.look_dragged.connect(func(delta: Vector2): fire_aim_changed.emit(delta))
-    _button(root,"MIRA",.778,.66,74,62,Color(.12,.39,.49),_aim_down)
+    _aim_button=_button(root,"MIRA",.778,.66,74,62,Color(.12,.39,.49),_aim_down)
     _button(root,"RECARGA",.790,.80,81,59,Color(.14,.30,.37),_reload_down)
     _button(root,"ARMA",.905,.87,79,59,Color(.19,.35,.41),_weapon_down)
     _run_button=_button(root,"CORRER",.11,.61,82,57,Color(.09,.30,.36),_run_down,_run_up)
@@ -226,6 +227,8 @@ func set_aim(active: bool,scope: String,zoom: float=1.0) -> void:
     _ads=active
     if _reticle:
         _reticle.set_zoom(zoom if active else 1.0)
+    if _aim_button:
+        _aim_button.text = ("8X" if zoom >= 6.0 else "4X" if zoom >= 3.8 else "2X") if active else "MIRA"
     if _hint:
         _hint.text=scope+"  ·  FUEGO Y ARRASTRA PARA PRECISION" if active else "CÁMARA LIBRE  ·  ARRASTRA FUEGO PARA APUNTAR"
 
