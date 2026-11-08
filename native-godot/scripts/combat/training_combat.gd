@@ -21,6 +21,7 @@ var _weapon_model: Node3D
 var eliminations: int = 0
 var medkits_remaining: int = 2
 var sector_battle_active: bool = false
+var tracer_events: int = 0
 
 
 func _ready() -> void:
@@ -142,6 +143,8 @@ func _shoot() -> void:
     var query:=PhysicsRayQueryParameters3D.create(from,from+direction*250)
     query.exclude=[operator.get_rid()]
     var hit: Dictionary=operator.get_world_3d().direct_space_state.intersect_ray(query)
+    var endpoint: Vector3=hit.get("position",from+direction*37.0)
+    _spawn_tracer(from,endpoint)
     if hit.is_empty():
         return
     var body=hit.get("collider")
@@ -213,6 +216,40 @@ func collect_sector_loot(kind: String) -> bool:
             return false
     _sync_hud()
     return true
+
+
+func _spawn_tracer(from: Vector3,to: Vector3) -> void:
+    # A very short-lived hitscan indicator. The actual damage still comes
+    # exclusively from the camera-aligned raycast, not this visible cylinder.
+    var start: Vector3=operator.global_position+Vector3.UP*1.48
+    var target: Vector3=to
+    var distance: float=start.distance_to(target)
+    if distance>.15:
+        var visual:=MeshInstance3D.new()
+        visual.name="BulletTracerV74"
+        var projectile:=CylinderMesh.new()
+        projectile.top_radius=.014 if weapon_index==0 else .024
+        projectile.bottom_radius=projectile.top_radius
+        projectile.height=minf(distance,90.0)
+        projectile.radial_segments=6
+        visual.mesh=projectile
+        var material:=StandardMaterial3D.new()
+        material.albedo_color=Color(.98,.83,.56) if weapon_index==0 else Color(.65,.82,.99)
+        material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+        material.emission_enabled=true
+        material.emission=material.albedo_color
+        material.emission_energy_multiplier=1.3
+        visual.material_override=material
+        var heading: Vector3=(target-start).normalized()
+        visual.position=start+heading*projectile.height*.5
+        visual.quaternion=Quaternion(Vector3.UP,heading)
+        visual.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        add_child(visual)
+        tracer_events+=1
+        get_tree().create_timer(.11).timeout.connect(func():
+            if is_instance_valid(visual):
+                visual.queue_free()
+        )
 
 
 func _sync_hud() -> void:

@@ -80,6 +80,21 @@ func _verify() -> void:
         quit(87)
         return
 
+    # Assert actual bot-to-bot damage path, not merely a configured opponent list.
+    var challenger: CharacterBody3D=combat._targets[0]
+    var rival: CharacterBody3D=combat._targets[1]
+    challenger.global_position=Vector3(4.0,game.get_node("AuroraTerrain").height_at(4.0,-40.0)+.2,-40.0)
+    rival.global_position=Vector3(7.0,game.get_node("AuroraTerrain").height_at(7.0,-40.0)+.2,-40.0)
+    challenger._target_actor=rival
+    challenger._target_visible=true
+    challenger._sense_clock=4.0
+    challenger._attack_clock=0.0
+    var hp_before: float=rival.health
+    challenger._physics_process(.016)
+    if rival.health>=hp_before:
+        push_error("Opponents cannot damage other opponents in battle royale")
+        quit(97)
+        return
     # AI-vs-AI and permanent elimination test (no training respawn).
     var before: int=combat.active_fighter_count()
     var victim: CharacterBody3D=combat._targets[1]

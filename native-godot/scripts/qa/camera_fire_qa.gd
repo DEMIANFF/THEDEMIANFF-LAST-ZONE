@@ -50,6 +50,10 @@ func _verify() -> void:
     touch.position=pad.size*.5
     touch.pressed=true
     pad._gui_input(touch)
+    if combat.tracer_events<1:
+        push_error("Real ray firing created no visible temporary tracer")
+        quit(66)
+        return
     if not combat.trigger_held:
         push_error("Fire pad did not press real weapon trigger")
         quit(54)
