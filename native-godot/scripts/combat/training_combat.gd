@@ -322,7 +322,7 @@ func _spawn_tracer(from: Vector3,to: Vector3) -> void:
     var visual: MeshInstance3D=_tracers[_tracer_cursor]
     var heading: Vector3=span.normalized()
     var radius: float=.014 if weapon_index==0 else .024
-    visual.global_transform=Transform3D(Basis(Quaternion(Vector3.UP,heading)).scaled(Vector3(radius,distance,radius)),from+heading*distance*.5)
+    visual.global_transform=Transform3D(Basis(Quaternion(Vector3.UP,heading)) * Basis.from_scale(Vector3(radius,distance,radius)),from+heading*distance*.5)
     visual.material_override=_tracer_materials[weapon_index]
     visual.visible=true
     _tracer_lifetimes[_tracer_cursor]=TRACER_LIFETIME
