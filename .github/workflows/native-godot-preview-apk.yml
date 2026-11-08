@@ -85,7 +85,7 @@ jobs:
           AURORA_REQUIRE_OPERATOR: "1"
         run: godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
       - name: Capture optional rendered scene from software OpenGL
-        continue-on-error: true
+        continue-on-error: false
         run: |
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-xvfb.log
           mkdir -p native-godot/out
