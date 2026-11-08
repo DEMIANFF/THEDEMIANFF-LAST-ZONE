@@ -21,7 +21,7 @@ jobs:
       - name: Install Blender FBX importer / GLB exporter
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq blender > /tmp/aurora-blender-install.log
+          sudo apt-get install -y -qq blender python3-numpy > /tmp/aurora-blender-install.log
           blender --background --version | head -n 2
       - name: Generate real skinned female operator from verified CC0 source
         run: |
