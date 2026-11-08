@@ -245,6 +245,48 @@ def pose_crouch(phase, walking):
             bone.rotation_quaternion = rotation
             bone.keyframe_insert(data_path="rotation_quaternion")
 
+# Use authored foot positions, a two-bone knee solve and pelvis motion during
+# the locomotion clips. This is a provisional procedural gait, not mocap or
+# finished two-handed weapon IK.
+def pose_ground_gait(phase, running):
+    hips=arm.pose.bones["rig:Hips"]
+    hips.location=Vector((0.0,(1.8 if running else 1.0)*(1.0-math.cos(2.0*phase)),0.0))
+    hips.keyframe_insert(data_path="location")
+    stride=23.0 if running else 14.0
+    lift=10.0 if running else 6.0
+    for side,sign in [("Left",1.0),("Right",-1.0)]:
+        thigh=arm.pose.bones["rig:"+side+"UpLeg"]
+        shin=arm.pose.bones["rig:"+side+"Leg"]
+        foot=arm.pose.bones["rig:"+side+"Foot"]
+        hip=thigh.bone.head_local+hips.location
+        knee_rest=shin.bone.head_local
+        foot_rest=foot.bone.head_local
+        upper_rest=knee_rest-thigh.bone.head_local
+        lower_rest=foot_rest-knee_rest
+        swing=math.sin(phase)*sign
+        target=foot_rest+Vector((0.0,max(0.0,swing)*lift,math.cos(phase)*sign*stride))
+        diff=target-hip
+        reach=max(.001,diff.length)
+        d=min(reach,(upper_rest.length+lower_rest.length)*.995)
+        direction=diff/reach
+        along=(upper_rest.length_squared-lower_rest.length_squared+d*d)/(2.0*d)
+        bend=Vector((0,0,1))-direction*direction.z
+        if bend.length_squared<.0001:
+            bend=Vector((1,0,0))
+        bend.normalize()
+        knee=hip+direction*along+bend*math.sqrt(max(0.0,upper_rest.length_squared-along*along))
+        upper=upper_rest.rotation_difference(knee-hip)
+        lower=lower_rest.rotation_difference(target-knee)
+        # Keep a visible opposing thigh swing even when the fitted knee chain
+        # sits near its straight-leg extension; the old solver locked thighs
+        # during armed walking despite a moving ankle/pelvis.
+        swing_upper=upper @ Quaternion(Vector((1,0,0)),swing*(.25 if running else .19))
+        for bone,rotation in [(thigh,swing_upper),(shin,swing_upper.inverted() @ lower),(foot,lower.inverted())]:
+            bone.rotation_mode='QUATERNION'
+            bone.rotation_quaternion=rotation
+            bone.keyframe_insert(data_path='rotation_quaternion')
+
+
 clips=[
     ('AuroraIdle',.012,60,False),
     ('AuroraWalk',.23,32,False),
@@ -269,8 +311,11 @@ for clip_name, amplitude, frames, armed in clips:
     action = bpy.data.actions.new(clip_name)
     arm.animation_data.action = action
     crouched = clip_name.startswith("AuroraCrouch") or clip_name == "AuroraLand"
-    for frame in [1, 1 + frames // 4, 1 + frames // 2,
-                  1 + 3 * frames // 4, 1 + frames]:
+    # Additional gait samples smooth alternation of feet and weight transfer.
+    key_frames=sorted({1+int(round(frames*step/12)) for step in range(13)}) if clip_name in (
+        "AuroraWalk","AuroraRun","AuroraArmedWalk","AuroraArmedRun") else [
+        1,1+frames//4,1+frames//2,1+3*frames//4,1+frames]
+    for frame in key_frames:
         phase = math.tau * (frame - 1) / frames
         scene.frame_set(frame)
         for bone in arm.pose.bones:
@@ -326,6 +371,8 @@ for clip_name, amplitude, frames, armed in clips:
                     bone.rotation_mode = "QUATERNION"
                     bone.rotation_quaternion = Quaternion((1,0,0,0))
                     bone.keyframe_insert(data_path="rotation_quaternion", frame=frame)
+            if clip_name in ("AuroraWalk","AuroraRun","AuroraArmedWalk","AuroraArmedRun"):
+                pose_ground_gait(phase,clip_name.endswith("Run"))
     track = arm.animation_data.nla_tracks.new()
     track.name = clip_name
     strip = track.strips.new(clip_name, 1, action)
