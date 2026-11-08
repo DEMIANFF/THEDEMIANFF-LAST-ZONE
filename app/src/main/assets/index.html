@@ -1107,6 +1107,10 @@ body.v60DescendingMap #ui>#v36MapButton.hidden{display:none!important}
 </style>
 <style id="v70UnifiedStyles">
 #v60BoltButton{display:none!important}
+#v63InventoryGrid button.v63InventorySlot{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+#v63InventoryGrid button.v63InventorySlot:active{transform:scale(.97)}
+#v63InventoryGrid button.v63InventorySlot.equipped{border-color:#f9cb71;box-shadow:0 0 0 1px #f9cb71b3 inset;background:linear-gradient(145deg,#465743,#1b3441)}
+#v63InventoryGrid button.v63InventorySlot:focus-visible{outline:2px solid #f9cb71}
 @media(pointer:coarse) and (orientation:landscape){
 body.v475InMatch #weapon{position:fixed!important;top:clamp(72px,20vh,116px)!important;bottom:auto!important;right:max(10px,env(safe-area-inset-right))!important;max-width:clamp(138px,24vw,196px)!important;padding:5px 9px!important;z-index:8!important;pointer-events:none!important;background:linear-gradient(120deg,#081a2cd8,#0b3142d8)!important}
 body.v475InMatch #weapon strong{font-size:clamp(14px,2.3vw,20px)!important}
@@ -2027,7 +2031,11 @@ function v63RenderInventory(){
  document.getElementById('v63InventorySummary').textContent=v63Inventory.backpackName()+' · '+snapshot.usedSlots+'/'+snapshot.backpack.slots+' ESPACIOS · '+meds+'/'+snapshot.medLimit+' BOTIQUINES · '+Math.ceil(armor)+' ESCUDO';
  grid.replaceChildren();
  for(const item of snapshot.slots){
-  const cell=document.createElement('div');cell.className='v63InventorySlot '+(item.type==='empty'?'empty':'filled')+' '+item.type;cell.dataset.slot=String(item.slot);
+  const actionable=item.type==='weapon'||item.type==='med';
+   const cell=document.createElement(actionable?'button':'div');
+   if(actionable){cell.type='button';cell.dataset.action=item.type;cell.dataset.itemIndex=String(item.index??-1);cell.setAttribute('aria-label',(item.type==='weapon'?'Equipar ':'Usar ')+item.label);}
+   cell.className='v63InventorySlot '+(item.type==='empty'?'empty':'filled')+' '+item.type+(item.type==='weapon'&&item.index===weaponIndex?' equipped':'');
+   cell.dataset.slot=String(item.slot);
   const number=document.createElement('span');number.className='v63InventoryNumber';number.textContent=String(item.slot).padStart(2,'0');
   const icon=document.createElement('strong');icon.className='v63InventoryIcon';icon.textContent=item.type==='weapon'?'▰':item.type==='ammo'?'•':item.type==='med'?'✚':item.type==='armor'?'⬡':'＋';
   const title=document.createElement('b');title.className='v63InventoryTitle';title.textContent=item.label;
@@ -2047,6 +2055,13 @@ function v63CloseInventory(){
  if(v63InventoryWasOpen){v63InventoryWasOpen=false;paused=false;clock.getDelta();updateHud();}
 }
 function v63SetInventoryAvailability(available){$('v63InventoryButton').classList.toggle('hidden',!available);}
+$('v63InventoryGrid').addEventListener('click',event=>{
+ const cell=event.target.closest?.('.v63InventorySlot[data-action]');
+ if(!cell||!v63InventoryWasOpen)return;
+ const action=cell.dataset.action,index=Number(cell.dataset.itemIndex);
+ if(action==='weapon'&&Number.isInteger(index)&&index>=0&&index<weapons.length){v63CloseInventory();swap(index);}
+ else if(action==='med'&&meds>0&&hp<100){v63CloseInventory();heal();}
+});
 $('v63InventoryButton').addEventListener('click',v63OpenInventory);
 $('v63InventoryClose').addEventListener('click',v63CloseInventory);
 function h(x,z){const r=Math.hypot(x,z);const crater=2.8*Math.exp(-Math.pow((r-39)/15,2))-1.4*Math.exp(-Math.pow(r/18,2));const ridge=1.6*Math.sin(x*.025)*Math.cos(z*.038);return crater+ridge+.35*Math.sin(x*.11+z*.07)+.35*Math.cos(z*.081)}function ground(x,z){return h(x,z)} // V65: física y colisiones siguen el relieve visible
@@ -3953,16 +3968,49 @@ bots.push({...c,role,hp:roleHp,x:p.x,z:p.z,yaw:rand(-3,3),moveAngle:rand(-3,3),t
  group.userData.v40PickupHalo=halo;group.userData.v362Glow=beacon;scene.add(group);
  const pickup={type,rarity:v63Inventory.rarity(type),x,z,group,phase:rand(0,6)};pickups.push(pickup);return pickup;
 }
-function reset(){document.body.classList.remove('v36MapOpen','v58OpticActive','v60DescendingMap','v63InventoryOpen');$('v63InventoryPanel').classList.add('hidden');$('v63InventoryButton').classList.add('hidden');$('v60BoltButton').classList.add('hidden');v63InventoryWasOpen=false;v60AwmCycleTimer=0;v60AwmNeedsNewPress=false;for(const weapon of weapons)weapon.needsCycle=false;v58FlightPointers?.clear?.();v58SetFlightMode('idle');v586RestoreBuildingVisibility();v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v480Pulse=0;v480FrameCount=0;v480Snapshot.fill(null);v583ZoneHudClock=0;v484NoAmmoNotice=-10;v489AutoSwaps=0;v489DryFires=0;v489LastDryFire=-10;v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');document.body.classList.remove('v36MapOpen');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
+/* V70 Aurora: shared low-poly GPU instances, no external assets or new colliders. */
+function v70DecorateAurora(){
+ if(!scene||typeof THREE.InstancedMesh!=='function')return 0;
+ const root=new THREE.Group();root.name='V70_AURORA_FROST_DETAILS';scene.add(root);
+ const icePoints=[],signalPoints=[],dummy=new THREE.Object3D();
+ for(let i=0;i<84;i++){
+  const a=i*2.399963229728653,r=27+Math.sqrt((i+1)/84)*129,x=Math.cos(a)*r,z=Math.sin(a)*r;
+  if(!solid(x,z,1.5))icePoints.push([x,z,i]);
+ }
+ for(let i=0;i<14;i++){
+  const a=i*2.399963229728653+.39,r=35+(i%7)*14,x=Math.cos(a)*r,z=Math.sin(a)*r;
+  if(!solid(x,z,2))signalPoints.push([x,z,i]);
+ }
+ const add=(points,geometry,material,sizeFn)=>{
+  if(!points.length){geometry.dispose();material.dispose();return;}
+  const mesh=new THREE.InstancedMesh(geometry,material,points.length);mesh.frustumCulled=false;
+  for(let i=0;i<points.length;i++){
+   const [x,z,seed]=points[i],s=sizeFn(seed);
+   dummy.position.set(x,ground(x,z)+s*.4,z);
+   dummy.rotation.set(0,seed*1.618,0);dummy.scale.set(s,s*(1+(seed%4)*.19),s);
+   dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
+  }
+  mesh.instanceMatrix.needsUpdate=true;root.add(mesh);
+ };
+ add(icePoints,new THREE.ConeGeometry(.58,1.65,5),new THREE.MeshStandardMaterial({color:'#9fcbd8',roughness:.58,metalness:.12}),i=>.55+(i%6)*.18);
+ add(signalPoints,new THREE.CylinderGeometry(.08,.14,2.65,5),new THREE.MeshStandardMaterial({color:'#5bbbc5',emissive:'#25636d',emissiveIntensity:.45,roughness:.43}),i=>.9+(i%3)*.13);
+ window.v70SceneryRoot=root;return icePoints.length+signalPoints.length;
+}
+function reset(){v70FpsSamples.length=0;document.body.classList.remove('v36MapOpen','v58OpticActive','v60DescendingMap','v63InventoryOpen');$('v63InventoryPanel').classList.add('hidden');$('v63InventoryButton').classList.add('hidden');$('v60BoltButton').classList.add('hidden');v63InventoryWasOpen=false;v60AwmCycleTimer=0;v60AwmNeedsNewPress=false;for(const weapon of weapons)weapon.needsCycle=false;v58FlightPointers?.clear?.();v58SetFlightMode('idle');v586RestoreBuildingVisibility();v395SwapTime=0;v395ReloadDuration=0;v469HealTimer=0;v470JumpPose=0;v470LandingPose=0;v470FirePose=0;v470StartSoundPending=false;v473PoiAudioClock=6;v473ZoneWarningIssued=false;v472ShotHeat.fill(0);v472ShotCounter=0;v474RivalClock=0;v474RivalRounds=0;v474RivalEliminations=0;v477RivalThreatClock=0;v477RivalThreatPos=null;v477Engagements=0;v477SupplyProximityClock=0;v477LastNearbySupply=null;v477CombatSignals=0;v480Pulse=0;v480FrameCount=0;v480Snapshot.fill(null);v583ZoneHudClock=0;v484NoAmmoNotice=-10;v489AutoSwaps=0;v489DryFires=0;v489LastDryFire=-10;v474SupplyClock=26;v474SupplyCount=0;v474SupplyMarkers=[];v476PoiName='EXPLORACIÓN';v476PoiDistance=Infinity;v476PoiCheck=0;v476SupplyRecovered=0;v476AuroraRefresh=0;window.v36FlightMode='idle';v36Waypoint=null;v36MapPick=null;v36MapWasOpen=false;$('v36MapPanel').classList.add('hidden');document.body.classList.remove('v36MapOpen');$('v36DropPanel').classList.add('hidden');$('v37FlightHUD').classList.add('hidden');$('v36ParachuteStatus').classList.add('hidden');for(const o of [...bots.map(b=>b.root),...pickups.map(p=>p.group),...effects.map(e=>e.mesh)])scene?.remove(o);bots=[];pickups=[];effects=[];worldObjects=[];if(v71PingBeacon&&scene){scene.remove(v71PingBeacon);v71PingBeacon.traverse(o=>{o.geometry?.dispose();if(o.material&&!Array.isArray(o.material))o.material.dispose()});v71PingBeacon=null;}
 if(window.v396VisualRoot){v583DisposeVisualRoot(window.v396VisualRoot);window.v396VisualRoot=null;}
 if(window.v397VisualRoot){v583DisposeVisualRoot(window.v397VisualRoot);window.v397VisualRoot=null;}
+if(window.v70SceneryRoot){
+ const root=window.v70SceneryRoot;
+ root.traverse(obj=>{obj.geometry?.dispose();if(obj.material)for(const m of (Array.isArray(obj.material)?obj.material:[obj.material]))m?.dispose();});
+ scene?.remove(root);window.v70SceneryRoot=null;
+}
 if(scene){
  const geometries=new Set();
  scene.traverse(obj=>{if(obj.geometry&&!obj.geometry.userData.v583Shared)geometries.add(obj.geometry);});
  for(const geometry of geometries)geometry.dispose();
  while(scene.children.length)scene.remove(scene.children[0]);
 }
-v428CreateTrainingWorld();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;player.scale.setScalar(1.24);const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.18;v58Camera.reset();camera.lookAt(0,1.7,35);v58Sights.updateHud(false);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);v63Inventory.reset();for(const weapon of weapons){weapon.ammo=weapon.mag;weapon.reserve=weapon.reserveMax??weapon.mag*6;}
+v428CreateTrainingWorld();v70DecorateAurora();v22PrepareLila();const c=v18Progress.skin===4?v22FemaleOperator():makeCharacter(v18Skins[v18Progress.skin]?.color||'#556d72');playerModel=c;player=c.root;player.scale.setScalar(1.24);const landing=safePos(28);player.position.set(landing.x,ground(landing.x,landing.z),landing.z);scene.add(player);camera.position.set(0,5,-7);camYaw=0;camPitch=.18;v58Camera.reset();camera.lookAt(0,1.7,35);v58Sights.updateHud(false);hp=100;armor=50;meds=2;kills=0;time=0;zoneRadius=225;zoneCenter.set(0,0);zonePhase=0;zoneTick=0;vertical=0;onGround=true;moveVX=moveVZ=cameraDX=cameraDY=0;v8Combo=0;v8LastHitAt=0;reloadTimer=0;reloadWeapon=-1;shootCooldown=0;gameOver=false;weaponIndex=clamp(Number(v18Progress.weapon)||0,0,weapons.length-1);v22UpdateHolster(playerModel,weaponIndex);v63Inventory.reset();for(const weapon of weapons){weapon.ammo=weapon.mag;weapon.reserve=weapon.reserveMax??weapon.mag*6;}
 v472ShotHeat.fill(0);for(let i=0;i<($('v18Mode').value==='training'?8:20);i++)spawnBot(Math.random()<.5?10:17);for(let i=0;i<55;i++){let p=safePos(5);spawnPickup(['ammo','ammo','med','armor'][i%4],p.x,p.z)}updateHud();}
 function updateHud(){
  const eventHud=$('v362EventHud');if(eventHud){eventHud.classList.toggle('hidden',!v18ActiveEvent);if(v18ActiveEvent)eventHud.textContent='EVENTO '+(v18ActiveEvent==='training'?'PRÁCTICA TÁCTICA':'SUPERVIVENCIA')+' · BAJAS '+kills+'/'+(v18ActiveEvent==='training'?2:3);}
@@ -4380,6 +4428,19 @@ function v583ApplyZoneDamage(dt){
  if(hp<=0){hp=0;finish(false);return true;}return false;
 }
 window.THEDEMIANFF_ZONE_DAMAGE_TEST=(dt,phase)=>v583ZoneDamageAmount(dt,phase);
+/* V70 team radio: last-known-position search, not wall-penetrating vision. */
+function v70AlertSquad(observer,x,z){
+ if(!observer?.alive||!Number.isFinite(x)||!Number.isFinite(z))return 0;
+ let notified=0;
+ for(const ally of bots){
+  if(!ally.alive||ally===observer||ally.airborne||Math.hypot(ally.x-observer.x,ally.z-observer.z)>24)continue;
+  if(ally.investigateTime>2&&ally.alert>.65)continue;
+  ally.lastSeenX=x;ally.lastSeenZ=z;ally.investigateTime=Math.max(ally.investigateTime||0,2.7);
+  ally.alert=Math.max(ally.alert||0,.45);ally.think=Math.min(ally.think||0,.18);notified++;
+ }
+ return notified;
+}
+window.THEDEMIANFF_V70_AI_TEST=()=>({alive:bots.filter(b=>b.alive).length,squadRadioRadius:24});
 function update(dt){if(window.v36FlightMode==='descending'){v36StepFlight(dt);return;}v362UpdateBotsInAir(dt);flushCamera(dt);aimAssistPull(dt);ambientTick(dt);v16Weather(dt);v27AuroraTick(dt);v583TickBattleVisuals(dt);
  // FOV y reticula ahora pertenecen exclusivamente al controlador V43.2.
  time+=dt;
@@ -4491,13 +4552,19 @@ b.visionTime-=dt;
 if(b.visionTime<=0){
  const sightRange=crouchHeld&&!fireHeld?46:58;
  b.cachedVisible=d<sightRange&&!blocked3D(b.x,enemyEye,b.z,player.position.x,playerEye,player.position.z);
- b.visionTime=d<24?.08:d<48?.16:.32;
+ b.visionTime=d<24?.09:d<48?.20:.39;
 }
 const visible=d<(crouchHeld&&!fireHeld?46:58)&&b.cachedVisible;
 b.hitStun=Math.max(0,b.hitStun-dt);b.dodgeTime=Math.max(0,b.dodgeTime-dt);
 // V46.7: a gunshot is audible even when the shooter is behind cover; perception is bounded.
 const heardShot=time-v467LastShotTime<1.1&&Math.hypot(v467LastShotX-b.x,v467LastShotZ-b.z)<(b.role==='EXPLORADOR'?65:46);
-if(visible){b.lastSeenX=player.position.x;b.lastSeenZ=player.position.z;b.investigateTime=4.5;}
+if(visible){
+ b.lastSeenX=player.position.x;b.lastSeenZ=player.position.z;b.investigateTime=4.5;
+ if((b.v70NextSquadAlert||0)<=time){
+  b.v70NextSquadAlert=time+3.5+Math.abs(b.tactic||0)*.12;
+  v70AlertSquad(b,player.position.x,player.position.z);
+ }
+}
 else if(heardShot&&b.heardShotStamp!==v467LastShotTime){b.lastSeenX=v467LastShotX;b.lastSeenZ=v467LastShotZ;b.investigateTime=3.5;b.heardShotStamp=v467LastShotTime;}
 b.investigateTime=Math.max(0,b.investigateTime-dt);b.rivalThreatTimer=Math.max(0,(b.rivalThreatTimer||0)-dt);
 b.suppression=Math.max(0,b.suppression-dt*.7);
@@ -5174,7 +5241,7 @@ function v18Open(name){
    html+='<div class="v18Grid">'+[0,1,2].map(i=>{const set=p.presets[i],info=set?'Personaje: '+(v18Skins[set.skin]?.name||'Operador')+' · '+(weapons[set.weapon]?.name||'Arma'):'Ranura sin guardar';return card('EQUIPAMIENTO '+(i+1),info,'GUARDAR','preset-save:'+i)+card('CARGAR EQUIPO '+(i+1),set?'Equipar personaje y arma guardados':'Primero guarda un equipamiento',set?'EQUIPAR':'VACÍO','preset-load:'+i)}).join('')+'</div>';
   }else if(name==='ARMAS'){
   html+='<div class="v18Grid">'+weapons.map((w,i)=>card(w.name,`Daño ${w.damage} · Cargador ${w.mag} · Alcance ${w.range}m`,p.weapon===i?'EQUIPADA':'EQUIPAR',`weapon:${i}`)).join('')+'</div>';
-  html+='<p class="v18PanelNote">Selecciona el arma inicial. Durante la partida puedes cambiar entre las cinco.</p>';
+  html+='<p class="v18PanelNote">Selecciona el arma inicial. Durante la partida puedes cambiar entre las seis.</p>';
   }else if(name==='PASE'){
   const tier=Math.min(30,1+Math.floor(Math.max(0,p.xp)/350)),progress=Math.max(0,p.xp)%350,elite=p.passElite===true;
   const freeClaimed=p.claimed.filter(x=>/^pass_free_/.test(x)).length,eliteClaimed=p.claimed.filter(x=>/^pass_elite_/.test(x)).length;
@@ -5578,9 +5645,19 @@ let v405ContextLost=false,v405ContextRestores=0,v405LastFrameAt=0,v405SlowFrames
 // Adaptive internal resolution based on measured rendering throughput.
 // Device temperature is not exposed reliably to WebView; FPS is the safe proxy.
 const v26Performance={scale:mobile?.76:1,lowFrames:0,highFrames:0};
+const v70FpsSamples=[];
+window.THEDEMIANFF_V70_DIAGNOSTICS=()=>({
+ version:'70.0.0-aurora-unified',fpsSamples:v70FpsSamples.slice(),
+ averageFps:v70FpsSamples.length?Math.round(v70FpsSamples.reduce((sum,n)=>sum+n,0)/v70FpsSamples.length):null,
+ minimumFps:v70FpsSamples.length?Math.min(...v70FpsSamples):null,
+ drawCalls:renderer?.info?.render?.calls??null,triangles:renderer?.info?.render?.triangles??null,
+ renderScale:v26Performance.scale,activeEnemies:bots.filter(b=>b.alive).length,
+ sceneryInstances:window.v70SceneryRoot?.children?.reduce((n,m)=>n+(m.count||0),0)||0,
+ awmCycleSeconds:v60AwmCycleDuration,bolting:v60AwmCycleTimer>0
+});
 window.THEDEMIANFF_V405_PERFORMANCE=()=>({resolutionScale:v26Performance.scale,pixelRatio:renderer?.getPixelRatio()||0,drawCalls:renderer?.info?.render?.calls||0,triangles:renderer?.info?.render?.triangles||0,slowFrames:v405SlowFrames,contextRestores:v405ContextRestores,contextLost:v405ContextLost,targetFps:120});
 function v26TunePerformance(fps){
- if(!Number.isFinite(fps)||!renderer||!running||paused||v405ContextLost)return;
+ if(!Number.isFinite(fps)||!renderer||!running||paused||v405ContextLost||$('batterySaver').checked)return;
  // Faster downshift on GPU pressure; slow recovery to prevent oscillation.
  if(fps<30){v26Performance.lowFrames++;v26Performance.highFrames=0;}
  else if(fps>57){v26Performance.highFrames++;v26Performance.lowFrames=0;}
@@ -5634,6 +5711,7 @@ function frame(now){
   if(fpsElapsed>.85){
    const measuredFps=fpsFrames/Math.max(.001,fpsElapsed);
    v26TunePerformance(measuredFps);
+    if(running&&!paused&&Number.isFinite(measuredFps)){v70FpsSamples.push(Math.round(measuredFps));if(v70FpsSamples.length>12)v70FpsSamples.shift();}
    $('fpsCounter').textContent=$('showFps').checked?Math.round(measuredFps)+' FPS':'';
    fpsFrames=0;fpsElapsed=0;
   }
