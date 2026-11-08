@@ -102,10 +102,20 @@ func _verify() -> void:
         push_error("AI not configured for free-for-all opponents")
         quit(88)
         return
-    victim.take_training_damage(150.0)
+    victim.take_training_damage(150.0,challenger)
+    if combat.eliminations!=0:
+        push_error("Bot or zone eliminations incorrectly counted as player kills")
+        quit(98)
+        return
     if victim.health>0 or combat.active_fighter_count()!=before-1:
         push_error("Elimination did not reduce the live participant count")
         quit(89)
+        return
+    var player_target: CharacterBody3D=combat._targets[2]
+    player_target.take_training_damage(180.0,operator)
+    if combat.eliminations!=1:
+        push_error("Player kill was not credited correctly")
+        quit(99)
         return
     for bot in combat._targets:
         if bot.health>0:

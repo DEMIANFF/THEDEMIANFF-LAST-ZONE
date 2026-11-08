@@ -149,7 +149,7 @@ func _shoot() -> void:
         return
     var body=hit.get("collider")
     if body is CharacterBody3D and body.is_in_group("training_target"):
-        var eliminated: bool=body.take_training_damage(float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE))
+        var eliminated: bool=body.take_training_damage(float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE),operator)
         hud.impact("ENEMIGO NEUTRALIZADO" if eliminated else "IMPACTO CONFIRMADO")
 
 
@@ -187,6 +187,7 @@ func begin_sector_battle() -> void:
     hud.set_training_radar_sources(operator,_targets)
     hud.set_aim(false,"MIRA LIBRE",1.0)
     hud.set_medkit_count(medkits_remaining)
+    hud.set_eliminations(0)
     _sync_hud()
 
 
@@ -273,9 +274,13 @@ func _make_targets() -> void:
         _targets.append(bot)
 
 
-func _on_bot_eliminated(_agent: CharacterBody3D) -> void:
-    eliminations+=1
-    hud.impact("BAJA CONFIRMADA  /  "+str(eliminations))
+func _on_bot_eliminated(_agent: CharacterBody3D,killer: Node3D) -> void:
+    # Correct BR stats: only kills caused by this player count. Enemy-on-enemy
+    # and zone eliminations reduce alive count but do NOT credit a player kill.
+    if killer==operator:
+        eliminations+=1
+        hud.set_eliminations(eliminations)
+        hud.impact("BAJA CONFIRMADA  /  "+str(eliminations))
 
 
 func _draw_weapon_rig() -> void:

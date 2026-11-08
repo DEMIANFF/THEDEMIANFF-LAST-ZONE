@@ -1,7 +1,7 @@
 extends CharacterBody3D
 ## Aurora V73 offline training opponent: rigged glTF visual, bounded ray-LOS,
 ## grounded patrol and actual damage. This is not a networked human player.
-signal eliminated(agent: CharacterBody3D)
+signal eliminated(agent: CharacterBody3D, killer: Node3D)
 
 const WALK_SPEED: float = 1.85
 const CHASE_SPEED: float = 2.45
@@ -117,7 +117,7 @@ func _physics_process(dt: float) -> void:
             if not operator.royale_eliminated:
                 operator.receive_training_hit(5.0)
         elif is_instance_valid(_target_actor) and _target_actor.health>0:
-            _target_actor.take_training_damage(22.0)
+            _target_actor.take_training_damage(22.0, self)
     if _animation:
         var action: String="AuroraWalk" if Vector2(velocity.x,velocity.z).length()>.8 else "AuroraIdle"
         if action!=_clip:
@@ -173,7 +173,7 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _alert_time=0.0
 
 
-func take_training_damage(damage: float) -> bool:
+func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
     if health<=0:
         return false
     health=maxf(0,health-damage)
@@ -189,7 +189,7 @@ func take_training_damage(damage: float) -> bool:
         if respawn_enabled:
             # Keep original training respawn; BR eliminates permanently.
             get_tree().create_timer(_dead_time).timeout.connect(_respawn)
-        eliminated.emit(self)
+        eliminated.emit(self,attacker)
         return true
     return false
 

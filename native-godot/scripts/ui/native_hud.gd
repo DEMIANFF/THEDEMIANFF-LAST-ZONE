@@ -39,6 +39,7 @@ var _crouching: bool = false
 var _reticle: Control
 var _battle_button: Button
 var _battle_status: Label
+var _eliminations_label: Label
 var _health_meter: ProgressBar
 var _damage_flash: ColorRect
 var _result_window: PanelContainer
@@ -85,6 +86,7 @@ func _ready() -> void:
     _weapon = _text(root, "AR-7  /  ASALTO",.76,.085,21,Color(.90,.96,1),HORIZONTAL_ALIGNMENT_RIGHT)
     _ammo = _text(root, "30 / 180",.79,.137,22,Color(1,.79,.49),HORIZONTAL_ALIGNMENT_RIGHT)
     _fps = _text(root,"FPS —",.865,.028,13,Color(.67,.94,.81),HORIZONTAL_ALIGNMENT_RIGHT)
+    _eliminations_label=_text(root,"BAJAS 0",.72,.027,16,Color(.99,.63,.55),HORIZONTAL_ALIGNMENT_LEFT)
     _health_label = _text(root,"SALUD 100 / 100",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
     _health_meter=ProgressBar.new()
     _health_meter.name="PlayerHealthMeter"
@@ -241,6 +243,11 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
 
 func _battle_down() -> void:
     start_battle_requested.emit()
+
+
+func set_eliminations(kills: int) -> void:
+    if _eliminations_label:
+        _eliminations_label.text="BAJAS "+str(kills)
 
 
 func show_damage_feedback(amount: float) -> void:
