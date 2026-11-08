@@ -17,6 +17,7 @@ signal crouch_state_changed(active: bool)
 var training_health: float = 100.0
 var battle_royale_active: bool = false
 var royale_eliminated: bool = false
+var round_finished: bool = false
 var respawn_point: Vector3 = Vector3.ZERO
 var training_knockouts: int = 0
 var _training_immunity: float = 0.0
@@ -97,7 +98,7 @@ func _physics_process(delta: float) -> void:
     if air_mode!="ground":
         _air_step(delta)
         return
-    if royale_eliminated:
+    if royale_eliminated or round_finished:
         velocity=Vector3.ZERO
         return
     _training_immunity=maxf(0.0,_training_immunity-delta)
@@ -347,7 +348,15 @@ func receive_training_hit(amount: float) -> void:
         training_health_changed.emit(training_health)
 
 
+func end_sector_battle() -> void:
+    round_finished=true
+    velocity=Vector3.ZERO
+    set_firing(false)
+    set_touch_move_axis(Vector2.ZERO)
+
+
 func begin_sector_battle(from_airdrop: bool=false) -> void:
+    round_finished=false
     battle_royale_active = true
     royale_eliminated = false
     training_health = 100.0
