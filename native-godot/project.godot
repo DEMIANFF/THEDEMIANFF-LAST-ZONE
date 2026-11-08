@@ -4,6 +4,7 @@ config_version=5
 config/name="THEDEMIANFF LAST ZONE | Aurora V72 Training"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
 
 [rendering]
 renderer/rendering_method="gl_compatibility"

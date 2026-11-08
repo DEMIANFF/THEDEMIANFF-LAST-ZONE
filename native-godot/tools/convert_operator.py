@@ -28,6 +28,13 @@ assert armatures, 'FBX source contains no skeleton; abort'
 arm = max(armatures, key=lambda o: len(o.data.bones))
 print('OPERATOR_MESHES', len(meshes), 'BONES', len(arm.data.bones))
 print('BONE_NAMES', ','.join(b.name for b in arm.data.bones)[:2000])
+# Mobile optimization: discard unneeded ARKit facial morph targets, keep the full rig.
+for obj in meshes:
+    if obj.data.shape_keys:
+        keys = obj.data.shape_keys.key_blocks
+        for idx in range(len(keys)-1,0,-1):
+            obj.shape_key_remove(keys[idx])
+        print('REMOVED_UNUSED_FACIAL_MORPHS',obj.name)
 
 image = bpy.data.images.load(str(atlas), check_existing=True)
 image.scale(1024, 1024)
@@ -133,4 +140,5 @@ bpy.ops.export_scene.gltf(
     export_image_format='JPEG',
 )
 print('OPERATOR_GLTF_EXPORTED', out, out.stat().st_size)
+assert out.stat().st_size < 35_000_000, 'Character mesh exceeds the V72 preview budget'
 assert out.stat().st_size > 100_000, 'Export unexpectedly empty'

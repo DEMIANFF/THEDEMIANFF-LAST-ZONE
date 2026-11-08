@@ -52,6 +52,11 @@ func _verify() -> void:
             push_error("Requested CC0 operator not imported into native scene")
             quit(9)
             return
+        var clips := rig.find_child("AnimationPlayer", true, false) as AnimationPlayer
+        if clips == null or clips.get_animation_list().size() < 3:
+            push_error("Imported rig lacks the three authored locomotion clips")
+            quit(11)
+            return
         if rig.find_children("*", "Skeleton3D", true, false).is_empty():
             push_error("Imported operator has no Skeleton3D")
             quit(10)

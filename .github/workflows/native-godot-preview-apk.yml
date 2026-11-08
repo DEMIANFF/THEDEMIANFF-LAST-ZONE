@@ -84,6 +84,13 @@ jobs:
         env:
           AURORA_REQUIRE_OPERATOR: "1"
         run: godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
+      - name: Capture optional rendered scene from software OpenGL
+        continue-on-error: true
+        run: |
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-xvfb.log
+          mkdir -p native-godot/out
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_preview.gd
+          test -s native-godot/out/aurora-native-v72-preview.png
       - name: Export distinct Android debug APK
         run: |
           mkdir -p native-godot/out
@@ -104,4 +111,5 @@ jobs:
           path: |
             native-godot/out/THEDEMIANFF-V72-AURORA-NATIVE-PREVIEW.apk
             native-godot/out/SHA256SUMS.txt
+            native-godot/out/aurora-native-v72-preview.png
           retention-days: 14

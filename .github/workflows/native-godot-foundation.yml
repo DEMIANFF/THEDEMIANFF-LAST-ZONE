@@ -24,3 +24,5 @@ jobs:
         run: godot --headless --path native-godot --editor --quit
       - name: Boot native terrain physics and camera
         run: godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
+      - name: Test native AWM and AR trigger rules
+        run: godot --headless --path native-godot --script res://scripts/qa/combat_rules_test.gd
