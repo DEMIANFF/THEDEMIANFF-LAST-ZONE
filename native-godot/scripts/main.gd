@@ -6,6 +6,7 @@ const DISTRICT = preload("res://scripts/world/aurora_district.gd")
 const HUD = preload("res://scripts/ui/native_hud.gd")
 const COMBAT = preload("res://scripts/combat/training_combat.gd")
 const SECTOR_MATCH = preload("res://scripts/match/sector_director.gd")
+const NATURE = preload("res://scripts/world/aurora_nature.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
@@ -20,6 +21,10 @@ func _ready() -> void:
     district.name = "PuertoAuroraSector"
     district.terrain = island
     add_child(district)
+    var nature: Node3D=NATURE.new()
+    nature.name="AuroraNature"
+    nature.terrain=island
+    add_child(nature)
 
     var water := MeshInstance3D.new()
     water.name = "SeaSurface"

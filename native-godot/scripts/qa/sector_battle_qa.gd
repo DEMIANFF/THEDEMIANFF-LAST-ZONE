@@ -17,6 +17,17 @@ func _verify() -> void:
         push_error("V74 director not created")
         quit(80)
         return
+    var environment: Node3D=game.get_node_or_null("AuroraNature") as Node3D
+    if environment==null:
+        push_error("Aurora nature/biome instancing missing")
+        quit(92)
+        return
+    var pines:=environment.get_node_or_null("AuroraPineCrowns") as MultiMeshInstance3D
+    var crystals:=environment.get_node_or_null("LuminescentIceCrystals") as MultiMeshInstance3D
+    if pines==null or crystals==null or pines.multimesh.instance_count<40 or crystals.multimesh.instance_count<15:
+        push_error("Aurora 3D environment has insufficient instanced natural features")
+        quit(93)
+        return
     for i in range(80):
         await physics_frame
     if director.mode!="training" or combat._targets.size()!=4:

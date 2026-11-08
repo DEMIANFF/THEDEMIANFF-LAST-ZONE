@@ -197,7 +197,7 @@ func set_battle_button(label: String) -> void:
 
 func set_sector_state(status: String, alive: int, safe_radius: float, elapsed_seconds: int) -> void:
     if _battle_status:
-        _battle_status.text=status+"  |  "+str(alive)+" VIVOS  |  "+str(roundi(safe_radius))+"m  |  "+str(elapsed_seconds/60).pad_zeros(2)+":"+str(elapsed_seconds%60).pad_zeros(2)
+        _battle_status.text=status+"  |  "+str(alive)+" VIVOS  |  "+str(roundi(safe_radius))+"m  |  "+str(int(elapsed_seconds/60)).pad_zeros(2)+":"+str(elapsed_seconds%60).pad_zeros(2)
     if _status:
         _status.text="THEDEMIANFF / AURORA     "+status
 

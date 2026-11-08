@@ -161,6 +161,9 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _foes=actors.duplicate()
     health=100.0
     visible=true
+    var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
+    if collider:
+        collider.set_deferred("disabled",false)
     set_physics_process(true)
     velocity=Vector3.ZERO
     global_position=_anchor
@@ -179,6 +182,9 @@ func take_training_damage(damage: float) -> bool:
     if health<=0:
         _dead_time=7.0
         visible=false
+        var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
+        if collider:
+            collider.set_deferred("disabled",true)
         set_physics_process(false)
         if respawn_enabled:
             # Keep original training respawn; BR eliminates permanently.
@@ -194,6 +200,9 @@ func _respawn() -> void:
     health=100
     global_position=_anchor
     visible=true
+    var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
+    if collider:
+        collider.set_deferred("disabled",false)
     velocity=Vector3.ZERO
     _alert_time=0
     _target_visible=false
