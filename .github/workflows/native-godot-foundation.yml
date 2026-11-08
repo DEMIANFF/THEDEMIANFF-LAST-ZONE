@@ -1,7 +1,7 @@
 name: V73 Godot native tactical combat and rig QA
 on:
   push:
-    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat]
+    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit]
     paths:
       - 'native-godot/**'
       - 'docs/V71_REAL_BATTLE_ROYALE_MASTER_PLAN.md'
@@ -26,3 +26,5 @@ jobs:
         run: godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
       - name: Test native AWM and AR trigger rules
         run: godot --headless --path native-godot --script res://scripts/qa/combat_rules_test.gd
+      - name: Reproduce Motorola floor, walk, run and jump defects
+        run: godot --headless --path native-godot --script res://scripts/qa/motorola_control_audit.gd
