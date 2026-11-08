@@ -32,6 +32,10 @@ var _animator: AnimationPlayer
 var _current_clip: String = ""
 var _ads_active: bool = false
 var _ads_zoom: float = 1.0
+var _fire_held: bool = false
+var _crouching: bool = false
+var _normal_visual_scale: Vector3 = Vector3.ONE
+var _normal_visual_y: float = 0.0
 
 
 func _ready() -> void:
@@ -68,6 +72,8 @@ func _ready() -> void:
         _avatar.name = "AuroraFemaleRiggedOperator"
         add_child(_avatar)
         fit_operator_visual(_avatar)
+        _normal_visual_scale = _avatar.scale
+        _normal_visual_y = _avatar.position.y
         _animator = _avatar.find_child("*AnimationPlayer*", true, false) as AnimationPlayer
         if _animator == null:
             _animator = _avatar.find_child("AnimationPlayer", true, false) as AnimationPlayer
@@ -90,8 +96,12 @@ func _physics_process(delta: float) -> void:
     var relative_direction := Vector3(control.x, 0.0, control.y)
     var facing := Basis(Vector3.UP, _yaw)
     var world_direction := (facing * relative_direction).normalized()
-    var run_fast := Input.is_action_pressed("run") or _sprint_touch
-    var target_speed := RUN_SPEED if run_fast else WALK_SPEED
+    var run_fast := (Input.is_action_pressed("run") or _sprint_touch) and not _crouching
+    var target_speed: float = WALK_SPEED
+    if _crouching:
+        target_speed = WALK_SPEED * .52
+    elif run_fast:
+        target_speed = RUN_SPEED
     var target_velocity := world_direction * target_speed
 
     velocity.x = move_toward(velocity.x, target_velocity.x, ACCELERATION * delta)
@@ -104,15 +114,25 @@ func _physics_process(delta: float) -> void:
     else:
         velocity.y = 0.0
 
-    rotation.y = lerp_angle(rotation.y, _yaw, minf(1.0, delta * 15.0))
+    # Camera yaw is independent of the player body while freely looking around.
+    # On forward motion, the body faces movement; on ADS/fire it faces the reticle.
+    var move_strength: float = world_direction.length_squared()
+    if move_strength > 0.002:
+        var move_yaw: float = atan2(-world_direction.x, -world_direction.z)
+        rotation.y = lerp_angle(rotation.y, move_yaw, 1.0 - exp(-delta * 13.0))
+    elif _ads_active or _fire_held:
+        rotation.y = lerp_angle(rotation.y, _yaw, 1.0 - exp(-delta * 14.0))
+    _camera_pivot.rotation.y = wrapf(_yaw - rotation.y, -PI, PI)
+    _camera_pivot.rotation.x = _pitch
     move_and_slide()
 
     if _camera:
         var desired_fov: float = clampf(74.0 / _ads_zoom, 9.0, 74.0) if _ads_active else 74.0
         _camera.fov = lerpf(_camera.fov, desired_fov, 1.0 - exp(-delta * 11.0))
-        var desired_distance: float = 3.8 if _ads_active else 4.6
-        _camera.position.z = lerpf(_camera.position.z, desired_distance, 1.0 - exp(-delta * 9.0))
-        _camera.position.x = lerpf(_camera.position.x, .35 if _ads_active else .4, 1.0 - exp(-delta * 9.0))
+        var desired_distance: float = 1.15 if _ads_active and _ads_zoom >= 6.0 else 3.65 if _ads_active else 4.6
+        var safe_distance: float = _collision_safe_camera_distance(desired_distance)
+        _camera.position.z = lerpf(_camera.position.z, safe_distance, 1.0 - exp(-delta * 15.0))
+        _camera.position.x = lerpf(_camera.position.x, .16 if _ads_active and _ads_zoom >= 6.0 else .38, 1.0 - exp(-delta * 11.0))
         if _avatar:
             _avatar.visible = not (_ads_active and _ads_zoom >= 6.0)
     if _animator:
@@ -158,7 +178,10 @@ func fit_operator_visual(visual: Node3D) -> void:
         visual.position.y = max_z*factor
     else:
         visual.position.y = -min_y*factor
-    print("AURORA_MODEL_FIT y_range=",original_y_height," z_range=",original_z_length," width=",max_x-min_x," z_up=",z_up," scale=",factor)
+    # Source CC0 rig faces the lens (+Z) after FBX conversion. Rotate to canonical
+    # Godot combat forward (-Z) so the TPS camera shows the character's back.
+    visual.rotation.y = wrapf(visual.rotation.y + PI, -PI, PI)
+    print("AURORA_MODEL_FIT y_range=",original_y_height," z_range=",original_z_length," width=",max_x-min_x," z_up=",z_up," scale=",factor," tps_forward_adjusted=true")
 
 
 func receive_training_hit(amount: float) -> void:
@@ -190,11 +213,55 @@ func touch_jump() -> void:
 
 func set_ads(ads: bool, zoom: float) -> void:
     _ads_active = ads
-    _ads_zoom = clampf(zoom,1.0,8.0)
+    _ads_zoom = clampf(zoom, 1.0, 8.0)
+
+
+func set_firing(active: bool) -> void:
+    _fire_held = active
+
+
+func set_crouch(active: bool) -> void:
+    if _crouching == active:
+        return
+    _crouching = active
+    var collider := get_node_or_null("CapsuleCollider") as CollisionShape3D
+    if collider:
+        var capsule := collider.shape as CapsuleShape3D
+        if capsule:
+            capsule.height = 1.22 if active else 1.82
+        collider.position.y = .62 if active else .92
+    _camera_pivot.position.y = 1.13 if active else 1.55
+    if _avatar:
+        _avatar.scale = _normal_visual_scale * (Vector3(.95,.72,.95) if active else Vector3.ONE)
+        _avatar.position.y = _normal_visual_y
+
+
+func fire_aim_delta(delta: Vector2) -> void:
+    _turn_camera(delta, true)
+
+
+func get_view_camera() -> Camera3D:
+    return _camera
+
+
+func _collision_safe_camera_distance(requested: float) -> float:
+    if not is_inside_tree():
+        return requested
+    var eye: Vector3 = _camera_pivot.global_position
+    var offset: Vector3 = Vector3(.38, .18, requested)
+    var desired: Vector3 = _camera_pivot.to_global(offset)
+    var ray := PhysicsRayQueryParameters3D.create(eye, desired)
+    ray.exclude = [get_rid()]
+    var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(ray)
+    if hit.is_empty():
+        return requested
+    var length: float = eye.distance_to(desired)
+    var hit_distance: float = eye.distance_to(hit.position)
+    return clampf(requested * hit_distance / maxf(.01, length) - .23, .55, requested)
 
 
 func apply_recoil(amount: float) -> void:
-    _desired_pitch = clampf(_desired_pitch - amount, -0.52, 0.52)
+    _desired_pitch = clampf(_desired_pitch - amount, -0.55, 0.62)
 
 
 func _play_matching_animation(requested: String) -> void:
@@ -245,7 +312,7 @@ func _touch_over_action_buttons(at: Vector2) -> bool:
     # A fire/reload/jump/ADS press must not also become a camera-look finger.
     var area: Vector2=get_viewport().get_visible_rect().size
     var positions := [
-        Vector4(.905,.71,112.0,106.0),
+        Vector4(.905,.70,182.0,172.0),
         Vector4(.778,.66,74.0,62.0),
         Vector4(.790,.80,81.0,59.0),
         Vector4(.905,.87,79.0,59.0),
@@ -266,12 +333,17 @@ func _touch_over_run_button(at: Vector2) -> bool:
     return absf(at.x-center.x)<=45.0 and absf(at.y-center.y)<=35.0
 
 
-func _turn_camera(delta: Vector2) -> void:
+func _turn_camera(delta: Vector2, from_fire: bool=false) -> void:
     if not delta.is_finite():
         return
-    var limited := delta.limit_length(64.0)
-    _desired_yaw -= limited.x * LOOK_SENSITIVITY
-    _desired_pitch = clampf(_desired_pitch - limited.y * LOOK_SENSITIVITY, -0.52, 0.52)
+    var limited: Vector2 = delta.limit_length(74.0)
+    # Precision slowdown in sights, but keep 360-degree continuous yaw.
+    var zoom_factor: float = 1.0
+    if _ads_active:
+        zoom_factor = 0.22 if _ads_zoom >= 6.0 else 0.48 if _ads_zoom >= 4.0 else 0.70
+    var drag_factor: float = 0.92 if from_fire else 1.0
+    _desired_yaw -= limited.x * LOOK_SENSITIVITY * zoom_factor * drag_factor
+    _desired_pitch = clampf(_desired_pitch - limited.y * LOOK_SENSITIVITY * zoom_factor * drag_factor, -0.55, 0.62)
 
 
 func _ensure_keyboard_actions() -> void:

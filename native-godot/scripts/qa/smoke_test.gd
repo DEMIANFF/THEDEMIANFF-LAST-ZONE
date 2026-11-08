@@ -52,7 +52,7 @@ func _verify() -> void:
         quit(13)
         return
     if OS.get_environment("AURORA_REQUIRE_OPERATOR") == "1":
-        if main.get_node_or_null("Operator/ShoulderWeaponMount/AK74TacticalVisual")==null:
+        if operator.find_child("AK74TacticalVisual", true, false)==null:
             push_error("V73 imported AK-74 missing; no proxy rifle accepted")
             quit(14)
             return
@@ -84,5 +84,9 @@ func _verify() -> void:
             push_error("Imported operator has no Skeleton3D")
             quit(10)
             return
-    print("V73 slice OK: real GLBs, rigged patrol, touch controls, physical ray combat")
+    if main.get_node_or_null("TrainingHUD/AuroraTacticalOverlay/DirectionalFirePad")==null:
+        push_error("Directional fire touchpad missing")
+        quit(15)
+        return
+    print("V73.2 TPS HUD OK: free camera, drag fire, reticle, actual armed patrols")
     quit(0)
