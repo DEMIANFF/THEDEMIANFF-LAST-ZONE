@@ -61,15 +61,36 @@ func _verify() -> void:
         push_error("BR must launch in a real interactive aircraft phase")
         quit(138)
         return
+    var overlay:=game.get_node("TrainingHUD/AuroraTacticalOverlay") as Control
+    if (overlay.get_node("CORRER") as Control).visible or (overlay.get_node("DirectionalFirePad") as Control).visible:
+        push_error("Airplane HUD still shows ground sprint/fire controls")
+        quit(145)
+        return
     if player.get_node_or_null("AuroraTransportAircraft")==null:
         push_error("Airborne sequence has no visible original aircraft")
         quit(139)
+        return
+    player._turn_camera(Vector2(64,-18))
+    for i in range(12):
+        await physics_frame
+    if absf(player.get("_yaw"))<.06:
+        push_error("Plane camera cannot be rotated by touch look")
+        quit(146)
         return
     flight.jump_from_aircraft()
     if player.air_mode!="freefall" or hud.air_stage!="freefall":
         push_error("Aircraft jump did not enter freefall")
         quit(140)
         return
+    player.set_touch_move_axis(Vector2(1,0))
+    var freefall_start: Vector3=player.global_position
+    for i in range(20):
+        await physics_frame
+    if player.global_position.x-freefall_start.x<.40:
+        push_error("Freefall joystick does not steer horizontally")
+        quit(147)
+        return
+    player.set_touch_move_axis(Vector2.ZERO)
     flight.deploy_parachute()
     if player.air_mode!="parachute" or player.get_node_or_null("AuroraParachute")==null:
         push_error("Parachute not deployed")
@@ -88,8 +109,12 @@ func _verify() -> void:
         return
     var combat:=game.get_node("CombatRange") as Node3D
     if combat.active_fighter_count()!=9 or hud.air_stage!="ground":
-        push_error("BR landing did not start 9-player sector match / restore HUD")
+        push_error("Ground HUD/match participants not restored")
         quit(143)
+        return
+    if not (overlay.get_node("CORRER") as Control).visible or not (overlay.get_node("DirectionalFirePad") as Control).visible:
+        push_error("Landing did not restore gameplay sprint and fire buttons")
+        quit(148)
         return
     if player.global_position.distance_to(Vector3.ZERO)>200.0:
         push_error("Land took player outside Aurora sector")

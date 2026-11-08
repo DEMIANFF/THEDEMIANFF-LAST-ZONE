@@ -120,6 +120,9 @@ jobs:
           mkdir -p native-godot/out
           xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_preview.gd
           test -s native-godot/out/aurora-native-v75-preview.png
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_frontend_preview.gd
+          test -s native-godot/out/aurora-v75-welcome.png
+          test -s native-godot/out/aurora-v75-lobby.png
           xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_weapon_preview.gd
           test -s native-godot/out/aurora-v74-1-ak74.png
           test -s native-godot/out/aurora-v74-1-awm.png
@@ -145,6 +148,8 @@ jobs:
             native-godot/out/THEDEMIANFF-V75-AURORA-BR-ENTRADA.apk
             native-godot/out/SHA256SUMS.txt
             native-godot/out/aurora-native-v75-preview.png
+            native-godot/out/aurora-v75-welcome.png
+            native-godot/out/aurora-v75-lobby.png
             native-godot/out/aurora-v74-1-ak74.png
             native-godot/out/aurora-v74-1-awm.png
           retention-days: 14

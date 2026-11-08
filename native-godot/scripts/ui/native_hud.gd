@@ -254,7 +254,8 @@ func set_air_stage(value: String) -> void:
     air_stage=value
     var airborne: bool=value!="ground"
     var overlay: Control=get_node("AuroraTacticalOverlay") as Control
-    for name in ["DirectionalFirePad","MIRA","RECARGA","ARMA","AGACHAR","CURAR 2"]:
+    # Combat UI is irrelevant while riding the aircraft or descending.
+    for name in ["DirectionalFirePad","MIRA","RECARGA","ARMA","AGACHAR","CURAR 2","CORRER"]:
         var control: Control=overlay.get_node_or_null(name) as Control
         if control:
             control.visible=not airborne
@@ -263,9 +264,13 @@ func set_air_stage(value: String) -> void:
         pad.visible=value!="aircraft"
     if _reticle:
         _reticle.visible=not airborne
+    for indicator in [_weapon,_ammo,_eliminations_label,_health_label,_health_meter,_training_radar]:
+        if indicator:
+            indicator.visible=not airborne
     if _jump_button:
-        _jump_button.text="SALTAR DEL AVIÓN" if value=="aircraft" else "PARACAÍDAS" if value=="freefall" else "DIRIGIR" if value=="parachute" else "SALTAR"
+        _jump_button.text="SALTAR DEL AVIÓN" if value=="aircraft" else "PARACAÍDAS" if value=="freefall" else "SALTAR"
         _jump_button.custom_minimum_size=Vector2(140,58) if airborne else Vector2.ZERO
+        _jump_button.visible=value!="parachute"
         _jump_button.disabled=value=="parachute"
     if _battle_button:
         _battle_button.disabled=airborne or _battle_button.text=="EN PARTIDA"

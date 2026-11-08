@@ -252,7 +252,7 @@ func _air_step(delta: float) -> void:
     _camera_pivot.rotation.y=wrapf(_yaw-rotation.y,-PI,PI)
     _camera_pivot.rotation.x=_pitch
     if _camera:
-        var camera_distance: float=9.0 if air_mode=="aircraft" else 6.4
+        var camera_distance: float=7.1 if air_mode=="aircraft" else 6.4
         _camera.position.z=lerpf(_camera.position.z,camera_distance,alpha)
         _camera.position.x=lerpf(_camera.position.x,.35,alpha)
         _camera.fov=lerpf(_camera.fov,76.0,alpha)
