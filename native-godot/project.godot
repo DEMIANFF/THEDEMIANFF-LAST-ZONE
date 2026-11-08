@@ -1,7 +1,7 @@
 config_version=5
 
 [application]
-config/name="THEDEMIANFF LAST ZONE | Aurora V75.2 Motorola"
+config/name="THEDEMIANFF LAST ZONE | Aurora V75.3 Motorola"
 run/main_scene="res://scenes/Boot.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
@@ -21,3 +21,7 @@ window/handheld/orientation=4
 
 [physics]
 3d/default_gravity=17.5
+
+[layer_names]
+3d_physics/layer_1="World and actors"
+3d_physics/layer_2="Walkable support"

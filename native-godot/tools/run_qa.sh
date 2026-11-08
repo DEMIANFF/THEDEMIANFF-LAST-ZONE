@@ -17,13 +17,19 @@ qa_data="$(mktemp -d)"
 trap 'rm -rf "$qa_data"' EXIT
 export XDG_DATA_HOME="$qa_data"
 if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
-  "$GODOT" --headless --path "$ROOT" --editor --quit > "$LOGS/import.log" 2>&1
+  import_status=0
+  "$GODOT" --headless --path "$ROOT" --editor --quit > "$LOGS/import.running" 2>&1 || import_status=$?
+  mv "$LOGS/import.running" "$LOGS/import.log"
+  if [ "$import_status" -ne 0 ]; then cat "$LOGS/import.log"; exit 1; fi
   if grep -E 'SCRIPT ERROR:|ERROR:' "$LOGS/import.log"; then exit 1; fi
 fi
 for script in smoke_test combat_rules_test motorola_control_audit mobile_touch_routing_test camera_fire_qa multitouch_combat_qa sector_battle_qa launch_airdrop_qa persistent_match_qa crouch_collision_qa weapon_visual_qa v752_regression_qa persistence_recovery_qa responsive_layout_qa v753_combat_regression_qa v753_navigation_qa v753_animation_settings_qa v753_frontend_qa; do
   extension=gd
   if [ "${AURORA_QA_EXPORTED:-0}" = 1 ]; then extension=gdc; fi
-  if ! timeout 90 "$GODOT" --headless --path "$ROOT" --script "res://scripts/qa/$script.$extension" > "$LOGS/$script.log" 2>&1; then
+  status=0
+  timeout 90 "$GODOT" --headless --path "$ROOT" --script "res://scripts/qa/$script.$extension" > "$LOGS/$script.running" 2>&1 || status=$?
+  mv "$LOGS/$script.running" "$LOGS/$script.log"
+  if [ "$status" -ne 0 ]; then
     cat "$LOGS/$script.log"
     exit 1
   fi

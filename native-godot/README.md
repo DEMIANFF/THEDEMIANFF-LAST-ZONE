@@ -1,3 +1,26 @@
+# Godot V75.3 — current development preview
+
+Base: `codex/v75-2-motorola-recovery` at `3a61df64b59de94bf1fb8ffad4b8bbf3a538e851`.
+Development branch: `codex/v75-3-battle-royale-improvements`.
+
+This is an offline sector Battle Royale (one player and eight AI opponents), with training and local results. The original Lila artwork, network multiplayer and cloud account integration remain unfinished.
+
+V75.3 adds collision-checked shared A* routes, wounded-enemy cover selection, physically traversable entrances, muzzle obstruction checks, layered reload/fire animations, saved camera sensitivity and bounded tracer reuse. Terrain placement now interpolates the actual collision triangles. See [the V75.3 validation plan](../docs/V75_3_VALIDATION.md).
+
+Use Godot **4.7.2**, Blender **4.0.2**, Java **17** and Android build tools **35.0.1**:
+
+```bash
+bash native-godot/tools/prepare_assets.sh
+bash native-godot/tools/run_qa.sh
+godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V75.3-MOTOROLA.apk
+python3 native-godot/tools/verify_android_apk.py native-godot/out/THEDEMIANFF-V75.3-MOTOROLA.apk --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out
+AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported" bash native-godot/tools/run_exported_qa.sh native-godot/out/THEDEMIANFF-V75.3-MOTOROLA.apk
+```
+
+The debug package `com.thedemianff.lastzone.nativepreview753` installs separately from V75.2. Its local results/settings are independent; no automatic migration or Firebase synchronization is provided. Existing signing certificates are not changed. `BUILD.txt`, `apk-verification.json`, `signature.txt`, `alignment.txt` and `SHA256SUMS.txt` identify the exact build. Physical Motorola testing is still required.
+
+## Historical development notes
+
 # THEDEMIANFF LAST ZONE — native 3D rebuild (V71 foundation)
 
 This is a **separate Godot 4.7.2 project** designed for a native Android battle royale. It lives next to — and does not replace — the signed Three.js/WebView V70 APK.
