@@ -9,6 +9,17 @@ const SIGHT_RANGE: float = 31.0
 const SHOOT_RANGE: float = 21.0
 const GRAVITY: float = 17.5
 
+var navigation: Node3D
+var behavior: String="patrol"
+var shots_fired: int=0
+var shots_hit: int=0
+var _random:=RandomNumberGenerator.new()
+var _movement_probe:=KinematicCollision3D.new()
+var _route:=PackedVector3Array()
+var _route_goal:=Vector3(INF,INF,INF)
+var _route_clock: float=0.0
+var _cover_clock: float=0.0
+var _cover_point:=Vector3(INF,INF,INF)
 var terrain: StaticBody3D
 var operator: CharacterBody3D
 var spawn_coordinates: Vector2 = Vector2.ZERO
@@ -35,6 +46,7 @@ var _avoid_side: float=1.0
 
 func _ready() -> void:
     add_to_group("training_target")
+    _random.seed=7503+int(absf(spawn_coordinates.x)*31+absf(spawn_coordinates.y)*17)
     var marker := Label3D.new()
     marker.name = "TrainingTargetMarker"
     marker.text = "ENEMIGO IA"
@@ -42,7 +54,7 @@ func _ready() -> void:
     marker.pixel_size = .006
     marker.position = Vector3(0, 2.25, 0)
     marker.modulate = Color(1.0, .52, .32)
-    marker.no_depth_test = true
+    marker.no_depth_test = false
     add_child(marker)
     _anchor = Vector3(spawn_coordinates.x, terrain.height_at(spawn_coordinates.x,spawn_coordinates.y)+.15, spawn_coordinates.y)
     global_position = _anchor
@@ -78,6 +90,8 @@ func _physics_process(dt: float) -> void:
         if _dead_time<=0:
             _respawn()
         return
+    _route_clock-=dt
+    _cover_clock-=dt
     _sense_clock-=dt
     _attack_clock-=dt
     _alert_time=maxf(0.0,_alert_time-dt)
@@ -94,7 +108,9 @@ func _physics_process(dt: float) -> void:
     if _target_visible and distance < SIGHT_RANGE:
         _last_seen=target.global_position
         _alert_time=2.9
+    behavior="patrol"
     if _alert_time>0:
+        behavior="pursuit"
         var flank: Vector3=Vector3(-delta_to_player.z,0,delta_to_player.x).normalized()
         destination=_last_seen+flank*sin(_idle_phase)*2.2
         target_speed=CHASE_SPEED
@@ -102,23 +118,40 @@ func _physics_process(dt: float) -> void:
         _idle_phase+=dt*.31
         destination=_anchor+Vector3(cos(_idle_phase)*4.0,0,sin(_idle_phase)*4.0)
 
+    if health<=45.0 and _alert_time>0 and navigation and navigation.available:
+        if _cover_clock<=0:
+            _cover_point=navigation.find_cover(global_position,_last_seen)
+            _cover_clock=4.0
+        if _cover_point.is_finite() and _cover_clock>1.0:
+            destination=_cover_point
+            behavior="cover"
     if sector_battle and Vector2(global_position.x,global_position.z).distance_to(safe_center)>safe_radius-4.0:
+        behavior="zone_escape"
         destination=Vector3(safe_center.x,global_position.y,safe_center.y)
         target_speed=CHASE_SPEED
+    if navigation and navigation.available:
+        if _route_clock<=0 and (destination.distance_squared_to(_route_goal)>6.25 or _route.is_empty()):
+            _route=navigation.route(global_position,destination)
+            _route_goal=destination
+            _route_clock=.9+float(get_instance_id()%4)*.07
+        while not _route.is_empty() and Vector2(_route[0].x-global_position.x,_route[0].z-global_position.z).length()<.65:
+            _route.remove_at(0)
+        if not _route.is_empty():
+            destination=_route[0]
     var direction: Vector3=destination-global_position
     direction.y=0
     if direction.length()>.75:
         var heading: Vector3=direction.normalized()
-        if test_move(global_transform,heading*1.0):
+        if _blocked_ahead(heading):
             for angle in [PI/3,PI/2,PI*2/3,PI]:
                 var candidate: Vector3=heading.rotated(Vector3.UP,angle*_avoid_side)
-                if not test_move(global_transform,candidate*1.0):
+                if not _blocked_ahead(candidate):
                     heading=candidate
                     break
         var step: Vector3=heading*target_speed
         velocity.x=move_toward(velocity.x,step.x,9.0*dt)
         velocity.z=move_toward(velocity.z,step.z,9.0*dt)
-        rotation.y=lerp_angle(rotation.y,atan2(-direction.x,-direction.z),minf(1.0,dt*7.0))
+        rotation.y=lerp_angle(rotation.y,atan2(-heading.x,-heading.z),minf(1.0,dt*7.0))
     else:
         velocity.x=move_toward(velocity.x,0.0,8.0*dt)
         velocity.z=move_toward(velocity.z,0.0,8.0*dt)
@@ -127,11 +160,7 @@ func _physics_process(dt: float) -> void:
 
     if _target_visible and distance<SHOOT_RANGE and _attack_clock<=0 and _has_line_of_fire(_target_actor):
         _attack_clock=1.0+float(get_instance_id()%4)*.18
-        if _target_actor==operator:
-            if not operator.royale_eliminated:
-                operator.receive_training_hit(5.0)
-        elif is_instance_valid(_target_actor) and _target_actor.health>0:
-            _target_actor.take_training_damage(22.0, self)
+        _fire_at_target(_target_actor)
     if _animation:
         var action: String="AuroraWalk" if Vector2(velocity.x,velocity.z).length()>.8 else "AuroraIdle"
         if action!=_clip:
@@ -180,13 +209,21 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _target_actor=null
     _attack_clock=1.3
     _alert_time=0.0
+    _route.clear()
+    _route_clock=0.0
+    _route_goal=Vector3(INF,INF,INF)
+    _cover_point=Vector3(INF,INF,INF)
+    _cover_clock=0.0
 
 
 func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
     if health<=0:
         return false
     health=maxf(0,health-damage)
-    _last_seen=operator.global_position if _target_actor==null else _target_actor.global_position
+    if is_instance_valid(attacker):
+        _last_seen=attacker.global_position
+    elif is_instance_valid(_target_actor):
+        _last_seen=_target_actor.global_position
     _alert_time=5.5
     if health<=0:
         _dead_time=7.0
@@ -224,3 +261,35 @@ func _has_line_of_fire(foe: CharacterBody3D) -> bool:
     var ray:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*1.35,foe.global_position+Vector3.UP*1.0)
     ray.exclude=[get_rid()]
     return get_world_3d().direct_space_state.intersect_ray(ray).get("collider")==foe
+
+
+func _fire_at_target(foe: CharacterBody3D) -> void:
+    if not is_instance_valid(foe):
+        return
+    shots_fired+=1
+    var distance: float=global_position.distance_to(foe.global_position)
+    var spread: float=clampf(distance/SHOOT_RANGE,0.0,1.0)*.52
+    var sideways: Vector3=(foe.global_position-global_position).cross(Vector3.UP).normalized()
+    var endpoint: Vector3=foe.global_position+Vector3.UP*(1.0+_random.randf_range(-spread*.6,spread*.6))+sideways*_random.randf_range(-spread,spread)
+    var ray:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*1.35,endpoint)
+    ray.exclude=[get_rid()]
+    var hit:=get_world_3d().direct_space_state.intersect_ray(ray)
+    var actor: Object=hit.get("collider")
+    if actor==operator and not operator.royale_eliminated:
+        operator.receive_training_hit(5.0)
+        shots_hit+=1
+    elif actor is CharacterBody3D and actor.is_in_group("training_target") and actor.health>0:
+        actor.take_training_damage(22.0,self)
+        shots_hit+=1
+
+
+func _blocked_ahead(direction: Vector3) -> bool:
+    var collision:=_movement_probe
+    if not test_move(global_transform,direction,collision):
+        return false
+    # Sloped floor contact is expected. Treating it as a wall made avoidance
+    # turn away from valid uphill paths on the island.
+    for i in range(collision.get_collision_count()):
+        if collision.get_normal(i).y<.65:
+            return true
+    return false

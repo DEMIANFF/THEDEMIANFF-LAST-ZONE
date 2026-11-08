@@ -217,7 +217,7 @@ def pose_crouch(phase, walking):
     # Source FBX has Y-up coordinates and centimetre-scale bone offsets.
     # Solve each thigh/shin chain to its authored foot target after lowering hips.
     hips = arm.pose.bones["rig:Hips"]
-    hips.location = Vector((0.0, -58.0, 0.0))
+    hips.location = Vector((0.0, -58.0 * (math.sin(phase*.5)*.32 if clip_name == "AuroraLand" else 1.0), 0.0))
     hips.keyframe_insert(data_path="location")
     for side, sign in [("Left", 1.0), ("Right", -1.0)]:
         thigh = arm.pose.bones["rig:" + side + "UpLeg"]
@@ -254,8 +254,11 @@ clips=[
     ('AuroraArmedRun',.20,24,True),
     ('AuroraAim',.004,40,True),
     ('AuroraAimAWM',.004,40,True),
-    ('AuroraFire',.05,18,True),
-    ('AuroraReloadAWM',.10,36,True),
+    ('AuroraFire',.05,6,True),
+    ('AuroraReloadAR',.10,48,True),
+    ('AuroraReloadAWM',.10,93,True),
+    ('AuroraHit',.035,10,True),
+    ('AuroraLand',.035,12,True),
     ('AuroraJump',.12,30,True),
     ('AuroraFreefall',.09,36,False),
     ('AuroraParachute',.045,48,False),
@@ -265,7 +268,7 @@ clips=[
 for clip_name, amplitude, frames, armed in clips:
     action = bpy.data.actions.new(clip_name)
     arm.animation_data.action = action
-    crouched = clip_name.startswith("AuroraCrouch")
+    crouched = clip_name.startswith("AuroraCrouch") or clip_name == "AuroraLand"
     for frame in [1, 1 + frames // 4, 1 + frames // 2,
                   1 + 3 * frames // 4, 1 + frames]:
         phase = math.tau * (frame - 1) / frames
@@ -274,7 +277,7 @@ for clip_name, amplitude, frames, armed in clips:
             assigned = role(bone.name)
             if not assigned or (crouched and assigned.startswith("leg_")):
                 continue
-            bone.rotation_mode = 'QUATERNION' if assigned.startswith(('arm_','forearm_')) else 'XYZ'
+            bone.rotation_mode = 'QUATERNION'
             if assigned == 'leg_l':
                 offset = amplitude * math.sin(phase)
             elif assigned == 'leg_r':
@@ -295,8 +298,22 @@ for clip_name, amplitude, frames, armed in clips:
                 bone.rotation_quaternion=armed_pose[assigned] if armed else Quaternion((1.0,0.0,0.0,0.0))
                 bone.keyframe_insert(data_path='rotation_quaternion',frame=frame,group=bone.name)
             else:
-                bone.rotation_euler[0] = offset
-                bone.keyframe_insert(data_path='rotation_euler', frame=frame, group=bone.name)
+                bone.rotation_quaternion = Quaternion(Vector((1,0,0)), offset)
+                bone.keyframe_insert(data_path='rotation_quaternion', frame=frame, group=bone.name)
+        # Authored upper-body actions, blended with moving legs by Godot.
+        progress = (frame - 1) / frames
+        pulse = math.sin(math.pi * progress)
+        if clip_name.startswith("AuroraReload"):
+            for side, amount in [("Left", 1.0), ("Right", .25)]:
+                forearm = arm.pose.bones["rig:" + side + "ForeArm"]
+                forearm.rotation_mode = "QUATERNION"
+                forearm.rotation_quaternion = armed_pose["forearm_" + side.lower()[0]] @ Quaternion(Vector((1,0,0)), pulse * amount)
+                forearm.keyframe_insert(data_path="rotation_quaternion", frame=frame)
+        if clip_name in ("AuroraFire", "AuroraHit"):
+            spine = arm.pose.bones["rig:Spine"]
+            spine.rotation_mode = "QUATERNION"
+            spine.rotation_quaternion = Quaternion(Vector((1,0,0)), -.10 * pulse if clip_name == "AuroraFire" else .16 * pulse)
+            spine.keyframe_insert(data_path="rotation_quaternion", frame=frame)
         if crouched:
             pose_crouch(phase, clip_name == "AuroraCrouchWalk")
         else:

@@ -6,6 +6,8 @@ const RUN_SPEED: float = 7.1
 const ACCELERATION: float = 16.0
 const GRAVITY: float = 17.5
 const LOOK_SENSITIVITY: float = 0.0032
+const ANIMATION_CONTROLLER=preload("res://scripts/player/operator_animation.gd")
+const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
 const TOUCH_DEADZONE: float = 0.12
 
 signal training_health_changed(value: float)
@@ -24,6 +26,10 @@ var _training_immunity: float = 0.0
 var _sprint_touch: bool = false
 var _jump_requested: bool = false
 
+var look_multiplier: float=1.0
+var ads_multiplier: float=1.0
+var _camera_collision_shape:=SphereShape3D.new()
+var _camera_collision_query:=PhysicsShapeQueryParameters3D.new()
 var _yaw: float = 0.0
 var _pitch: float = -0.14
 var _desired_yaw: float = 0.0
@@ -35,6 +41,8 @@ var _move_axis: Vector2 = Vector2.ZERO
 var _camera_pivot: Node3D
 var _camera: Camera3D
 var _avatar: Node3D
+var _animation_controller: Node
+var _landing_seconds: float=0.0
 var _animator: AnimationPlayer
 var _current_clip: String = ""
 var _weapon_index: int=0
@@ -52,6 +60,13 @@ var _normal_visual_y: float = 0.0
 
 func _ready() -> void:
     _ensure_keyboard_actions()
+    var preferences:=CAMERA_PREFERENCES.new()
+    look_multiplier=preferences.look
+    ads_multiplier=preferences.ads
+    _camera_collision_shape.radius=.20
+    _camera_collision_query.shape=_camera_collision_shape
+    _camera_collision_query.exclude=[get_rid()]
+    _camera_collision_query.collision_mask=1
 
     var capsule := CollisionShape3D.new()
     capsule.name = "CapsuleCollider"
@@ -89,6 +104,10 @@ func _ready() -> void:
         _animator = _avatar.find_child("*AnimationPlayer*", true, false) as AnimationPlayer
         if _animator == null:
             _animator = _avatar.find_child("AnimationPlayer", true, false) as AnimationPlayer
+        if _animator:
+            _animation_controller=ANIMATION_CONTROLLER.new()
+            add_child(_animation_controller)
+            _animation_controller.setup(_animator)
         _play_matching_animation("AuroraArmedIdle")
     else:
         push_warning("CC0 female operator GLB not yet generated. No cube character substituted.")
@@ -142,7 +161,12 @@ func _physics_process(delta: float) -> void:
         rotation.y = lerp_angle(rotation.y, move_yaw, 1.0 - exp(-delta * 13.0))
     _camera_pivot.rotation.y = wrapf(_yaw - rotation.y, -PI, PI)
     _camera_pivot.rotation.x = _pitch
+    var falling_speed: float=velocity.y
+    var was_on_floor: bool=is_on_floor()
     move_and_slide()
+    _landing_seconds=maxf(0.0,_landing_seconds-delta)
+    if not was_on_floor and is_on_floor() and falling_speed< -2.0:
+        _landing_seconds=.28
 
     if _camera:
         var desired_fov: float = clampf(74.0 / _ads_zoom, 9.0, 74.0) if _ads_active else 74.0
@@ -166,8 +190,8 @@ func _physics_process(delta: float) -> void:
             clip="AuroraJump"
         if _ads_active and not _crouching and speed<1.0:
             clip="AuroraAimAWM" if _weapon_index==1 else "AuroraAim"
-        if _combat_action!="" and not _crouching:
-            clip=_combat_action
+        if _landing_seconds>0.0 and speed<1.0 and not _crouching:
+            clip="AuroraLand"
         if clip!=_current_clip:
             _play_matching_animation(clip)
 
@@ -332,13 +356,16 @@ func _create_parachute() -> void:
         _parachute_visual.add_child(cord)
 
 
-func receive_training_hit(amount: float) -> void:
-    if amount<=0 or _training_immunity>0:
+func receive_training_hit(amount: float, environmental: bool=false) -> void:
+    if amount<=0 or royale_eliminated or round_finished or (not environmental and _training_immunity>0):
         return
     training_health=maxf(0.0,training_health-amount)
     training_health_changed.emit(training_health)
     player_damaged.emit(amount)
-    _training_immunity=.42
+    if _animation_controller and _combat_action_seconds<=.24:
+        _animation_controller.action("AuroraHit",.22)
+    if not environmental:
+        _training_immunity=.42
     if training_health<=0:
         if battle_royale_active:
             royale_eliminated=true
@@ -411,6 +438,10 @@ func set_ads(ads: bool, zoom: float) -> void:
 func set_equipped_weapon(index: int) -> void:
     _weapon_index=clampi(index,0,1)
     _current_clip=""
+    _combat_action=""
+    _combat_action_seconds=0.0
+    if _animation_controller:
+        _animation_controller.cancel_action()
 
 
 func play_weapon_action(action: String, seconds: float) -> void:
@@ -419,13 +450,13 @@ func play_weapon_action(action: String, seconds: float) -> void:
         "fire":
             requested="AuroraFire"
         "reload":
-            requested="AuroraReloadAWM" if _weapon_index==1 else "AuroraArmedIdle"
+            requested="AuroraReloadAWM" if _weapon_index==1 else "AuroraReloadAR"
         _:
             return
     _combat_action=requested
     _combat_action_seconds=maxf(0.05,seconds)
-    if not _crouching:
-        _play_matching_animation(requested)
+    if _animation_controller:
+        _animation_controller.action(requested,seconds)
 
 
 func set_firing(active: bool) -> void:
@@ -489,10 +520,7 @@ func _collision_safe_camera_distance(requested: float) -> float:
     if not is_inside_tree():
         return requested
     var shoulder: Vector3=Vector3(_camera.position.x,_camera.position.y,0)
-    var shape:=SphereShape3D.new()
-    shape.radius=.20
-    var query:=PhysicsShapeQueryParameters3D.new()
-    query.shape=shape
+    var query:=_camera_collision_query
     query.transform=Transform3D(Basis(),_camera_pivot.to_global(shoulder))
     query.motion=_camera_pivot.global_basis.z*requested
     query.exclude=[get_rid()]
@@ -510,6 +538,10 @@ func apply_recoil(amount: float) -> void:
 
 func _play_matching_animation(requested: String) -> void:
     if _animator == null:
+        return
+    if _animation_controller:
+        _animation_controller.play(requested)
+        _current_clip=requested
         return
     var animations: PackedStringArray = _animator.get_animation_list()
     if _current_clip == "":
@@ -588,8 +620,8 @@ func _turn_camera(delta: Vector2, from_fire: bool=false) -> void:
     if _ads_active:
         zoom_factor = 0.22 if _ads_zoom >= 6.0 else 0.48 if _ads_zoom >= 4.0 else 0.70
     var drag_factor: float = 0.92 if from_fire else 1.0
-    _desired_yaw -= limited.x * LOOK_SENSITIVITY * zoom_factor * drag_factor
-    _desired_pitch = clampf(_desired_pitch - limited.y * LOOK_SENSITIVITY * zoom_factor * drag_factor, -0.55, 0.62)
+    _desired_yaw -= limited.x * LOOK_SENSITIVITY * look_multiplier * (ads_multiplier if _ads_active else 1.0) * zoom_factor * drag_factor
+    _desired_pitch = clampf(_desired_pitch - limited.y * LOOK_SENSITIVITY * look_multiplier * (ads_multiplier if _ads_active else 1.0) * zoom_factor * drag_factor, -0.55, 0.62)
 
 
 func _ensure_keyboard_actions() -> void:
@@ -623,6 +655,8 @@ func reset_controls() -> void:
     _ads_active=false
     _combat_action=""
     _combat_action_seconds=0.0
+    if _animation_controller:
+        _animation_controller.cancel_action()
 
 
 func _notification(what: int) -> void:

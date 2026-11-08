@@ -156,7 +156,7 @@ func is_outside_zone(position: Vector3) -> bool:
 func _check_hazard_damage() -> void:
     var damage: float=6.0 if elapsed < SHRINK_DURATION*.58 else 11.0
     if not player.royale_eliminated and is_outside_zone(player.global_position):
-        player.receive_training_hit(damage)
+        player.receive_training_hit(damage,true)
         hud.impact("ZONA AURORA / VUELVE AL CIRCULO")
     for actor in combat._targets:
         if is_instance_valid(actor) and actor.health>0 and is_outside_zone(actor.global_position):

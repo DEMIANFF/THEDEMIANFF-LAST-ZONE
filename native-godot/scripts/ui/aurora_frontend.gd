@@ -2,9 +2,16 @@ extends Control
 ## Original Aurora front-end. Free Fire is UX reference ONLY; no copied layout,
 ## assets or proprietary game branding. Incomplete service tabs say so.
 const SAFE_SCREEN=preload("res://scripts/ui/safe_screen.gd")
+const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 
+var _settings_panel: VBoxContainer
+var _settings_status: Label
+var _look_slider: HSlider
+var _ads_slider: HSlider
+var _preferences: RefCounted
+var _save_timer: Timer
 var stage: String = "welcome"
 var _surface: Control
 var _page: VBoxContainer
@@ -20,6 +27,12 @@ var _offline_records: RefCounted
 
 func _ready() -> void:
     name = "AuroraFront"
+    _preferences=CAMERA_PREFERENCES.new()
+    _save_timer=Timer.new()
+    _save_timer.one_shot=true
+    _save_timer.wait_time=.4
+    _save_timer.timeout.connect(_save_preferences)
+    add_child(_save_timer)
     set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     mouse_filter=Control.MOUSE_FILTER_STOP
     _surface=Control.new()
@@ -59,6 +72,9 @@ func _ready() -> void:
 
 
 func _clear_page() -> void:
+    if not _save_timer.is_stopped():
+        _save_preferences()
+    _settings_panel=null
     for node in _page.get_children():
         _page.remove_child(node)
         node.queue_free()
@@ -124,7 +140,7 @@ func _show_lobby() -> void:
         _preview_caption.visible=true
     _clear_page()
     _label("AURORA / CENTRO DE OPERACIONES",29)
-    _label("Modo: entrenamiento o combate de sector (9 participantes simulados)",17)
+    _label("Modo: entrenamiento o combate de sector (1 jugador + 8 enemigos IA)",17)
     var actions:=HFlowContainer.new()
     actions.name="PlayModes"
     actions.add_theme_constant_override("h_separation",12)
@@ -142,13 +158,14 @@ func _show_lobby() -> void:
     tabs.add_theme_constant_override("h_separation",8)
     tabs.add_theme_constant_override("v_separation",8)
     _page.add_child(tabs)
-    for tab in ["PERSONAJE","ARMAS","MISIONES","TIENDA","CUENTA"]:
+    for tab in ["PERSONAJE","ARMAS","MISIONES","TIENDA","CUENTA","AJUSTES"]:
         var tab_name: String=tab
         var b:=_button(tab_name,Callable(self,"_select_tab").bind(tab_name),155)
         b.name="Tab"+tab_name
         b.custom_minimum_size=Vector2(135,46)
         tabs.add_child(b)
     _info=_label("",18)
+    _build_settings()
     _select_tab(_selected_tab)
     _label("Progreso e inventario de la antigua V70 NO se transfieren a esta demostración.",14)
 
@@ -157,7 +174,10 @@ func _select_tab(tab: String) -> void:
     _selected_tab=tab
     if stage!="lobby" or _info==null:
         return
+    _settings_panel.visible=tab=="AJUSTES"
     match tab:
+        "AJUSTES":
+            _info.text="CÁMARA / SENSIBILIDAD LOCAL\nArrastra para mirar; arrastra DISPARAR para apuntar mientras disparas."
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot() if _offline_records else {}
             _info.text="OPERADORA / LILA EN DESARROLLO\nModelo 3D provisional; rig definitivo pendiente."
@@ -355,3 +375,46 @@ func _layout_safe() -> void:
     _surface.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     _surface.position=safe.position
     _surface.size=safe.size
+
+
+func _build_settings() -> void:
+    _settings_panel=VBoxContainer.new()
+    _settings_panel.name="CameraSettings"
+    _settings_panel.add_theme_constant_override("separation",8)
+    _page.add_child(_settings_panel)
+    _look_slider=_sensitivity_slider("Giro panorámico",_preferences.look)
+    _ads_slider=_sensitivity_slider("Miras ADS",_preferences.ads)
+    _settings_status=Label.new()
+    _settings_status.text="Ajustes recuperados del respaldo" if _preferences.recovered else "Se guardan en este dispositivo"
+    _settings_status.add_theme_font_size_override("font_size",14)
+    _settings_panel.add_child(_settings_status)
+    _settings_panel.visible=false
+
+
+func _sensitivity_slider(title: String,value: float) -> HSlider:
+    var row:=HBoxContainer.new()
+    _settings_panel.add_child(row)
+    var label:=Label.new()
+    label.custom_minimum_size.x=245
+    label.text=title+"  %.2fx"%value
+    row.add_child(label)
+    var slider:=HSlider.new()
+    slider.min_value=.35
+    slider.max_value=2.5
+    slider.step=.05
+    slider.value=value
+    slider.custom_minimum_size=Vector2(180,44)
+    slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    row.add_child(slider)
+    slider.value_changed.connect(func(next: float):
+        label.text=title+"  %.2fx"%next
+        _save_timer.start())
+    return slider
+
+
+func _save_preferences() -> void:
+    _save_timer.stop()
+    if not is_instance_valid(_look_slider) or not is_instance_valid(_ads_slider):
+        return
+    var result: Error=_preferences.save(_look_slider.value,_ads_slider.value)
+    _settings_status.text="Ajustes guardados" if result==OK else "No se pudieron guardar los ajustes; vuelve a intentarlo"

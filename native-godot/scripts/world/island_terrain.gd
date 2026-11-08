@@ -5,6 +5,7 @@ const HALF_EXTENT: float = 225.0
 const HEIGHT_STEP: float = (HALF_EXTENT * 2.0) / float(CELLS)
 
 var sea_level: float = -2.8
+var _height_samples:=PackedFloat32Array()
 var _noise: FastNoiseLite = FastNoiseLite.new()
 
 
@@ -14,9 +15,31 @@ func _init() -> void:
     _noise.frequency = 0.011
     _noise.fractal_type = FastNoiseLite.FRACTAL_FBM
     _noise.fractal_octaves = 4
+    for iz in range(CELLS+1):
+        for ix in range(CELLS+1):
+            _height_samples.append(_elevation(-HALF_EXTENT+ix*HEIGHT_STEP,-HALF_EXTENT+iz*HEIGHT_STEP))
 
 
 func height_at(x: float, z: float) -> float:
+    # Match the actual triangle collider, not the continuous noise function
+    # between 4.6875 m vertices. The old estimate left ramps/loot floating.
+    if absf(x)>HALF_EXTENT or absf(z)>HALF_EXTENT:
+        return _elevation(x,z)
+    var gx: float=(x+HALF_EXTENT)/HEIGHT_STEP
+    var gz: float=(z+HALF_EXTENT)/HEIGHT_STEP
+    var ix: int=clampi(int(floor(gx)),0,CELLS-1)
+    var iz: int=clampi(int(floor(gz)),0,CELLS-1)
+    var u: float=gx-ix
+    var v: float=gz-iz
+    var index: int=iz*(CELLS+1)+ix
+    var a: float=_height_samples[index]
+    var b: float=_height_samples[index+1]
+    var c: float=_height_samples[index+CELLS+1]
+    var d: float=_height_samples[index+CELLS+2]
+    return a+(b-a)*u+(c-a)*v if u+v<=1.0 else d+(c-d)*(1.0-u)+(b-d)*(1.0-v)
+
+
+func _elevation(x: float, z: float) -> float:
     var main := 1.0 - Vector2(x * 0.92, z * 1.11).length() / 173.0
     var bay := 1.0 - Vector2((x - 121.0) * 1.22, z + 52.0).length() / 70.0
     var sanctuary := 1.0 - Vector2(x + 113.0, (z - 102.0) * 1.18).length() / 68.0

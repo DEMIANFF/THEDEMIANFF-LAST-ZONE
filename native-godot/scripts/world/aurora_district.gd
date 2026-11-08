@@ -3,6 +3,8 @@ extends Node3D
 ## service gantries, integrated collision and a low-draw-call landscape dressing.
 ## The box shapes represent real structural panels, not placeholder block houses.
 
+var navigation_points: Array[Vector3]=[]
+var cover_points: Array[Vector3]=[]
 var terrain: StaticBody3D
 
 var wall: StandardMaterial3D
@@ -39,6 +41,8 @@ func _ready() -> void:
     _make_path(Vector2(-19, -29), Vector2(-48, 22), 3.0)
     _make_beacon(Vector2(-4.0, -2.0), 8.5)
     _make_beacon(Vector2(39.0, -18.0), 7.0)
+    for at in [Vector2(4,-24),Vector2(32,-22),Vector2(-32,-8),Vector2(-8,-48),Vector2(40,8),Vector2(-35,35)]:
+        _make_cover(at)
     _make_rock_field()
     _make_sign(Vector2(1.5, -16), "PUERTO AURORA", "SECTOR 01 / EXPLORACION")
 
@@ -67,6 +71,8 @@ func _solid_panel(root: Node3D, label: String, p: Vector3, size: Vector3, materi
     if blocking:
         var body := StaticBody3D.new()
         body.name = label + "Collider"
+        if label in ["MonolithicFoundation","InteriorDeck","ExteriorLanding"]:
+            body.collision_layer=3 # World collision + navigation support.
         body.position = p
         root.add_child(body)
         var shape := CollisionShape3D.new()
@@ -172,6 +178,12 @@ func _make_building(at: Vector2, label: String, w: float, d: float, h: float, he
     for x in [-w*.5+.8,w*.5-.8]:
         _beam(root,"VerticalStructure",Vector3(x,.1,d*.5+.08),Vector3(x,h,d*.5+.08),.13,trim)
     _solid_panel(root,"ExteriorLanding",Vector3(0,-.50,d*.5+2.1),Vector3(door_w+1.2,.30,3.8),pavement)
+    _make_access_ramp(root,door_w,d)
+    for x in [-w*.5-2.2,w*.5+2.2]:
+        for z in [-d*.5-2.2,d*.5+2.2]:
+            navigation_points.append(root.position+Vector3(x,0,z))
+    for z in [d*.5+8.0,d*.5+4.0,d*.5+.4,d*.5-1.4,0.0]:
+        navigation_points.append(root.position+Vector3(0,0,z))
     _beam(root,"DoorLight",Vector3(-.5,door_h+.35,d*.5+.24),Vector3(.5,door_h+.35,d*.5+.24),.075,beacon)
     # Real structural features: exhaust, antenna, skylight and cylindrical ventilation.
     var vent := MeshInstance3D.new()
@@ -279,3 +291,64 @@ func _make_sign(at: Vector2, main_title: String, subtitle: String) -> void:
     base.add_child(title)
     _beam(base,"SignLegLeft",Vector3(-3.8,0,0),Vector3(-3.8,2.0,0),.18,prop_metal)
     _beam(base,"SignLegRight",Vector3(3.8,0,0),Vector3(3.8,2.0,0),.18,prop_metal)
+
+
+func _make_access_ramp(root: Node3D, door_width: float, depth: float) -> void:
+    # Two continuous slopes clear BOTH the landing lip and the foundation,
+    # including Vortex where the approach terrain is below the raised landing.
+    var front: float=depth*.5+8.0
+    var middle: float=depth*.5+4.2
+    var back: float=depth*.5+.30
+    var width: float=door_width*.5+.3
+    var low: float=_height(root.position.x,root.position.z+front)-root.position.y-.02
+    var halfway: float=maxf(-.30,lerpf(low,.12,(front-middle)/(front-back)))
+    _ramp_segment(root,width,front,low,middle,halfway)
+    _ramp_segment(root,width,middle,halfway,back,.12)
+
+
+func _ramp_segment(root: Node3D,width: float,front: float,low: float,back: float,high: float) -> void:
+    var bottom: float=minf(low,high)-.18
+    var points:=PackedVector3Array([
+        Vector3(-width,low,front),Vector3(width,low,front),
+        Vector3(-width,high,back),Vector3(width,high,back),
+        Vector3(-width,bottom,front),Vector3(width,bottom,front),
+        Vector3(-width,bottom,back),Vector3(width,bottom,back)])
+    var hull:=ConvexPolygonShape3D.new()
+    hull.points=points
+    var body:=StaticBody3D.new()
+    body.name="AccessibleEntryRamp"
+    body.collision_layer=3
+    var collider:=CollisionShape3D.new()
+    collider.shape=hull
+    body.add_child(collider)
+    root.add_child(body)
+    var surface:=SurfaceTool.new()
+    surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for i in [0,1,2,1,3,2]:
+        surface.add_vertex(points[i])
+    surface.generate_normals()
+    var mesh:=MeshInstance3D.new()
+    mesh.name="EntryRampSurface"
+    mesh.mesh=surface.commit()
+    mesh.material_override=pavement
+    root.add_child(mesh)
+
+
+func _make_cover(at: Vector2) -> void:
+    var base:=Node3D.new()
+    base.name="AuroraSupplyBarricade"
+    base.position=Vector3(at.x,_height(at.x,at.y),at.y)
+    add_child(base)
+    _solid_panel(base,"ArmoredSupplyContainer",Vector3(0,.85,0),Vector3(3.6,1.7,1.2),wall_dark)
+    _solid_panel(base,"ContainerLid",Vector3(0,1.72,0),Vector3(3.8,.12,1.35),trim,false)
+    for x in [-1.3,1.3]:
+        _solid_panel(base,"Reinforcement",Vector3(x,.85,.63),Vector3(.12,1.5,.09),beacon,false)
+    for x in [-2.5,2.5]:
+        for z in [-1.5,1.5]:
+            var point:=base.position+Vector3(x,0,z)
+            navigation_points.append(point)
+    for z in [-1.4,1.4]:
+        var point:=base.position+Vector3(0,0,z)
+        point.y=_height(point.x,point.z)+.04
+        cover_points.append(point)
+        navigation_points.append(point)

@@ -8,6 +8,7 @@ const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
 
 var operator: CharacterBody3D
 var hud: CanvasLayer
+var navigation: Node3D
 var terrain: StaticBody3D
 var weapon_index: int=0
 var ammo: Array[int]=[30,5]
@@ -24,6 +25,12 @@ var eliminations: int = 0
 var medkits_remaining: int = 2
 var sector_battle_active: bool = false
 var tracer_events: int = 0
+const TRACER_CAPACITY: int=8
+var _tracers: Array[MeshInstance3D]=[]
+var _tracer_lifetimes: Array[float]=[]
+var _tracer_cursor: int=0
+var _tracer_materials: Array[StandardMaterial3D]=[]
+var last_shot: Dictionary={}
 
 
 func _ready() -> void:
@@ -36,11 +43,16 @@ func _ready() -> void:
     hud.heal_pressed.connect(_on_heal)
     _make_targets()
     _draw_weapon_rig()
+    _prepare_tracers()
     _sync_hud()
     hud.set_medkit_count(medkits_remaining)
 
 
 func _process(dt: float) -> void:
+    for i in range(_tracers.size()):
+        if _tracer_lifetimes[i]>0.0:
+            _tracer_lifetimes[i]=maxf(0.0,_tracer_lifetimes[i]-dt)
+            _tracers[i].visible=_tracer_lifetimes[i]>0.0
     if not operator.can_act():
         trigger_held=false
         reload_timer=0.0
@@ -136,7 +148,7 @@ func _on_reload() -> void:
         hud.impact("SIN NECESIDAD DE RECARGA")
         return
     reload_timer=3.1 if weapon_index==1 else 1.55
-    operator.play_weapon_action("reload",.65)
+    operator.play_weapon_action("reload",reload_timer)
     hud.impact("RECARGANDO")
 
 
@@ -152,21 +164,20 @@ func _shoot() -> void:
     cooldown=AWM_BOLT_SECONDS if weapon_index==1 else .105
     _sync_hud()
     operator.apply_recoil(.02 if weapon_index==1 else .005)
-    if weapon_index==1:
-        operator.play_weapon_action("fire",.24)
+    operator.play_weapon_action("fire",.24 if weapon_index==1 else .13)
     var camera:=operator.get_view_camera() as Camera3D
     if camera==null:
         return
-    # Fire down the exact centre of the active camera so the rendered sight
-    # and weapon ray have the same optical axis at every zoom level.
-    var screen_center: Vector2 = camera.get_viewport().get_visible_rect().size*.5
+    # Sight selects a point; the real muzzle must have an unobstructed path
+    # to it. A camera above a low wall cannot fire through that wall.
+    var screen_center: Vector2=camera.get_viewport().get_visible_rect().size*.5
     var from: Vector3=camera.project_ray_origin(screen_center)
     var direction: Vector3=camera.project_ray_normal(screen_center)
-    var query:=PhysicsRayQueryParameters3D.create(from,from+direction*250)
-    query.exclude=[operator.get_rid()]
-    var hit: Dictionary=operator.get_world_3d().direct_space_state.intersect_ray(query)
-    var endpoint: Vector3=hit.get("position",from+direction*37.0)
-    _spawn_tracer(from,endpoint)
+    var muzzle: Vector3=_weapon_visuals.muzzle_position()
+    var hit: Dictionary=resolve_shot(from,direction,muzzle)
+    var endpoint: Vector3=hit.get("position",from+direction*250.0)
+    last_shot={"muzzle":muzzle,"endpoint":endpoint,"collider":hit.get("collider")}
+    _spawn_tracer(muzzle,endpoint)
     if hit.is_empty():
         return
     var body=hit.get("collider")
@@ -208,6 +219,9 @@ func begin_sector_battle() -> void:
         bot.name="AuroraPatrol"+str(i+1)
         bot.terrain=terrain
         bot.operator=operator
+        bot.navigation=navigation
+        if navigation:
+            navigation.actors.append(bot)
         bot.spawn_coordinates=additional_spawns[i-4]
         bot.eliminated.connect(_on_bot_eliminated)
         add_child(bot)
@@ -237,6 +251,8 @@ func collect_sector_loot(kind: String) -> bool:
         return false
     match kind:
         "medkit":
+            if medkits_remaining>=5:
+                return false
             medkits_remaining=mini(medkits_remaining+1,5)
             hud.set_medkit_count(medkits_remaining)
             hud.impact("BOTIQUIN RECOGIDO +1")
@@ -252,38 +268,61 @@ func collect_sector_loot(kind: String) -> bool:
     return true
 
 
-func _spawn_tracer(from: Vector3,to: Vector3) -> void:
-    # A very short-lived hitscan indicator. The actual damage still comes
-    # exclusively from the camera-aligned raycast, not this visible cylinder.
-    var start: Vector3=operator.global_position+Vector3.UP*1.48
-    var target: Vector3=to
-    var distance: float=start.distance_to(target)
-    if distance>.15:
-        var visual:=MeshInstance3D.new()
-        visual.name="BulletTracerV74"
-        var projectile:=CylinderMesh.new()
-        projectile.top_radius=.014 if weapon_index==0 else .024
-        projectile.bottom_radius=projectile.top_radius
-        projectile.height=minf(distance,90.0)
-        projectile.radial_segments=6
-        visual.mesh=projectile
+func resolve_shot(from: Vector3, direction: Vector3, muzzle: Vector3) -> Dictionary:
+    var space:=operator.get_world_3d().direct_space_state
+    var query:=PhysicsRayQueryParameters3D.create(from,from+direction*250.0)
+    query.exclude=[operator.get_rid()]
+    var sight: Dictionary=space.intersect_ray(query)
+    var target: Vector3=sight.get("position",from+direction*250.0)
+    # Check chest-to-muzzle too: a barrel poking through a thin wall must not
+    # put the damage ray on the other side of the obstacle.
+    var chest: Vector3=operator.global_position+Vector3.UP*(.92 if operator._crouching else 1.35)
+    query.from=chest
+    query.to=muzzle
+    var blocked: Dictionary=space.intersect_ray(query)
+    if not blocked.is_empty():
+        return blocked
+    query.from=muzzle
+    query.to=target+(target-muzzle).normalized()*.04
+    query.hit_from_inside=true
+    return space.intersect_ray(query)
+
+
+func _prepare_tracers() -> void:
+    var mesh:=CylinderMesh.new()
+    mesh.top_radius=1.0
+    mesh.bottom_radius=1.0
+    mesh.height=1.0
+    mesh.radial_segments=6
+    for color in [Color(.98,.83,.56),Color(.65,.82,.99)]:
         var material:=StandardMaterial3D.new()
-        material.albedo_color=Color(.98,.83,.56) if weapon_index==0 else Color(.65,.82,.99)
+        material.albedo_color=color
         material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
-        material.emission_enabled=true
-        material.emission=material.albedo_color
-        material.emission_energy_multiplier=1.3
-        visual.material_override=material
-        var heading: Vector3=(target-start).normalized()
-        visual.position=start+heading*projectile.height*.5
-        visual.quaternion=Quaternion(Vector3.UP,heading)
-        visual.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-        add_child(visual)
-        tracer_events+=1
-        get_tree().create_timer(.11).timeout.connect(func():
-            if is_instance_valid(visual):
-                visual.queue_free()
-        )
+        _tracer_materials.append(material)
+    for i in range(TRACER_CAPACITY):
+        var tracer:=MeshInstance3D.new()
+        tracer.name="BulletTracer"+str(i)
+        tracer.mesh=mesh
+        tracer.visible=false
+        tracer.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        add_child(tracer)
+        _tracers.append(tracer)
+        _tracer_lifetimes.append(0.0)
+
+
+func _spawn_tracer(from: Vector3,to: Vector3) -> void:
+    var distance: float=minf(from.distance_to(to),90.0)
+    if distance<=.01:
+        return
+    var visual: MeshInstance3D=_tracers[_tracer_cursor]
+    var heading: Vector3=(to-from).normalized()
+    var radius: float=.014 if weapon_index==0 else .024
+    visual.global_transform=Transform3D(Basis(Quaternion(Vector3.UP,heading)).scaled(Vector3(radius,distance,radius)),from+heading*distance*.5)
+    visual.material_override=_tracer_materials[weapon_index]
+    visual.visible=true
+    _tracer_lifetimes[_tracer_cursor]=.11
+    _tracer_cursor=(_tracer_cursor+1)%TRACER_CAPACITY
+    tracer_events+=1
 
 
 func _sync_hud() -> void:

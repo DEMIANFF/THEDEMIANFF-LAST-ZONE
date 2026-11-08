@@ -156,3 +156,8 @@ func equipped_global_extents() -> Vector3:
 func equipped_global_length() -> float:
     var size: Vector3=equipped_global_extents()
     return maxf(size.x,maxf(size.y,size.z))
+
+
+func muzzle_position() -> Vector3:
+    # The authored weapon bounds are normalised around the grip in -Z.
+    return mount.to_global(Vector3(0,.03,-1.10 if selected_weapon==1 else -.78))

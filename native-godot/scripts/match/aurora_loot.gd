@@ -9,6 +9,7 @@ var world_spot: Vector2=Vector2.ZERO
 var collected: bool=false
 var _visual: Node3D
 var _phase: float=0.0
+var _pickup_clock: float=0.0
 
 func _ready() -> void:
     monitoring=true
@@ -60,7 +61,7 @@ func _ready() -> void:
     floating_name.pixel_size=.005
     floating_name.position.y=.94
     floating_name.modulate=Color(.85,.99,1.0)
-    floating_name.no_depth_test=true
+    floating_name.no_depth_test=false
     _visual.add_child(floating_name)
     body_entered.connect(_collect)
 
@@ -68,6 +69,11 @@ func _ready() -> void:
 func _process(delta: float) -> void:
     if collected:
         return
+    _pickup_clock-=delta
+    if _pickup_clock<=0:
+        _pickup_clock=.3
+        if global_position.distance_to(player.global_position+Vector3.UP)<1.65:
+            _collect(player)
     _phase+=delta
     _visual.position.y=sin(_phase*2.6)*.17
     _visual.rotation.y+=delta*.95
@@ -76,8 +82,12 @@ func _process(delta: float) -> void:
 func _collect(body: Node3D) -> void:
     if collected or body!=player:
         return
+    var ray:=PhysicsRayQueryParameters3D.create(player.global_position+Vector3.UP,global_position)
+    ray.exclude=[player.get_rid()]
+    if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
+        return
     if combat.collect_sector_loot(pickup_type):
         collected=true
-        monitoring=false
+        set_deferred("monitoring",false)
         _visual.visible=false
         queue_free()

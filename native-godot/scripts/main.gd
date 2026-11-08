@@ -6,6 +6,7 @@ const DISTRICT = preload("res://scripts/world/aurora_district.gd")
 const HUD = preload("res://scripts/ui/native_hud.gd")
 const COMBAT = preload("res://scripts/combat/training_combat.gd")
 const SECTOR_MATCH = preload("res://scripts/match/sector_director.gd")
+const NAVIGATION = preload("res://scripts/ai/aurora_navigation.gd")
 const NATURE = preload("res://scripts/world/aurora_nature.gd")
 
 var island: StaticBody3D
@@ -17,6 +18,7 @@ func _ready() -> void:
     island = TERRAIN.new()
     island.name = "AuroraTerrain"
     add_child(island)
+    island.collision_layer=3 # World collision and walkable support.
     var district = DISTRICT.new()
     district.name = "PuertoAuroraSector"
     district.terrain = island
@@ -68,6 +70,16 @@ func _ready() -> void:
     combat.terrain = island
     combat.hud = hud
     add_child(combat)
+    var navigation: Node3D=NAVIGATION.new()
+    navigation.name="AuroraNavigation"
+    navigation.terrain=island
+    navigation.district=district
+    navigation.actors.append(operator)
+    navigation.actors.append_array(combat._targets)
+    add_child(navigation)
+    combat.navigation=navigation
+    for bot in combat._targets:
+        bot.navigation=navigation
     hud.set_training_radar_sources(operator,combat._targets)
     var match_director: Node3D=SECTOR_MATCH.new()
     match_director.name="AuroraSectorMatch"
