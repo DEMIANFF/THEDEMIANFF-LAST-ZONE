@@ -167,6 +167,10 @@ func receive_training_hit(amount: float) -> void:
         training_health_changed.emit(training_health)
 
 
+func set_touch_move_axis(direction: Vector2) -> void:
+    _move_axis=direction.limit_length(1.0)
+
+
 func set_touch_run(active: bool) -> void:
     _sprint_touch=active
 
@@ -211,21 +215,16 @@ func _input(event: InputEvent) -> void:
         if touch.pressed:
             if touch.position.x >= viewport_width * 0.48 and _look_touch == -1:
                 _look_touch = touch.index
-            elif touch.position.x < viewport_width * 0.48 and _move_touch == -1 and not _touch_over_run_button(touch.position):
-                _move_touch = touch.index
-                _move_origin = touch.position
+            # Left-side touch is owned by MovePad._gui_input.
         else:
             if touch.index == _look_touch:
                 _look_touch = -1
-            if touch.index == _move_touch:
-                _move_touch = -1
-                _move_axis = Vector2.ZERO
+            # Movement release comes from GUI joystick signal.
     elif event is InputEventScreenDrag:
         var drag := event as InputEventScreenDrag
         if drag.index == _look_touch:
             _turn_camera(drag.relative)
-        elif drag.index == _move_touch:
-            _move_axis = ((drag.position - _move_origin) / 75.0).limit_length(1.0)
+        # Left-side drag is captured by the independent GUI joystick.
     elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
         _turn_camera((event as InputEventMouseMotion).relative)
     elif event is InputEventMouseButton:
