@@ -140,10 +140,26 @@ func _sloped_roof(parent: Node3D, w: float, d: float, h: float) -> void:
 func _make_building(at: Vector2, label: String, w: float, d: float, h: float, heavy: bool) -> void:
     var root := Node3D.new()
     root.name = label.replace(" ", "_")
-    root.position = Vector3(at.x, _height(at.x, at.y) + 0.62, at.y)
+    var center_ground: float=_height(at.x,at.y)
+    var sound_floor: float=center_ground
+    # Preserve the natural, already-navigable exterior terrain. These two
+    # historic lots have a higher ground corner INSIDE the structure, so the
+    # floor and stone foundation must rise above that corner, not excavate
+    # the public footpath or leave snow sticking up through the room.
+    if label=="TALLER HELIOS" or label=="ESTACION METEOROLOGICA":
+        for offset in [
+            Vector2.ZERO,Vector2(2,2),Vector2(-2,-2),
+            Vector2(2,-2),Vector2(-2,2)
+        ]:
+            sound_floor=maxf(sound_floor,_height(at.x+offset.x,at.y+offset.y))
+    var foundation_extension: float=maxf(0.0,sound_floor-center_ground)
+    root.position = Vector3(at.x,sound_floor+0.62,at.y)
     add_child(root)
-    # Raised concrete foundation and walkable interior floor.
-    _solid_panel(root, "MonolithicFoundation", Vector3(0, -0.45, 0), Vector3(w + 2.3, .90, d + 2.3), pavement)
+    # Extend the actual concrete skirt down to the original ground so the
+    # raised floor has visible support and does not become a floating box.
+    _solid_panel(root, "MonolithicFoundation",
+        Vector3(0,-0.45-foundation_extension*.5,0),
+        Vector3(w+2.3,.90+foundation_extension,d+2.3),pavement)
     _solid_panel(root, "InteriorDeck", Vector3(0, .04, 0), Vector3(w - .55, .12, d - .55), wall_dark)
     var thick := 0.32
     var door_w := 3.15
