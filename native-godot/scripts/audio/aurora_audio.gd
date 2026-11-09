@@ -1,4 +1,4 @@
-extends Node
+extends Node3D
 ## Original offline sound design. Deterministic synthesized PCM is cached once,
 ## and voices are pooled; no runtime AudioStreamGenerator callbacks on mobile.
 ## Sound library is original, not borrowed from other games.
@@ -8,6 +8,8 @@ const VOICES: int=8
 
 var _samples: Dictionary={}
 var _voices: Array[AudioStreamPlayer]=[]
+var _world_voices: Array[AudioStreamPlayer3D]=[]
+var _world_cursor: int=0
 var _cursor: int=0
 var _ambience: AudioStreamPlayer
 var _foot_index: int=0
@@ -40,6 +42,15 @@ func _ready() -> void:
         voice.volume_db=-9.0
         add_child(voice)
         _voices.append(voice)
+    for i in range(5):
+        var outdoor:=AudioStreamPlayer3D.new()
+        outdoor.name="SpatialWeapon"+str(i)
+        outdoor.bus="AuroraSFX"
+        outdoor.volume_db=-11.0
+        outdoor.unit_size=8.0
+        outdoor.max_distance=90.0
+        add_child(outdoor)
+        _world_voices.append(outdoor)
     _ambience=AudioStreamPlayer.new()
     _ambience.name="AuroraWindAmbience"
     _ambience.bus="AuroraAmbience"
@@ -91,6 +102,18 @@ func play_event(kind: String,pitch: float=1.0) -> void:
     voice.play()
 
 
+func play_world_shot(at: Vector3) -> void:
+    if not _sound_enabled:
+        return
+    var source: AudioStreamPlayer3D=_world_voices[_world_cursor]
+    _world_cursor=(_world_cursor+1)%_world_voices.size()
+    source.stop()
+    source.global_position=at+Vector3.UP*1.35
+    source.stream=_samples["ar_fire"]
+    source.pitch_scale=.91+float(_world_cursor%4)*.04
+    source.play()
+
+
 func play_footstep(on_stone: bool) -> void:
     _foot_index+=1
     var variation: float=.94+float(_foot_index%5)*.026
@@ -106,6 +129,8 @@ func set_enabled(enabled: bool) -> void:
             _ambience.stop()
     if not enabled:
         for voice in _voices:
+            voice.stop()
+        for voice in _world_voices:
             voice.stop()
 
 
