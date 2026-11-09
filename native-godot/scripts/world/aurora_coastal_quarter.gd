@@ -87,6 +87,34 @@ func _build_materials() -> void:
             var value: float=clampf(.94+age,.88,1.0)
             whitewash.set_pixel(px,py,Color(value,value*.99,value*.95))
     _plaster.albedo_texture=ImageTexture.create_from_image(whitewash)
+    # Three physically shaded material families, without height/parallax
+    # shaders or large downloaded textures. The normal images are generated
+    # once, packed in 128x128 RAM textures and reused on all four buildings.
+    _plaster.normal_texture=_normal_from_height(whitewash,2.0)
+    _plaster.normal_enabled=true
+    _plaster.normal_scale=.40
+    _sandstone.normal_texture=_normal_from_height(image,1.9)
+    _sandstone.normal_enabled=true
+    _sandstone.normal_scale=.55
+    _paving.normal_texture=_sandstone.normal_texture
+    _paving.normal_enabled=true
+    _paving.normal_scale=.40
+
+
+func _normal_from_height(height_image: Image,strength: float) -> ImageTexture:
+    var width: int=height_image.get_width()
+    var height: int=height_image.get_height()
+    var output:=Image.create(width,height,false,Image.FORMAT_RGB8)
+    for y in range(height):
+        for x in range(width):
+            var left: float=height_image.get_pixel((x+width-1)%width,y).r
+            var right: float=height_image.get_pixel((x+1)%width,y).r
+            var up: float=height_image.get_pixel(x,(y+height-1)%height).r
+            var down: float=height_image.get_pixel(x,(y+1)%height).r
+            var tangent:=Vector3((left-right)*strength,(up-down)*strength,1.0).normalized()
+            output.set_pixel(x,y,Color(tangent.x*.5+.5,tangent.y*.5+.5,
+                tangent.z*.5+.5))
+    return ImageTexture.create_from_image(output)
 
 
 func _ground(x: float,z: float) -> float:
@@ -276,8 +304,11 @@ func _stair_ramp(root: Node3D,front: float,w: float,at: Vector2) -> void:
     var mesh:=SurfaceTool.new()
     mesh.begin(Mesh.PRIMITIVE_TRIANGLES)
     for ix in [0,1,2,1,3,2]:
-        mesh.add_vertex(points[ix]+Vector3.UP*.015)
+        var vertex: Vector3=points[ix]+Vector3.UP*.015
+        mesh.set_uv(Vector2(vertex.x/2.0,vertex.z/2.0))
+        mesh.add_vertex(vertex)
     mesh.generate_normals()
+    mesh.generate_tangents()
     var visible:=MeshInstance3D.new()
     visible.name="AccessibleStoneEntry"
     visible.mesh=mesh.commit()
@@ -381,6 +412,7 @@ func _plaza(center: Vector2,area: Vector2) -> void:
                 tool.set_uv(Vector2(point.x/2.0,point.z/2.0))
                 tool.add_vertex(point)
     tool.generate_normals()
+    tool.generate_tangents()
     var cobbles:=MeshInstance3D.new()
     cobbles.name="AuroraCobblestoneMarketPlaza"
     cobbles.mesh=tool.commit()
