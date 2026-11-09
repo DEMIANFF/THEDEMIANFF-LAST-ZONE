@@ -190,22 +190,23 @@ func _physics_process(delta: float) -> void:
         _camera.fov = lerpf(_camera.fov, desired_fov, 1.0 - exp(-delta * 11.0))
         var desired_distance: float = 1.15 if _ads_active and _ads_zoom >= 6.0 else 3.65 if _ads_active else 4.6
         var preferred_shoulder: float=.16 if _ads_active and _ads_zoom>=6.0 else .38
-        var safe_distance: float=_collision_safe_camera_distance(desired_distance,_camera.position.x)
+        # Probe the PREFERRED shoulder, not only the currently relocated
+        # camera. Otherwise moving to a free centerline clears the probe and
+        # immediately forces the camera into the wall again (oscillation).
+        var preferred_clearance: float=_collision_safe_camera_distance(desired_distance,preferred_shoulder)
         var shoulder_target: float=preferred_shoulder
-        # A wall next to the right shoulder is not necessarily blocking the
-        # centerline. Recover by sliding the camera sideways only while
-        # obstructed; the normal TPS view is unchanged in open terrain.
-        if safe_distance<1.60 and desired_distance>1.60:
+        if preferred_clearance<1.60 and desired_distance>1.60:
             var centered: float=_collision_safe_camera_distance(desired_distance,0.0)
-            if centered>safe_distance+.32:
+            if centered>preferred_clearance+.32:
                 shoulder_target=0.0
             else:
                 var opposite: float=_collision_safe_camera_distance(desired_distance,-.22)
-                if opposite>safe_distance+.64:
+                if opposite>preferred_clearance+.64:
                     shoulder_target=-.22
-        var prior_shoulder: float=_camera.position.x
-        _camera.position.x=lerpf(_camera.position.x,shoulder_target,1.0-exp(-delta*11.0))
-        if absf(_camera.position.x-prior_shoulder)>.008:
+        _camera.position.x=lerpf(_camera.position.x,shoulder_target,
+            1.0-exp(-delta*11.0))
+        var safe_distance: float=preferred_clearance
+        if absf(_camera.position.x-preferred_shoulder)>.008:
             safe_distance=_collision_safe_camera_distance(desired_distance,_camera.position.x)
         # Contract immediately to stay outside collisions; expand with
         # controlled smoothing so opening a door never snaps the viewpoint.
