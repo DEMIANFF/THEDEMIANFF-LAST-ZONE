@@ -39,6 +39,22 @@ func height_at(x: float, z: float) -> float:
     return a+(b-a)*u+(c-a)*v if u+v<=1.0 else d+(c-d)*(1.0-u)+(b-d)*(1.0-v)
 
 
+# Grade the actual heightfield, including its collision triangles, for a
+# walkable waterfront district. 45m feathering avoids vertical snow walls;
+# terrain and all architecture derive their elevation from the same samples.
+const COAST_CENTER: Vector2=Vector2(27.0,39.0)
+const COAST_HALF: Vector2=Vector2(53.0,31.0)
+const COAST_TRANSITION: float=45.0
+const COAST_SHELF_ELEVATION: float=7.0
+
+
+func _coastal_shelf_weight(x: float,z: float) -> float:
+    var along: Vector2=Vector2(absf(x-COAST_CENTER.x),absf(z-COAST_CENTER.y))-COAST_HALF
+    var outside: float=Vector2(maxf(along.x,0.0),maxf(along.y,0.0)).length()
+    var t: float=clampf(outside/COAST_TRANSITION,0.0,1.0)
+    return 1.0-t*t*(3.0-2.0*t)
+
+
 func _elevation(x: float, z: float) -> float:
     var main := 1.0 - Vector2(x * 0.92, z * 1.11).length() / 173.0
     var bay := 1.0 - Vector2((x - 121.0) * 1.22, z + 52.0).length() / 70.0
@@ -47,7 +63,8 @@ func _elevation(x: float, z: float) -> float:
     var coast: float = shape + _noise.get_noise_2d(x * 1.45, z * 1.45) * 0.18
     var elevation: float = pow(maxf(coast, 0.0), 1.65) * 21.0
     var hills: float = _noise.get_noise_2d(x * 2.6 + 53.0, z * 2.6) * 5.6
-    return coast * 5.0 + elevation + hills * clampf(coast * 2.0, 0.0, 1.0) - 3.0
+    var wilderness: float=coast*5.0+elevation+hills*clampf(coast*2.0,0.0,1.0)-3.0
+    return lerpf(wilderness,COAST_SHELF_ELEVATION,_coastal_shelf_weight(x,z))
 
 
 func _ready() -> void:
