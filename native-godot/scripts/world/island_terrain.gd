@@ -6,13 +6,6 @@ const HEIGHT_STEP: float = (HALF_EXTENT * 2.0) / float(CELLS)
 
 var sea_level: float = -2.8
 var _height_samples:=PackedFloat32Array()
-const LEGACY_SITES=[
-    Vector4(18.0,-8.0,10.2,8.0),
-    Vector4(-19.0,-29.0,9.0,7.4),
-    Vector4(46.0,-36.0,7.3,7.0),
-    Vector4(-48.0,22.0,8.0,8.0)
-]
-var _site_heights:=PackedFloat32Array()
 var _noise: FastNoiseLite = FastNoiseLite.new()
 
 
@@ -22,25 +15,6 @@ func _init() -> void:
     _noise.frequency = 0.011
     _noise.fractal_type = FastNoiseLite.FRACTAL_FBM
     _noise.fractal_octaves = 4
-    for site in LEGACY_SITES:
-        # Carve a REAL foundation into the slope instead of raising a house
-        # on the highest hill/entrance pixel. The lowest footprint sample is
-        # the accessible ground datum for the building and its interior.
-        var accessible_height: float=INF
-        for offset in [
-            Vector2.ZERO,
-            Vector2(0,site.w*.5),
-            Vector2(0,-site.w*.5),
-            Vector2(0,site.w+3.0),
-            Vector2(-site.z*.5,0),
-            Vector2(site.z*.5,0)
-        ]:
-            accessible_height=minf(accessible_height,
-                _wilderness_height(site.x+offset.x,site.y+offset.y))
-        # Avoid floating a house above 15m on the glacial crest: the
-        # foundation is excavated to an accessible town terrace level.
-        _site_heights.append(minf(accessible_height,11.5))
-    print("AURORA_LEGACY_LOT_DATUM ",_site_heights)
     for iz in range(CELLS+1):
         for ix in range(CELLS+1):
             _height_samples.append(_elevation(-HALF_EXTENT+ix*HEIGHT_STEP,-HALF_EXTENT+iz*HEIGHT_STEP))
@@ -65,33 +39,34 @@ func height_at(x: float, z: float) -> float:
     return a+(b-a)*u+(c-a)*v if u+v<=1.0 else d+(c-d)*(1.0-u)+(b-d)*(1.0-v)
 
 
-# Grade the actual heightfield, including its collision triangles, for a
-# walkable waterfront district. 45m feathering avoids vertical snow walls;
-# terrain and all architecture derive their elevation from the same samples.
 const COAST_SHELF_ELEVATION: float=7.0
+const LEGACY_CENTERS: Array[Vector2]=[
+    Vector2(18,-8),Vector2(-19,-29),Vector2(46,-36),Vector2(-48,22)
+]
 
 
-func _fade_in(value: float,start: float,finish: float) -> float:
-    var t: float=clampf((value-start)/(finish-start),0.0,1.0)
+func _smooth_ramp(at: float, low: float, high: float) -> float:
+    var t: float=clampf((at-low)/(high-low),0.0,1.0)
     return t*t*(3.0-2.0*t)
 
 
 func _coastal_shelf_weight(x: float,z: float) -> float:
-    # Confine full leveling to the urban quarter; leave the legacy sector's
-    # doorways and A* access routes to the south and west untouched.
-    var west: float=_fade_in(x,-44.0,-24.0)
-    var east: float=1.0-_fade_in(x,80.0,120.0)
-    var south: float=_fade_in(z,-2.0,12.0)
-    var north: float=1.0-_fade_in(z,70.0,110.0)
-    # The coastal rebuild must never overwrite legacy buildings or their paths.
-    var legacy_circulation: float=1.0
-    for site in LEGACY_SITES:
-        var ring: float=Vector2(x-site.x,z-site.y).length()
-        legacy_circulation*= _fade_in(ring,20.0,28.0)
-    return west*east*south*north*legacy_circulation
+    # Only the new eastern coastal residential strip. The old exploration
+    # sector and its corner approach stay on their proven V75.6 heightfield.
+    var south_end: float=lerpf(18.0,8.5,
+        clampf((x-20.0)/25.0,0.0,1.0))
+    var south: float=_smooth_ramp(z,south_end-12.0,south_end)
+    var west: float=_smooth_ramp(x,-35.0,-16.0)
+    var east: float=1.0-_smooth_ramp(x,81.0,106.0)
+    var north: float=1.0-_smooth_ramp(z,76.0,107.0)
+    var protection: float=1.0
+    for center in LEGACY_CENTERS:
+        # The old walls, 8-m door approaches and graph loops are not graded.
+        protection*= _smooth_ramp(Vector2(x,z).distance_to(center),25.0,28.0)
+    return south*west*east*north*protection
 
 
-func _wilderness_height(x: float,z: float) -> float:
+func _wilderness_height(x: float, z: float) -> float:
     var main := 1.0 - Vector2(x * 0.92, z * 1.11).length() / 173.0
     var bay := 1.0 - Vector2((x - 121.0) * 1.22, z + 52.0).length() / 70.0
     var sanctuary := 1.0 - Vector2(x + 113.0, (z - 102.0) * 1.18).length() / 68.0
@@ -99,23 +74,13 @@ func _wilderness_height(x: float,z: float) -> float:
     var coast: float = shape + _noise.get_noise_2d(x * 1.45, z * 1.45) * 0.18
     var elevation: float = pow(maxf(coast, 0.0), 1.65) * 21.0
     var hills: float = _noise.get_noise_2d(x * 2.6 + 53.0, z * 2.6) * 5.6
-    return coast*5.0+elevation+hills*clampf(coast*2.0,0.0,1.0)-3.0
+    return coast * 5.0 + elevation + hills * clampf(coast * 2.0, 0.0, 1.0) - 3.0
+
 
 
 func _elevation(x: float,z: float) -> float:
-    var grounded: float=_wilderness_height(x,z)
-    # Grade existing four building lots using their real center height, then
-    # feather toward untouched wilderness. Otherwise mountain triangles enter
-    # the interiors despite the houses having physical floors.
-    for i in range(LEGACY_SITES.size()):
-        var site: Vector4=LEGACY_SITES[i]
-        var edge: Vector2=Vector2(
-            maxf(absf(x-site.x)-site.z,0.0),
-            maxf(absf(z-site.y)-site.w,0.0))
-        var lot_weight: float=1.0-_fade_in(edge.length(),0.0,12.0)
-        grounded=lerpf(grounded,_site_heights[i],lot_weight)
-    return lerpf(grounded,COAST_SHELF_ELEVATION,_coastal_shelf_weight(x,z))
-
+    var old_world: float=_wilderness_height(x,z)
+    return lerpf(old_world,COAST_SHELF_ELEVATION,_coastal_shelf_weight(x,z))
 
 func _ready() -> void:
     var vertices := PackedVector3Array()
