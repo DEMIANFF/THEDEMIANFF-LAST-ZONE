@@ -136,13 +136,42 @@ func route(from: Vector3,to: Vector3) -> PackedVector3Array:
         return PackedVector3Array([goal])
     var start_id:=_reachable_node(from)
     var goal_id:=_reachable_node(goal)
-    if start_id<0 or goal_id<0:
+    if start_id>=0 and goal_id>=0:
+        var path:=graph.get_point_path(start_id,goal_id)
+        if not path.is_empty():
+            path.append(goal)
+            return path
+    # A local sector may be isolated in the prebuilt graph after a world
+    # rebuild. Find physically validated door/sidestep nodes before giving up.
+    return _local_detour(from,goal)
+
+
+func _local_detour(from: Vector3,goal: Vector3) -> PackedVector3Array:
+    if Vector2(from.x-goal.x,from.z-goal.z).length()>32.0:
         return PackedVector3Array()
-    var path:=graph.get_point_path(start_id,goal_id)
-    if path.is_empty():
-        return path
-    path.append(goal)
-    return path
+    var exits: Array[Vector3]=[]
+    var entries: Array[Vector3]=[]
+    for location in district.navigation_points:
+        var walkable: Vector3=ground_point(location)
+        if not walkable.is_finite():
+            continue
+        if Vector2(walkable.x-from.x,walkable.z-from.z).length()<25.0:
+            exits.append(walkable)
+        if Vector2(walkable.x-goal.x,walkable.z-goal.z).length()<25.0:
+            entries.append(walkable)
+    exits.sort_custom(func(a,b): return a.distance_squared_to(goal)<b.distance_squared_to(goal))
+    entries.sort_custom(func(a,b): return a.distance_squared_to(goal)<b.distance_squared_to(goal))
+    for i in range(mini(exits.size(),14)):
+        var a: Vector3=exits[i]
+        if not segment_clear(from,a):
+            continue
+        for j in range(mini(entries.size(),14)):
+            var b: Vector3=entries[j]
+            if a.distance_squared_to(b)<2.0 or a.distance_squared_to(b)>30.0*30.0:
+                continue
+            if segment_clear(a,b) and segment_clear(b,goal):
+                return PackedVector3Array([a,b,goal])
+    return PackedVector3Array()
 
 func find_cover(from: Vector3, threat: Vector3) -> Vector3:
     # Only solid, reachable cover within 18 m; never select through a wall.
