@@ -23,7 +23,7 @@ if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
   if [ "$import_status" -ne 0 ]; then cat "$LOGS/import.log"; exit 1; fi
   if grep -E 'SCRIPT ERROR:|ERROR:' "$LOGS/import.log"; then exit 1; fi
 fi
-for script in smoke_test combat_rules_test motorola_control_audit mobile_touch_routing_test camera_fire_qa multitouch_combat_qa sector_battle_qa launch_airdrop_qa persistent_match_qa crouch_collision_qa weapon_visual_qa v752_regression_qa persistence_recovery_qa responsive_layout_qa v753_combat_regression_qa v753_navigation_qa v753_animation_settings_qa v753_frontend_qa v754_aim_pose_qa v755_lobby_combat_qa v756_coastal_quarter_qa; do
+for script in smoke_test combat_rules_test motorola_control_audit mobile_touch_routing_test camera_fire_qa multitouch_combat_qa sector_battle_qa launch_airdrop_qa persistent_match_qa crouch_collision_qa weapon_visual_qa v752_regression_qa persistence_recovery_qa responsive_layout_qa v753_combat_regression_qa v753_navigation_qa v753_animation_settings_qa v753_frontend_qa v754_aim_pose_qa v755_lobby_combat_qa v756_coastal_quarter_qa v757_world_audio_qa; do
   extension=gd
   if [ "${AURORA_QA_EXPORTED:-0}" = 1 ]; then extension=gdc; fi
   status=0
