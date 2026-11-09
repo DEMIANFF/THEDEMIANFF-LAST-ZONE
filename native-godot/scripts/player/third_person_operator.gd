@@ -48,6 +48,7 @@ var _avatar: Node3D
 var _animation_controller: Node
 var _landing_seconds: float=0.0
 var _footstep_clock: float=0.0
+var _ground_locomotion: String="Idle"
 var _animator: AnimationPlayer
 var _current_clip: String = ""
 var _weapon_index: int=0
@@ -221,7 +222,7 @@ func _physics_process(delta: float) -> void:
         if _combat_action_seconds<=0.0:
             _combat_action=""
         var speed: float=Vector2(velocity.x,velocity.z).length()
-        var locomotion: String="Run" if speed>=5.5 else "Walk" if speed>=1.0 else "Idle"
+        var locomotion: String=_select_locomotion(speed)
         var clip: String="AuroraArmed"+locomotion
         if _crouching:
             clip="AuroraCrouchWalk" if speed>=.75 else "AuroraCrouch"
@@ -233,6 +234,30 @@ func _physics_process(delta: float) -> void:
             clip="AuroraLand"
         if clip!=_current_clip:
             _play_matching_animation(clip)
+
+
+func _select_locomotion(speed: float) -> String:
+    # Hysteresis eliminates repeated Walk/Run/Idle clip restarts around a
+    # threshold when sliding, strafe-aiming or moving on sloped ground.
+    # Weapon upper-body one-shots remain in their independent blend layer.
+    if not is_finite(speed):
+        return _ground_locomotion
+    var v: float=maxf(0.0,speed)
+    if _ground_locomotion=="Run":
+        if v>=5.05:
+            return "Run"
+        _ground_locomotion="Walk" if v>=.65 else "Idle"
+    elif _ground_locomotion=="Walk":
+        if v>=5.85:
+            _ground_locomotion="Run"
+        elif v<.55:
+            _ground_locomotion="Idle"
+    else:
+        if v>=5.85:
+            _ground_locomotion="Run"
+        elif v>=1.05:
+            _ground_locomotion="Walk"
+    return _ground_locomotion
 
 
 func fit_operator_visual(visual: Node3D) -> void:
