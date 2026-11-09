@@ -67,6 +67,18 @@ func _verify() -> void:
             collider_ray.collide_with_areas=false
             var hit: Dictionary=spaces.intersect_ray(collider_ray)
             check(hit.is_empty(),"terrain or obstacle penetrates house interior "+str(i)+" "+str(hit.get("collider")))
+    # Legacy architecture must not have snow hills inside physical rooms.
+    var old_sites: Array[String]=[
+        "CENTRO_DE_EXPLORACION","TALLER_HELIOS",
+        "ESTACION_METEOROLOGICA","PUESTO_VORTEX"]
+    for name in old_sites:
+        var legacy: Node3D=scene.get_node("PuertoAuroraSector/"+name)
+        for inside in [Vector2.ZERO,Vector2(2.0,2.0),Vector2(-2.0,-2.0),
+                       Vector2(2.0,-2.0),Vector2(-2.0,2.0)]:
+            var place: Vector3=legacy.to_global(Vector3(inside.x,0,inside.y))
+            var ground_y: float=terrain.height_at(place.x,place.z)
+            check(ground_y<=legacy.global_position.y+.07,
+                "snow penetrates legacy interior "+name+" at "+str(inside))
     var pavement: MeshInstance3D=quarter.get_node("AuroraCobblestoneMarketPlaza")
     check(pavement.mesh!=null,"paved plaza missing")
     check(absf(terrain.height_at(19,28)-terrain.height_at(27,28))<.09,
