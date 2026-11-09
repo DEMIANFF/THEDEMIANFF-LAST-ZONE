@@ -11,7 +11,7 @@ En los interiores, la cámara TPS de hombro derecho podía retroceder hasta el p
 ## Cambios integrados
 
 - Proyección de colisión real con esfera del mismo tamaño y máscara física existente, ajustando opcionalmente su eje lateral.
-- Si la cámara está muy obstruida, comprueba primero la línea central; solo cuando es físicamente más despejada desplaza el hombro a ese eje. Si no sirve, prueba el hombro opuesto. Sondeos adicionales únicamente cuando la cámara necesita contraerse; se conserva el coste bajo del caso normal.
+- Si la cámara está muy obstruida, comprueba primero la línea central; solo cuando es físicamente más despejada desplaza el hombro a ese eje. Si no sirve, prueba el hombro opuesto. La comprobación se efectúa **siempre respecto al hombro original**, incluso cuando la cámara se ha deslizado, evitando oscilaciones entre la pared y el centro. El sondeo adicional lateral solo se realiza si hay obstrucción.
 - El zoom se contrae inmediatamente ante paredes y se aleja con suavizado temporal al liberar el camino, evitando atravesar colisiones.
 - El personaje local se oculta según la **posición actual** de la cámara, no el valor objetivo futuro, y se oculta siempre durante AWM x8. En cuanto el espacio real lo permite, recupera su representación, sin afectar a los enemigos ni a las colisiones del personaje.
 - Nueva suite `v759_camera_obstruction_qa.gd`: crea obstáculos físicos de verdad en la escena, comprueba contracción, ausencia del cuerpo delante de la lente, recuperación tras eliminar la pared, cambio de hombro, retorno al hombro normal y transición ADS AWM x8.
@@ -22,4 +22,4 @@ No se ha realizado prueba física en Motorola; el resultado de GitHub Actions se
 
 ## Criterio de aceptación
 
-El workflow de QA de esta rama debe aprobar las 23 suites anteriores y la nueva suite de colisiones de cámara, sin desactivar las pruebas existentes para conseguir verde.
+**Validación realizada:** 24 de 24 suites aprobadas en https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/42713659618, incluidas las 23 regresiones existentes y `v759_camera_obstruction_qa.gd`. No se desactivó ninguna prueba previa, no hubo exportación de APK.
