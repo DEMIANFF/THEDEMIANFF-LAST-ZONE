@@ -94,6 +94,7 @@ func _ready() -> void:
     combat.navigation=navigation
     combat.shot_fired.connect(func(weapon: int,_hit: bool): sound.play_event("awm_fire" if weapon==1 else "ar_fire",.96+randf()*.08))
     combat.impact_occurred.connect(func(): sound.play_event("impact"))
+    combat.bot_shot.connect(sound.play_world_shot)
     combat.reload_started.connect(func(): sound.play_event("reload"))
     combat.healed.connect(func(): sound.play_event("heal"))
     for bot in combat._targets:
