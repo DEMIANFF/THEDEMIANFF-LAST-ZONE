@@ -23,7 +23,10 @@ func _init() -> void:
     _noise.fractal_type = FastNoiseLite.FRACTAL_FBM
     _noise.fractal_octaves = 4
     for site in LEGACY_SITES:
-        _site_heights.append(_wilderness_height(site.x,site.y))
+        # House center is often on a steep glacial crest: grading to its
+        # elevation would raise every doorway several metres above the path.
+        # Anchor the town lot to the existing pedestrian approach at +Z.
+        _site_heights.append(_wilderness_height(site.x,site.y+site.w+3.0))
     for iz in range(CELLS+1):
         for ix in range(CELLS+1):
             _height_samples.append(_elevation(-HALF_EXTENT+ix*HEIGHT_STEP,-HALF_EXTENT+iz*HEIGHT_STEP))
