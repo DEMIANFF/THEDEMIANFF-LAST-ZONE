@@ -321,8 +321,10 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
     _roof_mesh(building,w,d,height)
     _stair_ramp(building,front,door_width*.64,at)
     # Walkable terrace: physical railing and ground-level cover, balcony visual.
+    # Ramp is the ONLY collision support across this threshold. A second
+    # raised porch box previously formed an invisible 20-cm movement step.
     _panel(building,"EntryStonePorch",Vector3(0,.12,front+.95),
-        Vector3(door_width+1.2,.22,1.65),_sandstone)
+        Vector3(door_width+1.2,.22,1.65),_sandstone,false)
     for x in [-w*.32,w*.32]:
         _panel(building,"BalconyCorner",Vector3(x,2.73,front+.46),
             Vector3(.27,.28,1.2),_sandstone,false)
