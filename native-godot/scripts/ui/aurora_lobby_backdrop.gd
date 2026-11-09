@@ -18,18 +18,24 @@ func _draw() -> void:
         draw_rect(Rect2(0,h*fraction,w,h/24.0+2),shade)
     draw_circle(Vector2(w*.75,h*.29),h*.12,Color(.17,.63,.87,.12))
     draw_circle(Vector2(w*.75,h*.29),h*.08,Color(.43,.90,1,.14))
-    draw_colored_polygon(PackedVector2Array([
-        Vector2(0,h*.64),Vector2(w*.14,h*.35),Vector2(w*.28,h*.63),
-        Vector2(w*.46,h*.24),Vector2(w*.68,h*.66),
-        Vector2(w*.81,h*.34),Vector2(w,h*.67),Vector2(w,h)]),Color(.06,.20,.31,.81))
-    draw_colored_polygon(PackedVector2Array([
-        Vector2(w*.14,h*.35),Vector2(w*.19,h*.45),Vector2(w*.12,h*.48),
-        Vector2(w*.46,h*.24),Vector2(w*.54,h*.38),Vector2(w*.43,h*.34),
-        Vector2(w*.81,h*.34),Vector2(w*.84,h*.42),Vector2(w*.78,h*.41)]),Color(.39,.68,.75,.29))
-    draw_colored_polygon(PackedVector2Array([
-        Vector2(0,h*.72),Vector2(w*.19,h*.67),Vector2(w*.36,h*.72),
-        Vector2(w*.58,h*.65),Vector2(w*.77,h*.75),Vector2(w,h*.68),
-        Vector2(w,h),Vector2(0,h)]),Color(.018,.085,.14,.94))
+    # All distant mountains are convex triangles, never self-intersecting.
+    # A multi-peak polygon produced Godot triangulation errors on headless QA.
+    for peak in [
+        Vector3(.02,.75,.35), Vector3(.20,.78,.30),
+        Vector3(.42,.81,.25), Vector3(.68,.79,.33)
+    ]:
+        var center: float=peak.x
+        var span: float=peak.z
+        var tip: float=peak.y-span
+        draw_colored_polygon(PackedVector2Array([
+            Vector2(w*(center-span),h*.78),
+            Vector2(w*center,h*tip),
+            Vector2(w*(center+span),h*.78)]),Color(.06,.20,.31,.86))
+        draw_colored_polygon(PackedVector2Array([
+            Vector2(w*(center-span*.20),h*(tip+span*.22)),
+            Vector2(w*center,h*tip),
+            Vector2(w*(center+span*.20),h*(tip+span*.22))]),Color(.45,.77,.84,.38))
+    draw_rect(Rect2(0,h*.755,w,h*.245),Color(.018,.085,.14,.94))
     var shore_y: float=h*.76
     draw_line(Vector2(0,shore_y),Vector2(w,shore_y+h*.04),Color(.12,.78,.91,.32),2)
     _building(w*.10,h*.60,w*.115,h*.19,Color(.12,.23,.29))
