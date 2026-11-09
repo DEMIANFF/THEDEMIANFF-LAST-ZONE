@@ -80,21 +80,6 @@ func _wilderness_height(x: float, z: float) -> float:
 
 func _elevation(x: float,z: float) -> float:
     var old_world: float=_wilderness_height(x,z)
-    # Two older buildings have isolated ice peaks in occupied rooms. Carve
-    # their ORIGINAL heightfield only below the walkable floor, without
-    # changing door approaches, exterior waypoints or the 7-m coastal grade.
-    # The 6.6-m footprint covers entire 4.6875-m collider triangles at
-    # the tested interior corners. Exterior corridors start beyond it.
-    for center in [Vector2(-19.0,-29.0),Vector2(46.0,-36.0)]:
-        if absf(x-center.x)<=6.6 and absf(z-center.y)<=6.6:
-            # Station intrusion is on the WEST side only. Do not excavate
-            # its central doorway or the ramp directly in front of it.
-            if center.x>0.0:
-                if x>center.x-2.0:
-                    continue
-                old_world=minf(old_world,_wilderness_height(center.x,center.y)-.65)
-            else:
-                old_world=minf(old_world,_wilderness_height(center.x,center.y)-.08)
     return lerpf(old_world,COAST_SHELF_ELEVATION,_coastal_shelf_weight(x,z))
 
 func _ready() -> void:
