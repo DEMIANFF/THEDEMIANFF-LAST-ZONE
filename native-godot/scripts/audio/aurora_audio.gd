@@ -153,7 +153,7 @@ func _render(kind: String,duration: float) -> AudioStreamWAV:
                 value=.14*sin(TAU*650.0*t)*exp(-t*31.0)
                 value+=.08*sin(TAU*970.0*t)*exp(-t*34.0)
             "wind":
-                var envelope: float=minf(1.0,t*2.0,(duration-t)*2.0)
+                var envelope: float=minf(1.0,minf(t*2.0,(duration-t)*2.0))
                 value=(low*.40+middle*.045)*maxf(0.0,envelope)
         value=clampf(value*.82,-.96,.96)
         var signed: int=clampi(int(round(value*32767.0)),-32768,32767)
