@@ -23,10 +23,22 @@ func _init() -> void:
     _noise.fractal_type = FastNoiseLite.FRACTAL_FBM
     _noise.fractal_octaves = 4
     for site in LEGACY_SITES:
-        # House center is often on a steep glacial crest: grading to its
-        # elevation would raise every doorway several metres above the path.
-        # Anchor the town lot to the existing pedestrian approach at +Z.
-        _site_heights.append(_wilderness_height(site.x,site.y+site.w+3.0))
+        # Carve a REAL foundation into the slope instead of raising a house
+        # on the highest hill/entrance pixel. The lowest footprint sample is
+        # the accessible ground datum for the building and its interior.
+        var accessible_height: float=INF
+        for offset in [
+            Vector2.ZERO,
+            Vector2(0,site.w*.5),
+            Vector2(0,-site.w*.5),
+            Vector2(0,site.w+3.0),
+            Vector2(-site.z*.5,0),
+            Vector2(site.z*.5,0)
+        ]:
+            accessible_height=minf(accessible_height,
+                _wilderness_height(site.x+offset.x,site.y+offset.y))
+        _site_heights.append(accessible_height)
+    print("AURORA_LEGACY_LOT_DATUM ",_site_heights)
     for iz in range(CELLS+1):
         for ix in range(CELLS+1):
             _height_samples.append(_elevation(-HALF_EXTENT+ix*HEIGHT_STEP,-HALF_EXTENT+iz*HEIGHT_STEP))
