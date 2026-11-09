@@ -111,125 +111,38 @@ func segment_clear(from: Vector3, to: Vector3) -> bool:
         previous=point
     return true
 
-func _reachable_nodes(at: Vector3,limit: int=4) -> PackedInt64Array:
-    # A nearest single anchor can be isolated by a wall even though nearby
-    # anchors on the other side lead into the doorway. Try several physically
-    # reachable graph anchors, keeping the probe bounded for mobile CPU.
-    var candidates: Array[Array]=[]
+func _reachable_node(at: Vector3) -> int:
+    var candidates: Array=[]
     for id in graph.get_point_ids():
-        var point: Vector3=graph.get_point_position(id)
-        # Restore the proven 3D radius from V75.6. A strict 3-m vertical
-        # filter disconnected hillside nodes around the old doorway.
-        var distance: float=at.distance_squared_to(point)
-        if distance<=24.0*24.0:
+        var point:=graph.get_point_position(id)
+        var distance:=at.distance_squared_to(point)
+        if distance<24.0*24.0:
             candidates.append([distance,id])
     candidates.sort_custom(func(a,b): return a[0]<b[0])
-    var result:=PackedInt64Array()
     for candidate in candidates:
-        if result.size()>=limit:
-            break
-        var pt: Vector3=graph.get_point_position(candidate[1])
-        if segment_clear(at,pt):
-            result.append(int(candidate[1]))
-    return result
-
-
-func _reachable_node(at: Vector3) -> int:
-    # Keep this method for existing callers and QA.
-    var values: PackedInt64Array=_reachable_nodes(at,1)
-    return -1 if values.is_empty() else values[0]
-
+        if segment_clear(at,graph.get_point_position(candidate[1])):
+            return candidate[1]
+    return -1
 
 func route(from: Vector3,to: Vector3) -> PackedVector3Array:
     route_requests+=1
     if not available:
         return PackedVector3Array()
     _query.exclude=_exclusions()
-    var goal: Vector3=ground_point(to)
+    var goal:=ground_point(to)
     if not goal.is_finite() or absf(goal.y-to.y)>2.0:
         return PackedVector3Array()
     if segment_clear(from,goal):
         return PackedVector3Array([goal])
-    var starts: PackedInt64Array=_reachable_nodes(from,4)
-    var goals: PackedInt64Array=_reachable_nodes(goal,4)
-    var best:=PackedVector3Array()
-    var best_length: float=INF
-    # The graph edges were generated only through segment_clear. The two
-    # attachments are checked again here so no A* shortcut crosses a wall.
-    for from_id in starts:
-        for to_id in goals:
-            var segment: PackedVector3Array=graph.get_point_path(from_id,to_id)
-            if segment.is_empty():
-                continue
-            var total: float=from.distance_to(segment[0])+segment[-1].distance_to(goal)
-            for j in range(1,segment.size()):
-                total+=segment[j-1].distance_to(segment[j])
-            if total<best_length:
-                best=segment
-                best_length=total
-    if not best.is_empty():
-        best.append(goal)
-        return best
-    # If the static graph is disconnected by a terrain rebuild, use an
-    # explicitly collision-validated local detour, never an unchecked line.
-    return _local_detour(from,goal)
-
-
-func _local_detour(from: Vector3,goal: Vector3) -> PackedVector3Array:
-    if Vector2(from.x-goal.x,from.z-goal.z).length()>32.0:
+    var start_id:=_reachable_node(from)
+    var goal_id:=_reachable_node(goal)
+    if start_id<0 or goal_id<0:
         return PackedVector3Array()
-    var exits: Array[Vector3]=[]
-    var entries: Array[Vector3]=[]
-    for location in district.navigation_points:
-        var walkable: Vector3=ground_point(location)
-        if not walkable.is_finite():
-            continue
-        if Vector2(walkable.x-from.x,walkable.z-from.z).length()<25.0:
-            exits.append(walkable)
-        if Vector2(walkable.x-goal.x,walkable.z-goal.z).length()<25.0:
-            entries.append(walkable)
-    exits.sort_custom(func(a,b): return a.distance_squared_to(goal)<b.distance_squared_to(goal))
-    entries.sort_custom(func(a,b): return a.distance_squared_to(goal)<b.distance_squared_to(goal))
-    var verified_exit: Array[Vector3]=[]
-    var verified_entry: Array[Vector3]=[]
-    for candidate in exits:
-        if verified_exit.size()>=12:
-            break
-        if segment_clear(from,candidate):
-            verified_exit.append(candidate)
-    for candidate in entries:
-        if verified_entry.size()>=12:
-            break
-        if segment_clear(candidate,goal):
-            verified_entry.append(candidate)
-    for a in verified_exit:
-        for b in verified_entry:
-            if a.distance_squared_to(b)<2.0 or a.distance_squared_to(b)>30.0*30.0:
-                continue
-            if segment_clear(a,b):
-                return PackedVector3Array([a,b,goal])
-    # Going around a building from behind requires an additional corner:
-    # rear-side -> front-side -> open doorway -> goal. A 2-edge shortcut
-    # cuts across its wall and must never be accepted.
-    var middle: Array[Vector3]=[]
-    for location in district.navigation_points:
-        if Vector2(location.x-goal.x,location.z-goal.z).length()>27.0:
-            continue
-        var navigable: Vector3=ground_point(location)
-        if navigable.is_finite():
-            middle.append(navigable)
-    middle.sort_custom(func(a,b): return a.distance_squared_to(goal)<b.distance_squared_to(goal))
-    for a in verified_exit:
-        for i in range(mini(middle.size(),24)):
-            var b: Vector3=middle[i]
-            if a.distance_squared_to(b)>30.0*30.0 or not segment_clear(a,b):
-                continue
-            for c in verified_entry:
-                if b.distance_squared_to(c)>30.0*30.0:
-                    continue
-                if segment_clear(b,c):
-                    return PackedVector3Array([a,b,c,goal])
-    return PackedVector3Array()
+    var path:=graph.get_point_path(start_id,goal_id)
+    if path.is_empty():
+        return path
+    path.append(goal)
+    return path
 
 func find_cover(from: Vector3, threat: Vector3) -> Vector3:
     # Only solid, reachable cover within 18 m; never select through a wall.
