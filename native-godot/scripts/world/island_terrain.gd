@@ -39,7 +39,34 @@ func height_at(x: float, z: float) -> float:
     return a+(b-a)*u+(c-a)*v if u+v<=1.0 else d+(c-d)*(1.0-u)+(b-d)*(1.0-v)
 
 
-func _elevation(x: float, z: float) -> float:
+const COAST_SHELF_ELEVATION: float=7.0
+const LEGACY_CENTERS: Array[Vector2]=[
+    Vector2(18,-8),Vector2(-19,-29),Vector2(46,-36),Vector2(-48,22)
+]
+
+
+func _smooth_ramp(at: float, low: float, high: float) -> float:
+    var t: float=clampf((at-low)/(high-low),0.0,1.0)
+    return t*t*(3.0-2.0*t)
+
+
+func _coastal_shelf_weight(x: float,z: float) -> float:
+    # Only the new eastern coastal residential strip. The old exploration
+    # sector and its corner approach stay on their proven V75.6 heightfield.
+    var south_end: float=lerpf(18.0,8.5,
+        clampf((x-20.0)/25.0,0.0,1.0))
+    var south: float=_smooth_ramp(z,south_end-12.0,south_end)
+    var west: float=_smooth_ramp(x,-35.0,-16.0)
+    var east: float=1.0-_smooth_ramp(x,81.0,106.0)
+    var north: float=1.0-_smooth_ramp(z,76.0,107.0)
+    var protection: float=1.0
+    for center in LEGACY_CENTERS:
+        # The old walls, 8-m door approaches and graph loops are not graded.
+        protection*= _smooth_ramp(Vector2(x,z).distance_to(center),25.0,29.0)
+    return south*west*east*north*protection
+
+
+func _wilderness_height(x: float, z: float) -> float:
     var main := 1.0 - Vector2(x * 0.92, z * 1.11).length() / 173.0
     var bay := 1.0 - Vector2((x - 121.0) * 1.22, z + 52.0).length() / 70.0
     var sanctuary := 1.0 - Vector2(x + 113.0, (z - 102.0) * 1.18).length() / 68.0
@@ -49,6 +76,11 @@ func _elevation(x: float, z: float) -> float:
     var hills: float = _noise.get_noise_2d(x * 2.6 + 53.0, z * 2.6) * 5.6
     return coast * 5.0 + elevation + hills * clampf(coast * 2.0, 0.0, 1.0) - 3.0
 
+
+
+func _elevation(x: float,z: float) -> float:
+    var old_world: float=_wilderness_height(x,z)
+    return lerpf(old_world,COAST_SHELF_ELEVATION,_coastal_shelf_weight(x,z))
 
 func _ready() -> void:
     var vertices := PackedVector3Array()
