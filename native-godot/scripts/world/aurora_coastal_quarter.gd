@@ -11,6 +11,7 @@ var buildings_built: int=0
 var accessible_entries: int=0
 var tile_instances: int=0
 var collision_bodies: int=0
+var cargo_caches_built: int=0
 
 var _plaster: StandardMaterial3D
 var _sandstone: StandardMaterial3D
@@ -37,9 +38,11 @@ func _ready() -> void:
     _palm(Vector2(5,20),1.0)
     _palm(Vector2(32,21),1.10)
     _palm(Vector2(57,13),0.9)
+    _freight_cache(Vector2(13,13),0)
+    _freight_cache(Vector2(38,12),1)
     print("AURORA_COASTAL_QUARTER houses=",buildings_built,
         " doors=",accessible_entries," roof_tiles=",tile_instances,
-        " solids=",collision_bodies)
+        " solids=",collision_bodies," cargo_caches=",cargo_caches_built)
 
 
 func _material(color: Color, roughness: float, metal: float=0.0) -> StandardMaterial3D:
@@ -421,6 +424,43 @@ func _plaza(center: Vector2,area: Vector2) -> void:
     for i in range(21):
         var x: float=center.x+float(i-10)*2.0
         navigation_points.append(Vector3(x,_ground(x,center.y)+.06,center.y))
+
+
+func _freight_cache(at: Vector2,index: int) -> void:
+    # Gameplay cover, not a backdrop: stacked armoured supply trunks stop
+    # player/enemy bullets through world-layer collision. Their low profile
+    # keeps the waterfront pathways visible and the entrance ramps clear.
+    var depot:=Node3D.new()
+    depot.name="AuroraFreightCache"+str(index)
+    depot.position=Vector3(at.x,_ground(at.x,at.y)+.04,at.y)
+    add_child(depot)
+    var crates: Array[Vector3]=[
+        Vector3(-1.15,.56,0.0),
+        Vector3(.58,.56,-.25),
+        Vector3(-.25,1.62,-.20)
+    ]
+    for j in range(crates.size()):
+        var point: Vector3=crates[j]
+        var extent:=Vector3(1.65,1.08,1.27) if j<2 else Vector3(1.32,1.03,1.14)
+        _panel(depot,"SolidCargoCover"+str(j),point,extent,_wood,true)
+        _panel(depot,"CargoFrontPlating",point+Vector3(0,0,extent.z*.5+.035),
+            Vector3(extent.x*.93,extent.y*.70,.065),_iron,false)
+        for side in [-1.0,1.0]:
+            _panel(depot,"CargoSteelCorner",point+Vector3(
+                side*(extent.x*.5-.08),0,extent.z*.5+.065),
+                Vector3(.10,extent.y+.05,.10),_sandstone,false)
+        _panel(depot,"CargoLid",point+Vector3(0,extent.y*.5+.04,0),
+            Vector3(extent.x+.12,.10,extent.z+.11),_iron,false)
+    # These are safe, reachable cover positions around the physical crate
+    # footprints. Both AI route seeds and cover scoring use actual terrain.
+    for offset in [Vector2(-3.6,0.0),Vector2(3.4,0.0),
+                   Vector2(0.0,-2.7),Vector2(0.0,2.65)]:
+        var x: float=at.x+offset.x
+        var z: float=at.y+offset.y
+        var point:=Vector3(x,_ground(x,z)+.08,z)
+        navigation_points.append(point)
+        cover_points.append(point)
+    cargo_caches_built+=1
 
 
 func _planter(at: Vector2,radius: float) -> void:
