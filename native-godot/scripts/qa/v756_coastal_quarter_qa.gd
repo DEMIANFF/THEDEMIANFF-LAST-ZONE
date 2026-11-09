@@ -61,11 +61,38 @@ func _verify() -> void:
     check(checked_doors==4,"not all entrances open")
     check(checked_walls==4,"bullets can pass through modeled walls")
     check(checked_roofs==4,"no physical roof surfaces")
+    # Walk a CharacterBody through each ramp and doorway without jumping:
+    # a ray through an aperture alone is not sufficient gameplay acceptance.
+    var operator=scene.get_node("Operator")
+    var terrain=scene.get_node("AuroraTerrain")
+    for bot in scene.get_node("CombatRange")._targets:
+        bot.set_physics_process(false)
+    var visited: int=0
+    for index in range(4):
+        var house: Node3D=town.get_node("AuroraCoastalVilla"+str(index))
+        var depth: float=8.0 if index==0 else 8.4 if index==1 else 8.3 if index==2 else 7.7
+        var approach: Vector3=house.to_global(Vector3(0,0,depth*.5+8.1))
+        operator.global_position=Vector3(approach.x,terrain.height_at(approach.x,approach.z)+.16,approach.z)
+        operator.velocity=Vector3.ZERO
+        operator.rotation.y=house.rotation.y
+        operator._yaw=house.rotation.y
+        operator._desired_yaw=house.rotation.y
+        operator.set_touch_move_axis(Vector2.UP)
+        for frame in range(230):
+            await physics_frame
+        operator.set_touch_move_axis(Vector2.ZERO)
+        var local: Vector3=house.to_local(operator.global_position)
+        check(local.z<depth*.5-1.1,"player blocked by modeled entrance "+str(index)+" pos="+str(local))
+        if local.z<depth*.5-1.1:
+            visited+=1
+    check(visited==4,"not every house was physically enterable")
+
     var hud=scene.get_node("TrainingHUD")
     check(hud._reticle!=null,"combat scope missing")
     hud.set_aim(true,"AWM",8.0)
     check(hud._reticle.zoom>=8.0,"AWM scope unavailable in new scene")
     print("V756_COASTAL_QUARTER PASS houses=",town.buildings_built,
+        " walked_through=",visited,
         " doors=",checked_doors," walls=",checked_walls,
         " roofs=",checked_roofs," curved_tiles=",town.tile_instances,
         " solid_bodies=",town.collision_bodies,
