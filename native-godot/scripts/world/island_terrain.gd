@@ -6,13 +6,6 @@ const HEIGHT_STEP: float = (HALF_EXTENT * 2.0) / float(CELLS)
 
 var sea_level: float = -2.8
 var _height_samples:=PackedFloat32Array()
-const LEGACY_SITES=[
-    Vector4(18.0,-8.0,10.2,8.0),
-    Vector4(-19.0,-29.0,9.0,7.4),
-    Vector4(46.0,-36.0,7.3,7.0),
-    Vector4(-48.0,22.0,8.0,8.0)
-]
-var _site_heights:=PackedFloat32Array()
 var _noise: FastNoiseLite = FastNoiseLite.new()
 
 
@@ -46,33 +39,7 @@ func height_at(x: float, z: float) -> float:
     return a+(b-a)*u+(c-a)*v if u+v<=1.0 else d+(c-d)*(1.0-u)+(b-d)*(1.0-v)
 
 
-# Grade the actual heightfield, including its collision triangles, for a
-# walkable waterfront district. 45m feathering avoids vertical snow walls;
-# terrain and all architecture derive their elevation from the same samples.
-const COAST_SHELF_ELEVATION: float=7.0
-
-
-func _fade_in(value: float,start: float,finish: float) -> float:
-    var t: float=clampf((value-start)/(finish-start),0.0,1.0)
-    return t*t*(3.0-2.0*t)
-
-
-func _coastal_shelf_weight(x: float,z: float) -> float:
-    # Confine full leveling to the urban quarter; leave the legacy sector's
-    # doorways and A* access routes to the south and west untouched.
-    var west: float=_fade_in(x,-44.0,-24.0)
-    var east: float=1.0-_fade_in(x,80.0,120.0)
-    var south: float=_fade_in(z,10.0,20.0)
-    var north: float=1.0-_fade_in(z,70.0,110.0)
-    # The coastal rebuild must never overwrite legacy buildings or their paths.
-    var legacy_circulation: float=1.0
-    for site in LEGACY_SITES:
-        var ring: float=Vector2(x-site.x,z-site.y).length()
-        legacy_circulation*= _fade_in(ring,20.0,28.0)
-    return west*east*south*north*legacy_circulation
-
-
-func _wilderness_height(x: float,z: float) -> float:
+func _elevation(x: float, z: float) -> float:
     var main := 1.0 - Vector2(x * 0.92, z * 1.11).length() / 173.0
     var bay := 1.0 - Vector2((x - 121.0) * 1.22, z + 52.0).length() / 70.0
     var sanctuary := 1.0 - Vector2(x + 113.0, (z - 102.0) * 1.18).length() / 68.0
@@ -80,15 +47,8 @@ func _wilderness_height(x: float,z: float) -> float:
     var coast: float = shape + _noise.get_noise_2d(x * 1.45, z * 1.45) * 0.18
     var elevation: float = pow(maxf(coast, 0.0), 1.65) * 21.0
     var hills: float = _noise.get_noise_2d(x * 2.6 + 53.0, z * 2.6) * 5.6
-    return coast*5.0+elevation+hills*clampf(coast*2.0,0.0,1.0)-3.0
+    return coast * 5.0 + elevation + hills * clampf(coast * 2.0, 0.0, 1.0) - 3.0
 
-
-func _elevation(x: float,z: float) -> float:
-    # Diagnostic/stability path: preserve the proven original terrain around
-    # every legacy building. No foundation grading until the previous routes
-    # are restored; the separate coastal shelf remains protected by its masks.
-    return lerpf(_wilderness_height(x,z),
-        COAST_SHELF_ELEVATION,_coastal_shelf_weight(x,z))
 
 func _ready() -> void:
     var vertices := PackedVector3Array()
