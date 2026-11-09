@@ -17,6 +17,7 @@ signal landed_from_airdrop
 signal crouch_state_changed(active: bool)
 signal footstep(on_stone: bool)
 signal jumped
+signal grounded_impact(on_stone: bool)
 @export var approved_operator_scene: PackedScene
 var training_health: float = 100.0
 var battle_royale_active: bool = false
@@ -47,7 +48,7 @@ var _camera: Camera3D
 var _avatar: Node3D
 var _animation_controller: Node
 var _landing_seconds: float=0.0
-var _footstep_clock: float=0.0
+var _footstep_distance: float=0.0
 var _ground_locomotion: String="Idle"
 var _animator: AnimationPlayer
 var _current_clip: String = ""
@@ -175,16 +176,21 @@ func _physics_process(delta: float) -> void:
     move_and_slide()
     var actual_speed: float=Vector2(global_position.x-before_move.x,global_position.z-before_move.z).length()/maxf(.001,delta)
     if is_on_floor() and actual_speed>1.2 and move_strength>.05:
-        _footstep_clock-=delta
-        if _footstep_clock<=0.0:
-            var city_stone: bool=global_position.x>=-28.0 and global_position.x<=81.0 and global_position.z>=6.0 and global_position.z<=74.0
-            footstep.emit(city_stone)
-            _footstep_clock=.31 if run_fast else .47
+        var stride: float=_step_stride(actual_speed,_crouching)
+        if _footstep_distance<=0.0:
+            # Do not wait a complete stride on the initial move input.
+            _footstep_distance=stride*.60
+        _footstep_distance+=actual_speed*delta
+        if _footstep_distance>=stride:
+            footstep.emit(_on_stone_footing())
+            _footstep_distance=fmod(_footstep_distance,stride)
     else:
-        _footstep_clock=minf(_footstep_clock,.04)
+        _footstep_distance=0.0
     _landing_seconds=maxf(0.0,_landing_seconds-delta)
     if not was_on_floor and is_on_floor() and falling_speed< -2.0:
         _landing_seconds=.28
+        if falling_speed< -4.5:
+            grounded_impact.emit(_on_stone_footing())
 
     if _camera:
         var desired_fov: float = clampf(74.0 / _ads_zoom, 9.0, 74.0) if _ads_active else 74.0
@@ -234,6 +240,33 @@ func _physics_process(delta: float) -> void:
             clip="AuroraLand"
         if clip!=_current_clip:
             _play_matching_animation(clip)
+
+
+func _step_stride(speed: float,crouching: bool=false) -> float:
+    # Actual horizontal distance between footfalls, not time intervals.
+    # A slow crouch must never generate running cadence. This avoids
+    # desynchronising sound when sprint stamina / joystick input changes.
+    if crouching:
+        return 1.02
+    return lerpf(1.78,2.35,clampf((speed-WALK_SPEED)/
+        (RUN_SPEED-WALK_SPEED),0.0,1.0))
+
+
+func _on_stone_footing() -> bool:
+    # Actual floor collider has priority for interiors and barricades;
+    # paved streets are visual terrain overlays rather than physics solids.
+    for index in range(get_slide_collision_count()):
+        var collision: KinematicCollision3D=get_slide_collision(index)
+        if collision.get_normal().y<=.6:
+            continue
+        var collider: Object=collision.get_collider()
+        if collider is Node:
+            var surface: String=(collider as Node).name.to_lower()
+            if "floor" in surface or "deck" in surface or "ramp" in surface or \
+                "foundation" in surface or "porch" in surface or "landing" in surface:
+                return true
+    var pos: Vector3=global_position
+    return pos.x>=-28.0 and pos.x<=81.0 and pos.z>=6.0 and pos.z<=74.0
 
 
 func _select_locomotion(speed: float) -> String:
