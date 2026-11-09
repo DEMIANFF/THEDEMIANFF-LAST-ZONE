@@ -57,7 +57,10 @@ func _coastal_shelf_weight(x: float,z: float) -> float:
     var east: float=1.0-_fade_in(x,80.0,120.0)
     var south: float=_fade_in(z,-2.0,12.0)
     var north: float=1.0-_fade_in(z,70.0,110.0)
-    return west*east*south*north
+    # Preserve the established CENTRO DE EXPLORACION building and its whole
+    # entrance/A* circulation ring; the new coast begins farther north.
+    var legacy_circulation: float=_fade_in(Vector2(x-18.0,z+8.0).length(),20.0,28.0)
+    return west*east*south*north*legacy_circulation
 
 
 func _elevation(x: float, z: float) -> float:
