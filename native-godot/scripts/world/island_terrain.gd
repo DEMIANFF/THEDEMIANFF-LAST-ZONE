@@ -82,11 +82,30 @@ func _elevation(x: float,z: float) -> float:
     var old_world: float=_wilderness_height(x,z)
     return lerpf(old_world,COAST_SHELF_ELEVATION,_coastal_shelf_weight(x,z))
 
+func _terrain_micro_normal() -> ImageTexture:
+    # Original low-memory 64x64 detail map. Snow is almost smooth while
+    # glacial rock gets modest microstructure from vertex-color slope masks.
+    # No parallax or expensive triplanar sampling on Motorola GPUs.
+    const SIZE: int=64
+    var image:=Image.create(SIZE,SIZE,false,Image.FORMAT_RGB8)
+    for py in range(SIZE):
+        for px in range(SIZE):
+            var angle_x: float=float(px)*TAU/float(SIZE)
+            var angle_y: float=float(py)*TAU/float(SIZE)
+            var nx: float=.09*sin(angle_x*4.0+cos(angle_y*2.0)*.7)
+            var ny: float=.09*cos(angle_y*4.0+sin(angle_x*3.0)*.7)
+            var normal:=Vector3(nx,ny,1.0).normalized()
+            image.set_pixel(px,py,Color(normal.x*.5+.5,
+                normal.y*.5+.5,normal.z*.5+.5))
+    return ImageTexture.create_from_image(image)
+
+
 func _ready() -> void:
     var vertices := PackedVector3Array()
     var normals := PackedVector3Array()
     var colors := PackedColorArray()
     var uvs := PackedVector2Array()
+    var tangents:=PackedFloat32Array()
     var indices := PackedInt32Array()
     var grid_width := CELLS + 1
 
@@ -100,6 +119,10 @@ func _ready() -> void:
             var gradient_z := height_at(x, z - HEIGHT_STEP) - height_at(x, z + HEIGHT_STEP)
             var normal := Vector3(gradient_x, 2.0 * HEIGHT_STEP, gradient_z).normalized()
             normals.append(normal)
+            # Tangent frame is mandatory for real normal mapping on custom
+            # ArrayMesh surfaces. World-aligned UVs prevent 450-m stretching.
+            var tangent: Vector3=(Vector3.RIGHT-normal*normal.dot(Vector3.RIGHT)).normalized()
+            tangents.append_array(PackedFloat32Array([tangent.x,tangent.y,tangent.z,-1.0]))
             var rock := Color(0.35, 0.45, 0.49)
             var snow := Color(0.79, 0.88, 0.90)
             var upper_snow := clampf((y + 1.0) / 23.0, 0.0, 1.0)
@@ -108,7 +131,7 @@ func _ready() -> void:
             var coastal_color := Color(0.46, 0.55, 0.55).lerp(rock, coastal)
             var natural := coastal_color.lerp(snow, upper_snow * (1.0 - slope_rock))
             colors.append(natural)
-            uvs.append(Vector2(float(x_index) / float(CELLS), float(z_index) / float(CELLS)))
+            uvs.append(Vector2(x/7.5,z/7.5))
 
     for z_index in range(CELLS):
         for x_index in range(CELLS):
@@ -122,6 +145,7 @@ func _ready() -> void:
     arrays[Mesh.ARRAY_COLOR] = colors
     arrays[Mesh.ARRAY_NORMAL] = normals
     arrays[Mesh.ARRAY_TEX_UV] = uvs
+    arrays[Mesh.ARRAY_TANGENT] = tangents
     arrays[Mesh.ARRAY_INDEX] = indices
 
     var surface := ArrayMesh.new()
@@ -130,6 +154,9 @@ func _ready() -> void:
     terrain_material.albedo_color = Color.WHITE
     terrain_material.vertex_color_use_as_albedo = true
     terrain_material.roughness = 0.9
+    terrain_material.normal_enabled=true
+    terrain_material.normal_scale=.34
+    terrain_material.normal_texture=_terrain_micro_normal()
     terrain_material.cull_mode = BaseMaterial3D.CULL_DISABLED  # Visualize terrain from both sides during collision QA.
     surface.surface_set_material(0, terrain_material)
 
