@@ -161,16 +161,45 @@ func _local_detour(from: Vector3,goal: Vector3) -> PackedVector3Array:
             entries.append(walkable)
     exits.sort_custom(func(a,b): return a.distance_squared_to(goal)<b.distance_squared_to(goal))
     entries.sort_custom(func(a,b): return a.distance_squared_to(goal)<b.distance_squared_to(goal))
-    for i in range(mini(exits.size(),14)):
-        var a: Vector3=exits[i]
-        if not segment_clear(from,a):
-            continue
-        for j in range(mini(entries.size(),14)):
-            var b: Vector3=entries[j]
+    var verified_exit: Array[Vector3]=[]
+    var verified_entry: Array[Vector3]=[]
+    for candidate in exits:
+        if verified_exit.size()>=12:
+            break
+        if segment_clear(from,candidate):
+            verified_exit.append(candidate)
+    for candidate in entries:
+        if verified_entry.size()>=12:
+            break
+        if segment_clear(candidate,goal):
+            verified_entry.append(candidate)
+    for a in verified_exit:
+        for b in verified_entry:
             if a.distance_squared_to(b)<2.0 or a.distance_squared_to(b)>30.0*30.0:
                 continue
-            if segment_clear(a,b) and segment_clear(b,goal):
+            if segment_clear(a,b):
                 return PackedVector3Array([a,b,goal])
+    # Going around a building from behind requires an additional corner:
+    # rear-side -> front-side -> open doorway -> goal. A 2-edge shortcut
+    # cuts across its wall and must never be accepted.
+    var middle: Array[Vector3]=[]
+    for location in district.navigation_points:
+        if Vector2(location.x-goal.x,location.z-goal.z).length()>27.0:
+            continue
+        var navigable: Vector3=ground_point(location)
+        if navigable.is_finite():
+            middle.append(navigable)
+    middle.sort_custom(func(a,b): return a.distance_squared_to(goal)<b.distance_squared_to(goal))
+    for a in verified_exit:
+        for i in range(mini(middle.size(),24)):
+            var b: Vector3=middle[i]
+            if a.distance_squared_to(b)>30.0*30.0 or not segment_clear(a,b):
+                continue
+            for c in verified_entry:
+                if b.distance_squared_to(c)>30.0*30.0:
+                    continue
+                if segment_clear(b,c):
+                    return PackedVector3Array([a,b,c,goal])
     return PackedVector3Array()
 
 func find_cover(from: Vector3, threat: Vector3) -> Vector3:
