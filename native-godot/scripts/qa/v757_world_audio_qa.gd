@@ -24,6 +24,7 @@ func _verify() -> void:
     var combat=scene.get_node("CombatRange")
     check(sound.sound_count()>=11,"too few distinct audio cues")
     check(sound._voices.size()>=6,"polyphony not pooled")
+    check(sound._world_voices.size()>=4,"3D enemy audio not pooled")
     check(AudioServer.get_bus_index("AuroraSFX")>=0,"SFX mixer bus absent")
     check(AudioServer.get_bus_index("AuroraAmbience")>=0,"ambience mixer bus absent")
     for key in ["ar_fire","awm_fire","foot_stone","foot_snow","reload","hit","impact","wind","heal"]:
@@ -40,6 +41,10 @@ func _verify() -> void:
     first=sound._cursor
     player.player_damaged.emit(2.0)
     check(sound._cursor==(first+1)%sound._voices.size(),"damage cue not connected")
+    var spatial_before: int=sound._world_cursor
+    combat._targets[0].weapon_fired.emit(combat._targets[0].global_position)
+    check(sound._world_cursor==(spatial_before+1)%sound._world_voices.size(),
+        "real AI gunfire not audible at world position")
 
     # All four houses and main plaza must be level and aligned with the
     # actual physics heightfield. Zero ground intrusion into occupied rooms.
