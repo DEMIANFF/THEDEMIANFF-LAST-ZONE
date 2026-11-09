@@ -358,22 +358,26 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
 
 
 func _plaza(center: Vector2,area: Vector2) -> void:
-    # Terrain-conforming cobblestone court: its visual triangles follow the
-    # underlying physics heightfield; no invisible elevated platforms.
-    var step: float=1.8
-    var span_x: int=maxi(2,int(ceil(area.x/step)))
-    var span_z: int=maxi(2,int(ceil(area.y/step)))
+    # Reuse EXACTLY the world terrain's 96x96 lattice and diagonal split.
+    # An independent paving tessellation intersected the terrain between
+    # its sample points, producing visible cut-outs and flickering.
+    var step: float=450.0/96.0
+    var first_x: int=clampi(int(floor((center.x-area.x*.5+225.0)/step)),0,95)
+    var last_x: int=clampi(int(ceil((center.x+area.x*.5+225.0)/step)),1,96)
+    var first_z: int=clampi(int(floor((center.y-area.y*.5+225.0)/step)),0,95)
+    var last_z: int=clampi(int(ceil((center.y+area.y*.5+225.0)/step)),1,96)
     var tool:=SurfaceTool.new()
     tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-    for ix in range(span_x):
-        for iz in range(span_z):
-            var x: float=center.x+(float(ix)-float(span_x)*.5)*step
-            var z: float=center.y+(float(iz)-float(span_z)*.5)*step
+    for ix in range(first_x,last_x):
+        for iz in range(first_z,last_z):
+            var x: float=-225.0+float(ix)*step
+            var z: float=-225.0+float(iz)*step
             var a:=Vector3(x,_ground(x,z)+.055,z)
             var b:=Vector3(x+step,_ground(x+step,z)+.055,z)
             var c:=Vector3(x,_ground(x,z+step)+.055,z+step)
             var d:=Vector3(x+step,_ground(x+step,z+step)+.055,z+step)
-            for point in [a,c,b,b,c,d]:
+            # Same diagonal and vertex order as island_terrain.gd.
+            for point in [a,b,c,b,d,c]:
                 tool.set_uv(Vector2(point.x/2.0,point.z/2.0))
                 tool.add_vertex(point)
     tool.generate_normals()
