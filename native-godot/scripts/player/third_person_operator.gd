@@ -189,14 +189,33 @@ func _physics_process(delta: float) -> void:
         var desired_fov: float = clampf(74.0 / _ads_zoom, 9.0, 74.0) if _ads_active else 74.0
         _camera.fov = lerpf(_camera.fov, desired_fov, 1.0 - exp(-delta * 11.0))
         var desired_distance: float = 1.15 if _ads_active and _ads_zoom >= 6.0 else 3.65 if _ads_active else 4.6
-        var safe_distance: float = _collision_safe_camera_distance(desired_distance)
-        _camera.position.z = minf(safe_distance,lerpf(_camera.position.z, safe_distance, 1.0 - exp(-delta * 15.0)))
-        _camera.position.x = lerpf(_camera.position.x, .16 if _ads_active and _ads_zoom >= 6.0 else .38, 1.0 - exp(-delta * 11.0))
+        var preferred_shoulder: float=.16 if _ads_active and _ads_zoom>=6.0 else .38
+        # Probe the PREFERRED shoulder, not only the currently relocated
+        # camera. Otherwise moving to a free centerline clears the probe and
+        # immediately forces the camera into the wall again (oscillation).
+        var preferred_clearance: float=_collision_safe_camera_distance(desired_distance,preferred_shoulder)
+        var shoulder_target: float=preferred_shoulder
+        if preferred_clearance<1.60 and desired_distance>1.60:
+            var centered: float=_collision_safe_camera_distance(desired_distance,0.0)
+            if centered>preferred_clearance+.32:
+                shoulder_target=0.0
+            else:
+                var opposite: float=_collision_safe_camera_distance(desired_distance,-.22)
+                if opposite>preferred_clearance+.64:
+                    shoulder_target=-.22
+        _camera.position.x=lerpf(_camera.position.x,shoulder_target,
+            1.0-exp(-delta*11.0))
+        var safe_distance: float=preferred_clearance
+        if absf(_camera.position.x-preferred_shoulder)>.008:
+            safe_distance=_collision_safe_camera_distance(desired_distance,_camera.position.x)
+        # Contract immediately to stay outside collisions; expand with
+        # controlled smoothing so opening a door never snaps the viewpoint.
+        _camera.position.z=minf(safe_distance,
+            lerpf(_camera.position.z,safe_distance,1.0-exp(-delta*15.0)))
         if _avatar:
-            # In narrow rooms the follow camera may collapse toward the
-            # operator to avoid a wall. Hide only the LOCAL avatar at close
-            # range, preventing the screen from filling with the body mesh.
-            _avatar.visible=safe_distance>1.35 and not (_ads_active and _ads_zoom>=6.0)
+            # Use the CAMERA'S ACTUAL position, not the future safe target:
+            # otherwise the avatar can pop into view while still within 1 m.
+            _avatar.visible=_camera.position.z>1.50 and not (_ads_active and _ads_zoom>=6.0)
     if _animator:
         _combat_action_seconds=maxf(0.0,_combat_action_seconds-delta)
         if _combat_action_seconds<=0.0:
@@ -537,10 +556,10 @@ func get_view_camera() -> Camera3D:
     return _camera
 
 
-func _collision_safe_camera_distance(requested: float) -> float:
+func _collision_safe_camera_distance(requested: float,shoulder_x: float=.38) -> float:
     if not is_inside_tree():
         return requested
-    var shoulder: Vector3=Vector3(_camera.position.x,_camera.position.y,0)
+    var shoulder: Vector3=Vector3(shoulder_x,_camera.position.y,0)
     var query:=_camera_collision_query
     query.transform=Transform3D(Basis(),_camera_pivot.to_global(shoulder))
     query.motion=_camera_pivot.global_basis.z*requested
