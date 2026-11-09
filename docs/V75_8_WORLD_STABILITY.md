@@ -9,11 +9,12 @@
 4. Audio integrado en V75.7 con disparo espacial y buses, pero no mezclado ni auditado acústicamente en teléfono.
 
 ## Correcciones integradas en esta rama
-- Terreno: conservar la elevación natural de la V75.6 alrededor de los accesos y caminos anteriores. En lugar de trasladar la altura de una cresta a todo el solar, recortar **solamente los picos sobre el suelo interior** de una vivienda, con transición corta y sin elevar puntos bajos. El nuevo sector costero conserva su terraza independiente.
-- Navegación: elegir varias anclas A* realmente alcanzables; una ancla cercana aislada no debe inutilizar todas las demás rutas. Aceptar exclusivamente segmentos que superaron las comprobaciones físicas existentes.
+- Terreno: **se conservó el relieve original del sector antiguo de V75.6** y se niveló únicamente la zona costera con transiciones y exclusiones alrededor de las cuatro construcciones previas. Esta separación restaura las rutas de bots y permite que las cuatro viviendas nuevas se asienten en la misma terraza de 7 m.
+- Arquitectura: en Taller Helios y Estación Meteorológica se calculó la altura de suelo con muestras de los puntos ocupados, elevando la solera lo justo y **extendiendo las cimentaciones de piedra hasta el terreno original**, sin excavar el acceso exterior ni crear edificios suspendidos.
+- Navegación: se recuperó la implementación A* de V75.6, que demostró superar el recorrido completo de bots detrás del Centro de Exploración. La variante de múltiples anclas no superó las pruebas de este terreno y **no se incluyó en el incremento aprobado**.
 - QA: `v758_world_stability_qa.gd` comprueba las cuatro aproximaciones a edificios originales, su interior, las cuatro viviendas del barrio costero y recursos de sonido. Continúan intactas `v753_navigation_qa`, `v756_coastal_quarter_qa` y `v757_world_audio_qa`. **No se desactivan suites fallidas para obtener luz verde.**
 
 ## Validación sin generar APK
-En esta fase ejecutar **solo** la regresión Godot del workflow `native-godot-foundation.yml`; no incorporar esta rama al workflow Android de exportación. Inspeccionar el log exacto de cualquier prueba fallida. No afirmar que errores de IA, colisiones ni sonido estén resueltos si el QA no terminó satisfactoriamente.
+**Validación realizada:** 23 de 23 suites aprobadas en https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/42711676009, incluyendo `v753_navigation_qa`, `v756_coastal_quarter_qa`, `v757_world_audio_qa` y `v758_world_stability_qa`. Se ejecutó únicamente el workflow de QA de Godot. **No se generó APK** ni se verificó el rendimiento en Motorola.
 
 La siguiente revisión abordará el sombreado, la cámara y la integración artística de Lila y Puerto Aurora una vez estabilizados terreno y navegación. El proyecto sigue offline, con un jugador y ocho bots. No declarar mapa 8×8 km, 100 personas online o tiendas reales hasta implementarlos y probarlos.
