@@ -22,10 +22,6 @@ func _init() -> void:
     _noise.frequency = 0.011
     _noise.fractal_type = FastNoiseLite.FRACTAL_FBM
     _noise.fractal_octaves = 4
-    # Preserve the exact original elevation at each legacy building center.
-    # Carving must never *raise* a path or move door approaches uphill.
-    for site in LEGACY_SITES:
-        _site_heights.append(_wilderness_height(site.x,site.y))
     for iz in range(CELLS+1):
         for ix in range(CELLS+1):
             _height_samples.append(_elevation(-HALF_EXTENT+ix*HEIGHT_STEP,-HALF_EXTENT+iz*HEIGHT_STEP))
@@ -88,26 +84,11 @@ func _wilderness_height(x: float,z: float) -> float:
 
 
 func _elevation(x: float,z: float) -> float:
-    var untouched: float=_wilderness_height(x,z)
-    # Only remove high ridges *inside* an occupied room; never lift lower
-    # approach paths to a building's center elevation. This preserves the
-    # V75.6 navigation topology around the old district.
-    for i in range(LEGACY_SITES.size()):
-        var site: Vector4=LEGACY_SITES[i]
-        var interior_half: Vector2=Vector2(site.z-2.3,site.w-2.0)
-        var outside: Vector2=Vector2(
-            maxf(absf(x-site.x)-interior_half.x,0.0),
-            maxf(absf(z-site.y)-interior_half.y,0.0))
-        var feather: float=outside.length()
-        var trim: float=1.0-_fade_in(feather,0.0,3.5)
-        # The walls/floor are already colliders at the true site elevation.
-        # Keep terrain beneath that walkable interior without forming mounds.
-        var ceiling: float=untouched
-        ceiling=minf(ceiling,_site_heights[i]+.18)
-        untouched=lerpf(untouched,ceiling,trim)
-    # Only the separate new waterfront quarter receives the broad shelf.
-    # Around legacy entrances the shelf weight falls to zero.
-    return lerpf(untouched,COAST_SHELF_ELEVATION,_coastal_shelf_weight(x,z))
+    # Diagnostic/stability path: preserve the proven original terrain around
+    # every legacy building. No foundation grading until the previous routes
+    # are restored; the separate coastal shelf remains protected by its masks.
+    return lerpf(_wilderness_height(x,z),
+        COAST_SHELF_ELEVATION,_coastal_shelf_weight(x,z))
 
 func _ready() -> void:
     var vertices := PackedVector3Array()
