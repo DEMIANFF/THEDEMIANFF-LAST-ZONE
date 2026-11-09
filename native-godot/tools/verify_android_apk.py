@@ -26,8 +26,8 @@ def run(tool, arguments, log):
 
 
 badging = run("aapt", ["dump", "badging"], "badging.txt")
-assert "package: name='com.thedemianff.lastzone.nativepreview757'" in badging
-assert "versionCode='7'" in badging and "versionName='75.7.0-terrain-audio'" in badging
+assert "package: name='com.thedemianff.lastzone.nativepreview7511'" in badging
+assert "versionCode='11'" in badging and "versionName='75.11.0-coastal-gait'" in badging
 assert "native-code: 'arm64-v8a'" in badging.splitlines()
 assert "application-debuggable" in badging.splitlines()
 signature = run("apksigner", ["verify", "--verbose", "--print-certs"], "signature.txt")
@@ -59,7 +59,7 @@ with zipfile.ZipFile(args.apk) as archive:
 
 digest = hashlib.sha256(args.apk.read_bytes()).hexdigest()
 result = {"apk": args.apk.name, "bytes": args.apk.stat().st_size, "sha256": digest,
-          "package": "com.thedemianff.lastzone.nativepreview757", "debug": True,
+          "package": "com.thedemianff.lastzone.nativepreview7511", "debug": True,
           "signature_v2_v3": True, "zip_alignment_16k": True, "crc": "PASS", "libraries": libraries}
 (args.logs / "apk-verification.json").write_text(json.dumps(result, indent=2) + "\n")
 (args.logs / "SHA256SUMS.txt").write_text(f"{digest}  {args.apk.name}\n")
