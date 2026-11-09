@@ -51,15 +51,17 @@ func _material(color: Color, roughness: float, metal: float=0.0) -> StandardMate
 
 
 func _build_materials() -> void:
-    _plaster=_material(Color(.82,.77,.67),.91)
+    _plaster=_material(Color(.96,.95,.91),.94)
     _sandstone=_material(Color(.64,.52,.38),.85)
-    _roof=_material(Color(.54,.22,.13),.82)
+    _roof=_material(Color(.70,.31,.19),.85)
+    _roof.cull_mode=BaseMaterial3D.CULL_DISABLED
     _wood=_material(Color(.23,.14,.10),.78)
     _glass=_material(Color(.09,.30,.37,.62),.14)
     _glass.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
     _glass.metallic=.22
     _iron=_material(Color(.12,.16,.18),.46,.51)
-    _paving=_material(Color(.51,.49,.44),.94)
+    _paving=_material(Color(.63,.58,.50),.94)
+    _paving.cull_mode=BaseMaterial3D.CULL_DISABLED
     _green=_material(Color(.10,.29,.18),.93)
     # Original tile and masonry detail texture, deterministic on every build.
     var image:=Image.create(128,128,false,Image.FORMAT_RGB8)
@@ -73,8 +75,18 @@ func _build_materials() -> void:
             var brightness: float=.34 if mortar else clampf(.77+variation+grain,.5,.99)
             image.set_pixel(x,y,Color(brightness,brightness*.97,brightness*.91))
     var masonry:=ImageTexture.create_from_image(image)
-    _plaster.albedo_texture=masonry
     _sandstone.albedo_texture=masonry
+    _paving.albedo_texture=masonry
+    # A whitewashed wall has irregular lime wear, not black mortar seams.
+    var whitewash:=Image.create(128,128,false,Image.FORMAT_RGB8)
+    for py in range(128):
+        for px in range(128):
+            var age: float=sin(float(px)*.113+sin(float(py)*.061))*.021
+            age+=sin(float(py)*.18+float(px)*.079)*.014
+            age+=cos(float(px)*.63+float(py)*.82)*.009
+            var value: float=clampf(.94+age,.88,1.0)
+            whitewash.set_pixel(px,py,Color(value,value*.99,value*.95))
+    _plaster.albedo_texture=ImageTexture.create_from_image(whitewash)
 
 
 func _ground(x: float,z: float) -> float:
@@ -348,19 +360,20 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
 func _plaza(center: Vector2,area: Vector2) -> void:
     # Terrain-conforming cobblestone court: its visual triangles follow the
     # underlying physics heightfield; no invisible elevated platforms.
-    var step: float=2.0
-    var span: int=10
+    var step: float=1.8
+    var span_x: int=maxi(2,int(ceil(area.x/step)))
+    var span_z: int=maxi(2,int(ceil(area.y/step)))
     var tool:=SurfaceTool.new()
     tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-    for ix in range(span):
-        for iz in range(span):
-            var x: float=center.x+(float(ix)-span*.5)*step
-            var z: float=center.y+(float(iz)-span*.5)*step
+    for ix in range(span_x):
+        for iz in range(span_z):
+            var x: float=center.x+(float(ix)-float(span_x)*.5)*step
+            var z: float=center.y+(float(iz)-float(span_z)*.5)*step
             var a:=Vector3(x,_ground(x,z)+.055,z)
             var b:=Vector3(x+step,_ground(x+step,z)+.055,z)
             var c:=Vector3(x,_ground(x,z+step)+.055,z+step)
             var d:=Vector3(x+step,_ground(x+step,z+step)+.055,z+step)
-            for point in [a,b,c,b,d,c]:
+            for point in [a,c,b,b,c,d]:
                 tool.set_uv(Vector2(point.x/2.0,point.z/2.0))
                 tool.add_vertex(point)
     tool.generate_normals()
@@ -369,8 +382,8 @@ func _plaza(center: Vector2,area: Vector2) -> void:
     cobbles.mesh=tool.commit()
     cobbles.material_override=_paving
     add_child(cobbles)
-    for i in range(13):
-        var x: float=center.x+float(i-6)*2.0
+    for i in range(21):
+        var x: float=center.x+float(i-10)*2.0
         navigation_points.append(Vector3(x,_ground(x,center.y)+.06,center.y))
 
 
