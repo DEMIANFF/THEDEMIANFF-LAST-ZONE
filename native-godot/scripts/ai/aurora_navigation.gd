@@ -111,38 +111,66 @@ func segment_clear(from: Vector3, to: Vector3) -> bool:
         previous=point
     return true
 
-func _reachable_node(at: Vector3) -> int:
-    var candidates: Array=[]
+func _reachable_nodes(at: Vector3,limit: int=4) -> PackedInt64Array:
+    # A nearest single anchor can be isolated by a wall even though nearby
+    # anchors on the other side lead into the doorway. Try several physically
+    # reachable graph anchors, keeping the probe bounded for mobile CPU.
+    var candidates: Array[Array]=[]
+    var horizontal: Vector2=Vector2(at.x,at.z)
     for id in graph.get_point_ids():
-        var point:=graph.get_point_position(id)
-        var distance:=at.distance_squared_to(point)
-        if distance<24.0*24.0:
-            candidates.append([distance,id])
+        var point: Vector3=graph.get_point_position(id)
+        var planar: float=horizontal.distance_squared_to(Vector2(point.x,point.z))
+        if planar<=24.0*24.0 and absf(point.y-at.y)<3.0:
+            candidates.append([planar,id])
     candidates.sort_custom(func(a,b): return a[0]<b[0])
+    var result:=PackedInt64Array()
     for candidate in candidates:
-        if segment_clear(at,graph.get_point_position(candidate[1])):
-            return candidate[1]
-    return -1
+        if result.size()>=limit:
+            break
+        var pt: Vector3=graph.get_point_position(candidate[1])
+        if segment_clear(at,pt):
+            result.append(int(candidate[1]))
+    return result
+
+
+func _reachable_node(at: Vector3) -> int:
+    # Keep this method for existing callers and QA.
+    var values: PackedInt64Array=_reachable_nodes(at,1)
+    return -1 if values.is_empty() else values[0]
+
 
 func route(from: Vector3,to: Vector3) -> PackedVector3Array:
     route_requests+=1
     if not available:
         return PackedVector3Array()
     _query.exclude=_exclusions()
-    var goal:=ground_point(to)
+    var goal: Vector3=ground_point(to)
     if not goal.is_finite() or absf(goal.y-to.y)>2.0:
         return PackedVector3Array()
     if segment_clear(from,goal):
         return PackedVector3Array([goal])
-    var start_id:=_reachable_node(from)
-    var goal_id:=_reachable_node(goal)
-    if start_id>=0 and goal_id>=0:
-        var path:=graph.get_point_path(start_id,goal_id)
-        if not path.is_empty():
-            path.append(goal)
-            return path
-    # A local sector may be isolated in the prebuilt graph after a world
-    # rebuild. Find physically validated door/sidestep nodes before giving up.
+    var starts: PackedInt64Array=_reachable_nodes(from,4)
+    var goals: PackedInt64Array=_reachable_nodes(goal,4)
+    var best:=PackedVector3Array()
+    var best_length: float=INF
+    # The graph edges were generated only through segment_clear. The two
+    # attachments are checked again here so no A* shortcut crosses a wall.
+    for from_id in starts:
+        for to_id in goals:
+            var segment: PackedVector3Array=graph.get_point_path(from_id,to_id)
+            if segment.is_empty():
+                continue
+            var total: float=from.distance_to(segment[0])+segment[-1].distance_to(goal)
+            for j in range(1,segment.size()):
+                total+=segment[j-1].distance_to(segment[j])
+            if total<best_length:
+                best=segment
+                best_length=total
+    if not best.is_empty():
+        best.append(goal)
+        return best
+    # If the static graph is disconnected by a terrain rebuild, use an
+    # explicitly collision-validated local detour, never an unchecked line.
     return _local_detour(from,goal)
 
 
