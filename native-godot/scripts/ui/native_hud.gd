@@ -25,6 +25,7 @@ var _weapon: Label
 var _ammo: Label
 var _status: Label
 var _fps: Label
+var _compass: Label
 var _hit: Label
 var _health_label: Label
 var _hint: Label
@@ -76,7 +77,7 @@ func _ready() -> void:
     var header_box := StyleBoxFlat.new()
     header_box.bg_color = Color(.025,.09,.14,.84)
     header_box.border_width_bottom = 2
-    header_box.border_color = Color(.28,.78,.78)
+    header_box.border_color = Color(.37,.72,.98)
     header.add_theme_stylebox_override("panel",header_box)
     root.add_child(header)
 
@@ -91,6 +92,8 @@ func _ready() -> void:
     _weapon = _text(root, "AR-7  /  ASALTO",.76,.085,21,Color(.90,.96,1),HORIZONTAL_ALIGNMENT_RIGHT)
     _ammo = _text(root, "30 / 180",.79,.137,22,Color(1,.79,.49),HORIZONTAL_ALIGNMENT_RIGHT)
     _fps = _text(root,"FPS —",.865,.028,13,Color(.67,.94,.81),HORIZONTAL_ALIGNMENT_RIGHT)
+    _compass=_text(root,"N 000°",.45,.025,18,Color(.87,.97,1),HORIZONTAL_ALIGNMENT_CENTER)
+    _compass.name="CameraHeading"
     _eliminations_label=_text(root,"BAJAS 0",.72,.027,16,Color(.99,.63,.55),HORIZONTAL_ALIGNMENT_LEFT)
     _health_label = _text(root,"SALUD 100 / 100",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
     _health_meter=ProgressBar.new()
@@ -233,10 +236,12 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
     button.focus_mode=Control.FOCUS_NONE
     button.add_theme_font_size_override("font_size",15)
     var normal:=StyleBoxFlat.new()
-    normal.bg_color=Color(color.r,color.g,color.b,.82)
-    normal.border_color=Color(.74,.89,.94,.86)
+    normal.bg_color=Color(color.r*.78,color.g*.76,color.b*.80,.88)
+    normal.border_color=Color(.37,.76,.94,.86)
     normal.set_border_width_all(2)
-    normal.set_corner_radius_all(int(minf(w,h)*.27))
+    normal.set_corner_radius_all(int(minf(w,h)*.35))
+    normal.shadow_color=Color(0,0,0,.22)
+    normal.shadow_size=3
     var pressed:=normal.duplicate() as StyleBoxFlat
     pressed.bg_color=color.lightened(.19)
     button.add_theme_stylebox_override("normal",normal)
@@ -436,10 +441,25 @@ func _process(delta: float) -> void:
         _fps_clock=.6
         if _fps:
             _fps.text=str(Engine.get_frames_per_second())+" FPS"
+        _refresh_heading()
     if _hit_timer>0:
         _hit_timer=maxf(0,_hit_timer-delta)
         if _hit_timer==0 and _hit:
             _hit.text=""
+
+func _refresh_heading() -> void:
+    if _compass==null or _training_radar==null:
+        return
+    var actor: CharacterBody3D=_training_radar.get("player") as CharacterBody3D
+    if actor==null or not is_instance_valid(actor):
+        _compass.text="AURORA  •  N"
+        return
+    # Third-person yaw is clockwise from the world -Z heading.
+    var degrees: int=posmod(int(round(rad_to_deg(float(actor.get("_yaw"))))),360)
+    var names: Array[String]=["N","NE","E","SE","S","SO","O","NO"]
+    var quadrant: int=int(round(float(degrees)/45.0))%8
+    _compass.text=names[quadrant]+"  %03d°"%degrees
+
 
 func _place(control: Control, rect: Rect2) -> void:
     control.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
@@ -455,13 +475,15 @@ func _layout() -> void:
     var h: float=safe.size.y
     root.get_node("AuroraHeader").visible=false
     _place(_training_radar,Rect2(origin+Vector2(24,62),Vector2(156,142)))
-    _place(_health_label,Rect2(origin+Vector2(24,h-350),Vector2(210,30)))
-    _place(_health_meter,Rect2(origin+Vector2(24,h-318),Vector2(210,10)))
+    _place(_health_label,Rect2(origin+Vector2(w*.5-85,h-91),Vector2(170,28)))
+    _health_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _place(_health_meter,Rect2(origin+Vector2(w*.5-85,h-61),Vector2(170,12)))
     _place(_weapon,Rect2(origin+Vector2(w-260,16),Vector2(230,30)))
     _place(_ammo,Rect2(origin+Vector2(w-210,48),Vector2(180,32)))
-    _place(_fps,Rect2(origin+Vector2(24,18),Vector2(90,24)))
+    _place(_fps,Rect2(origin+Vector2(w-100,86),Vector2(80,22)))
     _place(_eliminations_label,Rect2(origin+Vector2(w-360,24),Vector2(90,24)))
-    _place(_battle_status,Rect2(origin+Vector2(w*.5-220,24),Vector2(440,30)))
+    _place(_compass,Rect2(origin+Vector2(w*.5-75,6),Vector2(150,28)))
+    _place(_battle_status,Rect2(origin+Vector2(w*.5-220,37),Vector2(440,30)))
     _place(_battle_button,Rect2(origin+Vector2(w*.5-90,64),Vector2(180,46)))
     _place(_exit_button,Rect2(origin+Vector2(w-118,100),Vector2(92,44)))
     _place(_hint,Rect2(origin+Vector2(w*.5-210,h-32),Vector2(420,24)))

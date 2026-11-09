@@ -3,6 +3,7 @@ extends Control
 ## assets or proprietary game branding. Incomplete service tabs say so.
 const SAFE_SCREEN=preload("res://scripts/ui/safe_screen.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
+const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 
@@ -23,6 +24,8 @@ var _preview_container: SubViewportContainer
 var _preview_avatar: Node3D
 var _preview_caption: Label
 var _offline_records: RefCounted
+var _lobby_nav: VBoxContainer
+var _profile_strip: Label
 
 
 func _ready() -> void:
@@ -57,6 +60,11 @@ func _ready() -> void:
     line.color=Color(.12,.73,.92)
     line.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _surface.add_child(line)
+    var painted: Control=LOBBY_BACKDROP.new()
+    painted.name="OriginalAuroraCoast"
+    painted.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    _surface.add_child(painted)
+    _surface.move_child(painted,0)
     _page=VBoxContainer.new()
     _page.name="Page"
     _page.anchor_left=.07
@@ -99,12 +107,12 @@ func _button(value: String, callback: Callable, width: float=260.0) -> Button:
     button.focus_mode=Control.FOCUS_NONE
     button.add_theme_font_size_override("font_size",18)
     var style:=StyleBoxFlat.new()
-    style.bg_color=Color(.075,.23,.37,.96)
-    style.border_color=Color(.36,.80,.98)
+    style.bg_color=Color(.025,.10,.19,.94)
+    style.border_color=Color(.20,.71,.89)
     style.set_border_width_all(2)
-    style.set_corner_radius_all(12)
+    style.set_corner_radius_all(8)
     var pressed:=style.duplicate() as StyleBoxFlat
-    pressed.bg_color=Color(.17,.44,.56)
+    pressed.bg_color=Color(.15,.37,.52)
     button.add_theme_stylebox_override("normal",style)
     button.add_theme_stylebox_override("hover",pressed)
     button.add_theme_stylebox_override("pressed",pressed)
@@ -119,6 +127,14 @@ func _welcome() -> void:
         _preview_container.visible=false
     if _preview_caption:
         _preview_caption.visible=false
+    if _lobby_nav:
+        _lobby_nav.visible=false
+    if _profile_strip:
+        _profile_strip.visible=false
+    _page.anchor_left=.07
+    _page.anchor_right=.63
+    _page.anchor_top=.10
+    _page.anchor_bottom=.94
     _clear_page()
     _label("THEDEMIANFF   /   LAST ZONE",33)
     _label("AURORA  •  EL ÚLTIMO HORIZONTE",20)
@@ -130,44 +146,80 @@ func _welcome() -> void:
 
 
 func _show_lobby() -> void:
-    # Refresh from device storage after returning from a finished match.
+    # Actual on-device results. No invented premium currency, fake friends or fake cloud ID.
     _offline_records=MATCH_RECORDS.new()
+    var stats: Dictionary=_offline_records.snapshot()
     stage="lobby"
     visible=true
-    if _preview_container:
-        _preview_container.visible=true
-    if _preview_caption:
-        _preview_caption.visible=true
+    _page.anchor_left=.67
+    _page.anchor_right=.97
+    _page.anchor_top=.18
+    _page.anchor_bottom=.92
+    _preview_container.anchor_left=.29
+    _preview_container.anchor_right=.65
+    _preview_container.anchor_top=.14
+    _preview_container.anchor_bottom=.86
+    _preview_container.visible=true
+    _preview_caption.visible=true
+    _preview_caption.anchor_left=.29
+    _preview_caption.anchor_right=.65
+    _preview_caption.anchor_top=.875
+    _preview_caption.anchor_bottom=.875
+    _ensure_lobby_navigation()
+    _lobby_nav.visible=true
+    _profile_strip.visible=true
+    _profile_strip.text="THEDEMIANFF  /  LAST ZONE     •     PERFIL LOCAL     •     %d PARTIDAS     •     %d VICTORIAS"%[int(stats.get("played",0)),int(stats.get("wins",0))]
     _clear_page()
-    _label("AURORA / CENTRO DE OPERACIONES",29)
-    _label("Modo: entrenamiento o combate de sector (1 jugador + 8 enemigos IA)",17)
-    var actions:=HFlowContainer.new()
-    actions.name="PlayModes"
-    actions.add_theme_constant_override("h_separation",12)
-    actions.add_theme_constant_override("v_separation",10)
-    _page.add_child(actions)
-    var training:=_button("ENTRENAMIENTO",Callable(self,"_launch").bind(false),246)
-    training.name="TrainingButton"
-    actions.add_child(training)
-    var battle:=_button("BATTLE ROYALE · SECTOR",Callable(self,"_launch").bind(true),335)
+    _label("BASE AURORA",29)
+    _label("OPERACIÓN ÚLTIMA ZONA",16)
+    var mode_title:=_label("SELECCIONA UN MODO",17)
+    mode_title.add_theme_color_override("font_color",Color(.96,.77,.38))
+    var modes:=VBoxContainer.new()
+    modes.name="PlayModes"
+    modes.add_theme_constant_override("separation",8)
+    _page.add_child(modes)
+    var battle:=_button("INICIAR BATTLE ROYALE",Callable(self,"_launch").bind(true),265)
     battle.name="BattleButton"
-    actions.add_child(battle)
-
-    var tabs:=HFlowContainer.new()
-    tabs.name="LobbyTabs"
-    tabs.add_theme_constant_override("h_separation",8)
-    tabs.add_theme_constant_override("v_separation",8)
-    _page.add_child(tabs)
-    for tab in ["PERSONAJE","ARMAS","MISIONES","TIENDA","CUENTA","AJUSTES"]:
-        var tab_name: String=tab
-        var b:=_button(tab_name,Callable(self,"_select_tab").bind(tab_name),155)
-        b.name="Tab"+tab_name
-        b.custom_minimum_size=Vector2(135,46)
-        tabs.add_child(b)
-    _info=_label("",18)
+    modes.add_child(battle)
+    var training:=_button("ENTRENAMIENTO",Callable(self,"_launch").bind(false),245)
+    training.name="TrainingButton"
+    modes.add_child(training)
+    _label("SECTOR OFFLINE  •  1 JUGADOR + 8 BOTS",13)
+    _info=_label("",16)
+    _info.name="LobbyDetail"
     _build_settings()
     _select_tab(_selected_tab)
-    _label("Progreso e inventario de la antigua V70 NO se transfieren a esta demostración.",14)
+
+
+func _ensure_lobby_navigation() -> void:
+    if _lobby_nav!=null and is_instance_valid(_lobby_nav):
+        return
+    _profile_strip=Label.new()
+    _profile_strip.name="LocalProfileStrip"
+    _profile_strip.anchor_left=.034
+    _profile_strip.anchor_right=.95
+    _profile_strip.anchor_top=.035
+    _profile_strip.anchor_bottom=.035
+    _profile_strip.offset_bottom=43
+    _profile_strip.add_theme_font_size_override("font_size",16)
+    _profile_strip.add_theme_color_override("font_color",Color(.90,.97,1))
+    _profile_strip.add_theme_color_override("font_shadow_color",Color(.01,.035,.07))
+    _profile_strip.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _surface.add_child(_profile_strip)
+    _lobby_nav=VBoxContainer.new()
+    _lobby_nav.name="LobbyNavigation"
+    _lobby_nav.anchor_left=.035
+    _lobby_nav.anchor_right=.255
+    _lobby_nav.anchor_top=.19
+    _lobby_nav.anchor_bottom=.94
+    _lobby_nav.add_theme_constant_override("separation",4)
+    _surface.add_child(_lobby_nav)
+    for tab in ["PERSONAJE","ARMAS","MISIONES","TIENDA","EVENTOS","PASE","SOCIAL","CUENTA","AJUSTES"]:
+        var tab_name: String=tab
+        var button:=_button(tab_name,Callable(self,"_select_tab").bind(tab_name),176)
+        button.name="Tab"+tab_name
+        button.custom_minimum_size=Vector2(176,43)
+        _lobby_nav.add_child(button)
 
 
 func _select_tab(tab: String) -> void:
@@ -175,34 +227,41 @@ func _select_tab(tab: String) -> void:
     if stage!="lobby" or _info==null:
         return
     _settings_panel.visible=tab=="AJUSTES"
+    for button in _lobby_nav.get_children():
+        if button is Button:
+            var selected: bool=button.name=="Tab"+tab
+            button.modulate=Color(1,.83,.48) if selected else Color.WHITE
     match tab:
         "AJUSTES":
-            _info.text="CÁMARA / SENSIBILIDAD LOCAL\nArrastra para mirar; arrastra DISPARAR para apuntar mientras disparas."
+            _info.text="CÁMARA / PRECISIÓN\nSensibilidad de giro y ADS guardadas en el dispositivo."
         "PERSONAJE":
-            var stats: Dictionary=_offline_records.snapshot() if _offline_records else {}
-            _info.text="OPERADORA / LILA EN DESARROLLO\nModelo 3D provisional; rig definitivo pendiente."
-            _info.text+="\nREGISTRO LOCAL  •  "+str(int(stats.get("played",0)))+" partidas  /  "+str(int(stats.get("wins",0)))+" victorias  /  "+str(int(stats.get("kills",0)))+" bajas"
-            _info.text+="\nRécord de bajas: "+str(int(stats.get("best_kills",0)))+"  •  mejor supervivencia: "+str(int(stats.get("longest_survival_seconds",0)))+" s"
+            var stats: Dictionary=_offline_records.snapshot()
+            _info.text="OPERADORA / LILA EN DESARROLLO\nModelo 3D provisional."
+            _info.text+="\nPARTIDAS %d  •  VICTORIAS %d  •  BAJAS %d"%[int(stats.get("played",0)),int(stats.get("wins",0)),int(stats.get("kills",0))]
+            _info.text+="\nRÉCORD %d BAJAS  •  %d S VIVO"%[int(stats.get("best_kills",0)),int(stats.get("longest_survival_seconds",0))]
         "ARMAS":
-            _info.text="ARSENAL  /  AK-74 + AWM\nAR: x2/x4. AWM: x8, cinco cartuchos y cerrojo automático de 0,5 s."
+            _info.text="ARSENAL DISPONIBLE\nAK-74: x2 / x4\nAWM: x8 y recarga de cerrojo.\nLas armas se usan dentro de la partida."
         "MISIONES":
-            var stats: Dictionary=_offline_records.snapshot() if _offline_records else {}
+            var stats: Dictionary=_offline_records.snapshot()
             var latest: Array=stats.get("history",[])
-            _info.text="HISTORIAL LOCAL DE PARTIDAS COMPLETADAS"
-            if latest.is_empty():
-                _info.text+="\nTodavía no hay resultados. Completa una partida BR."
-            else:
+            _info.text="REGISTRO REAL / OFFLINE\n%d partidas  •  %d victorias"%[int(stats.get("played",0)),int(stats.get("wins",0))]
+            if not latest.is_empty():
                 var recent: Dictionary=latest[0]
-                _info.text+="\nÚltima partida: "+("VICTORIA" if recent.get("victory",false) else "DERROTA")
-                _info.text+="  •  "+str(int(recent.get("kills",0)))+" bajas  •  "+str(int(recent.get("survived_seconds",0)))+" segundos"
-            _info.text+="\nMisiones con recompensas y cuenta en la nube: pendientes."
+                _info.text+="\nÚltima: "+("VICTORIA" if recent.get("victory",false) else "DERROTA")
+                _info.text+="  •  %d bajas"%int(recent.get("kills",0))
+            _info.text+="\nRecompensas de misiones: pendientes."
         "TIENDA":
-            _info.text="TIENDA  /  NO DISPONIBLE\nSin compras ni moneda simulada. Integración futura."
+            _info.text="TIENDA / EN CONSTRUCCIÓN\nSin transacciones, moneda premium ni inventario de compras ficticios."
+        "EVENTOS":
+            _info.text="EVENTOS / PRÓXIMA ETAPA\nSe activarán cuando haya programación, objetivos y recompensas verificables."
+        "PASE":
+            _info.text="PASE DE BATALLA / PLANIFICADO\nAún no existen temporadas pagadas ni cobros habilitados."
+        "SOCIAL":
+            _info.text="SOCIAL / SIN CONEXIÓN\nAmigos, clanes y escuadras necesitan un servicio online real."
         "CUENTA":
-            _info.text="CUENTA  /  SIN CONEXIÓN\nGoogle, invitado y Firebase de la versión principal no están integrados en este cliente."
+            _info.text="CUENTA / GUARDADO LOCAL\nLos resultados se almacenan en este dispositivo. Google y Firebase no están vinculados a Godot."
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
-
 
 func _launch(battle: bool) -> void:
     if stage!="lobby":
@@ -248,8 +307,8 @@ func _build_preview() -> void:
     # separately authored mesh, UVs, hair, original outfit and refined rig.
     _preview_container=SubViewportContainer.new()
     _preview_container.name="AvatarPreview"
-    _preview_container.anchor_left=.655
-    _preview_container.anchor_right=.96
+    _preview_container.anchor_left=.29
+    _preview_container.anchor_right=.65
     _preview_container.anchor_top=.19
     _preview_container.anchor_bottom=.89
     _preview_container.stretch=true
@@ -322,8 +381,8 @@ func _build_preview() -> void:
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
     caption.text="OPERADORA 3D PROVISIONAL  ·  LILA EN DESARROLLO"
-    caption.anchor_left=.65
-    caption.anchor_right=.99
+    caption.anchor_left=.29
+    caption.anchor_right=.65
     caption.anchor_top=.90
     caption.anchor_bottom=.90
     caption.offset_bottom=35
@@ -395,7 +454,7 @@ func _sensitivity_slider(title: String,value: float) -> HSlider:
     var row:=HBoxContainer.new()
     _settings_panel.add_child(row)
     var label:=Label.new()
-    label.custom_minimum_size.x=245
+    label.custom_minimum_size.x=145
     label.text=title+"  %.2fx"%value
     row.add_child(label)
     var slider:=HSlider.new()
@@ -403,7 +462,7 @@ func _sensitivity_slider(title: String,value: float) -> HSlider:
     slider.max_value=2.5
     slider.step=.05
     slider.value=value
-    slider.custom_minimum_size=Vector2(180,44)
+    slider.custom_minimum_size=Vector2(112,44)
     slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     row.add_child(slider)
     slider.value_changed.connect(func(next: float):
