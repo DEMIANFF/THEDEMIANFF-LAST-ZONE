@@ -4,6 +4,7 @@ const AR_DAMAGE: int=26
 const AWM_DAMAGE: int=115
 const AWM_BOLT_SECONDS: float=.50
 const BOT = preload("res://scripts/ai/aurora_bot.gd")
+const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
 
 var operator: CharacterBody3D
 var hud: CanvasLayer
@@ -17,7 +18,8 @@ var current_zoom: float=1.0
 var cooldown: float=0.0
 var reload_timer: float=0.0
 var _targets: Array[CharacterBody3D]=[]
-var _weapon_model: Node3D
+var _weapon_visuals: Node3D
+var _weapon_model: Node3D # Explicit visual reference for older scripts
 var eliminations: int = 0
 var medkits_remaining: int = 2
 var sector_battle_active: bool = false
@@ -77,8 +79,9 @@ func _on_weapon() -> void:
     reload_timer=0
     aim_active=false
     current_zoom=1.0
-    if _weapon_model:
-        _weapon_model.visible=weapon_index==0  # AK visual only until original AWM model is ready.
+    if _weapon_visuals:
+        _weapon_visuals.equip(weapon_index)
+    operator.set_equipped_weapon(weapon_index)
     operator.set_ads(false,1.0)
     hud.set_aim(false,"MIRA LIBRE",1.0)
     _sync_hud()
@@ -119,6 +122,7 @@ func _on_reload() -> void:
         hud.impact("SIN NECESIDAD DE RECARGA")
         return
     reload_timer=3.1 if weapon_index==1 else 1.55
+    operator.play_weapon_action("reload",.65)
     hud.impact("RECARGANDO")
 
 
@@ -132,6 +136,8 @@ func _shoot() -> void:
     cooldown=AWM_BOLT_SECONDS if weapon_index==1 else .105
     _sync_hud()
     operator.apply_recoil(.02 if weapon_index==1 else .005)
+    if weapon_index==1:
+        operator.play_weapon_action("fire",.24)
     var camera:=operator.get_view_camera() as Camera3D
     if camera==null:
         return
@@ -182,8 +188,9 @@ func begin_sector_battle() -> void:
         _targets.append(bot)
     for bot in _targets:
         bot.configure_sector_battle(_targets)
-    if _weapon_model:
-        _weapon_model.visible=true
+    if _weapon_visuals:
+        _weapon_visuals.equip(0)
+    operator.set_equipped_weapon(0)
     hud.set_training_radar_sources(operator,_targets)
     hud.set_aim(false,"MIRA LIBRE",1.0)
     hud.set_medkit_count(medkits_remaining)
@@ -284,70 +291,13 @@ func _on_bot_eliminated(_agent: CharacterBody3D,killer: Node3D) -> void:
 
 
 func _draw_weapon_rig() -> void:
-    # Reuse an actual AK-74 glTF model already included in this user's repo,
-    # rather than rendering the old three-cylinder proxy rifle.
-    const PATH: String="res://assets/weapons/ak74-tactical.glb"
-    if not ResourceLoader.exists(PATH):
-        push_warning("AK-74 mesh not installed: suppress placeholder geometry")
-        return
-    var source:=load(PATH) as PackedScene
-    if source == null:
-        return
-    _weapon_model=source.instantiate() as Node3D
-    _weapon_model.name="AK74TacticalVisual"
-    var mount:=Node3D.new()
-    mount.name="ShoulderWeaponMount"
-    var skeleton: Skeleton3D = null
-    var rig := operator.get_node_or_null("AuroraFemaleRiggedOperator")
-    if rig:
-        skeleton = rig.find_child("Skeleton3D",true,false) as Skeleton3D
-    var right_hand_bone: String=""
-    if skeleton:
-        for bone_id in range(skeleton.get_bone_count()):
-            var bname: String=skeleton.get_bone_name(bone_id)
-            if bname.to_lower().ends_with("righthand"):
-                right_hand_bone=bname
-                break
-    if skeleton and right_hand_bone != "":
-        var socket := BoneAttachment3D.new()
-        socket.name="RightHandWeaponSocket"
-        socket.bone_name=right_hand_bone
-        skeleton.add_child(socket)
-        socket.add_child(mount)
-        mount.position=Vector3(0,-.11,-.18)
-        mount.rotation=Vector3(-.12,0,PI*.5)
-        print("AK74_ATTACHMENT_TO_HAND ",right_hand_bone)
-    else:
-        # No fake claim of hand-attachment when an imported asset lacks a hand.
-        operator.add_child(mount)
-        mount.position=Vector3(.37,1.22,-.34)
-        push_warning("AK-74 could not attach to rig hand: temporary torso mount")
-    mount.add_child(_weapon_model)
-
-    var small: Vector3=Vector3(INF,INF,INF)
-    var large: Vector3=Vector3(-INF,-INF,-INF)
-    for candidate in _weapon_model.find_children("*","MeshInstance3D",true,false):
-        var mesh:=candidate as MeshInstance3D
-        var aabb: AABB=mesh.get_aabb()
-        for i in range(8):
-            var v: Vector3=_weapon_model.to_local(mesh.to_global(aabb.get_endpoint(i)))
-            small=small.min(v)
-            large=large.max(v)
-    var size: Vector3=large-small
-    var length: float=maxf(size.x,maxf(size.y,size.z))
-    if not is_finite(length) or length<=.0001:
-        push_warning("AK mesh has no usable bounds")
-        _weapon_model.visible=false
-        return
-    var factor: float=clampf(1.06/length,.00001,100.0)
-    var rot:=Vector3.ZERO
-    if size.x>size.y and size.x>size.z:
-        rot.y=PI*.5
-    elif size.y>size.z:
-        rot.x=-PI*.5
-    else:
-        rot.y=PI
-    _weapon_model.rotation=rot
-    _weapon_model.scale=Vector3.ONE*factor
-    _weapon_model.position=-(_weapon_model.quaternion*(small+size*.5))*factor
-    print("AURORA_REAL_AK74 fitted length=",length," scale=",factor," axis_extents=",size)
+    # AK-74 and AWM each have a real imported GLB. Mount compensates for the
+    # female FBX's centimeter-scale parent, then follows the skinned right hand.
+    _weapon_visuals=WEAPON_VISUALS.new()
+    _weapon_visuals.name="ActiveWeaponVisuals"
+    add_child(_weapon_visuals)
+    _weapon_visuals.attach_to_player(operator)
+    _weapon_model=_weapon_visuals.ak
+    operator.set_equipped_weapon(weapon_index)
+    if _weapon_visuals.right_hand_socket==null:
+        push_warning("Rigged right-hand attachment unavailable")

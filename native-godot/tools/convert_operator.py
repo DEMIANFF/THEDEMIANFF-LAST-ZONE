@@ -90,6 +90,10 @@ def role(bone_name):
         return 'leg_l'
     if any(k in n for k in ['rightupleg', 'rthigh', 'thighr', 'upperlegr']):
         return 'leg_r'
+    if any(k in n for k in ['leftforearm', 'lforearm', 'forearml']):
+        return 'forearm_l'
+    if any(k in n for k in ['rightforearm', 'rforearm', 'forearmr']):
+        return 'forearm_r'
     if any(k in n for k in ['leftarm', 'lupperarm', 'upperarml', 'shoulderl']):
         return 'arm_l'
     if any(k in n for k in ['rightarm', 'rupperarm', 'upperarmr', 'shoulderr']):
@@ -119,7 +123,9 @@ def _relaxed_arm_poses():
         delta = original_hand - shoulder
         assert delta.length > 0.1, "Armature wrist is coincident with shoulder"
         # Reduce sideways extension to 35%, and place the wrist near hip height.
-        target = shoulder + Vector((delta.x * .34, delta.y * .34, -delta.length * .78))
+        # In the FBX scene the actual shoulder Y coordinate is ~159 cm;
+        # down is -Y, not -Z. Earlier code pushed wrists behind the back.
+        target = shoulder + Vector((delta.x * .32, -delta.length * .69, delta.length * .05))
         axes = [
             Vector((1,0,0)), Vector((0,1,0)), Vector((0,0,1)),
             Vector((1,1,0)), Vector((1,-1,0)),
@@ -153,9 +159,73 @@ def _relaxed_arm_poses():
 
 base_arm_pose = _relaxed_arm_poses()
 
-for clip_name, amplitude, frames in [('AuroraIdle', 0.012, 60),
-                                     ('AuroraWalk', 0.23, 32),
-                                     ('AuroraRun', 0.40, 24)]:
+def _aim_arm_poses():
+    """Fit both arms to separate grip and foregrip targets using BOTH elbow
+    joints. Produces a simple authored combat pose, not full IK/mocap."""
+    output={}
+    for side in ("Right","Left"):
+        shoulder_bone=arm.pose.bones["rig:"+side+"Arm"]
+        forearm_bone=arm.pose.bones["rig:"+side+"ForeArm"]
+        hand_bone=arm.pose.bones["rig:"+side+"Hand"]
+        shoulder_bone.rotation_mode='QUATERNION'
+        forearm_bone.rotation_mode='QUATERNION'
+        shoulder_bone.rotation_quaternion=base_arm_pose["arm_"+side.lower()[0]].copy()
+        forearm_bone.rotation_quaternion=Quaternion((1.0,0.0,0.0,0.0))
+        bpy.context.view_layer.update()
+        shoulder_world=arm.matrix_world @ shoulder_bone.matrix.translation
+        wrist_start=arm.matrix_world @ hand_bone.matrix.translation
+        total_arm_length=(wrist_start-shoulder_world).length
+        # Right hand near trigger, left beneath forward handguard.
+        target=shoulder_world+Vector((
+            -math.copysign(total_arm_length*.30,shoulder_world.x),
+            -total_arm_length*(.34 if side=="Right" else .38),
+            total_arm_length*(.38 if side=="Right" else .62)))
+        axes=[Vector((1,0,0)),Vector((0,1,0)),Vector((0,0,1)),
+              Vector((1,1,0)),Vector((1,-1,0)),Vector((0,1,1))]
+        angles=[-.85,-.52,-.30,0,.30,.52,.85]
+        initial_error=(wrist_start-target).length_squared
+        for _ in range(3):
+            for joint in (shoulder_bone,forearm_bone):
+                initial_quat=joint.rotation_quaternion.copy()
+                best_quat=initial_quat
+                bpy.context.view_layer.update()
+                current=(arm.matrix_world @ hand_bone.matrix.translation-target).length_squared
+                for axis in axes:
+                    for angle in angles:
+                        candidate=(initial_quat @ Quaternion(axis.normalized(),angle))
+                        joint.rotation_quaternion=candidate
+                        bpy.context.view_layer.update()
+                        error=(arm.matrix_world @ hand_bone.matrix.translation-target).length_squared
+                        if error<current:
+                            best_quat=candidate.copy()
+                            current=error
+                joint.rotation_quaternion=best_quat
+                bpy.context.view_layer.update()
+        actual=arm.matrix_world @ hand_bone.matrix.translation
+        output["arm_"+side.lower()[0]]=shoulder_bone.rotation_quaternion.copy()
+        output["forearm_"+side.lower()[0]]=forearm_bone.rotation_quaternion.copy()
+        print("AURORA_ARMED_POSE",side,"target",tuple(round(v,2) for v in target),
+              "wrist",tuple(round(v,2) for v in actual),
+              "error_cm",round((actual-target).length,2),
+              "starting_error_cm",round(math.sqrt(initial_error),2))
+        assert (actual-target).length<total_arm_length*.7, "Weapon grip pose failed anatomical fit"
+    return output
+
+armed_pose=_aim_arm_poses()
+
+clips=[
+    ('AuroraIdle',.012,60,False),
+    ('AuroraWalk',.23,32,False),
+    ('AuroraRun',.40,24,False),
+    ('AuroraArmedIdle',.008,60,True),
+    ('AuroraArmedWalk',.12,32,True),
+    ('AuroraArmedRun',.20,24,True),
+    ('AuroraAim',.004,40,True),
+    ('AuroraAimAWM',.004,40,True),
+    ('AuroraFire',.05,18,True),
+    ('AuroraReloadAWM',.10,36,True),
+]
+for clip_name, amplitude, frames, armed in clips:
     action = bpy.data.actions.new(clip_name)
     arm.animation_data.action = action
     for frame in [1, 1 + frames // 4, 1 + frames // 2,
@@ -166,7 +236,7 @@ for clip_name, amplitude, frames in [('AuroraIdle', 0.012, 60),
             assigned = role(bone.name)
             if not assigned:
                 continue
-            bone.rotation_mode = 'QUATERNION' if assigned in {'arm_l','arm_r'} else 'XYZ'
+            bone.rotation_mode = 'QUATERNION' if assigned.startswith(('arm_','forearm_')) else 'XYZ'
             if assigned == 'leg_l':
                 offset = amplitude * math.sin(phase)
             elif assigned == 'leg_r':
@@ -178,11 +248,14 @@ for clip_name, amplitude, frames in [('AuroraIdle', 0.012, 60),
             else:
                 offset = min(.035, amplitude * .14) * math.sin(phase)
             if assigned.startswith('arm_'):
-                # Optimized once from the actual FBX wrist locations.
-                # Apply locomotion swing over a relaxed natural arm pose.
-                swing = Quaternion(Vector((1, 0, 0)), offset)
-                bone.rotation_quaternion = base_arm_pose[assigned] @ swing
-                bone.keyframe_insert(data_path='rotation_quaternion', frame=frame, group=bone.name)
+                # Combat clips preserve weapon grip; locomotion has modest sway.
+                swing_amount=offset * (.35 if armed else 1.0)
+                swing=Quaternion(Vector((1,0,0)),swing_amount)
+                bone.rotation_quaternion=(armed_pose[assigned] if armed else base_arm_pose[assigned]) @ swing
+                bone.keyframe_insert(data_path='rotation_quaternion',frame=frame,group=bone.name)
+            elif assigned.startswith('forearm_'):
+                bone.rotation_quaternion=armed_pose[assigned] if armed else Quaternion((1.0,0.0,0.0,0.0))
+                bone.keyframe_insert(data_path='rotation_quaternion',frame=frame,group=bone.name)
             else:
                 bone.rotation_euler[0] = offset
                 bone.keyframe_insert(data_path='rotation_euler', frame=frame, group=bone.name)

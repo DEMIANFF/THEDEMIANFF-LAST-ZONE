@@ -1,7 +1,7 @@
-name: V74 Aurora Offline Royale Sector APK
+name: V74.1 Aurora AR-AWM Weapon Rig and Optics APK
 on:
   push:
-    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale]
+    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm]
     paths:
       - 'native-godot/**'
       - '.github/workflows/native-godot-preview-apk.yml'
@@ -42,6 +42,22 @@ jobs:
           print('Skinned GLB:',f.stat().st_size,'bytes',len(scene.get('skins',[])),'skins',len(scene.get('animations',[])),'clips',len(scene.get('meshes',[])),'meshes')
           assert len(scene.get('skins',[]))>=1,'Rigged character has no skin'
           assert len(scene.get('animations',[]))>=1,'Character has no animation clips'
+          PY
+      - name: Build original AWM GLB from authored Blender mesh
+        run: |
+          blender --background --python native-godot/tools/build_awm.py -- native-godot/assets/weapons/aurora_awm.glb
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,struct
+          p=Path('native-godot/assets/weapons/aurora_awm.glb')
+          blob=p.read_bytes()
+          magic,version,length=struct.unpack_from('<III',blob)
+          assert (magic,version,length)==(0x46546c67,2,len(blob))
+          n,t=struct.unpack_from('<II',blob,12)
+          assert t==0x4e4f534a
+          payload=json.loads(blob[20:20+n])
+          print('ORIGINAL_AWM_MESH',len(payload.get('meshes',[])),'GLB_BYTES',p.stat().st_size)
+          assert len(payload.get('meshes',[]))>=32, 'AWM missing real modelling detail'
           PY
       - name: Install Godot 4.7.2 editor
         run: |
@@ -84,6 +100,8 @@ jobs:
         env:
           AURORA_REQUIRE_OPERATOR: "1"
         run: godot --headless --path native-godot --script res://scripts/qa/smoke_test.gd
+      - name: Verify AR / AWM skinned hand mounts, global size and arm animations
+        run: godot --headless --path native-godot --script res://scripts/qa/weapon_visual_qa.gd
       - name: 'Reproduce Motorola video: collision, walk, jump, sprint and joystick'
         run: |
           godot --headless --path native-godot --script res://scripts/qa/motorola_control_audit.gd
@@ -100,26 +118,31 @@ jobs:
           mkdir -p native-godot/out
           xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_preview.gd
           test -s native-godot/out/aurora-native-v74-preview.png
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_weapon_preview.gd
+          test -s native-godot/out/aurora-v74-1-ak74.png
+          test -s native-godot/out/aurora-v74-1-awm.png
       - name: Export distinct Android debug APK
         run: |
           mkdir -p native-godot/out
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V74-AURORA-SECTOR-BR.apk
-          test -s native-godot/out/THEDEMIANFF-V74-AURORA-SECTOR-BR.apk
-          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V74-AURORA-SECTOR-BR.apk
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V74.1-AWM-RIG-TEST.apk
+          test -s native-godot/out/THEDEMIANFF-V74.1-AWM-RIG-TEST.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V74.1-AWM-RIG-TEST.apk
       - name: Verify APK namespace, checksum and package signature
         run: |
-          APK=native-godot/out/THEDEMIANFF-V74-AURORA-SECTOR-BR.apk
+          APK=native-godot/out/THEDEMIANFF-V74.1-AWM-RIG-TEST.apk
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -n 3
-          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview74"
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview741"
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --print-certs "$APK"
           unzip -t "$APK" | tail -n 1
           sha256sum "$APK" | tee native-godot/out/SHA256SUMS.txt
           echo "::notice::V74 only includes a 9-participant offline SECTOR match, not an 8 km/100-human-server battle royale. Physical Motorola QA is required."
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIANFF-V74-AURORA-SECTOR-BR-PREVIEW
+          name: THEDEMIANFF-V74.1-AWM-RIG-ARTICULADO
           path: |
-            native-godot/out/THEDEMIANFF-V74-AURORA-SECTOR-BR.apk
+            native-godot/out/THEDEMIANFF-V74.1-AWM-RIG-TEST.apk
             native-godot/out/SHA256SUMS.txt
             native-godot/out/aurora-native-v74-preview.png
+            native-godot/out/aurora-v74-1-ak74.png
+            native-godot/out/aurora-v74-1-awm.png
           retention-days: 14

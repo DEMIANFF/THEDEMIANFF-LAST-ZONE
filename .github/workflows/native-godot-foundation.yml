@@ -1,7 +1,7 @@
-name: V74 Aurora Offline Royale Sector QA
+name: V74.1 AR/AWM native rig and game regression
 on:
   push:
-    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale]
+    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm]
     paths:
       - 'native-godot/**'
       - 'docs/V71_REAL_BATTLE_ROYALE_MASTER_PLAN.md'
