@@ -29,5 +29,16 @@ func _capture() -> void:
         push_error("COASTAL_3D_RENDER_CAPTURE_FAILED "+str(code))
         quit(1)
         return
+    camera.global_position=Vector3(5,20,73)
+    camera.look_at(Vector3(18,9,41),Vector3.UP)
+    camera.fov=54.0
+    for i in range(12):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    var street: Image=root.get_texture().get_image()
+    if street.save_png("res://out/aurora-v75-6-coastal-street.png")!=OK:
+        push_error("COASTAL_3D_STREET_CAPTURE_FAILED")
+        quit(2)
+        return
     print("COASTAL_3D_RENDER_PASS ",screenshot.get_width(),"x",screenshot.get_height())
     quit(0)
