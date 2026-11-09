@@ -9,6 +9,7 @@ const SECTOR_MATCH = preload("res://scripts/match/sector_director.gd")
 const NAVIGATION = preload("res://scripts/ai/aurora_navigation.gd")
 const NATURE = preload("res://scripts/world/aurora_nature.gd")
 const COASTAL_QUARTER=preload("res://scripts/world/aurora_coastal_quarter.gd")
+const AURORA_AUDIO=preload("res://scripts/audio/aurora_audio.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
@@ -70,6 +71,12 @@ func _ready() -> void:
     operator.crouch_state_changed.connect(hud.set_crouch_state)
     hud.movement_axis_changed.connect(operator.set_touch_move_axis)
     hud.set_health(operator.training_health)
+    var sound: Node=AURORA_AUDIO.new()
+    sound.name="AuroraSoundStage"
+    add_child(sound)
+    operator.footstep.connect(sound.play_footstep)
+    operator.jumped.connect(func(): sound.play_event("jump"))
+    operator.player_damaged.connect(func(_amount: float): sound.play_event("hit"))
 
     var combat = COMBAT.new()
     combat.name = "CombatRange"
@@ -85,6 +92,10 @@ func _ready() -> void:
     navigation.actors.append_array(combat._targets)
     add_child(navigation)
     combat.navigation=navigation
+    combat.shot_fired.connect(func(weapon: int,_hit: bool): sound.play_event("awm_fire" if weapon==1 else "ar_fire",.96+randf()*.08))
+    combat.impact_occurred.connect(func(): sound.play_event("impact"))
+    combat.reload_started.connect(func(): sound.play_event("reload"))
+    combat.healed.connect(func(): sound.play_event("heal"))
     for bot in combat._targets:
         bot.navigation=navigation
     hud.set_training_radar_sources(operator,combat._targets)
