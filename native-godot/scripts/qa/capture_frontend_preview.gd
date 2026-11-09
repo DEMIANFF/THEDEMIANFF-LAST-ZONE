@@ -11,7 +11,7 @@ func _capture() -> void:
     for i in range(6):
         await process_frame
     var welcome: Image=root.get_texture().get_image()
-    var one: Error=welcome.save_png("res://out/aurora-v75-5-welcome.png")
+    var one: Error=welcome.save_png("res://out/aurora-v75-6-welcome.png")
     if one!=OK:
         push_error("V75 welcome screenshot failed")
         quit(1)
@@ -20,7 +20,7 @@ func _capture() -> void:
     for i in range(8):
         await process_frame
     var lobby: Image=root.get_texture().get_image()
-    var two: Error=lobby.save_png("res://out/aurora-v75-5-lobby.png")
+    var two: Error=lobby.save_png("res://out/aurora-v75-6-lobby.png")
     if two!=OK:
         push_error("V75 lobby screenshot failed")
         quit(2)

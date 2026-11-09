@@ -1,7 +1,7 @@
-name: V75.5 Battle Royale Regression and ARM64 APK
+name: V75.6 Battle Royale Regression and ARM64 APK
 on:
   push:
-    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui]
+    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district]
     paths:
       - 'native-godot/**'
       - '.github/workflows/native-godot-preview-apk.yml'
@@ -104,10 +104,13 @@ jobs:
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-xvfb.log
           mkdir -p native-godot/out
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_preview.gd
-          test -s native-godot/out/aurora-native-v75-5-preview.png
+          test -s native-godot/out/aurora-native-v75-6-preview.png
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_frontend_preview.gd
-          test -s native-godot/out/aurora-v75-5-welcome.png
-          test -s native-godot/out/aurora-v75-5-lobby.png
+          test -s native-godot/out/aurora-v75-6-welcome.png
+          test -s native-godot/out/aurora-v75-6-lobby.png
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_coastal_preview.gd
+          test -s native-godot/out/aurora-v75-6-coastal-quarter.png
+          test -s native-godot/out/aurora-v75-6-coastal-street.png
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_weapon_preview.gd
           test -s native-godot/out/aurora-v74-1-ak74.png
           test -s native-godot/out/aurora-v74-1-awm.png
@@ -117,14 +120,14 @@ jobs:
         run: |
           if grep -E "SCRIPT ERROR:|ERROR:" native-godot/out/qa/responsive-render.log; then exit 1; fi
           mkdir -p native-godot/out
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V75.5-MOTOROLA.apk
-          test -s native-godot/out/THEDEMIANFF-V75.5-MOTOROLA.apk
-          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V75.5-MOTOROLA.apk
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V75.6-MOTOROLA.apk
+          test -s native-godot/out/THEDEMIANFF-V75.6-MOTOROLA.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V75.6-MOTOROLA.apk
       - name: Verify APK namespace, checksum and package signature
         run: |
-          APK=native-godot/out/THEDEMIANFF-V75.5-MOTOROLA.apk
+          APK=native-godot/out/THEDEMIANFF-V75.6-MOTOROLA.apk
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -n 3
-          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview755"
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview756"
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "$APK" | tee native-godot/out/signature.txt
           "$ANDROID_HOME/build-tools/35.0.1/zipalign" -c -P 16 -v 4 "$APK" > native-godot/out/alignment.txt
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" > native-godot/out/badging.txt
@@ -133,23 +136,25 @@ jobs:
           { git rev-parse HEAD; godot --headless --version; blender --background --version | head -n 1; } > native-godot/out/BUILD.txt
           unzip -t "$APK" | tail -n 1
           sha256sum "$APK" | tee native-godot/out/SHA256SUMS.txt
-          echo "::notice::V75.5 saves only local offline sector results; it does NOT sync V70/Firebase. 9-participant sector, not 100 network users. Physical Android QA required."
+          echo "::notice::V75.6 saves only local offline sector results; it does NOT sync V70/Firebase. 9-participant sector, not 100 network users. Physical Android QA required."
       - name: Verify native ELF and execute QA from exported bytecode
         run: |
-          python3 native-godot/tools/verify_android_apk.py native-godot/out/THEDEMIANFF-V75.5-MOTOROLA.apk --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out
-          AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported" bash native-godot/tools/run_exported_qa.sh native-godot/out/THEDEMIANFF-V75.5-MOTOROLA.apk
+          python3 native-godot/tools/verify_android_apk.py native-godot/out/THEDEMIANFF-V75.6-MOTOROLA.apk --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out
+          AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported" bash native-godot/tools/run_exported_qa.sh native-godot/out/THEDEMIANFF-V75.6-MOTOROLA.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIANFF-V75.5-MOTOROLA-PREVIEW
+          name: THEDEMIANFF-V75.6-MOTOROLA-PREVIEW
           path: |
-            native-godot/out/THEDEMIANFF-V75.5-MOTOROLA.apk
+            native-godot/out/THEDEMIANFF-V75.6-MOTOROLA.apk
             native-godot/out/SHA256SUMS.txt
-            native-godot/out/aurora-native-v75-5-preview.png
-            native-godot/out/aurora-v75-5-welcome.png
-            native-godot/out/aurora-v75-5-lobby.png
+            native-godot/out/aurora-native-v75-6-preview.png
+            native-godot/out/aurora-v75-6-welcome.png
+            native-godot/out/aurora-v75-6-lobby.png
+            native-godot/out/aurora-v75-6-coastal-quarter.png
+            native-godot/out/aurora-v75-6-coastal-street.png
             native-godot/out/aurora-v74-1-ak74.png
             native-godot/out/aurora-v74-1-awm.png
-            native-godot/out/v755-motorola-*.png
+            native-godot/out/v756-motorola-*.png
             native-godot/out/qa/
             native-godot/out/qa-exported/
             native-godot/out/apk-verification.json
@@ -161,7 +166,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: V75.5-FAILED-VALIDATION-LOGS
+          name: V75.6-FAILED-VALIDATION-LOGS
           path: |
             native-godot/out/qa/
             native-godot/out/qa-exported/

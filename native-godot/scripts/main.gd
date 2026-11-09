@@ -8,6 +8,7 @@ const COMBAT = preload("res://scripts/combat/training_combat.gd")
 const SECTOR_MATCH = preload("res://scripts/match/sector_director.gd")
 const NAVIGATION = preload("res://scripts/ai/aurora_navigation.gd")
 const NATURE = preload("res://scripts/world/aurora_nature.gd")
+const COASTAL_QUARTER=preload("res://scripts/world/aurora_coastal_quarter.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
@@ -23,6 +24,12 @@ func _ready() -> void:
     district.name = "PuertoAuroraSector"
     district.terrain = island
     add_child(district)
+    var town: Node3D=COASTAL_QUARTER.new()
+    town.name="PuertoAuroraCoastalQuarter"
+    town.terrain=island
+    add_child(town)
+    district.navigation_points.append_array(town.navigation_points)
+    district.cover_points.append_array(town.cover_points)
     var nature: Node3D=NATURE.new()
     nature.name="AuroraNature"
     nature.terrain=island
