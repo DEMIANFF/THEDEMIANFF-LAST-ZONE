@@ -68,12 +68,26 @@ func _verify() -> void:
     var walked: int=count[0]
     check(walked>=2 and walked<=7,
         "walk is generating unrealistic footstep count "+str(walked))
-    check(operator._footstep_distance>0.0,"stride accumulator not progressing")
+    check(operator._footstep_distance>=0.0 and
+        operator._footstep_distance<operator._step_stride(operator.WALK_SPEED,false),
+        "distance accumulator out of valid stride range")
+    # Independently test sprint from a verified unobstructed starting point.
+    # A long uninterrupted route may encounter an actual world obstacle;
+    # that must not be confused with a gait/audio failure.
+    operator.set_touch_move_axis(Vector2.ZERO)
+    await frames(10)
+    operator.global_position=Vector3(20.0,terrain.height_at(20.0,26.0)+.22,26.0)
+    operator.velocity=Vector3.ZERO
+    operator._footstep_distance=0.0
+    operator.set_touch_move_axis(Vector2.UP)
     operator.set_touch_run(true)
-    await frames(75)
+    check(operator._sprint_touch,"run control did not engage")
+    await frames(65)
     var ran: int=count[0]-walked
     check(ran>=2 and ran<=9,
-        "sprint footstep count ignored physical speed "+str(ran))
+        "sprint failed to generate distance-driven footfalls "+
+        str(ran)+" pos="+str(operator.global_position)+
+        " can_act="+str(operator.can_act()))
     operator.set_touch_move_axis(Vector2.ZERO)
     operator.set_touch_run(false)
     await frames(40)
