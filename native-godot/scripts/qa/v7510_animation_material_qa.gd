@@ -51,7 +51,8 @@ func _verify() -> void:
     var plaza: MeshInstance3D=quarter.get_node("AuroraCobblestoneMarketPlaza")
     var plaza_mesh: ArrayMesh=plaza.mesh as ArrayMesh
     var plaza_data: Array=plaza_mesh.surface_get_arrays(0)
-    check((plaza_data[Mesh.ARRAY_TANGENT] as PackedFloat32Array).size()>0,
+    var plaza_tangents: PackedFloat32Array=plaza_data[Mesh.ARRAY_TANGENT]
+    check(plaza_tangents.size()>0,
         "cobblestone paving has no tangent basis")
 
     var player=world.get_node("Operator")
