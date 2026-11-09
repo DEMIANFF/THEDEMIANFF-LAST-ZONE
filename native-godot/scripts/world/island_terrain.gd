@@ -62,7 +62,7 @@ func _coastal_shelf_weight(x: float,z: float) -> float:
     # doorways and A* access routes to the south and west untouched.
     var west: float=_fade_in(x,-44.0,-24.0)
     var east: float=1.0-_fade_in(x,80.0,120.0)
-    var south: float=_fade_in(z,-2.0,12.0)
+    var south: float=_fade_in(z,10.0,20.0)
     var north: float=1.0-_fade_in(z,70.0,110.0)
     # The coastal rebuild must never overwrite legacy buildings or their paths.
     var legacy_circulation: float=1.0
