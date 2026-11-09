@@ -1,5 +1,11 @@
 extends Node3D
 ## Offline native weapons training only. Real rays, ammo counts and impact bodies.
+signal shot_fired(weapon: int,hit: bool)
+signal impact_occurred
+signal reload_started
+signal healed
+signal bot_shot(world_position: Vector3)
+
 const AR_DAMAGE: int=26
 const AWM_DAMAGE: int=115
 const AWM_BOLT_SECONDS: float=.50
@@ -140,6 +146,7 @@ func _on_heal() -> void:
     operator.receive_training_heal(45.0)
     hud.set_medkit_count(medkits_remaining)
     hud.impact("BOTIQUIN +45 VIDA")
+    healed.emit()
 
 
 func _on_reload() -> void:
@@ -153,6 +160,7 @@ func _on_reload() -> void:
         return
     reload_timer=3.1 if weapon_index==1 else 1.55
     operator.play_weapon_action("reload",reload_timer)
+    reload_started.emit()
     hud.impact("RECARGANDO")
 
 
@@ -179,11 +187,13 @@ func _shoot() -> void:
     var direction: Vector3=camera.project_ray_normal(screen_center)
     var muzzle: Vector3=_weapon_visuals.muzzle_position()
     var hit: Dictionary=resolve_shot(from,direction,muzzle)
+    shot_fired.emit(weapon_index,not hit.is_empty())
     var endpoint: Vector3=hit.get("position",from+direction*250.0)
     last_shot={"muzzle":muzzle,"endpoint":endpoint,"collider":hit.get("collider")}
     _spawn_tracer(muzzle,endpoint)
     if hit.is_empty():
         return
+    impact_occurred.emit()
     var body=hit.get("collider")
     if body is CharacterBody3D and body.is_in_group("training_target"):
         var eliminated: bool=body.take_training_damage(float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE),operator)
@@ -228,6 +238,7 @@ func begin_sector_battle() -> void:
             navigation.actors.append(bot)
         bot.spawn_coordinates=additional_spawns[i-4]
         bot.eliminated.connect(_on_bot_eliminated)
+        bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
         add_child(bot)
         _targets.append(bot)
     for bot in _targets:
@@ -347,6 +358,7 @@ func _make_targets() -> void:
         bot.operator=operator
         bot.spawn_coordinates=points[i]
         bot.eliminated.connect(_on_bot_eliminated)
+        bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
         add_child(bot)
         _targets.append(bot)
 

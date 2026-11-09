@@ -13,7 +13,7 @@ func _capture() -> void:
     for n in range(6):
         await process_frame
     var screenshot: Image = root.get_texture().get_image()
-    var result: Error = screenshot.save_png("res://out/aurora-native-v75-6-preview.png")
+    var result: Error = screenshot.save_png("res://out/aurora-native-v75-7-preview.png")
     if result != OK:
         push_error("Render capture failed: "+str(result))
         quit(1)

@@ -11,6 +11,8 @@ var _settings_panel: VBoxContainer
 var _settings_status: Label
 var _look_slider: HSlider
 var _ads_slider: HSlider
+var _sfx_slider: HSlider
+var _ambience_slider: HSlider
 var _preferences: RefCounted
 var _save_timer: Timer
 var stage: String = "welcome"
@@ -443,6 +445,10 @@ func _build_settings() -> void:
     _page.add_child(_settings_panel)
     _look_slider=_sensitivity_slider("Giro panorámico",_preferences.look)
     _ads_slider=_sensitivity_slider("Miras ADS",_preferences.ads)
+    var audio_cfg:=ConfigFile.new()
+    audio_cfg.load("user://aurora_audio.cfg")
+    _sfx_slider=_volume_slider("Efectos",float(audio_cfg.get_value("audio","effects",.75)))
+    _ambience_slider=_volume_slider("Ambiente",float(audio_cfg.get_value("audio","ambience",.55)))
     _settings_status=Label.new()
     _settings_status.text="Ajustes recuperados del respaldo" if _preferences.recovered else "Se guardan en este dispositivo"
     _settings_status.add_theme_font_size_override("font_size",14)
@@ -471,9 +477,35 @@ func _sensitivity_slider(title: String,value: float) -> HSlider:
     return slider
 
 
+func _volume_slider(title: String,level: float) -> HSlider:
+    var row:=HBoxContainer.new()
+    _settings_panel.add_child(row)
+    var label:=Label.new()
+    label.custom_minimum_size.x=145
+    label.text=title+"  %d%%"%roundi(level*100.0)
+    row.add_child(label)
+    var slider:=HSlider.new()
+    slider.min_value=0.0
+    slider.max_value=1.0
+    slider.step=.05
+    slider.value=level
+    slider.custom_minimum_size=Vector2(112,42)
+    slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    row.add_child(slider)
+    slider.value_changed.connect(func(next: float):
+        label.text=title+"  %d%%"%roundi(next*100.0)
+        _save_timer.start())
+    return slider
+
+
 func _save_preferences() -> void:
     _save_timer.stop()
     if not is_instance_valid(_look_slider) or not is_instance_valid(_ads_slider):
         return
     var result: Error=_preferences.save(_look_slider.value,_ads_slider.value)
-    _settings_status.text="Ajustes guardados" if result==OK else "No se pudieron guardar los ajustes; vuelve a intentarlo"
+    var audio_cfg:=ConfigFile.new()
+    audio_cfg.load("user://aurora_audio.cfg")
+    audio_cfg.set_value("audio","effects",_sfx_slider.value)
+    audio_cfg.set_value("audio","ambience",_ambience_slider.value)
+    var audio_result: Error=audio_cfg.save("user://aurora_audio.cfg")
+    _settings_status.text="Cámara y sonido guardados" if result==OK and audio_result==OK else "No se pudieron guardar todos los ajustes"

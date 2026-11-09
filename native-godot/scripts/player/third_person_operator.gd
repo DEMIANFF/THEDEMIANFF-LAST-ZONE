@@ -15,6 +15,8 @@ signal player_eliminated
 signal player_damaged(amount: float)
 signal landed_from_airdrop
 signal crouch_state_changed(active: bool)
+signal footstep(on_stone: bool)
+signal jumped
 @export var approved_operator_scene: PackedScene
 var training_health: float = 100.0
 var battle_royale_active: bool = false
@@ -45,6 +47,7 @@ var _camera: Camera3D
 var _avatar: Node3D
 var _animation_controller: Node
 var _landing_seconds: float=0.0
+var _footstep_clock: float=0.0
 var _animator: AnimationPlayer
 var _current_clip: String = ""
 var _weapon_index: int=0
@@ -151,6 +154,7 @@ func _physics_process(delta: float) -> void:
     elif Input.is_action_just_pressed("jump") or _jump_requested:
         velocity.y = 5.4
         _jump_requested = false
+        jumped.emit()
     else:
         velocity.y = 0.0
 
@@ -166,7 +170,17 @@ func _physics_process(delta: float) -> void:
     _camera_pivot.rotation.x = _pitch
     var falling_speed: float=velocity.y
     var was_on_floor: bool=is_on_floor()
+    var before_move: Vector3=global_position
     move_and_slide()
+    var actual_speed: float=Vector2(global_position.x-before_move.x,global_position.z-before_move.z).length()/maxf(.001,delta)
+    if is_on_floor() and actual_speed>1.2 and move_strength>.05:
+        _footstep_clock-=delta
+        if _footstep_clock<=0.0:
+            var city_stone: bool=global_position.x>=-28.0 and global_position.x<=81.0 and global_position.z>=6.0 and global_position.z<=74.0
+            footstep.emit(city_stone)
+            _footstep_clock=.31 if run_fast else .47
+    else:
+        _footstep_clock=minf(_footstep_clock,.04)
     _landing_seconds=maxf(0.0,_landing_seconds-delta)
     if not was_on_floor and is_on_floor() and falling_speed< -2.0:
         _landing_seconds=.28
@@ -179,7 +193,10 @@ func _physics_process(delta: float) -> void:
         _camera.position.z = minf(safe_distance,lerpf(_camera.position.z, safe_distance, 1.0 - exp(-delta * 15.0)))
         _camera.position.x = lerpf(_camera.position.x, .16 if _ads_active and _ads_zoom >= 6.0 else .38, 1.0 - exp(-delta * 11.0))
         if _avatar:
-            _avatar.visible = not (_ads_active and _ads_zoom >= 6.0)
+            # In narrow rooms the follow camera may collapse toward the
+            # operator to avoid a wall. Hide only the LOCAL avatar at close
+            # range, preventing the screen from filling with the body mesh.
+            _avatar.visible=safe_distance>1.35 and not (_ads_active and _ads_zoom>=6.0)
     if _animator:
         _combat_action_seconds=maxf(0.0,_combat_action_seconds-delta)
         if _combat_action_seconds<=0.0:

@@ -2,6 +2,7 @@ extends CharacterBody3D
 ## Aurora V73 offline training opponent: rigged glTF visual, bounded ray-LOS,
 ## grounded patrol and actual damage. This is not a networked human player.
 signal eliminated(agent: CharacterBody3D, killer: Node3D)
+signal weapon_fired(world_position: Vector3)
 
 const WALK_SPEED: float = 1.85
 const CHASE_SPEED: float = 2.45
@@ -267,6 +268,7 @@ func _fire_at_target(foe: CharacterBody3D) -> void:
     if not is_instance_valid(foe):
         return
     shots_fired+=1
+    weapon_fired.emit(global_position)
     var distance: float=global_position.distance_to(foe.global_position)
     var spread: float=clampf(distance/SHOOT_RANGE,0.0,1.0)*.52
     var sideways: Vector3=(foe.global_position-global_position).cross(Vector3.UP).normalized()
