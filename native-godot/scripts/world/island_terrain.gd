@@ -37,7 +37,9 @@ func _init() -> void:
         ]:
             accessible_height=minf(accessible_height,
                 _wilderness_height(site.x+offset.x,site.y+offset.y))
-        _site_heights.append(accessible_height)
+        # Avoid floating a house above 15m on the glacial crest: the
+        # foundation is excavated to an accessible town terrace level.
+        _site_heights.append(minf(accessible_height,11.5))
     print("AURORA_LEGACY_LOT_DATUM ",_site_heights)
     for iz in range(CELLS+1):
         for ix in range(CELLS+1):
