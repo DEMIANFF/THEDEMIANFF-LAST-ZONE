@@ -108,6 +108,8 @@ jobs:
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_frontend_preview.gd
           test -s native-godot/out/aurora-v75-6-welcome.png
           test -s native-godot/out/aurora-v75-6-lobby.png
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_coastal_preview.gd
+          test -s native-godot/out/aurora-v75-6-coastal-quarter.png
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_weapon_preview.gd
           test -s native-godot/out/aurora-v74-1-ak74.png
           test -s native-godot/out/aurora-v74-1-awm.png
@@ -147,6 +149,7 @@ jobs:
             native-godot/out/aurora-native-v75-6-preview.png
             native-godot/out/aurora-v75-6-welcome.png
             native-godot/out/aurora-v75-6-lobby.png
+            native-godot/out/aurora-v75-6-coastal-quarter.png
             native-godot/out/aurora-v74-1-ak74.png
             native-godot/out/aurora-v74-1-awm.png
             native-godot/out/v756-motorola-*.png
