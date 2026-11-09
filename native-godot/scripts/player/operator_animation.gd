@@ -25,7 +25,15 @@ func setup(source: AnimationPlayer) -> void:
             if from==to:
                 continue
             var transition:=AnimationNodeStateMachineTransition.new()
-            transition.xfade_time=.14
+            # Synchronise footstep phase between the two grounded gait clips.
+            # Restarting a run at frame zero on every speed change caused the
+            # operator's feet to snap, especially under sustained gunfire.
+            var gait: bool=(from=="AuroraArmedWalk" and to=="AuroraArmedRun") or \
+                (from=="AuroraArmedRun" and to=="AuroraArmedWalk")
+            transition.xfade_time=.20 if gait else .14
+            if gait:
+                transition.switch_mode=AnimationNodeStateMachineTransition.SWITCH_MODE_SYNC
+                transition.reset=false
             states.add_transition(from,to,transition)
     var one_shot:=AnimationNodeOneShot.new()
     one_shot.fadein_time=.04
