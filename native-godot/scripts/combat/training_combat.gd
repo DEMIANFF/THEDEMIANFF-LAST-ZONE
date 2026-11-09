@@ -4,6 +4,7 @@ signal shot_fired(weapon: int,hit: bool)
 signal impact_occurred
 signal reload_started
 signal healed
+signal bot_shot(world_position: Vector3)
 
 const AR_DAMAGE: int=26
 const AWM_DAMAGE: int=115
@@ -237,6 +238,7 @@ func begin_sector_battle() -> void:
             navigation.actors.append(bot)
         bot.spawn_coordinates=additional_spawns[i-4]
         bot.eliminated.connect(_on_bot_eliminated)
+        bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
         add_child(bot)
         _targets.append(bot)
     for bot in _targets:
@@ -356,6 +358,7 @@ func _make_targets() -> void:
         bot.operator=operator
         bot.spawn_coordinates=points[i]
         bot.eliminated.connect(_on_bot_eliminated)
+        bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
         add_child(bot)
         _targets.append(bot)
 
