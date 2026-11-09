@@ -12,17 +12,17 @@
 
 ## Cambios de código realmente integrados
 
-- El terreno físico y visual en `island_terrain.gd` incorpora una terraza urbana a 7 metros de elevación, que se mezcla progresivamente con el relieve del resto del archipiélago mediante una transición suave de 45 metros. Esto sustituye soluciones de plataformas flotantes: todas las casas, jardineras y el adoquinado leen el mismo heightfield.
+- El terreno físico y visual en `island_terrain.gd` incorpora una terraza urbana a 7 metros de elevación, con límites suaves alrededor de las viviendas nuevas y exclusiones de los accesos antiguos. Además, se esculpe el suelo físico bajo las cuatro construcciones existentes para que no invada sus interiores. Todas las casas, jardineras y el adoquinado comparten el mismo heightfield.
 - Se conservan las viviendas transitables, puertas, techos físicos, coberturas y la IA. Un QA nuevo verifica la diferencia de altura entre el suelo real y las cuatro casas, además de comprobar que el terreno no interseca el volumen ocupado de sus interiores.
 - El jugador oculta únicamente su avatar local cuando una pared obliga a retraer la cámara demasiado; el mundo y los enemigos permanecen visibles. Se mantienen la cámara libre, x2/x4 y la mira exclusiva AWM x8.
 - El HUD ubica FPS fuera de las cifras de munición, minimapa y botón de lobby.
-- Nuevo `aurora_audio.gd`: **11 cues de PCM originales** calculados una vez en carga y reutilizados por un pool de 8 voces, buses separados AuroraSFX/AuroraAmbience y mezclador de efectos/ambiente configurable en el lobby. Los eventos están conectados a disparos AR/AWM, impactos, daño recibido, recarga, curación, pasos y saltos. Se conserva un ambiente de viento en bucle.
+- Nuevo `aurora_audio.gd`: **11 cues de PCM originales** calculados una vez en carga y reutilizados por un pool de 8 voces y 5 voces 3D para disparos de bots, buses separados AuroraSFX/AuroraAmbience y mezclador de efectos/ambiente configurable en el lobby. Los eventos están conectados a disparos AR/AWM, impactos, daño recibido, recarga, curación, pasos y saltos. Se conserva un ambiente de viento en bucle.
 - La primera biblioteca auditiva está sintetizada con capas filtradas de transitorios, ruido, frecuencias graves y envolventes, **no es una colección comercial masterizada**. Para una producción definitiva necesitamos sustituir/mejorar estas grabaciones con foley profesional original o CC0 verificado y diseñar espacialización por materiales y distancias.
 
 ## Validación
 
-- `v757_world_audio_qa.gd`: comprobar once recursos WAV, voces de audio, señales realmente emitidas por el combate y jugador, altura urbanizada, edificios apoyados y ausencia de penetración de suelo.
-- Se mantiene la totalidad de QA anteriores, incluida la prueba física de caminar por cada puerta.
+- `v757_world_audio_qa.gd`: comprobar once recursos WAV, voces de audio 2D y 3D, señales realmente emitidas por combate, bots y jugador, altura urbanizada, edificios apoyados y ausencia de penetración de suelo en los cuatro edificios nuevos y los cuatro antiguos.
+- Se mantiene la totalidad de QA anteriores, incluida la prueba física de caminar por cada puerta. La navegación dispone además de un desvío local geométricamente validado si una ruta A* queda desconectada tras actualizar el terreno.
 - Generar capturas reales de Godot desde vista aérea y a nivel de calle; verificar exportación ARM64, firma de depuración, alineación 16 KiB, SHA-256 y suites sobre recursos exportados.
 - Probar en Motorola Edge 60 Fusion la transición del terreno, interiores, cámara, controles táctiles simultáneos y niveles del sonido. Medir FPS y latencia real; CI no acredita rendimiento físico.
 
