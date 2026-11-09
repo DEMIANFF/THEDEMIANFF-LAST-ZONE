@@ -29,6 +29,8 @@ func _add_trees() -> void:
             continue
         if Vector2(x-80.0,z-80.0).length()<20.0:
             continue
+        if x>-52.0 and x<89.0 and z>7.0 and z<86.0:
+            continue  # Preserve playable streets and entrances of the coastal quarter.
         var y: float=terrain.height_at(x,z)
         if y<=terrain.sea_level+1.8:
             continue
@@ -99,6 +101,8 @@ func _add_ice_spires() -> void:
         var z: float=rng.randf_range(-155.0,155.0)
         if Vector2(x,z).length()<38.0:
             continue
+        if x>-52.0 and x<89.0 and z>7.0 and z<86.0:
+            continue  # No ice spikes through stone paving or architectural façades.
         var y: float=terrain.height_at(x,z)
         if y<=terrain.sea_level+2.5:
             continue
