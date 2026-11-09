@@ -116,12 +116,13 @@ func _reachable_nodes(at: Vector3,limit: int=4) -> PackedInt64Array:
     # anchors on the other side lead into the doorway. Try several physically
     # reachable graph anchors, keeping the probe bounded for mobile CPU.
     var candidates: Array[Array]=[]
-    var horizontal: Vector2=Vector2(at.x,at.z)
     for id in graph.get_point_ids():
         var point: Vector3=graph.get_point_position(id)
-        var planar: float=horizontal.distance_squared_to(Vector2(point.x,point.z))
-        if planar<=24.0*24.0 and absf(point.y-at.y)<3.0:
-            candidates.append([planar,id])
+        # Restore the proven 3D radius from V75.6. A strict 3-m vertical
+        # filter disconnected hillside nodes around the old doorway.
+        var distance: float=at.distance_squared_to(point)
+        if distance<=24.0*24.0:
+            candidates.append([distance,id])
     candidates.sort_custom(func(a,b): return a[0]<b[0])
     var result:=PackedInt64Array()
     for candidate in candidates:
