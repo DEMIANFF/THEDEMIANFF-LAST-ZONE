@@ -76,6 +76,7 @@ func _ready() -> void:
     add_child(sound)
     operator.footstep.connect(sound.play_footstep)
     operator.jumped.connect(func(): sound.play_event("jump"))
+    operator.grounded_impact.connect(func(on_stone: bool): sound.play_footstep(on_stone))
     operator.player_damaged.connect(func(_amount: float): sound.play_event("hit"))
 
     var combat = COMBAT.new()
