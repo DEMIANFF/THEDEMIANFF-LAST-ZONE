@@ -450,7 +450,7 @@ func _process(delta: float) -> void:
 func _refresh_heading() -> void:
     if _compass==null or _training_radar==null:
         return
-    var actor: CharacterBody3D=_training_radar.player
+    var actor: CharacterBody3D=_training_radar.get("player") as CharacterBody3D
     if actor==null or not is_instance_valid(actor):
         _compass.text="AURORA  •  N"
         return
