@@ -12,6 +12,7 @@ func _capture() -> void:
     var hud: CanvasLayer=game.get_node("TrainingHUD") as CanvasLayer
     hud.visible=false
     var player=game.get_node("Operator")
+    player.set_physics_process(false)  # Prevent TPS controller from resetting this inspection camera.
     player.visible=false
     var camera: Camera3D=player.get_node("CameraPivot/ThirdPersonCamera") as Camera3D
     camera.top_level=true
