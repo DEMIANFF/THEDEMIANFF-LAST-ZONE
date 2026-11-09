@@ -42,17 +42,22 @@ func height_at(x: float, z: float) -> float:
 # Grade the actual heightfield, including its collision triangles, for a
 # walkable waterfront district. 45m feathering avoids vertical snow walls;
 # terrain and all architecture derive their elevation from the same samples.
-const COAST_CENTER: Vector2=Vector2(27.0,39.0)
-const COAST_HALF: Vector2=Vector2(53.0,31.0)
-const COAST_TRANSITION: float=45.0
 const COAST_SHELF_ELEVATION: float=7.0
 
 
+func _fade_in(value: float,start: float,finish: float) -> float:
+    var t: float=clampf((value-start)/(finish-start),0.0,1.0)
+    return t*t*(3.0-2.0*t)
+
+
 func _coastal_shelf_weight(x: float,z: float) -> float:
-    var along: Vector2=Vector2(absf(x-COAST_CENTER.x),absf(z-COAST_CENTER.y))-COAST_HALF
-    var outside: float=Vector2(maxf(along.x,0.0),maxf(along.y,0.0)).length()
-    var t: float=clampf(outside/COAST_TRANSITION,0.0,1.0)
-    return 1.0-t*t*(3.0-2.0*t)
+    # Confine full leveling to the urban quarter; leave the legacy sector's
+    # doorways and A* access routes to the south and west untouched.
+    var west: float=_fade_in(x,-44.0,-24.0)
+    var east: float=1.0-_fade_in(x,80.0,120.0)
+    var south: float=_fade_in(z,-2.0,12.0)
+    var north: float=1.0-_fade_in(z,70.0,110.0)
+    return west*east*south*north
 
 
 func _elevation(x: float, z: float) -> float:
