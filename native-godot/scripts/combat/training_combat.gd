@@ -238,7 +238,13 @@ func deploy_aurora_cover() -> bool:
         return false
     forward=forward.normalized()
     var center: Vector3=operator.global_position+forward*3.6
-    var ground_y: float=terrain.height_at(center.x,center.z)
+    # Follow the actual terrain triangles under both wall ends; otherwise
+    # sloped Aurora ground falsely reports obstruction on safe open sites.
+    var sideways:=Vector3(-forward.z,0.0,forward.x)
+    var ground_y: float=maxf(
+        terrain.height_at(center.x,center.z),
+        maxf(terrain.height_at(center.x+sideways.x*1.55,center.z+sideways.z*1.55),
+            terrain.height_at(center.x-sideways.x*1.55,center.z-sideways.z*1.55)))
     if not is_finite(ground_y):
         return false
     var heading: float=atan2(-forward.x,-forward.z)
