@@ -328,8 +328,12 @@ func _activate_game(battle: bool) -> void:
 
 func _return_to_lobby() -> void:
     if _game!=null and is_instance_valid(_game):
-        if not _game.get_node("AuroraSectorMatch").retry_result():
+        var director: Node3D=_game.get_node("AuroraSectorMatch")
+        if not director.retry_result():
             return
+        var flight: Node3D=director.get("_flight") as Node3D
+        if flight!=null and str(flight.phase) in ["aircraft","freefall","parachute","touchdown_pending"]:
+            FLIGHT_DIAGNOSTICS.checkpoint("aborted",str(flight.phase),_game.get_node("Operator"),"returned_to_lobby")
         var old: Node3D=_game
         _game=null
         old.get_parent().remove_child(old)
