@@ -31,8 +31,16 @@ func _init(custom_path: String=DEFAULT_PATH) -> void:
 
 
 func _parse(cfg: ConfigFile) -> Dictionary:
+    # A malformed or empty file MUST NOT masquerade as a valid profile just
+    # because ConfigFile.get_value() has defaults: otherwise .bak is ignored.
+    if not cfg.has_section("sensibilidad") or not cfg.has_section("graficos"):
+        return {}
+    if not cfg.has_section_key("graficos","preset"):
+        return {}
     var values: Dictionary={}
     for key in CAMERA_KEYS:
+        if not cfg.has_section_key("sensibilidad",key):
+            return {}
         var raw: Variant=cfg.get_value("sensibilidad",key,CAMERA_DEFAULTS[key])
         if not (raw is float or raw is int) or not is_finite(float(raw)):
             return {}
