@@ -1,0 +1,94 @@
+extends SceneTree
+## Real 3D BR integration: HUD -> inventory -> physical cover -> ray collision.
+var failed: bool=false
+
+func _initialize() -> void:
+    call_deferred("_verify")
+
+
+func check(ok: bool,message: String) -> void:
+    if not ok:
+        failed=true
+        push_error("V7513_COVER "+message)
+
+
+func frames(n: int) -> void:
+    for i in range(n):
+        await physics_frame
+
+
+func _verify() -> void:
+    var game: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
+    root.add_child(game)
+    var player=game.get_node("Operator")
+    var combat=game.get_node("CombatRange")
+    var director=game.get_node("AuroraSectorMatch")
+    var terrain=game.get_node("AuroraTerrain")
+    var hud=game.get_node("TrainingHUD")
+    for bot in combat._targets:
+        bot.set_physics_process(false)
+    await frames(4)
+    check(combat.cover_charges==0,"barrier invented before a real match")
+    check(not combat.deploy_aurora_cover(),"barrier spawned in training")
+    director.start_sector_battle()
+    for bot in combat._targets:
+        bot.set_physics_process(false)
+    await frames(4)
+    check(combat.sector_battle_active and combat.cover_charges==2,
+        "sector match did not grant two limited Aurora walls")
+    var button: Button=hud.get_node("AuroraTacticalOverlay/BARRERA 0") as Button
+    check(button!=null and button.visible and not button.disabled,
+        "deployable HUD action absent/disabled")
+
+    # Exercise genuine island terrain. Iterate known wilderness spots so an
+    # incidental tree/rock at one coordinate does not fake a code regression.
+    var deployed: bool=false
+    player._yaw=0.0
+    player._desired_yaw=0.0
+    for spot in [Vector2(-76,-76),Vector2(-80,-50),Vector2(-55,-80),Vector2(-110,-20)]:
+        player.global_position=Vector3(spot.x,terrain.height_at(spot.x,spot.y)+.8,spot.y)
+        player.velocity=Vector3.ZERO
+        await frames(8)
+        player.set_physics_process(false)
+        deployed=combat.deploy_aurora_cover()
+        if deployed:
+            break
+    check(deployed,"physical Aurora cover could not deploy in open island terrain: "+
+        str(combat.cover_last_block_reason)+" mode="+str(player.air_mode)+
+        " pos="+str(player.global_position))
+    if not deployed:
+        quit(1)
+        return
+    check(combat.cover_charges==1 and combat.cover_cooldown>0.0,
+        "deployment did not consume a charge or enforce cooldown")
+    check(not combat.deploy_aurora_cover() and combat.cover_charges==1,
+        "cooldown allowed immediate cover spam")
+    var cover: StaticBody3D=combat._covers[0]
+    check(cover.get_node_or_null("AuroraIceWallCollision")!=null and
+        cover.get_node_or_null("AuroraCrystal2")!=null,
+        "barrier missing real solid geometry and faceted model")
+    # Allow PhysicsServer3D to register the newly instanced StaticBody shape.
+    await frames(2)
+    var from: Vector3=cover.global_position+cover.global_basis.z*4.0+Vector3.UP*1.25
+    var endpoint: Vector3=cover.global_position-cover.global_basis.z*4.0+Vector3.UP*1.25
+    var ray:=PhysicsRayQueryParameters3D.create(from,endpoint)
+    ray.exclude=[player.get_rid()]
+    var hit: Dictionary=game.get_world_3d().direct_space_state.intersect_ray(ray)
+    check(hit.get("collider")==cover,
+        "real world ray penetrated Aurora cover before damage")
+    var resolved: Dictionary=combat.resolve_shot(from,(endpoint-from).normalized(),from)
+    check(resolved.get("collider")==cover,
+        "player muzzle ray ignores Aurora cover")
+
+    check(not bool(cover.call("take_damage",100.0)) and is_equal_approx(float(cover.get("health")),120.0),
+        "cover was not damageable with persistent HP")
+    check(bool(cover.call("take_damage",120.0)),"Aurora cover did not break at zero health")
+    await frames(3)
+    check(not is_instance_valid(cover),"destroyed cover did not free collision")
+    check(combat.collect_sector_loot("cover_charge") and combat.cover_charges==2,
+        "real loot cannot replenish barrier charges")
+    combat.end_sector_battle()
+    check(combat.cover_charges==0 and combat._covers.is_empty(),
+        "barriers/inventory leaked beyond the match")
+    print("V7513_AURORA_COVER PASS hud,physical_deployment,cooldown,collision,muzzle_damage,loot,cleanup")
+    quit(1 if failed else 0)

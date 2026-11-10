@@ -261,7 +261,11 @@ func _has_line_of_fire(foe: CharacterBody3D) -> bool:
         return false
     var ray:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*1.35,foe.global_position+Vector3.UP*1.0)
     ray.exclude=[get_rid()]
-    return get_world_3d().direct_space_state.intersect_ray(ray).get("collider")==foe
+    var obstacle: Object=get_world_3d().direct_space_state.intersect_ray(ray).get("collider")
+    # Bots may suppress and dismantle deployed cover instead of shooting
+    # magically through it. Buildings and permanent terrain still block LOS.
+    return obstacle==foe or (obstacle is StaticBody3D and
+        (obstacle as StaticBody3D).is_in_group("aurora_deployable_cover"))
 
 
 func _fire_at_target(foe: CharacterBody3D) -> void:
@@ -283,6 +287,8 @@ func _fire_at_target(foe: CharacterBody3D) -> void:
     elif actor is CharacterBody3D and actor.is_in_group("training_target") and actor.health>0:
         actor.take_training_damage(22.0,self)
         shots_hit+=1
+    elif actor is StaticBody3D and actor.is_in_group("aurora_deployable_cover"):
+        actor.call("take_damage",12.0)
 
 
 func _blocked_ahead(direction: Vector3) -> bool:
