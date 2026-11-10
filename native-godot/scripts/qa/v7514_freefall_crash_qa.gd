@@ -36,7 +36,11 @@ func _verify() -> void:
     check(str(director._flight.phase)=="aircraft","aircraft phase failed")
     check(TRACE.last().get("phase","")=="aircraft","missing aircraft checkpoint")
 
-    director._flight.jump_from_aircraft()
+    director._flight.request_jump_or_parachute()
+    check(TRACE.last().get("phase","")=="jump_requested",
+        "jump input was not persisted before physics transition")
+    for i in range(6):
+        await physics_frame
     check(player.air_mode=="freefall" and hud.air_stage=="freefall",
         "jump did not enter real freefall")
     check(TRACE.last().get("phase","")=="freefall","jump checkpoint not persisted")
