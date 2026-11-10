@@ -33,6 +33,7 @@ var medkits_remaining: int = 2
 var sector_battle_active: bool = false
 var cover_charges: int=0
 var cover_cooldown: float=0.0
+var cover_last_block_reason: String=""
 var _cover_serial: int=0
 var _covers: Array[StaticBody3D]=[]
 var tracer_events: int = 0
@@ -224,17 +225,22 @@ func _on_cover_pressed() -> void:
 
 
 func deploy_aurora_cover() -> bool:
+    cover_last_block_reason=""
     # Only a living ground combatant in a real round may place cover.
     if not sector_battle_active or not operator.can_act() or cover_charges<=0:
+        cover_last_block_reason="estado_no_apto: sector="+str(sector_battle_active)+" can_act="+str(operator.can_act())+" charges="+str(cover_charges)
         return false
     if cover_cooldown>0.0:
+        cover_last_block_reason="cooldown="+str(cover_cooldown)
         return false
     var camera: Camera3D=operator.get_view_camera()
     if camera==null or terrain==null:
+        cover_last_block_reason="missing_camera_or_terrain"
         return false
     var forward: Vector3=-camera.global_basis.z
     forward.y=0.0
     if not forward.is_finite() or forward.length_squared()<.05:
+        cover_last_block_reason="invalid_forward="+str(forward)
         return false
     forward=forward.normalized()
     var center: Vector3=operator.global_position+forward*3.6
@@ -246,6 +252,7 @@ func deploy_aurora_cover() -> bool:
         maxf(terrain.height_at(center.x+sideways.x*1.55,center.z+sideways.z*1.55),
             terrain.height_at(center.x-sideways.x*1.55,center.z-sideways.z*1.55)))
     if not is_finite(ground_y):
+        cover_last_block_reason="invalid_terrain_height="+str(ground_y)
         return false
     var heading: float=atan2(-forward.x,-forward.z)
 
@@ -259,7 +266,10 @@ func deploy_aurora_cover() -> bool:
     probe.exclude=[operator.get_rid()]
     probe.transform=Transform3D(Basis(Vector3.UP,heading),
         Vector3(center.x,ground_y+1.28,center.z))
-    if not operator.get_world_3d().direct_space_state.intersect_shape(probe,16).is_empty():
+    var overlaps: Array[Dictionary]=operator.get_world_3d().direct_space_state.intersect_shape(probe,16)
+    if not overlaps.is_empty():
+        var collider: Object=overlaps[0].get("collider")
+        cover_last_block_reason="occupied:"+str(collider.name if collider is Node else collider)+" height="+str(ground_y)
         hud.impact("NO HAY ESPACIO PARA BARRERA")
         return false
 
@@ -268,6 +278,7 @@ func deploy_aurora_cover() -> bool:
         if is_instance_valid(existing) and existing.has_method("is_active") and bool(existing.call("is_active")):
             active+=1
     if active>=4:
+        cover_last_block_reason="active_limit"
         hud.impact("LIMITE DE BARRERAS ACTIVAS")
         return false
     var cover: StaticBody3D=COVER.new()
