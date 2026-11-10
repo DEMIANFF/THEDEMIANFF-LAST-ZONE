@@ -35,7 +35,10 @@ func _verify() -> void:
         "ground bots/weapon rigs kept rendering or running during the flight")
     check(TRACE.last().get("note","")=="start",
         "aircraft start should be persisted before the first physics tick")
-    await physics_frame
+    # SceneTree.physics_frame emits before nodes run _physics_process,
+    # so await two boundaries to observe the first *completed* movement.
+    for i in range(2):
+        await physics_frame
     var first: Dictionary=TRACE.last()
     check(first.get("phase","")=="aircraft" and
         first.get("note","")=="first_aircraft_frame_committed",
