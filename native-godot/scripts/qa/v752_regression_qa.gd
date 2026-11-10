@@ -75,7 +75,11 @@ func _verify() -> void:
     player.rotation.y=PI/2
     check((-player.get_node("AuroraTransportAircraft").global_basis.z).dot(Vector3.FORWARD)>.99,"aircraft heading inherited body")
     flight.jump_from_aircraft()
-    check(player.velocity.z<-10.0,"ejection lost inherited velocity")
+    check(str(flight.phase)=="jump_pending","jump must defer the physics handoff")
+    for i in range(4):
+        await process_frame
+    check(player.air_mode=="freefall" and player.velocity.z<-10.0,
+        "ejection lost inherited velocity after deferred handoff")
     flight.deploy_parachute()
     player._yaw=0.0
     player._desired_yaw=0.0
