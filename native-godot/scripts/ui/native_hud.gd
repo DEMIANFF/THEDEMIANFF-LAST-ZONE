@@ -6,6 +6,7 @@ signal fire_released
 signal fire_aim_changed(relative: Vector2)
 signal crouch_pressed
 signal heal_pressed
+signal aurora_cover_pressed
 signal aim_pressed
 signal reload_pressed
 signal weapon_pressed
@@ -37,6 +38,9 @@ var _run_button: Button
 var _crouch_button: Button
 var _aim_button: Button
 var _medkit_button: Button
+var _cover_button: Button
+var _cover_charges: int=0
+var _cover_cooldown: float=0.0
 var _training_radar: Control
 var _crouching: bool = false
 var _reticle: Control
@@ -183,6 +187,9 @@ func _ready() -> void:
     _jump_button=_button(root,"SALTAR",.685,.82,76,54,Color(.12,.34,.41),_jump_down)
     _crouch_button=_button(root,"AGACHAR",.68,.70,80,53,Color(.16,.30,.36),_crouch_down)
     _medkit_button=_button(root,"CURAR 2",.575,.855,84,56,Color(.20,.36,.29),_heal_down)
+    _cover_button=_button(root,"BARRERA 0",.52,.68,96,55,Color(.13,.53,.68),_cover_down)
+    _cover_button.visible=false
+    _cover_button.disabled=true
     _exit_button=_button(root,"LOBBY",.936,.255,95,46,Color(.13,.27,.43),_return_lobby)
     var pad: Control=VIRTUAL_PAD.new()
     pad.name="MovePad"
@@ -264,7 +271,7 @@ func set_air_stage(value: String) -> void:
     var airborne: bool=value!="ground"
     var overlay: Control=get_node("AuroraTacticalOverlay") as Control
     # Combat UI is irrelevant while riding the aircraft or descending.
-    for name in ["DirectionalFirePad","MIRA","RECARGA","ARMA","AGACHAR","CURAR 2","CORRER"]:
+    for name in ["DirectionalFirePad","MIRA","RECARGA","ARMA","AGACHAR","CURAR 2","CORRER","BARRERA 0"]:
         var control: Control=overlay.get_node_or_null(name) as Control
         if control:
             control.visible=not airborne
@@ -379,6 +386,18 @@ func _jump_down() -> void:
 
 func _heal_down() -> void:
     heal_pressed.emit()
+
+
+func _cover_down() -> void:
+    aurora_cover_pressed.emit()
+
+
+func set_aurora_cover_count(charges: int,cooldown: float=0.0) -> void:
+    _cover_charges=maxi(0,charges)
+    _cover_cooldown=maxf(0.0,cooldown)
+    if _cover_button:
+        _cover_button.text="BARRERA %d"%_cover_charges
+        _cover_button.disabled=_cover_charges<=0 or _cover_cooldown>.0 or air_stage!="ground"
 
 
 func set_medkit_count(count: int) -> void:
@@ -498,6 +517,7 @@ func _layout() -> void:
     _place(root.get_node("ARMA"),Rect2(origin+Vector2(w-235,h-107),Vector2(86,58)))
     _place(_crouch_button,Rect2(origin+Vector2(w-422,h-180),Vector2(92,56)))
     _place(_medkit_button,Rect2(origin+Vector2(w-422,h-107),Vector2(92,56)))
+    _place(_cover_button,Rect2(origin+Vector2(w-422,h-259),Vector2(92,56)))
     _jump_button.custom_minimum_size=Vector2.ZERO
     var jump_rect:=Rect2(origin+Vector2(w-135,h-107),Vector2(100,58))
     if air_stage!="ground":
@@ -529,6 +549,8 @@ func set_match_controls(enabled: bool) -> void:
             control.disabled=not enabled
     root.get_node("MovePad").visible=enabled
     root.get_node("DirectionalFirePad").visible=enabled
+    _cover_button.visible=enabled and air_stage=="ground"
+    _cover_button.disabled=not enabled or _cover_charges<=0 or _cover_cooldown>0.0
 
 
 func _notification(what: int) -> void:
