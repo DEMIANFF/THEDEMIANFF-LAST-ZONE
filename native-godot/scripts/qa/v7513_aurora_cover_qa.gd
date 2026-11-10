@@ -40,14 +40,19 @@ func _verify() -> void:
     check(button!=null and button.visible and not button.disabled,
         "deployable HUD action absent/disabled")
 
-    # Find actual unobstructed island ground, not a fake collision-free test world.
-    player.global_position=Vector3(-76.0,terrain.height_at(-76.0,-76.0)+.8,-76.0)
-    player.velocity=Vector3.ZERO
+    # Exercise genuine island terrain. Iterate known wilderness spots so an
+    # incidental tree/rock at one coordinate does not fake a code regression.
+    var deployed: bool=false
     player._yaw=0.0
     player._desired_yaw=0.0
-    await frames(12)
-    player.set_physics_process(false)
-    var deployed: bool=combat.deploy_aurora_cover()
+    for spot in [Vector2(-76,-76),Vector2(-80,-50),Vector2(-55,-80),Vector2(-110,-20)]:
+        player.global_position=Vector3(spot.x,terrain.height_at(spot.x,spot.y)+.8,spot.y)
+        player.velocity=Vector3.ZERO
+        await frames(8)
+        player.set_physics_process(false)
+        deployed=combat.deploy_aurora_cover()
+        if deployed:
+            break
     check(deployed,"physical Aurora cover could not deploy in open island terrain")
     if not deployed:
         quit(1)
