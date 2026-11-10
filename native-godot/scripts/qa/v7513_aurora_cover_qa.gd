@@ -60,7 +60,8 @@ func _verify() -> void:
     check(cover.get_node_or_null("AuroraIceWallCollision")!=null and
         cover.get_node_or_null("AuroraCrystal2")!=null,
         "barrier missing real solid geometry and faceted model")
-
+    # Allow PhysicsServer3D to register the newly instanced StaticBody shape.
+    await frames(2)
     var from: Vector3=cover.global_position+cover.global_basis.z*4.0+Vector3.UP*1.25
     var endpoint: Vector3=cover.global_position-cover.global_basis.z*4.0+Vector3.UP*1.25
     var ray:=PhysicsRayQueryParameters3D.create(from,endpoint)
