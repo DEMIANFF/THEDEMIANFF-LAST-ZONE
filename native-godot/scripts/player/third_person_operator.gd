@@ -393,7 +393,13 @@ func _air_step(delta: float) -> void:
     _camera_pivot.rotation.x=_pitch
     if _camera:
         var camera_distance: float=7.1 if air_mode=="aircraft" else 6.4
-        var safe_distance: float=_collision_safe_camera_distance(camera_distance)
+        # Airborne actor is dozens of metres over the terrain. The previous
+        # implementation allocated a PhysicsServer sphere cast every physics
+        # frame during the freefall seen in the Motorola crash video. Keep
+        # airborne camera smoothing but reserve obstacle casts for parachute.
+        var safe_distance: float=camera_distance
+        if air_mode=="parachute":
+            safe_distance=_collision_safe_camera_distance(camera_distance)
         _camera.position.z=minf(safe_distance,lerpf(_camera.position.z,safe_distance,alpha))
         _camera.position.x=lerpf(_camera.position.x,.35,alpha)
         _camera.fov=lerpf(_camera.fov,76.0,alpha)
