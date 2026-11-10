@@ -3,6 +3,7 @@ extends RefCounted
 ## GDScript exception handlers, so persist the last observed flight phase.
 ## This is diagnostic evidence, NOT a native crash stack trace.
 const TRACE_PATH: String="user://aurora_flight_trace.cfg"
+static var _last_transition: String=""
 
 
 static func checkpoint(state: String,phase: String,player: Node3D=null,note: String="") -> Error:
@@ -10,6 +11,11 @@ static func checkpoint(state: String,phase: String,player: Node3D=null,note: Str
     cfg.set_value("flight","state",state)
     cfg.set_value("flight","phase",phase)
     cfg.set_value("flight","note",note)
+    if note!="flight_tick":
+        _last_transition=note
+    cfg.set_value("flight","last_transition",_last_transition)
+    cfg.set_value("flight","build",str(ProjectSettings.get_setting("application/config/name","")))
+    cfg.set_value("flight","render_backend",str(ProjectSettings.get_setting("rendering/renderer/rendering_method.mobile","")))
     cfg.set_value("flight","timestamp_unix",int(Time.get_unix_time_from_system()))
     cfg.set_value("flight","fps",Engine.get_frames_per_second())
     cfg.set_value("flight","static_memory_bytes",int(Performance.get_monitor(Performance.MEMORY_STATIC)))
@@ -34,6 +40,9 @@ static func last() -> Dictionary:
         "state":str(cfg.get_value("flight","state","")),
         "phase":str(cfg.get_value("flight","phase","")),
         "note":str(cfg.get_value("flight","note","")),
+        "last_transition":str(cfg.get_value("flight","last_transition","")),
+        "build":str(cfg.get_value("flight","build","")),
+        "render_backend":str(cfg.get_value("flight","render_backend","")),
         "timestamp_unix":int(cfg.get_value("flight","timestamp_unix",0)),
         "fps":int(cfg.get_value("flight","fps",0)),
         "static_memory_bytes":int(cfg.get_value("flight","static_memory_bytes",0)),
@@ -51,9 +60,12 @@ static func report() -> String:
         "Estado: "+str(data["state"]),
         "Fase: "+str(data["phase"]),
         "Detalle: "+str(data["note"]),
+        "Última transición: "+str(data["last_transition"]),
+        "Versión: "+str(data["build"]),
+        "Render: "+str(data["render_backend"]),
         "Tiempo Unix: "+str(data["timestamp_unix"]),
         "FPS: "+str(data["fps"]),
-        "Memoria proceso (MB): "+str(snappedf(float(data["static_memory_bytes"])/1048576.0,.1)),
+        "Memoria estática del motor (MB; no RAM total): "+str(snappedf(float(data["static_memory_bytes"])/1048576.0,.1)),
         "Posición juego: "+str(data["position"]),
         "Velocidad: "+str(data["velocity"]),
         "Nota: estado previo, no diagnóstico de causa nativa."
