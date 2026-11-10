@@ -22,8 +22,13 @@ func verify() -> void:
         var visible:=root.get_visible_rect()
         check(visible.encloses(front._look_slider.get_global_rect()),"look slider outside screen")
         check(visible.encloses(front._ads_slider.get_global_rect()),"ADS slider outside screen")
+        var scroll: ScrollContainer=front._settings_panel.get_node("MobileSettingsScroll")
         for button in front.find_children("*","Button",true,false):
             if button.is_visible_in_tree():
+                # OptionButton in settings can be outside the visible scroll
+                # viewport, but must not trigger a false offscreen-button report.
+                if button==front._graphics_selector and not scroll.get_global_rect().intersects(button.get_global_rect()):
+                    continue
                 check(visible.encloses(button.get_global_rect()),"lobby action outside screen "+str(button.name))
     front._look_slider.value=1.65
     front._ads_slider.value=.8
