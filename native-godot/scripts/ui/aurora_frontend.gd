@@ -17,6 +17,7 @@ var _look_slider: HSlider
 var _ads_slider: HSlider
 var _sfx_slider: HSlider
 var _ambience_slider: HSlider
+var _graphics_selector: OptionButton
 var _preferences: RefCounted
 var _save_timer: Timer
 var stage: String = "welcome"
@@ -38,6 +39,8 @@ func _ready() -> void:
     name = "AuroraFront"
     _preferences=CAMERA_PREFERENCES.new()
     _mobile_options=PLAYER_SETTINGS.new()
+    # Frame cap is a runtime option; imported texture compression remains a build-time choice.
+    Engine.max_fps=_mobile_options.fps_limit()
     _save_timer=Timer.new()
     _save_timer.one_shot=true
     _save_timer.wait_time=.4
@@ -475,6 +478,22 @@ func _build_settings() -> void:
     audio_cfg.load("user://aurora_audio.cfg")
     _sfx_slider=_volume_slider("Efectos",float(audio_cfg.get_value("audio","effects",.75)))
     _ambience_slider=_volume_slider("Ambiente",float(audio_cfg.get_value("audio","ambience",.55)))
+    var graphics_row:=HBoxContainer.new()
+    _settings_content.add_child(graphics_row)
+    var graphics_label:=Label.new()
+    graphics_label.text="Límite de FPS"
+    graphics_label.custom_minimum_size.x=145
+    graphics_row.add_child(graphics_label)
+    _graphics_selector=OptionButton.new()
+    _graphics_selector.name="GraphicsPresetFPS"
+    _graphics_selector.add_item("Baja / 30 FPS")
+    _graphics_selector.add_item("Media / 45 FPS")
+    _graphics_selector.add_item("Alta / 60 FPS")
+    _graphics_selector.select(["baja","media","alta"].find(_mobile_options.graphics_preset))
+    _graphics_selector.custom_minimum_size=Vector2(112,37)
+    _graphics_selector.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _graphics_selector.item_selected.connect(func(_selected: int): _save_timer.start())
+    graphics_row.add_child(_graphics_selector)
     _settings_status=Label.new()
     _settings_status.text="Ajustes recuperados del respaldo" if _preferences.recovered or _mobile_options.recovered else "Se guardan en este dispositivo"
     _settings_status.add_theme_font_size_override("font_size",14)
@@ -558,9 +577,17 @@ func _save_preferences() -> void:
         if is_instance_valid(_scope_sliders[key]):
             scope_values[key]=_scope_sliders[key].value
     var scope_result: Error=_mobile_options.save_sensitivity(scope_values)
+    var graphics_result: Error=ERR_INVALID_PARAMETER
+    if is_instance_valid(_graphics_selector):
+        var preset_names: Array[String]=["baja","media","alta"]
+        var selected_index: int=_graphics_selector.selected
+        if selected_index>=0 and selected_index<preset_names.size():
+            graphics_result=_mobile_options.save_graphics(preset_names[selected_index])
+            if graphics_result==OK:
+                Engine.max_fps=_mobile_options.fps_limit()
     var audio_cfg:=ConfigFile.new()
     audio_cfg.load("user://aurora_audio.cfg")
     audio_cfg.set_value("audio","effects",_sfx_slider.value)
     audio_cfg.set_value("audio","ambience",_ambience_slider.value)
     var audio_result: Error=audio_cfg.save("user://aurora_audio.cfg")
-    _settings_status.text="Cámara, miras y sonido guardados" if result==OK and scope_result==OK and audio_result==OK else "No se pudieron guardar todos los ajustes"
+    _settings_status.text="Ajustes guardados" if result==OK and scope_result==OK and graphics_result==OK and audio_result==OK else "No se pudieron guardar todos los ajustes"
