@@ -48,6 +48,21 @@ func _verify() -> void:
             solid_hits+=1
     check(solid_hits==2,"both coastal shelters must block projectiles")
 
+    # Exercise physical walking and sprinting on a real, isolated collider.
+    # Puerto Aurora contains real boxes/walls: they can legitimately stop
+    # travel, and must not create false-positive gait regressions.
+    var gait_floor:=StaticBody3D.new()
+    gait_floor.name="IsolatedGaitCollisionFloor"
+    gait_floor.collision_layer=1
+    gait_floor.collision_mask=0
+    var floor_collision:=CollisionShape3D.new()
+    var floor_box:=BoxShape3D.new()
+    floor_box.size=Vector3(100.0,1.0,100.0)
+    floor_collision.shape=floor_box
+    gait_floor.add_child(floor_collision)
+    gait_floor.position=Vector3(800.0,15.0,800.0)
+    scene.add_child(gait_floor)
+
     # Sound is now driven by travelled distance, not a timer that plays
     # footsteps repeatedly while a character is sliding into a wall.
     check(is_equal_approx(operator._step_stride(0.0,true),1.02),
@@ -59,10 +74,13 @@ func _verify() -> void:
         "sprint stride too long to sound natural")
     var count: Array[int]=[0]
     operator.footstep.connect(func(_stone: bool): count[0]+=1)
-    operator.global_position=Vector3(20.0,terrain.height_at(20.0,26.0)+.22,26.0)
+    operator.set_touch_move_axis(Vector2.ZERO)
+    operator.global_position=Vector3(800.0,15.56,800.0)
     operator.velocity=Vector3.ZERO
     operator._yaw=0.0
     operator._desired_yaw=0.0
+    await frames(12)
+    check(operator.is_on_floor(),"isolated gait collider did not ground the character")
     operator.set_touch_move_axis(Vector2.UP)
     await frames(85)
     var walked: int=count[0]
@@ -76,7 +94,7 @@ func _verify() -> void:
     # that must not be confused with a gait/audio failure.
     operator.set_touch_move_axis(Vector2.ZERO)
     await frames(10)
-    operator.global_position=Vector3(20.0,terrain.height_at(20.0,26.0)+.22,26.0)
+    operator.global_position=Vector3(800.0,15.56,800.0)
     operator.velocity=Vector3.ZERO
     operator._footstep_distance=0.0
     operator.set_touch_move_axis(Vector2.UP)

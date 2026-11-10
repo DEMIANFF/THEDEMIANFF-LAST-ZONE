@@ -87,10 +87,24 @@ func deploy_parachute() -> void:
 
 
 func landed() -> void:
-    if phase=="inactive" or phase=="landed":
+    # The operator emits landed_from_airdrop from CharacterBody3D physics.
+    # Starting an entire match in the same callback can mutate physics
+    # collision objects while Godot is flushing the physics step.
+    # Commit the transition on the deferred main-thread pass instead.
+    if phase=="inactive" or phase=="landed" or phase=="touchdown_pending":
+        return
+    phase="touchdown_pending"
+    set_physics_process(false)
+    call_deferred("_commit_touchdown")
+
+
+func _commit_touchdown() -> void:
+    if phase!="touchdown_pending":
+        return
+    if not is_instance_valid(player) or not is_instance_valid(hud):
+        phase="inactive"
         return
     phase="landed"
-    set_physics_process(false)
     hud.set_air_stage("ground")
     touchdown.emit()
 

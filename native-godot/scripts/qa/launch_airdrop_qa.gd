@@ -102,10 +102,26 @@ func _verify() -> void:
         quit(147)
         return
     player.set_touch_move_axis(Vector2.ZERO)
+    # Exercise sustained flight and landing physics, not only instantaneous
+    # method calls. A real-device drop crash may occur several frames later.
+    var fall_height: float=player.global_position.y
+    for i in range(50):
+        await physics_frame
+    if player.air_mode!="freefall" or not player.global_position.is_finite() or player.global_position.y>=fall_height-1.0:
+        push_error("Freefall became invalid before parachute deployment")
+        quit(154)
+        return
     flight.deploy_parachute()
     if player.air_mode!="parachute" or player.get_node_or_null("AuroraParachute")==null:
         push_error("Parachute not deployed")
         quit(141)
+        return
+    player._turn_camera(Vector2(87,-37))
+    for i in range(55):
+        await physics_frame
+    if player.air_mode!="parachute" or not player.global_position.is_finite() or not is_finite(player._yaw):
+        push_error("Parachute physics/camera became invalid during sustained descent")
+        quit(155)
         return
     var landing_z: float=-20.0
     player.global_position=Vector3(0.0,terrain.height_at(0.0,landing_z)+3.0,landing_z)
@@ -131,5 +147,24 @@ func _verify() -> void:
         push_error("Land took player outside Aurora sector")
         quit(144)
         return
-    print("V75 OFFLINE FLOW PASS: welcome > original lobby tabs > training > lobby > aircraft > freefall > parachute > real landed sector BR")
+    # Keep the native world live after landing: one-frame screenshots do not
+    # exercise the risky physics-to-match transition long enough.
+    var landed_match_id: int=director._match_id
+    for i in range(90):
+        await physics_frame
+    if not is_instance_valid(player) or not is_instance_valid(director) or director.mode!="sector_battle":
+        push_error("Post-landing match did not survive 90 physics ticks")
+        quit(151)
+        return
+    if player.air_mode!="ground" or flight.phase!="landed":
+        push_error("Post-landing air state regressed during physics")
+        quit(152)
+        return
+    flight.landed()
+    await process_frame
+    if director._match_id!=landed_match_id:
+        push_error("Duplicate landing generated a second match")
+        quit(153)
+        return
+    print("V75 OFFLINE FLOW PASS: welcome > original lobby tabs > training > lobby > aircraft > freefall > parachute > real landed sector BR > 90 physics ticks")
     quit(0)
