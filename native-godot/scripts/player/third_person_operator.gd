@@ -9,6 +9,7 @@ const LOOK_SENSITIVITY: float = 0.0032
 const ANIMATION_CONTROLLER=preload("res://scripts/player/operator_animation.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
+const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const TOUCH_DEADZONE: float = 0.12
 
 signal training_health_changed(value: float)
@@ -59,6 +60,7 @@ var _combat_action: String=""
 var _combat_action_seconds: float=0.0
 var air_mode: String="ground"
 var _parachute_visual: Node3D
+var _parachute_first_frame_logged: bool=false
 var _ads_active: bool = false
 var _ads_zoom: float = 1.0
 var _fire_held: bool = false
@@ -353,6 +355,7 @@ func begin_aircraft() -> void:
     royale_eliminated=false
     _apply_crouch(false)
     air_mode="aircraft"
+    _parachute_first_frame_logged=false
     velocity=Vector3.ZERO
     _ads_active=false
     _recoil_pitch=0.0
@@ -380,12 +383,17 @@ func deploy_parachute() -> void:
     if air_mode!="freefall":
         return
     air_mode="parachute"
+    _parachute_first_frame_logged=false
     _create_parachute()
     _parachute_visual.visible=true
     _current_clip=""
 
 
 func _air_step(delta: float) -> void:
+    var first_canopy_tick: bool=air_mode=="parachute" and not _parachute_first_frame_logged
+    if first_canopy_tick:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,
+            "first_parachute_physics_before_camera")
     var alpha: float=1.0-exp(-delta*16.0)
     _yaw=rotate_toward(_yaw,_desired_yaw,minf(absf(angle_difference(_yaw,_desired_yaw))*alpha,delta*7.5))
     _pitch=lerpf(_pitch,_desired_pitch,alpha)
@@ -393,16 +401,17 @@ func _air_step(delta: float) -> void:
     _camera_pivot.rotation.x=_pitch
     if _camera:
         var camera_distance: float=7.1 if air_mode=="aircraft" else 6.4
-        # Airborne actor is dozens of metres over the terrain. The previous
-        # implementation allocated a PhysicsServer sphere cast every physics
-        # frame during the freefall seen in the Motorola crash video. Keep
-        # airborne camera smoothing but reserve obstacle casts for parachute.
+        # V75.18 Android A/B: the V75.17 crash was immediately after canopy
+        # creation. Parachute used the PhysicsServer sphere sweep that freefall
+        # no longer uses. Isolate this call in *airborne* modes only; ground
+        # still retains full camera/shoulder obstacle collision sweeps.
         var safe_distance: float=camera_distance
-        if air_mode=="parachute":
-            safe_distance=_collision_safe_camera_distance(camera_distance)
         _camera.position.z=minf(safe_distance,lerpf(_camera.position.z,safe_distance,alpha))
         _camera.position.x=lerpf(_camera.position.x,.35,alpha)
         _camera.fov=lerpf(_camera.fov,76.0,alpha)
+    if first_canopy_tick:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,
+            "first_parachute_camera_updated_without_sweep")
     if air_mode=="aircraft":
         velocity=Vector3.ZERO
         return
@@ -422,11 +431,18 @@ func _air_step(delta: float) -> void:
     if steering.length_squared()>.02:
         rotation.y=lerp_angle(rotation.y,atan2(-steering.x,-steering.z),alpha)
     move_and_slide()
+    if first_canopy_tick:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,
+            "first_parachute_body_moved")
     _camera_pivot.rotation.y=wrapf(_yaw-rotation.y,-PI,PI)
     if _animator:
         var clip: String="AuroraFreefall" if air_mode=="freefall" else "AuroraParachute"
         if _current_clip!=clip:
             _play_matching_animation(clip)
+    if first_canopy_tick:
+        _parachute_first_frame_logged=true
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,
+            "first_parachute_physics_complete")
     if is_on_floor():
         air_mode="ground"
         velocity=Vector3.ZERO
