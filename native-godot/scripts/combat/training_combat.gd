@@ -259,7 +259,7 @@ func deploy_aurora_cover() -> bool:
 
     var active: int=0
     for existing in _covers:
-        if is_instance_valid(existing) and existing.is_active():
+        if is_instance_valid(existing) and existing.has_method("is_active") and bool(existing.call("is_active")):
             active+=1
     if active>=4:
         hud.impact("LIMITE DE BARRERAS ACTIVAS")
