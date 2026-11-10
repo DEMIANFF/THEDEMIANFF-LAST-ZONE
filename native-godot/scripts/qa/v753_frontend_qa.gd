@@ -29,7 +29,9 @@ func verify() -> void:
     front._ads_slider.value=.8
     front._scope_sliders["scope_2x"].value=135.0
     front._scope_sliders["scope_8x"].value=60.0
+    front._graphics_selector.select(0)
     front._save_preferences()
+    check(Engine.max_fps==30,"graphics FPS cap not applied")
     front._launch(false)
     for i in range(10):
         await process_frame
