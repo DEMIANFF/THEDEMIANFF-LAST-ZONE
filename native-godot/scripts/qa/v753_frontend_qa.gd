@@ -41,6 +41,8 @@ func verify() -> void:
     for i in range(10):
         await process_frame
     check(front.stage=="training" and front._game!=null,"lobby launch failed")
+    check(front._preview_container==null and front._preview_avatar==null,
+        "lobby 3D preview retained an entire duplicate character/render target during gameplay")
     if front._game:
         var player=front._game.get_node("Operator")
         check(is_equal_approx(player.look_multiplier,1.65) and is_equal_approx(player.ads_multiplier,.8),"saved sensitivity not applied in game")
@@ -50,5 +52,7 @@ func verify() -> void:
         front._return_to_lobby()
         await process_frame
         check(front.stage=="lobby" and front._game==null,"return to lobby failed")
+        check(front._preview_container!=null and is_instance_valid(front._preview_container) and
+            front._preview_container.visible,"3D lobby preview not rebuilt after returning from game")
     print("V753_FRONTEND PASS: responsive settings, saved sensitivity, launch and return")
     quit(1 if failed else 0)
