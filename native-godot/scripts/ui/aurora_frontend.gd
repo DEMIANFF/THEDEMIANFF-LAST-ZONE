@@ -491,7 +491,7 @@ func _sensitivity_slider(title: String,value: float) -> HSlider:
     row.add_child(label)
     var slider:=HSlider.new()
     slider.min_value=.35
-    slider.max_value=2.5
+    slider.max_value=2.0
     slider.step=.05
     slider.value=value
     slider.custom_minimum_size=Vector2(112,37)
