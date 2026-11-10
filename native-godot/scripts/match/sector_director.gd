@@ -73,7 +73,10 @@ func begin_aircraft_phase() -> void:
     _aircraft_paused_navigation=nav!=null and nav.is_physics_processing()
     if _aircraft_paused_navigation:
         nav.set_physics_process(false)
-    combat.process_mode=Node.PROCESS_MODE_DISABLED
+    # Preserve CollisionObject3D membership in PhysicsServer. Disabling the
+    # whole node's process_mode removes child bodies from the physics space
+    # and causes "body->get_space() is null" in existing movement tests.
+    combat.set_process(false)
     combat.visible=false
     hud.reset_controls()
     mode="aircraft"
@@ -102,7 +105,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     match_ended = false
     # Restore combat and navigation BEFORE spawning/enabling any bots.
     combat.visible=true
-    combat.process_mode=Node.PROCESS_MODE_INHERIT
+    combat.set_process(true)
     var nav: Node3D=combat.get("navigation") as Node3D
     if nav!=null and _aircraft_paused_navigation:
         nav.set_physics_process(true)
