@@ -131,5 +131,24 @@ func _verify() -> void:
         push_error("Land took player outside Aurora sector")
         quit(144)
         return
-    print("V75 OFFLINE FLOW PASS: welcome > original lobby tabs > training > lobby > aircraft > freefall > parachute > real landed sector BR")
+    # Keep the native world live after landing: one-frame screenshots do not
+    # exercise the risky physics-to-match transition long enough.
+    var landed_match_id: int=director._match_id
+    for i in range(90):
+        await physics_frame
+    if not is_instance_valid(player) or not is_instance_valid(director) or director.mode!="sector_battle":
+        push_error("Post-landing match did not survive 90 physics ticks")
+        quit(151)
+        return
+    if player.air_mode!="ground" or flight.phase!="landed":
+        push_error("Post-landing air state regressed during physics")
+        quit(152)
+        return
+    flight.landed()
+    await process_frame
+    if director._match_id!=landed_match_id:
+        push_error("Duplicate landing generated a second match")
+        quit(153)
+        return
+    print("V75 OFFLINE FLOW PASS: welcome > original lobby tabs > training > lobby > aircraft > freefall > parachute > real landed sector BR > 90 physics ticks")
     quit(0)
