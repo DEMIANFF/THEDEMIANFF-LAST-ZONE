@@ -102,10 +102,26 @@ func _verify() -> void:
         quit(147)
         return
     player.set_touch_move_axis(Vector2.ZERO)
+    # Exercise sustained flight and landing physics, not only instantaneous
+    # method calls. A real-device drop crash may occur several frames later.
+    var fall_height: float=player.global_position.y
+    for i in range(50):
+        await physics_frame
+    if player.air_mode!="freefall" or not player.global_position.is_finite() or player.global_position.y>=fall_height-1.0:
+        push_error("Freefall became invalid before parachute deployment")
+        quit(154)
+        return
     flight.deploy_parachute()
     if player.air_mode!="parachute" or player.get_node_or_null("AuroraParachute")==null:
         push_error("Parachute not deployed")
         quit(141)
+        return
+    player._turn_camera(Vector2(87,-37))
+    for i in range(55):
+        await physics_frame
+    if player.air_mode!="parachute" or not player.global_position.is_finite() or not is_finite(player._yaw):
+        push_error("Parachute physics/camera became invalid during sustained descent")
+        quit(155)
         return
     var landing_z: float=-20.0
     player.global_position=Vector3(0.0,terrain.height_at(0.0,landing_z)+3.0,landing_z)
