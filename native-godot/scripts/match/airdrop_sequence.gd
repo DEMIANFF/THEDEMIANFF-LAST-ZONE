@@ -18,6 +18,8 @@ var _craft: Node3D
 var _drop_requested: bool=false
 var _trace_clock: float=0.0
 var _ground_ray_clock: float=0.0
+var _aircraft_motion_committed: bool=false
+var _flight_tick_count: int=0
 
 
 func _ready() -> void:
@@ -30,6 +32,8 @@ func begin() -> void:
     _drop_requested=false
     _trace_clock=0.0
     _ground_ray_clock=0.0
+    _aircraft_motion_committed=false
+    _flight_tick_count=0
     player.begin_aircraft()
     player.global_position=_route_point(0.0)
     _build_craft()
@@ -54,20 +58,34 @@ func _route_point(progress: float) -> Vector3:
 
 
 func _physics_process(delta: float) -> void:
-    # Small durable checkpoints, at most once per 1.2 seconds. An abrupt
-    # Android exit leaves the last phase and process memory for next launch.
+    # First Android frame is materially different from a sustained flight.
+    # Keep diagnostic notes AFTER camera/aircraft transforms, not before.
+    # Never overwrite the key first-motion note with an initial flight_tick.
     _trace_clock-=delta
-    if _trace_clock<=0.0 and (phase=="aircraft" or phase=="freefall" or phase=="parachute"):
-        _trace_clock=1.2
-        FLIGHT_DIAGNOSTICS.checkpoint("active",phase,player,"flight_tick")
+    _flight_tick_count+=1
     if phase=="aircraft":
         elapsed+=delta
         player.global_position=_route_point(elapsed/FLIGHT_SECONDS)
+        if not _aircraft_motion_committed:
+            FLIGHT_DIAGNOSTICS.checkpoint("active","aircraft",player,"first_player_motion")
         if _craft:
             _craft.global_position=player.global_position+Vector3(0,.7,-1)
+        if not _aircraft_motion_committed:
+            _aircraft_motion_committed=true
+            FLIGHT_DIAGNOSTICS.checkpoint("active","aircraft",player,"first_aircraft_frame_committed")
+            _trace_clock=.25
+        elif _trace_clock<=0.0:
+            # Higher resolution during the first two seconds, lower IO after.
+            _trace_clock=.35 if elapsed<2.0 else 1.0
+            FLIGHT_DIAGNOSTICS.checkpoint("active","aircraft",player,
+                "aircraft_tick_"+str(_flight_tick_count))
         if _drop_requested or elapsed>=FLIGHT_SECONDS:
             jump_from_aircraft()
     elif phase=="freefall":
+        if _trace_clock<=0.0:
+            _trace_clock=1.0
+            FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,
+                "freefall_tick_"+str(_flight_tick_count))
         var pos: Vector3=player.global_position
         # Most of the fall is tens of metres above Aurora. Avoid an expensive
         # 200 m physics ray every frame on a mobile CPU. Terrain is the first
@@ -86,6 +104,10 @@ func _physics_process(delta: float) -> void:
                     clearance=pos.y-ground_y
             if clearance<26.0:
                 deploy_parachute()
+    elif phase=="parachute" and _trace_clock<=0.0:
+        _trace_clock=1.0
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",player,
+            "parachute_tick_"+str(_flight_tick_count))
 
 
 func jump_from_aircraft() -> void:

@@ -11,12 +11,16 @@ static func checkpoint(state: String,phase: String,player: Node3D=null,note: Str
     cfg.set_value("flight","state",state)
     cfg.set_value("flight","phase",phase)
     cfg.set_value("flight","note",note)
-    if note!="flight_tick":
+    # Periodic telemetry must not erase the last meaningful transition
+    # (e.g. jump_requested) just before a hard Android process exit.
+    if note!="flight_tick" and not note.begins_with("aircraft_tick_") and \
+        not note.begins_with("freefall_tick_") and not note.begins_with("parachute_tick_"):
         _last_transition=note
     cfg.set_value("flight","last_transition",_last_transition)
     cfg.set_value("flight","build",str(ProjectSettings.get_setting("application/config/name","")))
     cfg.set_value("flight","render_backend",str(ProjectSettings.get_setting("rendering/renderer/rendering_method.mobile","")))
     cfg.set_value("flight","timestamp_unix",int(Time.get_unix_time_from_system()))
+    cfg.set_value("flight","uptime_ms",Time.get_ticks_msec())
     cfg.set_value("flight","fps",Engine.get_frames_per_second())
     cfg.set_value("flight","static_memory_bytes",int(Performance.get_monitor(Performance.MEMORY_STATIC)))
     if player!=null and is_instance_valid(player):
@@ -44,6 +48,7 @@ static func last() -> Dictionary:
         "build":str(cfg.get_value("flight","build","")),
         "render_backend":str(cfg.get_value("flight","render_backend","")),
         "timestamp_unix":int(cfg.get_value("flight","timestamp_unix",0)),
+        "uptime_ms":int(cfg.get_value("flight","uptime_ms",0)),
         "fps":int(cfg.get_value("flight","fps",0)),
         "static_memory_bytes":int(cfg.get_value("flight","static_memory_bytes",0)),
         "position":str(cfg.get_value("flight","position","")),
@@ -64,6 +69,7 @@ static func report() -> String:
         "Versión: "+str(data["build"]),
         "Render: "+str(data["render_backend"]),
         "Tiempo Unix: "+str(data["timestamp_unix"]),
+        "Tiempo motor (ms): "+str(data["uptime_ms"]),
         "FPS: "+str(data["fps"]),
         "Memoria estática del motor (MB; no RAM total): "+str(snappedf(float(data["static_memory_bytes"])/1048576.0,.1)),
         "Posición juego: "+str(data["position"]),
