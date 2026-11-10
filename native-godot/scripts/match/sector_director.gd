@@ -194,8 +194,8 @@ func _spawn_loot() -> void:
     var categories: Array[String]=[
         "ammo_ar","medkit","ammo_awm","ammo_ar",
         "medkit","ammo_ar","ammo_awm","medkit",
-        "ammo_ar","ammo_ar","medkit","ammo_awm",
-        "ammo_ar","medkit","ammo_ar","ammo_awm"]
+        "cover_charge","ammo_ar","medkit","ammo_awm",
+        "ammo_ar","medkit","ammo_ar","cover_charge"]
     for i in range(spots.size()):
         var pickup: Area3D=LOOT.new()
         pickup.name="AuroraLoot"+str(i+1)
