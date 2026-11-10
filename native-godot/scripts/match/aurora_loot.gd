@@ -37,7 +37,7 @@ func _ready() -> void:
     var material:=StandardMaterial3D.new()
     material.metallic=.52
     material.roughness=.31
-    material.albedo_color=Color(.18,.79,.75) if pickup_type=="medkit" else Color(.89,.66,.21) if pickup_type=="ammo_ar" else Color(.56,.43,.95)
+    material.albedo_color=Color(.18,.79,.75) if pickup_type=="medkit" else Color(.89,.66,.21) if pickup_type=="ammo_ar" else Color(.26,.71,.97) if pickup_type=="cover_charge" else Color(.56,.43,.95)
     material.emission_enabled=true
     material.emission=material.albedo_color
     material.emission_energy_multiplier=.55
@@ -56,7 +56,7 @@ func _ready() -> void:
     _visual.add_child(ring)
     var floating_name:=Label3D.new()
     floating_name.name="SupplyLabel"
-    floating_name.text="BOTIQUIN" if pickup_type=="medkit" else "MUNICION AR" if pickup_type=="ammo_ar" else "MUNICION AWM"
+    floating_name.text="BOTIQUIN" if pickup_type=="medkit" else "MUNICION AR" if pickup_type=="ammo_ar" else "BARRERA +1" if pickup_type=="cover_charge" else "MUNICION AWM"
     floating_name.font_size=38
     floating_name.pixel_size=.005
     floating_name.position.y=.94
