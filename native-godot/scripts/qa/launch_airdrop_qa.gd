@@ -89,6 +89,12 @@ func _verify() -> void:
         quit(146)
         return
     flight.jump_from_aircraft()
+    if flight.phase!="jump_pending":
+        push_error("Aircraft jump did not enter deferred transition")
+        quit(156)
+        return
+    for i in range(4):
+        await process_frame
     if player.air_mode!="freefall" or hud.air_stage!="freefall":
         push_error("Aircraft jump did not enter freefall")
         quit(140)

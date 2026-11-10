@@ -42,6 +42,8 @@ func begin() -> void:
 func request_jump_or_parachute() -> void:
     if phase=="aircraft":
         _drop_requested=true
+        # Record the input BEFORE any physics callback or character transition.
+        FLIGHT_DIAGNOSTICS.checkpoint("active","jump_requested",player,"button_pressed")
     elif phase=="freefall":
         deploy_parachute()
 
@@ -89,15 +91,46 @@ func _physics_process(delta: float) -> void:
 func jump_from_aircraft() -> void:
     if phase!="aircraft":
         return
-    phase="freefall"
-    if _craft:
+    # A jump requested by the plane's _physics_process() must not replace
+    # character animation, release 3D meshes and rebuild the HUD inside the
+    # active physics step. This is a deferred *real* transition, not a fake fall.
+    phase="jump_pending"
+    _drop_requested=false
+    set_physics_process(false)
+    FLIGHT_DIAGNOSTICS.checkpoint("active","jump_pending",player,"jump_transition_started")
+    call_deferred("_release_craft_for_jump")
+
+
+func _release_craft_for_jump() -> void:
+    if phase!="jump_pending":
+        return
+    FLIGHT_DIAGNOSTICS.checkpoint("active","jump_pending",player,"craft_release_started")
+    if _craft and is_instance_valid(_craft):
+        _craft.visible=false
         _craft.queue_free()
-        _craft=null
+    _craft=null
+    FLIGHT_DIAGNOSTICS.checkpoint("active","jump_pending",player,"craft_release_scheduled")
+    # Allow queued aircraft meshes to leave the RenderServer at the end
+    # of this frame before revealing and animating the airborne operator.
+    get_tree().process_frame.connect(_commit_jump,CONNECT_ONE_SHOT)
+
+
+func _commit_jump() -> void:
+    if phase!="jump_pending":
+        return
+    if not is_instance_valid(player) or not is_instance_valid(hud):
+        phase="inactive"
+        return
+    FLIGHT_DIAGNOSTICS.checkpoint("active","jump_pending",player,"operator_freefall_before")
     player.begin_freefall(Vector3(0,0,(ROUTE_END_Z-ROUTE_START_Z)/FLIGHT_SECONDS))
+    FLIGHT_DIAGNOSTICS.checkpoint("active","jump_pending",player,"operator_freefall_after")
     hud.set_air_stage("freefall")
+    FLIGHT_DIAGNOSTICS.checkpoint("active","jump_pending",player,"hud_freefall_after")
     hud.impact("CAÍDA LIBRE / MUEVE EL JOYSTICK")
+    phase="freefall"
     _trace_clock=1.2
-    FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,"aircraft_jump")
+    set_physics_process(true)
+    FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,"jump_committed")
 
 
 func deploy_parachute() -> void:

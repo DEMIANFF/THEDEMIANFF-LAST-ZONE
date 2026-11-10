@@ -24,7 +24,7 @@ func _capture() -> void:
         await process_frame
     await RenderingServer.frame_post_draw
     var screenshot: Image=root.get_texture().get_image()
-    var code: Error=screenshot.save_png("res://out/aurora-v75-14-coastal-quarter.png")
+    var code: Error=screenshot.save_png("res://out/aurora-v75-15-coastal-quarter.png")
     if code!=OK:
         push_error("COASTAL_3D_RENDER_CAPTURE_FAILED "+str(code))
         quit(1)
@@ -36,7 +36,7 @@ func _capture() -> void:
         await process_frame
     await RenderingServer.frame_post_draw
     var street: Image=root.get_texture().get_image()
-    if street.save_png("res://out/aurora-v75-14-coastal-street.png")!=OK:
+    if street.save_png("res://out/aurora-v75-15-coastal-street.png")!=OK:
         push_error("COASTAL_3D_STREET_CAPTURE_FAILED")
         quit(2)
         return
