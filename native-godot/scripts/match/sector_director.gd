@@ -27,6 +27,7 @@ var _ui_clock: float = 0.0
 var _loot: Array[Area3D] = []
 var _zone_visual: Node3D
 var _flight: Node3D
+var _aircraft_paused_navigation: bool=false
 var _records: RefCounted
 var _match_id: int=0
 var last_match_saved: bool=false
@@ -65,6 +66,15 @@ func begin_aircraft_phase() -> void:
     if not _ready_for_round():
         return
     combat.end_sector_battle()
+    # There is no ground combat or pathfinding in the aircraft. Do not keep
+    # the animated bot world, 3D gun rigs or navigation shape sweeps running
+    # while the renderer is still preparing the full island on Android.
+    var nav: Node3D=combat.get("navigation") as Node3D
+    _aircraft_paused_navigation=nav!=null and nav.is_physics_processing()
+    if _aircraft_paused_navigation:
+        nav.set_physics_process(false)
+    combat.process_mode=Node.PROCESS_MODE_DISABLED
+    combat.visible=false
     hud.reset_controls()
     mode="aircraft"
     match_ended=false
@@ -90,6 +100,13 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _loot.clear()
     mode = "sector_battle"
     match_ended = false
+    # Restore combat and navigation BEFORE spawning/enabling any bots.
+    combat.visible=true
+    combat.process_mode=Node.PROCESS_MODE_INHERIT
+    var nav: Node3D=combat.get("navigation") as Node3D
+    if nav!=null and _aircraft_paused_navigation:
+        nav.set_physics_process(true)
+    _aircraft_paused_navigation=false
     # One unique completed match ID is committed only after actual victory
     # or defeat. Abandoning a round does not fabricate completed statistics.
     _match_id=_records.next_match_id()
