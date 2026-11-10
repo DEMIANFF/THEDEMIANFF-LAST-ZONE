@@ -380,9 +380,19 @@ func deploy_parachute() -> void:
     if air_mode!="freefall":
         return
     air_mode="parachute"
-    _create_parachute()
-    _parachute_visual.visible=true
+    # V75.18: avoid creating/rendering several meshes inside the active
+    # physics callback. Keep real canopy physics immediately; commit the
+    # cosmetic rig in the deferred main-thread pass.
+    call_deferred("_commit_parachute_visual")
     _current_clip=""
+
+
+func _commit_parachute_visual() -> void:
+    if air_mode!="parachute" or not is_inside_tree():
+        return
+    _create_parachute()
+    if _parachute_visual:
+        _parachute_visual.visible=true
 
 
 func _air_step(delta: float) -> void:
@@ -393,13 +403,11 @@ func _air_step(delta: float) -> void:
     _camera_pivot.rotation.x=_pitch
     if _camera:
         var camera_distance: float=7.1 if air_mode=="aircraft" else 6.4
-        # Airborne actor is dozens of metres over the terrain. The previous
-        # implementation allocated a PhysicsServer sphere cast every physics
-        # frame during the freefall seen in the Motorola crash video. Keep
-        # airborne camera smoothing but reserve obstacle casts for parachute.
+        # V75.18 isolation: do not query PhysicsServer cast_motion during
+        # parachute either. The previous build re-enabled that query exactly
+        # at canopy_deployed, the last checkpoint before the Android exit.
+        # Ground mode still has full obstacle-aware camera collision.
         var safe_distance: float=camera_distance
-        if air_mode=="parachute":
-            safe_distance=_collision_safe_camera_distance(camera_distance)
         _camera.position.z=minf(safe_distance,lerpf(_camera.position.z,safe_distance,alpha))
         _camera.position.x=lerpf(_camera.position.x,.35,alpha)
         _camera.fov=lerpf(_camera.fov,76.0,alpha)
