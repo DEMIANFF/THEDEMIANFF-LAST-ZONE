@@ -7,6 +7,7 @@ const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
+const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 
 var _settings_panel: VBoxContainer
 var _settings_content: VBoxContainer
@@ -153,12 +154,23 @@ func _welcome() -> void:
     enter.name="EnterButton"
     _page.add_child(enter)
     _label("Esta versión prueba partidas offline. El multijugador y las cuentas en Godot todavía no están disponibles.",14)
+    var trace: Dictionary=FLIGHT_DIAGNOSTICS.last()
+    if str(trace.get("state",""))=="active":
+        _label("VUELO ANTERIOR INTERRUMPIDO  /  "+str(trace.get("phase","desconocido")),15)
+        _label("Último registro: "+str(trace.get("note",""))+"  ·  FPS "+str(trace.get("fps","?")),13)
+        _page.add_child(_button("COPIAR DATOS DEL VUELO",Callable(self,"_copy_flight_diagnostics"),270))
+
+
+func _copy_flight_diagnostics() -> void:
+    DisplayServer.clipboard_set(FLIGHT_DIAGNOSTICS.report())
 
 
 func _show_lobby() -> void:
     # Actual on-device results. No invented premium currency, fake friends or fake cloud ID.
     _offline_records=MATCH_RECORDS.new()
     var stats: Dictionary=_offline_records.snapshot()
+    if _preview_container==null or not is_instance_valid(_preview_container):
+        _build_preview()
     stage="lobby"
     visible=true
     _page.anchor_left=.67
@@ -277,8 +289,16 @@ func _launch(battle: bool) -> void:
     if stage!="lobby":
         return
     stage="loading"
-    if _preview_container:
-        _preview_container.visible=false
+    # Unload the 440x600 offscreen character renderer (its own 3D world,
+    # lights, rig and textures) before entering a memory-heavy Android match.
+    # Hiding it only stopped drawing but retained VRAM/mesh allocations.
+    if _preview_container and is_instance_valid(_preview_container):
+        _preview_container.queue_free()
+    if _preview_caption and is_instance_valid(_preview_caption):
+        _preview_caption.queue_free()
+    _preview_container=null
+    _preview_caption=null
+    _preview_avatar=null
     _clear_page()
     _label("PREPARANDO PUERTO AURORA",27)
     _label("Cargando terreno, colisiones, personaje, armas y patrullas...",18)
@@ -286,6 +306,12 @@ func _launch(battle: bool) -> void:
 
 
 func _activate_game(battle: bool) -> void:
+    if stage!="loading":
+        return
+    # The queued SubViewport is actually freed at the end of the frame,
+    # AFTER deferred calls. One frame boundary avoids overlapping both
+    # render targets and both animated player rigs during match creation.
+    await get_tree().process_frame
     if stage!="loading":
         return
     _game=GAME.instantiate() as Node3D
