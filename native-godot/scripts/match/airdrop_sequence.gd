@@ -8,6 +8,10 @@ const FLIGHT_SECONDS: float=13.0
 const FLIGHT_ALTITUDE: float=97.0
 const ROUTE_START_Z: float=76.0
 const ROUTE_END_Z: float=-78.0
+# V75.17 A/B: isolate the mobile physics ray invoked near 39 m terrain clearance.
+# The island heightfield is authoritative and already agrees with its collider.
+const TERRAIN_PROXIMITY_M: float=42.0
+const AUTO_PARACHUTE_CLEARANCE_M: float=26.0
 
 var player: CharacterBody3D
 var terrain: StaticBody3D
@@ -17,7 +21,7 @@ var elapsed: float=0.0
 var _craft: Node3D
 var _drop_requested: bool=false
 var _trace_clock: float=0.0
-var _ground_ray_clock: float=0.0
+var _ground_approach_marked: bool=false
 var _aircraft_motion_committed: bool=false
 var _flight_tick_count: int=0
 
@@ -31,7 +35,7 @@ func begin() -> void:
     elapsed=0.0
     _drop_requested=false
     _trace_clock=0.0
-    _ground_ray_clock=0.0
+    _ground_approach_marked=false
     _aircraft_motion_committed=false
     _flight_tick_count=0
     player.begin_aircraft()
@@ -87,23 +91,27 @@ func _physics_process(delta: float) -> void:
             FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,
                 "freefall_tick_"+str(_flight_tick_count))
         var pos: Vector3=player.global_position
-        # Most of the fall is tens of metres above Aurora. Avoid an expensive
-        # 200 m physics ray every frame on a mobile CPU. Terrain is the first
-        # level of detection; query nearby roofs only near deployment height.
+        # Controlled Motorola diagnosis: the V75.16 build hard-exited close
+        # to this altitude. Do not allocate/call PhysicsDirectSpaceState3D
+        # roof-ray queries inside freefall. Use the same continuously
+        # interpolated heightfield backing the terrain trimesh collider.
+        # Body/roof collisions still run through CharacterBody3D.move_and_slide().
         var ground_y: float=terrain.height_at(pos.x,pos.z)
         var clearance: float=pos.y-ground_y
-        if clearance<39.0:
-            _ground_ray_clock-=delta
-            if _ground_ray_clock<=0.0:
-                _ground_ray_clock=.15
-                var ray:=PhysicsRayQueryParameters3D.create(pos,pos-Vector3.UP*55.0)
-                ray.exclude=[player.get_rid()]
-                var surface: Dictionary=player.get_world_3d().direct_space_state.intersect_ray(ray)
-                if not surface.is_empty():
-                    ground_y=maxf(ground_y,float(surface.position.y))
-                    clearance=pos.y-ground_y
-            if clearance<26.0:
-                deploy_parachute()
+        if not is_finite(clearance):
+            FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,"invalid_ground_clearance")
+            deploy_parachute()
+            return
+        if not _ground_approach_marked and clearance<TERRAIN_PROXIMITY_M:
+            _ground_approach_marked=true
+            FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,
+                "terrain_approach_no_ray_"+str(snappedf(clearance,0.1))+"m")
+        if clearance<AUTO_PARACHUTE_CLEARANCE_M:
+            # Retain the automatic *real* canopy and existing touch behavior.
+            # At the known 6–10 m building scale this leaves room above roofs.
+            FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,
+                "auto_canopy_terrain_clearance_"+str(snappedf(clearance,0.1))+"m")
+            deploy_parachute()
     elif phase=="parachute" and _trace_clock<=0.0:
         _trace_clock=1.0
         FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",player,
