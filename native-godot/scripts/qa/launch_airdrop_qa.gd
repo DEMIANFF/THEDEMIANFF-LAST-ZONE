@@ -118,8 +118,15 @@ func _verify() -> void:
         quit(154)
         return
     flight.deploy_parachute()
-    if player.air_mode!="parachute" or player.get_node_or_null("AuroraParachute")==null:
-        push_error("Parachute not deployed")
+    # The physical parachute state is immediate, while the 3D canopy is
+    # intentionally committed on a deferred main-thread pass in V75.18.
+    if player.air_mode!="parachute" or hud.air_stage!="parachute":
+        push_error("Parachute physical state or HUD did not deploy")
+        quit(141)
+        return
+    await process_frame
+    if player.get_node_or_null("AuroraParachute")==null or not player.get_node("AuroraParachute").visible:
+        push_error("Deferred real 3D parachute was not rendered")
         quit(141)
         return
     player._turn_camera(Vector2(87,-37))
