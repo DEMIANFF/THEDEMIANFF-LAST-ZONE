@@ -1,7 +1,7 @@
-name: V75.15 Complete Godot Regression QA
+name: V75.16 Complete Godot Regression QA
 on:
   push:
-    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-8-world-navigation-stabilization, codex/v75-9-camera-obstruction-polish, codex/v75-10-materials-locomotion-pass, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation]
+    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-8-world-navigation-stabilization, codex/v75-9-camera-obstruction-polish, codex/v75-10-materials-locomotion-pass, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation]
     paths:
       - 'native-godot/**'
       - 'docs/V71_REAL_BATTLE_ROYALE_MASTER_PLAN.md'
@@ -30,5 +30,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: V75.15-GODOT-QA-LOGS
+          name: V75.16-GODOT-QA-LOGS
           path: native-godot/out/qa
