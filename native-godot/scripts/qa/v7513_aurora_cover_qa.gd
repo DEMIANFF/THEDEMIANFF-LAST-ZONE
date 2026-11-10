@@ -72,9 +72,9 @@ func _verify() -> void:
     check(resolved.get("collider")==cover,
         "player muzzle ray ignores Aurora cover")
 
-    check(not cover.take_damage(100.0) and is_equal_approx(cover.health,120.0),
+    check(not bool(cover.call("take_damage",100.0)) and is_equal_approx(float(cover.get("health")),120.0),
         "cover was not damageable with persistent HP")
-    check(cover.take_damage(120.0),"Aurora cover did not break at zero health")
+    check(bool(cover.call("take_damage",120.0)),"Aurora cover did not break at zero health")
     await frames(3)
     check(not is_instance_valid(cover),"destroyed cover did not free collision")
     check(combat.collect_sector_loot("cover_charge") and combat.cover_charges==2,
