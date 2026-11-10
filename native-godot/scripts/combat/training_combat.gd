@@ -11,6 +11,7 @@ const AWM_DAMAGE: int=115
 const AWM_BOLT_SECONDS: float=.50
 const BOT = preload("res://scripts/ai/aurora_bot.gd")
 const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
+const COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 
 var operator: CharacterBody3D
 var hud: CanvasLayer
@@ -30,6 +31,10 @@ var _weapon_model: Node3D # Explicit visual reference for older scripts
 var eliminations: int = 0
 var medkits_remaining: int = 2
 var sector_battle_active: bool = false
+var cover_charges: int=0
+var cover_cooldown: float=0.0
+var _cover_serial: int=0
+var _covers: Array[StaticBody3D]=[]
 var tracer_events: int = 0
 const TRACER_CAPACITY: int=8
 # Visual effect length is bounded. Damage range and obstruction checks are
@@ -51,6 +56,7 @@ func _ready() -> void:
     hud.weapon_pressed.connect(_on_weapon)
     hud.fire_aim_changed.connect(operator.fire_aim_delta)
     hud.heal_pressed.connect(_on_heal)
+    hud.aurora_cover_pressed.connect(_on_cover_pressed)
     _make_targets()
     _draw_weapon_rig()
     _prepare_tracers()
@@ -59,6 +65,9 @@ func _ready() -> void:
 
 
 func _process(dt: float) -> void:
+    if cover_cooldown>0.0:
+        cover_cooldown=maxf(0.0,cover_cooldown-dt)
+        hud.set_aurora_cover_count(cover_charges,cover_cooldown)
     for i in range(_tracers.size()):
         if _tracer_lifetimes[i]>0.0:
             _tracer_lifetimes[i]=maxf(0.0,_tracer_lifetimes[i]-dt)
@@ -198,10 +207,83 @@ func _shoot() -> void:
     if body is CharacterBody3D and body.is_in_group("training_target"):
         var eliminated: bool=body.take_training_damage(float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE),operator)
         hud.impact("ENEMIGO NEUTRALIZADO" if eliminated else "IMPACTO CONFIRMADO")
+    elif body is StaticBody3D and body.is_in_group("aurora_deployable_cover"):
+        body.call("take_damage",float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE))
+        hud.impact("BARRERA AURORA / IMPACTO")
+
+
+func _clear_cover() -> void:
+    for cover in _covers:
+        if is_instance_valid(cover):
+            cover.queue_free()
+    _covers.clear()
+
+
+func _on_cover_pressed() -> void:
+    deploy_aurora_cover()
+
+
+func deploy_aurora_cover() -> bool:
+    # Only a living ground combatant in a real round may place cover.
+    if not sector_battle_active or not operator.can_act() or cover_charges<=0:
+        return false
+    if cover_cooldown>0.0:
+        return false
+    var camera: Camera3D=operator.get_view_camera()
+    if camera==null or terrain==null:
+        return false
+    var forward: Vector3=-camera.global_basis.z
+    forward.y=0.0
+    if not forward.is_finite() or forward.length_squared()<.05:
+        return false
+    forward=forward.normalized()
+    var center: Vector3=operator.global_position+forward*3.6
+    var ground_y: float=terrain.height_at(center.x,center.z)
+    if not is_finite(ground_y):
+        return false
+    var heading: float=atan2(-forward.x,-forward.z)
+
+    # Validate real occupancy before consuming a charge. Start the overlap
+    # probe slightly above the floor to tolerate sloped island terrain.
+    var probe_shape:=BoxShape3D.new()
+    probe_shape.size=Vector3(3.20,1.85,.58)
+    var probe:=PhysicsShapeQueryParameters3D.new()
+    probe.shape=probe_shape
+    probe.collision_mask=1
+    probe.exclude=[operator.get_rid()]
+    probe.transform=Transform3D(Basis(Vector3.UP,heading),
+        Vector3(center.x,ground_y+1.28,center.z))
+    if not operator.get_world_3d().direct_space_state.intersect_shape(probe,16).is_empty():
+        hud.impact("NO HAY ESPACIO PARA BARRERA")
+        return false
+
+    var active: int=0
+    for existing in _covers:
+        if is_instance_valid(existing) and existing.is_active():
+            active+=1
+    if active>=4:
+        hud.impact("LIMITE DE BARRERAS ACTIVAS")
+        return false
+    var cover: StaticBody3D=COVER.new()
+    _cover_serial+=1
+    cover.name="AuroraIceCover"+str(_cover_serial)
+    add_child(cover)
+    cover.global_position=Vector3(center.x,ground_y,center.z)
+    cover.rotation.y=heading
+    _covers.append(cover)
+    cover_charges-=1
+    cover_cooldown=9.0
+    hud.set_aurora_cover_count(cover_charges,cover_cooldown)
+    hud.impact("BARRERA AURORA DESPLEGADA")
+    return true
 
 
 func end_sector_battle() -> void:
     sector_battle_active=false
+    _clear_cover()
+    cover_charges=0
+    cover_cooldown=0.0
+    hud.set_aurora_cover_count(0)
     reload_timer=0.0
     trigger_held=false
     operator.set_firing(false)
@@ -211,7 +293,11 @@ func end_sector_battle() -> void:
 
 
 func begin_sector_battle() -> void:
+    _clear_cover()
     sector_battle_active=true
+    cover_charges=2
+    cover_cooldown=0.0
+    hud.set_aurora_cover_count(cover_charges)
     trigger_held=false
     operator.set_firing(false)
     aim_active=false
@@ -277,6 +363,12 @@ func collect_sector_loot(kind: String) -> bool:
         "ammo_awm":
             reserve[1]+=8
             hud.impact("MUNICION AWM +8")
+        "cover_charge":
+            if cover_charges>=3:
+                return false
+            cover_charges+=1
+            hud.set_aurora_cover_count(cover_charges,cover_cooldown)
+            hud.impact("BARRERA AURORA +1")
         _:
             return false
     _sync_hud()
