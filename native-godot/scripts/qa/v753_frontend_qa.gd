@@ -27,6 +27,8 @@ func verify() -> void:
                 check(visible.encloses(button.get_global_rect()),"lobby action outside screen "+str(button.name))
     front._look_slider.value=1.65
     front._ads_slider.value=.8
+    front._scope_sliders["scope_2x"].value=135.0
+    front._scope_sliders["scope_8x"].value=60.0
     front._save_preferences()
     front._launch(false)
     for i in range(10):
@@ -35,6 +37,9 @@ func verify() -> void:
     if front._game:
         var player=front._game.get_node("Operator")
         check(is_equal_approx(player.look_multiplier,1.65) and is_equal_approx(player.ads_multiplier,.8),"saved sensitivity not applied in game")
+        check(is_equal_approx(float(player._scope_sensitivity["scope_2x"]),1.35) and
+            is_equal_approx(float(player._scope_sensitivity["scope_8x"]),.60),
+            "lobby scope controls not connected to gameplay camera")
         front._return_to_lobby()
         await process_frame
         check(front.stage=="lobby" and front._game==null,"return to lobby failed")
