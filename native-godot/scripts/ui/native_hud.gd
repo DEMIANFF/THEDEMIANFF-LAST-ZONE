@@ -397,7 +397,7 @@ func set_aurora_cover_count(charges: int,cooldown: float=0.0) -> void:
     _cover_cooldown=maxf(0.0,cooldown)
     if _cover_button:
         _cover_button.text="BARRERA %d"%_cover_charges
-        _cover_button.disabled=_cover_charges<=0 or _cover_cooldown>.0 or air_stage!="ground"
+        _cover_button.disabled=_cover_charges<=0 or _cover_cooldown>0.0 or air_stage!="ground"
 
 
 func set_medkit_count(count: int) -> void:
