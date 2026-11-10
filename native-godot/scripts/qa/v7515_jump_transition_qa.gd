@@ -29,8 +29,8 @@ func _verify() -> void:
     await physics_frame
     var flight: Node3D=director._flight
     check(str(flight.phase)=="aircraft","aircraft did not start")
-    check(TRACE.last().get("last_transition","") in ["start","flight_tick"],
-        "aircraft start diagnostic absent")
+    check(TRACE.last().get("last_transition","") in ["start","first_player_motion","first_aircraft_frame_committed"],
+        "aircraft start/first motion diagnostic absent")
 
     flight.jump_from_aircraft()
     check(str(flight.phase)=="jump_pending",
