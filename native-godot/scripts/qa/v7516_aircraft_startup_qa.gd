@@ -31,8 +31,8 @@ func _verify() -> void:
         "real aircraft mode was not started")
     check(not navigation.is_physics_processing(),
         "navigation still builds an expensive physics graph in the aircraft")
-    check(not combat.visible and combat.process_mode==Node.PROCESS_MODE_DISABLED,
-        "ground bots/weapon rigs kept rendering or running during the flight")
+    check(not combat.visible and not combat.is_processing(),
+        "ground bots/weapon rigs kept rendering or processing during the flight")
     check(TRACE.last().get("note","")=="start",
         "aircraft start should be persisted before the first physics tick")
     # SceneTree.physics_frame emits before nodes run _physics_process,
@@ -75,7 +75,7 @@ func _verify() -> void:
             break
     check(director.mode=="sector_battle" and player.air_mode=="ground",
         "aircraft isolation broke real landing transition")
-    check(combat.visible and combat.process_mode==Node.PROCESS_MODE_INHERIT,
+    check(combat.visible and combat.is_processing(),
         "ground bots/combat render did not return on landing")
     check(navigation.is_physics_processing() or bool(navigation.available),
         "pathfinding did not resume after landing")
