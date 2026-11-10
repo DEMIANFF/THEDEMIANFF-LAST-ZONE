@@ -53,7 +53,9 @@ func _verify() -> void:
         deployed=combat.deploy_aurora_cover()
         if deployed:
             break
-    check(deployed,"physical Aurora cover could not deploy in open island terrain")
+    check(deployed,"physical Aurora cover could not deploy in open island terrain: "+
+        str(combat.cover_last_block_reason)+" mode="+str(player.air_mode)+
+        " pos="+str(player.global_position))
     if not deployed:
         quit(1)
         return
