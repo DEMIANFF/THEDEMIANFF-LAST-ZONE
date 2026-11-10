@@ -267,8 +267,13 @@ func deploy_aurora_cover() -> bool:
     probe.transform=Transform3D(Basis(Vector3.UP,heading),
         Vector3(center.x,ground_y+1.28,center.z))
     var overlaps: Array[Dictionary]=operator.get_world_3d().direct_space_state.intersect_shape(probe,16)
-    if not overlaps.is_empty():
-        var collider: Object=overlaps[0].get("collider")
+    for overlap in overlaps:
+        var collider: Object=overlap.get("collider")
+        # Aurora is an irregular terrain mesh: a wall footprint is SUPPOSED
+        # to touch the walkable island. Reject actors/buildings/other cover,
+        # but do not treat the ground itself as an occupied building.
+        if collider==terrain:
+            continue
         cover_last_block_reason="occupied:"+str(collider.name if collider is Node else collider)+" height="+str(ground_y)
         hud.impact("NO HAY ESPACIO PARA BARRERA")
         return false
