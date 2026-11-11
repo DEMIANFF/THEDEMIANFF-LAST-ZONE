@@ -189,7 +189,7 @@ func _copy_flight_diagnostics(previous: bool=false) -> void:
 
 
 func _cycle_scene_load_diagnostic() -> void:
-    var next_mode: int=(STARTUP_DIAG.mode()+1)%4
+    var next_mode: int=(STARTUP_DIAG.mode()+1)%5
     if STARTUP_DIAG.save(next_mode)!=OK:
         push_warning("Could not save Aurora shared-scene diagnostic mode")
         return
