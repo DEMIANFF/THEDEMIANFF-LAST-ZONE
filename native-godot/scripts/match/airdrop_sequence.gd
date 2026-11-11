@@ -102,7 +102,7 @@ func _physics_process(delta: float) -> void:
         var clearance: float=pos.y-ground_y
         if not is_finite(clearance):
             FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,"invalid_ground_clearance")
-            deploy_parachute()
+            _queue_auto_parachute()
             return
         if not _ground_approach_marked and clearance<TERRAIN_PROXIMITY_M:
             _ground_approach_marked=true
@@ -113,7 +113,7 @@ func _physics_process(delta: float) -> void:
             # At the known 6–10 m building scale this leaves room above roofs.
             FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,
                 "auto_canopy_terrain_clearance_"+str(snappedf(clearance,0.1))+"m")
-            deploy_parachute()
+            _queue_auto_parachute()
     elif phase=="parachute":
         if not _parachute_first_tick_committed:
             _parachute_first_tick_committed=true
@@ -171,15 +171,39 @@ func _commit_jump() -> void:
     FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,"jump_committed")
 
 
-func deploy_parachute() -> void:
+func _queue_auto_parachute() -> void:
+    # The 26-m terrain trigger runs inside _physics_process. The aircraft
+    # jump is deferred, but until now this equivalent transition modified
+    # player animations, HUD controls and visibility inside the active
+    # physics step. Defer the *whole* automatic canopy handoff once.
     if phase!="freefall":
         return
+    phase="parachute_pending"
+    FLIGHT_DIAGNOSTICS.checkpoint("active","parachute_pending",player,
+        "canopy_auto_deferred_queued")
+    call_deferred("_commit_parachute")
+
+
+func deploy_parachute() -> void:
+    # Manual canopy input may occur through the HUD outside the physics
+    # callback. Preserve the existing public API and QA expectations.
+    if phase!="freefall":
+        return
+    _commit_parachute()
+
+
+func _commit_parachute() -> void:
+    if phase!="freefall" and phase!="parachute_pending":
+        return
+    FLIGHT_DIAGNOSTICS.checkpoint("active","parachute_pending",player,
+        "canopy_deferred_commit_started")
     phase="parachute"
     _parachute_first_tick_committed=false
     FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",player,"canopy_transition_before")
     player.deploy_parachute()
     FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",player,"canopy_physics_mode_after")
     hud.set_air_stage("parachute")
+    FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",player,"canopy_hud_after")
     hud.impact("PARACAÍDAS ABIERTO / CONTROLA EL ATERRIZAJE")
     _trace_clock=1.2
     FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",player,"canopy_deployed")

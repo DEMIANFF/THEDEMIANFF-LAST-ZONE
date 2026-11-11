@@ -3,6 +3,7 @@ extends RefCounted
 ## GDScript exception handlers, so persist the last observed flight phase.
 ## This is diagnostic evidence, NOT a native crash stack trace.
 const TRACE_PATH: String="user://aurora_flight_trace.cfg"
+const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.gd")
 static var _last_transition: String=""
 # Recent durable breadcrumbs survive process death and show callback ordering.
 static var _recent_transitions: Array[String]=[]
@@ -23,6 +24,7 @@ static func checkpoint(state: String,phase: String,player: Node3D=null,note: Str
             _recent_transitions.remove_at(0)
     cfg.set_value("flight","last_transition",_last_transition)
     cfg.set_value("flight","recent_transitions",PackedStringArray(_recent_transitions))
+    cfg.set_value("flight","diagnostic_mode",FLIGHT_SAFETY_MODE.current_mode())
     cfg.set_value("flight","build",str(ProjectSettings.get_setting("application/config/name","")))
     cfg.set_value("flight","render_backend",str(ProjectSettings.get_setting("rendering/renderer/rendering_method.mobile","")))
     cfg.set_value("flight","timestamp_unix",int(Time.get_unix_time_from_system()))
@@ -56,6 +58,7 @@ static func last() -> Dictionary:
         "timestamp_unix":int(cfg.get_value("flight","timestamp_unix",0)),
         "uptime_ms":int(cfg.get_value("flight","uptime_ms",0)),
         "fps":int(cfg.get_value("flight","fps",0)),
+        "diagnostic_mode":int(cfg.get_value("flight","diagnostic_mode",0)),
         "static_memory_bytes":int(cfg.get_value("flight","static_memory_bytes",0)),
         "position":str(cfg.get_value("flight","position","")),
         "velocity":str(cfg.get_value("flight","velocity","")),
@@ -78,6 +81,7 @@ static func report() -> String:
         "Tiempo Unix: "+str(data["timestamp_unix"]),
         "Tiempo motor (ms): "+str(data["uptime_ms"]),
         "FPS: "+str(data["fps"]),
+        "Modo visual de vuelo: "+FLIGHT_SAFETY_MODE.label_for(int(data["diagnostic_mode"])),
         "Memoria estática del motor (MB; no RAM total): "+str(snappedf(float(data["static_memory_bytes"])/1048576.0,.1)),
         "Posición juego: "+str(data["position"]),
         "Velocidad: "+str(data["velocity"]),

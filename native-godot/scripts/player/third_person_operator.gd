@@ -10,6 +10,7 @@ const ANIMATION_CONTROLLER=preload("res://scripts/player/operator_animation.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
+const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.gd")
 const TOUCH_DEADZONE: float = 0.12
 
 signal training_health_changed(value: float)
@@ -61,6 +62,8 @@ var _combat_action_seconds: float=0.0
 var air_mode: String="ground"
 var _parachute_visual: Node3D
 var _first_canopy_step_probe: bool=false
+# Exposed for native A/B tests, loaded from the welcome screen before match.
+var canopy_diagnostic_mode: int=0
 var _ads_active: bool = false
 var _ads_zoom: float = 1.0
 var _fire_held: bool = false
@@ -70,6 +73,7 @@ var _normal_visual_y: float = 0.0
 
 
 func _ready() -> void:
+    canopy_diagnostic_mode=FLIGHT_SAFETY_MODE.current_mode()
     _ensure_keyboard_actions()
     var preferences:=CAMERA_PREFERENCES.new()
     look_multiplier=preferences.look
@@ -397,9 +401,11 @@ func _commit_parachute_visual() -> void:
     if air_mode!="parachute" or not is_inside_tree():
         return
     FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"canopy_visual_before")
-    if _parachute_visual:
+    if _parachute_visual and not FLIGHT_SAFETY_MODE.skip_canopy_mesh(canopy_diagnostic_mode):
         _parachute_visual.visible=true
-    FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"canopy_visual_enabled")
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"canopy_visual_enabled")
+    else:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"canopy_visual_skipped_diagnostic")
 
 
 func _air_step(delta: float) -> void:
@@ -449,7 +455,9 @@ func _air_step(delta: float) -> void:
         FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_move_and_slide")
     _camera_pivot.rotation.y=wrapf(_yaw-rotation.y,-PI,PI)
     if _animator:
-        var clip: String="AuroraFreefall" if air_mode=="freefall" else "AuroraParachute"
+        var clip: String="AuroraFreefall" if air_mode=="freefall" or (
+            air_mode=="parachute" and FLIGHT_SAFETY_MODE.skip_canopy_animation(canopy_diagnostic_mode)
+        ) else "AuroraParachute"
         if _current_clip!=clip:
             if first_canopy_step:
                 FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_canopy_animation")
