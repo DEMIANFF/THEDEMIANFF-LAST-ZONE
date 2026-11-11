@@ -163,14 +163,54 @@ func _welcome() -> void:
     test_mode.add_theme_font_size_override("font_size",15)
     _page.add_child(test_mode)
     var trace: Dictionary=FLIGHT_DIAGNOSTICS.last()
-    if str(trace.get("state",""))=="active":
-        _label("VUELO ANTERIOR INTERRUMPIDO  /  "+str(trace.get("phase","desconocido")),15)
-        _label("Último registro: "+str(trace.get("note",""))+"  ·  FPS "+str(trace.get("fps","?")),13)
-        _page.add_child(_button("COPIAR DATOS DEL VUELO",Callable(self,"_copy_flight_diagnostics"),270))
+    if not trace.is_empty():
+        var state: String=str(trace.get("state",""))
+        _label(("VUELO ANTERIOR SIN TERMINAR" if state=="active" else "ÚLTIMO VUELO REGISTRADO")+
+            " / "+str(trace.get("phase","desconocido")),15)
+        _label("Último evento: "+str(trace.get("note",""))+
+            " · FPS "+str(trace.get("fps","?"))+
+            " · #"+str(trace.get("sequence",0)),13)
+        _page.add_child(_button("VER REGISTRO DETALLADO",Callable(self,"_show_flight_details"),295))
+    var saved: Dictionary=FLIGHT_DIAGNOSTICS.last(true)
+    if not saved.is_empty():
+        _page.add_child(_button("VER VUELO INTERRUMPIDO ANTERIOR",
+            Callable(self,"_show_previous_flight_details"),350))
 
 
-func _copy_flight_diagnostics() -> void:
-    DisplayServer.clipboard_set(FLIGHT_DIAGNOSTICS.report())
+func _copy_flight_diagnostics(previous: bool=false) -> void:
+    DisplayServer.clipboard_set(FLIGHT_DIAGNOSTICS.report(previous))
+
+
+func _show_previous_flight_details() -> void:
+    _show_flight_details(true)
+
+
+func _copy_previous_flight_diagnostics() -> void:
+    _copy_flight_diagnostics(true)
+
+
+func _show_flight_details(previous: bool=false) -> void:
+    stage="flight_diagnostics"
+    _clear_page()
+    _page.anchor_left=.035
+    _page.anchor_right=.965
+    _page.anchor_top=.04
+    _page.anchor_bottom=.96
+    _label("CAJA NEGRA / DIAGNÓSTICO DEL VUELO",25)
+    _label("Historial guardado (no es un informe nativo de Android).",14)
+    var log_view:=TextEdit.new()
+    log_view.name="FlightBlackBoxText"
+    log_view.editable=false
+    log_view.text=FLIGHT_DIAGNOSTICS.report(previous)
+    log_view.custom_minimum_size=Vector2(450,220)
+    log_view.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    log_view.size_flags_vertical=Control.SIZE_EXPAND_FILL
+    log_view.add_theme_font_size_override("font_size",15)
+    _page.add_child(log_view)
+    _page.add_child(_button("COPIAR INFORME COMPLETO",
+        Callable(self,"_copy_previous_flight_diagnostics") if previous else
+        Callable(self,"_copy_flight_diagnostics"),295))
+    _page.add_child(_button("VOLVER",Callable(self,"_welcome"),175))
 
 
 func _cycle_flight_diagnostic() -> void:
