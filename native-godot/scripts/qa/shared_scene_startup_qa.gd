@@ -16,7 +16,7 @@ func check(ok: bool,detail: String) -> void:
 func _verify() -> void:
     var initial: int=STARTUP.mode()
     var main: PackedScene=load("res://scenes/Main.tscn") as PackedScene
-    for profile in range(4):
+    for profile in range(5):
         check(STARTUP.save(profile)==OK,"unable to save startup profile "+str(profile))
         var game: Node3D=main.instantiate()
         root.add_child(game)
@@ -30,6 +30,13 @@ func _verify() -> void:
             "profile "+str(profile)+" broke the core playable scene")
         check(combat._targets.size()==4,
             "profile "+str(profile)+" removed actual training AI")
+        var navigation: Node3D=game.get_node("AuroraNavigation")
+        if profile==STARTUP.NO_NAVIGATION_GRAPH:
+            check(not navigation.is_physics_processing() and not navigation.available,
+                "profile 4 failed to isolate AI navigation-shape queries")
+        else:
+            check(navigation.is_physics_processing(),
+                "profile "+str(profile)+" unintentionally disabled navigation")
         var decorations: bool=not STARTUP.without_decorations()
         check((game.get_node_or_null("PuertoAuroraCoastalQuarter")!=null)==decorations and
             (game.get_node_or_null("AuroraNature")!=null)==decorations,
