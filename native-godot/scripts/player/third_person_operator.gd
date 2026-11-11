@@ -432,7 +432,7 @@ func _on_canopy_frame_post_draw() -> void:
 
 
 func _record_canopy_render_finished() -> void:
-    if not is_inside_tree():
+    if not is_inside_tree() or air_mode!="parachute":
         return
     _canopy_render_probe_pending=false
     FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,
