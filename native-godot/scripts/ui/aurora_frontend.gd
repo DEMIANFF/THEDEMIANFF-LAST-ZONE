@@ -424,8 +424,12 @@ func _activate_game(battle: bool) -> void:
             "startup_profile="+str(STARTUP_DIAG.mode()))
     # This confirmation is written after a visible 3D frame, not after
     # merely enqueuing the world. A missing confirmation is not a GPU proof.
-    RenderingServer.frame_post_draw.connect(
-        _on_first_world_frame_post_draw,CONNECT_ONE_SHOT)
+    # Headless QA never submits drawable frames; a stale one-shot callback
+    # otherwise remains connected when Training is started repeatedly.
+    if DisplayServer.get_name()!="headless" and not RenderingServer.frame_post_draw.is_connected(
+        _on_first_world_frame_post_draw):
+        RenderingServer.frame_post_draw.connect(
+            _on_first_world_frame_post_draw,CONNECT_ONE_SHOT)
 
 
 func _on_first_world_frame_post_draw() -> void:
