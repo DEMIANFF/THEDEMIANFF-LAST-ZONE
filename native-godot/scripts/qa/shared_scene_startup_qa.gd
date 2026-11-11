@@ -66,13 +66,12 @@ func _verify() -> void:
         "welcome > lobby > Training failed actual shared-world startup")
     check(str(TRACE.last().get("phase",""))=="training",
         "Training startup did not write durable stage diagnosis")
-    check(str(TRACE.last().get("note","")) in
-        ["training_entered","shared_scene_first_frame_rendered"],
-        "Training startup did not record its last successful operation")
+    check(str(TRACE.last().get("history","")).contains("training_entered"),
+        "Training startup is missing from durable history (including navigation ticks)")
     if frontend._game!=null:
         check(frontend._game.get_node_or_null("Operator")!=null,
             "Training lacks the real CharacterBody3D player")
     check(STARTUP.save(initial)==OK,"failed to restore initial user-selected profile")
-    print("SHARED_SCENE_STARTUP PASS full 3D scene, all 4 A/B profiles, actual ",
+    print("SHARED_SCENE_STARTUP PASS full 3D scene, all 5 A/B profiles, actual ",
         "terrain/bots/collisions, Training welcome-to-world and durable trace")
     quit(1 if failed else 0)
