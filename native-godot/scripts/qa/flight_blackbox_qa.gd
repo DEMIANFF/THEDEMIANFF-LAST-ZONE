@@ -64,6 +64,23 @@ func _verify() -> void:
         "landed_and_match_started")==OK,"completed match did not persist")
     check(str(TRACE.last().get("state",""))=="completed",
         "successful game should not show an unfinished crash")
+    # A real Training crash must be saved before the next Training launch,
+    # even though that path never invokes the aircraft-start checkpoint.
+    check(TRACE.checkpoint("active","scene_load",null,"frontend_launch_requested")==OK,
+        "Training launch could not start a new trace")
+    check(TRACE.checkpoint("active","training",null,"training_entered")==OK,
+        "Training active state not saved")
+    check(TRACE.checkpoint("active","scene_load",null,"frontend_launch_requested")==OK,
+        "next Training launch could not rotate previous report")
+    check(str(TRACE.last(true).get("note",""))=="training_entered" and
+        str(TRACE.last(true).get("phase",""))=="training",
+        "new Training launch overwrote the prior interrupted Training report")
+    check(TRACE.checkpoint("active","scene_load",null,"main_ready_enter")==OK,
+        "Main entered without beginning a real training scene")
+    check(TRACE.checkpoint("active","aircraft",null,"start")==OK,
+        "Battle Royale start failed after shared-scene initialization")
+    check(str(TRACE.last(true).get("phase",""))=="training",
+        "BR transition replaced the saved Training crash backup")
     print("FLIGHT_BLACKBOX PASS 48-event capped journal, device/engine counters, ",
         "context, previous interrupted snapshot and completed state")
     quit(1 if failed else 0)
