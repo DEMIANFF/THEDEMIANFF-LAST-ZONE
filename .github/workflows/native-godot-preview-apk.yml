@@ -1,10 +1,10 @@
-name: Aurora Shared-Scene Crash Audit + Flight Blackbox Android ARM64
+name: Aurora V75.20 Dual-Crash Motorola Android ARM64
 concurrency:
   group: aurora-android-${{ github.ref }}
   cancel-in-progress: true
 on:
   push:
-    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit, codex/godot-flight-blackbox-diagnostics, codex/godot-shared-scene-crash-audit]
+    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit, codex/godot-flight-blackbox-diagnostics, codex/godot-shared-scene-crash-audit, codex/v75-20-training-freefall-crash-isolation]
     paths:
       - 'native-godot/**'
       - '.github/workflows/native-godot-preview-apk.yml'
@@ -129,14 +129,14 @@ jobs:
         run: |
           if grep -E "SCRIPT ERROR:|ERROR:" native-godot/out/qa/responsive-render.log; then exit 1; fi
           mkdir -p native-godot/out
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-DIAGNOSTICO-VUELO-MOTOROLA.apk
-          test -s native-godot/out/THEDEMIANFF-DIAGNOSTICO-VUELO-MOTOROLA.apk
-          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-DIAGNOSTICO-VUELO-MOTOROLA.apk
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V75.20-MOTOROLA-DIAGNOSTICO.apk
+          test -s native-godot/out/THEDEMIANFF-V75.20-MOTOROLA-DIAGNOSTICO.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V75.20-MOTOROLA-DIAGNOSTICO.apk
       - name: Verify APK namespace, checksum and package signature
         run: |
-          APK=native-godot/out/THEDEMIANFF-DIAGNOSTICO-VUELO-MOTOROLA.apk
+          APK=native-godot/out/THEDEMIANFF-V75.20-MOTOROLA-DIAGNOSTICO.apk
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -n 3
-          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativeflightblackbox"
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview7520"
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "$APK" | tee native-godot/out/signature.txt
           "$ANDROID_HOME/build-tools/35.0.1/zipalign" -c -P 16 -v 4 "$APK" > native-godot/out/alignment.txt
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" > native-godot/out/badging.txt
@@ -148,13 +148,13 @@ jobs:
           echo "::notice::This canopy physics audit saves only local offline sector results; it does NOT sync V70/Firebase. 9-participant sector, not 100 network users. Physical Android QA required."
       - name: Verify native ELF and execute QA from exported bytecode
         run: |
-          python3 native-godot/tools/verify_android_apk.py native-godot/out/THEDEMIANFF-DIAGNOSTICO-VUELO-MOTOROLA.apk --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out
-          AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported" bash native-godot/tools/run_exported_qa.sh native-godot/out/THEDEMIANFF-DIAGNOSTICO-VUELO-MOTOROLA.apk
+          python3 native-godot/tools/verify_android_apk.py native-godot/out/THEDEMIANFF-V75.20-MOTOROLA-DIAGNOSTICO.apk --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out
+          AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported" bash native-godot/tools/run_exported_qa.sh native-godot/out/THEDEMIANFF-V75.20-MOTOROLA-DIAGNOSTICO.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIANFF-DIAGNOSTICO-VUELO-MOTOROLA-PREVIEW
+          name: THEDEMIANFF-V75.20-MOTOROLA-DIAGNOSTICO-PREVIEW
           path: |
-            native-godot/out/THEDEMIANFF-DIAGNOSTICO-VUELO-MOTOROLA.apk
+            native-godot/out/THEDEMIANFF-V75.20-MOTOROLA-DIAGNOSTICO.apk
             native-godot/out/SHA256SUMS.txt
             native-godot/out/audit-first-canopy-opengl.png
             native-godot/out/aurora-native-v75-19-preview.png
