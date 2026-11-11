@@ -56,6 +56,9 @@ var _footstep_distance: float=0.0
 var _ground_locomotion: String="Idle"
 var _animator: AnimationPlayer
 var _current_clip: String = ""
+# AnimationTree state mutations are committed after the active physics callback.
+var _queued_air_clip: String=""
+var _queued_air_phase: String=""
 var _weapon_index: int=0
 var _combat_action: String=""
 var _combat_action_seconds: float=0.0
@@ -366,6 +369,8 @@ func begin_aircraft() -> void:
     royale_eliminated=false
     _apply_crouch(false)
     air_mode="aircraft"
+    _queued_air_clip=""
+    _queued_air_phase=""
     _first_freefall_step_probe=false
     velocity=Vector3.ZERO
     _ads_active=false
@@ -384,6 +389,8 @@ func begin_freefall(inherited_velocity: Vector3=Vector3.ZERO) -> void:
     if air_mode!="aircraft":
         return
     air_mode="freefall"
+    _queued_air_clip=""
+    _queued_air_phase=""
     _first_freefall_step_probe=false
     velocity=Vector3(inherited_velocity.x,-4.0,inherited_velocity.z)
     _current_clip=""
@@ -402,6 +409,8 @@ func deploy_parachute() -> void:
     FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"actor_canopy_mode_before",
         "from="+air_mode+" anim="+_current_clip)
     air_mode="parachute"
+    _queued_air_clip=""
+    _queued_air_phase=""
     if _avatar:
         _avatar.visible=true
     _first_canopy_step_probe=false
@@ -564,27 +573,47 @@ func _air_step(delta: float) -> void:
         ) else "AuroraParachute"
         if air_mode=="freefall" and FLIGHT_SAFETY_MODE.skip_freefall_animation(canopy_diagnostic_mode):
             clip="AuroraArmedIdle"
-        if _current_clip!=clip:
+        if _current_clip!=clip and (_queued_air_clip!=clip or _queued_air_phase!=air_mode):
             if first_freefall_step:
                 FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
                     "freefall_tick_before_animation","requested="+clip)
             if first_canopy_step:
                 FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_canopy_animation",
                     "requested="+clip+" current="+_current_clip)
-            _play_matching_animation(clip)
-            if first_freefall_step:
-                FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
-                    "freefall_tick_after_animation","selected="+_current_clip)
-            if first_canopy_step:
-                FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_canopy_animation",
-                    "selected="+_current_clip)
+            # Do not travel AnimationTree's skeletal state machine inside
+            # CharacterBody3D.move_and_slide()'s physics callback. This keeps
+            # real airborne animations while avoiding an in-step rig mutation.
+            _queued_air_clip=clip
+            _queued_air_phase=air_mode
+            call_deferred("_commit_air_clip",clip,air_mode,first_freefall_step,first_canopy_step)
     if is_on_floor():
         air_mode="ground"
+        _queued_air_clip=""
+        _queued_air_phase=""
         velocity=Vector3.ZERO
         if _parachute_visual:
             _parachute_visual.visible=false
         _current_clip=""
         landed_from_airdrop.emit()
+
+
+func _commit_air_clip(clip: String, expected_phase: String,
+        first_freefall: bool, first_canopy: bool) -> void:
+    # A queued freefall clip must not run after the parachute opens or after
+    # touchdown. Newer requests supersede older ones without reallocating
+    # the skinned actor or disabling any movement/animation feature.
+    if not is_inside_tree() or air_mode!=expected_phase or \
+        _queued_air_clip!=clip or _queued_air_phase!=expected_phase:
+        return
+    _queued_air_clip=""
+    _queued_air_phase=""
+    _play_matching_animation(clip)
+    if first_freefall:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
+            "freefall_tick_after_animation","selected="+_current_clip)
+    if first_canopy:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,
+            "operator_after_canopy_animation","selected="+_current_clip)
 
 
 func _create_parachute() -> void:
