@@ -102,7 +102,7 @@ func _physics_process(delta: float) -> void:
         var clearance: float=pos.y-ground_y
         if not is_finite(clearance):
             FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,"invalid_ground_clearance")
-            deploy_parachute()
+            _queue_auto_parachute()
             return
         if not _ground_approach_marked and clearance<TERRAIN_PROXIMITY_M:
             _ground_approach_marked=true
