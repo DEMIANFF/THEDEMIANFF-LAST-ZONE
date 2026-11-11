@@ -62,7 +62,10 @@ func setup(source: AnimationPlayer) -> void:
     add_child(tree)
     tree.anim_player=tree.get_path_to(source)
     tree.root_node=tree.get_path_to(source.get_node(source.root_node))
-    tree.callback_mode_process=AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
+    # Lila's rig is visual-only; player collision/movement is driven by
+    # CharacterBody3D, not root motion. Evaluate blended bones on render
+    # frames, outside the Android physics/shape-query callback.
+    tree.callback_mode_process=AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
     source.stop()
     tree.active=true
     playback=tree.get("parameters/Locomotion/playback")
