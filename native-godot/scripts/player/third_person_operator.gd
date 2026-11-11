@@ -394,7 +394,8 @@ func deploy_parachute() -> void:
         "from="+air_mode+" anim="+_current_clip)
     air_mode="parachute"
     _first_canopy_step_probe=false
-    _canopy_render_probe_pending=false
+    # Do not clear a still-connected signal on repeated deploy attempts.
+    # Only an actual frame or a later explicit disconnect may clear it.
     # The meshes already exist from _ready(). Only their visibility changes
     # in the deferred pass; native resources are not allocated in mid-air.
     call_deferred("_commit_parachute_visual")
@@ -420,7 +421,12 @@ func _watch_canopy_first_render() -> void:
     # Native Android GPU errors cannot be caught by GDScript. This one-shot
     # marker tells us whether a rendered frame completed after enabling the
     # canopy mesh. It is intentionally absent in headless QA.
-    if _canopy_render_probe_pending or not is_inside_tree():
+    if not is_inside_tree() or DisplayServer.get_name()=="headless":
+        return
+    # Repeated canopy opens in the same scene must never connect a callable
+    # twice while the renderer has not yet emitted its next frame.
+    if _canopy_render_probe_pending or RenderingServer.frame_post_draw.is_connected(
+        _on_canopy_frame_post_draw):
         return
     _canopy_render_probe_pending=true
     RenderingServer.frame_post_draw.connect(_on_canopy_frame_post_draw,CONNECT_ONE_SHOT)
