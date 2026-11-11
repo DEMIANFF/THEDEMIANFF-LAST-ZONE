@@ -3,6 +3,7 @@ extends RefCounted
 ## GDScript exception handlers, so persist the last observed flight phase.
 ## This is diagnostic evidence, NOT a native crash stack trace.
 const TRACE_PATH: String="user://aurora_flight_trace.cfg"
+const TEMP_PATH: String="user://aurora_flight_trace_pending.tmp"
 const PREVIOUS_PATH: String="user://aurora_previous_interrupted_flight.cfg"
 const MAX_EVENTS: int=48
 static var _sequence: int=0
@@ -73,13 +74,16 @@ static func checkpoint(state: String,phase: String,player: Node3D=null,note: Str
             cfg.set_value("flight","air_mode",str(body.get("air_mode")))
             cfg.set_value("flight","animation_clip",str(body.get("_current_clip")))
             cfg.set_value("flight","visual_mode",int(body.get("canopy_diagnostic_mode")))
-    var file:=FileAccess.open(TRACE_PATH,FileAccess.WRITE)
+    # A process death DURING a telemetry write must not truncate the last
+    # valid report. Write and flush a sibling file first; replace the main
+    # snapshot with a same-directory rename only when complete.
+    var file:=FileAccess.open(TEMP_PATH,FileAccess.WRITE)
     if file==null:
         return FileAccess.get_open_error()
     file.store_string(cfg.encode_to_text())
     file.flush()
     file.close()
-    return OK
+    return DirAccess.rename_absolute(TEMP_PATH,TRACE_PATH)
 
 static func last(previous: bool=false) -> Dictionary:
     var cfg:=ConfigFile.new()
