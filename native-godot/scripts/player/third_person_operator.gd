@@ -62,6 +62,8 @@ var _combat_action_seconds: float=0.0
 var air_mode: String="ground"
 var _parachute_visual: Node3D
 var _first_canopy_step_probe: bool=false
+var _first_freefall_step_probe: bool=false
+var _freefall_render_probe_pending: bool=false
 var _canopy_render_probe_pending: bool=false
 # Exposed for native A/B tests, loaded from the welcome screen before match.
 var canopy_diagnostic_mode: int=0
@@ -364,6 +366,7 @@ func begin_aircraft() -> void:
     royale_eliminated=false
     _apply_crouch(false)
     air_mode="aircraft"
+    _first_freefall_step_probe=false
     velocity=Vector3.ZERO
     _ads_active=false
     _recoil_pitch=0.0
@@ -381,10 +384,16 @@ func begin_freefall(inherited_velocity: Vector3=Vector3.ZERO) -> void:
     if air_mode!="aircraft":
         return
     air_mode="freefall"
+    _first_freefall_step_probe=false
     velocity=Vector3(inherited_velocity.x,-4.0,inherited_velocity.z)
     _current_clip=""
     if _avatar:
-        _avatar.visible=true
+        _avatar.visible=not FLIGHT_SAFETY_MODE.skip_freefall_avatar(canopy_diagnostic_mode)
+        FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
+            "freefall_tick_avatar_visibility_set",
+            "mesh_visible="+str(_avatar.visible)+
+            " mode="+str(canopy_diagnostic_mode))
+        _watch_freefall_first_render()
 
 
 func deploy_parachute() -> void:
@@ -393,6 +402,8 @@ func deploy_parachute() -> void:
     FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"actor_canopy_mode_before",
         "from="+air_mode+" anim="+_current_clip)
     air_mode="parachute"
+    if _avatar:
+        _avatar.visible=true
     _first_canopy_step_probe=false
     # Do not clear a still-connected signal on repeated deploy attempts.
     # Only an actual frame or a later explicit disconnect may clear it.
@@ -448,7 +459,41 @@ func _record_canopy_render_finished() -> void:
         " clip="+_current_clip)
 
 
+func _watch_freefall_first_render() -> void:
+    if DisplayServer.get_name()=="headless" or not is_inside_tree():
+        return
+    if _freefall_render_probe_pending or RenderingServer.frame_post_draw.is_connected(
+        _on_freefall_frame_post_draw):
+        return
+    _freefall_render_probe_pending=true
+    RenderingServer.frame_post_draw.connect(_on_freefall_frame_post_draw,CONNECT_ONE_SHOT)
+
+
+func _on_freefall_frame_post_draw() -> void:
+    call_deferred("_record_freefall_render_completed")
+
+
+func _record_freefall_render_completed() -> void:
+    _freefall_render_probe_pending=false
+    if not is_inside_tree() or air_mode!="freefall":
+        return
+    FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
+        "freefall_tick_first_render_completed",
+        "avatar="+str(_avatar!=null and _avatar.visible)+
+        " clip="+_current_clip)
+
+
 func _air_step(delta: float) -> void:
+    # Dedicated first-freefall probes capture the first actor callback after
+    # jump_committed, which was the exact last Motorola breadcrumb.
+    var first_freefall_step: bool=air_mode=="freefall" and not _first_freefall_step_probe
+    if first_freefall_step:
+        _first_freefall_step_probe=true
+        FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
+            "freefall_tick_actor_enter",
+            "dt="+str(snappedf(delta,0.001))+
+            " mode="+str(canopy_diagnostic_mode)+
+            " avatar="+str(_avatar!=null and _avatar.visible))
     # The operator runs its own physics callback; it may run BEFORE the
     # deployment director's first_parachute_physics_tick checkpoint.
     var first_canopy_step: bool=air_mode=="parachute" and not _first_canopy_step_probe
@@ -474,6 +519,9 @@ func _air_step(delta: float) -> void:
         _camera.position.z=minf(safe_distance,lerpf(_camera.position.z,safe_distance,alpha))
         _camera.position.x=lerpf(_camera.position.x,.35,alpha)
         _camera.fov=lerpf(_camera.fov,76.0,alpha)
+    if first_freefall_step:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,"freefall_tick_after_camera",
+            "pitch="+str(_pitch)+" z="+str(_camera.position.z if _camera else -1.0))
     if first_canopy_step:
         FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_camera",
             "camera_z="+str(_camera.position.z if _camera else -1.0)+
@@ -496,10 +544,16 @@ func _air_step(delta: float) -> void:
         velocity.y=move_toward(velocity.y,-5.6,delta*35.0)
     if steering.length_squared()>.02:
         rotation.y=lerp_angle(rotation.y,atan2(-steering.x,-steering.z),alpha)
+    if first_freefall_step:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,"freefall_tick_before_move_and_slide",
+            "fall_speed="+str(snappedf(velocity.y,0.01)))
     if first_canopy_step:
         FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_move_and_slide",
             "fall_speed="+str(snappedf(velocity.y,0.01)))
     move_and_slide()
+    if first_freefall_step:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,"freefall_tick_after_move_and_slide",
+            "collisions="+str(get_slide_collision_count()))
     if first_canopy_step:
         FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_move_and_slide",
             "ground="+str(is_on_floor())+" collisions="+str(get_slide_collision_count()))
@@ -508,11 +562,19 @@ func _air_step(delta: float) -> void:
         var clip: String="AuroraFreefall" if air_mode=="freefall" or (
             air_mode=="parachute" and FLIGHT_SAFETY_MODE.skip_canopy_animation(canopy_diagnostic_mode)
         ) else "AuroraParachute"
+        if air_mode=="freefall" and FLIGHT_SAFETY_MODE.skip_freefall_animation(canopy_diagnostic_mode):
+            clip="AuroraArmedIdle"
         if _current_clip!=clip:
+            if first_freefall_step:
+                FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
+                    "freefall_tick_before_animation","requested="+clip)
             if first_canopy_step:
                 FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_canopy_animation",
                     "requested="+clip+" current="+_current_clip)
             _play_matching_animation(clip)
+            if first_freefall_step:
+                FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
+                    "freefall_tick_after_animation","selected="+_current_clip)
             if first_canopy_step:
                 FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_canopy_animation",
                     "selected="+_current_clip)
