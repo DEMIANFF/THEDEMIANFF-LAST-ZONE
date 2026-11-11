@@ -1,4 +1,6 @@
 extends Node3D
+const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
+const TRACE=preload("res://scripts/match/flight_diagnostics.gd")
 ## Shared, collision-checked walking graph. Only traversable edges enter A*;
 ## dynamic actors remain handled by CharacterBody3D and local avoidance.
 var terrain: StaticBody3D
@@ -16,6 +18,7 @@ var _build_index: int=0
 var _warmup: int=2
 var _started: int=0
 var _building_edges: bool=false
+var _first_navigation_batch_logged: bool=false
 var _capsule:=CapsuleShape3D.new()
 var _query:=PhysicsShapeQueryParameters3D.new()
 
@@ -24,6 +27,10 @@ func _ready() -> void:
     _capsule.height=1.74
     _query.shape=_capsule
     _query.collision_mask=1
+    if STARTUP_DIAG.without_navigation_graph():
+        set_physics_process(false)
+        TRACE.checkpoint("active","scene_load",null,"navigation_graph_skipped_diagnostic")
+        return
     _build.call_deferred()
 
 func _exclusions() -> Array[RID]:
@@ -55,6 +62,10 @@ func _physics_process(_delta: float) -> void:
     if _warmup>0:
         _warmup-=1
         return
+    if not _first_navigation_batch_logged:
+        _first_navigation_batch_logged=true
+        TRACE.checkpoint("active","training",null,"navigation_first_batch_before",
+            "queued_samples="+str(_samples.size()))
     _query.exclude=_exclusions()
     var space:=get_world_3d().direct_space_state
     if not _building_edges:
@@ -66,6 +77,9 @@ func _physics_process(_delta: float) -> void:
                 if space.intersect_shape(_query,1).is_empty():
                     graph.add_point(graph.get_available_point_id(),point)
         _build_index+=40
+        if _build_index==40:
+            TRACE.checkpoint("active","training",null,"navigation_first_batch_after",
+                "graph_nodes="+str(graph.get_point_count()))
         if _build_index>=_samples.size():
             _building_edges=true
             _build_index=0
