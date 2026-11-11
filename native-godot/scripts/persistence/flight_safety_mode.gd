@@ -7,17 +7,26 @@ const MODE_NORMAL: int=0
 const MODE_NO_SKELETAL_CANOPY: int=1
 const MODE_NO_CANOPY_MESH: int=2
 const MODE_MINIMAL_VISUALS: int=3
+static var _cached_mode: int=-1
 
 static func current_mode() -> int:
+    # Do not repeat disk IO inside flight telemetry or physics.
+    if _cached_mode>=0:
+        return _cached_mode
     var cfg:=ConfigFile.new()
-    if cfg.load(SETTINGS_PATH)!=OK:
-        return MODE_NORMAL
-    return clampi(int(cfg.get_value("diagnosis","mode",MODE_NORMAL)),0,3)
+    _cached_mode=MODE_NORMAL
+    if cfg.load(SETTINGS_PATH)==OK:
+        _cached_mode=clampi(int(cfg.get_value("diagnosis","mode",MODE_NORMAL)),0,3)
+    return _cached_mode
 
 static func save_mode(value: int) -> Error:
+    var selected: int=clampi(value,0,3)
     var cfg:=ConfigFile.new()
-    cfg.set_value("diagnosis","mode",clampi(value,0,3))
-    return cfg.save(SETTINGS_PATH)
+    cfg.set_value("diagnosis","mode",selected)
+    var result: Error=cfg.save(SETTINGS_PATH)
+    if result==OK:
+        _cached_mode=selected
+    return result
 
 static func label_for(value: int) -> String:
     match clampi(value,0,3):
