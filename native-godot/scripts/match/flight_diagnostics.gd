@@ -4,6 +4,8 @@ extends RefCounted
 ## This is diagnostic evidence, NOT a native crash stack trace.
 const TRACE_PATH: String="user://aurora_flight_trace.cfg"
 static var _last_transition: String=""
+# Recent durable breadcrumbs survive process death and show callback ordering.
+static var _recent_transitions: Array[String]=[]
 
 
 static func checkpoint(state: String,phase: String,player: Node3D=null,note: String="") -> Error:
@@ -16,7 +18,11 @@ static func checkpoint(state: String,phase: String,player: Node3D=null,note: Str
     if note!="flight_tick" and not note.begins_with("aircraft_tick_") and \
         not note.begins_with("freefall_tick_") and not note.begins_with("parachute_tick_"):
         _last_transition=note
+        _recent_transitions.append(phase+" / "+note)
+        if _recent_transitions.size()>12:
+            _recent_transitions.remove_at(0)
     cfg.set_value("flight","last_transition",_last_transition)
+    cfg.set_value("flight","recent_transitions",PackedStringArray(_recent_transitions))
     cfg.set_value("flight","build",str(ProjectSettings.get_setting("application/config/name","")))
     cfg.set_value("flight","render_backend",str(ProjectSettings.get_setting("rendering/renderer/rendering_method.mobile","")))
     cfg.set_value("flight","timestamp_unix",int(Time.get_unix_time_from_system()))
@@ -52,7 +58,8 @@ static func last() -> Dictionary:
         "fps":int(cfg.get_value("flight","fps",0)),
         "static_memory_bytes":int(cfg.get_value("flight","static_memory_bytes",0)),
         "position":str(cfg.get_value("flight","position","")),
-        "velocity":str(cfg.get_value("flight","velocity",""))
+        "velocity":str(cfg.get_value("flight","velocity","")),
+        "history":"\n".join(cfg.get_value("flight","recent_transitions",PackedStringArray()))
     }
 
 
@@ -76,4 +83,6 @@ static func report() -> String:
         "Velocidad: "+str(data["velocity"]),
         "Nota: estado previo, no diagnóstico de causa nativa."
     ]
+    if str(data["history"])!="":
+        rows.append("Últimas transiciones registradas:\n"+str(data["history"]))
     return "\n".join(rows)

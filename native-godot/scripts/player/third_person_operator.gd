@@ -9,6 +9,7 @@ const LOOK_SENSITIVITY: float = 0.0032
 const ANIMATION_CONTROLLER=preload("res://scripts/player/operator_animation.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
+const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const TOUCH_DEADZONE: float = 0.12
 
 signal training_health_changed(value: float)
@@ -59,6 +60,7 @@ var _combat_action: String=""
 var _combat_action_seconds: float=0.0
 var air_mode: String="ground"
 var _parachute_visual: Node3D
+var _first_canopy_step_probe: bool=false
 var _ads_active: bool = false
 var _ads_zoom: float = 1.0
 var _fire_held: bool = false
@@ -130,6 +132,10 @@ func _ready() -> void:
         _play_matching_animation("AuroraArmedIdle")
     else:
         push_warning("CC0 female operator GLB not yet generated. No cube character substituted.")
+    # Build the actual canopy meshes and materials once during scene load,
+    # *not* in the Android render/physics transition during freefall.
+    _create_parachute()
+    _parachute_visual.visible=false
 
 
 func _physics_process(delta: float) -> void:
@@ -380,9 +386,9 @@ func deploy_parachute() -> void:
     if air_mode!="freefall":
         return
     air_mode="parachute"
-    # V75.18: avoid creating/rendering several meshes inside the active
-    # physics callback. Keep real canopy physics immediately; commit the
-    # cosmetic rig in the deferred main-thread pass.
+    _first_canopy_step_probe=false
+    # The meshes already exist from _ready(). Only their visibility changes
+    # in the deferred pass; native resources are not allocated in mid-air.
     call_deferred("_commit_parachute_visual")
     _current_clip=""
 
@@ -390,12 +396,19 @@ func deploy_parachute() -> void:
 func _commit_parachute_visual() -> void:
     if air_mode!="parachute" or not is_inside_tree():
         return
-    _create_parachute()
+    FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"canopy_visual_before")
     if _parachute_visual:
         _parachute_visual.visible=true
+    FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"canopy_visual_enabled")
 
 
 func _air_step(delta: float) -> void:
+    # The operator runs its own physics callback; it may run BEFORE the
+    # deployment director's first_parachute_physics_tick checkpoint.
+    var first_canopy_step: bool=air_mode=="parachute" and not _first_canopy_step_probe
+    if first_canopy_step:
+        _first_canopy_step_probe=true
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_first_tick_enter")
     var alpha: float=1.0-exp(-delta*16.0)
     _yaw=rotate_toward(_yaw,_desired_yaw,minf(absf(angle_difference(_yaw,_desired_yaw))*alpha,delta*7.5))
     _pitch=lerpf(_pitch,_desired_pitch,alpha)
@@ -429,12 +442,20 @@ func _air_step(delta: float) -> void:
         velocity.y=move_toward(velocity.y,-5.6,delta*35.0)
     if steering.length_squared()>.02:
         rotation.y=lerp_angle(rotation.y,atan2(-steering.x,-steering.z),alpha)
+    if first_canopy_step:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_move_and_slide")
     move_and_slide()
+    if first_canopy_step:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_move_and_slide")
     _camera_pivot.rotation.y=wrapf(_yaw-rotation.y,-PI,PI)
     if _animator:
         var clip: String="AuroraFreefall" if air_mode=="freefall" else "AuroraParachute"
         if _current_clip!=clip:
+            if first_canopy_step:
+                FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_canopy_animation")
             _play_matching_animation(clip)
+            if first_canopy_step:
+                FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_canopy_animation")
     if is_on_floor():
         air_mode="ground"
         velocity=Vector3.ZERO

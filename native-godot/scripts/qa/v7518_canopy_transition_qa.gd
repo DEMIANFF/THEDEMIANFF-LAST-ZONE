@@ -39,8 +39,14 @@ func _verify() -> void:
     check(player.air_mode=="parachute","parachute failed first physics frames")
     check(bool(director._flight._parachute_first_tick_committed),
         "first parachute physics tick not persisted")
-    check(TRACE.last().get("last_transition","")=="first_parachute_physics_tick",
-        "missing first parachute transition")
+    # Player and deployment director have separate physics callbacks; the
+    # actor may run before or after the director depending on tree ordering.
+    # The last transition may be from the actor, director or deferred
+    # visual callback; verify the actual phase and durable history instead.
+    check(TRACE.last().get("phase","")=="parachute",
+        "first parachute transition failed to remain in parachute phase")
+    check(str(TRACE.last().get("history","")).contains("first_parachute_physics_tick"),
+        "recent breadcrumb history did not preserve first director physics tick")
     check(player._parachute_visual!=null and player._parachute_visual.visible,
         "deferred real parachute mesh did not appear")
     check(player.velocity.y> -26.0 and player.global_position.is_finite(),
