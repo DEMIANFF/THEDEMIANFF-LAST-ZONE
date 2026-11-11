@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 import struct
 import subprocess
@@ -15,6 +16,21 @@ parser.add_argument("--logs", type=Path, required=True)
 args = parser.parse_args()
 args.logs.mkdir(parents=True, exist_ok=True)
 
+# Read version metadata from the active Godot export preset.
+preset = (Path(__file__).resolve().parents[1] / 'export_presets.cfg').read_text()
+def preset_value(key):
+    match = re.search(r'^' + re.escape(key) + r'=(.+)$', preset, re.MULTILINE)
+    if not match:
+        raise RuntimeError(f'Missing export preset value: {key}')
+    raw = match.group(1).strip()
+    return json.loads(raw) if raw.startswith('"') else raw
+
+package_name = str(preset_value('package/unique_name'))
+version_code = int(preset_value('version/code'))
+version_name = str(preset_value('version/name'))
+if not package_name.startswith('com.thedemianff.lastzone.nativepreview'):
+    raise RuntimeError('Refusing production APK with preview signing')
+
 
 def run(tool, arguments, log):
     process = subprocess.run([str(args.build_tools / tool), *arguments, str(args.apk)],
@@ -26,8 +42,8 @@ def run(tool, arguments, log):
 
 
 badging = run("aapt", ["dump", "badging"], "badging.txt")
-assert "package: name='com.thedemianff.lastzone.nativepreview7511'" in badging
-assert "versionCode='11'" in badging and "versionName='75.11.0-coastal-gait'" in badging
+assert f"package: name='{package_name}'" in badging, 'Unexpected Android package'
+assert f"versionCode='{version_code}'" in badging and f"versionName='{version_name}'" in badging, 'Unexpected Android build version'
 assert "native-code: 'arm64-v8a'" in badging.splitlines()
 assert "application-debuggable" in badging.splitlines()
 signature = run("apksigner", ["verify", "--verbose", "--print-certs"], "signature.txt")
@@ -59,7 +75,8 @@ with zipfile.ZipFile(args.apk) as archive:
 
 digest = hashlib.sha256(args.apk.read_bytes()).hexdigest()
 result = {"apk": args.apk.name, "bytes": args.apk.stat().st_size, "sha256": digest,
-          "package": "com.thedemianff.lastzone.nativepreview7511", "debug": True,
+          "package": package_name, "version_code": version_code,
+          "version_name": version_name, "debug": True,
           "signature_v2_v3": True, "zip_alignment_16k": True, "crc": "PASS", "libraries": libraries}
 (args.logs / "apk-verification.json").write_text(json.dumps(result, indent=2) + "\n")
 (args.logs / "SHA256SUMS.txt").write_text(f"{digest}  {args.apk.name}\n")

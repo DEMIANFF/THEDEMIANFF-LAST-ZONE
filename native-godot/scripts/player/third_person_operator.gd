@@ -8,6 +8,7 @@ const GRAVITY: float = 17.5
 const LOOK_SENSITIVITY: float = 0.0032
 const ANIMATION_CONTROLLER=preload("res://scripts/player/operator_animation.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
+const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const TOUCH_DEADZONE: float = 0.12
 
 signal training_health_changed(value: float)
@@ -31,6 +32,7 @@ var _jump_requested: bool = false
 
 var look_multiplier: float=1.0
 var ads_multiplier: float=1.0
+var _scope_sensitivity: Dictionary={}
 var _camera_collision_shape:=SphereShape3D.new()
 var _camera_collision_query:=PhysicsShapeQueryParameters3D.new()
 var _yaw: float = 0.0
@@ -70,6 +72,16 @@ func _ready() -> void:
     var preferences:=CAMERA_PREFERENCES.new()
     look_multiplier=preferences.look
     ads_multiplier=preferences.ads
+    # New unified settings migrate the old camera file without deleting it.
+    var options:=PLAYER_SETTINGS.new()
+    look_multiplier=options.multiplier("general")
+    ads_multiplier=options.multiplier("ads")
+    _scope_sensitivity={
+        "red_dot":options.multiplier("red_dot"),
+        "scope_2x":options.multiplier("scope_2x"),
+        "scope_4x":options.multiplier("scope_4x"),
+        "scope_8x":options.multiplier("scope_8x")
+    }
     _camera_collision_shape.radius=.20
     _camera_collision_query.shape=_camera_collision_shape
     _camera_collision_query.exclude=[get_rid()]
@@ -725,8 +737,13 @@ func _turn_camera(delta: Vector2, from_fire: bool=false) -> void:
     if _ads_active:
         zoom_factor = 0.22 if _ads_zoom >= 6.0 else 0.48 if _ads_zoom >= 4.0 else 0.70
     var drag_factor: float = 0.92 if from_fire else 1.0
-    _desired_yaw -= limited.x * LOOK_SENSITIVITY * look_multiplier * (ads_multiplier if _ads_active else 1.0) * zoom_factor * drag_factor
-    _desired_pitch = clampf(_desired_pitch - limited.y * LOOK_SENSITIVITY * look_multiplier * (ads_multiplier if _ads_active else 1.0) * zoom_factor * drag_factor, -0.55, 0.62)
+    var scope_scale: float=1.0
+    if _ads_active:
+        var scope_key: String="scope_8x" if _ads_zoom>=6.0 else "scope_4x" if _ads_zoom>=3.8 else "scope_2x" if _ads_zoom>=1.5 else "red_dot"
+        scope_scale=float(_scope_sensitivity.get(scope_key,1.0))
+    var touch_scale: float=LOOK_SENSITIVITY*look_multiplier*(ads_multiplier if _ads_active else 1.0)*zoom_factor*drag_factor*scope_scale
+    _desired_yaw -= limited.x * touch_scale
+    _desired_pitch = clampf(_desired_pitch - limited.y * touch_scale, -0.55, 0.62)
 
 
 func _ensure_keyboard_actions() -> void:

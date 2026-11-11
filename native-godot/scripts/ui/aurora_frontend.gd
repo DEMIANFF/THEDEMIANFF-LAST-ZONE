@@ -3,16 +3,21 @@ extends Control
 ## assets or proprietary game branding. Incomplete service tabs say so.
 const SAFE_SCREEN=preload("res://scripts/ui/safe_screen.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
+const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 
 var _settings_panel: VBoxContainer
+var _settings_content: VBoxContainer
 var _settings_status: Label
+var _scope_sliders: Dictionary={}
+var _mobile_options: RefCounted
 var _look_slider: HSlider
 var _ads_slider: HSlider
 var _sfx_slider: HSlider
 var _ambience_slider: HSlider
+var _graphics_selector: OptionButton
 var _preferences: RefCounted
 var _save_timer: Timer
 var stage: String = "welcome"
@@ -33,6 +38,9 @@ var _profile_strip: Label
 func _ready() -> void:
     name = "AuroraFront"
     _preferences=CAMERA_PREFERENCES.new()
+    _mobile_options=PLAYER_SETTINGS.new()
+    # Frame cap is a runtime option; imported texture compression remains a build-time choice.
+    Engine.max_fps=_mobile_options.fps_limit()
     _save_timer=Timer.new()
     _save_timer.one_shot=true
     _save_timer.wait_time=.4
@@ -441,16 +449,53 @@ func _layout_safe() -> void:
 func _build_settings() -> void:
     _settings_panel=VBoxContainer.new()
     _settings_panel.name="CameraSettings"
-    _settings_panel.add_theme_constant_override("separation",8)
+    _settings_panel.add_theme_constant_override("separation",4)
     _page.add_child(_settings_panel)
+    # A scrollable control section avoids hiding mobile HUD buttons or running
+    # past the screen edge when a phone uses 16:9 or a taller aspect ratio.
+    var settings_scroll:=ScrollContainer.new()
+    settings_scroll.name="MobileSettingsScroll"
+    settings_scroll.custom_minimum_size=Vector2(0,210)
+    settings_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
+    _settings_panel.add_child(settings_scroll)
+    _settings_content=VBoxContainer.new()
+    _settings_content.add_theme_constant_override("separation",3)
+    _settings_content.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    settings_scroll.add_child(_settings_content)
     _look_slider=_sensitivity_slider("Giro panorámico",_preferences.look)
     _ads_slider=_sensitivity_slider("Miras ADS",_preferences.ads)
+    _scope_sliders.clear()
+    var scope_labels: Dictionary={
+        "red_dot":"Punto rojo",
+        "scope_2x":"Mira 2x",
+        "scope_4x":"Mira 4x",
+        "scope_8x":"AWM 8x"
+    }
+    for key in ["red_dot","scope_2x","scope_4x","scope_8x"]:
+        _scope_sliders[key]=_scope_slider(str(scope_labels[key]),
+            float(_mobile_options.sensitivity[key]))
     var audio_cfg:=ConfigFile.new()
     audio_cfg.load("user://aurora_audio.cfg")
     _sfx_slider=_volume_slider("Efectos",float(audio_cfg.get_value("audio","effects",.75)))
     _ambience_slider=_volume_slider("Ambiente",float(audio_cfg.get_value("audio","ambience",.55)))
+    var graphics_row:=HBoxContainer.new()
+    _settings_content.add_child(graphics_row)
+    var graphics_label:=Label.new()
+    graphics_label.text="Límite de FPS"
+    graphics_label.custom_minimum_size.x=145
+    graphics_row.add_child(graphics_label)
+    _graphics_selector=OptionButton.new()
+    _graphics_selector.name="GraphicsPresetFPS"
+    _graphics_selector.add_item("Baja / 30 FPS")
+    _graphics_selector.add_item("Media / 45 FPS")
+    _graphics_selector.add_item("Alta / 60 FPS")
+    _graphics_selector.select(["baja","media","alta"].find(_mobile_options.graphics_preset))
+    _graphics_selector.custom_minimum_size=Vector2(112,37)
+    _graphics_selector.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _graphics_selector.item_selected.connect(func(_selected: int): _save_timer.start())
+    graphics_row.add_child(_graphics_selector)
     _settings_status=Label.new()
-    _settings_status.text="Ajustes recuperados del respaldo" if _preferences.recovered else "Se guardan en este dispositivo"
+    _settings_status.text="Ajustes recuperados del respaldo" if _preferences.recovered or _mobile_options.recovered else "Se guardan en este dispositivo"
     _settings_status.add_theme_font_size_override("font_size",14)
     _settings_panel.add_child(_settings_status)
     _settings_panel.visible=false
@@ -458,17 +503,17 @@ func _build_settings() -> void:
 
 func _sensitivity_slider(title: String,value: float) -> HSlider:
     var row:=HBoxContainer.new()
-    _settings_panel.add_child(row)
+    _settings_content.add_child(row)
     var label:=Label.new()
     label.custom_minimum_size.x=145
     label.text=title+"  %.2fx"%value
     row.add_child(label)
     var slider:=HSlider.new()
     slider.min_value=.35
-    slider.max_value=2.5
+    slider.max_value=2.0
     slider.step=.05
     slider.value=value
-    slider.custom_minimum_size=Vector2(112,44)
+    slider.custom_minimum_size=Vector2(112,37)
     slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     row.add_child(slider)
     slider.value_changed.connect(func(next: float):
@@ -477,9 +522,30 @@ func _sensitivity_slider(title: String,value: float) -> HSlider:
     return slider
 
 
+func _scope_slider(title: String,value: float) -> HSlider:
+    var row:=HBoxContainer.new()
+    _settings_content.add_child(row)
+    var label:=Label.new()
+    label.custom_minimum_size.x=145
+    label.text=title+"  %d"%roundi(value)
+    row.add_child(label)
+    var slider:=HSlider.new()
+    slider.min_value=0.0
+    slider.max_value=200.0
+    slider.step=1.0
+    slider.value=value
+    slider.custom_minimum_size=Vector2(112,37)
+    slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    row.add_child(slider)
+    slider.value_changed.connect(func(next: float):
+        label.text=title+"  %d"%roundi(next)
+        _save_timer.start())
+    return slider
+
+
 func _volume_slider(title: String,level: float) -> HSlider:
     var row:=HBoxContainer.new()
-    _settings_panel.add_child(row)
+    _settings_content.add_child(row)
     var label:=Label.new()
     label.custom_minimum_size.x=145
     label.text=title+"  %d%%"%roundi(level*100.0)
@@ -489,7 +555,7 @@ func _volume_slider(title: String,level: float) -> HSlider:
     slider.max_value=1.0
     slider.step=.05
     slider.value=level
-    slider.custom_minimum_size=Vector2(112,42)
+    slider.custom_minimum_size=Vector2(112,37)
     slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     row.add_child(slider)
     slider.value_changed.connect(func(next: float):
@@ -503,9 +569,25 @@ func _save_preferences() -> void:
     if not is_instance_valid(_look_slider) or not is_instance_valid(_ads_slider):
         return
     var result: Error=_preferences.save(_look_slider.value,_ads_slider.value)
+    var scope_values: Dictionary={
+        "general":_look_slider.value*100.0,
+        "ads":_ads_slider.value*100.0
+    }
+    for key in _scope_sliders:
+        if is_instance_valid(_scope_sliders[key]):
+            scope_values[key]=_scope_sliders[key].value
+    var scope_result: Error=_mobile_options.save_sensitivity(scope_values)
+    var graphics_result: Error=ERR_INVALID_PARAMETER
+    if is_instance_valid(_graphics_selector):
+        var preset_names: Array[String]=["baja","media","alta"]
+        var selected_index: int=_graphics_selector.selected
+        if selected_index>=0 and selected_index<preset_names.size():
+            graphics_result=_mobile_options.save_graphics(preset_names[selected_index])
+            if graphics_result==OK:
+                Engine.max_fps=_mobile_options.fps_limit()
     var audio_cfg:=ConfigFile.new()
     audio_cfg.load("user://aurora_audio.cfg")
     audio_cfg.set_value("audio","effects",_sfx_slider.value)
     audio_cfg.set_value("audio","ambience",_ambience_slider.value)
     var audio_result: Error=audio_cfg.save("user://aurora_audio.cfg")
-    _settings_status.text="Cámara y sonido guardados" if result==OK and audio_result==OK else "No se pudieron guardar todos los ajustes"
+    _settings_status.text="Ajustes guardados" if result==OK and scope_result==OK and graphics_result==OK and audio_result==OK else "No se pudieron guardar todos los ajustes"
