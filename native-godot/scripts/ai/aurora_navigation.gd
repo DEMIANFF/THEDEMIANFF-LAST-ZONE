@@ -23,10 +23,15 @@ const INITIAL_PHYSICS_WARMUP: int=18
 # Bound both sampling and A* edge building within a physics-frame budget.
 const SAMPLE_SLICE_USEC: int=1800
 const EDGE_SLICE_USEC: int=1800
+# Each full segment sweep performs many synchronous 3D collision queries.
+# Limit sweeps as well as wall-clock time; one long sweep cannot be preempted.
+const EDGE_MAX_SEGMENTS_PER_TICK: int=3
 var _warmup: int=INITIAL_PHYSICS_WARMUP
 var _started: int=0
 var _building_edges: bool=false
 var _first_navigation_batch_logged: bool=false
+var _first_edge_slice_logged: bool=false
+var _edge_probes_completed: int=0
 var _capsule:=CapsuleShape3D.new()
 var _query:=PhysicsShapeQueryParameters3D.new()
 
@@ -115,11 +120,20 @@ func _physics_process(_delta: float) -> void:
             _build_index=0
             _edge_other_index=1
             _ids=graph.get_point_ids()
+            TRACE.checkpoint("active","training",_trace_actor(),
+                "navigation_nodes_complete_edges_pending",
+                "nodes="+str(_ids.size())+" samples="+str(_samples.size()))
         return
-    # The previous outer-only budget could still run hundreds of physics
-    # rays for one graph point. Preserve the inner index across frames so
-    # expensive navigation never monopolizes one entire mobile physics tick.
+    # Never process an unbounded series of PhysicsServer sweeps in one tick.
+    # Durable events straddle the FIRST real sweep so an Android exit can be
+    # distinguished from sampling and graph insertion, not guessed from timing.
     var slice_started: int=Time.get_ticks_usec()
+    var segments_this_tick: int=0
+    if not _first_edge_slice_logged:
+        _first_edge_slice_logged=true
+        TRACE.checkpoint("active","training",_trace_actor(),
+            "navigation_first_edge_slice_enter",
+            "nodes="+str(_ids.size()))
     while _build_index<_ids.size():
         var i: int=_build_index
         var from: Vector3=graph.get_point_position(_ids[i])
@@ -127,10 +141,25 @@ func _physics_process(_delta: float) -> void:
             var j: int=_edge_other_index
             _edge_other_index+=1
             var to: Vector3=graph.get_point_position(_ids[j])
-            if from.distance_squared_to(to)<20.0*20.0 and segment_clear(from,to):
-                graph.connect_points(_ids[i],_ids[j])
-            if Time.get_ticks_usec()-slice_started>=EDGE_SLICE_USEC:
-                max_build_slice_usec=maxi(max_build_slice_usec,Time.get_ticks_usec()-slice_started)
+            if from.distance_squared_to(to)<20.0*20.0:
+                var first_probe: bool=_edge_probes_completed==0
+                if first_probe:
+                    TRACE.checkpoint("active","training",_trace_actor(),
+                        "navigation_first_edge_probe_before",
+                        "from="+str(i)+" to="+str(j))
+                var clear: bool=segment_clear(from,to)
+                _edge_probes_completed+=1
+                if first_probe:
+                    TRACE.checkpoint("active","training",_trace_actor(),
+                        "navigation_first_edge_probe_after",
+                        "clear="+str(clear)+" queries="+str(_edge_probes_completed))
+                if clear:
+                    graph.connect_points(_ids[i],_ids[j])
+                segments_this_tick+=1
+            if segments_this_tick>=EDGE_MAX_SEGMENTS_PER_TICK or \
+                Time.get_ticks_usec()-slice_started>=EDGE_SLICE_USEC:
+                max_build_slice_usec=maxi(max_build_slice_usec,
+                    Time.get_ticks_usec()-slice_started)
                 return
         _build_index+=1
         _edge_other_index=_build_index+1
@@ -141,6 +170,11 @@ func _physics_process(_delta: float) -> void:
         available=true
         build_msec=Time.get_ticks_msec()-_started
         set_physics_process(false)
+        TRACE.checkpoint("active","training",_trace_actor(),
+            "navigation_graph_ready",
+            "nodes="+str(graph.get_point_count())+
+            " probes="+str(_edge_probes_completed)+
+            " ms="+str(build_msec))
         print("AURORA_NAVIGATION nodes=",graph.get_point_count()," build_ms=",build_msec," max_slice_us=",max_build_slice_usec)
 
 func segment_clear(from: Vector3, to: Vector3) -> bool:
