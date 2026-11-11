@@ -10,31 +10,45 @@ const NAVIGATION = preload("res://scripts/ai/aurora_navigation.gd")
 const NATURE = preload("res://scripts/world/aurora_nature.gd")
 const COASTAL_QUARTER=preload("res://scripts/world/aurora_coastal_quarter.gd")
 const AURORA_AUDIO=preload("res://scripts/audio/aurora_audio.gd")
+const TRACE=preload("res://scripts/match/flight_diagnostics.gd")
+const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
 
 
 func _ready() -> void:
+    TRACE.checkpoint("active","scene_load",null,"main_ready_enter",
+        "startup="+str(STARTUP_DIAG.mode()))
     _set_up_lighting()
+    TRACE.checkpoint("active","scene_load",null,"terrain_build_begin")
     island = TERRAIN.new()
     island.name = "AuroraTerrain"
     add_child(island)
     island.collision_layer=3 # World collision and walkable support.
+    TRACE.checkpoint("active","scene_load",null,"terrain_build_done")
+    TRACE.checkpoint("active","scene_load",null,"district_build_begin")
     var district = DISTRICT.new()
     district.name = "PuertoAuroraSector"
     district.terrain = island
     add_child(district)
-    var town: Node3D=COASTAL_QUARTER.new()
-    town.name="PuertoAuroraCoastalQuarter"
-    town.terrain=island
-    add_child(town)
-    district.navigation_points.append_array(town.navigation_points)
-    district.cover_points.append_array(town.cover_points)
-    var nature: Node3D=NATURE.new()
-    nature.name="AuroraNature"
-    nature.terrain=island
-    add_child(nature)
+    TRACE.checkpoint("active","scene_load",null,"district_build_done")
+    if not STARTUP_DIAG.without_decorations():
+        TRACE.checkpoint("active","scene_load",null,"coastal_build_begin")
+        var town: Node3D=COASTAL_QUARTER.new()
+        town.name="PuertoAuroraCoastalQuarter"
+        town.terrain=island
+        add_child(town)
+        district.navigation_points.append_array(town.navigation_points)
+        district.cover_points.append_array(town.cover_points)
+        TRACE.checkpoint("active","scene_load",null,"coastal_build_done")
+        var nature: Node3D=NATURE.new()
+        nature.name="AuroraNature"
+        nature.terrain=island
+        add_child(nature)
+        TRACE.checkpoint("active","scene_load",null,"nature_build_done")
+    else:
+        TRACE.checkpoint("active","scene_load",null,"decorations_skipped_diagnostic")
 
     var water := MeshInstance3D.new()
     water.name = "SeaSurface"
@@ -53,15 +67,18 @@ func _ready() -> void:
     water.material_override = sea_material
     add_child(water)
 
+    TRACE.checkpoint("active","scene_load",null,"operator_build_begin")
     operator = OPERATOR.new()
     operator.name = "Operator"
     add_child(operator)
+    TRACE.checkpoint("active","scene_load",operator,"operator_build_done")
     operator.global_position = Vector3(0.0, island.height_at(0.0, 0.0) + 1.2, 0.0)
     operator.respawn_point=operator.global_position
 
     var hud = HUD.new()
     hud.name = "TrainingHUD"
     add_child(hud)
+    TRACE.checkpoint("active","scene_load",operator,"hud_build_done")
     operator.training_health_changed.connect(hud.set_health)
     operator.player_damaged.connect(hud.show_damage_feedback)
     hud.run_pressed.connect(func(): operator.set_touch_run(true))
@@ -74,17 +91,22 @@ func _ready() -> void:
     var sound: Node=AURORA_AUDIO.new()
     sound.name="AuroraSoundStage"
     add_child(sound)
+    TRACE.checkpoint("active","scene_load",operator,"audio_build_done")
     operator.footstep.connect(sound.play_footstep)
     operator.jumped.connect(func(): sound.play_event("jump"))
     operator.grounded_impact.connect(func(on_stone: bool): sound.play_footstep(on_stone))
     operator.player_damaged.connect(func(_amount: float): sound.play_event("hit"))
 
+    TRACE.checkpoint("active","scene_load",operator,"combat_build_begin",
+        "bot_visuals="+str(not STARTUP_DIAG.without_enemy_rigs()))
     var combat = COMBAT.new()
     combat.name = "CombatRange"
     combat.operator = operator
     combat.terrain = island
     combat.hud = hud
     add_child(combat)
+    TRACE.checkpoint("active","scene_load",operator,"combat_build_done",
+        "targets="+str(combat._targets.size()))
     var navigation: Node3D=NAVIGATION.new()
     navigation.name="AuroraNavigation"
     navigation.terrain=island
@@ -92,6 +114,7 @@ func _ready() -> void:
     navigation.actors.append(operator)
     navigation.actors.append_array(combat._targets)
     add_child(navigation)
+    TRACE.checkpoint("active","scene_load",operator,"navigation_ready")
     combat.navigation=navigation
     combat.shot_fired.connect(func(weapon: int,_hit: bool): sound.play_event("awm_fire" if weapon==1 else "ar_fire",.96+randf()*.08))
     combat.impact_occurred.connect(func(): sound.play_event("impact"))
@@ -108,6 +131,7 @@ func _ready() -> void:
     match_director.terrain=island
     match_director.hud=hud
     add_child(match_director)
+    TRACE.checkpoint("active","scene_load",operator,"main_scene_ready")
 
 
 func _set_up_lighting() -> void:
