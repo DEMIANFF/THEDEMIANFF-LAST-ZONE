@@ -62,6 +62,7 @@ var _combat_action_seconds: float=0.0
 var air_mode: String="ground"
 var _parachute_visual: Node3D
 var _first_canopy_step_probe: bool=false
+var _canopy_render_probe_pending: bool=false
 # Exposed for native A/B tests, loaded from the welcome screen before match.
 var canopy_diagnostic_mode: int=0
 var _ads_active: bool = false
@@ -389,12 +390,17 @@ func begin_freefall(inherited_velocity: Vector3=Vector3.ZERO) -> void:
 func deploy_parachute() -> void:
     if air_mode!="freefall":
         return
+    FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"actor_canopy_mode_before",
+        "from="+air_mode+" anim="+_current_clip)
     air_mode="parachute"
     _first_canopy_step_probe=false
+    _canopy_render_probe_pending=false
     # The meshes already exist from _ready(). Only their visibility changes
     # in the deferred pass; native resources are not allocated in mid-air.
     call_deferred("_commit_parachute_visual")
     _current_clip=""
+    FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"actor_canopy_mode_after",
+        "mode="+str(canopy_diagnostic_mode)+" avatar="+str(_avatar!=null))
 
 
 func _commit_parachute_visual() -> void:
@@ -403,9 +409,37 @@ func _commit_parachute_visual() -> void:
     FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"canopy_visual_before")
     if _parachute_visual and not FLIGHT_SAFETY_MODE.skip_canopy_mesh(canopy_diagnostic_mode):
         _parachute_visual.visible=true
-        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"canopy_visual_enabled")
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"canopy_visual_enabled",
+            "mesh_children="+str(_parachute_visual.get_child_count()))
+        _watch_canopy_first_render()
     else:
         FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"canopy_visual_skipped_diagnostic")
+
+
+func _watch_canopy_first_render() -> void:
+    # Native Android GPU errors cannot be caught by GDScript. This one-shot
+    # marker tells us whether a rendered frame completed after enabling the
+    # canopy mesh. It is intentionally absent in headless QA.
+    if _canopy_render_probe_pending or not is_inside_tree():
+        return
+    _canopy_render_probe_pending=true
+    RenderingServer.frame_post_draw.connect(_on_canopy_frame_post_draw,CONNECT_ONE_SHOT)
+
+
+func _on_canopy_frame_post_draw() -> void:
+    # Do not write files from a RenderingServer callback.
+    call_deferred("_record_canopy_render_finished")
+
+
+func _record_canopy_render_finished() -> void:
+    if not is_inside_tree():
+        return
+    _canopy_render_probe_pending=false
+    FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,
+        "canopy_first_frame_rendered",
+        "frame="+str(Engine.get_process_frames())+
+        " mesh="+str(_parachute_visual!=null and _parachute_visual.visible)+
+        " clip="+_current_clip)
 
 
 func _air_step(delta: float) -> void:
@@ -414,7 +448,11 @@ func _air_step(delta: float) -> void:
     var first_canopy_step: bool=air_mode=="parachute" and not _first_canopy_step_probe
     if first_canopy_step:
         _first_canopy_step_probe=true
-        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_first_tick_enter")
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_first_tick_enter",
+            "dt="+str(snappedf(delta,0.001))+
+            " mode="+str(canopy_diagnostic_mode)+
+            " anim="+_current_clip+
+            " mesh="+str(_parachute_visual!=null and _parachute_visual.visible))
     var alpha: float=1.0-exp(-delta*16.0)
     _yaw=rotate_toward(_yaw,_desired_yaw,minf(absf(angle_difference(_yaw,_desired_yaw))*alpha,delta*7.5))
     _pitch=lerpf(_pitch,_desired_pitch,alpha)
@@ -430,6 +468,10 @@ func _air_step(delta: float) -> void:
         _camera.position.z=minf(safe_distance,lerpf(_camera.position.z,safe_distance,alpha))
         _camera.position.x=lerpf(_camera.position.x,.35,alpha)
         _camera.fov=lerpf(_camera.fov,76.0,alpha)
+    if first_canopy_step:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_camera",
+            "camera_z="+str(_camera.position.z if _camera else -1.0)+
+            " pitch="+str(_pitch))
     if air_mode=="aircraft":
         velocity=Vector3.ZERO
         return
@@ -449,10 +491,12 @@ func _air_step(delta: float) -> void:
     if steering.length_squared()>.02:
         rotation.y=lerp_angle(rotation.y,atan2(-steering.x,-steering.z),alpha)
     if first_canopy_step:
-        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_move_and_slide")
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_move_and_slide",
+            "fall_speed="+str(snappedf(velocity.y,0.01)))
     move_and_slide()
     if first_canopy_step:
-        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_move_and_slide")
+        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_move_and_slide",
+            "ground="+str(is_on_floor())+" collisions="+str(get_slide_collision_count()))
     _camera_pivot.rotation.y=wrapf(_yaw-rotation.y,-PI,PI)
     if _animator:
         var clip: String="AuroraFreefall" if air_mode=="freefall" or (
@@ -460,10 +504,12 @@ func _air_step(delta: float) -> void:
         ) else "AuroraParachute"
         if _current_clip!=clip:
             if first_canopy_step:
-                FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_canopy_animation")
+                FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_canopy_animation",
+                    "requested="+clip+" current="+_current_clip)
             _play_matching_animation(clip)
             if first_canopy_step:
-                FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_canopy_animation")
+                FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_canopy_animation",
+                    "selected="+_current_clip)
     if is_on_floor():
         air_mode="ground"
         velocity=Vector3.ZERO
