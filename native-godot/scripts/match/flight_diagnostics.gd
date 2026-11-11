@@ -8,6 +8,7 @@ const PREVIOUS_PATH: String="user://aurora_previous_interrupted_flight.cfg"
 const MAX_EVENTS: int=48
 static var _sequence: int=0
 const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.gd")
+const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 static var _last_transition: String=""
 # Recent durable breadcrumbs survive process death and show callback ordering.
 static var _recent_transitions: Array[String]=[]
@@ -55,6 +56,7 @@ static func checkpoint(state: String,phase: String,player: Node3D=null,note: Str
     cfg.set_value("flight","recent_transitions",PackedStringArray(_recent_transitions))
     cfg.set_value("flight","context",context.substr(0,512))
     cfg.set_value("flight","diagnostic_mode",FLIGHT_SAFETY_MODE.current_mode())
+    cfg.set_value("flight","startup_mode",STARTUP_DIAG.mode())
     cfg.set_value("flight","build",str(ProjectSettings.get_setting("application/config/name","")))
     cfg.set_value("flight","render_backend",str(ProjectSettings.get_setting("rendering/renderer/rendering_method.mobile","")))
     cfg.set_value("flight","operating_system",OS.get_name())
@@ -83,7 +85,9 @@ static func checkpoint(state: String,phase: String,player: Node3D=null,note: Str
     file.store_string(cfg.encode_to_text())
     file.flush()
     file.close()
-    return DirAccess.rename_absolute(TEMP_PATH,TRACE_PATH)
+    return DirAccess.rename_absolute(
+        ProjectSettings.globalize_path(TEMP_PATH),
+        ProjectSettings.globalize_path(TRACE_PATH))
 
 static func last(previous: bool=false) -> Dictionary:
     var cfg:=ConfigFile.new()
@@ -110,6 +114,7 @@ static func last(previous: bool=false) -> Dictionary:
         "on_floor":str(cfg.get_value("flight","on_floor","")),
         "visual_mode":int(cfg.get_value("flight","visual_mode",0)),
         "diagnostic_mode":int(cfg.get_value("flight","diagnostic_mode",0)),
+        "startup_mode":int(cfg.get_value("flight","startup_mode",0)),
         "static_memory_bytes":int(cfg.get_value("flight","static_memory_bytes",0)),
         "position":str(cfg.get_value("flight","position","")),
         "velocity":str(cfg.get_value("flight","velocity","")),
@@ -139,6 +144,7 @@ static func report(previous: bool=false) -> String:
         "Animación seleccionada: "+str(data["animation_clip"]),
         "En suelo: "+str(data["on_floor"]),
         "Modo visual de vuelo: "+FLIGHT_SAFETY_MODE.label_for(int(data["diagnostic_mode"])),
+        "Modo de carga 3D: "+str(data["startup_mode"])+" (0 completo, 1 sin decorado, 2 sin rigs IA, 3 ambos)",
         "Memoria estática del motor (MB; no RAM total): "+str(snappedf(float(data["static_memory_bytes"])/1048576.0,.1)),
         "Posición juego: "+str(data["position"]),
         "Velocidad: "+str(data["velocity"]),
