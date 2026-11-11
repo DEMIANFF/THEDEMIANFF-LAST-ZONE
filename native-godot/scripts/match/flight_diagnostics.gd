@@ -162,7 +162,7 @@ static func report(previous: bool=false) -> String:
         "Animación seleccionada: "+str(data["animation_clip"]),
         "En suelo: "+str(data["on_floor"]),
         "Modo visual de vuelo: "+FLIGHT_SAFETY_MODE.label_for(int(data["diagnostic_mode"])),
-        "Modo de carga 3D: "+str(data["startup_mode"])+" (0 completo, 1 sin decorado, 2 sin rigs IA, 3 ambos)",
+        "Modo de carga 3D: "+str(data["startup_mode"])+" (0 completo, 1 sin decorado, 2 sin rigs IA, 3 ambos, 4 sin grafo IA)",
         "Memoria estática del motor (MB; no RAM total): "+str(snappedf(float(data["static_memory_bytes"])/1048576.0,.1)),
         "Posición juego: "+str(data["position"]),
         "Velocidad: "+str(data["velocity"]),
