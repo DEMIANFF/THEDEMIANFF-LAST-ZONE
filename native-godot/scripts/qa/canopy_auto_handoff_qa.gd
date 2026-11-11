@@ -66,8 +66,9 @@ func _verify() -> void:
     check(player.velocity.y> -26.0 and player.global_position.is_finite(),
         "canopy failed to slow the real player")
     var history: String=str(TRACE.last().get("history",""))
-    for entry in ["canopy_auto_deferred_queued",
-        "canopy_deferred_commit_started","canopy_hud_after",
+    # The diagnostic history is a 12-event ring; the two initial queue
+    # markers may age out after the player's first physics/animation probes.
+    for entry in ["canopy_transition_before","canopy_hud_after",
         "canopy_deployed","first_parachute_physics_tick"]:
         check(history.contains(entry),"missing persistent handoff checkpoint "+entry)
 
