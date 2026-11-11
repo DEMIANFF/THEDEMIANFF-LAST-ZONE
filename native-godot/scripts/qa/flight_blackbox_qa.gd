@@ -45,7 +45,7 @@ func _verify() -> void:
     var unfinished:=FileAccess.open(TRACE.TEMP_PATH,FileAccess.WRITE)
     check(unfinished!=null,"failed to stage interrupted write")
     if unfinished:
-        unfinished.store_string("[flight]\\ntruncated=\\")
+        unfinished.store_string("incomplete-config-during-android-kill")
         unfinished.close()
     check(TRACE.last().get("note","")=="record_64",
         "partial pending write destroyed the last valid flight report")
