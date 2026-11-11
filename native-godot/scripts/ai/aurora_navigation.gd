@@ -15,10 +15,14 @@ var _ground_ray:=PhysicsRayQueryParameters3D.new()
 var _samples: Array[Vector3]=[]
 var _ids:=PackedInt64Array()
 var _build_index: int=0
+var _edge_other_index: int=1
 # Defer nav shape queries until the first skinned character/world frames
 # have had time to settle on GL Compatibility Android hardware.
 const NODE_BATCH_SIZE: int=12
 const INITIAL_PHYSICS_WARMUP: int=18
+# Bound both sampling and A* edge building within a physics-frame budget.
+const SAMPLE_SLICE_USEC: int=1800
+const EDGE_SLICE_USEC: int=1800
 var _warmup: int=INITIAL_PHYSICS_WARMUP
 var _started: int=0
 var _building_edges: bool=false
@@ -92,7 +96,10 @@ func _physics_process(_delta: float) -> void:
                 _query.motion=Vector3.ZERO
                 if space.intersect_shape(_query,1).is_empty():
                     graph.add_point(graph.get_available_point_id(),point)
-        _build_index=batch_limit
+            # Resume the exact next sample next physics tick; no node skipped.
+            _build_index=i+1
+            if Time.get_ticks_usec()-started_us>=SAMPLE_SLICE_USEC:
+                break
         var elapsed_us: int=Time.get_ticks_usec()-started_us
         TRACE.checkpoint("active","training",_trace_actor(),
             "navigation_batch_after",
@@ -106,18 +113,28 @@ func _physics_process(_delta: float) -> void:
         if _build_index>=_samples.size():
             _building_edges=true
             _build_index=0
+            _edge_other_index=1
             _ids=graph.get_point_ids()
         return
-    var slice_started:=Time.get_ticks_usec()
+    # The previous outer-only budget could still run hundreds of physics
+    # rays for one graph point. Preserve the inner index across frames so
+    # expensive navigation never monopolizes one entire mobile physics tick.
+    var slice_started: int=Time.get_ticks_usec()
     while _build_index<_ids.size():
         var i: int=_build_index
-        var from:=graph.get_point_position(_ids[i])
-        for j in range(i+1,_ids.size()):
-            var to:=graph.get_point_position(_ids[j])
+        var from: Vector3=graph.get_point_position(_ids[i])
+        while _edge_other_index<_ids.size():
+            var j: int=_edge_other_index
+            _edge_other_index+=1
+            var to: Vector3=graph.get_point_position(_ids[j])
             if from.distance_squared_to(to)<20.0*20.0 and segment_clear(from,to):
                 graph.connect_points(_ids[i],_ids[j])
+            if Time.get_ticks_usec()-slice_started>=EDGE_SLICE_USEC:
+                max_build_slice_usec=maxi(max_build_slice_usec,Time.get_ticks_usec()-slice_started)
+                return
         _build_index+=1
-        if Time.get_ticks_usec()-slice_started>=2000:
+        _edge_other_index=_build_index+1
+        if Time.get_ticks_usec()-slice_started>=EDGE_SLICE_USEC:
             break
     max_build_slice_usec=maxi(max_build_slice_usec,Time.get_ticks_usec()-slice_started)
     if _build_index>=_ids.size():
