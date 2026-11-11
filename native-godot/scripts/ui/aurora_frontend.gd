@@ -8,6 +8,7 @@ const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
+const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.gd")
 
 var _settings_panel: VBoxContainer
@@ -162,6 +163,12 @@ func _welcome() -> void:
     test_mode.name="FlightDiagnosticModeButton"
     test_mode.add_theme_font_size_override("font_size",15)
     _page.add_child(test_mode)
+    var startup_button: Button=_button(
+        "CARGA "+STARTUP_DIAG.label(),
+        Callable(self,"_cycle_scene_load_diagnostic"),405)
+    startup_button.name="SceneStartupDiagnosticButton"
+    startup_button.add_theme_font_size_override("font_size",15)
+    _page.add_child(startup_button)
     var trace: Dictionary=FLIGHT_DIAGNOSTICS.last()
     if not trace.is_empty():
         var state: String=str(trace.get("state",""))
@@ -179,6 +186,16 @@ func _welcome() -> void:
 
 func _copy_flight_diagnostics(previous: bool=false) -> void:
     DisplayServer.clipboard_set(FLIGHT_DIAGNOSTICS.report(previous))
+
+
+func _cycle_scene_load_diagnostic() -> void:
+    var next_mode: int=(STARTUP_DIAG.mode()+1)%4
+    if STARTUP_DIAG.save(next_mode)!=OK:
+        push_warning("Could not save Aurora shared-scene diagnostic mode")
+        return
+    var button: Button=_page.get_node_or_null("SceneStartupDiagnosticButton") as Button
+    if button:
+        button.text="CARGA "+STARTUP_DIAG.label()
 
 
 func _show_previous_flight_details() -> void:
@@ -348,6 +365,10 @@ func _launch(battle: bool) -> void:
     if stage!="lobby":
         return
     stage="loading"
+    FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",null,
+        "frontend_launch_requested",
+        "mode="+("battle" if battle else "training")+
+        " startup_profile="+str(STARTUP_DIAG.mode()))
     # Unload the 440x600 offscreen character renderer (its own 3D world,
     # lights, rig and textures) before entering a memory-heavy Android match.
     # Hiding it only stopped drawing but retained VRAM/mesh allocations.
@@ -373,16 +394,51 @@ func _activate_game(battle: bool) -> void:
     await get_tree().process_frame
     if stage!="loading":
         return
+    FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",null,
+        "frontend_scene_instantiate_before",
+        "mode="+("battle" if battle else "training"))
     _game=GAME.instantiate() as Node3D
     _game.name="ActiveAuroraGame"
+    FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",null,
+        "frontend_scene_enter_tree_before")
+    # add_child invokes Main._ready synchronously. The Main script places
+    # durable checkpoints around every major resource-heavy subsystem.
     get_parent().add_child(_game)
+    var player: CharacterBody3D=_game.get_node("Operator") as CharacterBody3D
+    FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",player,
+        "frontend_scene_enter_tree_after")
     var hud:=_game.get_node("TrainingHUD") as CanvasLayer
     hud.leave_to_lobby_requested.connect(_return_to_lobby)
     visible=false
     stage="battle" if battle else "training"
     if battle:
         var match_director: Node3D=_game.get_node("AuroraSectorMatch")
+        FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",player,
+            "battle_aircraft_begin_before")
         match_director.begin_aircraft_phase()
+    else:
+        FLIGHT_DIAGNOSTICS.checkpoint("active","training",player,
+            "training_entered",
+            "startup_profile="+str(STARTUP_DIAG.mode()))
+    # This confirmation is written after a visible 3D frame, not after
+    # merely enqueuing the world. A missing confirmation is not a GPU proof.
+    RenderingServer.frame_post_draw.connect(
+        _on_first_world_frame_post_draw,CONNECT_ONE_SHOT)
+
+
+func _on_first_world_frame_post_draw() -> void:
+    # Avoid disk writes from a render-server event. Defer to idle main loop.
+    call_deferred("_record_first_world_frame")
+
+
+func _record_first_world_frame() -> void:
+    if _game==null or not is_instance_valid(_game) or not _game.is_inside_tree():
+        return
+    var player: CharacterBody3D=_game.get_node_or_null("Operator") as CharacterBody3D
+    var phase: String="training" if stage=="training" else "aircraft"
+    FLIGHT_DIAGNOSTICS.checkpoint("active",phase,player,
+        "shared_scene_first_frame_rendered",
+        "startup_profile="+str(STARTUP_DIAG.mode()))
 
 
 func _return_to_lobby() -> void:
@@ -393,6 +449,9 @@ func _return_to_lobby() -> void:
         var flight: Node3D=director.get("_flight") as Node3D
         if flight!=null and str(flight.get("phase")) in ["aircraft","freefall","parachute","touchdown_pending"]:
             FLIGHT_DIAGNOSTICS.checkpoint("aborted",str(flight.get("phase")),_game.get_node("Operator"),"returned_to_lobby")
+        elif stage=="training":
+            FLIGHT_DIAGNOSTICS.checkpoint("completed","training",_game.get_node("Operator"),
+                "training_returned_to_lobby")
         var old: Node3D=_game
         _game=null
         old.get_parent().remove_child(old)
