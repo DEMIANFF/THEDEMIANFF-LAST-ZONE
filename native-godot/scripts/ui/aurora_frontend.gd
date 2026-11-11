@@ -146,17 +146,17 @@ func _welcome() -> void:
         _profile_strip.visible=false
     _page.anchor_left=.07
     _page.anchor_right=.63
-    _page.anchor_top=.10
-    _page.anchor_bottom=.94
+    _page.anchor_top=.015
+    _page.anchor_bottom=.995
+    _page.add_theme_constant_override("separation",5)
     _clear_page()
     _label("THEDEMIANFF   /   LAST ZONE",33)
     _label("AURORA  •  EL ÚLTIMO HORIZONTE",20)
-    _label("Operación de supervivencia — edición de desarrollo",16)
+    _label("Operación de supervivencia — diagnóstico de desarrollo",14)
     var enter:=_button("ENTRAR",Callable(self,"_show_lobby"))
     enter.name="EnterButton"
     _page.add_child(enter)
     _label("Esta versión prueba partidas offline. El multijugador y las cuentas en Godot todavía no están disponibles.",14)
-    _label("PRUEBA MOTOROLA: alterna entre modos para aislar gráficos y animaciones; la física real sigue activa.",13)
     var test_mode: Button=_button(
         "VUELO "+FLIGHT_SAFETY_MODE.label_for(FLIGHT_SAFETY_MODE.current_mode()),
         Callable(self,"_cycle_flight_diagnostic"),390)
@@ -213,6 +213,7 @@ func _show_flight_details(previous: bool=false) -> void:
     _page.anchor_right=.965
     _page.anchor_top=.04
     _page.anchor_bottom=.96
+    _page.add_theme_constant_override("separation",6)
     _label("CAJA NEGRA / DIAGNÓSTICO DEL VUELO",25)
     _label("Historial guardado (no es un informe nativo de Android).",14)
     var log_view:=TextEdit.new()
@@ -253,6 +254,7 @@ func _show_lobby() -> void:
     _page.anchor_right=.97
     _page.anchor_top=.18
     _page.anchor_bottom=.92
+    _page.add_theme_constant_override("separation",12)
     _preview_container.anchor_left=.29
     _preview_container.anchor_right=.65
     _preview_container.anchor_top=.14
