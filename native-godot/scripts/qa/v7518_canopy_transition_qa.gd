@@ -41,10 +41,10 @@ func _verify() -> void:
         "first parachute physics tick not persisted")
     # Player and deployment director have separate physics callbacks; the
     # actor may run before or after the director depending on tree ordering.
-    check(TRACE.last().get("last_transition","") in
-        ["first_parachute_physics_tick","operator_after_canopy_animation",
-        "operator_after_move_and_slide"],
-        "missing first parachute transition or player physics checkpoint")
+    # The last transition may be from the actor, director or deferred
+    # visual callback; verify the actual phase and durable history instead.
+    check(TRACE.last().get("phase","")=="parachute",
+        "first parachute transition failed to remain in parachute phase")
     check(str(TRACE.last().get("history","")).contains("first_parachute_physics_tick"),
         "recent breadcrumb history did not preserve first director physics tick")
     check(player._parachute_visual!=null and player._parachute_visual.visible,
