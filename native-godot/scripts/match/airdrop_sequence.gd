@@ -22,6 +22,7 @@ var _craft: Node3D
 var _drop_requested: bool=false
 var _trace_clock: float=0.0
 var _ground_approach_marked: bool=false
+var _parachute_first_tick_committed: bool=false
 var _aircraft_motion_committed: bool=false
 var _flight_tick_count: int=0
 
@@ -36,6 +37,7 @@ func begin() -> void:
     _drop_requested=false
     _trace_clock=0.0
     _ground_approach_marked=false
+    _parachute_first_tick_committed=false
     _aircraft_motion_committed=false
     _flight_tick_count=0
     player.begin_aircraft()
@@ -112,10 +114,16 @@ func _physics_process(delta: float) -> void:
             FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,
                 "auto_canopy_terrain_clearance_"+str(snappedf(clearance,0.1))+"m")
             deploy_parachute()
-    elif phase=="parachute" and _trace_clock<=0.0:
-        _trace_clock=1.0
-        FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",player,
-            "parachute_tick_"+str(_flight_tick_count))
+    elif phase=="parachute":
+        if not _parachute_first_tick_committed:
+            _parachute_first_tick_committed=true
+            FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",player,
+                "first_parachute_physics_tick")
+            _trace_clock=.25
+        elif _trace_clock<=0.0:
+            _trace_clock=.5
+            FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",player,
+                "parachute_tick_"+str(_flight_tick_count))
 
 
 func jump_from_aircraft() -> void:
@@ -167,7 +175,10 @@ func deploy_parachute() -> void:
     if phase!="freefall":
         return
     phase="parachute"
+    _parachute_first_tick_committed=false
+    FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",player,"canopy_transition_before")
     player.deploy_parachute()
+    FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",player,"canopy_physics_mode_after")
     hud.set_air_stage("parachute")
     hud.impact("PARACAÍDAS ABIERTO / CONTROLA EL ATERRIZAJE")
     _trace_clock=1.2
