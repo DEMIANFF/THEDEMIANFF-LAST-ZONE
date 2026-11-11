@@ -38,6 +38,17 @@ func _verify() -> void:
     check(TRACE.report().contains("Historial de hasta 48 eventos") and
         TRACE.report().contains("Fotogramas física/render"),
         "complete in-app diagnostic report is missing")
+    check(not FileAccess.file_exists(TRACE.TEMP_PATH),
+        "temporary journal snapshot should have been renamed atomically")
+    # Simulate a hard process kill *during* a future write: leave only a
+    # broken pending file and verify the previous complete report survives.
+    var unfinished:=FileAccess.open(TRACE.TEMP_PATH,FileAccess.WRITE)
+    check(unfinished!=null,"failed to stage interrupted write")
+    if unfinished:
+        unfinished.store_string("[flight]\\ntruncated=\\")
+        unfinished.close()
+    check(TRACE.last().get("note","")=="record_64",
+        "partial pending write destroyed the last valid flight report")
     check(TRACE.checkpoint("active","aircraft",null,"start")==OK,
         "next match could not start")
     var saved: Dictionary=TRACE.last(true)
