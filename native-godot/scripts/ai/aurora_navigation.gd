@@ -15,7 +15,11 @@ var _ground_ray:=PhysicsRayQueryParameters3D.new()
 var _samples: Array[Vector3]=[]
 var _ids:=PackedInt64Array()
 var _build_index: int=0
-var _warmup: int=2
+# Defer nav shape queries until the first skinned character/world frames
+# have had time to settle on GL Compatibility Android hardware.
+const NODE_BATCH_SIZE: int=12
+const INITIAL_PHYSICS_WARMUP: int=18
+var _warmup: int=INITIAL_PHYSICS_WARMUP
 var _started: int=0
 var _building_edges: bool=false
 var _first_navigation_batch_logged: bool=false
@@ -58,27 +62,46 @@ func _build() -> void:
             _samples.append(Vector3(x,0,z))
     _samples.append_array(district.navigation_points)
 
+func _trace_actor() -> Node3D:
+    return actors[0] if not actors.is_empty() and is_instance_valid(actors[0]) else null
+
+
 func _physics_process(_delta: float) -> void:
     if _warmup>0:
         _warmup-=1
         return
     if not _first_navigation_batch_logged:
         _first_navigation_batch_logged=true
-        TRACE.checkpoint("active","training",null,"navigation_first_batch_before",
-            "queued_samples="+str(_samples.size()))
+        TRACE.checkpoint("active","training",_trace_actor(),"navigation_first_batch_before",
+            "queued_samples="+str(_samples.size())+
+            " batch_size="+str(NODE_BATCH_SIZE))
     _query.exclude=_exclusions()
     var space:=get_world_3d().direct_space_state
     if not _building_edges:
-        for i in range(_build_index,mini(_build_index+40,_samples.size())):
+        var start_index: int=_build_index
+        var batch_limit: int=mini(start_index+NODE_BATCH_SIZE,_samples.size())
+        var started_us: int=Time.get_ticks_usec()
+        TRACE.checkpoint("active","training",_trace_actor(),
+            "navigation_batch_before",
+            "index="+str(start_index)+".."+str(batch_limit)+
+            " nodes="+str(graph.get_point_count()))
+        for i in range(start_index,batch_limit):
             var point:=ground_point(_samples[i])
             if point.is_finite():
                 _query.transform=Transform3D(Basis(),point+Vector3.UP*.95)
                 _query.motion=Vector3.ZERO
                 if space.intersect_shape(_query,1).is_empty():
                     graph.add_point(graph.get_available_point_id(),point)
-        _build_index+=40
-        if _build_index==40:
-            TRACE.checkpoint("active","training",null,"navigation_first_batch_after",
+        _build_index=batch_limit
+        var elapsed_us: int=Time.get_ticks_usec()-started_us
+        TRACE.checkpoint("active","training",_trace_actor(),
+            "navigation_batch_after",
+            "index="+str(_build_index)+"/"+str(_samples.size())+
+            " nodes="+str(graph.get_point_count())+
+            " elapsed_us="+str(elapsed_us))
+        if start_index==0:
+            TRACE.checkpoint("active","training",_trace_actor(),
+                "navigation_first_batch_after",
                 "graph_nodes="+str(graph.get_point_count()))
         if _build_index>=_samples.size():
             _building_edges=true
