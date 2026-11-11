@@ -6,6 +6,7 @@ const FULL: int=0
 const NO_DECORATIVE_WORLD: int=1
 const NO_ENEMY_SKINNED_RIGS: int=2
 const MINIMAL_VISUAL_LOAD: int=3
+const NO_NAVIGATION_GRAPH: int=4
 static var _cached: int=-1
 
 static func mode() -> int:
@@ -14,11 +15,11 @@ static func mode() -> int:
     var config:=ConfigFile.new()
     _cached=FULL
     if config.load(PATH)==OK:
-        _cached=clampi(int(config.get_value("startup","mode",0)),0,3)
+        _cached=clampi(int(config.get_value("startup","mode",0)),0,4)
     return _cached
 
 static func save(value: int) -> Error:
-    var next: int=clampi(value,0,3)
+    var next: int=clampi(value,0,4)
     var cfg:=ConfigFile.new()
     cfg.set_value("startup","mode",next)
     var result: Error=cfg.save(PATH)
@@ -32,6 +33,9 @@ static func without_decorations() -> bool:
 static func without_enemy_rigs() -> bool:
     return mode()==NO_ENEMY_SKINNED_RIGS or mode()==MINIMAL_VISUAL_LOAD
 
+static func without_navigation_graph() -> bool:
+    return mode()==NO_NAVIGATION_GRAPH
+
 static func label() -> String:
     match mode():
         NO_DECORATIVE_WORLD:
@@ -40,5 +44,7 @@ static func label() -> String:
             return "2 / SIN MODELOS 3D DE ENEMIGOS"
         MINIMAL_VISUAL_LOAD:
             return "3 / AMBAS OPCIONES (DIAGNÓSTICO)"
+        NO_NAVIGATION_GRAPH:
+            return "4 / SIN GRAFO DE NAVEGACIÓN IA"
         _:
             return "0 / ESCENARIO COMPLETO"
