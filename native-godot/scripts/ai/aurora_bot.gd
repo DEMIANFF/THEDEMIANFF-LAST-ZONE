@@ -1,4 +1,5 @@
 extends CharacterBody3D
+const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 ## Aurora V73 offline training opponent: rigged glTF visual, bounded ray-LOS,
 ## grounded patrol and actual damage. This is not a networked human player.
 signal eliminated(agent: CharacterBody3D, killer: Node3D)
@@ -71,7 +72,7 @@ func _ready() -> void:
     shape.position.y=.88
     add_child(shape)
 
-    if ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
+    if not STARTUP_DIAG.without_enemy_rigs() and ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
         var source := load("res://assets/characters/aurora_operator.glb") as PackedScene
         _rig = source.instantiate() as Node3D
         _rig.name="OpponentRig"
