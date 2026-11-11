@@ -1,11 +1,11 @@
-name: V75.19 Complete Godot Regression QA
+name: V75.20 Two Android Crash Windows Godot QA
 concurrency:
   group: aurora-native-qa-${{ github.ref }}
   cancel-in-progress: true
 
 on:
   push:
-    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-8-world-navigation-stabilization, codex/v75-9-camera-obstruction-polish, codex/v75-10-materials-locomotion-pass, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit, codex/godot-flight-blackbox-diagnostics, codex/godot-shared-scene-crash-audit]
+    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-8-world-navigation-stabilization, codex/v75-9-camera-obstruction-polish, codex/v75-10-materials-locomotion-pass, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit, codex/godot-flight-blackbox-diagnostics, codex/godot-shared-scene-crash-audit, codex/v75-20-training-freefall-crash-isolation]
     paths:
       - 'native-godot/**'
       - 'docs/V71_REAL_BATTLE_ROYALE_MASTER_PLAN.md'
@@ -53,7 +53,14 @@ jobs:
           assert 'navigation_first_batch_before' in navigation
           assert 'without_navigation_graph()' in navigation
           assert Path('native-godot/scripts/qa/shared_scene_startup_qa.gd').is_file()
-          print('CANOPY_SOURCE_PREFLIGHT PASS shared Training/BR scene tracing, 5 loading profiles, physics/visual isolation and durable flight blackbox')
+          nav=Path('native-godot/scripts/ai/aurora_navigation.gd').read_text()
+          flight=Path('native-godot/scripts/player/third_person_operator.gd').read_text()
+          assert 'NODE_BATCH_SIZE: int=12' in nav and 'navigation_batch_after' in nav
+          assert 'freefall_tick_after_move_and_slide' in flight
+          assert 'freefall_tick_first_render_completed' in flight
+          assert Path('native-godot/scripts/qa/v7520_navigation_batch_qa.gd').is_file()
+          assert Path('native-godot/scripts/qa/v7520_freefall_first_tick_qa.gd').is_file()
+          print('V7520_SOURCE_PREFLIGHT PASS dual Training/freefall isolation, safe navigation batching and native A/B mode coverage')
           PY
   flight-blackbox-runtime:
     runs-on: ubuntu-24.04

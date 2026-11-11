@@ -232,7 +232,7 @@ func _show_flight_details(previous: bool=false) -> void:
 
 
 func _cycle_flight_diagnostic() -> void:
-    var next_mode: int=(FLIGHT_SAFETY_MODE.current_mode()+1)%4
+    var next_mode: int=(FLIGHT_SAFETY_MODE.current_mode()+1)%6
     var error: Error=FLIGHT_SAFETY_MODE.save_mode(next_mode)
     if error!=OK:
         push_warning("Aurora flight diagnostic setting could not be saved: "+str(error))
