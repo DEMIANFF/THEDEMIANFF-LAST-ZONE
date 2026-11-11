@@ -13,6 +13,30 @@ on:
   workflow_dispatch:
 
 jobs:
+  canopy-source-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify automatic canopy handoff cannot rebuild HUD inside physics
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('native-godot/scripts/match/airdrop_sequence.gd').read_text()
+          physics=s.split('func _physics_process(delta: float) -> void:',1)[1].split('\n\nfunc jump_from_aircraft()',1)[0]
+          assert '_queue_auto_parachute()' in physics
+          assert 'deploy_parachute()' not in physics
+          assert 'hud.set_air_stage' not in physics
+          assert 'call_deferred("_commit_parachute")' in s
+          assert 'phase="parachute_pending"' in s
+          p=Path('native-godot/scripts/player/third_person_operator.gd').read_text()
+          assert 'skip_canopy_animation(canopy_diagnostic_mode)' in p
+          assert 'skip_canopy_mesh(canopy_diagnostic_mode)' in p
+          assert Path('native-godot/scripts/qa/canopy_auto_handoff_qa.gd').is_file()
+          assert Path('native-godot/scripts/qa/canopy_diagnostic_modes_qa.gd').is_file()
+          assert Path('native-godot/scripts/qa/capture_canopy_render_qa.gd').is_file()
+          print('CANOPY_SOURCE_PREFLIGHT PASS isolated physics + 4 visual diagnostic modes')
+          PY
   smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 16
