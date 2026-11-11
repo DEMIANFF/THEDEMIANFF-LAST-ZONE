@@ -8,6 +8,7 @@ const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
+const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.gd")
 
 var _settings_panel: VBoxContainer
 var _settings_content: VBoxContainer
@@ -154,6 +155,13 @@ func _welcome() -> void:
     enter.name="EnterButton"
     _page.add_child(enter)
     _label("Esta versión prueba partidas offline. El multijugador y las cuentas en Godot todavía no están disponibles.",14)
+    _label("PRUEBA MOTOROLA: alterna entre modos para aislar gráficos y animaciones; la física real sigue activa.",13)
+    var test_mode: Button=_button(
+        "VUELO "+FLIGHT_SAFETY_MODE.label_for(FLIGHT_SAFETY_MODE.current_mode()),
+        Callable(self,"_cycle_flight_diagnostic"),390)
+    test_mode.name="FlightDiagnosticModeButton"
+    test_mode.add_theme_font_size_override("font_size",15)
+    _page.add_child(test_mode)
     var trace: Dictionary=FLIGHT_DIAGNOSTICS.last()
     if str(trace.get("state",""))=="active":
         _label("VUELO ANTERIOR INTERRUMPIDO  /  "+str(trace.get("phase","desconocido")),15)
@@ -163,6 +171,17 @@ func _welcome() -> void:
 
 func _copy_flight_diagnostics() -> void:
     DisplayServer.clipboard_set(FLIGHT_DIAGNOSTICS.report())
+
+
+func _cycle_flight_diagnostic() -> void:
+    var next_mode: int=(FLIGHT_SAFETY_MODE.current_mode()+1)%4
+    var error: Error=FLIGHT_SAFETY_MODE.save_mode(next_mode)
+    if error!=OK:
+        push_warning("Aurora flight diagnostic setting could not be saved: "+str(error))
+        return
+    var button: Button=_page.get_node_or_null("FlightDiagnosticModeButton") as Button
+    if button:
+        button.text="VUELO "+FLIGHT_SAFETY_MODE.label_for(next_mode)
 
 
 func _show_lobby() -> void:
