@@ -5,7 +5,7 @@ concurrency:
 
 on:
   push:
-    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-8-world-navigation-stabilization, codex/v75-9-camera-obstruction-polish, codex/v75-10-materials-locomotion-pass, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit]
+    branches: [codex/v71-native-battle-royale-foundation, codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-motorola-video-audit, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-8-world-navigation-stabilization, codex/v75-9-camera-obstruction-polish, codex/v75-10-materials-locomotion-pass, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit, codex/godot-flight-blackbox-diagnostics]
     paths:
       - 'native-godot/**'
       - 'docs/V71_REAL_BATTLE_ROYALE_MASTER_PLAN.md'
@@ -35,8 +35,43 @@ jobs:
           assert Path('native-godot/scripts/qa/canopy_auto_handoff_qa.gd').is_file()
           assert Path('native-godot/scripts/qa/canopy_diagnostic_modes_qa.gd').is_file()
           assert Path('native-godot/scripts/qa/capture_canopy_render_qa.gd').is_file()
-          print('CANOPY_SOURCE_PREFLIGHT PASS isolated physics + 4 visual diagnostic modes')
+          logs=Path('native-godot/scripts/match/flight_diagnostics.gd').read_text()
+          assert 'MAX_EVENTS: int=48' in logs
+          assert 'PREVIOUS_PATH:' in logs
+          assert 'physics_frames' in logs and 'animation_clip' in logs
+          operator=p
+          assert 'canopy_first_frame_rendered' in operator
+          front=Path('native-godot/scripts/ui/aurora_frontend.gd').read_text()
+          assert 'FlightBlackBoxText' in front
+          assert Path('native-godot/scripts/qa/flight_blackbox_qa.gd').is_file()
+          print('CANOPY_SOURCE_PREFLIGHT PASS isolated physics + 4 visual diagnostic modes + durable flight blackbox')
           PY
+  flight-blackbox-runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Godot 4.7.2 editor without Blender
+        run: |
+          curl -fL --retry 3 --retry-delay 2 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip' -o /tmp/godot-blackbox.zip
+          unzip -q /tmp/godot-blackbox.zip -d /tmp
+          sudo install -m 0755 /tmp/Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot
+      - name: Execute actual GDScript durable black-box test
+        run: |
+          mkdir -p native-godot/out/qa
+          export XDG_DATA_HOME="$(mktemp -d)" GODOT_SILENCE_ROOT_WARNING=1
+          godot --headless --path native-godot --script res://scripts/qa/flight_blackbox_qa.gd > native-godot/out/qa/flight_blackbox_qa.log 2>&1
+          if grep -E 'SCRIPT ERROR:|ERROR:' native-godot/out/qa/flight_blackbox_qa.log; then
+            cat native-godot/out/qa/flight_blackbox_qa.log
+            exit 1
+          fi
+          grep -F 'FLIGHT_BLACKBOX PASS' native-godot/out/qa/flight_blackbox_qa.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: AURORA-FLIGHT-BLACKBOX-QA
+          path: native-godot/out/qa/flight_blackbox_qa.log
+
   smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 16
