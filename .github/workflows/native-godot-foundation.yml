@@ -27,8 +27,17 @@ jobs:
           bash native-godot/tools/prepare_assets.sh /tmp/aurora-operator
       - name: Run complete native QA with imported operator and weapons
         run: bash native-godot/tools/run_qa.sh
+      - name: Render first real animated canopy after automatic physics trigger
+        run: |
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-audit-gl.log
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_canopy_render_qa.gd > native-godot/out/qa/canopy-render.log 2>&1
+          if grep -E 'SCRIPT ERROR:|ERROR:' native-godot/out/qa/canopy-render.log; then exit 1; fi
+          grep -F 'CANOPY_OPENGL_RENDER PASS' native-godot/out/qa/canopy-render.log
+          test -s native-godot/out/audit-first-canopy-opengl.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: V75.19-GODOT-QA-LOGS
-          path: native-godot/out/qa
+          name: GODOT-CANOPY-PHYSICS-AUDIT-LOGS
+          path: |
+            native-godot/out/qa
+            native-godot/out/audit-first-canopy-opengl.png
