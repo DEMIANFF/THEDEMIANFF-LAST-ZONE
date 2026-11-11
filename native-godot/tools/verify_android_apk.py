@@ -28,7 +28,15 @@ def preset_value(key):
 package_name = str(preset_value('package/unique_name'))
 version_code = int(preset_value('version/code'))
 version_name = str(preset_value('version/name'))
-if not package_name.startswith('com.thedemianff.lastzone.nativepreview'):
+# Fail closed for production IDs. Preview signing is allowed only for
+# explicitly dedicated Godot test packages; never weaken the safety gate
+# for the real com.thedemianff.lastzone application.
+diagnostic_packages = {
+    'com.thedemianff.lastzone.nativeauditcanopy',
+    'com.thedemianff.lastzone.nativeflightblackbox',
+}
+if not (package_name.startswith('com.thedemianff.lastzone.nativepreview')
+        or package_name in diagnostic_packages):
     raise RuntimeError('Refusing production APK with preview signing')
 
 
