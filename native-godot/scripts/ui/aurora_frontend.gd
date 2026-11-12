@@ -45,6 +45,8 @@ var _hud_editor_requested: bool=false
 var _hud_editor_origin: String=""
 var _settings_modal: CanvasLayer
 var _brand_logo: TextureRect
+var _encounter_count: int=9
+var _encounter_selector: OptionButton
 
 
 func _ready() -> void:
@@ -367,11 +369,37 @@ func _show_lobby() -> void:
     var training:=_button("ENTRENAMIENTO",Callable(self,"_launch").bind(false),245)
     training.name="TrainingButton"
     modes.add_child(training)
-    _label("SECTOR OFFLINE  •  1 JUGADOR + 8 BOTS",13)
+    var selector_caption:=_label("PARTICIPANTES LOCALES / SOLO CON IA",14)
+    selector_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
+    _encounter_selector=OptionButton.new()
+    _encounter_selector.name="OfflineEncounterSize"
+    _encounter_selector.custom_minimum_size=Vector2(257,38)
+    _encounter_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+    _encounter_selector.add_item("9 TOTAL · 1 + 8 IA (estable)",9)
+    _encounter_selector.add_item("20 TOTAL · 1 + 19 IA (prueba)",20)
+    _encounter_selector.add_item("30 TOTAL · 1 + 29 IA (carga)",30)
+    _encounter_selector.select([9,20,30].find(_encounter_count))
+    _encounter_selector.item_selected.connect(_on_encounter_selected)
+    _page.add_child(_encounter_selector)
     _info=_label("",16)
     _info.name="LobbyDetail"
     _build_settings()
     _select_tab(_selected_tab)
+
+
+func _on_encounter_selected(index: int) -> void:
+    if _encounter_selector==null:
+        return
+    _encounter_count=_encounter_selector.get_item_id(index)
+    if _encounter_count not in [9,20,30]:
+        _encounter_count=9
+    # These are all OFFLINE AI opponents. Human 20/30 player sessions
+    # still require dedicated server authority and replication.
+    if _info!=null and stage=="lobby":
+        _info.text="SECTOR LOCAL %d · 1 OPERADOR + %d IA\n%s"%[
+            _encounter_count,_encounter_count-1,
+            "Carga elevada: verifica FPS en Motorola" if _encounter_count>9
+            else "Configuración móvil recomendada"]
 
 
 func _ensure_lobby_navigation() -> void:
@@ -572,6 +600,8 @@ func _activate_game(battle: bool) -> void:
     visible=false
     stage="battle" if battle else "training"
     if battle:
+        var combat: Node3D=_game.get_node("CombatRange")
+        combat.call("set_encounter_size",_encounter_count)
         var match_director: Node3D=_game.get_node("AuroraSectorMatch")
         FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",player,
             "battle_aircraft_begin_before")
