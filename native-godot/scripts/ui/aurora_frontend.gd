@@ -643,11 +643,22 @@ func _build_settings() -> void:
     _graphics_selector.add_item("Baja / 30 FPS")
     _graphics_selector.add_item("Media / 45 FPS")
     _graphics_selector.add_item("Alta / 60 FPS")
-    _graphics_selector.select(["baja","media","alta"].find(_mobile_options.graphics_preset))
+    _graphics_selector.add_item("Ultra / 90 FPS")
+    _graphics_selector.add_item("Extrema / 120 FPS")
+    _graphics_selector.select(PLAYER_SETTINGS.GRAPHICS_PRESETS.find(
+        _mobile_options.graphics_preset))
     _graphics_selector.custom_minimum_size=Vector2(112,37)
     _graphics_selector.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _graphics_selector.item_selected.connect(func(_selected: int): _save_timer.start())
     graphics_row.add_child(_graphics_selector)
+    var refresh_label:=Label.new()
+    refresh_label.name="ActualScreenRefreshRate"
+    var hz: float=DisplayServer.screen_get_refresh_rate()
+    refresh_label.text=("Pantalla actual: %.0f Hz"%hz if hz>0.0 else
+        "Frecuencia de pantalla no disponible")+
+        " · FPS máximos configurados (no garantizados)"
+    refresh_label.add_theme_font_size_override("font_size",12)
+    _settings_content.add_child(refresh_label)
     _settings_status=Label.new()
     _settings_status.text="Ajustes recuperados del respaldo" if _preferences.recovered or _mobile_options.recovered else "Se guardan en este dispositivo"
     _settings_status.add_theme_font_size_override("font_size",14)
@@ -733,7 +744,7 @@ func _save_preferences() -> void:
     var scope_result: Error=_mobile_options.save_sensitivity(scope_values)
     var graphics_result: Error=ERR_INVALID_PARAMETER
     if is_instance_valid(_graphics_selector):
-        var preset_names: Array[String]=["baja","media","alta"]
+        var preset_names: Array[String]=PLAYER_SETTINGS.GRAPHICS_PRESETS
         var selected_index: int=_graphics_selector.selected
         if selected_index>=0 and selected_index<preset_names.size():
             graphics_result=_mobile_options.save_graphics(preset_names[selected_index])
