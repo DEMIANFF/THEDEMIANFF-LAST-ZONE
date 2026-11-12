@@ -4,6 +4,7 @@ extends Node3D
 ## Materials and tile/arch meshes are authored here, not third-party branding.
 
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
+const RENDER_BATCHER=preload("res://scripts/world/aurora_static_mesh_batcher.gd")
 const HOUSE_COUNT: int=8
 var terrain: StaticBody3D
 var navigation_points: Array[Vector3]=[]
@@ -13,6 +14,7 @@ var accessible_entries: int=0
 var tile_instances: int=0
 var collision_bodies: int=0
 var cargo_caches_built: int=0
+var visual_draws_saved: int=0
 # Exact raised walkable floor surfaces, shared with the real BR pickup system.
 # No terrain-height guess for objects inside elevated houses.
 var interior_supply_spots: Array[Vector3]=[]
@@ -58,6 +60,7 @@ func _ready() -> void:
         " doors=",accessible_entries," roof_tiles=",tile_instances,
         " solids=",collision_bodies," cargo_caches=",cargo_caches_built,
         " furnished_rooms=",furnished_interiors,
+        " estimated_draws_saved=",visual_draws_saved,
         " interior_supply_sites=",interior_supply_spots.size())
 
 
@@ -408,6 +411,10 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
             Vector3(0,.79,0),_iron,.033)
     _beam(building,"BalconyTopRail",Vector3(-w*.35,3.61,front+1.2),
         Vector3(w*.70,0,0),_iron,.050)
+    # Merge stationary meshes by material: all solid collision bodies,
+    # floor support, roof tiles and navigation nodes remain unchanged.
+    var batch_report: Dictionary=RENDER_BATCHER.merge_building(building)
+    visual_draws_saved+=int(batch_report["estimated_draws_saved"])
     for x in [-w*.5-2.5,w*.5+2.5]:
         for z in [-d*.5-2.5,d*.5+2.5]:
             var p:=building.to_global(Vector3(x,0,z))
