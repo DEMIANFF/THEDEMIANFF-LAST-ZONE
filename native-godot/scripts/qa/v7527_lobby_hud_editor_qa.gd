@@ -34,6 +34,9 @@ func _verify() -> void:
     check(portrait!=null and is_instance_valid(portrait),
         "3D operator preview did not load")
     if portrait!=null:
+        # Real portrait intentionally holds its opening pose for one second.
+        # End that idle hold before measuring smooth automatic rotation.
+        front._preview_resume_spin=0.0
         var before_y: float=portrait.rotation.y
         for i in range(9):
             await process_frame
