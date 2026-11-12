@@ -89,16 +89,16 @@ func _wilderness_height(x: float, z: float) -> float:
 func legacy_grading_weight(x: float,z: float) -> Dictionary:
     # Graded historic lots prevent snow-covered mountains from entering
     # the four old houses. The level area includes floor corners, at least
-    # 8m of doorway approach, and one full terrain grid cell of margin.
+    # 8m of doorway approach and approximately one terrain grid cell margin.
     var strongest: float=0.0
     var height: float=0.0
     for lot in LEGACY_LOTS:
-        var dx: float=maxf(0.0,absf(x-lot.x)-(lot.z*.5+7.5))
-        var back: float=lot.w*.5+7.5
-        var front: float=lot.w*.5+15.5
+        var dx: float=maxf(0.0,absf(x-lot.x)-(lot.z*.5+6.0))
+        var back: float=lot.w*.5+6.0
+        var front: float=lot.w*.5+12.0
         var dz: float=maxf(0.0,maxf(lot.y-z-back,z-lot.y-front))
         var outside: float=Vector2(dx,dz).length()
-        var t: float=clampf(outside/8.0,0.0,1.0)
+        var t: float=clampf(outside/6.0,0.0,1.0)
         var weight: float=1.0-t*t*(3.0-2.0*t)
         if weight>strongest:
             strongest=weight
