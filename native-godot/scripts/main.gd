@@ -131,6 +131,7 @@ func _ready() -> void:
     match_director.terrain=island
     match_director.hud=hud
     add_child(match_director)
+    hud.set_tactical_map_sources(operator,island,match_director)
     TRACE.checkpoint("active","scene_load",operator,"main_scene_ready")
 
 
