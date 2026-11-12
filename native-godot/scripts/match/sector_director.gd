@@ -89,7 +89,7 @@ func begin_aircraft_phase() -> void:
     match_ended=false
     hud.clear_match_result()
     hud.set_battle_button("DESPLIEGUE")
-    hud.set_sector_state("AERONAVE / AURORA",9,INITIAL_RADIUS,0)
+    hud.set_sector_state("AERONAVE / AURORA",int(combat.get("encounter_size")),INITIAL_RADIUS,0)
     _flight.begin()
 
 
@@ -141,7 +141,8 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _spawn_loot()
     hud.set_battle_button("EN PARTIDA")
     hud.set_sector_state("BATALLA SECTOR",combat.active_fighter_count(),radius,0)
-    hud.impact("BATALLA AURORA / SOLO - "+str(combat.active_fighter_count())+" PARTICIPANTES")
+    hud.impact("BATALLA AURORA · 1 JUGADOR + "+
+        str(combat.active_fighter_count()-1)+" IA · OFFLINE")
 
 
 func _ready_for_round() -> bool:
