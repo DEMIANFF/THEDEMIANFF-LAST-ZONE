@@ -20,7 +20,10 @@ func _ready() -> void:
     collision_layer=0
     collision_mask=1
     var surface_y: float=surface_height_override if is_finite(surface_height_override) else         terrain.height_at(world_spot.x,world_spot.y)
-    global_position=Vector3(world_spot.x,surface_y+1.08,world_spot.y)
+    # Pod center is 0.50m above the real support surface (floor/terrain).
+    # The previous 1.08m offset detached pickups from indoor floors, and
+    # made loot appear misplaced from a third-person camera.
+    global_position=Vector3(world_spot.x,surface_y+.50,world_spot.y)
     var sphere:=SphereShape3D.new()
     sphere.radius=1.65
     var shape:=CollisionShape3D.new()
@@ -65,7 +68,7 @@ func _ready() -> void:
     ring_mesh.height=.055
     ring_mesh.radial_segments=14
     ring.mesh=ring_mesh
-    ring.position.y=-.48
+    ring.position.y=-.41
     ring.material_override=material
     _visual.add_child(ring)
     var floating_name:=Label3D.new()
@@ -129,7 +132,7 @@ func _process(delta: float) -> void:
         if global_position.distance_to(player.global_position+Vector3.UP)<1.65:
             _collect(player)
     _phase+=delta
-    _visual.position.y=sin(_phase*2.6)*.17
+    _visual.position.y=sin(_phase*2.6)*.045
     _visual.rotation.y+=delta*.95
 
 

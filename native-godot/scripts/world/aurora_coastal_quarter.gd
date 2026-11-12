@@ -387,6 +387,10 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
     _window_frame(building,Vector3(w*.29,3.6,front+.22),1.4,1.45)
     _furnish_interior(building,w,d,seed)
     _roof_mesh(building,w,d,height)
+    # Continuous interior ceiling: do not depend on winding/culling of
+    # sloped roof triangles to close the room when the camera looks up.
+    _panel(building,"SealedVillaCeiling",Vector3(0,height-.12,0),
+        Vector3(w-.25,.24,d-.25),_wood,true)
     _stair_ramp(building,front,door_width*.64,at)
     # Walkable terrace: physical railing and ground-level cover, balcony visual.
     # Ramp is the ONLY collision support across this threshold. A second

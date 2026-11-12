@@ -2,9 +2,33 @@ extends RefCounted
 ## Persistent, normalized, per-control touch HUD layout. Isolated from account,
 ## Firebase, signed APK identity, weapon ammo and save-game/ledger data.
 const DEFAULT_PATH: String="user://aurora_hud_layout.cfg"
+const ACTIVE_PATH: String="user://aurora_hud_preset.cfg"
+const PRESET_COUNT: int=4
+
+
+static func selected_preset() -> int:
+    var cfg:=ConfigFile.new()
+    if cfg.load(ACTIVE_PATH)!=OK:
+        return 1
+    return clampi(int(cfg.get_value("hud","slot",1)),1,PRESET_COUNT)
+
+
+static func slot_path(slot: int) -> String:
+    return DEFAULT_PATH if slot==1 else "user://aurora_hud_layout_%d.cfg"%slot
+
+
+static func choose_preset(slot: int) -> Error:
+    if slot<1 or slot>PRESET_COUNT:
+        return ERR_INVALID_PARAMETER
+    var cfg:=ConfigFile.new()
+    cfg.set_value("hud","slot",slot)
+    var result: Error=cfg.save(ACTIVE_PATH+".tmp")
+    if result!=OK:
+        return result
+    return DirAccess.rename_absolute(ACTIVE_PATH+".tmp",ACTIVE_PATH)
 const IDS: Array[String]=[
     "MovePad","DirectionalFirePad","CORRER","MIRA","RECARGA","ARMA",
-    "SALTAR","AGACHAR","CURAR 2","BARRERA 0","MOCHILA"
+    "SALTAR","AGACHAR","CURAR 2","BARRERA 0","MOCHILA","AJUSTES"
 ]
 const MIN_SCALE: float=.72
 const MAX_SCALE: float=1.32
@@ -16,7 +40,9 @@ var loaded: bool=false
 
 
 func _init(custom_path: String=DEFAULT_PATH) -> void:
-    path=custom_path
+    # Old installs remain HUD 1. New HUD 2–4 are separate durable files:
+    # changing presets cannot overwrite the player's original layout.
+    path=slot_path(selected_preset()) if custom_path==DEFAULT_PATH else custom_path
     if _read(path):
         loaded=true
     elif _read(path+".tmp") or _read(path+".bak"):

@@ -44,6 +44,13 @@ const COAST_SHELF_ELEVATION: float=7.0
 const LEGACY_CENTERS: Array[Vector2]=[
     Vector2(18,-8),Vector2(-19,-29),Vector2(46,-36),Vector2(-48,22)
 ]
+# Coordinates and true footprints of the original district buildings.
+# They were previously excluded from coastal grading, which let the
+# wilderness heightfield protrude through their raised interior decks.
+const LEGACY_LOTS: Array[Vector4]=[
+    Vector4(18,-8,16,12),Vector4(-19,-29,14,11),
+    Vector4(46,-36,11,10),Vector4(-48,22,12,12)
+]
 
 
 func _smooth_ramp(at: float, low: float, high: float) -> float:
@@ -79,13 +86,34 @@ func _wilderness_height(x: float, z: float) -> float:
 
 
 
+func legacy_grading_weight(x: float,z: float) -> Dictionary:
+    # Graded historic lots prevent snow-covered mountains from entering
+    # the four old houses. The level area includes floor corners, at least
+    # 8m of doorway approach and approximately one terrain grid cell margin.
+    var strongest: float=0.0
+    var height: float=0.0
+    for lot in LEGACY_LOTS:
+        var dx: float=maxf(0.0,absf(x-lot.x)-(lot.z*.5+6.0))
+        var back: float=lot.w*.5+6.0
+        var front: float=lot.w*.5+12.0
+        var dz: float=maxf(0.0,maxf(lot.y-z-back,z-lot.y-front))
+        var outside: float=Vector2(dx,dz).length()
+        var t: float=clampf(outside/6.0,0.0,1.0)
+        var weight: float=1.0-t*t*(3.0-2.0*t)
+        if weight>strongest:
+            strongest=weight
+            height=_wilderness_height(lot.x,lot.y)
+    return {"weight":strongest,"height":height}
+
+
 func _elevation(x: float,z: float) -> float:
     var old_world: float=_wilderness_height(x,z)
     var base: float=lerpf(old_world,COAST_SHELF_ELEVATION,
         _coastal_shelf_weight(x,z))
-    # Grade the ACTUAL triangle heightfield before generating the render
-    # surface/collider. Placing a floating floor atop a steep original hill
-    # does not create walkable flat land. This terrain blend does.
+    # Both historic and newer houses rest on the actual terrain collider.
+    # Keep hills outside all protected residential building footprints.
+    var legacy: Dictionary=legacy_grading_weight(x,z)
+    base=lerpf(base,float(legacy["height"]),float(legacy["weight"]))
     var residential: float=RESIDENTIAL.grading_weight(x,z)
     return lerpf(base,RESIDENTIAL.PAD_HEIGHT,residential)
 

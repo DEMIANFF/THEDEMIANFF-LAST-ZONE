@@ -6,6 +6,7 @@ const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.g
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const GAME = preload("res://scenes/Main.tscn")
+const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
@@ -41,6 +42,8 @@ var _preview_mouse_drag: bool=false
 var _preview_drag_last: Vector2=Vector2.ZERO
 var _preview_resume_spin: float=0.0
 var _hud_editor_requested: bool=false
+var _hud_editor_origin: String=""
+var _settings_modal: CanvasLayer
 
 
 func _ready() -> void:
@@ -443,7 +446,53 @@ func _launch_hud_editor() -> void:
     if stage!="lobby":
         return
     _hud_editor_requested=true
+    _hud_editor_origin="lobby"
     _launch(false)
+
+
+## The same settings screen opens over lobby, training and live BR.
+## It does not replace the scene or reset aircraft, zone or match clock.
+func _open_settings() -> void:
+    if _settings_modal!=null and is_instance_valid(_settings_modal):
+        return
+    if stage not in ["lobby","training","battle"]:
+        return
+    var modal: CanvasLayer=SETTINGS_OVERLAY.new()
+    modal.name="AuroraRealSettings"
+    modal.set("context_origin",stage)
+    modal.set("context_game",_game if stage!="lobby" else null)
+    modal.connect("closed",func(): _settings_modal=null)
+    modal.connect("hud_editor_requested",_settings_edit_hud)
+    _settings_modal=modal
+    if stage=="lobby":
+        add_child(modal)
+    else:
+        _game.add_child(modal)
+
+
+func _settings_edit_hud() -> void:
+    if _settings_modal!=null and is_instance_valid(_settings_modal):
+        _settings_modal.call("_close")
+    if stage=="lobby":
+        _launch_hud_editor()
+    elif stage in ["training","battle"] and _game!=null:
+        var hud: CanvasLayer=_game.get_node("TrainingHUD")
+        hud.call_deferred("open_hud_editor")
+
+
+func _on_lobby_hud_editor_closed() -> void:
+    if _hud_editor_origin!="lobby":
+        return
+    _hud_editor_origin=""
+    # The HUD was edited in a paused real scene, not a fake preview.
+    # The owning lobby is restored, instead of stranding the player in
+    # a training session that they never explicitly started.
+    call_deferred("_finish_lobby_hud_return")
+
+
+func _finish_lobby_hud_return() -> void:
+    if stage=="training" and _game!=null:
+        _return_to_lobby()
 
 
 func _launch(battle: bool) -> void:
@@ -494,6 +543,8 @@ func _activate_game(battle: bool) -> void:
         "frontend_scene_enter_tree_after")
     var hud:=_game.get_node("TrainingHUD") as CanvasLayer
     hud.leave_to_lobby_requested.connect(_return_to_lobby)
+    hud.connect("settings_requested",_open_settings)
+    hud.connect("hud_editor_closed",_on_lobby_hud_editor_closed)
     visible=false
     stage="battle" if battle else "training"
     if battle:
@@ -551,6 +602,7 @@ func _return_to_lobby() -> void:
         old.get_parent().remove_child(old)
         old.queue_free()
     _hud_editor_requested=false
+    _hud_editor_origin=""
     _show_lobby()
 
 
@@ -701,6 +753,11 @@ func _build_settings() -> void:
     hud_edit_button.custom_minimum_size.y=40
     hud_edit_button.add_theme_font_size_override("font_size",14)
     _settings_panel.add_child(hud_edit_button)
+    var settings_entry:=_button("AJUSTES COMPLETOS",
+        Callable(self,"_open_settings"),235)
+    settings_entry.name="FullSettingsEntry"
+    settings_entry.custom_minimum_size.y=39
+    _settings_panel.add_child(settings_entry)
     # A scrollable control section avoids hiding mobile HUD buttons or running
     # past the screen edge when a phone uses 16:9 or a taller aspect ratio.
     var settings_scroll:=ScrollContainer.new()

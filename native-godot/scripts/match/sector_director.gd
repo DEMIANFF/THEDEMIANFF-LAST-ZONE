@@ -279,8 +279,32 @@ func _spawn_loot() -> void:
                 "AuroraInteriorLoot"+str(i+1),at.y)
 
 
+func _historic_floor_at(at: Vector2) -> float:
+    # Some of the original 16 "outdoor" coordinates overlap an older house
+    # (notably the AWM rounds in CENTRO DE EXPLORACION). If so, use the
+    # REAL raised InteriorDeck top; never bury a pickup in the terrain below.
+    var district: Node3D=get_parent().get_node_or_null("PuertoAuroraSector") as Node3D
+    if district==null:
+        return NAN
+    var sites: Array[Vector4]=[
+        Vector4(18,-8,16,12),Vector4(-19,-29,14,11),
+        Vector4(46,-36,11,10),Vector4(-48,22,12,12)]
+    var names: Array[String]=[
+        "CENTRO_DE_EXPLORACION","TALLER_HELIOS",
+        "ESTACION_METEOROLOGICA","PUESTO_VORTEX"]
+    for index in range(sites.size()):
+        var site: Vector4=sites[index]
+        if absf(at.x-site.x)<site.z*.5-.8 and             absf(at.y-site.y)<site.w*.5-.8:
+            var house: Node3D=district.get_node_or_null(names[index]) as Node3D
+            if house!=null:
+                return house.global_position.y+.10
+    return NAN
+
+
 func _make_pickup(at: Vector2,kind: String,pickup_name: String,
         floor_height: float=NAN) -> void:
+    if not is_finite(floor_height):
+        floor_height=_historic_floor_at(at)
     var pickup: Area3D=LOOT.new()
     pickup.name=pickup_name
     pickup.pickup_type=kind

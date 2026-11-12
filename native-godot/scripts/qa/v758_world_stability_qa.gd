@@ -22,8 +22,10 @@ func _verify() -> void:
     var quarter=scene.get_node("PuertoAuroraCoastalQuarter")
     var city=scene.get_node("PuertoAuroraSector")
     var audio=scene.get_node("AuroraSoundStage")
-    # This specifically guards against a future fix that levels old building
-    # entrances to a faraway mountain's height.
+    # V75.41 intentionally grades the original four building footprints so
+    # snow no longer enters them. Instead of rejecting any terrain change,
+    # require each true collision ramp to join the new terrain safely and
+    # preserve natural slopes beyond the grading transition.
     var preserved: int=0
     var clean_rooms: int=0
     for item in [
@@ -35,10 +37,27 @@ func _verify() -> void:
         var building: Node3D=city.get_node(item[0])
         var site: Vector2=item[1]
         var approach:=Vector2(site.x,site.y+float(item[2])*.5+8.0)
-        var delta: float=absf(terrain.height_at(approach.x,approach.y) -
-            terrain._wilderness_height(approach.x,approach.y))
-        check(delta<1.8,"legacy entrance reshaped too much "+str(item[0])+" delta="+str(delta))
-        if delta<1.8:
+        var entry_ground: float=terrain.height_at(approach.x,approach.y)
+        var deck_top: float=building.global_position.y+.10
+        var slope: float=absf(deck_top-entry_ground)/8.0
+        var physical_ramps: int=0
+        for child in building.get_children():
+            if child is StaticBody3D and str(child.name).begins_with("AccessibleEntryRamp"):
+                var collider: CollisionShape3D=child.get_child(0) as CollisionShape3D
+                if collider!=null and collider.shape is ConvexPolygonShape3D:
+                    physical_ramps+=1
+        # The original entrances contain TWO real consecutive convex ramps.
+        # A level lot should keep the full 8m path within walkable grade.
+        check(slope<.25 and physical_ramps==2,
+            "unsafe legacy entry "+str(item[0])+
+            " slope="+str(slope)+" ramps="+str(physical_ramps))
+        var wilderness: Vector2=Vector2(site.x,site.y+
+            float(item[2])*.5+26.0)
+        var legacy_weight: Dictionary=terrain.legacy_grading_weight(
+            wilderness.x,wilderness.y)
+        check(float(legacy_weight["weight"])<.01,
+            "historic grading spilled into distant terrain "+str(item[0]))
+        if slope<.25 and physical_ramps==2:
             preserved+=1
         var clear: bool=true
         for local in [Vector2.ZERO,Vector2(2,2),Vector2(-2,-2),

@@ -24,6 +24,7 @@ func _ready() -> void:
     glass = _material(Color(0.10, 0.48, 0.59, 0.64), 0.12, 0.15)
     glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
     roof_mat = _material(Color(0.18, 0.31, 0.40), 0.5, 0.32)
+    roof_mat.cull_mode=BaseMaterial3D.CULL_DISABLED
     pavement = _material(Color(0.30, 0.39, 0.43), 0.94, 0.04)
     beacon = _material(Color(0.13, 0.70, 0.79), 0.28, 0.12)
     beacon.emission_enabled = true
@@ -191,6 +192,10 @@ func _make_building(at: Vector2, label: String, w: float, d: float, h: float, he
             _beam(root,"WindowFrame",Vector3(x,2.55,zpos),Vector3(x,4.60,zpos),.075,trim)
         _beam(root,"WindowSill",Vector3(x,2.55,-1.62),Vector3(x,2.55,1.62),.08,trim)
     _sloped_roof(root,w,d,h)
+    # A physical opaque ceiling closes the living volume below the gabled
+    # roof. The old single-sided roof left the open sky visible indoors.
+    _solid_panel(root,"SealedInteriorCeiling",Vector3(0,h-.12,0),
+        Vector3(w-.18,.24,d-.18),wall_dark)
     for x in [-w*.5+.8,w*.5-.8]:
         _beam(root,"VerticalStructure",Vector3(x,.1,d*.5+.08),Vector3(x,h,d*.5+.08),.13,trim)
     _solid_panel(root,"ExteriorLanding",Vector3(0,-.50,d*.5+2.1),Vector3(door_w+1.2,.30,3.8),pavement)
@@ -318,11 +323,11 @@ func _make_access_ramp(root: Node3D, door_width: float, depth: float) -> void:
     var width: float=door_width*.5+.3
     var low: float=_height(root.position.x,root.position.z+front)-root.position.y-.02
     var halfway: float=maxf(-.30,lerpf(low,.12,(front-middle)/(front-back)))
-    _ramp_segment(root,width,front,low,middle,halfway)
-    _ramp_segment(root,width,middle,halfway,back,.12)
+    _ramp_segment(root,width,front,low,middle,halfway,1)
+    _ramp_segment(root,width,middle,halfway,back,.12,2)
 
 
-func _ramp_segment(root: Node3D,width: float,front: float,low: float,back: float,high: float) -> void:
+func _ramp_segment(root: Node3D,width: float,front: float,low: float,back: float,high: float,segment: int) -> void:
     var bottom: float=minf(low,high)-.18
     var points:=PackedVector3Array([
         Vector3(-width,low,front),Vector3(width,low,front),
@@ -332,7 +337,7 @@ func _ramp_segment(root: Node3D,width: float,front: float,low: float,back: float
     var hull:=ConvexPolygonShape3D.new()
     hull.points=points
     var body:=StaticBody3D.new()
-    body.name="AccessibleEntryRamp"
+    body.name="AccessibleEntryRamp%02d"%segment
     body.collision_layer=3
     var collider:=CollisionShape3D.new()
     collider.shape=hull

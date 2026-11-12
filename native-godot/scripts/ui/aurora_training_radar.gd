@@ -8,6 +8,7 @@ var _tick: float=0.0
 var _zone_enabled: bool=false
 var _zone_world_center: Vector2=Vector2.ZERO
 var _zone_radius: float=90.0
+var rotate_with_camera: bool=true
 
 
 func _ready() -> void:
@@ -57,7 +58,7 @@ func _draw() -> void:
     draw_colored_polygon(arrow,Color(.75,.99,1.0))
     if player==null or not is_instance_valid(player):
         return
-    var yaw: float=float(player.get("_yaw"))
+    var yaw: float=float(player.get("_yaw")) if rotate_with_camera else 0.0
     var world_range: float=130.0 if _zone_enabled else 60.0
     if _zone_enabled:
         var offset: Vector2=_zone_world_center-Vector2(player.global_position.x,player.global_position.z)
