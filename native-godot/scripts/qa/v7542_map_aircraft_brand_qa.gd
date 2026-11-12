@@ -118,7 +118,7 @@ func _verify() -> void:
     root.add_child(boot)
     await process_frame
     check(ResourceLoader.exists("res://icon.svg") and
-        ProjectSettings.get_setting("application/boot_splash/image")=="res://icon.svg",
+        ProjectSettings.get_setting("application/boot_splash/image")=="res://assets/ui/aurora_splash.png",
         "original logo was not integrated into the engine loading screen")
     check(boot.get_node_or_null("AuroraMenuSurface/LastZoneAuroraEmblem")!=null,
         "missing original brand emblem from start and lobby")
