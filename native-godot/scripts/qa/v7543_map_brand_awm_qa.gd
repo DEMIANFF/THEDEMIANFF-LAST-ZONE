@@ -78,7 +78,7 @@ func _verify() -> void:
     await process_frame
     check(str(ProjectSettings.get_setting("application/config/name")).begins_with(
         "THEDEMIAN: LAST ZONE"),"old FF game title remains in app metadata")
-    check(bool(ProjectSettings.get_setting("application/boot_splash/fullsize")),
+    check(ProjectSettings.get_setting("application/boot_splash/fullsize")==true,
         "Godot loading image remains too small")
     var splash: Texture2D=load("res://assets/ui/aurora_splash.png") as Texture2D
     check(splash!=null and splash.get_width()>=480,
