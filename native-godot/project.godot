@@ -1,7 +1,7 @@
 config_version=5
 
 [application]
-config/name="THEDEMIANFF LAST ZONE | Aurora V75.42 Mapa Avion Operador"
+config/name="THEDEMIAN: LAST ZONE | Puerto Aurora V75.43"
 run/main_scene="res://scenes/Boot.tscn"
 # 120 is an upper bound, not a performance guarantee.
 run/max_fps=120
@@ -10,7 +10,7 @@ config/icon="res://icon.svg"
 boot_splash/image="res://assets/ui/aurora_splash.png"
 boot_splash/bg_color=Color(0.018, 0.021, 0.067, 1)
 boot_splash/show_image=true
-boot_splash/fullsize=false
+boot_splash/fullsize=true
 
 [rendering]
 renderer/rendering_method="gl_compatibility"
