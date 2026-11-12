@@ -28,9 +28,9 @@ func _verify() -> void:
     await physics_frame
     await physics_frame
 
-    check(coastal.buildings_built==6 and coastal.furnished_interiors==6,
-        "six houses were not created with authentic collidable interiors")
-    check(coastal.interior_supply_spots.size()==6,
+    check(coastal.buildings_built==coastal.HOUSE_COUNT and coastal.furnished_interiors==coastal.HOUSE_COUNT,
+        "all coastal houses must have collidable furnished interiors")
+    check(coastal.interior_supply_spots.size()==coastal.HOUSE_COUNT,
         "missing exact interior floor surface coordinates")
     check(coastal.cargo_caches_built==2,
         "coastal expansion changed existing proven freight caches")
@@ -40,7 +40,7 @@ func _verify() -> void:
     var space:=game.get_world_3d().direct_space_state
     # Test both previous and newly expanded villas; the door corridors
     # must remain open after furnishing and adding the northern plaza.
-    var house_depths: Array[float]=[8.0,8.4,8.3,7.7,8.3,8.4]
+    var house_depths: Array[float]=[8.0,8.4,8.3,7.7,8.3,8.4,8.2,8.1]
     for index in range(coastal.HOUSE_COUNT):
         var house: Node3D=coastal.get_node("AuroraCoastalVilla"+str(index))
         var depth: float=house_depths[index]
@@ -73,7 +73,7 @@ func _verify() -> void:
     check(tested_open_doors==coastal.HOUSE_COUNT,
         "wall collision blocks at least one of six real doorways")
     check(walked_houses==coastal.HOUSE_COUNT,
-        "player could not walk into all six houses")
+        "player could not walk into every coastal home")
 
     # Test four continuous phases and each deliberate preparation/closure
     # interval without waiting through a real five-minute battle.
@@ -108,8 +108,8 @@ func _verify() -> void:
     director.start_sector_battle()
     await physics_frame
     check(director.mode=="sector_battle" and
-        director.get_loot_remaining()==22,
-        "real match did not start with 16 outdoor + 6 indoor pickups")
+        director.get_loot_remaining()==25,
+        "real match must start with 16 outdoor, 8 indoor and 1 AWM pickup")
     for enemy in combat._targets:
         enemy.set_physics_process(false)
         check(is_equal_approx(enemy.safe_radius,director.INITIAL_RADIUS),
@@ -136,7 +136,7 @@ func _verify() -> void:
     await physics_frame
     pickup._collect(player)
     check(pickup.collected and combat.medkits_remaining==before+1 and
-        director.get_loot_remaining()==21,
+        director.get_loot_remaining()==24,
         "entering a real home cannot collect the indoor medkit")
     # Each actual indoor pickup must be obtainable from its floor anchor,
     # not simply counted or rendered in a house inaccessible to the player.
@@ -152,11 +152,11 @@ func _verify() -> void:
         loot._collect(player)
         check(loot.collected,"interior capsule "+str(index+1)+
             " is unreachable, blocked, or has invalid resource pickup")
-    check(director.get_loot_remaining()==16,
-        "six indoor capsules were not independently collectible")
+    check(director.get_loot_remaining()==17,
+        "eight indoor capsules were not independently collectible")
     if not failed:
         print("V7528_COASTAL_BR PASS all houses walked=",walked_houses,
             " furnished=",coastal.furnished_interiors,
             " indoor_pickups=",coastal.interior_supply_spots.size(),
-            " battle_pickups=22 phases=4")
+            " battle_pickups=25 phases=4")
     quit(1 if failed else 0)
