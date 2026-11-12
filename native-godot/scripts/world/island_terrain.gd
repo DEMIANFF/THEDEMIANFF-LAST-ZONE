@@ -142,6 +142,11 @@ func _ready() -> void:
             var coastal := clampf((y - sea_level - 0.5) / 5.0, 0.0, 1.0)
             var coastal_color := Color(0.46, 0.55, 0.55).lerp(rock, coastal)
             var natural := coastal_color.lerp(snow, upper_snow * (1.0 - slope_rock))
+            # Distinguish level residential soil from surrounding snowy,
+            # mountainous terrain using existing vertex colors (zero draw
+            # calls/textures added on mobile).
+            var lot: float=RESIDENTIAL.grading_weight(x,z)
+            natural=natural.lerp(Color(.58,.53,.43),lot*.77)
             colors.append(natural)
             uvs.append(Vector2(x/7.5,z/7.5))
 
