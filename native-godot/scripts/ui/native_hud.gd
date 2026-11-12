@@ -16,6 +16,8 @@ signal jump_pressed
 signal movement_axis_changed(value: Vector2)
 signal start_battle_requested
 signal leave_to_lobby_requested
+signal settings_requested
+signal hud_editor_closed
 const SAFE_SCREEN=preload("res://scripts/ui/safe_screen.gd")
 const VIRTUAL_PAD = preload("res://scripts/ui/virtual_joystick.gd")
 const DIRECTIONAL_FIRE = preload("res://scripts/ui/directional_fire_pad.gd")
@@ -55,6 +57,7 @@ var _result_window: PanelContainer
 var _result_text: Label
 var _jump_button: Button
 var _exit_button: Button
+var _settings_button: Button
 var _inventory_button: Button
 var _inventory_panel: PanelContainer
 var _inventory_label: Label
@@ -202,6 +205,8 @@ func _ready() -> void:
     _cover_button.visible=false
     _cover_button.disabled=true
     _exit_button=_button(root,"LOBBY",.936,.255,95,46,Color(.13,.27,.43),_return_lobby)
+    _settings_button=_button(root,"AJUSTES",.85,.255,78,78,
+        Color(.16,.34,.44),func(): settings_requested.emit())
     _inventory_button=_button(root,"MOCHILA",.75,.255,105,46,
         Color(.17,.35,.41),_toggle_inventory)
     _inventory_button.disabled=true
@@ -279,7 +284,10 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
     normal.bg_color=Color(color.r*.78,color.g*.76,color.b*.80,.88)
     normal.border_color=Color(.37,.76,.94,.86)
     normal.set_border_width_all(2)
-    normal.set_corner_radius_all(int(minf(w,h)*.35))
+    # Circular gameplay actions, not rounded rectangles. Non-gameplay BR
+    # launch remains rectangular. Style radius is not enough on its own:
+    # _layout also assigns genuinely square hit rectangles to every action.
+    normal.set_corner_radius_all(100 if label!="INICIAR BR" else 12)
     normal.shadow_color=Color(0,0,0,.22)
     normal.shadow_size=3
     var pressed:=normal.duplicate() as StyleBoxFlat
@@ -572,24 +580,25 @@ func _layout() -> void:
     _place(_compass,Rect2(origin+Vector2(w*.5-75,6),Vector2(150,28)))
     _place(_battle_status,Rect2(origin+Vector2(w*.5-220,37),Vector2(440,30)))
     _place(_battle_button,Rect2(origin+Vector2(w*.5-90,64),Vector2(180,46)))
-    _place(_exit_button,Rect2(origin+Vector2(w-118,112),Vector2(92,44)))
-    _place(_inventory_button,Rect2(origin+Vector2(w-246,112),Vector2(115,44)))
+    _place(_exit_button,Rect2(origin+Vector2(w-107,108),Vector2(78,78)))
+    _place(_settings_button,Rect2(origin+Vector2(w-194,108),Vector2(78,78)))
+    _place(_inventory_button,Rect2(origin+Vector2(w-281,108),Vector2(78,78)))
     _place(_inventory_panel,Rect2(origin+Vector2(w-410,164),Vector2(290,127)))
     _place(_hint,Rect2(origin+Vector2(w*.5-210,h-32),Vector2(420,24)))
     _hint.add_theme_font_size_override("font_size",11)
     _place(_hit,Rect2(origin+Vector2(w*.5-300,128),Vector2(600,50)))
     _hit.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     _place(root.get_node("MovePad"),Rect2(origin+Vector2(40,h-235),Vector2(210,210)))
-    _place(_run_button,Rect2(origin+Vector2(90,h-294),Vector2(110,52)))
+    _place(_run_button,Rect2(origin+Vector2(96,h-308),Vector2(90,90)))
     _place(root.get_node("DirectionalFirePad"),Rect2(origin+Vector2(w-172,h-257),Vector2(144,144)))
-    _place(_aim_button,Rect2(origin+Vector2(w-300,h-260),Vector2(82,60)))
-    _place(root.get_node("RECARGA"),Rect2(origin+Vector2(w-310,h-175),Vector2(86,58)))
-    _place(root.get_node("ARMA"),Rect2(origin+Vector2(w-235,h-107),Vector2(86,58)))
-    _place(_crouch_button,Rect2(origin+Vector2(w-422,h-180),Vector2(92,56)))
-    _place(_medkit_button,Rect2(origin+Vector2(w-422,h-107),Vector2(92,56)))
-    _place(_cover_button,Rect2(origin+Vector2(w-422,h-259),Vector2(92,56)))
+    _place(_aim_button,Rect2(origin+Vector2(w-310,h-285),Vector2(86,86)))
+    _place(root.get_node("RECARGA"),Rect2(origin+Vector2(w-314,h-186),Vector2(76,76)))
+    _place(root.get_node("ARMA"),Rect2(origin+Vector2(w-230,h-106),Vector2(76,76)))
+    _place(_crouch_button,Rect2(origin+Vector2(w-421,h-190),Vector2(78,78)))
+    _place(_medkit_button,Rect2(origin+Vector2(w-421,h-99),Vector2(78,78)))
+    _place(_cover_button,Rect2(origin+Vector2(w-421,h-284),Vector2(78,78)))
     _jump_button.custom_minimum_size=Vector2.ZERO
-    var jump_rect:=Rect2(origin+Vector2(w-135,h-107),Vector2(100,58))
+    var jump_rect:=Rect2(origin+Vector2(w-121,h-112),Vector2(92,92))
     if air_stage!="ground":
         jump_rect=Rect2(origin+Vector2(w-220,h-118),Vector2(190,64))
     _place(_jump_button,jump_rect)
@@ -782,6 +791,7 @@ func _hud_edit_close() -> void:
     _layout()
     get_tree().paused=false
     process_mode=Node.PROCESS_MODE_INHERIT
+    hud_editor_closed.emit()
 
 
 func _exit_tree() -> void:
@@ -812,7 +822,7 @@ func reset_controls() -> void:
 func set_match_controls(enabled: bool) -> void:
     var root: Control=get_node("AuroraTacticalOverlay")
     for control in root.get_children():
-        if control is Button and control!=_battle_button and control!=_exit_button:
+        if control is Button and control!=_battle_button and control!=_exit_button and control!=_settings_button:
             control.disabled=not enabled
     root.get_node("MovePad").visible=enabled
     root.get_node("DirectionalFirePad").visible=enabled
