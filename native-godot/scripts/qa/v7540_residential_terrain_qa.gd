@@ -42,7 +42,7 @@ func _verify() -> void:
             is_equal_approx(house.rotation.y,RESIDENTIAL.YAWS[index]),
             "house "+str(index)+" no longer shares terrain site's coordinates")
         var floor: StaticBody3D=house.get_node("WalkableInteriorFloorSolid")
-        var body: CollisionShape3D=floor.get_node("CollisionShape3D")
+        var body: CollisionShape3D=floor.get_child(0) as CollisionShape3D
         check(body.shape is BoxShape3D,"house "+str(index)+
             " lost its physical interior floor")
         var base: float=house.global_position.y
@@ -68,7 +68,7 @@ func _verify() -> void:
         check(high-low<.08,
             "house "+str(index)+" floor or approach crosses a hillside")
         var ramp: StaticBody3D=house.get_node("TraversableDoorRamp")
-        var ramp_collider: CollisionShape3D=ramp.get_node("CollisionShape3D")
+        var ramp_collider: CollisionShape3D=ramp.get_child(0) as CollisionShape3D
         check(ramp_collider.shape is ConvexPolygonShape3D,
             "house "+str(index)+" entrance ramp lost its convex physics")
         var far: Vector3=house.to_global(Vector3(0,0,site.w*.5+7.5))
