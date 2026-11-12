@@ -5,6 +5,7 @@ extends Control
 signal waypoint_changed(world_point: Vector2)
 const FLIGHT=preload("res://scripts/match/airdrop_sequence.gd")
 const WORLD_HALF: float=225.0
+const ZONE_CENTER: Vector2=Vector2(0,-24)
 const POINTS: Array[Vector2]=[
     Vector2(18,-8),Vector2(-19,-29),Vector2(46,-36),Vector2(-48,22),
     Vector2(-4,42),Vector2(19,43),Vector2(43,41),Vector2(62,28),
@@ -175,10 +176,12 @@ func _gui_input(event: InputEvent) -> void:
             _touches[drag.index]=drag.position
             if _touches.size()==2:
                 var fingers: Array=_touches.values()
-                var separation: float=(fingers[0] as Vector2).distance_to(fingers[1])
+                var first: Vector2=fingers[0]
+                var second: Vector2=fingers[1]
+                var separation: float=first.distance_to(second)
                 if separation>15.0:
                     zoom=clampf(zoom*(1.0+drag.relative.length()*.003*signf(
-                        separation-(previous as Vector2).distance_to(fingers[0]))),1.0,4.0)
+                        separation-previous.distance_to(first))),1.0,4.0)
             else:
                 pan-=drag.relative*_meters_per_pixel(rect)
                 _follow_player=false
@@ -225,7 +228,7 @@ func _draw() -> void:
                 var world: Vector2=unproject(pos)
                 var y: float=terrain.height_at(world.x,world.y)
                 var tone: Color=Color(.035,.20,.30)
-                if y>terrain.sea_level+1.0:
+                if y>float(terrain.get("sea_level"))+1.0:
                     tone=Color(.19,.32,.28).lerp(Color(.47,.43,.34),
                         clampf((y-4.0)/45.0,0.0,1.0))
                 if y>32:
@@ -248,7 +251,7 @@ func _draw() -> void:
             draw_string(font,at+Vector2(7,-7),NAMES[i],
                 HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.97,.94,.77))
     if is_instance_valid(director):
-        var center: Vector2=director.CENTER
+        var center: Vector2=ZONE_CENTER
         var rad: float=float(director.radius)/_meters_per_pixel(rect)
         draw_arc(project(center),rad,0,TAU,120,Color(.35,.95,1.0,.92),3.0,true)
         var flight: Node3D=director.get("_flight") as Node3D
@@ -256,7 +259,7 @@ func _draw() -> void:
             var start:=project(Vector2(0,FLIGHT.ROUTE_START_Z))
             var end:=project(Vector2(0,FLIGHT.ROUTE_END_Z))
             draw_dashed_line(start,end,Color(1.0,.81,.34),3.0,8.0)
-            var plane_pos: Vector3=flight.player.global_position
+            var plane_pos: Vector3=player.global_position
             draw_circle(project(Vector2(plane_pos.x,plane_pos.z)),8.0,Color(1,.84,.19))
     if is_instance_valid(player):
         var p:=project(Vector2(player.global_position.x,player.global_position.z))
