@@ -119,10 +119,22 @@ func _physics_process(_delta: float) -> void:
             _building_edges=true
             _build_index=0
             _edge_other_index=1
-            _ids=graph.get_point_ids()
+            # Do not snapshot the AStar3D point IDs inside the same physics
+            # callback that just completed dozens of terrain/capsule queries.
+            # The previous Motorola report ends immediately before this call.
             TRACE.checkpoint("active","training",_trace_actor(),
-                "navigation_nodes_complete_edges_pending",
-                "nodes="+str(_ids.size())+" samples="+str(_samples.size()))
+                "navigation_samples_complete_ids_deferred",
+                "nodes="+str(graph.get_point_count())+
+                " samples="+str(_samples.size()))
+        return
+    if _ids.is_empty():
+        TRACE.checkpoint("active","training",_trace_actor(),
+            "navigation_point_ids_before",
+            "nodes="+str(graph.get_point_count()))
+        _ids=graph.get_point_ids()
+        TRACE.checkpoint("active","training",_trace_actor(),
+            "navigation_nodes_complete_edges_pending",
+            "nodes="+str(_ids.size())+" samples="+str(_samples.size()))
         return
     # Never process an unbounded series of PhysicsServer sweeps in one tick.
     # Durable events straddle the FIRST real sweep so an Android exit can be
