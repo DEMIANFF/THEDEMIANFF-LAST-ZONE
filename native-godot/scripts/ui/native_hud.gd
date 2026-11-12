@@ -612,7 +612,7 @@ func _layout() -> void:
     _place(_hit,Rect2(origin+Vector2(w*.5-300,128),Vector2(600,50)))
     _hit.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     _place(root.get_node("MovePad"),Rect2(origin+Vector2(40,h-235),Vector2(210,210)))
-    _place(_run_button,Rect2(origin+Vector2(96,h-308),Vector2(90,90)))
+    _place(_run_button,Rect2(origin+Vector2(96,h-341),Vector2(90,90)))
     _place(root.get_node("DirectionalFirePad"),Rect2(origin+Vector2(w-172,h-257),Vector2(144,144)))
     _place(_aim_button,Rect2(origin+Vector2(w-310,h-285),Vector2(86,86)))
     _place(root.get_node("RECARGA"),Rect2(origin+Vector2(w-314,h-186),Vector2(76,76)))
