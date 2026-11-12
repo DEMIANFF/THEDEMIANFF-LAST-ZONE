@@ -86,6 +86,19 @@ func _verify() -> void:
         check(distance<director.INITIAL_RADIUS,
             "house "+str(index)+" relocated outside opening safe zone")
         verified_entries+=1
+    # Real MultiMesh foliage and collision-bearing trees must never occupy
+    # any freshly re-sited home or its exterior walking corridor.
+    var nature: Node3D=scene.get_node("AuroraNature")
+    for group_name in ["AuroraPineTrunks","LuminescentIceCrystals"]:
+        var draw: MultiMeshInstance3D=nature.get_node(group_name)
+        check(draw.multimesh!=null,
+            "missing environmental instances for "+group_name)
+        if draw.multimesh!=null:
+            for n in range(draw.multimesh.instance_count):
+                var at: Vector3=nature.to_global(
+                    draw.multimesh.get_instance_transform(n).origin)
+                check(RESIDENTIAL.grading_weight(at.x,at.z)<=.05,
+                    group_name+" spawned inside a house/entry plateau "+str(at))
     # The older four buildings and the distant mountains retain their
     # original terrain, collision shapes and navigable approach grades.
     for legacy in [Vector2(18,-8),Vector2(-19,-29),
