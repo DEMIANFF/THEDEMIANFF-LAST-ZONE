@@ -7,9 +7,9 @@ extends RefCounted
 ## lowland residential sites. All dimensions are in world metres.
 const HOUSE_COUNT: int=8
 const PAD_HEIGHT: float=7.0
-const PAD_SIDE_MARGIN: float=4.8
-const PAD_REAR_MARGIN: float=4.8
-const PAD_FRONT_MARGIN: float=12.5
+const PAD_SIDE_MARGIN: float=6.7
+const PAD_REAR_MARGIN: float=6.7
+const PAD_FRONT_MARGIN: float=14.5
 const PAD_BLEND_WIDTH: float=8.0
 # World X, world Z, physical house width, physical house depth.
 const SITES: Array[Vector4]=[
