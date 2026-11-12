@@ -57,7 +57,7 @@ func _verify() -> void:
     # an incomplete jump simply because last_transition moved forward.
     check(str(log.get("history","")).contains("freefall / jump_committed"),
         "jump terminal checkpoint missing from durable event sequence")
-    check(str(log.get("build","")).contains("THEDEMIANFF"),
+    check(str(log.get("build","")).begins_with("THEDEMIAN: LAST ZONE"),
         "diagnostic does not identify build")
     check(str(log.get("render_backend",""))=="gl_compatibility",
         "diagnostic must identify GL compatibility renderer")
