@@ -1,8 +1,10 @@
 config_version=5
 
 [application]
-config/name="THEDEMIANFF LAST ZONE | Aurora V75.24 WAV PCM Safety"
+config/name="THEDEMIANFF LAST ZONE | Aurora V75.25 120 Hz Preview"
 run/main_scene="res://scenes/Boot.tscn"
+# 120 is an upper bound, not a performance guarantee.
+run/max_fps=120
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -13,6 +15,9 @@ textures/default_filters/use_nearest_mipmap_filter=false
 textures/vram_compression/import_etc2_astc=true
 
 [display]
+# Swappy can request >60Hz on Android 15+ when the display allows it.
+window/frame_pacing/android/enable_frame_pacing=true
+window/frame_pacing/android/swappy_mode=0
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
