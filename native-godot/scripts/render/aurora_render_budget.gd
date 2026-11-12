@@ -143,6 +143,14 @@ func _process(delta: float) -> void:
             changes+=1
 
 
+func _exit_tree() -> void:
+    # Restore the 3D scale for the standalone login/lobby viewport.
+    # The next battle reads the chosen profile again.
+    var viewport: Viewport=get_viewport()
+    if viewport!=null:
+        viewport.scaling_3d_scale=1.0
+
+
 func snapshot() -> Dictionary:
     return {
         "profile":profile,
