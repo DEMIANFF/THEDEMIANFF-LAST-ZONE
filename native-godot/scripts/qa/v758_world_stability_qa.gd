@@ -42,7 +42,7 @@ func _verify() -> void:
         var slope: float=absf(deck_top-entry_ground)/8.0
         var physical_ramps: int=0
         for child in building.get_children():
-            if child is StaticBody3D and child.name=="AccessibleEntryRamp":
+            if child is StaticBody3D and str(child.name).begins_with("AccessibleEntryRamp"):
                 var collider: CollisionShape3D=child.get_child(0) as CollisionShape3D
                 if collider!=null and collider.shape is ConvexPolygonShape3D:
                     physical_ramps+=1
