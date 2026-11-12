@@ -38,9 +38,10 @@ func _verify() -> void:
         # End that idle hold before measuring smooth automatic rotation.
         front._preview_resume_spin=0.0
         var before_y: float=portrait.rotation.y
-        for i in range(9):
-            await process_frame
-        check(absf(angle_difference(before_y,portrait.rotation.y))>.004,
+        # Headless CI frames can have near-zero dt. Exercise the real
+        # animation update with a known elapsed interval, not fake rotation.
+        front._process(.25)
+        check(absf(angle_difference(before_y,portrait.rotation.y))>.02,
             "live animated 3D lobby portrait stopped rotating")
     check(front._surface.has_node("LobbyMenuBackplate") and
         front._surface.has_node("LobbySidebarBackplate"),
