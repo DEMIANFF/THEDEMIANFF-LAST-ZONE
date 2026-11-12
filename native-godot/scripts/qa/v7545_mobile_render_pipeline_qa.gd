@@ -51,8 +51,8 @@ func _verify() -> void:
                     total_batches+=1
                 elif not visual.visible:
                     hidden_primitives+=1
-            if component is StaticBody3D and
-                    str(component.name).contains("WalkableInteriorFloor"):
+            if (component is StaticBody3D and
+                    str(component.name).contains("WalkableInteriorFloor")):
                 preserved_collision+=1
         check(hidden_primitives>=8,
             "each house should consolidate repeated drawing primitives")
@@ -100,7 +100,7 @@ func _verify() -> void:
     check(camera.near>=.079 and camera.far>=630.0 and camera.far<=700.0,
         "camera depth precision and island coverage not preserved")
     var sea: MeshInstance3D=game.get_node("SeaSurface")
-    var seawater: StandardMaterial3D=sea.material_override
+    var seawater: StandardMaterial3D=sea.material_override as StandardMaterial3D
     check(seawater.transparency==BaseMaterial3D.TRANSPARENCY_DISABLED and
         sea.mesh is PlaneMesh and is_equal_approx(sea.position.y,float((game.get("island") as StaticBody3D).get("sea_level"))),
         "GPU performance regression: full island water became transparent")
