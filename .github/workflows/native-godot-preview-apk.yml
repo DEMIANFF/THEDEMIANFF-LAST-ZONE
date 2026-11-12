@@ -1,10 +1,10 @@
-name: Aurora V75.45 120Hz Permanent Preview Identity Android ARM64
+name: Aurora V75.46 OpenGL vs Mobile Vulkan signed ARM64 A/B
 concurrency:
   group: aurora-android-${{ github.ref }}
   cancel-in-progress: true
 on:
   push:
-    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit, codex/godot-flight-blackbox-diagnostics, codex/godot-shared-scene-crash-audit, codex/v75-20-training-freefall-crash-isolation, codex/v75-21-mobile-physics-animation-hardening, codex/v75-22-motorola-crash-window-recovery, codex/v75-23-android-audio-thread-recovery, codex/v75-24-wav-loop-buffer-safety, codex/v75-25-120hz-stable-preview-signing, codex/v75-26-camera-controls-motion-polish, codex/v75-27-lobby-hud-editor, codex/v75-28-puerto-aurora-sector-expansion, codex/v75-29-zone-bot-sync-house-qa, codex/v75-30-combat-sound-awareness, codex/v75-34-integrated-combat-inventory-aurora, codex/v75-40-residential-terrain-foundations, codex/v75-41-house-hud-settings-integration, codex/v75-42-aurora-tactical-map-aircraft-brand, codex/v75-43-map-lobby-brand-awm-polish, codex/v75-44-aurora-playable-scale-visual-core, codex/v75-45-mobile-render-pipeline-budget]
+    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit, codex/godot-flight-blackbox-diagnostics, codex/godot-shared-scene-crash-audit, codex/v75-20-training-freefall-crash-isolation, codex/v75-21-mobile-physics-animation-hardening, codex/v75-22-motorola-crash-window-recovery, codex/v75-23-android-audio-thread-recovery, codex/v75-24-wav-loop-buffer-safety, codex/v75-25-120hz-stable-preview-signing, codex/v75-26-camera-controls-motion-polish, codex/v75-27-lobby-hud-editor, codex/v75-28-puerto-aurora-sector-expansion, codex/v75-29-zone-bot-sync-house-qa, codex/v75-30-combat-sound-awareness, codex/v75-34-integrated-combat-inventory-aurora, codex/v75-40-residential-terrain-foundations, codex/v75-41-house-hud-settings-integration, codex/v75-42-aurora-tactical-map-aircraft-brand, codex/v75-43-map-lobby-brand-awm-polish, codex/v75-44-aurora-playable-scale-visual-core, codex/v75-45-mobile-render-pipeline-budget, codex/v75-46-vulkan-mobile-ab-test]
     paths:
       - 'native-godot/**'
       - '.github/workflows/native-godot-preview-apk.yml'
@@ -139,7 +139,7 @@ jobs:
           expected="60390683c689ea7376dba5392450929e30044589189c9a200d4db54806f4a653"
           actual="$(keytool -exportcert -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sha256sum | awk '{print $1}')"
           if [ "$actual" != "$expected" ]; then
-            echo "::error::The keystore certificate differs from pinned V75.45 preview identity. Refusing to produce APKs that cannot update."
+            echo "::error::The keystore certificate differs from pinned V75.46 preview identity. Refusing to produce APKs that cannot update."
             exit 1
           fi
           # Godot otherwise falls back to its own transient Android debug key.
@@ -160,62 +160,85 @@ jobs:
           printf '%s\n' "$actual" > native-godot/out/preview-signer-sha256.txt
           echo "Pinned non-production preview certificate: $actual"
 
-      - name: Export distinct Android debug APK
+      # Two APKs, same content/package/signing/physics: renderer is the
+      # ONLY experimental difference. Both are actual Android exports.
+      # Do not alter production Firebase, V44 stable or pinned preview key.
+      - name: Export signed OpenGL A/B control
         run: |
+          set -euo pipefail
           if grep -E "SCRIPT ERROR:|ERROR:" native-godot/out/qa/responsive-render.log; then exit 1; fi
-          mkdir -p native-godot/out
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.45-MOTOROLA-DIAGNOSTICO.apk
-          test -s native-godot/out/THEDEMIAN-V75.45-MOTOROLA-DIAGNOSTICO.apk
-          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIAN-V75.45-MOTOROLA-DIAGNOSTICO.apk
-      - name: Verify APK namespace, checksum and package signature
+          mkdir -p native-godot/out/opengl-verification
+          python3 native-godot/tools/configure_android_renderer.py --variant compat
+          grep -Fx 'renderer/rendering_method.mobile="gl_compatibility"' native-godot/project.godot
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.46-MOTOROLA-OPENGL.apk
+          test -s native-godot/out/THEDEMIAN-V75.46-MOTOROLA-OPENGL.apk
+      - name: Verify OpenGL APK signed by pinned certificate and exported QA
         run: |
-          APK=native-godot/out/THEDEMIAN-V75.45-MOTOROLA-DIAGNOSTICO.apk
-          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -n 3
-          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview"
-          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "$APK" | tee native-godot/out/signature.txt
+          set -euo pipefail
+          APK=native-godot/out/THEDEMIAN-V75.46-MOTOROLA-OPENGL.apk
+          python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/opengl-verification
           expected="$(cat native-godot/out/preview-signer-sha256.txt)"
-          grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/signature.txt || { echo "::error::APK signed by unexpected key"; exit 1; }
-          "$ANDROID_HOME/build-tools/35.0.1/zipalign" -c -P 16 -v 4 "$APK" > native-godot/out/alignment.txt
-          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" > native-godot/out/badging.txt
-          grep -Fx "native-code: 'arm64-v8a'" native-godot/out/badging.txt
-          grep -Fx "application-debuggable" native-godot/out/badging.txt
-          { git rev-parse HEAD; godot --headless --version; blender --background --version | head -n 1; } > native-godot/out/BUILD.txt
-          unzip -t "$APK" | tail -n 1
-          sha256sum "$APK" | tee native-godot/out/SHA256SUMS.txt
-          echo "::notice::This canopy physics audit saves only local offline sector results; it does NOT sync V70/Firebase. 9-participant sector, not 100 network users. Physical Android QA required."
-      - name: Verify native ELF and execute QA from exported bytecode
-        run: |
-          python3 native-godot/tools/verify_android_apk.py native-godot/out/THEDEMIAN-V75.45-MOTOROLA-DIAGNOSTICO.apk --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out
-          AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported" bash native-godot/tools/run_exported_qa.sh native-godot/out/THEDEMIAN-V75.45-MOTOROLA-DIAGNOSTICO.apk
+          grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/opengl-verification/signature.txt
+          AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported-opengl" bash native-godot/tools/run_exported_qa.sh "$APK"
+          grep -F 'V7546_RENDER_AB PASS requested_mobile=gl_compatibility' native-godot/out/qa-exported-opengl/v7546_renderer_variants_qa.log
+          { git rev-parse HEAD; godot --headless --version; echo 'OpenGL control + Mobile Vulkan test; actual mobile GPU still requires device check'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIAN-V75.45-MOTOROLA-DIAGNOSTICO-PREVIEW
+          name: THEDEMIAN-V75.46-MOTOROLA-OPENGL-PREVIEW
           path: |
-            native-godot/out/THEDEMIAN-V75.45-MOTOROLA-DIAGNOSTICO.apk
-            native-godot/out/SHA256SUMS.txt
-            native-godot/out/audit-first-canopy-opengl.png
-            native-godot/out/aurora-native-v75-19-preview.png
-            native-godot/out/aurora-v75-19-welcome.png
-            native-godot/out/aurora-v75-19-lobby.png
-            native-godot/out/aurora-v75-19-coastal-quarter.png
-            native-godot/out/aurora-v75-19-coastal-street.png
-            native-godot/out/aurora-v74-1-ak74.png
-            native-godot/out/aurora-v74-1-awm.png
-            native-godot/out/v7517-motorola-*.png
+            native-godot/out/THEDEMIAN-V75.46-MOTOROLA-OPENGL.apk
+            native-godot/out/opengl-verification/
             native-godot/out/qa/
-            native-godot/out/qa-exported/
-            native-godot/out/apk-verification.json
+            native-godot/out/qa-exported-opengl/
             native-godot/out/BUILD.txt
-            native-godot/out/signature.txt
+            native-godot/out/audit-first-canopy-opengl.png
+            native-godot/out/aurora-v75-19-lobby.png
             native-godot/out/preview-signer-sha256.txt
-            native-godot/out/badging.txt
-            native-godot/out/alignment.txt
+          retention-days: 30
+      - name: Export Mobile Vulkan A/B candidate with same package and content
+        run: |
+          set -euo pipefail
+          mkdir -p native-godot/out/vulkan-verification
+          python3 native-godot/tools/configure_android_renderer.py --variant mobile
+          grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
+          grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
+          grep -Fx 'version/code=40' native-godot/export_presets.cfg
+          # Export templates match the exact tested Godot 4.7.2 runtime.
+          # Android's .mobile override selects Mobile/Vulkan on the phone.
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.46-MOTOROLA-VULKAN.apk
+          test -s native-godot/out/THEDEMIAN-V75.46-MOTOROLA-VULKAN.apk
+      - name: Verify Mobile APK, fixed preview signing and exported QA
+        run: |
+          set -euo pipefail
+          APK=native-godot/out/THEDEMIAN-V75.46-MOTOROLA-VULKAN.apk
+          python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/vulkan-verification
+          expected="$(cat native-godot/out/preview-signer-sha256.txt)"
+          grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/vulkan-verification/signature.txt
+          AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported-vulkan" bash native-godot/tools/run_exported_qa.sh "$APK"
+          grep -F 'V7546_RENDER_AB PASS requested_mobile=mobile' native-godot/out/qa-exported-vulkan/v7546_renderer_variants_qa.log
+          sha256sum native-godot/out/THEDEMIAN-V75.46-MOTOROLA-OPENGL.apk native-godot/out/THEDEMIAN-V75.46-MOTOROLA-VULKAN.apk | tee native-godot/out/SHA256SUMS.txt
+          # Restore the same source defaults for subsequent developer builds.
+          python3 native-godot/tools/configure_android_renderer.py --variant compat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: THEDEMIAN-V75.46-MOTOROLA-VULKAN-EXPERIMENTAL
+          path: |
+            native-godot/out/THEDEMIAN-V75.46-MOTOROLA-VULKAN.apk
+            native-godot/out/vulkan-verification/
+            native-godot/out/qa-exported-vulkan/
+            native-godot/out/SHA256SUMS.txt
+            native-godot/out/BUILD.txt
+            native-godot/out/preview-signer-sha256.txt
           retention-days: 30
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: CANOPY-AUDIT-FAILED-VALIDATION-LOGS
+          name: V7546-FAILED-VALIDATION-LOGS
           path: |
             native-godot/out/qa/
-            native-godot/out/qa-exported/
+            native-godot/out/qa-exported-opengl/
+            native-godot/out/qa-exported-vulkan/
+            native-godot/out/opengl-verification/
+            native-godot/out/vulkan-verification/
+            native-godot/out/SHA256SUMS.txt
           retention-days: 14

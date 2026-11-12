@@ -59,8 +59,14 @@ func _verify() -> void:
         "jump terminal checkpoint missing from durable event sequence")
     check(str(log.get("build","")).begins_with("THEDEMIAN: LAST ZONE"),
         "diagnostic does not identify build")
-    check(str(log.get("render_backend",""))=="gl_compatibility",
-        "diagnostic must identify GL compatibility renderer")
+    # This is the REQUESTED Android renderer stored by flight diagnostics,
+    # not the GPU backend on a headless desktop runner. The real hardware
+    # driver is reported separately in Android Settings and logcat.
+    var requested: String=str(ProjectSettings.get_setting(
+        "rendering/renderer/rendering_method.mobile","gl_compatibility"))
+    check(requested in ["gl_compatibility","mobile"] and
+        str(log.get("render_backend",""))==requested,
+        "diagnostic must identify the selected Android renderer")
 
     for i in range(30):
         await physics_frame

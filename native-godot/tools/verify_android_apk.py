@@ -45,11 +45,39 @@ def run(tool, arguments, log):
                              text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     (args.logs / log).write_text(process.stdout)
     if process.returncode:
+        # A silent traceback used to obscure malformed Mobile APKs. Print
+        # the Android tool's REAL diagnostic and archive structure, but
+        # never disclose keystore paths, passwords or private signing data.
+        print("ANDROID_APK_TOOL_FAILED tool=",tool,
+              " exit=",process.returncode,
+              " apk=",args.apk.name,flush=True)
+        print(process.stdout[-5000:],flush=True)
+        if tool=="aapt":
+            with zipfile.ZipFile(args.apk) as archive:
+                names=archive.namelist()
+                print("ANDROID_APK_ARCHIVE_FILES",len(names),
+                    " manifest=", "AndroidManifest.xml" in names,
+                    " project=", "assets/project.binary" in names,
+                    " integrity=",archive.testzip(),flush=True)
+            aapt2=args.build_tools/"aapt2"
+            if aapt2.exists():
+                alternative=subprocess.run(
+                    [str(aapt2),"dump","badging",str(args.apk)],
+                    text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+                print("AAPT2_DIAGNOSTIC exit=",alternative.returncode,
+                    " output=",alternative.stdout[-2500:],flush=True)
         raise RuntimeError(f"{tool} failed: see {log}")
     return process.stdout
 
 
-badging = run("aapt", ["dump", "badging"], "badging.txt")
+# The legacy aapt binary cannot decode Android Vulkan's typed
+# <uses-feature android:required> attribute and returns 1 even for a valid
+# AndroidManifest. Build Tools 35 aapt2 DOES decode this feature correctly.
+# Keep the existing OpenGL baseline on aapt, require aapt2 strictly for the
+# Vulkan APK. Never skip manifest, ABI or signing verification.
+manifest_tool = "aapt2" if version_name.endswith("-mobile-vulkan") else "aapt"
+badging = run(manifest_tool, ["dump", "badging"], "badging.txt")
+print("ANDROID_MANIFEST_VALIDATED_BY",manifest_tool,flush=True)
 assert f"package: name='{package_name}'" in badging, 'Unexpected Android package'
 assert f"versionCode='{version_code}'" in badging and f"versionName='{version_name}'" in badging, 'Unexpected Android build version'
 assert "native-code: 'arm64-v8a'" in badging.splitlines()
