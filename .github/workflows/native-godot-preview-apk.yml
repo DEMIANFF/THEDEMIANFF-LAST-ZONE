@@ -164,12 +164,12 @@ jobs:
         run: |
           if grep -E "SCRIPT ERROR:|ERROR:" native-godot/out/qa/responsive-render.log; then exit 1; fi
           mkdir -p native-godot/out
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIANFF-V75.43-MOTOROLA-DIAGNOSTICO.apk
-          test -s native-godot/out/THEDEMIANFF-V75.43-MOTOROLA-DIAGNOSTICO.apk
-          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIANFF-V75.43-MOTOROLA-DIAGNOSTICO.apk
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.43-MOTOROLA-DIAGNOSTICO.apk
+          test -s native-godot/out/THEDEMIAN-V75.43-MOTOROLA-DIAGNOSTICO.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify native-godot/out/THEDEMIAN-V75.43-MOTOROLA-DIAGNOSTICO.apk
       - name: Verify APK namespace, checksum and package signature
         run: |
-          APK=native-godot/out/THEDEMIANFF-V75.43-MOTOROLA-DIAGNOSTICO.apk
+          APK=native-godot/out/THEDEMIAN-V75.43-MOTOROLA-DIAGNOSTICO.apk
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | head -n 3
           "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging "$APK" | grep -F "com.thedemianff.lastzone.nativepreview"
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose --print-certs "$APK" | tee native-godot/out/signature.txt
@@ -185,13 +185,13 @@ jobs:
           echo "::notice::This canopy physics audit saves only local offline sector results; it does NOT sync V70/Firebase. 9-participant sector, not 100 network users. Physical Android QA required."
       - name: Verify native ELF and execute QA from exported bytecode
         run: |
-          python3 native-godot/tools/verify_android_apk.py native-godot/out/THEDEMIANFF-V75.43-MOTOROLA-DIAGNOSTICO.apk --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out
-          AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported" bash native-godot/tools/run_exported_qa.sh native-godot/out/THEDEMIANFF-V75.43-MOTOROLA-DIAGNOSTICO.apk
+          python3 native-godot/tools/verify_android_apk.py native-godot/out/THEDEMIAN-V75.43-MOTOROLA-DIAGNOSTICO.apk --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out
+          AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported" bash native-godot/tools/run_exported_qa.sh native-godot/out/THEDEMIAN-V75.43-MOTOROLA-DIAGNOSTICO.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIANFF-V75.43-MOTOROLA-DIAGNOSTICO-PREVIEW
+          name: THEDEMIAN-V75.43-MOTOROLA-DIAGNOSTICO-PREVIEW
           path: |
-            native-godot/out/THEDEMIANFF-V75.43-MOTOROLA-DIAGNOSTICO.apk
+            native-godot/out/THEDEMIAN-V75.43-MOTOROLA-DIAGNOSTICO.apk
             native-godot/out/SHA256SUMS.txt
             native-godot/out/audit-first-canopy-opengl.png
             native-godot/out/aurora-native-v75-19-preview.png
