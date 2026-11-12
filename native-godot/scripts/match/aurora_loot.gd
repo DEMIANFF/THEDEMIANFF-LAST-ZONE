@@ -41,7 +41,14 @@ func _ready() -> void:
     var material:=StandardMaterial3D.new()
     material.metallic=.52
     material.roughness=.31
-    material.albedo_color=Color(.18,.79,.75) if pickup_type=="medkit" else Color(.89,.66,.21) if pickup_type=="ammo_ar" else Color(.26,.71,.97) if pickup_type=="cover_charge" else Color(.56,.43,.95)
+    match pickup_type:
+        "medkit": material.albedo_color=Color(.18,.79,.75)
+        "ammo_ar": material.albedo_color=Color(.89,.66,.21)
+        "cover_charge": material.albedo_color=Color(.26,.71,.97)
+        "armor_plate": material.albedo_color=Color(.32,.84,.52)
+        "backpack": material.albedo_color=Color(.93,.51,.23)
+        "weapon_awm": material.albedo_color=Color(.98,.34,.40)
+        _: material.albedo_color=Color(.56,.43,.95)
     material.emission_enabled=true
     material.emission=material.albedo_color
     material.emission_energy_multiplier=.55
@@ -60,7 +67,14 @@ func _ready() -> void:
     _visual.add_child(ring)
     var floating_name:=Label3D.new()
     floating_name.name="SupplyLabel"
-    floating_name.text="BOTIQUIN" if pickup_type=="medkit" else "MUNICION AR" if pickup_type=="ammo_ar" else "BARRERA +1" if pickup_type=="cover_charge" else "MUNICION AWM"
+    match pickup_type:
+        "medkit": floating_name.text="BOTIQUIN"
+        "ammo_ar": floating_name.text="MUNICION AR"
+        "cover_charge": floating_name.text="BARRERA +1"
+        "armor_plate": floating_name.text="CHALECO AURORA"
+        "backpack": floating_name.text="MOCHILA TACTICA"
+        "weapon_awm": floating_name.text="RECOGER AWM"
+        _: floating_name.text="MUNICION AWM"
     floating_name.font_size=38
     floating_name.pixel_size=.005
     floating_name.position.y=.94
