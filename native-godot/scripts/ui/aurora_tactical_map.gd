@@ -226,7 +226,7 @@ func _draw() -> void:
             for column in range(tiles):
                 var pos: Vector2=rect.position+Vector2(column+.5,row+.5)*pixel
                 var world: Vector2=unproject(pos)
-                var y: float=terrain.height_at(world.x,world.y)
+                var y: float=float(terrain.call("height_at",world.x,world.y))
                 var tone: Color=Color(.035,.20,.30)
                 if y>float(terrain.get("sea_level"))+1.0:
                     tone=Color(.19,.32,.28).lerp(Color(.47,.43,.34),
@@ -252,7 +252,7 @@ func _draw() -> void:
                 HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.97,.94,.77))
     if is_instance_valid(director):
         var center: Vector2=ZONE_CENTER
-        var rad: float=float(director.radius)/_meters_per_pixel(rect)
+        var rad: float=float(director.get("radius"))/_meters_per_pixel(rect)
         draw_arc(project(center),rad,0,TAU,120,Color(.35,.95,1.0,.92),3.0,true)
         var flight: Node3D=director.get("_flight") as Node3D
         if flight!=null and str(flight.get("phase"))=="aircraft":
