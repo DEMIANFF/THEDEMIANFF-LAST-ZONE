@@ -70,7 +70,14 @@ def run(tool, arguments, log):
     return process.stdout
 
 
-badging = run("aapt", ["dump", "badging"], "badging.txt")
+# The legacy aapt binary cannot decode Android Vulkan's typed
+# <uses-feature android:required> attribute and returns 1 even for a valid
+# AndroidManifest. Build Tools 35 aapt2 DOES decode this feature correctly.
+# Keep the existing OpenGL baseline on aapt, require aapt2 strictly for the
+# Vulkan APK. Never skip manifest, ABI or signing verification.
+manifest_tool = "aapt2" if version_name.endswith("-mobile-vulkan") else "aapt"
+badging = run(manifest_tool, ["dump", "badging"], "badging.txt")
+print("ANDROID_MANIFEST_VALIDATED_BY",manifest_tool,flush=True)
 assert f"package: name='{package_name}'" in badging, 'Unexpected Android package'
 assert f"versionCode='{version_code}'" in badging and f"versionName='{version_name}'" in badging, 'Unexpected Android build version'
 assert "native-code: 'arm64-v8a'" in badging.splitlines()
