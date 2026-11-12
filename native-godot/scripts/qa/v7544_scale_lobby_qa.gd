@@ -1,6 +1,7 @@
 extends SceneTree
 ## Real collision-enabled 9/20/30 offline participants and genuine 3D
 ## lobby scenery. Never counts simulated clients as human online players.
+const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 var failed: bool=false
 
 
@@ -102,6 +103,14 @@ func _verify() -> void:
             if button is Button:
                 check(button.custom_minimum_size.y<=32.0,
                     "nine mobile tabs overflow Motorola landscape height")
+    var recorded: Array[float]=[24.0,28.0,34.0,42.0,52.0]
+    check(PERFORMANCE.record(20,recorded,42.0,true)==OK,
+        "local measured FPS statistics cannot be saved")
+    var measurements: Dictionary=PERFORMANCE.latest()
+    check(int(measurements.get("participants",0))==20 and
+        absf(float(measurements.get("average_fps",0))-36.0)<.1 and
+        absf(float(measurements.get("low10_fps",0))-24.0)<.1,
+        "performance reporting computes incorrect average or low percentile")
     if not failed:
         print("V7544_PLAYABLE_SCALE PASS standard=9 offline_ai20=19 "+
             "offline_ai30=29 collision=all true_multiplayer=not_claimed "+
