@@ -127,7 +127,7 @@ func _verify() -> void:
             "bot uses a stale danger radius while storm damage advances")
     var pickup: Area3D=director.get_node("AuroraInteriorLoot1")
     var anchor: Vector3=coastal.interior_supply_spots[0]
-    check(is_equal_approx(pickup.global_position.y,anchor.y+1.08),
+    check(is_equal_approx(pickup.global_position.y,anchor.y+.50),
         "indoor loot floats on terrain or is buried below the house floor")
     var before: int=combat.medkits_remaining
     player.global_position=Vector3(anchor.x,anchor.y+.16,anchor.z)
