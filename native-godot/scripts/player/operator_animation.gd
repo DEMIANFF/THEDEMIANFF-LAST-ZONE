@@ -30,7 +30,12 @@ func setup(source: AnimationPlayer) -> void:
             # operator's feet to snap, especially under sustained gunfire.
             var gait: bool=(from=="AuroraArmedWalk" and to=="AuroraArmedRun") or \
                 (from=="AuroraArmedRun" and to=="AuroraArmedWalk")
-            transition.xfade_time=.20 if gait else .14
+            # Fully blend into/out of authored crouch, ADS and landing
+            # poses instead of snapping the skinned rig at a stance edge.
+            var stance: bool=("Crouch" in from or "Crouch" in to or
+                "Aim" in from or "Aim" in to)
+            var airborne: bool=("Jump" in from or "Land" in to)
+            transition.xfade_time=.10 if airborne else .24 if stance else .20 if gait else .14
             if gait:
                 transition.switch_mode=AnimationNodeStateMachineTransition.SWITCH_MODE_SYNC
                 transition.reset=false
