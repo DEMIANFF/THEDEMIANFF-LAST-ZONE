@@ -12,6 +12,10 @@ const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.gd")
 const TOUCH_DEADZONE: float = 0.12
+# A single lost Android drag frame must not cause a sudden 180-degree flip.
+# Valid large deliberate swipes still accumulate across successive events.
+const CAMERA_MAX_SWIPE_PIXELS: float = 160.0
+const JUMP_BUFFER_SECONDS: float = 0.14
 
 signal training_health_changed(value: float)
 signal player_eliminated
@@ -21,6 +25,7 @@ signal crouch_state_changed(active: bool)
 signal footstep(on_stone: bool)
 signal jumped
 signal grounded_impact(on_stone: bool)
+signal sprint_cancelled
 @export var approved_operator_scene: PackedScene
 var training_health: float = 100.0
 var battle_royale_active: bool = false
@@ -31,6 +36,8 @@ var training_knockouts: int = 0
 var _training_immunity: float = 0.0
 var _sprint_touch: bool = false
 var _jump_requested: bool = false
+var _jump_buffer_seconds: float = 0.0
+var _camera_height_target: float = 1.55
 
 var look_multiplier: float=1.0
 var ads_multiplier: float=1.0
@@ -158,20 +165,30 @@ func _physics_process(delta: float) -> void:
         velocity=Vector3.ZERO
         return
     _training_immunity=maxf(0.0,_training_immunity-delta)
+    # A jump pressed in midair may be buffered briefly near touchdown, but
+    # never kept indefinitely to trigger a surprise second jump on landing.
+    _jump_buffer_seconds=maxf(0.0,_jump_buffer_seconds-delta)
+    if _jump_buffer_seconds<=0.0:
+        _jump_requested=false
     var control := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
     if _move_axis.length() > 0.0:
         control = _move_axis
 
     # Delta-time camera smoothing avoids abrupt yaw/pitch changes on quick swipes.
     var smooth: float = 1.0 - exp(-delta * 19.0)
-    _yaw = rotate_toward(_yaw, _desired_yaw, minf(absf(angle_difference(_yaw,_desired_yaw))*smooth,delta*7.5))
+    _yaw = wrapf(rotate_toward(_yaw, _desired_yaw,
+        minf(absf(angle_difference(_yaw,_desired_yaw))*smooth,delta*8.5)),-PI,PI)
     _recover_recoil(delta)
     _pitch = lerpf(_pitch, clampf(_desired_pitch + _recoil_pitch, -0.55, 0.62), smooth)
     _camera_pivot.rotation.x = _pitch
+    # Eye level follows skeletal crouch smoothly while collision changes
+    # immediately. No camera pop when standing up below a doorway.
+    _camera_pivot.position.y=lerpf(_camera_pivot.position.y,
+        _camera_height_target,1.0-exp(-delta*13.0))
     var relative_direction := Vector3(control.x, 0.0, control.y)
     var facing := Basis(Vector3.UP, _yaw)
     var world_direction := (facing * relative_direction).limit_length(1.0)
-    var run_fast := (Input.is_action_pressed("run") or _sprint_touch) and not _crouching
+    var run_fast := (Input.is_action_pressed("run") or _sprint_touch) and not _crouching and not _fire_held
     var target_speed: float = WALK_SPEED
     if _crouching:
         target_speed = WALK_SPEED * .52
@@ -183,9 +200,10 @@ func _physics_process(delta: float) -> void:
     velocity.z = move_toward(velocity.z, target_velocity.z, ACCELERATION * delta)
     if not is_on_floor():
         velocity.y -= GRAVITY * delta
-    elif Input.is_action_just_pressed("jump") or _jump_requested:
+    elif Input.is_action_just_pressed("jump") or (_jump_requested and _jump_buffer_seconds>0.0):
         velocity.y = 5.4
         _jump_requested = false
+        _jump_buffer_seconds=0.0
         jumped.emit()
     else:
         velocity.y = 0.0
@@ -540,7 +558,8 @@ func _air_step(delta: float) -> void:
             " anim="+_current_clip+
             " mesh="+str(_parachute_visual!=null and _parachute_visual.visible))
     var alpha: float=1.0-exp(-delta*16.0)
-    _yaw=rotate_toward(_yaw,_desired_yaw,minf(absf(angle_difference(_yaw,_desired_yaw))*alpha,delta*7.5))
+    _yaw=wrapf(rotate_toward(_yaw,_desired_yaw,
+        minf(absf(angle_difference(_yaw,_desired_yaw))*alpha,delta*8.5)),-PI,PI)
     _pitch=lerpf(_pitch,_desired_pitch,alpha)
     _camera_pivot.rotation.y=wrapf(_yaw-rotation.y,-PI,PI)
     _camera_pivot.rotation.x=_pitch
@@ -760,6 +779,7 @@ func set_touch_run(active: bool) -> void:
 func touch_jump() -> void:
     if can_act():
         _jump_requested=true
+        _jump_buffer_seconds=JUMP_BUFFER_SECONDS
 
 
 func set_ads(ads: bool, zoom: float) -> void:
@@ -794,6 +814,11 @@ func play_weapon_action(action: String, seconds: float) -> void:
 
 func set_firing(active: bool) -> void:
     _fire_held = active
+    # Shooting cancels sprint, rather than silently re-accelerating when the
+    # player releases fire. Keep the run HUD toggle synchronized.
+    if active and _sprint_touch:
+        _sprint_touch=false
+        sprint_cancelled.emit()
 
 
 func set_crouch(active: bool) -> void:
@@ -816,7 +841,7 @@ func _apply_crouch(active: bool) -> void:
         if capsule:
             capsule.height=1.22 if active else 1.82
         collider.position.y=.62 if active else .92
-    _camera_pivot.position.y=1.13 if active else 1.55
+    _camera_height_target=1.13 if active else 1.55
     if _avatar:
         # Mesh must never be artificially squashed to mimic crouching.
         # Properly authored AuroraCrouch/AuroraCrouchWalk clips move joints.
@@ -954,7 +979,7 @@ func _touch_over_run_button(at: Vector2) -> bool:
 func _turn_camera(delta: Vector2, from_fire: bool=false) -> void:
     if not delta.is_finite():
         return
-    var limited: Vector2 = delta
+    var limited: Vector2 = delta.limit_length(CAMERA_MAX_SWIPE_PIXELS)
     # Precision slowdown in sights, but keep 360-degree continuous yaw.
     var zoom_factor: float = 1.0
     if _ads_active:
@@ -965,7 +990,7 @@ func _turn_camera(delta: Vector2, from_fire: bool=false) -> void:
         var scope_key: String="scope_8x" if _ads_zoom>=6.0 else "scope_4x" if _ads_zoom>=3.8 else "scope_2x" if _ads_zoom>=1.5 else "red_dot"
         scope_scale=float(_scope_sensitivity.get(scope_key,1.0))
     var touch_scale: float=LOOK_SENSITIVITY*look_multiplier*(ads_multiplier if _ads_active else 1.0)*zoom_factor*drag_factor*scope_scale
-    _desired_yaw -= limited.x * touch_scale
+    _desired_yaw = wrapf(_desired_yaw-limited.x*touch_scale,-PI,PI)
     _desired_pitch = clampf(_desired_pitch - limited.y * touch_scale, -0.55, 0.62)
 
 
@@ -996,6 +1021,7 @@ func reset_controls() -> void:
     _look_touch=-1
     _sprint_touch=false
     _jump_requested=false
+    _jump_buffer_seconds=0.0
     _fire_held=false
     _ads_active=false
     _recoil_pitch=0.0
