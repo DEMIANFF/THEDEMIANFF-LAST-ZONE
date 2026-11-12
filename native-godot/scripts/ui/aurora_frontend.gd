@@ -459,10 +459,10 @@ func _open_settings() -> void:
         return
     var modal: CanvasLayer=SETTINGS_OVERLAY.new()
     modal.name="AuroraRealSettings"
-    modal.context_origin=stage
-    modal.context_game=_game if stage!="lobby" else null
-    modal.closed.connect(func(): _settings_modal=null)
-    modal.hud_editor_requested.connect(_settings_edit_hud)
+    modal.set("context_origin",stage)
+    modal.set("context_game",_game if stage!="lobby" else null)
+    modal.connect("closed",func(): _settings_modal=null)
+    modal.connect("hud_editor_requested",_settings_edit_hud)
     _settings_modal=modal
     if stage=="lobby":
         add_child(modal)
@@ -472,7 +472,7 @@ func _open_settings() -> void:
 
 func _settings_edit_hud() -> void:
     if _settings_modal!=null and is_instance_valid(_settings_modal):
-        _settings_modal._close()
+        _settings_modal.call("_close")
     if stage=="lobby":
         _launch_hud_editor()
     elif stage in ["training","battle"] and _game!=null:
@@ -543,8 +543,8 @@ func _activate_game(battle: bool) -> void:
         "frontend_scene_enter_tree_after")
     var hud:=_game.get_node("TrainingHUD") as CanvasLayer
     hud.leave_to_lobby_requested.connect(_return_to_lobby)
-    hud.settings_requested.connect(_open_settings)
-    hud.hud_editor_closed.connect(_on_lobby_hud_editor_closed)
+    hud.connect("settings_requested",_open_settings)
+    hud.connect("hud_editor_closed",_on_lobby_hud_editor_closed)
     visible=false
     stage="battle" if battle else "training"
     if battle:
