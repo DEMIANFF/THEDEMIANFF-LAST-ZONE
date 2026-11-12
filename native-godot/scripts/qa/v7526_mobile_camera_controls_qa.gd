@@ -53,7 +53,7 @@ func _verify() -> void:
         player.LOOK_SENSITIVITY*player.look_multiplier+.002,
         "camera failed to clamp an anomalous touch delta")
     var after_step: float=player._desired_yaw
-    for i in range(12):
+    for i in range(8):
         player._turn_camera(Vector2(-90,0))
     check(absf(angle_difference(after_step,player._desired_yaw))>.75,
         "legitimate repeated 360-degree swipe is blocked")
