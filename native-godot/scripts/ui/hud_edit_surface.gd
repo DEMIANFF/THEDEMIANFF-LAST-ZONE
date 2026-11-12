@@ -2,6 +2,7 @@ extends Control
 ## Fullscreen touch/mouse edit layer; prevents underlying fire/joystick events.
 ## The live game is paused while the editor is visible. This Control and its
 ## toolbar continue processing through their parent CanvasLayer.
+const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
 var hud: CanvasLayer
 var selected: String=""
 var _finger: int=-1
@@ -18,8 +19,8 @@ func _ready() -> void:
 func _draw() -> void:
     if hud==null or not is_instance_valid(hud):
         return
-    for id in hud.HUD_LAYOUT.IDS:
-        var target: Control=hud.hud_editor_target(id)
+    for id in HUD_LAYOUT.IDS:
+        var target: Control=hud.call("hud_editor_target",id)
         if target==null or not target.visible:
             continue
         var rect: Rect2=target.get_global_rect()
@@ -32,10 +33,10 @@ func _draw() -> void:
 func _pick(at: Vector2) -> String:
     if hud==null:
         return ""
-    var ids: Array[String]=hud.HUD_LAYOUT.IDS.duplicate()
+    var ids: Array[String]=HUD_LAYOUT.IDS.duplicate()
     ids.reverse()
     for id in ids:
-        var target: Control=hud.hud_editor_target(id)
+        var target: Control=hud.call("hud_editor_target",id)
         if target!=null and target.visible and target.get_global_rect().grow(7.0).has_point(at):
             return id
     return ""
@@ -44,9 +45,9 @@ func _pick(at: Vector2) -> String:
 func _begin(at: Vector2) -> void:
     selected=_pick(at)
     if hud!=null:
-        hud.hud_editor_selected(selected)
+        hud.call("hud_editor_selected",selected)
     if selected!="":
-        var target: Control=hud.hud_editor_target(selected)
+        var target: Control=hud.call("hud_editor_target",selected)
         _drag_offset=target.get_global_rect().get_center()-at
     queue_redraw()
 
@@ -54,7 +55,7 @@ func _begin(at: Vector2) -> void:
 func _move(at: Vector2) -> void:
     if selected=="" or hud==null:
         return
-    hud.hud_editor_move(selected,at+_drag_offset)
+    hud.call("hud_editor_move",selected,at+_drag_offset)
     queue_redraw()
 
 
