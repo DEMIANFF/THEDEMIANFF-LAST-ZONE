@@ -30,6 +30,14 @@ var _weapon_visuals: Node3D
 var _weapon_model: Node3D # Explicit visual reference for older scripts
 var eliminations: int = 0
 var medkits_remaining: int = 2
+# Real match equipment: two weapon slots, an upgradeable backpack and armor.
+# The BR's AWM must be found as a physical pickup; training keeps both guns.
+var weapon_owned: Array[bool]=[true,true]
+var backpack_level: int=0
+const AR_RESERVE_BASE: int=180
+const AWM_RESERVE_BASE: int=30
+const AR_RESERVE_BACKPACK: int=360
+const AWM_RESERVE_BACKPACK: int=60
 var sector_battle_active: bool = false
 var cover_charges: int=0
 var cover_cooldown: float=0.0
@@ -58,6 +66,7 @@ func _ready() -> void:
     hud.fire_aim_changed.connect(operator.fire_aim_delta)
     operator.sprint_cancelled.connect(hud.cancel_sprint)
     hud.heal_pressed.connect(_on_heal)
+    operator.armor_changed.connect(func(_value: float): _sync_hud())
     hud.aurora_cover_pressed.connect(_on_cover_pressed)
     _make_targets()
     _draw_weapon_rig()
@@ -113,7 +122,11 @@ func _on_fire_released() -> void:
 func _on_weapon() -> void:
     if not operator.can_act():
         return
-    weapon_index=1-weapon_index
+    var candidate: int=1-weapon_index
+    if not weapon_owned[candidate]:
+        hud.impact("ARMA SIN RECOGER / BUSCA LA AWM")
+        return
+    weapon_index=candidate
     trigger_held=false
     operator.set_firing(false)
     cooldown=.20
@@ -155,6 +168,7 @@ func _on_heal() -> void:
         return
     medkits_remaining-=1
     operator.receive_training_heal(45.0)
+    _sync_hud()
     hud.set_medkit_count(medkits_remaining)
     hud.impact("BOTIQUIN +45 VIDA")
     healed.emit()
@@ -332,6 +346,8 @@ func begin_sector_battle() -> void:
     reload_timer=0.0
     ammo=[30,5]
     reserve=[90,12]
+    weapon_owned=[true,false]
+    backpack_level=0
     medkits_remaining=2
     eliminations=0
     # 8 bots + player = 9 fighters in the explicitly limited sector pilot.
@@ -383,21 +399,61 @@ func collect_sector_loot(kind: String) -> bool:
             hud.set_medkit_count(medkits_remaining)
             hud.impact("BOTIQUIN RECOGIDO +1")
         "ammo_ar":
-            reserve[0]+=45
-            hud.impact("MUNICION AR +45")
+            if reserve[0]>=_reserve_limit(0):
+                return false
+            reserve[0]=mini(_reserve_limit(0),reserve[0]+45)
+            hud.impact("MUNICION AR RECOGIDA")
         "ammo_awm":
-            reserve[1]+=8
-            hud.impact("MUNICION AWM +8")
+            if reserve[1]>=_reserve_limit(1):
+                return false
+            reserve[1]=mini(_reserve_limit(1),reserve[1]+8)
+            hud.impact("MUNICION AWM RECOGIDA")
         "cover_charge":
             if cover_charges>=3:
                 return false
             cover_charges+=1
             hud.set_aurora_cover_count(cover_charges,cover_cooldown)
             hud.impact("BARRERA AURORA +1")
+        "armor_plate":
+            if not operator.equip_armor(75.0):
+                return false
+            hud.impact("CHALECO AURORA EQUIPADO / +75")
+        "backpack":
+            if backpack_level>=1:
+                return false
+            backpack_level=1
+            hud.impact("MOCHILA EQUIPADA / MAYOR CAPACIDAD")
+        "weapon_awm":
+            if weapon_owned[1]:
+                return false
+            weapon_owned[1]=true
+            hud.impact("AWM RECOGIDA / BOTON ARMA PARA EQUIPAR")
         _:
             return false
     _sync_hud()
     return true
+
+
+func _reserve_limit(index: int) -> int:
+    return (AWM_RESERVE_BACKPACK if backpack_level>0 else AWM_RESERVE_BASE) if index==1 else (AR_RESERVE_BACKPACK if backpack_level>0 else AR_RESERVE_BASE)
+
+
+func inventory_snapshot() -> Dictionary:
+    return {
+        "ar_owned":weapon_owned[0],
+        "awm_owned":weapon_owned[1],
+        "active_weapon":weapon_index,
+        "ar_loaded":ammo[0],
+        "awm_loaded":ammo[1],
+        "ar_reserve":reserve[0],
+        "awm_reserve":reserve[1],
+        "ar_capacity":_reserve_limit(0),
+        "awm_capacity":_reserve_limit(1),
+        "medkits":medkits_remaining,
+        "covers":cover_charges,
+        "backpack":backpack_level,
+        "armor":roundi(operator.armor_points)
+    }
 
 
 func resolve_shot(from: Vector3, direction: Vector3, muzzle: Vector3) -> Dictionary:
@@ -460,6 +516,7 @@ func _spawn_tracer(from: Vector3,to: Vector3) -> void:
 
 func _sync_hud() -> void:
     hud.set_weapon("AWM / FRANCOTIRADOR" if weapon_index==1 else "AR-7 / ASALTO",ammo[weapon_index],reserve[weapon_index])
+    hud.set_inventory_snapshot(inventory_snapshot())
 
 
 func _make_targets() -> void:
