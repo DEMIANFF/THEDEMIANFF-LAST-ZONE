@@ -248,7 +248,12 @@ func _update_live_player() -> void:
 
 func _screen_page() -> void:
     _heading("PANTALLA / RENDIMIENTO")
-    _info("El límite FPS es una preferencia. Los FPS reales dependen del Motorola y de la carga gráfica.")
+    # Read the ACTIVE driver, not a requested renderer. A device may fall
+    # back from Vulkan to OpenGL if its driver rejects the Mobile backend.
+    var method: String=RenderingServer.get_current_rendering_method()
+    var driver: String=RenderingServer.get_current_rendering_driver_name()
+    _info("MOTOR GRÁFICO REAL: "+method.to_upper()+" / "+driver.to_upper()+
+        "\nEl límite FPS es una preferencia; los FPS medidos dependen de la GPU y la IA.")
     var graphics:=OptionButton.new()
     graphics.name="GraphicsSelector"
     for key in PLAYER_SETTINGS.GRAPHICS_PRESETS:
