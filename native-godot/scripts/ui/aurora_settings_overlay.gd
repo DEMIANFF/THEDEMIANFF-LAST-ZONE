@@ -18,6 +18,7 @@ var _content: VBoxContainer
 var _status: Label
 var _category: String="PARTIDA"
 var _subcategory: String="HUD"
+var _closing: bool=false
 
 
 func _ready() -> void:
@@ -426,6 +427,7 @@ func _restore_local_settings() -> void:
 
 
 func _close() -> void:
+    _closing=true
     get_tree().paused=false
     closed.emit()
     queue_free()
@@ -434,5 +436,5 @@ func _close() -> void:
 func _exit_tree() -> void:
     # Never leave the real Battle Royale permanently paused on navigation
     # away from an interrupted settings session.
-    if get_tree().paused:
+    if not _closing and get_tree().paused:
         get_tree().paused=false
