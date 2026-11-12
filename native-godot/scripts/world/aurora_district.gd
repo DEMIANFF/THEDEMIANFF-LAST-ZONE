@@ -323,11 +323,11 @@ func _make_access_ramp(root: Node3D, door_width: float, depth: float) -> void:
     var width: float=door_width*.5+.3
     var low: float=_height(root.position.x,root.position.z+front)-root.position.y-.02
     var halfway: float=maxf(-.30,lerpf(low,.12,(front-middle)/(front-back)))
-    _ramp_segment(root,width,front,low,middle,halfway)
-    _ramp_segment(root,width,middle,halfway,back,.12)
+    _ramp_segment(root,width,front,low,middle,halfway,1)
+    _ramp_segment(root,width,middle,halfway,back,.12,2)
 
 
-func _ramp_segment(root: Node3D,width: float,front: float,low: float,back: float,high: float) -> void:
+func _ramp_segment(root: Node3D,width: float,front: float,low: float,back: float,high: float,segment: int) -> void:
     var bottom: float=minf(low,high)-.18
     var points:=PackedVector3Array([
         Vector3(-width,low,front),Vector3(width,low,front),
@@ -337,7 +337,7 @@ func _ramp_segment(root: Node3D,width: float,front: float,low: float,back: float
     var hull:=ConvexPolygonShape3D.new()
     hull.points=points
     var body:=StaticBody3D.new()
-    body.name="AccessibleEntryRamp"
+    body.name="AccessibleEntryRamp%02d"%segment
     body.collision_layer=3
     var collider:=CollisionShape3D.new()
     collider.shape=hull
