@@ -39,8 +39,14 @@ func _verify() -> void:
             "persisted FPS setting differs from selection "+str(pair))
     check(settings.save_graphics("220") == ERR_INVALID_PARAMETER,
         "unsafe unsupported FPS value should be rejected")
-    check(int(ProjectSettings.get_setting("application/run/max_fps",0))==120,
-        "project still applies an initial 60 FPS cap before front-end")
+    # Headless Godot tests can report an uncapped project default (0).
+    # Verify the real Boot scene executes the user's 120 FPS option instead.
+    var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
+    root.add_child(front)
+    check(Engine.max_fps==120,
+        "real front-end did not activate the default 120 FPS ceiling")
+    front.queue_free()
+    await process_frame
     check(bool(ProjectSettings.get_setting(
         "display/window/frame_pacing/android/enable_frame_pacing",false)),
         "Android Swappy support has been disabled")
