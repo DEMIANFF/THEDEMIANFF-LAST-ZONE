@@ -54,6 +54,9 @@ func _ready() -> void:
     material.emission_energy_multiplier=.55
     item.material_override=material
     _visual.add_child(item)
+    if pickup_type=="weapon_awm":
+        # Use the actual authored sniper GLB, not a decorative placeholder.
+        item.visible=not _add_ground_weapon_visual()
     var ring:=MeshInstance3D.new()
     ring.name="SupplyBeacon"
     var ring_mesh:=CylinderMesh.new()
@@ -82,6 +85,39 @@ func _ready() -> void:
     floating_name.no_depth_test=false
     _visual.add_child(floating_name)
     body_entered.connect(_collect)
+
+
+func _add_ground_weapon_visual() -> bool:
+    var path: String="res://assets/weapons/aurora_awm.glb"
+    if not ResourceLoader.exists(path):
+        return false
+    var packed:=load(path) as PackedScene
+    if packed==null:
+        return false
+    var rifle:=packed.instantiate() as Node3D
+    rifle.name="PickupAWMModel"
+    _visual.add_child(rifle)
+    var lower:=Vector3(INF,INF,INF)
+    var upper:=Vector3(-INF,-INF,-INF)
+    for node in rifle.find_children("*","MeshInstance3D",true,false):
+        var part:=node as MeshInstance3D
+        var bounds: AABB=part.get_aabb()
+        for corner in range(8):
+            var vertex: Vector3=rifle.to_local(part.to_global(bounds.get_endpoint(corner)))
+            lower=lower.min(vertex)
+            upper=upper.max(vertex)
+    var extent: Vector3=upper-lower
+    var length: float=maxf(extent.x,maxf(extent.y,extent.z))
+    if not is_finite(length) or length<.0001:
+        rifle.queue_free()
+        return false
+    rifle.scale=Vector3.ONE*clampf(1.30/length,.0001,100.0)
+    if extent.x>extent.y and extent.x>extent.z:
+        rifle.rotation.y=PI*.5
+    elif extent.y>extent.z:
+        rifle.rotation.x=-PI*.5
+    rifle.position.y=.10
+    return true
 
 
 func _process(delta: float) -> void:
