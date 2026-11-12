@@ -25,6 +25,11 @@ func _ready() -> void:
     TRACE.checkpoint("active","scene_load",null,"main_ready_enter",
         "startup="+str(STARTUP_DIAG.mode()))
     _set_up_lighting()
+    # Actual hardware method and driver can differ from the export settings
+    # when Godot chooses a fallback. This provides field evidence via logcat.
+    print("AURORA_ACTUAL_RENDER method=",
+        RenderingServer.get_current_rendering_method(),
+        " driver=",RenderingServer.get_current_rendering_driver_name())
     TRACE.checkpoint("active","scene_load",null,"terrain_build_begin")
     island = TERRAIN.new()
     island.name = "AuroraTerrain"
