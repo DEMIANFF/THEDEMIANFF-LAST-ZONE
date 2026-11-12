@@ -65,6 +65,7 @@ var air_stage: String="ground"
 var _hud_layout: RefCounted
 var _hud_editor: Control
 var _hud_editor_label: Label
+var _vibration_enabled: bool=false
 var _hud_editing: bool=false
 var _hud_selected: String=""
 
@@ -241,6 +242,7 @@ func _ready() -> void:
     root.add_child(pad)
     pad.connect("vector_changed",func(axis: Vector2): movement_axis_changed.emit(axis))
     _build_hud_editor(root)
+    apply_ui_settings()
     get_viewport().size_changed.connect(_layout)
     _layout.call_deferred()
 
@@ -279,7 +281,7 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
     button.offset_top=-h*.5
     button.offset_bottom=h*.5
     button.focus_mode=Control.FOCUS_NONE
-    button.add_theme_font_size_override("font_size",15)
+    button.add_theme_font_size_override("font_size",12 if label.length()>6 else 15)
     var normal:=StyleBoxFlat.new()
     normal.bg_color=Color(color.r*.78,color.g*.76,color.b*.80,.88)
     normal.border_color=Color(.37,.76,.94,.86)
@@ -294,12 +296,31 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
     pressed.bg_color=color.lightened(.19)
     button.add_theme_stylebox_override("normal",normal)
     button.add_theme_stylebox_override("hover",normal)
+    button.add_theme_stylebox_override("disabled",normal)
     button.add_theme_stylebox_override("pressed",pressed)
     button.button_down.connect(down)
     if up.is_valid():
         button.button_up.connect(up)
     root.add_child(button)
     return button
+
+
+func apply_ui_settings() -> void:
+    var cfg:=ConfigFile.new()
+    cfg.load("user://aurora_ui_options.cfg")
+    _vibration_enabled=bool(cfg.get_value("ui","vibration",false))
+    if _fps:
+        _fps.visible=bool(cfg.get_value("ui","show_fps",true))
+    if _training_radar:
+        _training_radar.rotate_with_camera=bool(cfg.get_value(
+            "ui","radar_rotation",true))
+        _training_radar.queue_redraw()
+
+
+func reload_hud_layout() -> void:
+    _hud_layout=HUD_LAYOUT.new()
+    if is_node_ready():
+        _layout()
 
 
 func _return_lobby() -> void:
@@ -389,6 +410,8 @@ func set_sector_state(status: String, alive: int, safe_radius: float, elapsed_se
 
 
 func _fire_down() -> void:
+    if _vibration_enabled and OS.has_feature("mobile"):
+        Input.vibrate_handheld(10)
     fire_pressed.emit()
 
 
