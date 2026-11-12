@@ -250,6 +250,9 @@ func _ready() -> void:
     _map_overlay=TACTICAL_MAP.new()
     _map_overlay.visible=false
     root.add_child(_map_overlay)
+    _map_overlay.connect("waypoint_changed",func(point: Vector2):
+        _training_radar.call("set_waypoint",point))
+    _training_radar.call("set_waypoint",_map_overlay.get("waypoint"))
     apply_ui_settings()
     get_viewport().size_changed.connect(_layout)
     _layout.call_deferred()
