@@ -312,8 +312,8 @@ func apply_ui_settings() -> void:
     if _fps:
         _fps.visible=bool(cfg.get_value("ui","show_fps",true))
     if _training_radar:
-        _training_radar.rotate_with_camera=bool(cfg.get_value(
-            "ui","radar_rotation",true))
+        _training_radar.set("rotate_with_camera",bool(cfg.get_value(
+            "ui","radar_rotation",true)))
         _training_radar.queue_redraw()
 
 
