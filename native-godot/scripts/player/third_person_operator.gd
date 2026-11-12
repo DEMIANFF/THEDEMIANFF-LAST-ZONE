@@ -130,6 +130,12 @@ func _ready() -> void:
     camera.name = "ThirdPersonCamera"
     camera.position = Vector3(0.4, 0.18, 4.6)
     camera.fov = 74.0
+    # The island fits inside 450m each axis; 680m covers the diagonal
+    # flight views while rejecting invisible far geometry. A safe 8cm
+    # near clip improves depth precision on mobile 24-bit z buffers
+    # without clipping the 4.6m third-person shoulder camera.
+    camera.near=.08
+    camera.far=680.0
     camera.current = true
     _camera_pivot.add_child(camera)
     _camera = camera
