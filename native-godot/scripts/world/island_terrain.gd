@@ -1,6 +1,7 @@
 extends StaticBody3D
 ## Irregular continuous archipelago elevation. Not a cube, grid of houses or square island.
 const CELLS: int = 96
+const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const HALF_EXTENT: float = 225.0
 const HEIGHT_STEP: float = (HALF_EXTENT * 2.0) / float(CELLS)
 
@@ -80,7 +81,18 @@ func _wilderness_height(x: float, z: float) -> float:
 
 func _elevation(x: float,z: float) -> float:
     var old_world: float=_wilderness_height(x,z)
-    return lerpf(old_world,COAST_SHELF_ELEVATION,_coastal_shelf_weight(x,z))
+    var base: float=lerpf(old_world,COAST_SHELF_ELEVATION,
+        _coastal_shelf_weight(x,z))
+    # Grade the ACTUAL triangle heightfield before generating the render
+    # surface/collider. Placing a floating floor atop a steep original hill
+    # does not create walkable flat land. This terrain blend does.
+    var residential: float=RESIDENTIAL.grading_weight(x,z)
+    return lerpf(base,RESIDENTIAL.PAD_HEIGHT,residential)
+
+
+func residential_pad_height(x: float,z: float) -> float:
+    # Exposed for precise regression assertions against the shared plan.
+    return RESIDENTIAL.PAD_HEIGHT if RESIDENTIAL.grading_weight(x,z)>=.999 else height_at(x,z)
 
 func _terrain_micro_normal() -> ImageTexture:
     # Original low-memory 64x64 detail map. Snow is almost smooth while
