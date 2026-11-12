@@ -64,8 +64,8 @@ func _verify() -> void:
         "merged house geometry or unchanged collidable interior floors missing")
     for building in old.get_children():
         if str(building.name) in [
-                "TALLER_HELIOS","ESTACION_METEOROLOGICA",
-                "PUESTO_VORTEX","NODO_AURORA"]:
+                "CENTRO_DE_EXPLORACION","TALLER_HELIOS",
+                "ESTACION_METEOROLOGICA","PUESTO_VORTEX"]:
             check(building.get_node_or_null("AccessibleEntryRamp01")!=null,
                 "legacy ramp collision deleted when optimizing scene")
 
