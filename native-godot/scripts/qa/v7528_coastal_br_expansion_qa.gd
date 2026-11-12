@@ -143,8 +143,8 @@ func _verify() -> void:
     for index in range(1,coastal.HOUSE_COUNT):
         var loot: Area3D=director.get_node("AuroraInteriorLoot"+str(index+1))
         var floor_anchor: Vector3=coastal.interior_supply_spots[index]
-        check(is_equal_approx(loot.global_position.y,floor_anchor.y+1.08),
-            "interior capsule "+str(index+1)+" was placed off its floor")
+        check(is_equal_approx(loot.global_position.y,floor_anchor.y+.50),
+            "interior capsule "+str(index+1)+" must sit on its real indoor floor")
         player.global_position=floor_anchor+Vector3.UP*.16
         player.velocity=Vector3.ZERO
         await physics_frame
