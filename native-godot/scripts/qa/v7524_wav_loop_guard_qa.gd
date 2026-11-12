@@ -56,12 +56,18 @@ func _verify() -> void:
             if not is_finite(sample.x) or not is_finite(sample.y):
                 check(false,"PCM returned non-finite float while looping")
                 break
-    check(playback.get_loop_count()>0,
-        "native WAV decoder did not actually cross the wind loop boundary")
+    # Direct mix_audio() does not guarantee that get_loop_count() is
+    # updated on all renderer/audio-driver paths. Check decoded output
+    # covers MORE THAN the real original four seconds at the mix rate.
+    var one_loop_output_frames: float=float(wind.loop_end)*(
+        float(AudioServer.get_mix_rate())/float(wind.mix_rate))
+    check(float(decoded_frames)>one_loop_output_frames,
+        "native decoder never processed beyond first four-second loop")
     playback.stop()
-    print("V7524_WAV_GUARD PASS native PCM wind decoder ",
-        "expected_audio_bytes=",audible_frames*2,
-        " padded_bytes=",audio.size(),
-        " decoded_frames=",decoded_frames,
-        " loop_end=",wind.loop_end)
+    if not failed:
+        print("V7524_WAV_GUARD PASS native PCM wind decoder ",
+            "expected_audio_bytes=",audible_frames*2,
+            " padded_bytes=",audio.size(),
+            " decoded_frames=",decoded_frames,
+            " loop_end=",wind.loop_end)
     quit(1 if failed else 0)
