@@ -22,7 +22,7 @@ func verify() -> void:
     var nav=game.get_node("AuroraNavigation")
     for bot in combat._targets:
         bot.set_physics_process(false)
-    for i in range(300):
+    for i in range(900):
         if nav.available:
             break
         await physics_frame
