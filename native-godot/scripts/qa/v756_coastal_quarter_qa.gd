@@ -19,11 +19,14 @@ func _verify() -> void:
     await physics_frame
     var district: Node3D=scene.get_node("PuertoAuroraSector")
     var town: Node3D=scene.get_node("PuertoAuroraCoastalQuarter")
-    check(int(town.buildings_built)==4,"houses not generated")
-    check(int(town.accessible_entries)==4,"entrances missing")
+    check(int(town.buildings_built)==town.HOUSE_COUNT,"houses not generated")
+    check(int(town.accessible_entries)==town.HOUSE_COUNT,"entrances missing")
     check(int(town.tile_instances)>=1000,"curved roof tile instancing missing")
     check(int(town.collision_bodies)>35,"physical covers/roofs missing")
     check(town.navigation_points.size()>20,"no new AI navigation")
+    check(town.furnished_interiors==town.HOUSE_COUNT and
+        town.interior_supply_spots.size()==town.HOUSE_COUNT,
+        "coastal rooms need real furnishing and pickup-floor anchors")
     check(town.cover_points.size()>=8,"no new cover")
     check(district.navigation_points.size()>town.navigation_points.size(),
         "new 3D houses not connected to navigation seed list")

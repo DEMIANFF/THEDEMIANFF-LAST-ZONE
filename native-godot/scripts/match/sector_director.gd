@@ -8,11 +8,15 @@ const LOOT = preload("res://scripts/match/aurora_loot.gd")
 const ZONE_VISUAL = preload("res://scripts/match/aurora_zone_visual.gd")
 const DROP_SEQUENCE = preload("res://scripts/match/airdrop_sequence.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
-const INITIAL_RADIUS: float = 90.0
+const INITIAL_RADIUS: float = 112.0
 const FINAL_RADIUS: float = 12.0
 const SHRINK_DURATION: float = 280.0
 const CENTER: Vector2 = Vector2(0.0,-24.0)
 const TICK: float = 1.0
+const PHASE_COUNT: int=4
+const PHASE_SECONDS: float=SHRINK_DURATION/float(PHASE_COUNT)
+const PHASE_HOLD_SECONDS: float=12.0
+const PHASE_RADII: Array[float]=[INITIAL_RADIUS,84.0,53.0,28.0,FINAL_RADIUS]
 
 var player: CharacterBody3D
 var combat: Node3D
@@ -22,6 +26,8 @@ var mode: String = "training"
 var match_ended: bool = false
 var elapsed: float = 0.0
 var radius: float = INITIAL_RADIUS
+var zone_phase: int=0
+var zone_seconds_remaining: int=0
 var _damage_clock: float = 0.0
 var _ui_clock: float = 0.0
 var _loot: Array[Area3D] = []
@@ -116,6 +122,8 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     last_match_saved=false
     elapsed = 0.0
     radius = INITIAL_RADIUS
+    zone_phase=0
+    zone_seconds_remaining=int(PHASE_SECONDS)
     _zone_visual.visible=true
     _zone_visual.set_safe_radius(radius,true)
     hud.set_sector_zone(CENTER,radius)
@@ -148,8 +156,10 @@ func _process(delta: float) -> void:
     if mode != "sector_battle" or match_ended:
         return
     elapsed += delta
-    var progress: float = clampf(elapsed/SHRINK_DURATION,0.0,1.0)
-    radius = lerpf(INITIAL_RADIUS,FINAL_RADIUS,pow(progress,1.13))
+    var state: Dictionary=zone_state_at(elapsed)
+    radius=float(state["radius"])
+    zone_phase=int(state["phase"])
+    zone_seconds_remaining=int(state["remaining"])
     _zone_visual.set_safe_radius(radius)
     _ui_clock-=delta
     if _ui_clock<=0:
@@ -158,7 +168,8 @@ func _process(delta: float) -> void:
             bot.safe_center=CENTER
             bot.safe_radius=radius
         hud.set_sector_zone(CENTER,radius)
-        hud.set_sector_state("ZONA EN CIERRE",combat.active_fighter_count(),radius,int(elapsed))
+        var status: String="ZONA FINAL" if zone_phase>=PHASE_COUNT else             "ZONA %d/%d · %ds"%[zone_phase+1,PHASE_COUNT,zone_seconds_remaining]
+        hud.set_sector_state(status,combat.active_fighter_count(),radius,int(elapsed))
     _damage_clock+=delta
     if _damage_clock>=TICK:
         _damage_clock-=TICK
@@ -169,12 +180,31 @@ func _process(delta: float) -> void:
         _finish(true)
 
 
+## Four actual scheduled storm phases, beginning wide enough to cover both\n## new north-coast entrance ramps. Each has a short stable loot window,
+## followed by a smooth contraction, then a tighter damage/visibility stage.
+## Radar, terrain ring and hazard radius all read the same returned radius.
+func zone_state_at(seconds: float) -> Dictionary:
+    var time: float=clampf(seconds,0.0,SHRINK_DURATION)
+    if time>=SHRINK_DURATION:
+        return {"radius":FINAL_RADIUS,"phase":PHASE_COUNT,"remaining":0}
+    var phase: int=clampi(int(floor(time/PHASE_SECONDS)),0,PHASE_COUNT-1)
+    var within: float=time-float(phase)*PHASE_SECONDS
+    var progress: float=clampf((within-PHASE_HOLD_SECONDS)/
+        (PHASE_SECONDS-PHASE_HOLD_SECONDS),0.0,1.0)
+    var eased: float=progress*progress*(3.0-2.0*progress)
+    return {
+        "radius":lerpf(PHASE_RADII[phase],PHASE_RADII[phase+1],eased),
+        "phase":phase,
+        "remaining":maxi(0,int(ceil(PHASE_SECONDS-within)))
+    }
+
+
 func is_outside_zone(position: Vector3) -> bool:
     return Vector2(position.x,position.z).distance_to(CENTER)>radius
 
 
 func _check_hazard_damage() -> void:
-    var damage: float=6.0 if elapsed < SHRINK_DURATION*.58 else 11.0
+    var damage: float=6.0 if zone_phase<=0 else 8.0 if zone_phase==1         else 10.0 if zone_phase==2 else 13.0
     if not player.royale_eliminated and is_outside_zone(player.global_position):
         player.receive_training_hit(damage,true)
         hud.impact("ZONA AURORA / VUELVE AL CIRCULO")
@@ -217,15 +247,35 @@ func _spawn_loot() -> void:
         "cover_charge","ammo_ar","medkit","ammo_awm",
         "ammo_ar","medkit","ammo_ar","cover_charge"]
     for i in range(spots.size()):
-        var pickup: Area3D=LOOT.new()
-        pickup.name="AuroraLoot"+str(i+1)
-        pickup.pickup_type=categories[i]
-        pickup.player=player
-        pickup.combat=combat
-        pickup.terrain=terrain
-        pickup.world_spot=spots[i]
-        add_child(pickup)
-        _loot.append(pickup)
+        _make_pickup(spots[i],categories[i],"AuroraLoot"+str(i+1))
+    # Existing 16 outdoor pickups remain in the previously tested positions.
+    # Actual furniture rooms add six more reachable pickups. Their height
+    # follows the raised indoor floor, not the terrain underneath a villa.
+    var coastal: Node3D=get_parent().get_node_or_null(
+        "PuertoAuroraCoastalQuarter") as Node3D
+    if coastal!=null:
+        var interior: Array[Vector3]=coastal.interior_supply_spots
+        var indoor_types: Array[String]=[
+            "medkit","ammo_ar","ammo_awm",
+            "cover_charge","medkit","ammo_ar"]
+        for i in range(interior.size()):
+            var at: Vector3=interior[i]
+            _make_pickup(Vector2(at.x,at.z),indoor_types[i%indoor_types.size()],
+                "AuroraInteriorLoot"+str(i+1),at.y)
+
+
+func _make_pickup(at: Vector2,kind: String,pickup_name: String,
+        floor_height: float=NAN) -> void:
+    var pickup: Area3D=LOOT.new()
+    pickup.name=pickup_name
+    pickup.pickup_type=kind
+    pickup.player=player
+    pickup.combat=combat
+    pickup.terrain=terrain
+    pickup.world_spot=at
+    pickup.surface_height_override=floor_height
+    add_child(pickup)
+    _loot.append(pickup)
 
 
 func get_loot_remaining() -> int:

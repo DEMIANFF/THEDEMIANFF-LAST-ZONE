@@ -55,14 +55,14 @@ func _verify() -> void:
         push_error("Shrinking danger zone has no in-world 3D boundary")
         quit(94)
         return
-    if director.get_loot_remaining()!=16:
-        push_error("Battle did not spawn the 16 world loot capsules")
+    if director.get_loot_remaining()!=22:
+        push_error("Battle did not spawn 16 outdoor and 6 indoor loot capsules")
         quit(83)
         return
     var first: Area3D=director._loot[0]
     var ammo_before: int=combat.reserve[0]
     first._collect(operator)
-    if combat.reserve[0]!=ammo_before+45 or director.get_loot_remaining()!=15:
+    if combat.reserve[0]!=ammo_before+45 or director.get_loot_remaining()!=21:
         push_error("Physical area loot does not increase reserve and disappear")
         quit(84)
         return
@@ -171,7 +171,7 @@ func _verify() -> void:
 
     director.start_sector_battle()
     await process_frame
-    if director.match_ended or combat.active_fighter_count()!=9 or director.get_loot_remaining()!=16 or operator.round_finished:
+    if director.match_ended or combat.active_fighter_count()!=9 or director.get_loot_remaining()!=22 or operator.round_finished:
         push_error("New sector battle failed to reset fighters/loot/player controls")
         quit(91)
         return

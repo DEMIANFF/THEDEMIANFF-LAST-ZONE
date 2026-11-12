@@ -6,6 +6,9 @@ var player: CharacterBody3D
 var combat: Node3D
 var terrain: StaticBody3D
 var world_spot: Vector2=Vector2.ZERO
+# A valid override is the top surface of an elevated walkable house floor.
+# Exterior loot uses the terrain mesh exactly as before.
+var surface_height_override: float=NAN
 var collected: bool=false
 var _visual: Node3D
 var _phase: float=0.0
@@ -16,7 +19,8 @@ func _ready() -> void:
     monitorable=true
     collision_layer=0
     collision_mask=1
-    global_position=Vector3(world_spot.x,terrain.height_at(world_spot.x,world_spot.y)+1.08,world_spot.y)
+    var surface_y: float=surface_height_override if is_finite(surface_height_override) else         terrain.height_at(world_spot.x,world_spot.y)
+    global_position=Vector3(world_spot.x,surface_y+1.08,world_spot.y)
     var sphere:=SphereShape3D.new()
     sphere.radius=1.65
     var shape:=CollisionShape3D.new()

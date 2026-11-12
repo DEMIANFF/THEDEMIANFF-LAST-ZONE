@@ -46,7 +46,8 @@ func _verify() -> void:
             if mat.normal_texture:
                 check(mat.normal_texture.get_width()<=128,
                     "coastal material exceeds mobile texture budget")
-    check(quarter.buildings_built==4 and quarter.accessible_entries==4,
+    check(quarter.buildings_built==quarter.HOUSE_COUNT and
+        quarter.accessible_entries==quarter.HOUSE_COUNT,
         "real, accessible coastal houses disappeared")
     var plaza: MeshInstance3D=quarter.get_node("AuroraCobblestoneMarketPlaza")
     var plaza_mesh: ArrayMesh=plaza.mesh as ArrayMesh
