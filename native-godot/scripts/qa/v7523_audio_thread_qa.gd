@@ -28,10 +28,10 @@ func _verify() -> void:
         "per-voice directional audio buses not configured")
 
     for i in range(sound._world_voices.size()):
-        var voice: AudioStreamPlayer=sound._world_voices[i]
+        var voice: Node=sound._world_voices[i]
         check(voice!=null and not (voice is AudioStreamPlayer3D),
             "Android native audio race path still uses AudioStreamPlayer3D")
-        var bus: int=AudioServer.get_bus_index(voice.bus)
+        var bus: int=AudioServer.get_bus_index((voice as AudioStreamPlayer).bus)
         check(bus>=0 and bus==sound._world_buses[i],
             "fixed world voice bus changed after startup")
         check(AudioServer.get_bus_effect_count(bus)>=1 and
