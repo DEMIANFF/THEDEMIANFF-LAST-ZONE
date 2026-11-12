@@ -94,6 +94,11 @@ func _verify() -> void:
             title_found=true
     check(title_found,"welcome title still contains FF")
     frontend._show_lobby()
+    var portrait: Node3D=frontend._preview_avatar
+    var anim: AnimationPlayer=portrait.find_child(
+        "AnimationPlayer",true,false) as AnimationPlayer
+    check(anim!=null and anim.current_animation=="AuroraIdle",
+        "lobby still uses empty-handed armed pose without a visible rifle")
     check(emblem.anchor_left>.89 and emblem.anchor_right<.98 and
         emblem.anchor_bottom<.15,
         "lobby logo still overlaps stats or face of Lila")
