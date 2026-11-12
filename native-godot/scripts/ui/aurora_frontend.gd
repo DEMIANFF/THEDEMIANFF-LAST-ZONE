@@ -654,9 +654,9 @@ func _build_settings() -> void:
     var refresh_label:=Label.new()
     refresh_label.name="ActualScreenRefreshRate"
     var hz: float=DisplayServer.screen_get_refresh_rate()
-    var hz_label: String="Pantalla actual: %.0f Hz"%hz if hz>0.0 else \
-        "Frecuencia de pantalla no disponible"
-    refresh_label.text=hz_label+" · FPS máximos configurados (no garantizados)"
+    refresh_label.text="Pantalla %.0f Hz"%hz if hz>0.0 else "Hz no detectados"
+    refresh_label.clip_text=true
+    refresh_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     refresh_label.add_theme_font_size_override("font_size",12)
     _settings_content.add_child(refresh_label)
     _settings_status=Label.new()
