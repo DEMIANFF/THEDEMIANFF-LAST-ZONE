@@ -8,6 +8,7 @@ const LOOT = preload("res://scripts/match/aurora_loot.gd")
 const ZONE_VISUAL = preload("res://scripts/match/aurora_zone_visual.gd")
 const DROP_SEQUENCE = preload("res://scripts/match/airdrop_sequence.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
+const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const INITIAL_RADIUS: float = 112.0
 const FINAL_RADIUS: float = 12.0
 const SHRINK_DURATION: float = 280.0
@@ -39,6 +40,8 @@ var _match_id: int=0
 var last_match_saved: bool=false
 var _pending_result: Dictionary={}
 var _save_clock: float=0.0
+var _perf_clock: float=0.0
+var _perf_samples: Array[float]=[]
 
 
 func _ready() -> void:
@@ -89,7 +92,7 @@ func begin_aircraft_phase() -> void:
     match_ended=false
     hud.clear_match_result()
     hud.set_battle_button("DESPLIEGUE")
-    hud.set_sector_state("AERONAVE / AURORA",9,INITIAL_RADIUS,0)
+    hud.set_sector_state("AERONAVE / AURORA",int(combat.get("encounter_size")),INITIAL_RADIUS,0)
     _flight.begin()
 
 
@@ -129,6 +132,8 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     hud.set_sector_zone(CENTER,radius)
     _damage_clock=0.0
     _ui_clock=0.0
+    _perf_clock=0.0
+    _perf_samples.clear()
     player.begin_sector_battle(from_airdrop)
     combat.begin_sector_battle()
     # The previous round can end with a 12 m radius. Reset every bot's
@@ -141,7 +146,8 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _spawn_loot()
     hud.set_battle_button("EN PARTIDA")
     hud.set_sector_state("BATALLA SECTOR",combat.active_fighter_count(),radius,0)
-    hud.impact("BATALLA AURORA / SOLO - "+str(combat.active_fighter_count())+" PARTICIPANTES")
+    hud.impact("BATALLA AURORA · 1 JUGADOR + "+
+        str(combat.active_fighter_count()-1)+" IA · OFFLINE")
 
 
 func _ready_for_round() -> bool:
@@ -160,6 +166,15 @@ func _process(delta: float) -> void:
     if mode != "sector_battle" or match_ended:
         return
     elapsed += delta
+    # Sample measured hardware FPS twice per second. Store only at the
+    # actual match end, avoiding file writes during interactive combat.
+    _perf_clock-=delta
+    if _perf_clock<=0.0:
+        _perf_clock=.5
+        if DisplayServer.get_name()!="headless":
+            var fps: float=float(Engine.get_frames_per_second())
+            if fps>0.0 and fps<360.0:
+                _perf_samples.append(fps)
     var state: Dictionary=zone_state_at(elapsed)
     radius=float(state["radius"])
     zone_phase=int(state["phase"])
@@ -234,6 +249,11 @@ func _finish(victory: bool) -> void:
     if match_ended:
         return
     match_ended = true
+    if _perf_samples.size()>2:
+        var result: Error=PERFORMANCE.record(
+            int(combat.get("encounter_size")),_perf_samples,elapsed,true)
+        if result!=OK:
+            push_warning("Aurora measured FPS report could not be persisted")
     combat.end_sector_battle()
     player.end_sector_battle()
     hud.reset_controls()

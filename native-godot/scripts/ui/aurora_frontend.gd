@@ -5,9 +5,11 @@ const SAFE_SCREEN=preload("res://scripts/ui/safe_screen.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
+const LOBBY_STAGE=preload("res://scripts/ui/aurora_lobby_stage_3d.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
+const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.gd")
@@ -45,6 +47,8 @@ var _hud_editor_requested: bool=false
 var _hud_editor_origin: String=""
 var _settings_modal: CanvasLayer
 var _brand_logo: TextureRect
+var _encounter_count: int=9
+var _encounter_selector: OptionButton
 
 
 func _ready() -> void:
@@ -330,8 +334,8 @@ func _show_lobby() -> void:
     _brand_logo.anchor_bottom=.137
     _page.anchor_left=.67
     _page.anchor_right=.97
-    _page.anchor_top=.18
-    _page.anchor_bottom=.92
+    _page.anchor_top=.16
+    _page.anchor_bottom=.94
     _page.add_theme_constant_override("separation",8)
     _preview_container.anchor_left=.29
     _preview_container.anchor_right=.65
@@ -367,11 +371,37 @@ func _show_lobby() -> void:
     var training:=_button("ENTRENAMIENTO",Callable(self,"_launch").bind(false),245)
     training.name="TrainingButton"
     modes.add_child(training)
-    _label("SECTOR OFFLINE  •  1 JUGADOR + 8 BOTS",13)
+    var selector_caption:=_label("PARTICIPANTES LOCALES / SOLO CON IA",14)
+    selector_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
+    _encounter_selector=OptionButton.new()
+    _encounter_selector.name="OfflineEncounterSize"
+    _encounter_selector.custom_minimum_size=Vector2(257,38)
+    _encounter_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+    _encounter_selector.add_item("9 TOTAL · 1 + 8 IA (estable)",9)
+    _encounter_selector.add_item("20 TOTAL · 1 + 19 IA (prueba)",20)
+    _encounter_selector.add_item("30 TOTAL · 1 + 29 IA (carga)",30)
+    _encounter_selector.select([9,20,30].find(_encounter_count))
+    _encounter_selector.item_selected.connect(_on_encounter_selected)
+    _page.add_child(_encounter_selector)
     _info=_label("",16)
     _info.name="LobbyDetail"
     _build_settings()
     _select_tab(_selected_tab)
+
+
+func _on_encounter_selected(index: int) -> void:
+    if _encounter_selector==null:
+        return
+    _encounter_count=_encounter_selector.get_item_id(index)
+    if _encounter_count not in [9,20,30]:
+        _encounter_count=9
+    # These are all OFFLINE AI opponents. Human 20/30 player sessions
+    # still require dedicated server authority and replication.
+    if _info!=null and stage=="lobby":
+        _info.text="SECTOR LOCAL %d · 1 OPERADOR + %d IA\n%s"%[
+            _encounter_count,_encounter_count-1,
+            "Carga elevada: verifica FPS en Motorola" if _encounter_count>9
+            else "Configuración móvil recomendada"]
 
 
 func _ensure_lobby_navigation() -> void:
@@ -421,7 +451,9 @@ func _ensure_lobby_navigation() -> void:
         var tab_name: String=tab
         var button:=_button(tab_name,Callable(self,"_select_tab").bind(tab_name),176)
         button.name="Tab"+tab_name
-        button.custom_minimum_size=Vector2(176,43)
+        var compact: bool=_surface.size.y<620.0
+        button.custom_minimum_size=Vector2(176,30 if compact else 43)
+        button.add_theme_font_size_override("font_size",12 if compact else 18)
         _lobby_nav.add_child(button)
 
 
@@ -442,6 +474,13 @@ func _select_tab(tab: String) -> void:
             _info.text="OPERADORA / LILA EN DESARROLLO\nModelo 3D provisional."
             _info.text+="\nPARTIDAS %d  •  VICTORIAS %d  •  BAJAS %d"%[int(stats.get("played",0)),int(stats.get("wins",0)),int(stats.get("kills",0))]
             _info.text+="\nRÉCORD %d BAJAS  •  %d S VIVO"%[int(stats.get("best_kills",0)),int(stats.get("longest_survival_seconds",0))]
+            var measured: Dictionary=PERFORMANCE.latest()
+            if int(measured.get("frames",0))>=3:
+                _info.text+="\nFPS REALES: MEDIA %.1f / P10 %.1f"%[
+                    float(measured.get("average_fps",0.0)),
+                    float(measured.get("low10_fps",0.0))]
+                _info.text+="\nMODO PROBADO: %d PARTICIPANTES"%int(
+                    measured.get("participants",0))
         "ARMAS":
             _info.text="ARSENAL ACTIVO\nAR-7: mira x2 / x4.\nAWM: mira x8 y cerrojo automático.\nBR: AWM sobre el suelo, en la PLAZA (8, 24).\nENTRENAMIENTO: pulsa ARMA para probarla."
         "MISIONES":
@@ -572,6 +611,8 @@ func _activate_game(battle: bool) -> void:
     visible=false
     stage="battle" if battle else "training"
     if battle:
+        var combat: Node3D=_game.get_node("CombatRange")
+        combat.call("set_encounter_size",_encounter_count)
         var match_director: Node3D=_game.get_node("AuroraSectorMatch")
         FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",player,
             "battle_aircraft_begin_before")
@@ -656,6 +697,9 @@ func _build_preview() -> void:
     var stage3d:=Node3D.new()
     stage3d.name="AuroraCharacterStage"
     viewport.add_child(stage3d)
+    var hangar:=LOBBY_STAGE.new()
+    hangar.name="AuroraReal3DLobbyEnvironment"
+    stage3d.add_child(hangar)
     var ambient:=WorldEnvironment.new()
     var env:=Environment.new()
     env.background_mode=Environment.BG_COLOR
@@ -768,6 +812,14 @@ func _layout_safe() -> void:
     _surface.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     _surface.position=safe.position
     _surface.size=safe.size
+    # Nine tabs must fit a 434px-tall Motorola landscape viewport.
+    if _lobby_nav!=null and is_instance_valid(_lobby_nav):
+        var compact: bool=safe.size.y<620.0
+        for button in _lobby_nav.get_children():
+            if button is Button:
+                button.custom_minimum_size.y=30.0 if compact else 43.0
+                button.add_theme_font_size_override(
+                    "font_size",12 if compact else 18)
 
 
 func _build_settings() -> void:
