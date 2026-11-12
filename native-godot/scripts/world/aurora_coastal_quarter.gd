@@ -3,7 +3,8 @@ extends Node3D
 ## colliders and ramps: actual level geometry, not a 2D lobby illustration.
 ## Materials and tile/arch meshes are authored here, not third-party branding.
 
-const HOUSE_COUNT: int=8
+const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
+const HOUSE_COUNT: int=RESIDENTIAL.HOUSE_COUNT
 var terrain: StaticBody3D
 var navigation_points: Array[Vector3]=[]
 var cover_points: Array[Vector3]=[]
@@ -29,21 +30,13 @@ var _green: StandardMaterial3D
 
 func _ready() -> void:
     _build_materials()
-    # Coordinates are inside the current 450-m terrain, and just off the
-    # original tactical sector; no collision proxies through old buildings.
-    _villa(Vector2(-4,42),11.2,8.0,0.04,0)
-    _villa(Vector2(19,43),10.8,8.4,-0.09,1)
-    _villa(Vector2(43,41),11.3,8.3,0.12,2)
-    _villa(Vector2(62,28),9.6,7.7,-0.13,3)
-    # Two additional accessible homes extend the district northward. Both
-    # keep their doorway facing the open approach and use identical solid
-    # geometry as the four previously verified walkable buildings.
-    _villa(Vector2(-22,66),10.4,8.3,-0.06,4)
-    _villa(Vector2(26,68),11.0,8.4,0.08,5)
-    # Two new navigable residences at the western quay and eastern lookout.
-    # Both approaches remain inside the initial 112m combat radius.
-    _villa(Vector2(-52,44),10.8,8.2,0.06,6)
-    _villa(Vector2(72,50),10.5,8.1,-0.08,7)
+    # Terrain and houses consume the SAME layout. This ensures the 3D
+    # foundations physically sit on the levelled residential heightfield,
+    # never on hills with hidden gaps below the walkable floor.
+    for seed in range(HOUSE_COUNT):
+        var site: Vector4=RESIDENTIAL.SITES[seed]
+        _villa(Vector2(site.x,site.y),site.z,site.w,
+            RESIDENTIAL.YAWS[seed],seed)
     _plaza(Vector2(20,28),Vector2(64,25))
     _plaza(Vector2(2,60),Vector2(65,12))
     # Western pedestrian lane: triangulated to the same terrain grid,
@@ -309,7 +302,8 @@ func _stair_ramp(root: Node3D,front: float,w: float,at: Vector2) -> void:
     # fine decorative paving lines are visual only, never invisible stair walls.
     var near: float=front+.35
     var far: float=front+7.5
-    var low: float=_ground(at.x,at.y+far)-root.position.y
+    var ramp_start_world: Vector3=root.to_global(Vector3(0,0,far))
+    var low: float=_ground(ramp_start_world.x,ramp_start_world.z)-root.position.y
     var high: float=.24
     var bottom: float=minf(low,high)-.35
     var points:=PackedVector3Array([
@@ -346,18 +340,18 @@ func _stair_ramp(root: Node3D,front: float,w: float,at: Vector2) -> void:
         var y: float=lerpf(high,low,t)+.019
         _beam(root,"PavedRampJoint",Vector3(-w,y,z),Vector3(w*2.0,0,0),_sandstone,.025)
     accessible_entries+=1
-    navigation_points.append(root.position+Vector3(0,high+.08,near))
-    navigation_points.append(root.position+Vector3(0,low+.08,far))
+    navigation_points.append(root.to_global(Vector3(0,high+.08,near)))
+    navigation_points.append(root.to_global(Vector3(0,low+.08,far)))
 
 
 func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
+    # The complete rotated footprint has a flat 7m terrain platform in
+    # island_terrain.gd. Use the actual center height, not the highest
+    # corner, which previously lifted entire houses above sloping ground.
     var foot_y: float=_ground(at.x,at.y)
-    for xx in [-w*.5,w*.5]:
-        for zz in [-d*.5,d*.5]:
-            foot_y=maxf(foot_y,_ground(at.x+xx,at.y+zz))
     var building:=Node3D.new()
     building.name="AuroraCoastalVilla"+str(seed)
-    building.position=Vector3(at.x,foot_y+.04,at.y)
+    building.position=Vector3(at.x,foot_y+.025,at.y)
     # Nearly parallel façades preserve paths and navigation on varied ground.
     building.rotation.y=rotation
     add_child(building)
@@ -365,6 +359,10 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
     var door_width: float=2.65
     var front: float=d*.5
     var remainder: float=(w-door_width)*.5
+    # The shallow, buried masonry edge visually grounds the façade while
+    # the original solid walkable floor remains the sole interior support.
+    _panel(building,"BuriedMasonryFoundation",Vector3(0,-.095,0),
+        Vector3(w-.12,.24,d-.12),_sandstone,false)
     _panel(building,"WalkableInteriorFloor",Vector3(0,.12,0),
         Vector3(w-.30,.24,d-.30),_paving)
     _panel(building,"LeftDoorWall",Vector3(-(w+door_width)*.25,height*.5,front),
