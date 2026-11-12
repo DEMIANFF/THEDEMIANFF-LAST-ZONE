@@ -5,6 +5,7 @@ const SAFE_SCREEN=preload("res://scripts/ui/safe_screen.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
+const LOBBY_STAGE=preload("res://scripts/ui/aurora_lobby_stage_3d.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
@@ -332,8 +333,8 @@ func _show_lobby() -> void:
     _brand_logo.anchor_bottom=.137
     _page.anchor_left=.67
     _page.anchor_right=.97
-    _page.anchor_top=.18
-    _page.anchor_bottom=.92
+    _page.anchor_top=.16
+    _page.anchor_bottom=.94
     _page.add_theme_constant_override("separation",8)
     _preview_container.anchor_left=.29
     _preview_container.anchor_right=.65
@@ -449,7 +450,9 @@ func _ensure_lobby_navigation() -> void:
         var tab_name: String=tab
         var button:=_button(tab_name,Callable(self,"_select_tab").bind(tab_name),176)
         button.name="Tab"+tab_name
-        button.custom_minimum_size=Vector2(176,43)
+        var compact: bool=_surface.size.y<620.0
+        button.custom_minimum_size=Vector2(176,30 if compact else 43)
+        button.add_theme_font_size_override("font_size",12 if compact else 18)
         _lobby_nav.add_child(button)
 
 
@@ -686,6 +689,9 @@ func _build_preview() -> void:
     var stage3d:=Node3D.new()
     stage3d.name="AuroraCharacterStage"
     viewport.add_child(stage3d)
+    var hangar:=LOBBY_STAGE.new()
+    hangar.name="AuroraReal3DLobbyEnvironment"
+    stage3d.add_child(hangar)
     var ambient:=WorldEnvironment.new()
     var env:=Environment.new()
     env.background_mode=Environment.BG_COLOR
@@ -798,6 +804,14 @@ func _layout_safe() -> void:
     _surface.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     _surface.position=safe.position
     _surface.size=safe.size
+    # Nine tabs must fit a 434px-tall Motorola landscape viewport.
+    if _lobby_nav!=null and is_instance_valid(_lobby_nav):
+        var compact: bool=safe.size.y<620.0
+        for button in _lobby_nav.get_children():
+            if button is Button:
+                button.custom_minimum_size.y=30.0 if compact else 43.0
+                button.add_theme_font_size_override(
+                    "font_size",12 if compact else 18)
 
 
 func _build_settings() -> void:
