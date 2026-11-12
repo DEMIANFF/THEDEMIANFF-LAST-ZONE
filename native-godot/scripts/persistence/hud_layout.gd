@@ -4,7 +4,7 @@ extends RefCounted
 const DEFAULT_PATH: String="user://aurora_hud_layout.cfg"
 const IDS: Array[String]=[
     "MovePad","DirectionalFirePad","CORRER","MIRA","RECARGA","ARMA",
-    "SALTAR","AGACHAR","CURAR 2","BARRERA 0"
+    "SALTAR","AGACHAR","CURAR 2","BARRERA 0","MOCHILA"
 ]
 const MIN_SCALE: float=.72
 const MAX_SCALE: float=1.32
