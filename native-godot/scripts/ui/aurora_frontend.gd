@@ -36,6 +36,11 @@ var _preview_caption: Label
 var _offline_records: RefCounted
 var _lobby_nav: VBoxContainer
 var _profile_strip: Label
+var _preview_touch: int=-1
+var _preview_mouse_drag: bool=false
+var _preview_drag_last: Vector2=Vector2.ZERO
+var _preview_resume_spin: float=0.0
+var _hud_editor_requested: bool=false
 
 
 func _ready() -> void:
@@ -84,12 +89,60 @@ func _ready() -> void:
     _page.anchor_right=.63
     _page.anchor_top=.10
     _page.anchor_bottom=.94
-    _page.add_theme_constant_override("separation",12)
+    _page.add_theme_constant_override("separation",8)
     _surface.add_child(_page)
     _build_preview()
     get_viewport().size_changed.connect(_layout_safe)
     _layout_safe.call_deferred()
     _welcome()
+
+
+func _process(delta: float) -> void:
+    # Keep the real CC0 rig animated and turnable, without any extra 3D
+    # viewport allocations. The full preview is freed before match creation.
+    if stage!="lobby" or _preview_avatar==null or not             is_instance_valid(_preview_avatar):
+        return
+    _preview_resume_spin=maxf(0.0,_preview_resume_spin-delta)
+    if _preview_resume_spin<=0.0 and _preview_touch<0 and not _preview_mouse_drag:
+        _preview_avatar.rotation.y=wrapf(
+            _preview_avatar.rotation.y+delta*.18,-PI,PI)
+
+
+func _preview_input(event: InputEvent) -> void:
+    if stage!="lobby" or _preview_avatar==null:
+        return
+    if event is InputEventScreenTouch:
+        var touch:=event as InputEventScreenTouch
+        if touch.pressed and not touch.canceled and _preview_touch<0:
+            _preview_touch=touch.index
+            _preview_drag_last=touch.position
+            _preview_resume_spin=2.2
+            _preview_container.accept_event()
+        elif touch.index==_preview_touch and (not touch.pressed or touch.canceled):
+            _preview_touch=-1
+            _preview_container.accept_event()
+    elif event is InputEventScreenDrag:
+        var drag:=event as InputEventScreenDrag
+        if drag.index==_preview_touch:
+            _preview_avatar.rotation.y=wrapf(
+                _preview_avatar.rotation.y+drag.relative.x*.008,-PI,PI)
+            _preview_drag_last=drag.position
+            _preview_resume_spin=2.2
+            _preview_container.accept_event()
+    elif event is InputEventMouseButton:
+        var mouse:=event as InputEventMouseButton
+        if mouse.button_index==MOUSE_BUTTON_LEFT:
+            _preview_mouse_drag=mouse.pressed
+            _preview_drag_last=mouse.position
+            _preview_resume_spin=2.2
+            _preview_container.accept_event()
+    elif event is InputEventMouseMotion and _preview_mouse_drag:
+        var motion:=event as InputEventMouseMotion
+        _preview_avatar.rotation.y=wrapf(
+            _preview_avatar.rotation.y+motion.relative.x*.008,-PI,PI)
+        _preview_drag_last=motion.position
+        _preview_resume_spin=2.2
+        _preview_container.accept_event()
 
 
 func _clear_page() -> void:
@@ -254,7 +307,7 @@ func _show_lobby() -> void:
     _page.anchor_right=.97
     _page.anchor_top=.18
     _page.anchor_bottom=.92
-    _page.add_theme_constant_override("separation",12)
+    _page.add_theme_constant_override("separation",8)
     _preview_container.anchor_left=.29
     _preview_container.anchor_right=.65
     _preview_container.anchor_top=.14
@@ -269,9 +322,12 @@ func _show_lobby() -> void:
     _lobby_nav.visible=true
     _profile_strip.visible=true
     _profile_strip.text="THEDEMIANFF  /  LAST ZONE     •     PERFIL LOCAL     •     %d PARTIDAS     •     %d VICTORIAS"%[int(stats.get("played",0)),int(stats.get("wins",0))]
+    _preview_touch=-1
+    _preview_mouse_drag=false
+    _preview_resume_spin=1.0
     _clear_page()
-    _label("BASE AURORA",29)
-    _label("OPERACIÓN ÚLTIMA ZONA",16)
+    _label("PUERTO AURORA",27)
+    _label("OPERACIÓN ÚLTIMA ZONA  •  OFFLINE",14)
     var mode_title:=_label("SELECCIONA UN MODO",17)
     mode_title.add_theme_color_override("font_color",Color(.96,.77,.38))
     var modes:=VBoxContainer.new()
@@ -306,6 +362,26 @@ func _ensure_lobby_navigation() -> void:
     _profile_strip.add_theme_color_override("font_shadow_color",Color(.01,.035,.07))
     _profile_strip.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _surface.add_child(_profile_strip)
+    var backplate:=ColorRect.new()
+    backplate.name="LobbyMenuBackplate"
+    backplate.anchor_left=.665
+    backplate.anchor_right=.978
+    backplate.anchor_top=.16
+    backplate.anchor_bottom=.945
+    backplate.color=Color(.013,.055,.105,.84)
+    backplate.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _surface.add_child(backplate)
+    _surface.move_child(backplate,1)
+    var navplate:=ColorRect.new()
+    navplate.name="LobbySidebarBackplate"
+    navplate.anchor_left=.028
+    navplate.anchor_right=.264
+    navplate.anchor_top=.167
+    navplate.anchor_bottom=.947
+    navplate.color=Color(.014,.068,.117,.67)
+    navplate.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _surface.add_child(navplate)
+    _surface.move_child(navplate,2)
     _lobby_nav=VBoxContainer.new()
     _lobby_nav.name="LobbyNavigation"
     _lobby_nav.anchor_left=.035
@@ -333,7 +409,7 @@ func _select_tab(tab: String) -> void:
             button.modulate=Color(1,.83,.48) if selected else Color.WHITE
     match tab:
         "AJUSTES":
-            _info.text="CÁMARA / PRECISIÓN\nSensibilidad de giro y ADS guardadas en el dispositivo."
+            _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot()
             _info.text="OPERADORA / LILA EN DESARROLLO\nModelo 3D provisional."
@@ -362,6 +438,13 @@ func _select_tab(tab: String) -> void:
             _info.text="CUENTA / GUARDADO LOCAL\nLos resultados se almacenan en este dispositivo. Google y Firebase no están vinculados a Godot."
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
+
+func _launch_hud_editor() -> void:
+    if stage!="lobby":
+        return
+    _hud_editor_requested=true
+    _launch(false)
+
 
 func _launch(battle: bool) -> void:
     if stage!="lobby":
@@ -422,6 +505,11 @@ func _activate_game(battle: bool) -> void:
         FLIGHT_DIAGNOSTICS.checkpoint("active","training",player,
             "training_entered",
             "startup_profile="+str(STARTUP_DIAG.mode()))
+        if _hud_editor_requested:
+            _hud_editor_requested=false
+            # The editor acts on the REAL TrainingHUD. It opens after
+            # Main._ready and the old 3D lobby viewport have been released.
+            hud.call_deferred("open_hud_editor")
     # This confirmation is written after a visible 3D frame, not after
     # merely enqueuing the world. A missing confirmation is not a GPU proof.
     # Headless QA never submits drawable frames; a stale one-shot callback
@@ -462,6 +550,7 @@ func _return_to_lobby() -> void:
         _game=null
         old.get_parent().remove_child(old)
         old.queue_free()
+    _hud_editor_requested=false
     _show_lobby()
 
 
@@ -476,7 +565,8 @@ func _build_preview() -> void:
     _preview_container.anchor_top=.19
     _preview_container.anchor_bottom=.89
     _preview_container.stretch=true
-    _preview_container.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _preview_container.mouse_filter=Control.MOUSE_FILTER_STOP
+    _preview_container.gui_input.connect(_preview_input)
     _preview_container.visible=false
     _surface.add_child(_preview_container)
 
@@ -544,7 +634,7 @@ func _build_preview() -> void:
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
-    caption.text="OPERADORA 3D PROVISIONAL  ·  LILA EN DESARROLLO"
+    caption.text="LILA  •  MODELO 3D PROVISIONAL   ↻ DESLIZA PARA GIRAR"
     caption.anchor_left=.29
     caption.anchor_right=.65
     caption.anchor_top=.90
@@ -605,11 +695,17 @@ func _build_settings() -> void:
     _settings_panel.name="CameraSettings"
     _settings_panel.add_theme_constant_override("separation",4)
     _page.add_child(_settings_panel)
+    var hud_edit_button:=_button("EDITAR CONTROLES / HUD",
+        Callable(self,"_launch_hud_editor"),235)
+    hud_edit_button.name="EditHUDEntry"
+    hud_edit_button.custom_minimum_size.y=40
+    hud_edit_button.add_theme_font_size_override("font_size",14)
+    _settings_panel.add_child(hud_edit_button)
     # A scrollable control section avoids hiding mobile HUD buttons or running
     # past the screen edge when a phone uses 16:9 or a taller aspect ratio.
     var settings_scroll:=ScrollContainer.new()
     settings_scroll.name="MobileSettingsScroll"
-    settings_scroll.custom_minimum_size=Vector2(0,210)
+    settings_scroll.custom_minimum_size=Vector2(0,170)
     settings_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
     _settings_panel.add_child(settings_scroll)
     _settings_content=VBoxContainer.new()
