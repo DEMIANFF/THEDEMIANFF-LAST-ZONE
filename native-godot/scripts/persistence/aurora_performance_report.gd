@@ -13,6 +13,8 @@ static func latest() -> Dictionary:
         "frames":int(cfg.get_value("run","frames",0)),
         "average_fps":float(cfg.get_value("run","average_fps",0.0)),
         "low10_fps":float(cfg.get_value("run","low10_fps",0.0)),
+        "median_fps":float(cfg.get_value("run","median_fps",0.0)),
+        "p90_fps":float(cfg.get_value("run","p90_fps",0.0)),
         "min_fps":float(cfg.get_value("run","min_fps",0.0)),
         "seconds":int(cfg.get_value("run","seconds",0)),
         "completed":bool(cfg.get_value("run","completed",false)),
@@ -26,7 +28,7 @@ static func latest() -> Dictionary:
 
 static func record(participants: int,samples: Array[float],
         elapsed: float,complete: bool) -> Error:
-    if samples.is_empty() or participants not in [9,20,30]:
+    if samples.is_empty() or participants not in [9,20,30] or not is_finite(elapsed) or elapsed<0.0:
         return ERR_INVALID_PARAMETER
     var valid: Array[float]=[]
     for value in samples:
@@ -44,6 +46,8 @@ static func record(participants: int,samples: Array[float],
     cfg.set_value("run","frames",valid.size())
     cfg.set_value("run","average_fps",snappedf(total/valid.size(),.1))
     cfg.set_value("run","low10_fps",snappedf(valid[low],.1))
+    cfg.set_value("run","median_fps",snappedf(valid[int(floor((valid.size()-1)*.50))],.1))
+    cfg.set_value("run","p90_fps",snappedf(valid[int(floor((valid.size()-1)*.90))],.1))
     cfg.set_value("run","min_fps",snappedf(valid[0],.1))
     cfg.set_value("run","seconds",roundi(elapsed))
     cfg.set_value("run","completed",complete)
