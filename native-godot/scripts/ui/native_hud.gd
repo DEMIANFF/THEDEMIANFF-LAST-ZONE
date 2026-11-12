@@ -574,7 +574,7 @@ func _layout() -> void:
 ## fake settings preview. Weapon, movement, camera and audio are not replaced.
 func _build_hud_editor(root: Control) -> void:
     _hud_editor=HUD_EDITOR.new()
-    _hud_editor.hud=self
+    _hud_editor.set("hud",self)
     _hud_editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _hud_editor.visible=false
     root.add_child(_hud_editor)
@@ -613,7 +613,7 @@ func _build_hud_editor(root: Control) -> void:
     _hud_editor_button(row,"GUARDAR",_hud_edit_save)
     _hud_editor_button(row,"RESTAURAR",_hud_edit_restore)
     _hud_editor_button(row,"CERRAR",_hud_edit_close)
-    _hud_editor_button(row,"VOLVER",_hud_edit_close)
+    _hud_editor_button(row,"AYUDA",_hud_edit_help)
 
 
 func _hud_editor_button(parent: Control,title: String,handler: Callable) -> void:
@@ -634,7 +634,7 @@ func open_hud_editor() -> void:
     _hud_editing=true
     _hud_selected=""
     _hud_editor.visible=true
-    _hud_editor.reset_pointer()
+    _hud_editor.call("reset_pointer")
     _hud_editor_label.text="EDITAR HUD  •  Toca y arrastra un control"
     process_mode=Node.PROCESS_MODE_ALWAYS
     get_tree().paused=true
@@ -696,6 +696,10 @@ func _hud_edit_adjust(scale_step: float,alpha_step: float) -> void:
         _layout()
 
 
+func _hud_edit_help() -> void:
+    _hud_editor_label.text="Arrastra, ajusta, GUARDA y luego CIERRA"
+
+
 func _hud_edit_save() -> void:
     var result: Error=_hud_layout.save()
     if result!=OK:
@@ -710,7 +714,7 @@ func _hud_edit_restore() -> void:
         _hud_editor_label.text="ERROR AL RESTAURAR: "+str(result)
         return
     _hud_selected=""
-    _hud_editor.reset_pointer()
+    _hud_editor.call("reset_pointer")
     _hud_editor_label.text="HUD ORIGINAL RESTAURADO"
     _layout()
 
@@ -721,7 +725,7 @@ func _hud_edit_close() -> void:
     _hud_editing=false
     _hud_selected=""
     _hud_editor.visible=false
-    _hud_editor.reset_pointer()
+    _hud_editor.call("reset_pointer")
     # Discard only unsaved edits, preserve the last validated disk layout.
     _hud_layout=HUD_LAYOUT.new()
     _layout()
