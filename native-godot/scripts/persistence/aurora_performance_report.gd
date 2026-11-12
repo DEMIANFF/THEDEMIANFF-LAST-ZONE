@@ -15,7 +15,12 @@ static func latest() -> Dictionary:
         "low10_fps":float(cfg.get_value("run","low10_fps",0.0)),
         "min_fps":float(cfg.get_value("run","min_fps",0.0)),
         "seconds":int(cfg.get_value("run","seconds",0)),
-        "completed":bool(cfg.get_value("run","completed",false))
+        "completed":bool(cfg.get_value("run","completed",false)),
+        # Render details are collected in the match, never inferred from
+        # target project settings. Real Vulkan fallback is visible here.
+        "render_method":str(cfg.get_value("run","render_method","unknown")),
+        "render_driver":str(cfg.get_value("run","render_driver","unknown")),
+        "quality_scale":float(cfg.get_value("run","quality_scale",1.0))
     }
 
 
@@ -42,4 +47,10 @@ static func record(participants: int,samples: Array[float],
     cfg.set_value("run","min_fps",snappedf(valid[0],.1))
     cfg.set_value("run","seconds",roundi(elapsed))
     cfg.set_value("run","completed",complete)
+    cfg.set_value("run","render_method",
+        RenderingServer.get_current_rendering_method())
+    cfg.set_value("run","render_driver",
+        RenderingServer.get_current_rendering_driver_name())
+    cfg.set_value("run","quality_scale",
+        snappedf(Engine.get_main_loop().root.scaling_3d_scale,.01))
     return cfg.save(PATH)
