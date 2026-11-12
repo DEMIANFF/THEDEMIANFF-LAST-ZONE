@@ -254,6 +254,25 @@ func _screen_page() -> void:
     var driver: String=RenderingServer.get_current_rendering_driver_name()
     _info("MOTOR GRÁFICO REAL: "+method.to_upper()+" / "+driver.to_upper()+
         "\nEl límite FPS es una preferencia; los FPS medidos dependen de la GPU y la IA.")
+    # Capture actual Godot and Android GPU counters, not a guessed speedup.
+    if context_game!=null:
+        var budget_node: Node=context_game.get_node_or_null("AuroraRenderBudget")
+        if budget_node!=null:
+            var measured: Dictionary=budget_node.call("snapshot")
+            if float(measured.get("fps",0.0))>0.0:
+                var diagnostic: String="FPS %.1f / OBJETIVO %.0f / PANEL %.0f Hz"%[
+                    float(measured.get("fps",0.0)),
+                    float(measured.get("target_fps",60.0)),
+                    float(measured.get("refresh_hz",0.0))]
+                diagnostic+="\nCPU %.1f ms / FRAME %.1f ms / %s"%[
+                    float(measured.get("cpu_ms",0.0)),
+                    float(measured.get("frame_ms",0.0)),
+                    str(measured.get("bottleneck","NOT_SAMPLED"))]
+                diagnostic+="\nDRAWS %d / OBJETOS %d / 3D %.0f%%"%[
+                    int(measured.get("draw_calls",0)),
+                    int(measured.get("objects",0)),
+                    float(measured.get("scale",1.0))*100.0]
+                _info(diagnostic)
     var graphics:=OptionButton.new()
     graphics.name="GraphicsSelector"
     for key in PLAYER_SETTINGS.GRAPHICS_PRESETS:
@@ -269,9 +288,10 @@ func _screen_page() -> void:
             _status.text="ERROR al guardar FPS")
     _content.add_child(graphics)
     _heading("CALIDAD DE RENDER 3D / MOTOROLA")
-    _info("AUTO adapta el 3D si la GPU cae de FPS durante varios segundos. "
-        +"La cámara, los controles y las letras HUD siguen nítidos. "
-        +"En 20/30 rivales, primero prueba EQUILIBRADO.")
+    _info("AUTO reduce coste de render cuando caen los FPS sin saturación CPU. "
+        +"Respeta la tasa física de 60/90/120 Hz. "
+        +"La cámara, controles y HUD mantienen resolución nativa. "
+        +"Para 20/30 rivales prueba primero EQUILIBRADO.")
     var quality:=OptionButton.new()
     quality.name="AuroraRenderQuality"
     for profile in RENDER_BUDGET.PROFILES:

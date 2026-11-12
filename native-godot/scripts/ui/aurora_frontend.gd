@@ -479,6 +479,10 @@ func _select_tab(tab: String) -> void:
                 _info.text+="\nFPS REALES: MEDIA %.1f / P10 %.1f"%[
                     float(measured.get("average_fps",0.0)),
                     float(measured.get("low10_fps",0.0))]
+                if float(measured.get("median_fps",0.0))>0.0:
+                    _info.text+="\nFPS MEDIANA %.1f / P90 %.1f"%[
+                        float(measured.get("median_fps",0.0)),
+                        float(measured.get("p90_fps",0.0))]
                 _info.text+="\nMODO PROBADO: %d PARTICIPANTES"%int(
                     measured.get("participants",0))
                 if str(measured.get("render_driver","unknown"))!="unknown":
