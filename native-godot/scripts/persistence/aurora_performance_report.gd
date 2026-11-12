@@ -52,5 +52,5 @@ static func record(participants: int,samples: Array[float],
     cfg.set_value("run","render_driver",
         RenderingServer.get_current_rendering_driver_name())
     cfg.set_value("run","quality_scale",
-        snappedf(Engine.get_main_loop().root.scaling_3d_scale,.01))
+        snappedf((Engine.get_main_loop() as SceneTree).root.scaling_3d_scale,.01))
     return cfg.save(PATH)
