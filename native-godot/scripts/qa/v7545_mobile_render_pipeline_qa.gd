@@ -96,6 +96,14 @@ func _verify() -> void:
     # attached to the governor: rifle controls stay at physical size.
     check(hud.get_parent()==game and player.get_view_camera()!=null,
         "render governor changed HUD ownership or camera pipeline")
+    var camera: Camera3D=player.get_view_camera()
+    check(camera.near>=.079 and camera.far>=630.0 and camera.far<=700.0,
+        "camera depth precision and island coverage not preserved")
+    var sea: MeshInstance3D=game.get_node("SeaSurface")
+    var seawater: StandardMaterial3D=sea.material_override
+    check(seawater.transparency==BaseMaterial3D.TRANSPARENCY_DISABLED and
+        sea.mesh is PlaneMesh and sea.position.y==game.island.sea_level,
+        "GPU performance regression: full island water became transparent")
 
     var settings: CanvasLayer=(
         load("res://scripts/ui/aurora_settings_overlay.gd") as GDScript).new()
