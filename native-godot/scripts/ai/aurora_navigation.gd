@@ -25,7 +25,7 @@ const SAMPLE_SLICE_USEC: int=1800
 const EDGE_SLICE_USEC: int=1800
 # Each full segment sweep performs many synchronous 3D collision queries.
 # Limit sweeps as well as wall-clock time; one long sweep cannot be preempted.
-const EDGE_MAX_SEGMENTS_PER_TICK: int=3
+const EDGE_MAX_SEGMENTS_PER_TICK: int=8
 var _warmup: int=INITIAL_PHYSICS_WARMUP
 var _started: int=0
 var _building_edges: bool=false
