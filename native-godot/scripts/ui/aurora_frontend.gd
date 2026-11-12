@@ -487,7 +487,12 @@ func _on_lobby_hud_editor_closed() -> void:
     # The HUD was edited in a paused real scene, not a fake preview.
     # The owning lobby is restored, instead of stranding the player in
     # a training session that they never explicitly started.
-    call_deferred("_return_to_lobby")
+    call_deferred("_finish_lobby_hud_return")
+
+
+func _finish_lobby_hud_return() -> void:
+    if stage=="training" and _game!=null:
+        _return_to_lobby()
 
 
 func _launch(battle: bool) -> void:
