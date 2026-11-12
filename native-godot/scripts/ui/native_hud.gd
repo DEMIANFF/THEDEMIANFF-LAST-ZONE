@@ -55,6 +55,9 @@ var _result_window: PanelContainer
 var _result_text: Label
 var _jump_button: Button
 var _exit_button: Button
+var _inventory_button: Button
+var _inventory_panel: PanelContainer
+var _inventory_label: Label
 var air_stage: String="ground"
 var _hud_layout: RefCounted
 var _hud_editor: Control
@@ -199,6 +202,27 @@ func _ready() -> void:
     _cover_button.visible=false
     _cover_button.disabled=true
     _exit_button=_button(root,"LOBBY",.936,.255,95,46,Color(.13,.27,.43),_return_lobby)
+    _inventory_button=_button(root,"MOCHILA",.75,.255,105,46,
+        Color(.17,.35,.41),_toggle_inventory)
+    _inventory_button.disabled=true
+    _inventory_panel=PanelContainer.new()
+    _inventory_panel.name="RealMatchInventory"
+    _inventory_panel.visible=false
+    _inventory_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    var inventory_skin:=StyleBoxFlat.new()
+    inventory_skin.bg_color=Color(.025,.075,.11,.95)
+    inventory_skin.border_color=Color(.25,.76,.86,.91)
+    inventory_skin.set_border_width_all(2)
+    inventory_skin.set_corner_radius_all(10)
+    _inventory_panel.add_theme_stylebox_override("panel",inventory_skin)
+    root.add_child(_inventory_panel)
+    _inventory_label=Label.new()
+    _inventory_label.name="RealInventoryContents"
+    _inventory_label.add_theme_font_size_override("font_size",13)
+    _inventory_label.add_theme_color_override("font_color",Color(.87,.96,.98))
+    _inventory_label.text="INVENTARIO / SIN PARTIDA"
+    _inventory_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _inventory_panel.add_child(_inventory_label)
     var pad: Control=VIRTUAL_PAD.new()
     pad.name="MovePad"
     pad.anchor_left=.05
@@ -280,7 +304,9 @@ func set_air_stage(value: String) -> void:
     var airborne: bool=value!="ground"
     var overlay: Control=get_node("AuroraTacticalOverlay") as Control
     # Combat UI is irrelevant while riding the aircraft or descending.
-    for name in ["DirectionalFirePad","MIRA","RECARGA","ARMA","AGACHAR","CURAR 2","CORRER","BARRERA 0"]:
+    if _inventory_panel:
+        _inventory_panel.visible=false
+    for name in ["DirectionalFirePad","MIRA","RECARGA","ARMA","AGACHAR","CURAR 2","CORRER","BARRERA 0","MOCHILA"]:
         var control: Control=overlay.get_node_or_null(name) as Control
         if control:
             control.visible=not airborne
@@ -419,6 +445,29 @@ func set_aurora_cover_count(charges: int,cooldown: float=0.0) -> void:
         _cover_button.disabled=_cover_charges<=0 or _cover_cooldown>0.0 or air_stage!="ground"
 
 
+func _toggle_inventory() -> void:
+    if air_stage!="ground" or _inventory_button.disabled:
+        return
+    _inventory_panel.visible=not _inventory_panel.visible
+
+
+func set_inventory_snapshot(items: Dictionary) -> void:
+    if _inventory_label==null:
+        return
+    var ar: String="AR-7 %d/%d (max %d)"%[
+        int(items.get("ar_loaded",0)),int(items.get("ar_reserve",0)),
+        int(items.get("ar_capacity",0))]
+    var awm: String="AWM %d/%d (max %d)"%[
+        int(items.get("awm_loaded",0)),int(items.get("awm_reserve",0)),
+        int(items.get("awm_capacity",0))] if bool(items.get("awm_owned",false)) else "AWM: ENCUENTRA EL ARMA"
+    _inventory_label.text=(
+        "EQUIPO AURORA / %s\n"%("MOCHILA NIVEL 1" if int(items.get("backpack",0))>0 else "SIN MOCHILA")
+        +ar+"\n"+awm+"\n"
+        +"CHALECO %d/75  |  BOTIQUINES %d  |  BARRERAS %d"%[
+            int(items.get("armor",0)),int(items.get("medkits",0)),
+            int(items.get("covers",0))])
+
+
 func set_medkit_count(count: int) -> void:
     if _medkit_button:
         _medkit_button.text="CURAR "+str(count)
@@ -524,6 +573,8 @@ func _layout() -> void:
     _place(_battle_status,Rect2(origin+Vector2(w*.5-220,37),Vector2(440,30)))
     _place(_battle_button,Rect2(origin+Vector2(w*.5-90,64),Vector2(180,46)))
     _place(_exit_button,Rect2(origin+Vector2(w-118,112),Vector2(92,44)))
+    _place(_inventory_button,Rect2(origin+Vector2(w-246,112),Vector2(115,44)))
+    _place(_inventory_panel,Rect2(origin+Vector2(w-410,164),Vector2(290,127)))
     _place(_hint,Rect2(origin+Vector2(w*.5-210,h-32),Vector2(420,24)))
     _hint.add_theme_font_size_override("font_size",11)
     _place(_hit,Rect2(origin+Vector2(w*.5-300,128),Vector2(600,50)))
@@ -751,6 +802,8 @@ func reset_controls() -> void:
     var root: Control=get_node("AuroraTacticalOverlay")
     root.get_node("MovePad").reset()
     root.get_node("DirectionalFirePad").reset()
+    if _inventory_panel:
+        _inventory_panel.visible=false
     cancel_sprint()
     if _run_button:
         _run_button.text="CORRER"
@@ -765,6 +818,10 @@ func set_match_controls(enabled: bool) -> void:
     root.get_node("DirectionalFirePad").visible=enabled
     _cover_button.visible=enabled and air_stage=="ground"
     _cover_button.disabled=not enabled or _cover_charges<=0 or _cover_cooldown>0.0
+    if _inventory_button:
+        _inventory_button.disabled=not enabled or air_stage!="ground"
+    if not enabled and _inventory_panel:
+        _inventory_panel.visible=false
 
 
 func _notification(what: int) -> void:

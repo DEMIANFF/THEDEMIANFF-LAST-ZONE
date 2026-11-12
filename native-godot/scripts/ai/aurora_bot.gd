@@ -23,6 +23,8 @@ var _route:=PackedVector3Array()
 var _route_goal:=Vector3(INF,INF,INF)
 var _route_clock: float=0.0
 var _cover_clock: float=0.0
+var _suppression_seconds: float=0.0
+var _last_attacker: Node3D
 var _cover_point:=Vector3(INF,INF,INF)
 var terrain: StaticBody3D
 var operator: CharacterBody3D
@@ -96,6 +98,7 @@ func _physics_process(dt: float) -> void:
         return
     _route_clock-=dt
     _cover_clock-=dt
+    _suppression_seconds=maxf(0.0,_suppression_seconds-dt)
     _sense_clock-=dt
     _attack_clock-=dt
     _alert_time=maxf(0.0,_alert_time-dt)
@@ -122,7 +125,7 @@ func _physics_process(dt: float) -> void:
         _idle_phase+=dt*.31
         destination=_anchor+Vector3(cos(_idle_phase)*4.0,0,sin(_idle_phase)*4.0)
 
-    if health<=45.0 and _alert_time>0 and navigation and navigation.available:
+    if (health<=45.0 or (health<=70.0 and _suppression_seconds>0.0)) and _alert_time>0 and navigation and navigation.available:
         if _cover_clock<=0:
             _cover_point=navigation.find_cover(global_position,_last_seen)
             _cover_clock=4.0
@@ -232,6 +235,8 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _target_actor=null
     _attack_clock=1.3
     _alert_time=0.0
+    _suppression_seconds=0.0
+    _last_attacker=null
     heard_shots=0
     _last_seen=Vector3.ZERO
     _route.clear()
@@ -246,7 +251,12 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
         return false
     health=maxf(0,health-damage)
     if is_instance_valid(attacker):
+        _last_attacker=attacker
         _last_seen=attacker.global_position
+        _suppression_seconds=5.0
+        # Enter cover planning at most once per incident; the existing
+        # route budget still bounds PhysicsServer queries on Motorola.
+        _cover_clock=0.0
     elif is_instance_valid(_target_actor):
         _last_seen=_target_actor.global_position
     _alert_time=5.5
@@ -276,6 +286,8 @@ func _respawn() -> void:
         collider.set_deferred("disabled",false)
     velocity=Vector3.ZERO
     _alert_time=0
+    _suppression_seconds=0.0
+    _last_attacker=null
     _target_visible=false
     _dead_time=0
     set_physics_process(true)

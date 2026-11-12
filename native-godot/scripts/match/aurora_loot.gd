@@ -41,12 +41,22 @@ func _ready() -> void:
     var material:=StandardMaterial3D.new()
     material.metallic=.52
     material.roughness=.31
-    material.albedo_color=Color(.18,.79,.75) if pickup_type=="medkit" else Color(.89,.66,.21) if pickup_type=="ammo_ar" else Color(.26,.71,.97) if pickup_type=="cover_charge" else Color(.56,.43,.95)
+    match pickup_type:
+        "medkit": material.albedo_color=Color(.18,.79,.75)
+        "ammo_ar": material.albedo_color=Color(.89,.66,.21)
+        "cover_charge": material.albedo_color=Color(.26,.71,.97)
+        "armor_plate": material.albedo_color=Color(.32,.84,.52)
+        "backpack": material.albedo_color=Color(.93,.51,.23)
+        "weapon_awm": material.albedo_color=Color(.98,.34,.40)
+        _: material.albedo_color=Color(.56,.43,.95)
     material.emission_enabled=true
     material.emission=material.albedo_color
     material.emission_energy_multiplier=.55
     item.material_override=material
     _visual.add_child(item)
+    if pickup_type=="weapon_awm":
+        # Use the actual authored sniper GLB, not a decorative placeholder.
+        item.visible=not _add_ground_weapon_visual()
     var ring:=MeshInstance3D.new()
     ring.name="SupplyBeacon"
     var ring_mesh:=CylinderMesh.new()
@@ -60,7 +70,14 @@ func _ready() -> void:
     _visual.add_child(ring)
     var floating_name:=Label3D.new()
     floating_name.name="SupplyLabel"
-    floating_name.text="BOTIQUIN" if pickup_type=="medkit" else "MUNICION AR" if pickup_type=="ammo_ar" else "BARRERA +1" if pickup_type=="cover_charge" else "MUNICION AWM"
+    match pickup_type:
+        "medkit": floating_name.text="BOTIQUIN"
+        "ammo_ar": floating_name.text="MUNICION AR"
+        "cover_charge": floating_name.text="BARRERA +1"
+        "armor_plate": floating_name.text="CHALECO AURORA"
+        "backpack": floating_name.text="MOCHILA TACTICA"
+        "weapon_awm": floating_name.text="RECOGER AWM"
+        _: floating_name.text="MUNICION AWM"
     floating_name.font_size=38
     floating_name.pixel_size=.005
     floating_name.position.y=.94
@@ -68,6 +85,39 @@ func _ready() -> void:
     floating_name.no_depth_test=false
     _visual.add_child(floating_name)
     body_entered.connect(_collect)
+
+
+func _add_ground_weapon_visual() -> bool:
+    var path: String="res://assets/weapons/aurora_awm.glb"
+    if not ResourceLoader.exists(path):
+        return false
+    var packed:=load(path) as PackedScene
+    if packed==null:
+        return false
+    var rifle:=packed.instantiate() as Node3D
+    rifle.name="PickupAWMModel"
+    _visual.add_child(rifle)
+    var lower:=Vector3(INF,INF,INF)
+    var upper:=Vector3(-INF,-INF,-INF)
+    for node in rifle.find_children("*","MeshInstance3D",true,false):
+        var part:=node as MeshInstance3D
+        var bounds: AABB=part.get_aabb()
+        for corner in range(8):
+            var vertex: Vector3=rifle.to_local(part.to_global(bounds.get_endpoint(corner)))
+            lower=lower.min(vertex)
+            upper=upper.max(vertex)
+    var extent: Vector3=upper-lower
+    var length: float=maxf(extent.x,maxf(extent.y,extent.z))
+    if not is_finite(length) or length<.0001:
+        rifle.queue_free()
+        return false
+    rifle.scale=Vector3.ONE*clampf(1.30/length,.0001,100.0)
+    if extent.x>extent.y and extent.x>extent.z:
+        rifle.rotation.y=PI*.5
+    elif extent.y>extent.z:
+        rifle.rotation.x=-PI*.5
+    rifle.position.y=.10
+    return true
 
 
 func _process(delta: float) -> void:
