@@ -260,8 +260,10 @@ func _spawn_loot() -> void:
         "ammo_ar","medkit","ammo_ar","cover_charge"]
     for i in range(spots.size()):
         _make_pickup(spots[i],categories[i],"AuroraLoot"+str(i+1))
-    # Existing 16 outdoor pickups remain in the previously tested positions.
-    # Actual furniture rooms add six more reachable pickups. Their height
+    # Preserve the original 16 outdoor pickups, plus one true AWM pickup
+    # at the west-quay pedestrian approach. It unlocks the second weapon slot.
+    _make_pickup(Vector2(-47,54),"weapon_awm","AuroraAWMWeaponPickup")
+    # Furnished villas add eight indoor supplies. Their height
     # follows the raised indoor floor, not the terrain underneath a villa.
     var coastal: Node3D=get_parent().get_node_or_null(
         "PuertoAuroraCoastalQuarter") as Node3D
@@ -269,7 +271,8 @@ func _spawn_loot() -> void:
         var interior: Array[Vector3]=coastal.interior_supply_spots
         var indoor_types: Array[String]=[
             "medkit","ammo_ar","ammo_awm",
-            "cover_charge","medkit","ammo_ar"]
+            "cover_charge","medkit","ammo_ar",
+            "armor_plate","backpack"]
         for i in range(interior.size()):
             var at: Vector3=interior[i]
             _make_pickup(Vector2(at.x,at.z),indoor_types[i%indoor_types.size()],
