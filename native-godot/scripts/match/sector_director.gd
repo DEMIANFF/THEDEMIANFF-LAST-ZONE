@@ -14,6 +14,8 @@ const FINAL_RADIUS: float = 12.0
 const SHRINK_DURATION: float = 280.0
 const CENTER: Vector2 = Vector2(0.0,-24.0)
 const TICK: float = 1.0
+# Max 15 minutes of sparse FPS samples at two measurements per second.
+const MAX_PERF_SAMPLES: int=1800
 const PHASE_COUNT: int=4
 const PHASE_SECONDS: float=SHRINK_DURATION/float(PHASE_COUNT)
 const PHASE_HOLD_SECONDS: float=12.0
@@ -173,7 +175,7 @@ func _process(delta: float) -> void:
         _perf_clock=.5
         if DisplayServer.get_name()!="headless":
             var fps: float=float(Engine.get_frames_per_second())
-            if fps>0.0 and fps<360.0:
+            if is_finite(fps) and fps>0.0 and fps<360.0 and _perf_samples.size()<MAX_PERF_SAMPLES:
                 _perf_samples.append(fps)
     var state: Dictionary=zone_state_at(elapsed)
     radius=float(state["radius"])
