@@ -45,6 +45,27 @@ def run(tool, arguments, log):
                              text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     (args.logs / log).write_text(process.stdout)
     if process.returncode:
+        # A silent traceback used to obscure malformed Mobile APKs. Print
+        # the Android tool's REAL diagnostic and archive structure, but
+        # never disclose keystore paths, passwords or private signing data.
+        print("ANDROID_APK_TOOL_FAILED tool=",tool,
+              " exit=",process.returncode,
+              " apk=",args.apk.name,flush=True)
+        print(process.stdout[-5000:],flush=True)
+        if tool=="aapt":
+            with zipfile.ZipFile(args.apk) as archive:
+                names=archive.namelist()
+                print("ANDROID_APK_ARCHIVE_FILES",len(names),
+                    " manifest=", "AndroidManifest.xml" in names,
+                    " project=", "assets/project.binary" in names,
+                    " integrity=",archive.testzip(),flush=True)
+            aapt2=args.build_tools/"aapt2"
+            if aapt2.exists():
+                alternative=subprocess.run(
+                    [str(aapt2),"dump","badging",str(args.apk)],
+                    text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+                print("AAPT2_DIAGNOSTIC exit=",alternative.returncode,
+                    " output=",alternative.stdout[-2500:],flush=True)
         raise RuntimeError(f"{tool} failed: see {log}")
     return process.stdout
 
