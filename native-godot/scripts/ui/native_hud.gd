@@ -23,6 +23,7 @@ const VIRTUAL_PAD = preload("res://scripts/ui/virtual_joystick.gd")
 const DIRECTIONAL_FIRE = preload("res://scripts/ui/directional_fire_pad.gd")
 const TACTICAL_RETICLE = preload("res://scripts/ui/scope_reticle.gd")
 const TRAINING_RADAR = preload("res://scripts/ui/aurora_training_radar.gd")
+const TACTICAL_MAP=preload("res://scripts/ui/aurora_tactical_map.gd")
 const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
 const HUD_EDITOR=preload("res://scripts/ui/hud_edit_surface.gd")
 
@@ -46,6 +47,8 @@ var _cover_button: Button
 var _cover_charges: int=0
 var _cover_cooldown: float=0.0
 var _training_radar: Control
+var _map_button: Button
+var _map_overlay: Control
 var _crouching: bool = false
 var _reticle: Control
 var _battle_button: Button
@@ -211,6 +214,8 @@ func _ready() -> void:
     _inventory_button=_button(root,"MOCHILA",.75,.255,105,46,
         Color(.17,.35,.41),_toggle_inventory)
     _inventory_button.disabled=true
+    _map_button=_button(root,"MAPA",.19,.22,70,70,
+        Color(.11,.39,.53),_toggle_map)
     _inventory_panel=PanelContainer.new()
     _inventory_panel.name="RealMatchInventory"
     _inventory_panel.visible=false
@@ -242,6 +247,9 @@ func _ready() -> void:
     root.add_child(pad)
     pad.connect("vector_changed",func(axis: Vector2): movement_axis_changed.emit(axis))
     _build_hud_editor(root)
+    _map_overlay=TACTICAL_MAP.new()
+    _map_overlay.visible=false
+    root.add_child(_map_overlay)
     apply_ui_settings()
     get_viewport().size_changed.connect(_layout)
     _layout.call_deferred()
@@ -303,6 +311,20 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
         button.button_up.connect(up)
     root.add_child(button)
     return button
+
+
+func _toggle_map() -> void:
+    if _hud_editing or _map_overlay==null:
+        return
+    _map_overlay.visible=not _map_overlay.visible
+    if _map_overlay.visible:
+        _map_overlay.queue_redraw()
+
+
+func set_tactical_map_sources(character: CharacterBody3D,world: StaticBody3D,
+        match_director: Node3D) -> void:
+    if _map_overlay!=null:
+        _map_overlay.call("set_sources",character,world,match_director)
 
 
 func apply_ui_settings() -> void:
@@ -593,6 +615,7 @@ func _layout() -> void:
     var h: float=safe.size.y
     root.get_node("AuroraHeader").visible=false
     _place(_training_radar,Rect2(origin+Vector2(24,62),Vector2(156,142)))
+    _place(_map_button,Rect2(origin+Vector2(201,103),Vector2(76,76)))
     _place(_health_label,Rect2(origin+Vector2(w*.5-85,h-91),Vector2(170,28)))
     _health_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _place(_health_meter,Rect2(origin+Vector2(w*.5-85,h-61),Vector2(170,12)))
@@ -714,6 +737,8 @@ func open_hud_editor() -> void:
     if air_stage!="ground" or _hud_editing:
         return
     reset_controls()
+    if _map_overlay:
+        _map_overlay.visible=false
     _hud_editing=true
     _hud_selected=""
     _hud_editor.visible=true
