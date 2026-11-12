@@ -77,6 +77,7 @@ static func checkpoint(state: String,phase: String,player: Node3D=null,note: Str
     cfg.set_value("flight","startup_mode",STARTUP_DIAG.mode())
     cfg.set_value("flight","build",str(ProjectSettings.get_setting("application/config/name","")))
     cfg.set_value("flight","render_backend",str(ProjectSettings.get_setting("rendering/renderer/rendering_method.mobile","")))
+    cfg.set_value("flight","audio_driver",AudioServer.get_driver_name())
     cfg.set_value("flight","operating_system",OS.get_name())
     cfg.set_value("flight","device_model",OS.get_model_name())
     cfg.set_value("flight","timestamp_unix",int(Time.get_unix_time_from_system()))
@@ -118,6 +119,7 @@ static func last(previous: bool=false) -> Dictionary:
         "last_transition":str(cfg.get_value("flight","last_transition","")),
         "build":str(cfg.get_value("flight","build","")),
         "render_backend":str(cfg.get_value("flight","render_backend","")),
+        "audio_driver":str(cfg.get_value("flight","audio_driver","")),
         "timestamp_unix":int(cfg.get_value("flight","timestamp_unix",0)),
         "uptime_ms":int(cfg.get_value("flight","uptime_ms",0)),
         "fps":int(cfg.get_value("flight","fps",0)),
@@ -154,6 +156,7 @@ static func report(previous: bool=false) -> String:
         "Dispositivo: "+str(data["device_model"])+" / "+str(data["operating_system"]),
         "Evento N°: "+str(data["sequence"]),
         "Render: "+str(data["render_backend"]),
+        "Controlador audio: "+str(data["audio_driver"]),
         "Tiempo Unix: "+str(data["timestamp_unix"]),
         "Tiempo motor (ms): "+str(data["uptime_ms"]),
         "FPS: "+str(data["fps"]),
