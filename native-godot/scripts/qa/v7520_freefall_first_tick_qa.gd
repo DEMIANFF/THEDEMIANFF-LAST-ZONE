@@ -28,15 +28,18 @@ func _verify() -> void:
         player.begin_freefall(Vector3(0.0,0.0,-11.85))
         check(player.air_mode=="freefall",
             "flight mode disabled actual character movement")
-        check(player._avatar!=null and player._avatar.visible==
-            (not MODE.skip_freefall_avatar(selected)),
-            "freefall visual A/B mode did not isolate the skinned mesh")
+        check(player._avatar!=null and not player._avatar.visible and
+            player._freefall_avatar_reveal_pending==
+                (not MODE.skip_freefall_avatar(selected)),
+            "rig reveal was not deferred until the first real air physics step")
         for i in range(6):
             await physics_frame
         check(player.air_mode=="freefall" and
             player._first_freefall_step_probe and
             player.velocity.y<0.0 and player.global_position.is_finite(),
             "first freefall physics cycle failed on real actor")
+        check(player._avatar.visible==(not MODE.skip_freefall_avatar(selected)),
+            "skinned operator reveal did not follow first physics cycle")
         var history: String=str(TRACE.last().get("history",""))
         for note in ["freefall_tick_actor_enter","freefall_tick_after_camera",
             "freefall_tick_before_move_and_slide",

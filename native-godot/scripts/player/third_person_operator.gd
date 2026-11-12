@@ -66,6 +66,8 @@ var air_mode: String="ground"
 var _parachute_visual: Node3D
 var _first_canopy_step_probe: bool=false
 var _first_freefall_step_probe: bool=false
+var _first_freefall_animation_probe: bool=false
+var _freefall_avatar_reveal_pending: bool=false
 var _freefall_render_probe_pending: bool=false
 var _canopy_render_probe_pending: bool=false
 # Exposed for native A/B tests, loaded from the welcome screen before match.
@@ -372,6 +374,8 @@ func begin_aircraft() -> void:
     _queued_air_clip=""
     _queued_air_phase=""
     _first_freefall_step_probe=false
+    _first_freefall_animation_probe=false
+    _freefall_avatar_reveal_pending=false
     velocity=Vector3.ZERO
     _ads_active=false
     _recoil_pitch=0.0
@@ -392,15 +396,20 @@ func begin_freefall(inherited_velocity: Vector3=Vector3.ZERO) -> void:
     _queued_air_clip=""
     _queued_air_phase=""
     _first_freefall_step_probe=false
+    _first_freefall_animation_probe=false
+    _freefall_avatar_reveal_pending=_avatar!=null and not \
+        FLIGHT_SAFETY_MODE.skip_freefall_avatar(canopy_diagnostic_mode)
     velocity=Vector3(inherited_velocity.x,-4.0,inherited_velocity.z)
     _current_clip=""
     if _avatar:
-        _avatar.visible=not FLIGHT_SAFETY_MODE.skip_freefall_avatar(canopy_diagnostic_mode)
+        # Keep the aircraft-hidden rig off the GPU for one real freefall
+        # physics step. Reveal it after move_and_slide() has completed, then
+        # blend the skeletal animation after the first rendered avatar frame.
+        _avatar.visible=false
         FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
-            "freefall_tick_avatar_visibility_set",
-            "mesh_visible="+str(_avatar.visible)+
+            "freefall_avatar_reveal_queued",
+            "pending="+str(_freefall_avatar_reveal_pending)+
             " mode="+str(canopy_diagnostic_mode))
-        _watch_freefall_first_render()
 
 
 func deploy_parachute() -> void:
@@ -411,6 +420,7 @@ func deploy_parachute() -> void:
     air_mode="parachute"
     _queued_air_clip=""
     _queued_air_phase=""
+    _freefall_avatar_reveal_pending=false
     if _avatar:
         _avatar.visible=true
     _first_canopy_step_probe=false
@@ -466,6 +476,22 @@ func _record_canopy_render_finished() -> void:
         "frame="+str(Engine.get_process_frames())+
         " mesh="+str(_parachute_visual!=null and _parachute_visual.visible)+
         " clip="+_current_clip)
+
+
+func _commit_freefall_avatar_reveal() -> void:
+    if not is_inside_tree() or air_mode!="freefall" or \
+        not _freefall_avatar_reveal_pending:
+        return
+    _freefall_avatar_reveal_pending=false
+    FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
+        "freefall_avatar_reveal_before")
+    if _avatar:
+        _avatar.visible=true
+    FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
+        "freefall_tick_avatar_visibility_set",
+        "mesh_visible="+str(_avatar!=null and _avatar.visible)+
+        " mode="+str(canopy_diagnostic_mode))
+    _watch_freefall_first_render()
 
 
 func _watch_freefall_first_render() -> void:
@@ -563,18 +589,29 @@ func _air_step(delta: float) -> void:
     if first_freefall_step:
         FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,"freefall_tick_after_move_and_slide",
             "collisions="+str(get_slide_collision_count()))
+        if _freefall_avatar_reveal_pending:
+            call_deferred("_commit_freefall_avatar_reveal")
     if first_canopy_step:
         FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_after_move_and_slide",
             "ground="+str(is_on_floor())+" collisions="+str(get_slide_collision_count()))
     _camera_pivot.rotation.y=wrapf(_yaw-rotation.y,-PI,PI)
-    if _animator:
+    # A first freefall physics tick and the first visible skinned render
+    # must finish before the visual animation state machine can transition.
+    # MODE 5 intentionally keeps the rig hidden while testing the physics.
+    var allow_air_animation: bool=air_mode!="freefall" or (
+        not _freefall_avatar_reveal_pending and
+        not _freefall_render_probe_pending and
+        not first_freefall_step)
+    if _animator and allow_air_animation:
         var clip: String="AuroraFreefall" if air_mode=="freefall" or (
             air_mode=="parachute" and FLIGHT_SAFETY_MODE.skip_canopy_animation(canopy_diagnostic_mode)
         ) else "AuroraParachute"
         if air_mode=="freefall" and FLIGHT_SAFETY_MODE.skip_freefall_animation(canopy_diagnostic_mode):
             clip="AuroraArmedIdle"
         if _current_clip!=clip and (_queued_air_clip!=clip or _queued_air_phase!=air_mode):
-            if first_freefall_step:
+            var first_animation: bool=air_mode=="freefall" and not _first_freefall_animation_probe
+            if first_animation:
+                _first_freefall_animation_probe=true
                 FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,
                     "freefall_tick_before_animation","requested="+clip)
             if first_canopy_step:
@@ -585,7 +622,7 @@ func _air_step(delta: float) -> void:
             # real airborne animations while avoiding an in-step rig mutation.
             _queued_air_clip=clip
             _queued_air_phase=air_mode
-            call_deferred("_commit_air_clip",clip,air_mode,first_freefall_step,first_canopy_step)
+            call_deferred("_commit_air_clip",clip,air_mode,first_animation,first_canopy_step)
     if is_on_floor():
         air_mode="ground"
         _queued_air_clip=""
