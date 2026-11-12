@@ -48,6 +48,12 @@ var _clip: String = ""
 var safe_center: Vector2=Vector2.ZERO
 var safe_radius: float=INF
 var _avoid_side: float=1.0
+## Mobile-only visual LOD. Agents remain real damageable CharacterBody3D
+## enemies with their own AI and collisions at every distance.
+var distance_lod: bool=false
+var _lod_body: MeshInstance3D
+var _lod_clock: float=0.0
+var _lod_pending: bool=false
 
 
 func _ready() -> void:
@@ -76,21 +82,85 @@ func _ready() -> void:
     shape.position.y=.88
     add_child(shape)
 
-    if not STARTUP_DIAG.without_enemy_rigs() and ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
-        var source := load("res://assets/characters/aurora_operator.glb") as PackedScene
-        _rig = source.instantiate() as Node3D
-        _rig.name="OpponentRig"
-        add_child(_rig)
-        # Same approved FBX coordinate-to-metre correction as player.
-        if operator.has_method("fit_operator_visual"):
-            operator.fit_operator_visual(_rig)
-        _animation = _rig.find_child("AnimationPlayer",true,false) as AnimationPlayer
-        if _animation:
-            _animation.play("AuroraIdle")
-            _animation.advance(.16)
+    if distance_lod:
+        _create_lod_visual()
+    else:
+        _create_full_rig()
+
+
+func _create_lod_visual() -> void:
+    _lod_body=MeshInstance3D.new()
+    _lod_body.name="DistantEnemyVisual"
+    var shape:=CapsuleMesh.new()
+    shape.radius=.33
+    shape.height=1.68
+    shape.radial_segments=8
+    shape.rings=4
+    _lod_body.mesh=shape
+    _lod_body.position.y=.87
+    var material:=StandardMaterial3D.new()
+    material.albedo_color=Color(.10,.23,.34)
+    material.roughness=.89
+    _lod_body.material_override=material
+    _lod_body.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    add_child(_lod_body)
+
+
+func _create_full_rig() -> void:
+    if _rig!=null or STARTUP_DIAG.without_enemy_rigs():
+        return
+    if not ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
+        return
+    var source:=load("res://assets/characters/aurora_operator.glb") as PackedScene
+    _rig=source.instantiate() as Node3D
+    _rig.name="OpponentRig"
+    add_child(_rig)
+    if operator.has_method("fit_operator_visual"):
+        operator.fit_operator_visual(_rig)
+    _animation=_rig.find_child("AnimationPlayer",true,false) as AnimationPlayer
+    if _animation:
+        _animation.play("AuroraIdle")
+        _animation.advance(.16)
+
+
+func _set_full_visual(closer: bool) -> void:
+    _lod_pending=false
+    if not is_inside_tree():
+        return
+    if closer:
+        _create_full_rig()
+    elif _rig!=null:
+        _rig.queue_free()
+        _rig=null
+        _animation=null
+        _clip=""
+    if _lod_body!=null:
+        _lod_body.visible=_rig==null
+
+
+func _update_distance_lod(dt: float) -> void:
+    if not distance_lod or not sector_battle or not is_instance_valid(operator):
+        return
+    _lod_clock-=dt
+    if _lod_clock>0.0:
+        return
+    _lod_clock=.55+float(get_instance_id()%7)*.045
+    var distance_sq: float=global_position.distance_squared_to(operator.global_position)
+    var wants_full: bool=distance_sq<39.0*39.0 if _rig==null else distance_sq<56.0*56.0
+    if not _lod_pending and wants_full!=(_rig!=null):
+        _lod_pending=true
+        call_deferred("_set_full_visual",wants_full)
 
 
 func _physics_process(dt: float) -> void:
+    _update_distance_lod(dt)
+    # Distant bots update in staggered frames to limit path and physics
+    # cost. They are still active agents, may shoot each other and take
+    # damage; no simulated eliminations or fictitious "players".
+    if distance_lod and sector_battle and is_instance_valid(operator) and             global_position.distance_squared_to(operator.global_position)>75.0*75.0:
+        if Engine.get_physics_frames()%3!=get_instance_id()%3:
+            return
+        dt=minf(dt*3.0,.125)
     if health<=0:
         _dead_time-=dt
         if _dead_time<=0:
