@@ -380,6 +380,16 @@ func _run_up() -> void:
     pass  # Releasing the sprint button must not deactivate sprint.
 
 
+func cancel_sprint() -> void:
+    # Fire, match transition or focus loss can cancel sprint externally.
+    # The HUD state must never disagree with the real player movement mode.
+    if _run_latched:
+        _run_latched=false
+        if _run_button:
+            _run_button.text="CORRER"
+        run_released.emit()
+
+
 func _jump_down() -> void:
     jump_pressed.emit()
 
@@ -537,9 +547,9 @@ func reset_controls() -> void:
     var root: Control=get_node("AuroraTacticalOverlay")
     root.get_node("MovePad").reset()
     root.get_node("DirectionalFirePad").reset()
-    _run_latched=false
-    _run_button.text="CORRER"
-    run_released.emit()
+    cancel_sprint()
+    if _run_button:
+        _run_button.text="CORRER"
 
 
 func set_match_controls(enabled: bool) -> void:
