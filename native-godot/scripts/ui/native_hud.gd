@@ -104,7 +104,7 @@ func _ready() -> void:
     root.add_child(header)
 
     _status = Label.new()
-    _status.text = "THEDEMIANFF / AURORA     ENTRENAMIENTO NATIVO"
+    _status.text = "THEDEMIAN: LAST ZONE / AURORA     ENTRENAMIENTO NATIVO"
     _status.add_theme_font_size_override("font_size",15)
     _status.add_theme_color_override("font_color",Color(.83,.95,.98))
     _status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
