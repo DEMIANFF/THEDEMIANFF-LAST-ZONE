@@ -12,12 +12,16 @@ const COASTAL_QUARTER=preload("res://scripts/world/aurora_coastal_quarter.gd")
 const AURORA_AUDIO=preload("res://scripts/audio/aurora_audio.gd")
 const TRACE=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
+const RENDER_BUDGET=preload("res://scripts/render/aurora_render_budget.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
 
 
 func _ready() -> void:
+    var render_budget:=RENDER_BUDGET.new()
+    render_budget.name="AuroraRenderBudget"
+    add_child(render_budget)
     TRACE.checkpoint("active","scene_load",null,"main_ready_enter",
         "startup="+str(STARTUP_DIAG.mode()))
     _set_up_lighting()
