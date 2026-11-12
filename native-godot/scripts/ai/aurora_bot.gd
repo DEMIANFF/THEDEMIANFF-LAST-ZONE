@@ -125,7 +125,7 @@ func _physics_process(dt: float) -> void:
         _idle_phase+=dt*.31
         destination=_anchor+Vector3(cos(_idle_phase)*4.0,0,sin(_idle_phase)*4.0)
 
-    if health<=70.0 and _suppression_seconds>0.0 and _alert_time>0 and navigation and navigation.available:
+    if (health<=45.0 or (health<=70.0 and _suppression_seconds>0.0)) and _alert_time>0 and navigation and navigation.available:
         if _cover_clock<=0:
             _cover_point=navigation.find_cover(global_position,_last_seen)
             _cover_clock=4.0
