@@ -188,7 +188,12 @@ func set_enabled(enabled: bool) -> void:
 func _render(kind: String,duration: float) -> AudioStreamWAV:
     var count: int=maxi(64,int(ceil(duration*float(MIX_RATE))))
     var pcm:=PackedByteArray()
-    pcm.resize(count*2)
+    # Godot 4.7.2 WAV forward-loop mixer reads the loop_end frame too.
+    # A loop_end equal to the frame count without a guard reads beyond PCM
+    # storage and can SIGSEGV in AudioTrack (Motorola V75.22/V75.23).
+    # Keep the full audible loop and append its first sample as a guard.
+    var guard_frames: int=1 if kind=="wind" else 0
+    pcm.resize((count+guard_frames)*2)
     var rng:=RandomNumberGenerator.new()
     rng.seed=175780+int(duration*10000)+kind.hash()
     var low: float=0.0
@@ -237,6 +242,12 @@ func _render(kind: String,duration: float) -> AudioStreamWAV:
             signed+=65536
         pcm[i*2]=signed&255
         pcm[i*2+1]=(signed>>8)&255
+    if kind=="wind":
+        # The boundary frame must be valid, not uninitialised memory.
+        # The loop still spans the original 'count' authored frames;
+        # this duplicate is only the decoder's safe extra read.
+        pcm[count*2]=pcm[0]
+        pcm[count*2+1]=pcm[1]
     var stream:=AudioStreamWAV.new()
     stream.mix_rate=MIX_RATE
     stream.format=AudioStreamWAV.FORMAT_16_BITS

@@ -1,7 +1,7 @@
 config_version=5
 
 [application]
-config/name="THEDEMIANFF LAST ZONE | Aurora V75.23 AudioTrack Motorola"
+config/name="THEDEMIANFF LAST ZONE | Aurora V75.24 WAV PCM Safety"
 run/main_scene="res://scenes/Boot.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
