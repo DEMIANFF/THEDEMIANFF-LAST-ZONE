@@ -3,7 +3,8 @@ extends Node3D
 ## simulation. The SubViewport is disposed before a gameplay scene loads.
 
 func _ready() -> void:
-    name="AuroraLobbyHangarStage"
+    # Parent names this node AuroraReal3DLobbyEnvironment before add_child.
+    # Preserve that stable name for native lobby UI and QA navigation.
     var rock:=_mat(Color(.13,.23,.35))
     var snow:=_mat(Color(.72,.86,.96))
     var metal:=_mat(Color(.08,.15,.25))
