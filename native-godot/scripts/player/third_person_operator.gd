@@ -18,6 +18,7 @@ const CAMERA_MAX_SWIPE_PIXELS: float = 160.0
 const JUMP_BUFFER_SECONDS: float = 0.14
 
 signal training_health_changed(value: float)
+signal armor_changed(value: float)
 signal player_eliminated
 signal player_damaged(amount: float)
 signal landed_from_airdrop
@@ -28,6 +29,9 @@ signal grounded_impact(on_stone: bool)
 signal sprint_cancelled
 @export var approved_operator_scene: PackedScene
 var training_health: float = 100.0
+# Armor absorbs direct combat damage but not radiation outside the ring.
+var armor_points: float=0.0
+const MAX_ARMOR: float=75.0
 var battle_royale_active: bool = false
 var royale_eliminated: bool = false
 var round_finished: bool = false
@@ -271,6 +275,12 @@ func _physics_process(delta: float) -> void:
             # Use the CAMERA'S ACTUAL position, not the future safe target:
             # otherwise the avatar can pop into view while still within 1 m.
             _avatar.visible=_camera.position.z>1.50 and not (_ads_active and _ads_zoom>=6.0)
+    # Non-root-motion strafe lean keeps Lila's armed gait visually responsive
+    # to diagonal input while preserving capsule physics and aim direction.
+    if _avatar:
+        var lateral: float=global_basis.x.dot(world_direction)
+        var lean: float=clampf(-lateral*.065,-.065,.065) if is_on_floor() and not _crouching else 0.0
+        _avatar.rotation.z=lerpf(_avatar.rotation.z,lean,1.0-exp(-delta*12.0))
     if _animator:
         _combat_action_seconds=maxf(0.0,_combat_action_seconds-delta)
         if _combat_action_seconds<=0.0:
@@ -711,9 +721,15 @@ func _create_parachute() -> void:
 func receive_training_hit(amount: float, environmental: bool=false) -> void:
     if amount<=0 or royale_eliminated or round_finished or (not environmental and _training_immunity>0):
         return
-    training_health=maxf(0.0,training_health-amount)
+    var health_damage: float=amount
+    if not environmental and armor_points>0.0:
+        var absorbed: float=minf(armor_points,amount*.65)
+        armor_points=maxf(0.0,armor_points-absorbed)
+        armor_changed.emit(armor_points)
+        health_damage-=absorbed
+    training_health=maxf(0.0,training_health-health_damage)
     training_health_changed.emit(training_health)
-    player_damaged.emit(amount)
+    player_damaged.emit(health_damage)
     if _animation_controller and _combat_action_seconds<=.24:
         _animation_controller.action("AuroraHit",.22)
     if not environmental:
@@ -733,6 +749,18 @@ func receive_training_hit(amount: float, environmental: bool=false) -> void:
         training_health_changed.emit(training_health)
 
 
+## No armor persistence across separate offline matches: supplies must be
+## acquired in the world. Environmental damage intentionally bypasses armor.
+func equip_armor(points: float=75.0) -> bool:
+    if not battle_royale_active or royale_eliminated or round_finished:
+        return false
+    if points<=0.0 or armor_points>=MAX_ARMOR:
+        return false
+    armor_points=minf(MAX_ARMOR,armor_points+points)
+    armor_changed.emit(armor_points)
+    return true
+
+
 func end_sector_battle() -> void:
     round_finished=true
     velocity=Vector3.ZERO
@@ -745,6 +773,8 @@ func begin_sector_battle(from_airdrop: bool=false) -> void:
     battle_royale_active = true
     royale_eliminated = false
     training_health = 100.0
+    armor_points=0.0
+    armor_changed.emit(armor_points)
     velocity=Vector3.ZERO
     if from_airdrop:
         respawn_point=global_position
