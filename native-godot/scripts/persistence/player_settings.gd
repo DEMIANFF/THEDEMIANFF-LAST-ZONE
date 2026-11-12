@@ -7,11 +7,15 @@ const CAMERA_DEFAULTS: Dictionary={
     "general":100.0,"ads":100.0,"red_dot":100.0,
     "scope_2x":90.0,"scope_4x":75.0,"scope_8x":50.0
 }
-const GRAPHICS_PRESETS: Array[String]=["baja","media","alta"]
-const GRAPHICS_FPS: Dictionary={"baja":30,"media":45,"alta":60}
+# An actual 120Hz phone can request 120 render FPS without doubling the
+# 60Hz collision/AI physics workload. Users can select lower caps for heat.
+const GRAPHICS_PRESETS: Array[String]=["baja","media","alta","ultra","extrema"]
+const GRAPHICS_FPS: Dictionary={"baja":30,"media":45,"alta":60,"ultra":90,"extrema":120}
 var path: String=DEFAULT_PATH
 var sensitivity: Dictionary=CAMERA_DEFAULTS.duplicate(true)
-var graphics_preset: String="media"
+# V75.25 high-refresh preview defaults to the 120 FPS ceiling;
+# this does not promise 120 measured FPS, which depends on hardware/OS.
+var graphics_preset: String="extrema"
 var recovered: bool=false
 var loaded: bool=false
 var legacy_imported: bool=false
@@ -88,7 +92,7 @@ func multiplier(key: String) -> float:
 
 
 func fps_limit() -> int:
-    return int(GRAPHICS_FPS.get(graphics_preset,45))
+    return int(GRAPHICS_FPS.get(graphics_preset,120))
 
 
 func save_sensitivity(changes: Dictionary) -> Error:
