@@ -24,6 +24,7 @@ func _ready() -> void:
     glass = _material(Color(0.10, 0.48, 0.59, 0.64), 0.12, 0.15)
     glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
     roof_mat = _material(Color(0.18, 0.31, 0.40), 0.5, 0.32)
+    roof_mat.cull_mode=BaseMaterial3D.CULL_DISABLED
     pavement = _material(Color(0.30, 0.39, 0.43), 0.94, 0.04)
     beacon = _material(Color(0.13, 0.70, 0.79), 0.28, 0.12)
     beacon.emission_enabled = true
@@ -191,6 +192,10 @@ func _make_building(at: Vector2, label: String, w: float, d: float, h: float, he
             _beam(root,"WindowFrame",Vector3(x,2.55,zpos),Vector3(x,4.60,zpos),.075,trim)
         _beam(root,"WindowSill",Vector3(x,2.55,-1.62),Vector3(x,2.55,1.62),.08,trim)
     _sloped_roof(root,w,d,h)
+    # A physical opaque ceiling closes the living volume below the gabled
+    # roof. The old single-sided roof left the open sky visible indoors.
+    _solid_panel(root,"SealedInteriorCeiling",Vector3(0,h-.12,0),
+        Vector3(w-.18,.24,d-.18),wall_dark)
     for x in [-w*.5+.8,w*.5-.8]:
         _beam(root,"VerticalStructure",Vector3(x,.1,d*.5+.08),Vector3(x,h,d*.5+.08),.13,trim)
     _solid_panel(root,"ExteriorLanding",Vector3(0,-.50,d*.5+2.1),Vector3(door_w+1.2,.30,3.8),pavement)
