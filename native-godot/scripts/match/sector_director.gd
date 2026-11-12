@@ -260,9 +260,11 @@ func _spawn_loot() -> void:
         "ammo_ar","medkit","ammo_ar","cover_charge"]
     for i in range(spots.size()):
         _make_pickup(spots[i],categories[i],"AuroraLoot"+str(i+1))
-    # Preserve the original 16 outdoor pickups, plus one true AWM pickup
-    # at the west-quay pedestrian approach. It unlocks the second weapon slot.
-    _make_pickup(Vector2(-47,54),"weapon_awm","AuroraAWMWeaponPickup")
+    # The sniper was on a remote west-quay approach and was routinely
+    # missed in physical Motorola tests. Its ONE real physical pickup now
+    # sits in the accessible central plaza, marked on the large map.
+    # Do not grant the gun directly: BR still requires actual collection.
+    _make_pickup(Vector2(8,24),"weapon_awm","AuroraAWMWeaponPickup")
     # Furnished villas add eight indoor supplies. Their height
     # follows the raised indoor floor, not the terrain underneath a villa.
     var coastal: Node3D=get_parent().get_node_or_null(

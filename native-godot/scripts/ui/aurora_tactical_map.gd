@@ -15,6 +15,15 @@ const NAMES: Array[String]=[
     "COSTA OESTE","PLAZA","MIRADOR","ESTE",
     "FAROS","NORTE","MUELLE","COLINA"]
 const SAVE_PATH: String="user://aurora_map_waypoint.cfg"
+const AWM_POSITION: Vector2=Vector2(8,24)
+const MAP_SAMPLES: int=160
+const LANDMARK_POSITIONS: Array[Vector2]=[
+    Vector2(18,-8),Vector2(-19,-29),Vector2(46,-36),
+    Vector2(-48,22),Vector2(5,53),Vector2(-54,56),
+    Vector2(64,43)]
+const LANDMARK_NAMES: Array[String]=[
+    "CENTRO","HELIOS","METEO","VORTEX",
+    "PUERTO AURORA","MUELLE","MIRADOR"]
 var player: CharacterBody3D
 var terrain: StaticBody3D
 var director: Node3D
@@ -29,6 +38,7 @@ var _mouse_press_origin: Vector2=Vector2.ZERO
 var _redraw_seconds: float=0.0
 var _follow_player: bool=true
 var _control_panel: VBoxContainer
+var _terrain_texture: ImageTexture
 
 
 func _ready() -> void:
@@ -78,6 +88,7 @@ func _action(title: String,handler: Callable) -> void:
 func set_sources(character: CharacterBody3D,world: StaticBody3D,match_director: Node3D) -> void:
     player=character
     terrain=world
+    _terrain_texture=null
     director=match_director
     if _follow_player and player:
         pan=Vector2(player.global_position.x,player.global_position.z)
@@ -227,26 +238,94 @@ func _gui_input(event: InputEvent) -> void:
         accept_event()
 
 
+func _ensure_terrain_texture() -> void:
+    if _terrain_texture!=null or not is_instance_valid(terrain):
+        return
+    # A cached, real 160x160 heightfield replaces the old 35x35 blocks.
+    # Sampling occurs only once per loaded island, not every HUD frame.
+    var image:=Image.create(MAP_SAMPLES,MAP_SAMPLES,false,Image.FORMAT_RGBA8)
+    var sea: float=float(terrain.get("sea_level"))
+    for z in range(MAP_SAMPLES):
+        for x in range(MAP_SAMPLES):
+            var world_x: float=-WORLD_HALF+(float(x)+.5)*450.0/MAP_SAMPLES
+            var world_z: float=-WORLD_HALF+(float(z)+.5)*450.0/MAP_SAMPLES
+            var h: float=float(terrain.call("height_at",world_x,world_z))
+            var color: Color=Color(.025,.16,.26)
+            if h>sea+.3:
+                color=Color(.20,.34,.28).lerp(Color(.47,.43,.32),
+                    clampf((h-8.0)/44.0,0.0,1.0))
+                if h<sea+3.0:
+                    color=color.lerp(Color(.73,.65,.46),
+                        clampf(1.0-(h-sea)/3.0,0.0,1.0))
+                if h>35.0:
+                    color=color.lerp(Color(.72,.78,.78),
+                        clampf((h-35.0)/28.0,0.0,1.0))
+            elif h>sea-1.0:
+                color=Color(.10,.44,.51)
+            image.set_pixel(x,z,color)
+    _terrain_texture=ImageTexture.create_from_image(image)
+
+
+func _draw_path(world_points: Array[Vector2],tint: Color,width: float) -> void:
+    var points:=PackedVector2Array()
+    for at in world_points:
+        points.append(project(at))
+    if points.size()>=2:
+        draw_polyline(points,Color(.017,.10,.14,.85),width+3.0,true)
+        draw_polyline(points,tint,width,true)
+
+
+func _draw_landmark(at: Vector2,title: String,boxes: Array[Rect2],
+        rect: Rect2,font: Font) -> void:
+    var p: Vector2=project(at)
+    if not rect.grow(-7.0).has_point(p):
+        return
+    draw_circle(p,5.0,Color(1,.86,.48))
+    var label_width: float=float(title.length())*7.0+9.0
+    var label_size:=Vector2(label_width,18)
+    var offsets: Array[Vector2]=[
+        Vector2(9,-21),Vector2(-label_width-9,-21),
+        Vector2(9,3),Vector2(-label_width-9,3)]
+    for displacement in offsets:
+        var candidate:=Rect2(p+displacement,label_size)
+        if not rect.grow(-5.0).encloses(candidate):
+            continue
+        var collision: bool=false
+        for occupied in boxes:
+            if occupied.grow(4).intersects(candidate):
+                collision=true
+                break
+        if collision:
+            continue
+        draw_rect(candidate,Color(.016,.067,.094,.87))
+        draw_string(font,candidate.position+Vector2(5,14),title,
+            HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.97,.95,.83))
+        boxes.append(candidate)
+        return
+
+
 func _draw() -> void:
     draw_rect(Rect2(Vector2.ZERO,size),Color(.012,.033,.067,.975))
     var rect: Rect2=_map_rect()
     draw_rect(rect,Color(.025,.14,.24),true)
-    if is_instance_valid(terrain):
-        var tiles: int=35
-        var pixel: float=rect.size.x/float(tiles)
-        for row in range(tiles):
-            for column in range(tiles):
-                var pos: Vector2=rect.position+Vector2(column+.5,row+.5)*pixel
-                var world: Vector2=unproject(pos)
-                var y: float=float(terrain.call("height_at",world.x,world.y))
-                var tone: Color=Color(.035,.20,.30)
-                if y>float(terrain.get("sea_level"))+1.0:
-                    tone=Color(.19,.32,.28).lerp(Color(.47,.43,.34),
-                        clampf((y-4.0)/45.0,0.0,1.0))
-                if y>32:
-                    tone=tone.lerp(Color(.68,.74,.75),clampf((y-32)/24.0,0.0,1.0))
-                draw_rect(Rect2(rect.position+Vector2(column,row)*pixel,
-                    Vector2(pixel+.4,pixel+.4)),tone)
+    _ensure_terrain_texture()
+    if _terrain_texture!=null:
+        var src_span: float=float(MAP_SAMPLES)/zoom
+        var src_origin: Vector2=Vector2(
+            (pan.x+WORLD_HALF)*MAP_SAMPLES/450.0-src_span*.5,
+            (pan.y+WORLD_HALF)*MAP_SAMPLES/450.0-src_span*.5)
+        draw_texture_rect_region(_terrain_texture,rect,
+            Rect2(src_origin,Vector2.ONE*src_span))
+    # The roads connect real named districts, not fictional map screenshots.
+    _draw_path([Vector2(-48,22),Vector2(-26,2),Vector2(4,4),
+        Vector2(26,20),Vector2(48,41),Vector2(68,48)],
+        Color(.76,.66,.44,.8),5.0)
+    _draw_path([Vector2(-55,60),Vector2(-22,66),Vector2(5,50),
+        Vector2(19,43),Vector2(43,41),Vector2(68,48)],
+        Color(.73,.69,.49,.80),4.0)
+    _draw_path([Vector2(4,4),Vector2(18,-8),
+        Vector2(46,-36),Vector2(53,-61)],
+        Color(.71,.60,.43,.70),3.0)
     for n in range(-4,5):
         var grid_x: float=float(n)*50.0
         var a:=project(Vector2(grid_x,-WORLD_HALF))
@@ -256,12 +335,27 @@ func _draw() -> void:
         var d:=project(Vector2(WORLD_HALF,grid_x))
         draw_line(c,d,Color(.75,.85,.91,.10),1)
     var font: Font=get_theme_default_font()
-    for i in range(POINTS.size()):
-        var at:=project(POINTS[i])
-        if rect.grow(-10).has_point(at):
-            draw_circle(at,4.7,Color(1.0,.83,.44))
-            draw_string(font,at+Vector2(7,-7),NAMES[i],
-                HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.97,.94,.77))
+    for point in POINTS:
+        var parcel: Vector2=project(point)
+        if rect.grow(-8).has_point(parcel):
+            draw_rect(Rect2(parcel-Vector2(3,3),Vector2(6,6)),
+                Color(.94,.92,.72))
+    # Labels are laid out against occupied bounding boxes. Clustered
+    # houses stay represented as footprints instead of unreadable names.
+    var occupied: Array[Rect2]=[]
+    for i in range(LANDMARK_POSITIONS.size()):
+        _draw_landmark(LANDMARK_POSITIONS[i],LANDMARK_NAMES[i],
+            occupied,rect,font)
+    # This is the actual AWM area in sector_director.gd, not a fake icon.
+    var sniper: Vector2=project(AWM_POSITION)
+    if rect.grow(-12).has_point(sniper):
+        draw_circle(sniper,9.0,Color(1,.61,.09))
+        draw_arc(sniper,13,0,TAU,32,Color(1,.85,.22),2.0)
+        var name_rect:=Rect2(sniper+Vector2(13,1),Vector2(57,18))
+        if rect.grow(-8).encloses(name_rect):
+            draw_rect(name_rect,Color(.23,.105,.02,.94))
+            draw_string(font,name_rect.position+Vector2(6,14),"AWM",
+                HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(1,.95,.75))
     if is_instance_valid(director):
         var center: Vector2=ZONE_CENTER
         var rad: float=float(director.get("radius"))/_meters_per_pixel(rect)

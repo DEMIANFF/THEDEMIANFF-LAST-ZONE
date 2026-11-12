@@ -214,12 +214,14 @@ func _welcome() -> void:
     _page.anchor_bottom=.995
     _page.add_theme_constant_override("separation",5)
     _brand_logo.visible=true
-    _brand_logo.anchor_left=.065
-    _brand_logo.anchor_right=.26
-    _brand_logo.anchor_top=.35
-    _brand_logo.anchor_bottom=.74
+    # Keep emblem in a clean title-side hero area. Previously it covered
+    # the diagnostic buttons and character selection at phone resolution.
+    _brand_logo.anchor_left=.76
+    _brand_logo.anchor_right=.91
+    _brand_logo.anchor_top=.12
+    _brand_logo.anchor_bottom=.43
     _clear_page()
-    _label("THEDEMIANFF : LAST ZONE",33)
+    _label("THEDEMIAN: LAST ZONE",33)
     _label("PUERTO AURORA  •  EL ÚLTIMO HORIZONTE",20)
     _label("Operación de supervivencia — diagnóstico de desarrollo",14)
     var enter:=_button("ENTRAR",Callable(self,"_show_lobby"))
@@ -320,10 +322,12 @@ func _show_lobby() -> void:
     stage="lobby"
     visible=true
     _brand_logo.visible=true
-    _brand_logo.anchor_left=.296
-    _brand_logo.anchor_right=.357
+    # Logo stays outside the full-width profile strip and never crosses
+    # over player statistics or the rotating 3D character.
+    _brand_logo.anchor_left=.909
+    _brand_logo.anchor_right=.958
     _brand_logo.anchor_top=.022
-    _brand_logo.anchor_bottom=.15
+    _brand_logo.anchor_bottom=.137
     _page.anchor_left=.67
     _page.anchor_right=.97
     _page.anchor_top=.18
@@ -342,12 +346,14 @@ func _show_lobby() -> void:
     _ensure_lobby_navigation()
     _lobby_nav.visible=true
     _profile_strip.visible=true
-    _profile_strip.text="THEDEMIANFF : LAST ZONE    ·    AURORA     |     PERFIL LOCAL     |     %d PARTIDAS    ·    %d VICTORIAS"%[int(stats.get("played",0)),int(stats.get("wins",0))]
+    _profile_strip.text="THEDEMIAN: LAST ZONE    ·    PUERTO AURORA     |     PERFIL LOCAL     |     %d PARTIDAS    ·    %d VICTORIAS"%[int(stats.get("played",0)),int(stats.get("wins",0))]
     _preview_touch=-1
     _preview_mouse_drag=false
-    _preview_resume_spin=1.0
+    _preview_resume_spin=2.0
+    if _preview_avatar:
+        _preview_avatar.rotation.y=0.0
     _clear_page()
-    _label("PUERTO AURORA",27)
+    _label("PUERTO AURORA  /  BR",27)
     _label("OPERACIÓN ÚLTIMA ZONA  •  OFFLINE",14)
     var mode_title:=_label("SELECCIONA UN MODO",17)
     mode_title.add_theme_color_override("font_color",Color(.96,.77,.38))
@@ -374,7 +380,7 @@ func _ensure_lobby_navigation() -> void:
     _profile_strip=Label.new()
     _profile_strip.name="LocalProfileStrip"
     _profile_strip.anchor_left=.034
-    _profile_strip.anchor_right=.95
+    _profile_strip.anchor_right=.89
     _profile_strip.anchor_top=.035
     _profile_strip.anchor_bottom=.035
     _profile_strip.offset_bottom=43
@@ -437,7 +443,7 @@ func _select_tab(tab: String) -> void:
             _info.text+="\nPARTIDAS %d  •  VICTORIAS %d  •  BAJAS %d"%[int(stats.get("played",0)),int(stats.get("wins",0)),int(stats.get("kills",0))]
             _info.text+="\nRÉCORD %d BAJAS  •  %d S VIVO"%[int(stats.get("best_kills",0)),int(stats.get("longest_survival_seconds",0))]
         "ARMAS":
-            _info.text="ARSENAL DISPONIBLE\nAK-74: x2 / x4\nAWM: x8 y recarga de cerrojo.\nLas armas se usan dentro de la partida."
+            _info.text="ARSENAL ACTIVO\nAR-7: mira x2 / x4.\nAWM: mira x8 y cerrojo automático.\nBR: AWM sobre el suelo, en la PLAZA (8, 24).\nENTRENAMIENTO: pulsa ARMA para probarla."
         "MISIONES":
             var stats: Dictionary=_offline_records.snapshot()
             var latest: Array=stats.get("history",[])
@@ -698,8 +704,12 @@ func _build_preview() -> void:
             stage3d.add_child(_preview_avatar)
             _fit_avatar_for_preview(_preview_avatar)
             var anim:=_preview_avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
-            if anim and anim.has_animation("AuroraArmedIdle"):
-                anim.play("AuroraArmedIdle")
+            # Lobby has no equipped hand-held rifle. Playing the armed grip
+            # without a model made Lila's empty palms look glued together.
+            # Use the real relaxed skeletal idle here; the actual match
+            # keeps its weapon-ready and ADS animation states.
+            if anim and anim.has_animation("AuroraIdle"):
+                anim.play("AuroraIdle")
                 anim.advance(.1)
 
     var caption:=Label.new()
