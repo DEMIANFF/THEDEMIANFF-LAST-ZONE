@@ -10,6 +10,7 @@ const AR_DAMAGE: int=26
 const AWM_DAMAGE: int=115
 const AWM_BOLT_SECONDS: float=.50
 const BOT = preload("res://scripts/ai/aurora_bot.gd")
+const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
 const COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 
@@ -39,6 +40,10 @@ const AWM_RESERVE_BASE: int=30
 const AR_RESERVE_BACKPACK: int=360
 const AWM_RESERVE_BACKPACK: int=60
 var sector_battle_active: bool = false
+## Offline encounter cap, including the human player. No fake network users.
+## The standard 9-person round remains the safe Motorola default.
+var encounter_size: int=9
+const ALLOWED_ENCOUNTERS: Array[int]=[9,20,30]
 var cover_charges: int=0
 var cover_cooldown: float=0.0
 var cover_last_block_reason: String=""
@@ -350,26 +355,10 @@ func begin_sector_battle() -> void:
     backpack_level=0
     medkits_remaining=2
     eliminations=0
-    # 8 bots + player = 9 fighters in the explicitly limited sector pilot.
-    var additional_spawns: Array[Vector2]=[
-        Vector2(-47,-10),Vector2(55,-17),Vector2(26,-55),Vector2(-35,-48)]
-    while _targets.size()<8:
-        var i: int=_targets.size()
-        var bot: CharacterBody3D=BOT.new()
-        bot.name="AuroraPatrol"+str(i+1)
-        bot.terrain=terrain
-        bot.operator=operator
-        bot.navigation=navigation
-        if navigation:
-            navigation.actors.append(bot)
-        bot.spawn_coordinates=additional_spawns[i-4]
-        bot.eliminated.connect(_on_bot_eliminated)
-        bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
-        bot.weapon_fired.connect(_on_bot_weapon_fired.bind(bot))
-        add_child(bot)
-        _targets.append(bot)
+    _ensure_encounter_capacity()
     for bot in _targets:
-        bot.configure_sector_battle(_targets)
+        if is_instance_valid(bot):
+            bot.configure_sector_battle(_targets)
     if _weapon_visuals:
         _weapon_visuals.equip(0)
     operator.set_equipped_weapon(0)
@@ -378,6 +367,80 @@ func begin_sector_battle() -> void:
     hud.set_medkit_count(medkits_remaining)
     hud.set_eliminations(0)
     _sync_hud()
+
+
+## Explicit offline-only difficulty selection. A 20/30-person session consists
+## of one local user plus 19/29 autonomous combatants, NOT human multiplayer.
+func set_encounter_size(size: int) -> void:
+    if size in ALLOWED_ENCOUNTERS:
+        encounter_size=size
+
+
+func _is_clear_spawn(at: Vector2) -> bool:
+    if at.distance_to(Vector2(0,-24))>102.0:
+        return false
+    var sea: float=float(terrain.get("sea_level"))
+    var floor_y: float=float(terrain.call("height_at",at.x,at.y))
+    if floor_y<sea+1.0:
+        return false
+    if RESIDENTIAL.grading_weight(at.x,at.y)>.3:
+        return false
+    for old in [Vector2(18,-8),Vector2(-19,-29),
+            Vector2(46,-36),Vector2(-48,22)]:
+        if at.distance_to(old)<15.0:
+            return false
+    var left: float=float(terrain.call("height_at",at.x-1.5,at.y))
+    var right: float=float(terrain.call("height_at",at.x+1.5,at.y))
+    var front: float=float(terrain.call("height_at",at.x,at.y-1.5))
+    var rear: float=float(terrain.call("height_at",at.x,at.y+1.5))
+    return absf(left-right)<3.5 and absf(front-rear)<3.5
+
+
+func _encounter_spawn(index: int) -> Vector2:
+    # Fixed seed gives reproducible, testable safe locations. Distributed
+    # across the ACTIVE 112m storm circle, instead of stacked inside homes.
+    var base: float=float(index)*2.3999632297
+    for attempt in range(96):
+        var angle: float=base+float(attempt)*.55
+        var radius: float=52.0+float((index*13+attempt*7)%40)
+        var at:=Vector2(sin(angle),cos(angle))*radius+Vector2(0,-24)
+        if _is_clear_spawn(at):
+            return at
+    # Fallback to a previously proven landing point, never underground.
+    return Vector2(33,-10)
+
+
+func _ensure_encounter_capacity() -> void:
+    var original: Array[Vector2]=[
+        Vector2(-47,-10),Vector2(55,-17),Vector2(26,-55),
+        Vector2(-35,-48)]
+    var needed: int=clampi(encounter_size-1,8,29)
+    while _targets.size()<needed:
+        var i: int=_targets.size()
+        var bot: CharacterBody3D=BOT.new()
+        bot.name="AuroraPatrol"+str(i+1)
+        bot.terrain=terrain
+        bot.operator=operator
+        bot.navigation=navigation
+        # Nearby eight receive the original skinned character model.
+        # Additional bots are real damageable physics agents with distance
+        # LOD (the full rig is loaded when within 39m, unloaded beyond 55m).
+        bot.set("distance_lod",i>=8)
+        bot.spawn_coordinates=original[i-4] if i<8 else _encounter_spawn(i)
+        bot.eliminated.connect(_on_bot_eliminated)
+        bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
+        bot.weapon_fired.connect(_on_bot_weapon_fired.bind(bot))
+        if navigation:
+            navigation.actors.append(bot)
+        add_child(bot)
+        _targets.append(bot)
+    # A selected 9-player game must not retain active agents from a
+    # previous 30-bot match in the same scene.
+    while _targets.size()>needed:
+        var last: CharacterBody3D=_targets.pop_back()
+        if navigation:
+            navigation.actors.erase(last)
+        last.queue_free()
 
 
 func active_fighter_count() -> int:
