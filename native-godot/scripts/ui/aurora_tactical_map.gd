@@ -24,6 +24,8 @@ var pan: Vector2=Vector2.ZERO
 var _drag_touch: int=-1
 var _last_pointer: Vector2
 var _touches: Dictionary={}
+var _touch_starts: Dictionary={}
+var _mouse_press_origin: Vector2=Vector2.ZERO
 var _redraw_seconds: float=0.0
 var _follow_player: bool=true
 var _control_panel: VBoxContainer
@@ -130,7 +132,8 @@ func _route() -> void:
         return
     _follow_player=false
     pan=(Vector2(player.global_position.x,player.global_position.z)+waypoint)*.5
-    zoom=clampf(zoom,1.0,2.0)
+    var delta: float=Vector2(player.global_position.x,player.global_position.z).distance_to(waypoint)
+    zoom=clampf(450.0/maxf(170.0,delta*1.5),1.0,4.0)
     queue_redraw()
 
 
@@ -159,29 +162,37 @@ func _gui_input(event: InputEvent) -> void:
         var touch:=event as InputEventScreenTouch
         if touch.pressed and rect.has_point(touch.position):
             _touches[touch.index]=touch.position
+            _touch_starts[touch.index]=touch.position
             _drag_touch=touch.index
             _last_pointer=touch.position
             accept_event()
         elif not touch.pressed and _touches.has(touch.index):
+            var start: Vector2=_touch_starts.get(touch.index,touch.position)
             _touches.erase(touch.index)
+            _touch_starts.erase(touch.index)
             if _drag_touch==touch.index:
                 _drag_touch=-1
-                if rect.has_point(touch.position) and touch.position.distance_to(_last_pointer)<12.0:
+                if rect.has_point(touch.position) and touch.position.distance_to(start)<12.0:
                     mark(unproject(touch.position))
             accept_event()
     elif event is InputEventScreenDrag:
         var drag:=event as InputEventScreenDrag
         if _touches.has(drag.index):
             var previous: Vector2=_touches[drag.index]
+            var old_positions: Array=_touches.values()
+            var old_separation: float=0.0
+            if old_positions.size()==2:
+                var old_a: Vector2=old_positions[0]
+                var old_b: Vector2=old_positions[1]
+                old_separation=old_a.distance_to(old_b)
             _touches[drag.index]=drag.position
             if _touches.size()==2:
                 var fingers: Array=_touches.values()
                 var first: Vector2=fingers[0]
                 var second: Vector2=fingers[1]
                 var separation: float=first.distance_to(second)
-                if separation>15.0:
-                    zoom=clampf(zoom*(1.0+drag.relative.length()*.003*signf(
-                        separation-previous.distance_to(first))),1.0,4.0)
+                if separation>15.0 and old_separation>15.0:
+                    zoom=clampf(zoom*separation/old_separation,1.0,4.0)
             else:
                 pan-=drag.relative*_meters_per_pixel(rect)
                 _follow_player=false
@@ -199,10 +210,11 @@ func _gui_input(event: InputEvent) -> void:
                 accept_event()
             elif mouse.button_index==MOUSE_BUTTON_LEFT and mouse.pressed:
                 _drag_touch=0
+                _mouse_press_origin=mouse.position
                 _last_pointer=mouse.position
                 accept_event()
             elif mouse.button_index==MOUSE_BUTTON_LEFT and not mouse.pressed:
-                if mouse.position.distance_to(_last_pointer)<12.0:
+                if mouse.position.distance_to(_mouse_press_origin)<12.0:
                     mark(unproject(mouse.position))
                 _drag_touch=-1
                 accept_event()
