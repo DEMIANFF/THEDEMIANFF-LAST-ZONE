@@ -233,8 +233,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: CANOPY-AUDIT-FAILED-VALIDATION-LOGS
+          name: V7546-FAILED-VALIDATION-LOGS
           path: |
             native-godot/out/qa/
-            native-godot/out/qa-exported/
+            native-godot/out/qa-exported-opengl/
+            native-godot/out/qa-exported-vulkan/
+            native-godot/out/opengl-verification/
+            native-godot/out/vulkan-verification/
+            native-godot/out/SHA256SUMS.txt
           retention-days: 14
