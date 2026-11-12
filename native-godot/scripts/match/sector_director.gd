@@ -283,7 +283,7 @@ func _historic_floor_at(at: Vector2) -> float:
     # Some of the original 16 "outdoor" coordinates overlap an older house
     # (notably the AWM rounds in CENTRO DE EXPLORACION). If so, use the
     # REAL raised InteriorDeck top; never bury a pickup in the terrain below.
-    var district: Node3D=get_parent().get_node_or_null("AuroraDistrict") as Node3D
+    var district: Node3D=get_parent().get_node_or_null("PuertoAuroraSector") as Node3D
     if district==null:
         return NAN
     var sites: Array[Vector4]=[
