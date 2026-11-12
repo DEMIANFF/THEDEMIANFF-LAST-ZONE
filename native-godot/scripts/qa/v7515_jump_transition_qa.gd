@@ -52,9 +52,11 @@ func _verify() -> void:
     check(player.get_node_or_null("AuroraTransportAircraft")==null,
         "aircraft renderer remains attached after jump")
     var log: Dictionary=TRACE.last()
-    check(log.get("phase","")=="freefall" and
-        log.get("last_transition","")=="jump_committed",
-        "jump terminal checkpoint missing or overwritten")
+    # V75.22 deliberately records the first freefall rig reveal/physics
+    # after jump_committed. These newer breadcrumbs must not be mistaken for
+    # an incomplete jump simply because last_transition moved forward.
+    check(str(log.get("history","")).contains("freefall / jump_committed"),
+        "jump terminal checkpoint missing from durable event sequence")
     check(str(log.get("build","")).contains("THEDEMIANFF"),
         "diagnostic does not identify build")
     check(str(log.get("render_backend",""))=="gl_compatibility",
@@ -64,8 +66,10 @@ func _verify() -> void:
         await physics_frame
     check(player.air_mode=="freefall" and player.global_position.is_finite(),
         "freefall did not remain playable after deferred swap")
-    check(TRACE.last().get("last_transition","")=="jump_committed",
-        "regular flight_tick overwrote the critical transition breadcrumb")
+    var after: Dictionary=TRACE.last()
+    check(str(after.get("history","")).contains("freefall_tick_actor_enter") and
+        str(after.get("history","")).contains("freefall_tick_after_move_and_slide"),
+        "first real freefall physics checkpoints missing after jump")
     print("V7515_JUMP PASS deferred 3D release, idempotent jump, early checkpoint, ",
         "real airborne physics, renderer/build and retained last transition")
     quit(1 if failed else 0)
