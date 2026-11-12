@@ -177,9 +177,9 @@ def _aim_arm_poses():
         total_arm_length=(wrist_start-shoulder_world).length
         # Right hand near trigger, left beneath forward handguard.
         target=shoulder_world+Vector((
-            -math.copysign(total_arm_length*.30,shoulder_world.x),
-            -total_arm_length*(.34 if side=="Right" else .38),
-            total_arm_length*(.38 if side=="Right" else .62)))
+            -math.copysign(total_arm_length*(.27 if side=="Right" else .41),shoulder_world.x),
+            -total_arm_length*(.33 if side=="Right" else .37),
+            total_arm_length*(.48 if side=="Right" else .80)))
         axes=[Vector((1,0,0)),Vector((0,1,0)),Vector((0,0,1)),
               Vector((1,1,0)),Vector((1,-1,0)),Vector((0,1,1))]
         angles=[-.85,-.52,-.30,0,.30,.52,.85]
@@ -355,6 +355,20 @@ for clip_name, amplitude, frames, armed in clips:
                 forearm.rotation_quaternion = armed_pose["forearm_" + side.lower()[0]] @ Quaternion(Vector((1,0,0)), pulse * amount)
                 forearm.keyframe_insert(data_path="rotation_quaternion", frame=frame)
         if clip_name in ("AuroraFire", "AuroraHit"):
+            if clip_name=="AuroraFire":
+                # A visible coordinated recoil impulse moves the animated
+                # shoulders/elbows around the genuine two-handed grip.
+                for side in ("Right","Left"):
+                    upper=arm.pose.bones["rig:"+side+"Arm"]
+                    forearm=arm.pose.bones["rig:"+side+"ForeArm"]
+                    upper.rotation_quaternion=(
+                        armed_pose["arm_"+side.lower()[0]]
+                        @ Quaternion(Vector((1,0,0)),pulse*(-.075 if side=="Right" else -.038)))
+                    upper.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+                    forearm.rotation_quaternion=(
+                        armed_pose["forearm_"+side.lower()[0]]
+                        @ Quaternion(Vector((1,0,0)),pulse*.045))
+                    forearm.keyframe_insert(data_path="rotation_quaternion",frame=frame)
             spine = arm.pose.bones["rig:Spine"]
             spine.rotation_mode = "QUATERNION"
             spine.rotation_quaternion = Quaternion(Vector((1,0,0)), -.10 * pulse if clip_name == "AuroraFire" else .16 * pulse)
