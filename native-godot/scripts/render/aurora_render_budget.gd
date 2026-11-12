@@ -1,6 +1,6 @@
 extends Node
-## Compatibility/OpenGL-compatible 3D resolution governor. 2D touch HUD and
-## subtitles stay native-resolution. No FSR/Vulkan assumption on Motorola.
+## Vulkan Mobile / OpenGL 3D resolution governor. 2D touch HUD and text
+## remain at native resolution, independent of the 3D scaling factor.
 ##
 ## A sustained drop in FPS only scales 3D *when CPU frame time indicates the
 ## GPU/driver may be the bottleneck*. Slow AI/pathfinding is not "fixed" by
@@ -12,6 +12,9 @@ const STEPS: Array[float]=[.78,.86,.94,1.0]
 const SAMPLE_INTERVAL: float=.75
 const BAD_SAMPLES: int=9
 const GOOD_SAMPLES: int=18
+const MAX_TARGET_FPS: float=120.0
+const SAMPLE_WARMUP_SECONDS: float=12.0
+const CPU_FRAME_RATIO: float=.84
 
 var profile: String="AUTO"
 var current_scale: float=.94
@@ -19,6 +22,11 @@ var changes: int=0
 var last_draw_calls: int=0
 var last_rendered_objects: int=0
 var last_fps: float=0.0
+var last_target_fps: float=60.0
+var last_refresh_hz: float=0.0
+var last_cpu_ms: float=0.0
+var last_frame_ms: float=0.0
+var last_bottleneck: String="NOT_SAMPLED"
 var _sample_clock: float=0.0
 var _low_samples: int=0
 var _good_samples: int=0
@@ -67,6 +75,32 @@ static func higher_step(current: float) -> float:
     return STEPS[STEPS.size()-1]
 
 
+## Respect both the player's cap and the panel's real refresh rate.
+static func target_fps_for_cap(cap: int,refresh_hz: float) -> float:
+    var target: float=60.0
+    if cap>0:
+        target=clampf(float(cap),15.0,MAX_TARGET_FPS)
+    elif is_finite(refresh_hz) and refresh_hz>=30.0:
+        target=minf(refresh_hz,MAX_TARGET_FPS)
+    if is_finite(refresh_hz) and refresh_hz>=30.0:
+        target=minf(target,refresh_hz)
+    return clampf(target,15.0,MAX_TARGET_FPS)
+
+
+## Reducing render resolution will not fix CPU-heavy AI navigation.
+static func classify_bottleneck(fps: float,target: float,
+        cpu_ms: float,frame_ms: float) -> String:
+    if not is_finite(fps) or not is_finite(target) or not is_finite(cpu_ms) or not is_finite(frame_ms):
+        return "INVALID"
+    if fps<=0.0 or target<=0.0 or frame_ms<=0.0 or cpu_ms<0.0:
+        return "INVALID"
+    if fps>=target*.80:
+        return "ON_TARGET"
+    if cpu_ms>=frame_ms*CPU_FRAME_RATIO:
+        return "CPU_BOUND"
+    return "RENDER_OR_DRIVER"
+
+
 func _ready() -> void:
     name="AuroraRenderBudget"
     _startup_time=Time.get_ticks_msec()*.001
@@ -97,38 +131,44 @@ func select_profile(value: String) -> Error:
 
 
 func _process(delta: float) -> void:
-    if profile!="AUTO":
+    if not is_finite(delta) or delta<0.0:
         return
-    # Export startup, aircraft rig load and scene transitions spike briefly.
-    # Do not permanently degrade detail because of one such frame.
-    if Time.get_ticks_msec()*.001-_startup_time<12.0:
+    # Initial terrain, 3D rig and sky creation must not trigger downscaling.
+    if Time.get_ticks_msec()*.001-_startup_time<SAMPLE_WARMUP_SECONDS:
         return
-    _sample_clock+=delta
+    _sample_clock+=minf(delta,1.0)
     if _sample_clock<SAMPLE_INTERVAL:
         return
-    _sample_clock-=SAMPLE_INTERVAL
+    _sample_clock=fmod(_sample_clock,SAMPLE_INTERVAL)
+    # Diagnostics update even when a fixed user profile is selected.
     last_fps=float(Engine.get_frames_per_second())
     last_draw_calls=int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
     last_rendered_objects=int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))
-    if last_fps<5.0 or last_fps>250.0:
+    if not is_finite(last_fps) or last_fps<5.0 or last_fps>250.0:
+        last_bottleneck="INVALID"
         return
-    var ceiling: int=Engine.max_fps
-    var target: float=float(mini(60,ceiling)) if ceiling>0 else 60.0
-    var process_ms: float=1000.0*(
+    last_refresh_hz=float(DisplayServer.screen_get_refresh_rate())
+    last_target_fps=target_fps_for_cap(Engine.max_fps,last_refresh_hz)
+    last_cpu_ms=1000.0*(
         Performance.get_monitor(Performance.TIME_PROCESS)+
         Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS))
-    var frame_ms: float=1000.0/maxf(last_fps,1.0)
-    # Severe CPU bottlenecks need AI/navigation work, not GPU downscaling.
-    var gpu_likely: bool=process_ms<frame_ms*.84
-    if last_fps<target*.80 and gpu_likely:
+    last_frame_ms=1000.0/maxf(last_fps,1.0)
+    last_bottleneck=classify_bottleneck(
+        last_fps,last_target_fps,last_cpu_ms,last_frame_ms)
+    if profile!="AUTO":
+        _low_samples=0
+        _good_samples=0
+        return
+    if last_bottleneck=="RENDER_OR_DRIVER":
         _low_samples+=1
         _good_samples=0
-    elif last_fps>=target*.97:
+    elif last_bottleneck=="ON_TARGET" and last_fps>=last_target_fps*.97:
         _good_samples+=1
         _low_samples=0
     else:
         _low_samples=0
         _good_samples=0
+    # Hysteresis prevents rapid quality oscillation in the Mobile renderer.
     if _low_samples>=BAD_SAMPLES:
         _low_samples=0
         var lower: float=lower_step(current_scale)
@@ -141,7 +181,6 @@ func _process(delta: float) -> void:
         if upper>current_scale+.01:
             _apply_scale(upper)
             changes+=1
-
 
 func _exit_tree() -> void:
     # Restore the 3D scale for the standalone login/lobby viewport.
@@ -158,5 +197,10 @@ func snapshot() -> Dictionary:
         "draw_calls":last_draw_calls,
         "objects":last_rendered_objects,
         "fps":last_fps,
+        "target_fps":last_target_fps,
+        "refresh_hz":last_refresh_hz,
+        "cpu_ms":last_cpu_ms,
+        "frame_ms":last_frame_ms,
+        "bottleneck":last_bottleneck,
         "adjustments":changes
     }
