@@ -39,8 +39,12 @@ func _verify() -> void:
             "persisted FPS setting differs from selection "+str(pair))
     check(settings.save_graphics("220") == ERR_INVALID_PARAMETER,
         "unsafe unsupported FPS value should be rejected")
-    # Headless Godot tests can report an uncapped project default (0).
-    # Verify the real Boot scene executes the user's 120 FPS option instead.
+    # Other regression tests intentionally save the 30 FPS profile into
+    # the shared QA user:// sandbox. Preserve their contract: a returning
+    # player keeps their old selection, and only explicit 120 selection
+    # raises the cap. Set the real default-path option before launching Boot.
+    check(SETTINGS.new().save_graphics("extrema")==OK,
+        "could not explicitly enable 120 FPS for the Boot integration test")
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
     check(Engine.max_fps==120,
@@ -57,6 +61,7 @@ func _verify() -> void:
     # regress freefall, input, movement, and the fixed Android audio crash.
     check(int(Engine.physics_ticks_per_second)==60,
         "render FPS should not double real physics/AI work")
-    print("V7525_HIGH_REFRESH PASS 30/45/60/90/120 persisted, ",
+    if not failed:
+        print("V7525_HIGH_REFRESH PASS 30/45/60/90/120 persisted, ",
         "120 ceiling, Android Swappy and 60-tick physics isolation")
     quit(1 if failed else 0)
