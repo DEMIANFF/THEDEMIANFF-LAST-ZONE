@@ -9,6 +9,7 @@ const LOBBY_STAGE=preload("res://scripts/ui/aurora_lobby_stage_3d.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
+const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.gd")
@@ -473,6 +474,13 @@ func _select_tab(tab: String) -> void:
             _info.text="OPERADORA / LILA EN DESARROLLO\nModelo 3D provisional."
             _info.text+="\nPARTIDAS %d  •  VICTORIAS %d  •  BAJAS %d"%[int(stats.get("played",0)),int(stats.get("wins",0)),int(stats.get("kills",0))]
             _info.text+="\nRÉCORD %d BAJAS  •  %d S VIVO"%[int(stats.get("best_kills",0)),int(stats.get("longest_survival_seconds",0))]
+            var measured: Dictionary=PERFORMANCE.latest()
+            if int(measured.get("frames",0))>=3:
+                _info.text+="\nFPS REALES: MEDIA %.1f / P10 %.1f"%[
+                    float(measured.get("average_fps",0.0)),
+                    float(measured.get("low10_fps",0.0))]
+                _info.text+="\nMODO PROBADO: %d PARTICIPANTES"%int(
+                    measured.get("participants",0))
         "ARMAS":
             _info.text="ARSENAL ACTIVO\nAR-7: mira x2 / x4.\nAWM: mira x8 y cerrojo automático.\nBR: AWM sobre el suelo, en la PLAZA (8, 24).\nENTRENAMIENTO: pulsa ARMA para probarla."
         "MISIONES":
