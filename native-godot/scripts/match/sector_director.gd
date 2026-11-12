@@ -131,6 +131,10 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _ui_clock=0.0
     player.begin_sector_battle(from_airdrop)
     combat.begin_sector_battle()
+    # The previous round can end with a 12 m radius. Reset every bot's
+    # strategic radius NOW, before its next physics tick, rather than
+    # allowing stale values to drive several escape/cover decisions.
+    _sync_bot_safe_zone()
     hud.clear_match_result()
     hud.reset_controls()
     hud.set_match_controls(true)
@@ -161,12 +165,12 @@ func _process(delta: float) -> void:
     zone_phase=int(state["phase"])
     zone_seconds_remaining=int(state["remaining"])
     _zone_visual.set_safe_radius(radius)
+    # Bot hazard decisions are made in physics; they must never lag behind
+    # the actual damaging ring just because HUD updates are rate-limited.
+    _sync_bot_safe_zone()
     _ui_clock-=delta
     if _ui_clock<=0:
         _ui_clock=.33
-        for bot in combat._targets:
-            bot.safe_center=CENTER
-            bot.safe_radius=radius
         hud.set_sector_zone(CENTER,radius)
         var status: String="ZONA FINAL" if zone_phase>=PHASE_COUNT else             "ZONA %d/%d · %ds"%[zone_phase+1,PHASE_COUNT,zone_seconds_remaining]
         hud.set_sector_state(status,combat.active_fighter_count(),radius,int(elapsed))
@@ -180,7 +184,15 @@ func _process(delta: float) -> void:
         _finish(true)
 
 
-## Four actual scheduled storm phases, beginning wide enough to cover both\n## new north-coast entrance ramps. Each has a short stable loot window,
+func _sync_bot_safe_zone() -> void:
+    for bot in combat._targets:
+        if is_instance_valid(bot) and bot.health>0:
+            bot.safe_center=CENTER
+            bot.safe_radius=radius
+
+
+## Four actual scheduled storm phases, beginning wide enough to cover both
+## new north-coast entrance ramps. Each has a short stable loot window,
 ## followed by a smooth contraction, then a tighter damage/visibility stage.
 ## Radar, terrain ring and hazard radius all read the same returned radius.
 func zone_state_at(seconds: float) -> Dictionary:

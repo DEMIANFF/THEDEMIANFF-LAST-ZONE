@@ -36,11 +36,14 @@ func _verify() -> void:
         "coastal expansion changed existing proven freight caches")
 
     var tested_open_doors: int=0
-    var walked_new_houses: int=0
+    var walked_houses: int=0
     var space:=game.get_world_3d().direct_space_state
-    for index in [4,5]:
+    # Test both previous and newly expanded villas; the door corridors
+    # must remain open after furnishing and adding the northern plaza.
+    var house_depths: Array[float]=[8.0,8.4,8.3,7.7,8.3,8.4]
+    for index in range(coastal.HOUSE_COUNT):
         var house: Node3D=coastal.get_node("AuroraCoastalVilla"+str(index))
-        var depth: float=8.3 if index==4 else 8.4
+        var depth: float=house_depths[index]
         var door_ray:=PhysicsRayQueryParameters3D.create(
             house.to_global(Vector3(0,1.55,depth*.5+2.6)),
             house.to_global(Vector3(0,1.55,-.45)))
@@ -64,11 +67,13 @@ func _verify() -> void:
         player.set_touch_move_axis(Vector2.ZERO)
         var inside: Vector3=house.to_local(player.global_position)
         if inside.z<depth*.5-1.1:
-            walked_new_houses+=1
+            walked_houses+=1
         check(inside.z<depth*.5-1.1,
-            "new house "+str(index)+" is not actually traversable "+str(inside))
-    check(tested_open_doors==2,"wall collision still blocks an added doorway")
-    check(walked_new_houses==2,"player could not walk into both new houses")
+            "house "+str(index)+" has a blocked physical entry "+str(inside))
+    check(tested_open_doors==coastal.HOUSE_COUNT,
+        "wall collision blocks at least one of six real doorways")
+    check(walked_houses==coastal.HOUSE_COUNT,
+        "player could not walk into all six houses")
 
     # Test four continuous phases and each deliberate preparation/closure
     # interval without waiting through a real five-minute battle.
@@ -107,6 +112,19 @@ func _verify() -> void:
         "real match did not start with 16 outdoor + 6 indoor pickups")
     for enemy in combat._targets:
         enemy.set_physics_process(false)
+        check(is_equal_approx(enemy.safe_radius,director.INITIAL_RADIUS),
+            "bot retained the previous match's small storm radius at round start")
+        check(enemy.safe_center==director.CENTER,
+            "bot began with an incorrect safe-zone center")
+    # Deliberately change the zone without waiting for the HUD's 0.33s tick.
+    # This verifies AI and damaging ring agree on the very same process tick.
+    director.elapsed=105.0
+    director._process(0.0)
+    check(director.zone_phase==1 and director.radius<director.INITIAL_RADIUS,
+        "second phase did not contract the physical ring")
+    for enemy in combat._targets:
+        check(is_equal_approx(enemy.safe_radius,director.radius),
+            "bot uses a stale danger radius while storm damage advances")
     var pickup: Area3D=director.get_node("AuroraInteriorLoot1")
     var anchor: Vector3=coastal.interior_supply_spots[0]
     check(is_equal_approx(pickup.global_position.y,anchor.y+1.08),
@@ -120,8 +138,24 @@ func _verify() -> void:
     check(pickup.collected and combat.medkits_remaining==before+1 and
         director.get_loot_remaining()==21,
         "entering a real home cannot collect the indoor medkit")
+    # Each actual indoor pickup must be obtainable from its floor anchor,
+    # not simply counted or rendered in a house inaccessible to the player.
+    for index in range(1,coastal.HOUSE_COUNT):
+        var loot: Area3D=director.get_node("AuroraInteriorLoot"+str(index+1))
+        var floor_anchor: Vector3=coastal.interior_supply_spots[index]
+        check(is_equal_approx(loot.global_position.y,floor_anchor.y+1.08),
+            "interior capsule "+str(index+1)+" was placed off its floor")
+        player.global_position=floor_anchor+Vector3.UP*.16
+        player.velocity=Vector3.ZERO
+        await physics_frame
+        await physics_frame
+        loot._collect(player)
+        check(loot.collected,"interior capsule "+str(index+1)+
+            " is unreachable, blocked, or has invalid resource pickup")
+    check(director.get_loot_remaining()==16,
+        "six indoor capsules were not independently collectible")
     if not failed:
-        print("V7528_COASTAL_BR PASS extra houses walked=",walked_new_houses,
+        print("V7528_COASTAL_BR PASS all houses walked=",walked_houses,
             " furnished=",coastal.furnished_interiors,
             " indoor_pickups=",coastal.interior_supply_spots.size(),
             " battle_pickups=22 phases=4")
