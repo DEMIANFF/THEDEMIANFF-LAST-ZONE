@@ -70,7 +70,8 @@ func _parse(cfg: ConfigFile) -> Dictionary:
     if not cfg.has_section_key("hud","version") or             cfg.get_value("hud","version",0)!=1:
         return {}
     var parsed: Dictionary={}
-    for key in cfg.get_section_keys("controls") if cfg.has_section("controls") else []:
+    var keys: PackedStringArray=cfg.get_section_keys("controls") if cfg.has_section("controls") else PackedStringArray()
+    for key in keys:
         if not str(key).ends_with("_center"):
             return {}
         var id: String=str(key).trim_suffix("_center")
