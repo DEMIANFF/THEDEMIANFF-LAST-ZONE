@@ -81,12 +81,33 @@ func _ready() -> void:
         "backpack": floating_name.text="MOCHILA TACTICA"
         "weapon_awm": floating_name.text="RECOGER AWM"
         _: floating_name.text="MUNICION AWM"
-    floating_name.font_size=38
+    floating_name.font_size=44 if pickup_type=="weapon_awm" else 38
     floating_name.pixel_size=.005
-    floating_name.position.y=.94
-    floating_name.modulate=Color(.85,.99,1.0)
-    floating_name.no_depth_test=false
+    floating_name.position.y=1.72 if pickup_type=="weapon_awm" else .94
+    floating_name.modulate=Color(1,.89,.48) if pickup_type=="weapon_awm"         else Color(.85,.99,1.0)
+    floating_name.no_depth_test=pickup_type=="weapon_awm"
     _visual.add_child(floating_name)
+    if pickup_type=="weapon_awm":
+        # Distinct amber navigation column at the real weapon pickup:
+        # players can spot it among other loot from ground-level camera.
+        var beam:=MeshInstance3D.new()
+        beam.name="AWMWorldBeacon"
+        var pillar:=CylinderMesh.new()
+        pillar.top_radius=.055
+        pillar.bottom_radius=.055
+        pillar.height=5.4
+        pillar.radial_segments=8
+        beam.mesh=pillar
+        beam.position.y=2.5
+        var lamp:=StandardMaterial3D.new()
+        lamp.albedo_color=Color(1,.68,.12,.48)
+        lamp.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+        lamp.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+        lamp.emission_enabled=true
+        lamp.emission=Color(1,.64,.09)
+        lamp.emission_energy_multiplier=1.5
+        beam.material_override=lamp
+        _visual.add_child(beam)
     body_entered.connect(_collect)
 
 
