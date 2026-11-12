@@ -199,6 +199,7 @@ func _shoot() -> void:
     var muzzle: Vector3=_weapon_visuals.muzzle_position()
     var hit: Dictionary=resolve_shot(from,direction,muzzle)
     shot_fired.emit(weapon_index,not hit.is_empty())
+    _alert_nearby_bots(muzzle,operator)
     var endpoint: Vector3=hit.get("position",from+direction*250.0)
     last_shot={"muzzle":muzzle,"endpoint":endpoint,"collider":hit.get("collider")}
     _spawn_tracer(muzzle,endpoint)
@@ -348,6 +349,7 @@ func begin_sector_battle() -> void:
         bot.spawn_coordinates=additional_spawns[i-4]
         bot.eliminated.connect(_on_bot_eliminated)
         bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
+        bot.weapon_fired.connect(_on_bot_weapon_fired.bind(bot))
         add_child(bot)
         _targets.append(bot)
     for bot in _targets:
@@ -474,8 +476,23 @@ func _make_targets() -> void:
         bot.spawn_coordinates=points[i]
         bot.eliminated.connect(_on_bot_eliminated)
         bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
+        bot.weapon_fired.connect(_on_bot_weapon_fired.bind(bot))
         add_child(bot)
         _targets.append(bot)
+
+
+## Real weapon fire provides a noisy 3D location, not a target lock.
+## Perception only updates living combatants in an active BR round.
+func _on_bot_weapon_fired(at: Vector3, shooter: CharacterBody3D) -> void:
+    _alert_nearby_bots(at,shooter)
+
+
+func _alert_nearby_bots(at: Vector3, shooter: Node3D) -> void:
+    if not sector_battle_active or not at.is_finite():
+        return
+    for opponent in _targets:
+        if is_instance_valid(opponent) and opponent.health>0:
+            opponent.hear_gunshot(at,shooter)
 
 
 func _on_bot_eliminated(_agent: CharacterBody3D,killer: Node3D) -> void:

@@ -9,12 +9,14 @@ const WALK_SPEED: float = 1.85
 const CHASE_SPEED: float = 2.45
 const SIGHT_RANGE: float = 31.0
 const SHOOT_RANGE: float = 21.0
+const HEARING_RANGE: float = 42.0
 const GRAVITY: float = 17.5
 
 var navigation: Node3D
 var behavior: String="patrol"
 var shots_fired: int=0
 var shots_hit: int=0
+var heard_shots: int=0
 var _random:=RandomNumberGenerator.new()
 var _movement_probe:=KinematicCollision3D.new()
 var _route:=PackedVector3Array()
@@ -195,6 +197,25 @@ func _sense_player() -> void:
         _target_actor=closest
 
 
+## Perception of audible gunfire is not visual detection. Move toward the
+## last noise source, then use ordinary LOS checks before shooting.
+func hear_gunshot(at: Vector3, originator: Node3D) -> void:
+    if not sector_battle or health<=0 or originator==self or not at.is_finite():
+        return
+    if global_position.distance_squared_to(at)>HEARING_RANGE*HEARING_RANGE:
+        return
+    if _target_visible and is_instance_valid(_target_actor):
+        # An enemy already in sight takes priority over an unconfirmed sound.
+        return
+    _last_seen=at
+    _alert_time=maxf(_alert_time,4.5)
+    _sense_clock=minf(_sense_clock,.10)
+    _route_clock=0.0
+    _route.clear()
+    _route_goal=Vector3(INF,INF,INF)
+    heard_shots+=1
+
+
 func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     sector_battle=true
     respawn_enabled=false
@@ -211,6 +232,8 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _target_actor=null
     _attack_clock=1.3
     _alert_time=0.0
+    heard_shots=0
+    _last_seen=Vector3.ZERO
     _route.clear()
     _route_clock=0.0
     _route_goal=Vector3(INF,INF,INF)
