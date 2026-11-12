@@ -9,7 +9,7 @@ Partiendo de V75.27 (`codex/v75-27-lobby-hud-editor`), sin tocar la reparación 
 3. Una segunda plaza pavimentada en la zona norte, con geometría que reutiliza la cuadrícula del terreno y puntos físicos de navegación.
 4. Seis cápsulas adicionales de botín real en los interiores, con munición AR/AWM, botiquines y carga de barrera. El director sigue colocando las 16 cápsulas exteriores originales. Total: 22 objetos en el sector.
 5. Cada cápsula interior utiliza **la superficie de su suelo real**, evitando que aparezca bajo un piso elevado o flotando sobre el terreno. La recolección mantiene comprobación de proximidad/línea de visión y modifica las existencias de combate.
-6. La zona segura implementa **cuatro fases de 70 segundos**, con 12 segundos de preparación por fase y reducción suavizada de 90 m a 68, 47, 27 y 12 m. HUD y radar usan el mismo radio que aplica daños, con contador de fase/segundos. El daño fuera de zona aumenta progresivamente 6/8/10/13.
+6. La zona segura implementa **cuatro fases de 70 segundos**, con 12 segundos de preparación por fase y reducción suavizada de 112 m a 84, 53, 28 y 12 m. El radio inicial incluye las rampas de acceso a las dos casas nuevas. HUD y radar usan el mismo radio que aplica daños, con contador de fase/segundos. El daño fuera de zona aumenta progresivamente 6/8/10/13.
 7. Batería real Godot comprueba acceso físico caminando a las casas nuevas, su mobiliario colisionable, recuperación de botín interior, monotonía/temporización de las fases y compatibilidad con partida anterior.
 
 ## Límites
