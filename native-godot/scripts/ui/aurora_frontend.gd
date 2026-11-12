@@ -481,6 +481,11 @@ func _select_tab(tab: String) -> void:
                     float(measured.get("low10_fps",0.0))]
                 _info.text+="\nMODO PROBADO: %d PARTICIPANTES"%int(
                     measured.get("participants",0))
+                if str(measured.get("render_driver","unknown"))!="unknown":
+                    _info.text+="\nMOTOR MEDIDO: %s / %s · 3D %.0f%%"%[
+                        str(measured.get("render_method","unknown")).to_upper(),
+                        str(measured.get("render_driver","unknown")).to_upper(),
+                        float(measured.get("quality_scale",1.0))*100.0]
         "ARMAS":
             _info.text="ARSENAL ACTIVO\nAR-7: mira x2 / x4.\nAWM: mira x8 y cerrojo automático.\nBR: AWM sobre el suelo, en la PLAZA (8, 24).\nENTRENAMIENTO: pulsa ARMA para probarla."
         "MISIONES":
