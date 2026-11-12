@@ -56,6 +56,7 @@ func _ready() -> void:
     hud.reload_pressed.connect(_on_reload)
     hud.weapon_pressed.connect(_on_weapon)
     hud.fire_aim_changed.connect(operator.fire_aim_delta)
+    operator.sprint_cancelled.connect(hud.cancel_sprint)
     hud.heal_pressed.connect(_on_heal)
     hud.aurora_cover_pressed.connect(_on_cover_pressed)
     _make_targets()

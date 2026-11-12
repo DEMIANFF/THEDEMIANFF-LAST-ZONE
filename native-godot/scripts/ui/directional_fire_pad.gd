@@ -86,6 +86,26 @@ func _gui_input(event: InputEvent) -> void:
         queue_redraw()
 
 
+# A finger can be released outside the control after a long aiming drag.
+# Global input sees that release even if Android's Control GUI capture doesn't.
+# Do NOT handle motion here: GUI already owns drag and must not apply it twice.
+func _input(event: InputEvent) -> void:
+    if event is InputEventScreenTouch:
+        var touch:=event as InputEventScreenTouch
+        if touch.index==_finger and (not touch.pressed or touch.canceled):
+            _finger=-1
+            _knob=Vector2.ZERO
+            released.emit()
+            queue_redraw()
+    elif event is InputEventMouseButton:
+        var mouse:=event as InputEventMouseButton
+        if mouse.button_index==MOUSE_BUTTON_LEFT and not mouse.pressed and _mouse:
+            _mouse=false
+            _knob=Vector2.ZERO
+            released.emit()
+            queue_redraw()
+
+
 func get_fire_held() -> bool:
     return _finger >= 0 or _mouse
 
