@@ -72,8 +72,10 @@ func _parse(cfg: ConfigFile) -> Dictionary:
     var parsed: Dictionary={}
     var keys: PackedStringArray=cfg.get_section_keys("controls") if cfg.has_section("controls") else PackedStringArray()
     for key in keys:
+        # A well-formed entry has center, scale and alpha keys. Only the
+        # center key starts a new item; companion keys are checked below.
         if not str(key).ends_with("_center"):
-            return {}
+            continue
         var id: String=str(key).trim_suffix("_center")
         if not valid_id(id) or parsed.has(id):
             return {}
