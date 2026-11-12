@@ -65,6 +65,10 @@ func verify() -> void:
     player.training_health=100
     player._training_immunity=5
     player.battle_royale_active=true
+    # This world now includes a larger physically explorable northern
+    # district. Choose a point beyond the ACTUAL initial radius, rather
+    # than assuming that x=100m is still outside the storm.
+    player.global_position=Vector3(director.INITIAL_RADIUS+35.0,y,3.0)
     director._check_hazard_damage()
     check(player.training_health==94.0,"weapon immunity suppressed zone")
     player.receive_training_hit(5)
