@@ -8,7 +8,7 @@ const LOOT = preload("res://scripts/match/aurora_loot.gd")
 const ZONE_VISUAL = preload("res://scripts/match/aurora_zone_visual.gd")
 const DROP_SEQUENCE = preload("res://scripts/match/airdrop_sequence.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
-const INITIAL_RADIUS: float = 90.0
+const INITIAL_RADIUS: float = 112.0
 const FINAL_RADIUS: float = 12.0
 const SHRINK_DURATION: float = 280.0
 const CENTER: Vector2 = Vector2(0.0,-24.0)
@@ -16,7 +16,7 @@ const TICK: float = 1.0
 const PHASE_COUNT: int=4
 const PHASE_SECONDS: float=SHRINK_DURATION/float(PHASE_COUNT)
 const PHASE_HOLD_SECONDS: float=12.0
-const PHASE_RADII: Array[float]=[INITIAL_RADIUS,68.0,47.0,27.0,FINAL_RADIUS]
+const PHASE_RADII: Array[float]=[INITIAL_RADIUS,84.0,53.0,28.0,FINAL_RADIUS]
 
 var player: CharacterBody3D
 var combat: Node3D
@@ -180,7 +180,7 @@ func _process(delta: float) -> void:
         _finish(true)
 
 
-## Four actual scheduled storm phases. Each has a short stable loot window,
+## Four actual scheduled storm phases, beginning wide enough to cover both\n## new north-coast entrance ramps. Each has a short stable loot window,
 ## followed by a smooth contraction, then a tighter damage/visibility stage.
 ## Radar, terrain ring and hazard radius all read the same returned radius.
 func zone_state_at(seconds: float) -> Dictionary:
