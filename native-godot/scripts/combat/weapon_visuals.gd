@@ -116,15 +116,20 @@ func _process(_delta: float) -> void:
 func _align_mount_to_sight() -> void:
     if not attachment_uses_hand or not is_instance_valid(operator) or right_hand_socket==null:
         return
-    # The bone drives the grip position; the camera's actual pitch and yaw
-    # drive the barrel, rather than the old yaw-only world heading.
+    # Keep the rifle physically aligned with Lila's torso/hands during
+    # free look. Previously the barrel always followed a camera orbit while
+    # the skinned body remained still: the gun detached from the visible grip.
+    # Only aiming/fire deliberately raises it to the true reticle direction.
     var camera: Camera3D=operator.get_view_camera()
-    var forward: Vector3=-camera.global_basis.z if camera else -operator.global_basis.z
+    var engaged: bool=bool(operator.get("_ads_active")) or bool(
+        operator.get("_fire_held"))
+    var forward: Vector3=-camera.global_basis.z if engaged and camera else         -operator.global_basis.z
     if not forward.is_finite() or forward.length_squared()<0.9:
         return
     var basis: Basis=Basis.looking_at(forward.normalized(),Vector3.UP)
     var grip_world: Vector3=right_hand_socket.global_position
-    mount.global_transform=Transform3D(basis,grip_world+basis*Vector3(.01,-.055,-.07))
+    mount.global_transform=Transform3D(basis,
+        grip_world+basis*Vector3(.015,-.027,-.02))
 
 
 func equip(index: int) -> void:

@@ -44,6 +44,7 @@ var _preview_resume_spin: float=0.0
 var _hud_editor_requested: bool=false
 var _hud_editor_origin: String=""
 var _settings_modal: CanvasLayer
+var _brand_logo: TextureRect
 
 
 func _ready() -> void:
@@ -94,6 +95,13 @@ func _ready() -> void:
     _page.anchor_bottom=.94
     _page.add_theme_constant_override("separation",8)
     _surface.add_child(_page)
+    _brand_logo=TextureRect.new()
+    _brand_logo.name="LastZoneAuroraEmblem"
+    _brand_logo.texture=load("res://icon.svg")
+    _brand_logo.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+    _brand_logo.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    _brand_logo.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _surface.add_child(_brand_logo)
     _build_preview()
     get_viewport().size_changed.connect(_layout_safe)
     _layout_safe.call_deferred()
@@ -177,7 +185,7 @@ func _button(value: String, callback: Callable, width: float=260.0) -> Button:
     button.add_theme_font_size_override("font_size",18)
     var style:=StyleBoxFlat.new()
     style.bg_color=Color(.025,.10,.19,.94)
-    style.border_color=Color(.20,.71,.89)
+    style.border_color=Color(.46,.66,.96)
     style.set_border_width_all(2)
     style.set_corner_radius_all(8)
     var pressed:=style.duplicate() as StyleBoxFlat
@@ -205,9 +213,14 @@ func _welcome() -> void:
     _page.anchor_top=.015
     _page.anchor_bottom=.995
     _page.add_theme_constant_override("separation",5)
+    _brand_logo.visible=true
+    _brand_logo.anchor_left=.065
+    _brand_logo.anchor_right=.26
+    _brand_logo.anchor_top=.35
+    _brand_logo.anchor_bottom=.74
     _clear_page()
-    _label("THEDEMIANFF   /   LAST ZONE",33)
-    _label("AURORA  •  EL ÚLTIMO HORIZONTE",20)
+    _label("THEDEMIANFF : LAST ZONE",33)
+    _label("PUERTO AURORA  •  EL ÚLTIMO HORIZONTE",20)
     _label("Operación de supervivencia — diagnóstico de desarrollo",14)
     var enter:=_button("ENTRAR",Callable(self,"_show_lobby"))
     enter.name="EnterButton"
@@ -306,6 +319,11 @@ func _show_lobby() -> void:
         _build_preview()
     stage="lobby"
     visible=true
+    _brand_logo.visible=true
+    _brand_logo.anchor_left=.296
+    _brand_logo.anchor_right=.357
+    _brand_logo.anchor_top=.022
+    _brand_logo.anchor_bottom=.15
     _page.anchor_left=.67
     _page.anchor_right=.97
     _page.anchor_top=.18
@@ -324,7 +342,7 @@ func _show_lobby() -> void:
     _ensure_lobby_navigation()
     _lobby_nav.visible=true
     _profile_strip.visible=true
-    _profile_strip.text="THEDEMIANFF  /  LAST ZONE     •     PERFIL LOCAL     •     %d PARTIDAS     •     %d VICTORIAS"%[int(stats.get("played",0)),int(stats.get("wins",0))]
+    _profile_strip.text="THEDEMIANFF : LAST ZONE    ·    AURORA     |     PERFIL LOCAL     |     %d PARTIDAS    ·    %d VICTORIAS"%[int(stats.get("played",0)),int(stats.get("wins",0))]
     _preview_touch=-1
     _preview_mouse_drag=false
     _preview_resume_spin=1.0
@@ -371,7 +389,7 @@ func _ensure_lobby_navigation() -> void:
     backplate.anchor_right=.978
     backplate.anchor_top=.16
     backplate.anchor_bottom=.945
-    backplate.color=Color(.013,.055,.105,.84)
+    backplate.color=Color(.036,.03,.093,.93)
     backplate.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _surface.add_child(backplate)
     _surface.move_child(backplate,1)
@@ -381,7 +399,7 @@ func _ensure_lobby_navigation() -> void:
     navplate.anchor_right=.264
     navplate.anchor_top=.167
     navplate.anchor_bottom=.947
-    navplate.color=Color(.014,.068,.117,.67)
+    navplate.color=Color(.023,.045,.096,.88)
     navplate.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _surface.add_child(navplate)
     _surface.move_child(navplate,2)

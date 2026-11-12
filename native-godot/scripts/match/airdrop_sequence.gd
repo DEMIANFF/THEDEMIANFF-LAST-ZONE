@@ -239,37 +239,145 @@ func _build_craft() -> void:
         _craft.queue_free()
     _craft=Node3D.new()
     _craft.name="AuroraTransportAircraft"
-    _craft.position=Vector3(0,.7,-1)
     player.add_child(_craft)
     _craft.top_level=true
     _craft.global_position=player.global_position+Vector3(0,.7,-1)
     _craft.global_rotation=Vector3.ZERO
-    var wing_material:=StandardMaterial3D.new()
-    wing_material.albedo_color=Color(.15,.26,.35)
-    wing_material.metallic=.45
-    wing_material.roughness=.48
-    var accent:=StandardMaterial3D.new()
-    accent.albedo_color=Color(.12,.68,.88)
-    accent.metallic=.34
-    accent.roughness=.4
-    var body:=CylinderMesh.new()
-    body.top_radius=.46
-    body.bottom_radius=.46
-    body.height=5.8
-    body.radial_segments=12
-    _piece("TransportFuselage",body,Vector3(0,0,0),Vector3(PI*.5,0,0),wing_material)
-    var wings:=BoxMesh.new()
-    wings.size=Vector3(8.2,.12,1.1)
-    _piece("TransportMainWings",wings,Vector3(0,-.08,-.2),Vector3.ZERO,wing_material)
-    var tail:=BoxMesh.new()
-    tail.size=Vector3(3.0,.10,.55)
-    _piece("TailPlane",tail,Vector3(0,.12,2.0),Vector3.ZERO,wing_material)
-    var fin:=BoxMesh.new()
-    fin.size=Vector3(.12,1.15,.65)
-    _piece("TailFin",fin,Vector3(0,.62,2.10),Vector3.ZERO,accent)
-    var stripe:=BoxMesh.new()
-    stripe.size=Vector3(.22,.035,3.5)
-    _piece("AuroraAircraftStripe",stripe,Vector3(0,.48,0),Vector3.ZERO,accent)
+    # Authored aerodynamic shapes rather than intersecting primitive cubes.
+    # Low-poly elliptical hull and tapered lifting surfaces preserve mobile GL.
+    var alloy:=StandardMaterial3D.new()
+    alloy.albedo_color=Color(.16,.25,.33)
+    alloy.metallic=.25
+    alloy.roughness=.60
+    alloy.cull_mode=BaseMaterial3D.CULL_DISABLED
+    var shade:=StandardMaterial3D.new()
+    shade.albedo_color=Color(.035,.12,.19)
+    shade.metallic=.12
+    shade.roughness=.28
+    shade.cull_mode=BaseMaterial3D.CULL_DISABLED
+    var stripe:=StandardMaterial3D.new()
+    stripe.albedo_color=Color(.20,.78,.94)
+    stripe.metallic=.20
+    stripe.roughness=.40
+    stripe.cull_mode=BaseMaterial3D.CULL_DISABLED
+
+    # -Z points toward the plane's nose, matching flight route and camera.
+    var fuselage: Mesh=_loft_hull([
+        Vector3(-3.65,.15,.10),Vector3(-3.06,.43,.43),
+        Vector3(-2.10,.60,.66),Vector3(-.70,.70,.76),
+        Vector3(1.18,.67,.70),Vector3(2.72,.39,.43),
+        Vector3(3.40,.09,.12)],14)
+    _piece("TransportFuselage",fuselage,Vector3.ZERO,Vector3.ZERO,alloy)
+    _piece("TransportMainWings",_airfoil_pair(5.90,.76,-.30),
+        Vector3.ZERO,Vector3.ZERO,alloy)
+    _piece("TailPlane",_airfoil_pair(2.45,.22,2.48),
+        Vector3.ZERO,Vector3.ZERO,alloy)
+    _piece("TailFin",_tail_fin(),Vector3.ZERO,Vector3.ZERO,stripe)
+    _piece("AuroraAircraftStripe",_hull_stripe(),Vector3.ZERO,
+        Vector3.ZERO,stripe)
+
+    # Slanted dark cockpit glass and real engine nacelles.
+    var glass_mesh:=_panel_mesh([
+        Vector3(-.38,.31,-3.20),Vector3(.38,.31,-3.20),
+        Vector3(.47,.66,-2.29),Vector3(-.47,.66,-2.29)])
+    _piece("AuroraCockpitGlass",glass_mesh,Vector3.ZERO,Vector3.ZERO,shade)
+    for sign in [-1,1]:
+        var side: float=float(sign)
+        var nacelle:=CylinderMesh.new()
+        nacelle.top_radius=.24
+        nacelle.bottom_radius=.34
+        nacelle.height=1.02
+        nacelle.radial_segments=12
+        _piece("AuroraTurboprop%d"%sign,nacelle,
+            Vector3(side*2.03,-.31,-.42),Vector3(PI*.5,0,0),alloy)
+        var cone:=SphereMesh.new()
+        cone.radius=.28
+        cone.height=.42
+        cone.radial_segments=10
+        cone.rings=4
+        _piece("AuroraEngineCowling%d"%sign,cone,
+            Vector3(side*2.03,-.31,-1.06),Vector3.ZERO,shade)
+        for blade in range(3):
+            var angle: float=float(blade)*TAU/3.0
+            var direction: Vector3=Vector3(cos(angle),sin(angle),0)
+            var normal: Vector3=Vector3(-direction.y,direction.x,0)
+            var center:=Vector3(side*2.03,-.31,-1.14)
+            var blade_mesh:=_panel_mesh([
+                center+normal*.055,
+                center+direction*.9+normal*.17,
+                center+direction*1.04-normal*.03,
+                center-normal*.055])
+            _piece("AuroraPropeller%d_%d"%[sign,blade],blade_mesh,
+                Vector3.ZERO,Vector3.ZERO,stripe)
+    # Physical player and camera remain independent of decorative airplane.
+
+
+func _loft_hull(profiles: Array[Vector3],segments: int) -> ArrayMesh:
+    # profiles: z along X, elliptical horizontal width along Y, vertical
+    # height along Z. Radial interpolation avoids box-built transport look.
+    var drawing:=SurfaceTool.new()
+    drawing.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for j in range(profiles.size()-1):
+        for i in range(segments):
+            var a: float=TAU*float(i)/segments
+            var b: float=TAU*float(i+1)/segments
+            var first: Vector3=profiles[j]
+            var second: Vector3=profiles[j+1]
+            var p0:=Vector3(cos(a)*first.y,sin(a)*first.z,first.x)
+            var p1:=Vector3(cos(b)*first.y,sin(b)*first.z,first.x)
+            var p2:=Vector3(cos(a)*second.y,sin(a)*second.z,second.x)
+            var p3:=Vector3(cos(b)*second.y,sin(b)*second.z,second.x)
+            _triangle(drawing,p0,p1,p2)
+            _triangle(drawing,p1,p3,p2)
+    drawing.generate_normals()
+    return drawing.commit()
+
+
+func _triangle(tool: SurfaceTool,a: Vector3,b: Vector3,c: Vector3) -> void:
+    tool.add_vertex(a)
+    tool.add_vertex(b)
+    tool.add_vertex(c)
+
+
+func _panel_mesh(vertices: Array[Vector3]) -> ArrayMesh:
+    var drawing:=SurfaceTool.new()
+    drawing.begin(Mesh.PRIMITIVE_TRIANGLES)
+    _triangle(drawing,vertices[0],vertices[1],vertices[2])
+    _triangle(drawing,vertices[0],vertices[2],vertices[3])
+    _triangle(drawing,vertices[2],vertices[1],vertices[0])
+    _triangle(drawing,vertices[3],vertices[2],vertices[0])
+    drawing.generate_normals()
+    return drawing.commit()
+
+
+func _airfoil_pair(span: float,sweep: float,z: float) -> ArrayMesh:
+    var drawing:=SurfaceTool.new()
+    drawing.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for sign in [-1,1]:
+        var side: float=float(sign)
+        var vertices: Array[Vector3]=[
+            Vector3(.45*side,-.16,z-.58),
+            Vector3(span*side,-.05,z+sweep-.22),
+            Vector3(span*side,-.05,z+sweep+.25),
+            Vector3(.45*side,-.16,z+.69)]
+        _triangle(drawing,vertices[0],vertices[1],vertices[2])
+        _triangle(drawing,vertices[0],vertices[2],vertices[3])
+        _triangle(drawing,vertices[2],vertices[1],vertices[0])
+        _triangle(drawing,vertices[3],vertices[2],vertices[0])
+    drawing.generate_normals()
+    return drawing.commit()
+
+
+func _tail_fin() -> ArrayMesh:
+    return _panel_mesh([
+        Vector3(0,.2,2.25),Vector3(0,1.72,2.98),
+        Vector3(0,1.84,3.41),Vector3(0,.2,3.20)])
+
+
+func _hull_stripe() -> ArrayMesh:
+    return _panel_mesh([
+        Vector3(-.57,.23,-2.12),Vector3(.57,.23,-2.12),
+        Vector3(.63,.45,-.65),Vector3(-.63,.45,-.65)])
 
 
 func _piece(label: String,mesh: Mesh,where: Vector3,angles: Vector3,material: Material) -> void:
