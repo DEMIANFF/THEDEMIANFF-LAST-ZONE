@@ -4,7 +4,7 @@ extends Node3D
 ## Materials and tile/arch meshes are authored here, not third-party branding.
 
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
-const HOUSE_COUNT: int=RESIDENTIAL.HOUSE_COUNT
+const HOUSE_COUNT: int=8
 var terrain: StaticBody3D
 var navigation_points: Array[Vector3]=[]
 var cover_points: Array[Vector3]=[]
