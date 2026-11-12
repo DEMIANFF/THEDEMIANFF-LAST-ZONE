@@ -9,6 +9,7 @@ var _zone_enabled: bool=false
 var _zone_world_center: Vector2=Vector2.ZERO
 var _zone_radius: float=90.0
 var rotate_with_camera: bool=true
+var _waypoint: Vector2=Vector2(INF,INF)
 
 
 func _ready() -> void:
@@ -27,6 +28,11 @@ func _ready() -> void:
 func set_sources(player_character: CharacterBody3D, enemies: Array[CharacterBody3D]) -> void:
     player=player_character
     opponents=enemies.duplicate()
+    queue_redraw()
+
+
+func set_waypoint(at: Vector2) -> void:
+    _waypoint=at
     queue_redraw()
 
 
@@ -65,6 +71,12 @@ func _draw() -> void:
         var screen_position: Vector2=center+offset.rotated(-yaw)*(radius/world_range)
         var mapped_radius: float=_zone_radius*radius/world_range
         draw_arc(screen_position,mapped_radius,0,TAU,72,Color(.42,.97,1.0,.91),2.7,true)
+    if _waypoint.is_finite():
+        var position: Vector2=Vector2(player.global_position.x,player.global_position.z)
+        var waypoint_delta: Vector2=(_waypoint-position).rotated(-yaw)
+        var dot: Vector2=center+waypoint_delta.limit_length(world_range)*radius/world_range
+        draw_circle(dot,6.0,Color(1.0,.73,.15))
+        draw_arc(dot,8.5,0,TAU,28,Color(1.0,.90,.42),1.6)
     for bot in opponents:
         if not is_instance_valid(bot) or not bot.visible:
             continue
