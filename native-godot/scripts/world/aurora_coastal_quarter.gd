@@ -3,7 +3,7 @@ extends Node3D
 ## colliders and ramps: actual level geometry, not a 2D lobby illustration.
 ## Materials and tile/arch meshes are authored here, not third-party branding.
 
-const HOUSE_COUNT: int=6
+const HOUSE_COUNT: int=8
 var terrain: StaticBody3D
 var navigation_points: Array[Vector3]=[]
 var cover_points: Array[Vector3]=[]
@@ -40,14 +40,25 @@ func _ready() -> void:
     # geometry as the four previously verified walkable buildings.
     _villa(Vector2(-22,66),10.4,8.3,-0.06,4)
     _villa(Vector2(26,68),11.0,8.4,0.08,5)
+    # Two new navigable residences at the western quay and eastern lookout.
+    # Both approaches remain inside the initial 112m combat radius.
+    _villa(Vector2(-52,44),10.8,8.2,0.06,6)
+    _villa(Vector2(72,50),10.5,8.1,-0.08,7)
     _plaza(Vector2(20,28),Vector2(64,25))
     _plaza(Vector2(2,60),Vector2(65,12))
+    # Western pedestrian lane: triangulated to the same terrain grid,
+    # with real cover/navigation points from its adjacent residences.
+    _plaza(Vector2(-31,31),Vector2(48,11))
     _planter(Vector2(2,26),1.65)
     _planter(Vector2(29,26),1.50)
     _planter(Vector2(49,26),1.85)
+    _planter(Vector2(-38,22),1.60)
+    _planter(Vector2(75,22),1.50)
     _palm(Vector2(5,20),1.0)
     _palm(Vector2(32,21),1.10)
     _palm(Vector2(57,13),0.9)
+    _palm(Vector2(-57,24),1.08)
+    _palm(Vector2(80,31),1.0)
     _freight_cache(Vector2(13,13),0)
     _freight_cache(Vector2(38,12),1)
     print("AURORA_COASTAL_QUARTER houses=",buildings_built,
