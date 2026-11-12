@@ -5,6 +5,7 @@ signal closed
 signal hud_editor_requested
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
+const RENDER_BUDGET=preload("res://scripts/render/aurora_render_budget.gd")
 const UI_PATH: String="user://aurora_ui_options.cfg"
 const AUDIO_PATH: String="user://aurora_audio.cfg"
 const BACKUP_PATH: String="user://aurora_local_settings_export.cfg"
@@ -262,6 +263,27 @@ func _screen_page() -> void:
         else:
             _status.text="ERROR al guardar FPS")
     _content.add_child(graphics)
+    _heading("CALIDAD DE RENDER 3D / MOTOROLA")
+    _info("AUTO adapta el 3D si la GPU cae de FPS durante varios segundos. "
+        +"La cámara, los controles y las letras HUD siguen nítidos. "
+        +"En 20/30 rivales, primero prueba EQUILIBRADO.")
+    var quality:=OptionButton.new()
+    quality.name="AuroraRenderQuality"
+    for profile in RENDER_BUDGET.PROFILES:
+        quality.add_item(profile)
+    quality.select(RENDER_BUDGET.PROFILES.find(RENDER_BUDGET.read_profile()))
+    quality.item_selected.connect(func(index: int):
+        var selected: String=RENDER_BUDGET.PROFILES[index]
+        var result: Error=RENDER_BUDGET.save_profile(selected)
+        if result!=OK:
+            _status.text="ERROR al guardar calidad 3D"
+            return
+        if context_game!=null:
+            var budget: Node=context_game.get_node_or_null("AuroraRenderBudget")
+            if budget:
+                budget.call("select_profile",selected)
+        _status.text="Calidad 3D: "+selected)
+    _content.add_child(quality)
     _toggle("Mostrar FPS en partida","show_fps",true)
     _toggle("Minimapa giratorio","radar_rotation",true)
     _info("Texturas HD y efectos avanzados dependen de perfiles de exportación específicos; no se activan filtros inexistentes con este menú.")

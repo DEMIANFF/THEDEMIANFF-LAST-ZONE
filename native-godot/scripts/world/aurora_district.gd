@@ -1,4 +1,5 @@
 extends Node3D
+const RENDER_BATCHER=preload("res://scripts/world/aurora_static_mesh_batcher.gd")
 ## Puerto Aurora: original modular architecture with open doors, windows, angled roofs,
 ## service gantries, integrated collision and a low-draw-call landscape dressing.
 ## The box shapes represent real structural panels, not placeholder block houses.
@@ -230,6 +231,7 @@ func _make_building(at: Vector2, label: String, w: float, d: float, h: float, he
     title.position = Vector3(0,door_h+.45,d*.5+.25)
     title.modulate = Color(.78,.95,.98)
     root.add_child(title)
+    RENDER_BATCHER.merge_building(root)
 
 
 func _make_path(from: Vector2, to: Vector2, width: float) -> void:

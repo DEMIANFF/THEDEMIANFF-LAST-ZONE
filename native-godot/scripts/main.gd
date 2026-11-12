@@ -12,12 +12,16 @@ const COASTAL_QUARTER=preload("res://scripts/world/aurora_coastal_quarter.gd")
 const AURORA_AUDIO=preload("res://scripts/audio/aurora_audio.gd")
 const TRACE=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
+const RENDER_BUDGET=preload("res://scripts/render/aurora_render_budget.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
 
 
 func _ready() -> void:
+    var render_budget:=RENDER_BUDGET.new()
+    render_budget.name="AuroraRenderBudget"
+    add_child(render_budget)
     TRACE.checkpoint("active","scene_load",null,"main_ready_enter",
         "startup="+str(STARTUP_DIAG.mode()))
     _set_up_lighting()
@@ -57,14 +61,16 @@ func _ready() -> void:
     water.mesh = plane
     water.position.y = island.sea_level
     var sea_material := StandardMaterial3D.new()
-    sea_material.albedo_color = Color(0.045, 0.25, 0.31, 0.84)
+    sea_material.albedo_color = Color(0.045, 0.25, 0.31)
     sea_material.metallic = 0.11
     sea_material.roughness = 0.23
-    sea_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+    sea_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+    # Opaque water writes depth and avoids 910x910m alpha overdraw on Mali.
     sea_material.emission_enabled = true
     sea_material.emission = Color(0.01, 0.12, 0.15)
     sea_material.emission_energy_multiplier = 0.24
     water.material_override = sea_material
+    water.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(water)
 
     TRACE.checkpoint("active","scene_load",null,"operator_build_begin")
