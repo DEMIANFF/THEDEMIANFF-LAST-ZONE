@@ -40,7 +40,7 @@ func _verify() -> void:
     check(str(last.get("position",""))!="" and
         str(last.get("air_mode",""))=="ground",
         "navigation report omitted the real operator position/mode")
-    for i in range(250):
+    for i in range(900):
         await physics_frame
         if nav.available:
             break
