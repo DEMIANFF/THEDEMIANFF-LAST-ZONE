@@ -186,8 +186,8 @@ func _populate_subcategory() -> void:
             if context_game!=null:
                 var director: Node3D=context_game.get_node_or_null("AuroraSectorMatch")
                 if director!=null:
-                    _info("Modo actual: "+str(director.mode)+"  ·  Tiempo: "+str(int(director.elapsed))+" s")
-                    _info("Radio zona: "+str(roundi(director.radius))+" m")
+                    _info("Modo actual: "+str(director.get("mode"))+"  ·  Tiempo: "+str(int(director.get("elapsed")))+" s")
+                    _info("Radio zona: "+str(roundi(float(director.get("radius"))))+" m")
             else:
                 _info("Lobby: ningún combate iniciado. El editor de HUD no registra partidas ni consumos.")
             _info("Modo offline · 1 jugador y 8 bots. No se muestran escuadras online simuladas.")
@@ -236,10 +236,12 @@ func _update_live_player() -> void:
     var player: CharacterBody3D=context_game.get_node_or_null("Operator") as CharacterBody3D
     if player==null:
         return
-    player.look_multiplier=_options.multiplier("general")
-    player.ads_multiplier=_options.multiplier("ads")
+    player.set("look_multiplier",_options.multiplier("general"))
+    player.set("ads_multiplier",_options.multiplier("ads"))
+    var sensitivities: Dictionary=player.get("_scope_sensitivity")
     for scope in ["red_dot","scope_2x","scope_4x","scope_8x"]:
-        player._scope_sensitivity[scope]=_options.multiplier(scope)
+        sensitivities[scope]=_options.multiplier(scope)
+    player.set("_scope_sensitivity",sensitivities)
 
 
 func _screen_page() -> void:
@@ -299,7 +301,7 @@ func _apply_live_audio(bus: String,level: float) -> void:
         return
     var sound: Node3D=context_game.get_node_or_null("AuroraSoundStage")
     if sound!=null:
-        sound.set_mix(bus,level)
+        sound.call("set_mix",bus,level)
 
 
 func _sound_page() -> void:
@@ -316,7 +318,7 @@ func _quick_message() -> void:
     if context_game!=null:
         var hud: CanvasLayer=context_game.get_node_or_null("TrainingHUD")
         if hud!=null:
-            hud.impact("MENSAJE LOCAL / ENEMIGOS CERCA")
+            hud.call("impact","MENSAJE LOCAL / ENEMIGOS CERCA")
     _status.text="Mensaje local mostrado; no hay red ni voz activa"
 
 
@@ -341,7 +343,7 @@ func _apply_live_ui() -> void:
         return
     var hud: CanvasLayer=context_game.get_node_or_null("TrainingHUD")
     if hud!=null:
-        hud.apply_ui_settings()
+        hud.call("apply_ui_settings")
 
 
 func _select_hud_preset(index: int) -> void:
@@ -352,7 +354,7 @@ func _select_hud_preset(index: int) -> void:
     if context_game!=null:
         var hud: CanvasLayer=context_game.get_node_or_null("TrainingHUD")
         if hud!=null:
-            hud.reload_hud_layout()
+            hud.call("reload_hud_layout")
     _status.text="HUD "+str(index+1)+" seleccionado y guardado"
 
 
@@ -419,7 +421,7 @@ func _restore_local_settings() -> void:
     if context_game!=null:
         var hud: CanvasLayer=context_game.get_node_or_null("TrainingHUD")
         if hud!=null:
-            hud.reload_hud_layout()
+            hud.call("reload_hud_layout")
     _status.text="Ajustes recuperados del respaldo local"
 
 
