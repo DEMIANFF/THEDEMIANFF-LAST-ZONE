@@ -704,8 +704,12 @@ func _build_preview() -> void:
             stage3d.add_child(_preview_avatar)
             _fit_avatar_for_preview(_preview_avatar)
             var anim:=_preview_avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
-            if anim and anim.has_animation("AuroraArmedIdle"):
-                anim.play("AuroraArmedIdle")
+            # Lobby has no equipped hand-held rifle. Playing the armed grip
+            # without a model made Lila's empty palms look glued together.
+            # Use the real relaxed skeletal idle here; the actual match
+            # keeps its weapon-ready and ADS animation states.
+            if anim and anim.has_animation("AuroraIdle"):
+                anim.play("AuroraIdle")
                 anim.advance(.1)
 
     var caption:=Label.new()
