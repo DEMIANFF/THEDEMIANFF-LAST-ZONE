@@ -3,6 +3,7 @@ extends Node3D
 ## Clearly a small sector art pass; no false 8-km landscape claim.
 
 var terrain: StaticBody3D
+const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const PINE_TARGET: int = 110
 const ICE_TARGET: int = 62
 
@@ -30,7 +31,9 @@ func _add_trees() -> void:
         if Vector2(x-80.0,z-80.0).length()<20.0:
             continue
         if x>-52.0 and x<89.0 and z>7.0 and z<86.0:
-            continue  # Preserve playable streets and entrances of the coastal quarter.
+            continue  # Preserve the existing coastal streets.
+        if RESIDENTIAL.grading_weight(x,z)>.05:
+            continue  # Updated houses/ramps are not tree or collision sites.
         var y: float=terrain.height_at(x,z)
         if y<=terrain.sea_level+1.8:
             continue
@@ -102,7 +105,9 @@ func _add_ice_spires() -> void:
         if Vector2(x,z).length()<38.0:
             continue
         if x>-52.0 and x<89.0 and z>7.0 and z<86.0:
-            continue  # No ice spikes through stone paving or architectural façades.
+            continue  # Retain the existing clean old streets.
+        if RESIDENTIAL.grading_weight(x,z)>.05:
+            continue  # Never grow crystals through a relocated residence.
         var y: float=terrain.height_at(x,z)
         if y<=terrain.sea_level+2.5:
             continue

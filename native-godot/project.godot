@@ -1,7 +1,7 @@
 config_version=5
 
 [application]
-config/name="THEDEMIANFF LAST ZONE | Aurora V75.34 Integrada Battle Royale"
+config/name="THEDEMIANFF LAST ZONE | Aurora V75.40 Puerto Aurora Viviendas Niveladas"
 run/main_scene="res://scenes/Boot.tscn"
 # 120 is an upper bound, not a performance guarantee.
 run/max_fps=120
