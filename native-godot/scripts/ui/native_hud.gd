@@ -21,6 +21,8 @@ const VIRTUAL_PAD = preload("res://scripts/ui/virtual_joystick.gd")
 const DIRECTIONAL_FIRE = preload("res://scripts/ui/directional_fire_pad.gd")
 const TACTICAL_RETICLE = preload("res://scripts/ui/scope_reticle.gd")
 const TRAINING_RADAR = preload("res://scripts/ui/aurora_training_radar.gd")
+const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
+const HUD_EDITOR=preload("res://scripts/ui/hud_edit_surface.gd")
 
 var _weapon: Label
 var _ammo: Label
@@ -54,9 +56,15 @@ var _result_text: Label
 var _jump_button: Button
 var _exit_button: Button
 var air_stage: String="ground"
+var _hud_layout: RefCounted
+var _hud_editor: Control
+var _hud_editor_label: Label
+var _hud_editing: bool=false
+var _hud_selected: String=""
 
 
 func _ready() -> void:
+    _hud_layout=HUD_LAYOUT.new()
     var root := Control.new()
     root.name = "AuroraTacticalOverlay"
     root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -203,6 +211,7 @@ func _ready() -> void:
     pad.offset_bottom=215
     root.add_child(pad)
     pad.connect("vector_changed",func(axis: Vector2): movement_axis_changed.emit(axis))
+    _build_hud_editor(root)
     get_viewport().size_changed.connect(_layout)
     _layout.call_deferred()
 
@@ -533,6 +542,197 @@ func _layout() -> void:
     if air_stage!="ground":
         jump_rect=Rect2(origin+Vector2(w-220,h-118),Vector2(190,64))
     _place(_jump_button,jump_rect)
+    # Always reset to the factory coordinates before applying persisted
+    # normalized overrides, including on every display/orientation resize.
+    for id in HUD_LAYOUT.IDS:
+        var control: Control=root.get_node_or_null(id) as Control
+        if control==null:
+            continue
+        control.scale=Vector2.ONE
+        control.modulate.a=1.0
+    if air_stage=="ground":
+        for id in HUD_LAYOUT.IDS:
+            var target: Control=root.get_node_or_null(id) as Control
+            var item: Dictionary=_hud_layout.get_item(id)
+            if target==null or item.is_empty():
+                continue
+            var factor: float=float(item["scale"])
+            var new_size: Vector2=target.size*factor
+            var norm: Vector2=item["center"]
+            var target_center: Vector2=origin+norm*safe.size
+            target_center=target_center.clamp(origin+new_size*.5,
+                safe.end-new_size*.5)
+            target.position=target_center-new_size*.5
+            target.scale=Vector2.ONE*factor
+            target.modulate.a=float(item["alpha"])
+    if _hud_editing and _hud_editor:
+        _hud_editor.queue_redraw()
+
+
+
+## Touch HUD personalization is a real paused 3D training session, not a
+## fake settings preview. Weapon, movement, camera and audio are not replaced.
+func _build_hud_editor(root: Control) -> void:
+    _hud_editor=HUD_EDITOR.new()
+    _hud_editor.hud=self
+    _hud_editor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    _hud_editor.visible=false
+    root.add_child(_hud_editor)
+    var toolbar:=PanelContainer.new()
+    toolbar.name="HudEditorToolbar"
+    toolbar.anchor_left=.16
+    toolbar.anchor_right=.84
+    toolbar.anchor_top=.025
+    toolbar.anchor_bottom=.025
+    toolbar.offset_bottom=130
+    var style:=StyleBoxFlat.new()
+    style.bg_color=Color(.015,.07,.12,.98)
+    style.border_color=Color(.25,.77,.93)
+    style.set_border_width_all(2)
+    style.set_corner_radius_all(10)
+    toolbar.add_theme_stylebox_override("panel",style)
+    _hud_editor.add_child(toolbar)
+    var vbox:=VBoxContainer.new()
+    vbox.add_theme_constant_override("separation",4)
+    toolbar.add_child(vbox)
+    _hud_editor_label=Label.new()
+    _hud_editor_label.name="SelectedHudControl"
+    _hud_editor_label.text="EDITAR HUD  •  Toca y arrastra un control"
+    _hud_editor_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _hud_editor_label.add_theme_font_size_override("font_size",15)
+    vbox.add_child(_hud_editor_label)
+    var row:=GridContainer.new()
+    row.columns=4
+    row.add_theme_constant_override("h_separation",5)
+    row.add_theme_constant_override("v_separation",3)
+    vbox.add_child(row)
+    _hud_editor_button(row,"TAMAÑO -",_hud_edit_adjust.bind(-.08,0.0))
+    _hud_editor_button(row,"TAMAÑO +",_hud_edit_adjust.bind(.08,0.0))
+    _hud_editor_button(row,"OPACIDAD -",_hud_edit_adjust.bind(0.0,-.10))
+    _hud_editor_button(row,"OPACIDAD +",_hud_edit_adjust.bind(0.0,.10))
+    _hud_editor_button(row,"GUARDAR",_hud_edit_save)
+    _hud_editor_button(row,"RESTAURAR",_hud_edit_restore)
+    _hud_editor_button(row,"CERRAR",_hud_edit_close)
+    _hud_editor_button(row,"VOLVER",_hud_edit_close)
+
+
+func _hud_editor_button(parent: Control,title: String,handler: Callable) -> void:
+    var button:=Button.new()
+    button.name="Editor"+title
+    button.text=title
+    button.focus_mode=Control.FOCUS_NONE
+    button.custom_minimum_size=Vector2(111,35)
+    button.add_theme_font_size_override("font_size",12)
+    parent.add_child(button)
+    button.pressed.connect(handler)
+
+
+func open_hud_editor() -> void:
+    if air_stage!="ground" or _hud_editing:
+        return
+    reset_controls()
+    _hud_editing=true
+    _hud_selected=""
+    _hud_editor.visible=true
+    _hud_editor.reset_pointer()
+    _hud_editor_label.text="EDITAR HUD  •  Toca y arrastra un control"
+    process_mode=Node.PROCESS_MODE_ALWAYS
+    get_tree().paused=true
+    _hud_editor.queue_redraw()
+
+
+func hud_editor_target(id: String) -> Control:
+    if not HUD_LAYOUT.IDS.has(id):
+        return null
+    return get_node_or_null("AuroraTacticalOverlay/"+id) as Control
+
+
+func hud_editor_selected(id: String) -> void:
+    _hud_selected=id
+    if _hud_editor_label:
+        _hud_editor_label.text=("CONTROL: "+id+"  •  Arrastra / ajusta" if id!="" else
+            "EDITAR HUD  •  Toca un control para seleccionarlo")
+
+
+func _hud_edit_value(id: String) -> Dictionary:
+    var current: Dictionary=_hud_layout.get_item(id)
+    if not current.is_empty():
+        return current
+    var target: Control=hud_editor_target(id)
+    var safe: Rect2=SAFE_SCREEN.rect(get_viewport())
+    return {
+        "center":(target.get_global_rect().get_center()-safe.position)/safe.size,
+        "scale":target.scale.x,
+        "alpha":target.modulate.a
+    }
+
+
+func hud_editor_move(id: String,canvas_center: Vector2) -> void:
+    if not _hud_editing:
+        return
+    var item: Dictionary=_hud_edit_value(id)
+    var safe: Rect2=SAFE_SCREEN.rect(get_viewport())
+    var control: Control=hud_editor_target(id)
+    if control==null:
+        return
+    var scaled: Vector2=control.size*float(item["scale"])
+    var center: Vector2=canvas_center.clamp(safe.position+scaled*.5,
+        safe.end-scaled*.5)
+    var norm: Vector2=(center-safe.position)/safe.size
+    if _hud_layout.set_item(id,norm,float(item["scale"]),
+            float(item["alpha"]))==OK:
+        _layout()
+
+
+func _hud_edit_adjust(scale_step: float,alpha_step: float) -> void:
+    if _hud_selected=="":
+        return
+    var item: Dictionary=_hud_edit_value(_hud_selected)
+    var factor: float=clampf(float(item["scale"])+scale_step,
+        HUD_LAYOUT.MIN_SCALE,HUD_LAYOUT.MAX_SCALE)
+    var alpha: float=clampf(float(item["alpha"])+alpha_step,
+        HUD_LAYOUT.MIN_ALPHA,1.0)
+    if _hud_layout.set_item(_hud_selected,item["center"],factor,alpha)==OK:
+        _layout()
+
+
+func _hud_edit_save() -> void:
+    var result: Error=_hud_layout.save()
+    if result!=OK:
+        _hud_editor_label.text="ERROR AL GUARDAR HUD: "+str(result)
+        return
+    _hud_editor_label.text="HUD GUARDADO  •  Cerrar para volver"
+
+
+func _hud_edit_restore() -> void:
+    var result: Error=_hud_layout.restore_defaults()
+    if result!=OK:
+        _hud_editor_label.text="ERROR AL RESTAURAR: "+str(result)
+        return
+    _hud_selected=""
+    _hud_editor.reset_pointer()
+    _hud_editor_label.text="HUD ORIGINAL RESTAURADO"
+    _layout()
+
+
+func _hud_edit_close() -> void:
+    if not _hud_editing:
+        return
+    _hud_editing=false
+    _hud_selected=""
+    _hud_editor.visible=false
+    _hud_editor.reset_pointer()
+    # Discard only unsaved edits, preserve the last validated disk layout.
+    _hud_layout=HUD_LAYOUT.new()
+    _layout()
+    get_tree().paused=false
+    process_mode=Node.PROCESS_MODE_INHERIT
+
+
+func _exit_tree() -> void:
+    if _hud_editing:
+        get_tree().paused=false
+        _hud_editing=false
 
 
 func is_action_at(point: Vector2) -> bool:
