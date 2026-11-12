@@ -3,7 +3,7 @@ extends Node3D
 ## colliders and ramps: actual level geometry, not a 2D lobby illustration.
 ## Materials and tile/arch meshes are authored here, not third-party branding.
 
-const HOUSE_COUNT: int=4
+const HOUSE_COUNT: int=6
 var terrain: StaticBody3D
 var navigation_points: Array[Vector3]=[]
 var cover_points: Array[Vector3]=[]
@@ -12,6 +12,10 @@ var accessible_entries: int=0
 var tile_instances: int=0
 var collision_bodies: int=0
 var cargo_caches_built: int=0
+# Exact raised walkable floor surfaces, shared with the real BR pickup system.
+# No terrain-height guess for objects inside elevated houses.
+var interior_supply_spots: Array[Vector3]=[]
+var furnished_interiors: int=0
 
 var _plaster: StandardMaterial3D
 var _sandstone: StandardMaterial3D
@@ -31,7 +35,13 @@ func _ready() -> void:
     _villa(Vector2(19,43),10.8,8.4,-0.09,1)
     _villa(Vector2(43,41),11.3,8.3,0.12,2)
     _villa(Vector2(62,28),9.6,7.7,-0.13,3)
+    # Two additional accessible homes extend the district northward. Both
+    # keep their doorway facing the open approach and use identical solid
+    # geometry as the four previously verified walkable buildings.
+    _villa(Vector2(-22,66),10.4,8.3,-0.06,4)
+    _villa(Vector2(26,68),11.0,8.4,0.08,5)
     _plaza(Vector2(20,28),Vector2(64,25))
+    _plaza(Vector2(2,60),Vector2(65,12))
     _planter(Vector2(2,26),1.65)
     _planter(Vector2(29,26),1.50)
     _planter(Vector2(49,26),1.85)
@@ -42,7 +52,9 @@ func _ready() -> void:
     _freight_cache(Vector2(38,12),1)
     print("AURORA_COASTAL_QUARTER houses=",buildings_built,
         " doors=",accessible_entries," roof_tiles=",tile_instances,
-        " solids=",collision_bodies," cargo_caches=",cargo_caches_built)
+        " solids=",collision_bodies," cargo_caches=",cargo_caches_built,
+        " furnished_rooms=",furnished_interiors,
+        " interior_supply_sites=",interior_supply_spots.size())
 
 
 func _material(color: Color, roughness: float, metal: float=0.0) -> StandardMaterial3D:
@@ -364,6 +376,7 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
                 Vector3(.40,2.30,(d-2.1)*.5),_plaster)
     _window_frame(building,Vector3(-w*.29,3.6,front+.22),1.4,1.45)
     _window_frame(building,Vector3(w*.29,3.6,front+.22),1.4,1.45)
+    _furnish_interior(building,w,d,seed)
     _roof_mesh(building,w,d,height)
     _stair_ramp(building,front,door_width*.64,at)
     # Walkable terrace: physical railing and ground-level cover, balcony visual.
@@ -388,7 +401,34 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
             navigation_points.append(Vector3(p.x,_ground(p.x,p.z)+.08,p.z))
     var entrance:=building.to_global(Vector3(0,.30,front+2.4))
     cover_points.append(entrance+Vector3(3.0,0,0))
+    # The loot capsule is centered over the actual floor, not the exterior
+    # heightfield (which lies lower beneath some raised house foundations).
+    # Place it beyond the open doorway, out of the two side furniture bays.
+    interior_supply_spots.append(building.to_global(Vector3(0,.28,-d*.18)))
     buildings_built+=1
+
+
+
+func _furnish_interior(building: Node3D,w: float,d: float,seed: int) -> void:
+    # Low, collidable furniture gives physical cover without turning rooms
+    # into text-only scenery. Preserve a >3m unobstructed center aisle from
+    # the door to the interior, including an opening for the player capsule.
+    for side in [-1.0,1.0]:
+        var x: float=side*w*.36
+        var label: String="RoomWorkbench"+str(int(side+1.0))
+        _panel(building,label,Vector3(x,.60,-d*.15),
+            Vector3(1.40,.90,1.35),_wood,true)
+        _panel(building,"RoomWorkbenchMetalLip"+str(int(side+1.0)),
+            Vector3(x,1.10,-d*.15),
+            Vector3(1.50,.10,1.42),_iron,false)
+        # Low crates on the rear side of each house are projectile cover;
+        # they never occupy the doorway's X center line.
+        _panel(building,"RoomStorage"+str(int(side+1.0)),
+            Vector3(x,.48,-d*.36),
+            Vector3(1.05,.70,.95),_sandstone,true)
+    _panel(building,"RearInteriorTrim",Vector3(0,2.05,-d*.5+.22),
+        Vector3(w*.56,.10,.08),_wood,false)
+    furnished_interiors+=1
 
 
 func _plaza(center: Vector2,area: Vector2) -> void:
