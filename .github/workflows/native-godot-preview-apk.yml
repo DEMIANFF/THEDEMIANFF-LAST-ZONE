@@ -1,10 +1,10 @@
-name: Aurora V75.62 Vulkan Mobile only signed ARM64
+name: Aurora V75.63 Vulkan Mobile only signed ARM64
 concurrency:
   group: aurora-android-${{ github.ref }}
   cancel-in-progress: true
 on:
   push:
-    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit, codex/godot-flight-blackbox-diagnostics, codex/godot-shared-scene-crash-audit, codex/v75-20-training-freefall-crash-isolation, codex/v75-21-mobile-physics-animation-hardening, codex/v75-22-motorola-crash-window-recovery, codex/v75-23-android-audio-thread-recovery, codex/v75-24-wav-loop-buffer-safety, codex/v75-25-120hz-stable-preview-signing, codex/v75-26-camera-controls-motion-polish, codex/v75-27-lobby-hud-editor, codex/v75-28-puerto-aurora-sector-expansion, codex/v75-29-zone-bot-sync-house-qa, codex/v75-30-combat-sound-awareness, codex/v75-34-integrated-combat-inventory-aurora, codex/v75-40-residential-terrain-foundations, codex/v75-41-house-hud-settings-integration, codex/v75-42-aurora-tactical-map-aircraft-brand, codex/v75-43-map-lobby-brand-awm-polish, codex/v75-44-aurora-playable-scale-visual-core, codex/v75-45-mobile-render-pipeline-budget, codex/v75-46-vulkan-mobile-ab-test, codex/v75-47-vulkan-frame-pacing-optimizations, codex/v75-48-vulkan-only-real-battle-loot, codex/v75-49-tactical-healing-vulkan, codex/v75-50-tactical-ai-combat-vulkan, codex/v75-55-unified-battle-royale-integration-vulkan, codex/v75-56-combat-feedback-quality-vulkan, codex/v75-57-ten-minute-match-ledger-vulkan, codex/v75-58-physical-headshots-vulkan, codex/v75-59-lila-aurora-rig-identity-vulkan, codex/v75-60-lila-hair-weapon-holsters-vulkan, codex/v75-61-lila-motion-precision-vulkan, codex/v75-62-tactical-bot-medicine-vulkan]
+    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit, codex/godot-flight-blackbox-diagnostics, codex/godot-shared-scene-crash-audit, codex/v75-20-training-freefall-crash-isolation, codex/v75-21-mobile-physics-animation-hardening, codex/v75-22-motorola-crash-window-recovery, codex/v75-23-android-audio-thread-recovery, codex/v75-24-wav-loop-buffer-safety, codex/v75-25-120hz-stable-preview-signing, codex/v75-26-camera-controls-motion-polish, codex/v75-27-lobby-hud-editor, codex/v75-28-puerto-aurora-sector-expansion, codex/v75-29-zone-bot-sync-house-qa, codex/v75-30-combat-sound-awareness, codex/v75-34-integrated-combat-inventory-aurora, codex/v75-40-residential-terrain-foundations, codex/v75-41-house-hud-settings-integration, codex/v75-42-aurora-tactical-map-aircraft-brand, codex/v75-43-map-lobby-brand-awm-polish, codex/v75-44-aurora-playable-scale-visual-core, codex/v75-45-mobile-render-pipeline-budget, codex/v75-46-vulkan-mobile-ab-test, codex/v75-47-vulkan-frame-pacing-optimizations, codex/v75-48-vulkan-only-real-battle-loot, codex/v75-49-tactical-healing-vulkan, codex/v75-50-tactical-ai-combat-vulkan, codex/v75-55-unified-battle-royale-integration-vulkan, codex/v75-56-combat-feedback-quality-vulkan, codex/v75-57-ten-minute-match-ledger-vulkan, codex/v75-58-physical-headshots-vulkan, codex/v75-59-lila-aurora-rig-identity-vulkan, codex/v75-60-lila-hair-weapon-holsters-vulkan, codex/v75-61-lila-motion-precision-vulkan, codex/v75-62-tactical-bot-medicine-vulkan, codex/v75-63-lila-medkit-skeletal-animation-vulkan]
     paths:
       - 'native-godot/**'
       - '.github/workflows/native-godot-preview-apk.yml'
@@ -46,6 +46,9 @@ jobs:
           print('Skinned GLB:',f.stat().st_size,'bytes',len(scene.get('skins',[])),'skins',len(scene.get('animations',[])),'clips',len(scene.get('meshes',[])),'meshes')
           assert len(scene.get('skins',[]))>=1,'Rigged character has no skin'
           assert len(scene.get('animations',[]))>=1,'Character has no animation clips'
+          assert any('AuroraHeal' in clip.get('name','')
+                     for clip in scene['animations']), (
+              'Lila real three-second skeletal healing animation missing from GLB')
           kit_meshes=[m for m in scene.get('meshes',[])
                       if 'LilaAuroraSignature' in m.get('name','')]
           kit_nodes=[n for n in scene.get('nodes',[])
@@ -170,7 +173,7 @@ jobs:
           expected="60390683c689ea7376dba5392450929e30044589189c9a200d4db54806f4a653"
           actual="$(keytool -exportcert -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sha256sum | awk '{print $1}')"
           if [ "$actual" != "$expected" ]; then
-            echo "::error::The keystore certificate differs from pinned V75.62 preview identity. Refusing to produce APKs that cannot update."
+            echo "::error::The keystore certificate differs from pinned V75.63 preview identity. Refusing to produce APKs that cannot update."
             exit 1
           fi
           # Godot otherwise falls back to its own transient Android debug key.
@@ -201,13 +204,13 @@ jobs:
           python3 native-godot/tools/configure_android_renderer.py --variant mobile
           grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
           grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
-          grep -Fx 'version/code=52' native-godot/export_presets.cfg
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.62-MOTOROLA-VULKAN.apk
-          test -s native-godot/out/THEDEMIAN-V75.62-MOTOROLA-VULKAN.apk
+          grep -Fx 'version/code=53' native-godot/export_presets.cfg
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.63-MOTOROLA-VULKAN.apk
+          test -s native-godot/out/THEDEMIAN-V75.63-MOTOROLA-VULKAN.apk
       - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
         run: |
           set -euo pipefail
-          APK=native-godot/out/THEDEMIAN-V75.62-MOTOROLA-VULKAN.apk
+          APK=native-godot/out/THEDEMIAN-V75.63-MOTOROLA-VULKAN.apk
           python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/vulkan-verification
           expected="$(cat native-godot/out/preview-signer-sha256.txt)"
           grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/vulkan-verification/signature.txt
@@ -225,13 +228,14 @@ jobs:
           grep -F 'V7560_LILA_ABILITY PASS' native-godot/out/qa-exported-vulkan/v7560_lila_tactical_ability_qa.log
           grep -F 'V7561_LILA_MOTION PASS' native-godot/out/qa-exported-vulkan/v7561_lila_motion_precision_qa.log
           grep -F 'V7562_BOT_MEDICINE PASS' native-godot/out/qa-exported-vulkan/v7562_bot_medicine_tactics_qa.log
+          grep -F 'V7563_LILA_MEDKIT PASS' native-godot/out/qa-exported-vulkan/v7563_lila_real_medkit_qa.log
           sha256sum "$APK" > native-godot/out/SHA256SUMS.txt
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIAN-V75.62-MOTOROLA-VULKAN
+          name: THEDEMIAN-V75.63-MOTOROLA-VULKAN
           path: |
-            native-godot/out/THEDEMIAN-V75.62-MOTOROLA-VULKAN.apk
+            native-godot/out/THEDEMIAN-V75.63-MOTOROLA-VULKAN.apk
             native-godot/out/vulkan-verification/
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
@@ -243,7 +247,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: V7562-FAILED-VALIDATION-LOGS
+          name: V7563-FAILED-VALIDATION-LOGS
           path: |
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
