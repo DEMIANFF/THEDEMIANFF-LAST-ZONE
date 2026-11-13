@@ -117,6 +117,9 @@ func _verify() -> void:
         player._training_immunity=0.0
         player.receive_training_hit(6.0,false,
             player.global_position+player.global_basis*entry.offset)
+        # OneShot requests are evaluated by the actual AnimationTree on
+        # a render callback, not synchronously inside receive_training_hit.
+        await process_frame
         check(player.last_hit_reaction==entry.clip and
             controller.action_clip.animation==entry.clip and
             controller.tree.get("parameters/UpperBody/active"),
