@@ -340,7 +340,7 @@ func _on_opponent_eliminated(victim: CharacterBody3D,killer: Node3D) -> void:
     # Keep loot on a raised walkable deck when the bot died inside a villa,
     # and never float a cache below the current physical standing surface.
     var surface_y: float=maxf(ground_y,position.y-.15)
-    _make_pickup(at,kind,"AuroraOpponentLoot"+str(_opponent_drops_spawned),surface_y)
+    _make_pickup(at,kind,"AuroraOpponentLoot"+str(_opponent_drops_spawned),surface_y,true)
 
 
 func _historic_floor_at(at: Vector2) -> float:
@@ -366,12 +366,13 @@ func _historic_floor_at(at: Vector2) -> float:
 
 
 func _make_pickup(at: Vector2,kind: String,pickup_name: String,
-        floor_height: float=NAN) -> void:
+        floor_height: float=NAN,from_opponent: bool=false) -> void:
     if not is_finite(floor_height):
         floor_height=_historic_floor_at(at)
     var pickup: Area3D=LOOT.new()
     pickup.name=pickup_name
     pickup.pickup_type=kind
+    pickup.from_opponent=from_opponent
     pickup.player=player
     pickup.combat=combat
     pickup.terrain=terrain
