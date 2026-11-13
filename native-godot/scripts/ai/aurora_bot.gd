@@ -4,6 +4,8 @@ const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.
 ## grounded patrol and actual damage. This is not a networked human player.
 signal eliminated(agent: CharacterBody3D, killer: Node3D)
 signal weapon_fired(world_position: Vector3)
+## This line is derived from the actual PhysicsServer hit; never a fake shot.
+signal shot_trace(from: Vector3,to: Vector3)
 
 const WALK_SPEED: float = 1.85
 const CHASE_SPEED: float = 2.45
@@ -469,9 +471,11 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
     var spread: float=clampf(distance/SHOOT_RANGE,0.0,1.0)*.52
     var sideways: Vector3=(foe.global_position-global_position).cross(Vector3.UP).normalized()
     var endpoint: Vector3=foe.global_position+Vector3.UP*(1.0+_random.randf_range(-spread*.6,spread*.6))+sideways*_random.randf_range(-spread,spread)
-    var ray:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*1.35,endpoint)
+    var muzzle: Vector3=global_position+Vector3.UP*1.35
+    var ray:=PhysicsRayQueryParameters3D.create(muzzle,endpoint)
     ray.exclude=[get_rid()]
     var hit:=get_world_3d().direct_space_state.intersect_ray(ray)
+    shot_trace.emit(muzzle,hit.get("position",endpoint))
     var actor: Object=hit.get("collider")
     if actor==operator and not operator.royale_eliminated:
         operator.receive_training_hit(5.0)
