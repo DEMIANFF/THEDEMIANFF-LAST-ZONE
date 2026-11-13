@@ -323,6 +323,7 @@ func _finish(victory: bool) -> void:
         "loot":int(combat.get("loot_collected")),
         "shots":int(combat.get("shots_fired_total")),
         "hits":int(combat.get("shots_hit_total")),
+        "headshots":int(combat.get("headshots_total")),
         "reloads":int(combat.get("reloads_completed"))
     }
     _pending_result={
