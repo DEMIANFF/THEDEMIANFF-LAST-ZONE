@@ -130,4 +130,17 @@ func action(clip: String,duration: float) -> void:
     tree.set("parameters/UpperBody/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
 func cancel_action() -> void:
-    tree.set("parameters/UpperBody/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
+    if tree!=null:
+        tree.set("parameters/UpperBody/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
+
+
+## Restore an actual skeletal rest pose when a new ground match begins.
+## Without this, a frozen physics tick could leave Lila on the old run /
+## crouch state until the next input, including during 3D lobby preview.
+func reset_ground_pose() -> void:
+    if tree==null or playback==null:
+        return
+    cancel_action()
+    playback.start("AuroraArmedIdle")
+    tree.set("parameters/GaitSpeed/scale",1.0)
+    tree.set("parameters/ActionSpeed/scale",1.0)
