@@ -51,13 +51,30 @@ func setup(source: AnimationPlayer) -> void:
     one_shot.fadein_time=.04
     one_shot.fadeout_time=.12
     one_shot.filter_enabled=true
-    var sample:=source.get_animation("AuroraFire")
-    for i in range(sample.get_track_count()):
-        var path:=sample.track_get_path(i)
-        var bone:=str(path.get_subname(0)).to_lower() if path.get_subname_count()>0 else ""
-        if "arm" in bone or "hand" in bone or "spine" in bone or "neck" in bone or "head" in bone or "shoulder" in bone:
-            one_shot.set_filter_path(path,true)
-            upper_tracks.append(path)
+    # Build the real upper-body mask from ALL action clips. The old mask
+    # sampled AuroraFire only: its keyframes omit Neck/Head tracks used by
+    # directional injury and future two-handed/medical gestures.
+    # This union is constructed once, never in the render/physics loop.
+    var selected_paths: Dictionary={}
+    for clip_name in ["AuroraFire","AuroraFireAWM",
+            "AuroraHit","AuroraHitFront","AuroraHitBack",
+            "AuroraHitLeft","AuroraHitRight",
+            "AuroraReloadAR","AuroraReloadAWM","AuroraHeal"]:
+        if not source.has_animation(clip_name):
+            continue
+        var sample: Animation=source.get_animation(clip_name)
+        for i in range(sample.get_track_count()):
+            var path: NodePath=sample.track_get_path(i)
+            var bone: String=(str(path.get_subname(0)).to_lower()
+                if path.get_subname_count()>0 else "")
+            if ("arm" in bone or "hand" in bone or "spine" in bone
+                    or "neck" in bone or "head" in bone or
+                    "shoulder" in bone):
+                var key: String=str(path)
+                if not selected_paths.has(key):
+                    selected_paths[key]=true
+                    one_shot.set_filter_path(path,true)
+                    upper_tracks.append(path)
     action_clip.animation="AuroraFire"
     var blend:=AnimationNodeBlendTree.new()
     blend.add_node("Locomotion",states)
