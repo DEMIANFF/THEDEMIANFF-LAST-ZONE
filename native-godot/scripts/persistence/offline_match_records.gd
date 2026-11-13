@@ -87,9 +87,9 @@ func _valid(value: Variant) -> bool:
     # Old schema-1 journals have no local_coins; migrate them as zero.
     if d.has("local_coins"):
         var coins: Variant=d["local_coins"]
-        if not (coins is int or coins is float) or not is_finite(float(coins)) or \
-                float(coins)!=float(int(coins)) or int(coins)<0 or \
-                int(coins)>LOCAL_COIN_LIMIT:
+        if (not (coins is int or coins is float) or not is_finite(float(coins)) or
+                float(coins)!=float(int(coins)) or int(coins)<0 or
+                int(coins)>LOCAL_COIN_LIMIT):
             return false
     if not (d.get("history") is Array):
         return false
@@ -114,10 +114,10 @@ func _valid(value: Variant) -> bool:
         # Coins are earned only by actual stored BR results, never by a UI click.
         if record.has("local_coins_awarded"):
             var award: Variant=record["local_coins_awarded"]
-            if not (award is int or award is float) or not is_finite(float(award)) or \
+            if (not (award is int or award is float) or not is_finite(float(award)) or
                     float(award)!=float(int(award)) or int(award)!=local_coin_reward(
                     bool(record["victory"]),int(record["kills"]),
-                    int(record["survived_seconds"])):
+                    int(record["survived_seconds"]))):
                 return false
         var extra: Dictionary={}
         for key in EXTENDED_LIMITS.keys():
