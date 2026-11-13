@@ -496,8 +496,8 @@ func _begin_reload() -> void:
 ## Move inside the next safe circle without stacking all rivals at center.
 static func safe_zone_destination(position: Vector3,center: Vector2,
         safe_radius_value: float) -> Vector3:
-    if not position.is_finite() or not center.is_finite() or
-            not is_finite(safe_radius_value) or safe_radius_value<=0.0:
+    if (not position.is_finite() or not center.is_finite() or
+            not is_finite(safe_radius_value) or safe_radius_value<=0.0):
         return position
     var radial:=Vector2(position.x-center.x,position.z-center.y)
     if radial.length_squared()<.0001:
