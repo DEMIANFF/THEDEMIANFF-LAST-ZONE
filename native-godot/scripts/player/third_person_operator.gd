@@ -23,11 +23,11 @@ const JUMP_VELOCITY: float = 5.4
 const GROUND_STOP_DECELERATION: float = 21.0
 const GROUND_TURN_ACCELERATION: float = 19.0
 const AIR_CONTROL_ACCELERATION: float = 9.0
-const MAX_REPORTED_MOTION_SPEED: float = RUN_SPEED * LILA_ACCELERATION_MULTIPLIER
 # Lila's approved "Aceleración Táctica": temporary mobility after a
 # physically confirmed player kill, not by timers or fictional rewards.
 const LILA_ACCELERATION_SECONDS: float=4.0
 const LILA_ACCELERATION_MULTIPLIER: float=1.20
+const MAX_REPORTED_MOTION_SPEED: float = RUN_SPEED * LILA_ACCELERATION_MULTIPLIER
 
 signal training_health_changed(value: float)
 signal armor_changed(value: float)
