@@ -149,6 +149,11 @@ jobs:
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_weapon_preview.gd
           test -s native-godot/out/aurora-v74-1-ak74.png
           test -s native-godot/out/aurora-v74-1-awm.png
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_lila_medkit_preview.gd > native-godot/out/qa/lila-medkit-render.log 2>&1
+          if grep -E 'SCRIPT ERROR:|ERROR:' native-godot/out/qa/lila-medkit-render.log; then exit 1; fi
+          grep -F 'V7563_MEDKIT_RENDER PASS' native-godot/out/qa/lila-medkit-render.log
+          test -s native-godot/out/aurora-v75-63-lila-medkit-active.png
+          test -s native-godot/out/aurora-v75-63-lila-medkit-finished.png
       - name: Render expanded Motorola layout and verify absence of side bars
         run: xvfb-run -a -s "-screen 0 2712x1220x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_responsive_preview.gd > native-godot/out/qa/responsive-render.log 2>&1
       - name: Render real first animated canopy in desktop OpenGL compatibility
@@ -243,6 +248,8 @@ jobs:
             native-godot/out/BUILD.txt
             native-godot/out/preview-signer-sha256.txt
             native-godot/out/aurora-v75-19-lobby.png
+            native-godot/out/aurora-v75-63-lila-medkit-active.png
+            native-godot/out/aurora-v75-63-lila-medkit-finished.png
           retention-days: 30
       - uses: actions/upload-artifact@v4
         if: failure()
