@@ -56,6 +56,7 @@ var eliminations: int = 0
 # Measured from actual CharacterBody3D health lost and successful Area3D pickups.
 var damage_dealt: float=0.0
 var loot_collected: int=0
+var opponent_caches_collected: int=0
 var medkits_remaining: int = 2
 var _heal_remaining: float=0.0
 var _heal_anchor: Vector3=Vector3.ZERO
@@ -564,6 +565,7 @@ func begin_sector_battle() -> void:
     eliminations=0
     damage_dealt=0.0
     loot_collected=0
+    opponent_caches_collected=0
     _ensure_encounter_capacity()
     for bot in _targets:
         if is_instance_valid(bot):
@@ -663,26 +665,35 @@ func active_fighter_count() -> int:
     return count
 
 
-func collect_sector_loot(kind: String) -> bool:
+func collect_sector_loot(kind: String,quantity: int=-1,
+        from_opponent: bool=false) -> bool:
     if not sector_battle_active or operator.royale_eliminated:
         return false
     match kind:
         "medkit":
-            if medkits_remaining>=5:
+            var gained: int=1 if quantity<0 else clampi(quantity,0,1)
+            if medkits_remaining>=5 or gained<=0:
                 return false
-            medkits_remaining=mini(medkits_remaining+1,5)
+            medkits_remaining=mini(medkits_remaining+gained,5)
             hud.set_medkit_count(medkits_remaining)
-            hud.impact("BOTIQUIN RECOGIDO +1")
+            hud.impact("RIVAL / BOTIQUIN +1" if from_opponent else
+                "BOTIQUIN RECOGIDO +1")
         "ammo_ar":
-            if reserve[0]>=_reserve_limit(0):
+            var gained: int=45 if quantity<0 else clampi(quantity,0,18)
+            gained=mini(gained,maxi(0,_reserve_limit(0)-reserve[0]))
+            if gained<=0:
                 return false
-            reserve[0]=mini(_reserve_limit(0),reserve[0]+45)
-            hud.impact("MUNICION AR RECOGIDA")
+            reserve[0]+=gained
+            hud.impact(("RIVAL / MUNICION AR +%d"%gained) if from_opponent
+                else "MUNICION AR RECOGIDA")
         "ammo_awm":
-            if reserve[1]>=_reserve_limit(1):
+            var gained: int=8 if quantity<0 else clampi(quantity,0,8)
+            gained=mini(gained,maxi(0,_reserve_limit(1)-reserve[1]))
+            if gained<=0:
                 return false
-            reserve[1]=mini(_reserve_limit(1),reserve[1]+8)
-            hud.impact("MUNICION AWM RECOGIDA")
+            reserve[1]+=gained
+            hud.impact(("RIVAL / MUNICION AWM +%d"%gained) if from_opponent
+                else "MUNICION AWM RECOGIDA")
         "cover_charge":
             if cover_charges>=3:
                 return false
@@ -708,6 +719,8 @@ func collect_sector_loot(kind: String) -> bool:
         _:
             return false
     loot_collected+=1
+    if from_opponent:
+        opponent_caches_collected+=1
     _sync_hud()
     return true
 
@@ -733,6 +746,7 @@ func inventory_snapshot() -> Dictionary:
         "armor":roundi(operator.armor_points),
         "damage_dealt":roundi(damage_dealt),
         "loot_collected":loot_collected,
+        "opponent_caches":opponent_caches_collected,
         "shots_fired":shots_fired_total,
         "shots_hit":shots_hit_total,
         "headshots":headshots_total,
