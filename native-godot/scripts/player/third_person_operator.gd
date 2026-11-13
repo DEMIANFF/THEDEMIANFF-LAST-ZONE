@@ -913,6 +913,12 @@ func begin_sector_battle(from_airdrop: bool=false) -> void:
     _training_immunity=2.0
     set_firing(false)
     set_touch_move_axis(Vector2.ZERO)
+    # BR is a fresh physical match: Lila must not retain a running, aiming
+    # or injury pose from the previous round while controls are reset.
+    # Flight/parachute transitions keep their own animation lifecycle.
+    if air_mode=="ground" and _animation_controller:
+        _animation_controller.reset_ground_pose()
+        _current_clip="AuroraArmedIdle"
     training_health_changed.emit(training_health)
 
 
