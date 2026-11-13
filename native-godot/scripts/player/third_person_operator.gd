@@ -91,6 +91,10 @@ var _queued_air_phase: String=""
 var _weapon_index: int=0
 var _combat_action: String=""
 var _combat_action_seconds: float=0.0
+# Only confirmed world-space hits set this visible reaction history;
+# the health/armor bookkeeping and authoritative damage stay unchanged.
+var last_hit_reaction: String=""
+var hit_reactions_shown: int=0
 var air_mode: String="ground"
 var _parachute_visual: Node3D
 var _first_canopy_step_probe: bool=false
@@ -832,7 +836,14 @@ func receive_training_hit(amount: float, environmental: bool=false,
     if not environmental and attacker_world_position.is_finite():
         incoming_fire.emit(attacker_world_position)
     if _animation_controller and _combat_action_seconds<=.24:
-        _animation_controller.action("AuroraHit",.22)
+        # Incoming-fire direction is transformed into body-local coordinates.
+        # Environmental damage or an unknown attacker keeps the old generic
+        # reaction and never invents an enemy or a player hit.
+        var reaction: String=directional_hit_clip(attacker_world_position,
+            global_position,global_basis) if not environmental else "AuroraHit"
+        _animation_controller.action(reaction,.28)
+        last_hit_reaction=reaction
+        hit_reactions_shown+=1
     if not environmental:
         _training_immunity=.42
     if training_health<=0:
@@ -848,6 +859,22 @@ func receive_training_hit(amount: float, environmental: bool=false,
         velocity=Vector3.ZERO
         global_position=respawn_point
         training_health_changed.emit(training_health)
+
+
+## Convert a CONFIRMED impact's world-space origin into a skeletal action.
+## -Z is Lila's front, +Z is behind; X is left/right in her facing frame.
+## No movement/camera rotation or damage multipliers occur here.
+static func directional_hit_clip(from_world: Vector3,position: Vector3,
+        facing: Basis) -> String:
+    if (not from_world.is_finite() or not position.is_finite() or
+            not facing.is_finite()):
+        return "AuroraHit"
+    var toward: Vector3=facing.inverse()*(from_world-position)
+    if not toward.is_finite() or toward.length_squared()<.01:
+        return "AuroraHit"
+    if absf(toward.x)>absf(toward.z):
+        return "AuroraHitLeft" if toward.x<0.0 else "AuroraHitRight"
+    return "AuroraHitFront" if toward.z<0.0 else "AuroraHitBack"
 
 
 ## No armor persistence across separate offline matches: supplies must be
@@ -886,6 +913,12 @@ func begin_sector_battle(from_airdrop: bool=false) -> void:
     _training_immunity=2.0
     set_firing(false)
     set_touch_move_axis(Vector2.ZERO)
+    # BR is a fresh physical match: Lila must not retain a running, aiming
+    # or injury pose from the previous round while controls are reset.
+    # Flight/parachute transitions keep their own animation lifecycle.
+    if air_mode=="ground" and _animation_controller:
+        _animation_controller.reset_ground_pose()
+        _current_clip="AuroraArmedIdle"
     training_health_changed.emit(training_health)
 
 
@@ -954,7 +987,7 @@ func play_weapon_action(action: String, seconds: float) -> void:
     var requested: String=""
     match action:
         "fire":
-            requested="AuroraFire"
+            requested="AuroraFireAWM" if _weapon_index==1 else "AuroraFire"
         "reload":
             requested="AuroraReloadAWM" if _weapon_index==1 else "AuroraReloadAR"
         "heal":
@@ -1198,6 +1231,8 @@ func reset_controls() -> void:
     _recoil_pitch=0.0
     _combat_action=""
     _combat_action_seconds=0.0
+    last_hit_reaction=""
+    hit_reactions_shown=0
     if _animation_controller:
         _animation_controller.cancel_action()
 

@@ -659,9 +659,16 @@ clips=[
     ('AuroraAim',.004,40,True),
     ('AuroraAimAWM',.004,40,True),
     ('AuroraFire',.05,6,True),
+    ('AuroraFireAWM',.055,12,True),
     ('AuroraReloadAR',.10,48,True),
     ('AuroraReloadAWM',.10,93,True),
     ('AuroraHit',.035,10,True),
+    # Directional hit responses are short upper-body actions; feet/hips
+    # remain in their current blend cycle and do not take over physics.
+    ('AuroraHitFront',.035,12,True),
+    ('AuroraHitBack',.035,12,True),
+    ('AuroraHitLeft',.035,12,True),
+    ('AuroraHitRight',.035,12,True),
     ('AuroraLand',.035,12,True),
     ('AuroraJump',.12,30,True),
     ('AuroraFreefall',.09,36,False),
@@ -740,25 +747,58 @@ for clip_name, amplitude, frames, armed in clips:
             spine.rotation_mode='QUATERNION'
             spine.rotation_quaternion=Quaternion(Vector((1,0,0)),pulse*.055)
             spine.keyframe_insert(data_path="rotation_quaternion",frame=frame)
-        if clip_name in ("AuroraFire", "AuroraHit"):
-            if clip_name=="AuroraFire":
-                # A visible coordinated recoil impulse moves the animated
-                # shoulders/elbows around the genuine two-handed grip.
-                for side in ("Right","Left"):
-                    upper=arm.pose.bones["rig:"+side+"Arm"]
-                    forearm=arm.pose.bones["rig:"+side+"ForeArm"]
-                    upper.rotation_quaternion=(
-                        armed_pose["arm_"+side.lower()[0]]
-                        @ Quaternion(Vector((1,0,0)),pulse*(-.075 if side=="Right" else -.038)))
-                    upper.keyframe_insert(data_path="rotation_quaternion",frame=frame)
-                    forearm.rotation_quaternion=(
-                        armed_pose["forearm_"+side.lower()[0]]
-                        @ Quaternion(Vector((1,0,0)),pulse*.045))
-                    forearm.keyframe_insert(data_path="rotation_quaternion",frame=frame)
-            spine = arm.pose.bones["rig:Spine"]
-            spine.rotation_mode = "QUATERNION"
-            spine.rotation_quaternion = Quaternion(Vector((1,0,0)), -.10 * pulse if clip_name == "AuroraFire" else .16 * pulse)
-            spine.keyframe_insert(data_path="rotation_quaternion", frame=frame)
+        if clip_name in ("AuroraFire","AuroraFireAWM"):
+            # AR has a short recoil; the owned AWM has a heavier shoulder
+            # impulse with its own authored keyframes and bolt cadence.
+            # Both hands maintain the existing two-handed rifle base pose.
+            awm_recoil=(clip_name=="AuroraFireAWM")
+            impulse=(.155 if awm_recoil else .075)*pulse
+            for side in ("Right","Left"):
+                upper=arm.pose.bones["rig:"+side+"Arm"]
+                forearm=arm.pose.bones["rig:"+side+"ForeArm"]
+                upper.rotation_quaternion=(
+                    armed_pose["arm_"+side.lower()[0]]
+                    @ Quaternion(Vector((1,0,0)),
+                        -impulse*(1.0 if side=="Right" else .55)))
+                upper.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+                forearm.rotation_quaternion=(
+                    armed_pose["forearm_"+side.lower()[0]]
+                    @ Quaternion(Vector((1,0,0)),impulse*.60))
+                forearm.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+            spine=arm.pose.bones["rig:Spine"]
+            spine.rotation_mode="QUATERNION"
+            spine.rotation_quaternion=Quaternion(Vector((1,0,0)),
+                -(.145 if awm_recoil else .10)*pulse)
+            spine.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+        if clip_name=="AuroraHit" or clip_name.startswith("AuroraHit"):
+            # Directional injury has no root-motion or physics displacement.
+            # An interrupted reload/heal can still return to locomotion
+            # without moving the CharacterBody collider.
+            pitch=0.16 if clip_name in ("AuroraHit","AuroraHitFront") else (
+                -0.13 if clip_name=="AuroraHitBack" else .025)
+            roll=(.16 if clip_name=="AuroraHitLeft" else
+                -.16 if clip_name=="AuroraHitRight" else 0.0)
+            spine=arm.pose.bones["rig:Spine"]
+            spine.rotation_mode="QUATERNION"
+            spine.rotation_quaternion=(Quaternion(Vector((1,0,0)),
+                pitch*pulse) @ Quaternion(Vector((0,1,0)),roll*pulse))
+            spine.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+            for side in ("Left","Right"):
+                upper=arm.pose.bones["rig:"+side+"Arm"]
+                upper.rotation_mode="QUATERNION"
+                side_bias=(1.0 if side=="Left" and roll>0.0 or
+                    side=="Right" and roll<0.0 else .35)
+                upper.rotation_quaternion=(
+                    armed_pose["arm_"+side.lower()[0]] @
+                    Quaternion(Vector((0,0,1)),
+                        (.10 if side=="Left" else -.10)*pulse*side_bias))
+                upper.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+            neck=arm.pose.bones["rig:Neck"]
+            neck.rotation_mode="QUATERNION"
+            neck.rotation_quaternion=(Quaternion(Vector((1,0,0)),
+                -pitch*pulse*.35) @ Quaternion(Vector((0,1,0)),
+                    -roll*pulse*.25))
+            neck.keyframe_insert(data_path="rotation_quaternion",frame=frame)
         if crouched:
             pose_crouch(phase, clip_name == "AuroraCrouchWalk")
         else:
