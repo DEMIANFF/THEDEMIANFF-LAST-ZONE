@@ -16,6 +16,14 @@ const TOUCH_DEADZONE: float = 0.12
 # Valid large deliberate swipes still accumulate across successive events.
 const CAMERA_MAX_SWIPE_PIXELS: float = 160.0
 const JUMP_BUFFER_SECONDS: float = 0.14
+# Ground-control improvement: coyote jump and buffered taps work across
+# 30/60/120 Hz physics without introducing a second/midair jump.
+const COYOTE_JUMP_SECONDS: float = 0.11
+const JUMP_VELOCITY: float = 5.4
+const GROUND_STOP_DECELERATION: float = 21.0
+const GROUND_TURN_ACCELERATION: float = 19.0
+const AIR_CONTROL_ACCELERATION: float = 9.0
+const MAX_REPORTED_MOTION_SPEED: float = RUN_SPEED * LILA_ACCELERATION_MULTIPLIER
 # Lila's approved "Aceleración Táctica": temporary mobility after a
 # physically confirmed player kill, not by timers or fictional rewards.
 const LILA_ACCELERATION_SECONDS: float=4.0
@@ -49,6 +57,8 @@ var _training_immunity: float = 0.0
 var _sprint_touch: bool = false
 var _jump_requested: bool = false
 var _jump_buffer_seconds: float = 0.0
+var _coyote_seconds: float = 0.0
+var measured_ground_speed: float = 0.0
 var _camera_height_target: float = 1.55
 
 var look_multiplier: float=1.0
@@ -188,6 +198,10 @@ func _physics_process(delta: float) -> void:
     # A jump pressed in midair may be buffered briefly near touchdown, but
     # never kept indefinitely to trigger a surprise second jump on landing.
     _jump_buffer_seconds=maxf(0.0,_jump_buffer_seconds-delta)
+    if Input.is_action_just_pressed("jump"):
+        # Keyboard and touch share the exact same buffered jump path.
+        _jump_requested=true
+        _jump_buffer_seconds=JUMP_BUFFER_SECONDS
     if _jump_buffer_seconds<=0.0:
         _jump_requested=false
     var control := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
@@ -208,7 +222,7 @@ func _physics_process(delta: float) -> void:
     var relative_direction := Vector3(control.x, 0.0, control.y)
     var facing := Basis(Vector3.UP, _yaw)
     var world_direction := (facing * relative_direction).limit_length(1.0)
-    var run_fast := (Input.is_action_pressed("run") or _sprint_touch) and not _crouching and not _fire_held
+    var run_fast := (Input.is_action_pressed("run") or _sprint_touch) and         not _crouching and not _fire_held and not _ads_active
     var target_speed: float = WALK_SPEED
     if _crouching:
         target_speed = WALK_SPEED * .52
@@ -221,17 +235,30 @@ func _physics_process(delta: float) -> void:
             tactical_acceleration_remaining)
     var target_velocity := world_direction * target_speed
 
-    velocity.x = move_toward(velocity.x, target_velocity.x, ACCELERATION * delta)
-    velocity.z = move_toward(velocity.z, target_velocity.z, ACCELERATION * delta)
-    if not is_on_floor():
-        velocity.y -= GRAVITY * delta
-    elif Input.is_action_just_pressed("jump") or (_jump_requested and _jump_buffer_seconds>0.0):
-        velocity.y = 5.4
-        _jump_requested = false
+    var was_grounded: bool=is_on_floor()
+    _coyote_seconds=(COYOTE_JUMP_SECONDS if was_grounded else
+        maxf(0.0,_coyote_seconds-delta))
+    var horizontal_velocity:=Vector3(velocity.x,0.0,velocity.z)
+    var accel: float=ACCELERATION
+    if not was_grounded:
+        accel=AIR_CONTROL_ACCELERATION
+    elif world_direction.length_squared()<.002:
+        accel=GROUND_STOP_DECELERATION
+    elif horizontal_velocity.dot(target_velocity)<-.35:
+        accel=GROUND_TURN_ACCELERATION
+    velocity.x = move_toward(velocity.x, target_velocity.x, accel * delta)
+    velocity.z = move_toward(velocity.z, target_velocity.z, accel * delta)
+    if _jump_requested and _jump_buffer_seconds>0.0 and (
+            was_grounded or _coyote_seconds>0.0) and not _crouching:
+        velocity.y=JUMP_VELOCITY
+        _coyote_seconds=0.0
+        _jump_requested=false
         _jump_buffer_seconds=0.0
         jumped.emit()
+    elif not was_grounded:
+        velocity.y-=GRAVITY*delta
     else:
-        velocity.y = 0.0
+        velocity.y=0.0
 
     # Camera yaw is independent of the player body while freely looking around.
     # On forward motion, the body faces movement; on ADS/fire it faces the reticle.
@@ -247,7 +274,12 @@ func _physics_process(delta: float) -> void:
     var was_on_floor: bool=is_on_floor()
     var before_move: Vector3=global_position
     move_and_slide()
-    var actual_speed: float=Vector2(global_position.x-before_move.x,global_position.z-before_move.z).length()/maxf(.001,delta)
+    # Use real displacement AFTER collision resolution. Previous gait
+    # animation used desired velocity, which animated running on the spot
+    # when a house doorway or movable cover blocked the player.
+    var actual_speed: float=measured_motion_speed(
+        global_position-before_move,delta) 
+    measured_ground_speed=actual_speed
     if is_on_floor() and actual_speed>1.2 and move_strength>.05:
         var stride: float=_step_stride(actual_speed,_crouching)
         if _footstep_distance<=0.0:
@@ -308,7 +340,7 @@ func _physics_process(delta: float) -> void:
         _combat_action_seconds=maxf(0.0,_combat_action_seconds-delta)
         if _combat_action_seconds<=0.0:
             _combat_action=""
-        var speed: float=Vector2(velocity.x,velocity.z).length()
+        var speed: float=actual_speed
         var locomotion: String=_select_locomotion(speed)
         if _animation_controller:
             _animation_controller.set_gait_speed(speed,
@@ -324,6 +356,16 @@ func _physics_process(delta: float) -> void:
             clip="AuroraLand"
         if clip!=_current_clip:
             _play_matching_animation(clip)
+
+
+## Bounded actual metres/second, never a desired target speed or an
+## animation-only approximation. Prevents teleport/slope penetration spikes
+## from playing 8x gait and creating footsteps in an immovable doorway.
+static func measured_motion_speed(displacement: Vector3,delta: float) -> float:
+    if not displacement.is_finite() or not is_finite(delta) or delta<=0.0:
+        return 0.0
+    var horizontal: float=Vector2(displacement.x,displacement.z).length()
+    return clampf(horizontal/delta,0.0,MAX_REPORTED_MOTION_SPEED)
 
 
 func _step_stride(speed: float,crouching: bool=false) -> float:
@@ -862,6 +904,9 @@ func touch_jump() -> void:
 func set_ads(ads: bool, zoom: float) -> void:
     _ads_active = ads
     _ads_zoom = clampf(zoom, 1.0, 8.0)
+    if ads and _sprint_touch:
+        _sprint_touch=false
+        sprint_cancelled.emit()
     _current_clip=""
 
 
@@ -1099,6 +1144,8 @@ func reset_controls() -> void:
     _sprint_touch=false
     _jump_requested=false
     _jump_buffer_seconds=0.0
+    _coyote_seconds=0.0
+    measured_ground_speed=0.0
     _fire_held=false
     _ads_active=false
     _recoil_pitch=0.0
