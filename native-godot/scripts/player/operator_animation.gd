@@ -117,6 +117,14 @@ func action(clip: String,duration: float) -> void:
 
 
 func _activate_queued_action(serial: int) -> void:
+    if not is_inside_tree() or serial!=_action_request_serial:
+        return
+    # A weapon swap can ABORT the previous action and request the AWM bolt
+    # in the same physics tick. A deferred call alone may still run BEFORE
+    # AnimationTree's IDLE callback consumes ABORT. Wait for one animation
+    # evaluation boundary before FIRE. A generation token drops obsolete
+    # requests when the player heals, switches weapons, or leaves the round.
+    await get_tree().process_frame
     if serial!=_action_request_serial or tree==null or not tree.active:
         return
     tree.set("parameters/UpperBody/request",
