@@ -517,7 +517,7 @@ func _on_match_mode_selected(index: int) -> void:
 func _sync_lobby_match_mode() -> void:
     if stage!="lobby" or _match_mode_selector==null:
         return
-    var show_modes: bool=_selected_tab not in ["AJUSTES","OBJETIVOS"]
+    var show_modes: bool=not (_selected_tab in ["AJUSTES","OBJETIVOS"])
     _objective_selector.visible=_selected_tab=="OBJETIVOS"
     _lobby_mode_heading.visible=show_modes
     _match_mode_selector.visible=show_modes
