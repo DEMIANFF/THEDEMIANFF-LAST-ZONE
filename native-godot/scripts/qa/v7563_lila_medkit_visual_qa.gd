@@ -66,6 +66,7 @@ func _verify() -> void:
     check(combat._heal_remaining==combat.HEAL_APPLY_SECONDS and
         medkit.healing and medkit.medical_case.visible and
         weapons.medical_busy and not weapons.ak.visible and
+        weapons.back_ak.visible and
         player._combat_action=="AuroraHeal" and
         hud._heal_progress_bar.visible and combat.medkits_remaining==2,
         "real player first aid did not mount 3D case/animate/stow gun")
@@ -91,6 +92,7 @@ func _verify() -> void:
     check(combat._heal_remaining==0.0 and
         not medkit.healing and not medkit.medical_case.visible and
         not weapons.medical_busy and weapons.ak.visible and
+        not weapons.back_ak.visible and
         player._combat_action!="AuroraHeal" and
         combat.medkits_remaining==2 and player.training_health==before,
         "cancel medkit failed to restore rifle/animation without spending item")
