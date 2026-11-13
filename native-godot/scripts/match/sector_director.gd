@@ -11,7 +11,9 @@ const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.g
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const INITIAL_RADIUS: float = 112.0
 const FINAL_RADIUS: float = 12.0
-const SHRINK_DURATION: float = 280.0
+# Four phases total ten minutes rather than the previous 4m40s.
+# Early victories remain possible when all physical enemies are eliminated.
+const SHRINK_DURATION: float = 600.0
 const CENTER: Vector2 = Vector2(0.0,-24.0)
 const TICK: float = 1.0
 # Max 15 minutes of sparse FPS samples at two measurements per second.
@@ -20,7 +22,7 @@ const MAX_PERF_SAMPLES: int=1800
 const MAX_OPPONENT_DROPS: int=12
 const PHASE_COUNT: int=4
 const PHASE_SECONDS: float=SHRINK_DURATION/float(PHASE_COUNT)
-const PHASE_HOLD_SECONDS: float=12.0
+const PHASE_HOLD_SECONDS: float=24.0
 const PHASE_RADII: Array[float]=[INITIAL_RADIUS,84.0,53.0,28.0,FINAL_RADIUS]
 # Physically accessible supply coordinates on the established Aurora island.
 # Three supplies maximum, introduced only as the existing ring contracts.
@@ -309,17 +311,31 @@ func _finish(victory: bool) -> void:
     hud.reset_controls()
     hud.set_match_controls(false)
     hud.set_zone_threat(false,0.0)
-    _pending_result={"id":_match_id,"victory":victory,"kills":combat.eliminations,"seconds":int(elapsed)}
+    # Rank and combat metrics must be captured BEFORE the atomic ledger
+    # commit, not only drawn on a temporary results screen.
+    var participants: int=int(combat.get("encounter_size"))
+    var rank: int=1 if victory else clampi(combat.active_fighter_count()+1,2,participants)
+    var extras: Dictionary={
+        "rank":rank,
+        "participants":participants,
+        "damage":roundi(float(combat.get("damage_dealt"))),
+        "accuracy":combat.shot_accuracy_percent(),
+        "loot":int(combat.get("loot_collected")),
+        "shots":int(combat.get("shots_fired_total")),
+        "hits":int(combat.get("shots_hit_total")),
+        "reloads":int(combat.get("reloads_completed"))
+    }
+    _pending_result={
+        "id":_match_id,"victory":victory,
+        "kills":combat.eliminations,"seconds":int(elapsed),
+        "extra":extras
+    }
     retry_result()
     hud.set_sector_state("VICTORIA AURORA" if victory else "ELIMINADA / AURORA", combat.active_fighter_count(),radius,int(elapsed))
     hud.set_battle_button("REINICIAR BR")
-    # Final rank uses the real surviving CharacterBody3D roster, not
-    # fabricated network participants or simulated match telemetry.
-    var participants: int=int(combat.get("encounter_size"))
-    var rank: int=1 if victory else clampi(combat.active_fighter_count()+1,2,participants)
     hud.show_match_result(victory,combat.eliminations,int(elapsed),rank,
-        participants,roundi(float(combat.get("damage_dealt"))),
-        int(combat.get("loot_collected")),combat.shot_accuracy_percent())
+        participants,int(extras["damage"]),int(extras["loot"]),
+        int(extras["accuracy"]))
     hud.impact(("¡VICTORIA DEL SECTOR!" if victory else "PARTIDA TERMINADA / REINTENTAR") if last_match_saved else "ALERTA: NO SE GUARDO EL RESULTADO")
     round_ended.emit(victory)
 
@@ -445,7 +461,8 @@ func retry_result() -> bool:
         hud.impact("GUARDADO PENDIENTE / REINTENTANDO")
         return false
     if _records.next_match_id()<=int(result.id):
-        last_match_saved=_records.record_result(int(result.id),bool(result.victory),int(result.kills),int(result.seconds))
+        last_match_saved=_records.record_result(int(result.id),bool(result.victory),
+            int(result.kills),int(result.seconds),result.get("extra",{}))
     else:
         last_match_saved=true
     if last_match_saved:

@@ -4,6 +4,13 @@ extends RefCounted
 ## the device-local user:// sandbox and never touches legacy V70 data.
 const SCHEMA: int=1
 const LIMIT: int=12
+# Optional per-match fields preserve schema-1 saves from all prior builds.
+# Never rewrite legacy data or touch Firebase/Google identity collections.
+const EXTENDED_LIMITS: Dictionary={
+    "rank":100,"participants":100,"damage":500000,
+    "accuracy":100,"loot":1000,"shots":20000,
+    "hits":20000,"reloads":10000
+}
 
 var file_path: String
 var _data: Dictionary
@@ -30,6 +37,32 @@ func _defaults() -> Dictionary:
         "longest_survival_seconds":0,
         "history":[]
     }
+
+
+## Validate only actual measured, bounded fields. The record's extra
+## metadata remains optional so previously signed journals still reopen.
+static func _valid_extra_fields(extra: Dictionary) -> bool:
+    for key in extra.keys():
+        if not EXTENDED_LIMITS.has(key):
+            return false
+        var v: Variant=extra[key]
+        if not (v is int or v is float):
+            return false
+        if not is_finite(float(v)) or float(v)!=float(int(v)):
+            return false
+        if int(v)<0 or int(v)>int(EXTENDED_LIMITS[key]):
+            return false
+    if extra.has("rank") and extra.has("participants"):
+        if (int(extra["rank"])<1 or int(extra["participants"])<1 or
+                int(extra["rank"])>int(extra["participants"])):
+            return false
+    if extra.has("hits") and extra.has("shots"):
+        if int(extra["hits"])>int(extra["shots"]):
+            return false
+    if (extra.has("accuracy") and extra.has("shots") and
+            int(extra["shots"])==0 and int(extra["accuracy"])>0):
+        return false
+    return true
 
 
 func _valid(value: Variant) -> bool:
@@ -66,6 +99,12 @@ func _valid(value: Variant) -> bool:
             return false
         if int(record["kills"])>100 or int(record["survived_seconds"])>86400:
             return false
+        var extra: Dictionary={}
+        for key in EXTENDED_LIMITS.keys():
+            if record.has(key):
+                extra[key]=record[key]
+        if not _valid_extra_fields(extra):
+            return false
     return true
 
 
@@ -92,6 +131,9 @@ func _load_file(path: String) -> Dictionary:
         for record in parsed["history"]:
             for key in ["match_id","kills","survived_seconds","saved_at_unix"]:
                 record[key]=int(record[key])
+            for key in EXTENDED_LIMITS.keys():
+                if record.has(key):
+                    record[key]=int(record[key])
         return parsed
     return {}
 
@@ -138,7 +180,8 @@ func next_match_id() -> int:
     return int(_data["next_match_id"])
 
 
-func record_result(match_id: int,victory: bool,kills: int,survived_seconds: int) -> bool:
+func record_result(match_id: int,victory: bool,kills: int,
+        survived_seconds: int,extra: Dictionary={}) -> bool:
     if not retry_pending():
         return false
     if not reload():
@@ -147,6 +190,8 @@ func record_result(match_id: int,victory: bool,kills: int,survived_seconds: int)
     if match_id<=0 or match_id!=next_match_id():
         return false
     if kills<0 or kills>100 or survived_seconds<0 or survived_seconds>86400:
+        return false
+    if not _valid_extra_fields(extra):
         return false
     var previous: Dictionary=_data.duplicate(true)
     _data["next_match_id"]=match_id+1
@@ -157,13 +202,19 @@ func record_result(match_id: int,victory: bool,kills: int,survived_seconds: int)
     _data["best_kills"]=maxi(int(_data["best_kills"]),kills)
     _data["longest_survival_seconds"]=maxi(int(_data["longest_survival_seconds"]),survived_seconds)
     var history: Array=_data["history"]
-    history.push_front({
+    var entry: Dictionary={
         "match_id":match_id,
         "victory":victory,
         "kills":kills,
         "survived_seconds":survived_seconds,
         "saved_at_unix":int(Time.get_unix_time_from_system())
-    })
+    }
+    # Optional fields are serialized inside the existing SHA256-protected
+    # atomic record. A recovered legacy record simply lacks these keys.
+    for key in EXTENDED_LIMITS.keys():
+        if extra.has(key):
+            entry[key]=int(extra[key])
+    history.push_front(entry)
     if history.size()>LIMIT:
         history.resize(LIMIT)
     if not _write_atomic():
