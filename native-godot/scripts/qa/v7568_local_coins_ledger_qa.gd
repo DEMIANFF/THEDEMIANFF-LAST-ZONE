@@ -15,7 +15,7 @@ func check(ok: bool,reason: String) -> void:
         push_error("V7568_LOCAL_COINS "+reason)
 
 func _clean(path: String) -> void:
-    for suffix in ["",".bak",".tmp"]:
+    for suffix in ["",".bak",".tmp",".auto",".auto.tmp"]:
         var target: String=ProjectSettings.globalize_path(path+suffix)
         if FileAccess.file_exists(target):
             DirAccess.remove_absolute(target)
