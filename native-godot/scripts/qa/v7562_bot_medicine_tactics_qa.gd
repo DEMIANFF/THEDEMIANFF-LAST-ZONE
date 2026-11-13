@@ -111,11 +111,13 @@ func _verify() -> void:
     check(gunner._reload_remaining>BOT.RELOAD_SECONDS-.1 and
         gunner._magazine==3 and gunner.shots_fired==0,
         "hidden armed opponent did not anticipate a low magazine")
-    gunner._physics_process(1.2)
+    for step in range(3):
+        gunner._physics_process(.40)
     check(gunner._reload_remaining>0.0 and
         gunner._magazine==3 and gunner.shots_fired==0,
         "tactical enemy fired rounds while still reloading")
-    gunner._physics_process(1.2)
+    for step in range(3):
+        gunner._physics_process(.40)
     check(gunner._reload_remaining==0.0 and
         gunner._magazine==BOT.MAGAZINE_CAPACITY and
         gunner.reloads_completed==1,
