@@ -2,6 +2,7 @@ extends SceneTree
 ## V75.66 — Verify one AWM round drives the real skinned 0.5s bolt,
 ## a pooled muzzle flash and bounded visual recoil. Ballistics and
 ## physical cover checks must use a muzzle unaffected by visual effects.
+const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 var failed: bool=false
 
 
@@ -79,7 +80,7 @@ func _verify() -> void:
         combat.shots_fired_total==ar_events+1 and
         visuals.visual_shots==1 and visuals._flash_remaining>0.0 and
         effect.visible and visuals._visual_kick>0.0 and
-        visuals._visual_kick<=visuals.AR_VISUAL_KICK+.001 and
+        visuals._visual_kick<=WEAPON_VISUALS.AR_VISUAL_KICK+.001 and
         operator._combat_action=="AuroraFire",
         "AR actual bullet isn't synchronized with pooled muzzle flash")
     var after_flash_muzzle: Vector3=visuals.muzzle_position()
@@ -121,12 +122,14 @@ func _verify() -> void:
     check(combat.ammo[1]==awm_ammo-1 and
         combat.cooldown>=.49 and
         visuals.visual_shots==shots_before_dry+1 and
-        effect.visible and visuals._visual_kick>=visuals.AWM_VISUAL_KICK-.001 and
+        effect.visible and visuals._visual_kick>=WEAPON_VISUALS.AWM_VISUAL_KICK-.001 and
         operator._combat_action=="AuroraBoltAWM" and
         absf(operator._combat_action_seconds-.50)<.001 and
-        controller.action_clip.animation=="AuroraBoltAWM" and
-        controller.tree.get("parameters/UpperBody/active"),
+        controller.action_clip.animation=="AuroraBoltAWM",
         "real AWM round does not trigger authored half-second bolt and flash")
+    await process_frame
+    check(controller.tree.get("parameters/UpperBody/active"),
+        "AWM bolt is not actually playing on Lila's upper body animation tree")
     check(awm_muzzle.distance_to(visuals.muzzle_position())<.012,
         "sniper visual recoil changed the actual ballistic muzzle")
     combat._process(.6)
