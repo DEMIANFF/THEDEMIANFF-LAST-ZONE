@@ -5,6 +5,7 @@ signal closed
 signal hud_editor_requested
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
+const MATCH_RECORDS=preload("res://scripts/persistence/offline_match_records.gd")
 const RENDER_BUDGET=preload("res://scripts/render/aurora_render_budget.gd")
 const UI_PATH: String="user://aurora_ui_options.cfg"
 const AUDIO_PATH: String="user://aurora_audio.cfg"
@@ -414,9 +415,30 @@ func _account_page() -> void:
     _heading("HERRAMIENTAS LOCALES")
     _make_button(_content,"DESCARGAR / GUARDAR AJUSTES",_backup_local_settings)
     _make_button(_content,"CARGAR AJUSTES GUARDADOS",_restore_local_settings)
+    _heading("AUTORRESPALDO DE PARTIDAS")
+    var backup= MATCH_RECORDS.new()
+    var state: Dictionary=backup.auto_backup_status()
+    _info("Copia local: %d partidas. Estado: %s"%[
+        int(state.get("played",0)),
+        "ACTUALIZADA" if bool(state.get("in_sync",false)) else "SIN ACTUALIZAR"])
+    _info("Se crea después de un resultado guardado y ayuda ante archivos dañados. "
+        +"No sobrevive a desinstalación; no es una copia Firebase.")
+    _make_button(_content,"VERIFICAR / ACTUALIZAR RESPALDO LOCAL",
+        _refresh_local_profile_backup)
     _heading("VISIBILIDAD Y SEGURIDAD")
     _info("Espectadores, privacidad de clasificación, amigos y gestión de cuentas online estarán disponibles cuando exista el servicio multijugador.")
     _info("No hay botones de desvincular, borrar cuenta o iniciar sesión ficticios. Los datos existentes de Firebase no se modifican.")
+
+
+func _refresh_local_profile_backup() -> void:
+    var backup= MATCH_RECORDS.new()
+    if not backup.refresh_auto_backup():
+        _status.text="No hay un perfil guardado válido para copiar"
+        return
+    var state: Dictionary=backup.auto_backup_status()
+    _status.text="Copia local verificada: %d partidas"%int(
+        state.get("played",0)) if bool(state.get("in_sync",false)) else (
+        "No se pudo comprobar la copia local")
 
 
 func _backup_local_settings() -> void:
