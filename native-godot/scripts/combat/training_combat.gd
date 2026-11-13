@@ -198,13 +198,18 @@ func _on_heal() -> void:
     if operator.training_health>=99.5:
         hud.impact("SALUD COMPLETA")
         return
-    if trigger_held or reload_timer>0.0 or operator._sprint_touch or
+    if (trigger_held or reload_timer>0.0 or operator._sprint_touch or
             operator._move_axis.length_squared()>.01 or
-            Vector2(operator.velocity.x,operator.velocity.z).length_squared()>.49:
+            Vector2(operator.velocity.x,operator.velocity.z).length_squared()>.49):
         hud.impact("DETENTE PARA CURAR")
         return
     # Camera look remains free while stationary; movement, damage, fire,
     # zoom, reload and weapon change cancel an in-progress medical action.
+    if aim_active:
+        aim_active=false
+        current_zoom=1.0
+        operator.set_ads(false,1.0)
+        hud.set_aim(false,"MIRA LIBRE",1.0)
     _heal_remaining=HEAL_APPLY_SECONDS
     _heal_anchor=operator.global_position
     hud.set_heal_channel(true,_heal_remaining,HEAL_APPLY_SECONDS,medkits_remaining)
@@ -701,3 +706,8 @@ func _draw_weapon_rig() -> void:
     operator.set_equipped_weapon(weapon_index)
     if _weapon_visuals.right_hand_socket==null:
         push_warning("Rigged right-hand attachment unavailable")
+
+
+func _notification(what: int) -> void:
+    if what==NOTIFICATION_APPLICATION_FOCUS_OUT:
+        _cancel_healing()
