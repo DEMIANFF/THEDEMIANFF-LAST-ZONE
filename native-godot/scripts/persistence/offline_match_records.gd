@@ -4,6 +4,7 @@ extends RefCounted
 ## the device-local user:// sandbox and never touches legacy V70 data.
 const SCHEMA: int=1
 const LIMIT: int=12
+const LOCAL_COIN_LIMIT: int=1000000000
 # Optional per-match fields preserve schema-1 saves from all prior builds.
 # Never rewrite legacy data or touch Firebase/Google identity collections.
 const EXTENDED_LIMITS: Dictionary={
@@ -29,6 +30,7 @@ func _defaults() -> Dictionary:
     return {
         "schema":SCHEMA,
         "next_match_id":1,
+        "local_coins":0,
         "played":0,
         "wins":0,
         "kills":0,
@@ -82,6 +84,13 @@ func _valid(value: Variant) -> bool:
             return false
     if int(d.get("next_match_id",0))<1 or int(d.get("wins",0))>int(d.get("played",0)):
         return false
+    # Old schema-1 journals have no local_coins; migrate them as zero.
+    if d.has("local_coins"):
+        var coins: Variant=d["local_coins"]
+        if not (coins is int or coins is float) or not is_finite(float(coins)) or \
+                float(coins)!=float(int(coins)) or int(coins)<0 or \
+                int(coins)>LOCAL_COIN_LIMIT:
+            return false
     if not (d.get("history") is Array):
         return false
     if int(d["next_match_id"])!=int(d["played"])+1:
@@ -102,6 +111,14 @@ func _valid(value: Variant) -> bool:
             return false
         if int(record["kills"])>100 or int(record["survived_seconds"])>86400:
             return false
+        # Coins are earned only by actual stored BR results, never by a UI click.
+        if record.has("local_coins_awarded"):
+            var award: Variant=record["local_coins_awarded"]
+            if not (award is int or award is float) or not is_finite(float(award)) or \
+                    float(award)!=float(int(award)) or int(award)!=local_coin_reward(
+                    bool(record["victory"]),int(record["kills"]),
+                    int(record["survived_seconds"])):
+                return false
         var extra: Dictionary={}
         for key in EXTENDED_LIMITS.keys():
             if record.has(key):
@@ -131,7 +148,10 @@ func _load_file(path: String) -> Dictionary:
         # types before comparing the verified journal with the in-memory data.
         for key in ["schema","next_match_id","played","wins","kills","survival_seconds","best_kills","longest_survival_seconds"]:
             parsed[key]=int(parsed[key])
+        parsed["local_coins"]=int(parsed.get("local_coins",0))
         for record in parsed["history"]:
+            if record.has("local_coins_awarded"):
+                record["local_coins_awarded"]=int(record["local_coins_awarded"])
             for key in ["match_id","kills","survived_seconds","saved_at_unix"]:
                 record[key]=int(record[key])
             for key in EXTENDED_LIMITS.keys():
@@ -183,6 +203,15 @@ func next_match_id() -> int:
     return int(_data["next_match_id"])
 
 
+## Strictly offline reward schedule. This balance is NOT a cloud wallet and
+## must never be accepted as payment, premium diamonds, or ranked RP.
+static func local_coin_reward(victory: bool,kills: int,survived_seconds: int) -> int:
+    if kills<0 or kills>100 or survived_seconds<0 or survived_seconds>86400:
+        return 0
+    var minutes: int=mini(10,int(floor(float(survived_seconds)/60.0)))
+    return 25+mini(kills,20)*5+minutes*2+(75 if victory else 0)
+
+
 func record_result(match_id: int,victory: bool,kills: int,
         survived_seconds: int,extra: Dictionary={}) -> bool:
     if not retry_pending():
@@ -196,6 +225,9 @@ func record_result(match_id: int,victory: bool,kills: int,
         return false
     if not _valid_extra_fields(extra):
         return false
+    var reward: int=local_coin_reward(victory,kills,survived_seconds)
+    if int(_data.get("local_coins",0))>LOCAL_COIN_LIMIT-reward:
+        return false
     var previous: Dictionary=_data.duplicate(true)
     _data["next_match_id"]=match_id+1
     _data["played"]=int(_data["played"])+1
@@ -204,13 +236,17 @@ func record_result(match_id: int,victory: bool,kills: int,
     _data["survival_seconds"]=int(_data["survival_seconds"])+survived_seconds
     _data["best_kills"]=maxi(int(_data["best_kills"]),kills)
     _data["longest_survival_seconds"]=maxi(int(_data["longest_survival_seconds"]),survived_seconds)
+    # Wallet and match result use ONE atomic journal commit, so retries cannot
+    # add the same payout twice after an interrupted write.
+    _data["local_coins"]=int(_data.get("local_coins",0))+reward
     var history: Array=_data["history"]
     var entry: Dictionary={
         "match_id":match_id,
         "victory":victory,
         "kills":kills,
         "survived_seconds":survived_seconds,
-        "saved_at_unix":int(Time.get_unix_time_from_system())
+        "saved_at_unix":int(Time.get_unix_time_from_system()),
+        "local_coins_awarded":reward
     }
     # Optional fields are serialized inside the existing SHA256-protected
     # atomic record. A recovered legacy record simply lacks these keys.
