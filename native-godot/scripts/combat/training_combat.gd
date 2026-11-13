@@ -389,15 +389,14 @@ static func physical_hit_damage(weapon: int,is_critical: bool) -> float:
 ## this path in a match. Real damage and health loss still come from the
 ## CharacterBody3D; misses, walls and dead bots never produce headshots.
 func _apply_verified_opponent_hit(hit: Dictionary) -> Dictionary:
-    var actor: Object=hit.get("collider")
-    var point: Variant=hit.get("position")
-    if not (actor is CharacterBody3D and
-            is_instance_valid(actor) and actor.is_in_group("training_target")
-            and point is Vector3 and (point as Vector3).is_finite()
-            and actor.health>0.0):
+    var opponent: CharacterBody3D=hit.get("collider") as CharacterBody3D
+    if not is_instance_valid(opponent) or not opponent.is_in_group(
+            "training_target") or opponent.health<=0.0:
         return {}
-    var opponent: CharacterBody3D=actor
-    var critical: bool=is_critical_contact(point,opponent.global_position)
+    var contact: Vector3=hit.get("position",Vector3(INF,INF,INF))
+    if not contact.is_finite():
+        return {}
+    var critical: bool=is_critical_contact(contact,opponent.global_position)
     var before: float=float(opponent.health)
     var eliminated: bool=opponent.take_training_damage(
         physical_hit_damage(weapon_index,critical),operator)
