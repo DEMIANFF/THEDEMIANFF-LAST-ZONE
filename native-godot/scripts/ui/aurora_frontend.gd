@@ -49,6 +49,15 @@ var _settings_modal: CanvasLayer
 var _brand_logo: TextureRect
 var _encounter_count: int=9
 var _encounter_selector: OptionButton
+var _match_mode_selector: OptionButton
+var _selected_match_mode: String="classic"
+var _lobby_mode_heading: Label
+var _lobby_mode_caption: Label
+var _lobby_mode_status: Label
+var _lobby_play_modes: VBoxContainer
+var _lobby_detail_scroll: ScrollContainer
+var _battle_entry: Button
+var _training_entry: Button
 
 
 func _ready() -> void:
@@ -336,7 +345,7 @@ func _show_lobby() -> void:
     _page.anchor_right=.97
     _page.anchor_top=.16
     _page.anchor_bottom=.94
-    _page.add_theme_constant_override("separation",8)
+    _page.add_theme_constant_override("separation",5)
     _preview_container.anchor_left=.29
     _preview_container.anchor_right=.65
     _preview_container.anchor_top=.14
@@ -357,25 +366,36 @@ func _show_lobby() -> void:
     if _preview_avatar:
         _preview_avatar.rotation.y=0.0
     _clear_page()
-    _label("PUERTO AURORA  /  BR",27)
-    _label("OPERACIÓN ÚLTIMA ZONA  •  OFFLINE",14)
-    var mode_title:=_label("SELECCIONA UN MODO",17)
-    mode_title.add_theme_color_override("font_color",Color(.96,.77,.38))
-    var modes:=VBoxContainer.new()
-    modes.name="PlayModes"
-    modes.add_theme_constant_override("separation",8)
-    _page.add_child(modes)
-    var battle:=_button("INICIAR BATTLE ROYALE",Callable(self,"_launch").bind(true),265)
-    battle.name="BattleButton"
-    modes.add_child(battle)
-    var training:=_button("ENTRENAMIENTO",Callable(self,"_launch").bind(false),245)
-    training.name="TrainingButton"
-    modes.add_child(training)
-    var selector_caption:=_label("PARTICIPANTES LOCALES / SOLO CON IA",14)
-    selector_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
+    _label("PUERTO AURORA  /  BR",22)
+    _label("THEDEMIAN · LOBBY LOCAL",12)
+    _lobby_mode_heading=_label("MODALIDAD DE PARTIDA",13)
+    _lobby_mode_heading.add_theme_color_override("font_color",Color(.96,.77,.38))
+    _match_mode_selector=OptionButton.new()
+    _match_mode_selector.name="MatchModeSelector"
+    _match_mode_selector.custom_minimum_size=Vector2(265,36)
+    _match_mode_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+    _match_mode_selector.add_item("CLÁSICO · IA LOCAL",0)
+    _match_mode_selector.add_item("CLASIFICATORIA · ONLINE PENDIENTE",1)
+    _match_mode_selector.add_item("ENTRENAMIENTO · LOCAL",2)
+    _match_mode_selector.select(["classic","ranked","training"].find(_selected_match_mode))
+    _match_mode_selector.item_selected.connect(_on_match_mode_selected)
+    _page.add_child(_match_mode_selector)
+    _lobby_play_modes=VBoxContainer.new()
+    _lobby_play_modes.name="PlayModes"
+    _page.add_child(_lobby_play_modes)
+    _battle_entry=_button("INICIAR CLÁSICO",Callable(self,"_launch").bind(true),265)
+    _battle_entry.name="BattleButton"
+    _battle_entry.custom_minimum_size.y=42
+    _lobby_play_modes.add_child(_battle_entry)
+    _training_entry=_button("INICIAR ENTRENAMIENTO",Callable(self,"_launch").bind(false),265)
+    _training_entry.name="TrainingButton"
+    _training_entry.custom_minimum_size.y=42
+    _lobby_play_modes.add_child(_training_entry)
+    _lobby_mode_caption=_label("PARTICIPANTES LOCALES · SOLO CON IA",12)
+    _lobby_mode_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
     _encounter_selector=OptionButton.new()
     _encounter_selector.name="OfflineEncounterSize"
-    _encounter_selector.custom_minimum_size=Vector2(257,38)
+    _encounter_selector.custom_minimum_size=Vector2(257,34)
     _encounter_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
     _encounter_selector.add_item("9 TOTAL · 1 + 8 IA (estable)",9)
     _encounter_selector.add_item("20 TOTAL · 1 + 19 IA (prueba)",20)
@@ -383,10 +403,63 @@ func _show_lobby() -> void:
     _encounter_selector.select([9,20,30].find(_encounter_count))
     _encounter_selector.item_selected.connect(_on_encounter_selected)
     _page.add_child(_encounter_selector)
-    _info=_label("",16)
+    _lobby_mode_status=_label("",12)
+    _lobby_mode_status.name="ModeAvailability"
+    # Long account and match history text remains reachable on small screens.
+    _lobby_detail_scroll=ScrollContainer.new()
+    _lobby_detail_scroll.name="LobbyDetailsScroll"
+    _lobby_detail_scroll.custom_minimum_size=Vector2(0,65)
+    _lobby_detail_scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _lobby_detail_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
+    _page.add_child(_lobby_detail_scroll)
+    _info=Label.new()
     _info.name="LobbyDetail"
+    _info.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    _info.add_theme_font_size_override("font_size",14)
+    _info.add_theme_color_override("font_color",Color(.86,.96,1))
+    _info.custom_minimum_size.x=255
+    _lobby_detail_scroll.add_child(_info)
     _build_settings()
     _select_tab(_selected_tab)
+
+
+func _on_match_mode_selected(index: int) -> void:
+    if _match_mode_selector==null:
+        return
+    match _match_mode_selector.get_item_id(index):
+        0:
+            _selected_match_mode="classic"
+        1:
+            _selected_match_mode="ranked"
+        2:
+            _selected_match_mode="training"
+        _:
+            _selected_match_mode="classic"
+    _sync_lobby_match_mode()
+
+
+func _sync_lobby_match_mode() -> void:
+    if stage!="lobby" or _match_mode_selector==null:
+        return
+    var show_modes: bool=_selected_tab!="AJUSTES"
+    _lobby_mode_heading.visible=show_modes
+    _match_mode_selector.visible=show_modes
+    _lobby_play_modes.visible=show_modes and _selected_match_mode!="ranked"
+    _battle_entry.visible=show_modes and _selected_match_mode=="classic"
+    _training_entry.visible=show_modes and _selected_match_mode=="training"
+    _lobby_mode_caption.visible=show_modes and _selected_match_mode=="classic"
+    _encounter_selector.visible=show_modes and _selected_match_mode=="classic"
+    _lobby_mode_status.visible=show_modes
+    _lobby_detail_scroll.visible=show_modes
+    match _selected_match_mode:
+        "classic":
+            _lobby_mode_status.text="CLÁSICO LOCAL · %d participantes (1 humano + IA).\nSolo disponible sin rango."%_encounter_count
+        "ranked":
+            _lobby_mode_status.text="CLASIFICATORIA BLOQUEADA\nRequiere cuentas, servidor autoritativo y anti-trampas."
+        "training":
+            _lobby_mode_status.text="ENTRENAMIENTO LOCAL · Sin puntos competitivos."
+        _:
+            _lobby_mode_status.text="Modo no disponible"
 
 
 func _on_encounter_selected(index: int) -> void:
@@ -397,6 +470,7 @@ func _on_encounter_selected(index: int) -> void:
         _encounter_count=9
     # These are all OFFLINE AI opponents. Human 20/30 player sessions
     # still require dedicated server authority and replication.
+    _sync_lobby_match_mode()
     if _info!=null and stage=="lobby":
         _info.text="SECTOR LOCAL %d · 1 OPERADOR + %d IA\n%s"%[
             _encounter_count,_encounter_count-1,
@@ -513,6 +587,7 @@ func _select_tab(tab: String) -> void:
             _info.text="CUENTA / GUARDADO LOCAL\nLos resultados se almacenan en este dispositivo. Google y Firebase no están vinculados a Godot."
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
+    _sync_lobby_match_mode()
 
 func _launch_hud_editor() -> void:
     if stage!="lobby":
@@ -569,6 +644,10 @@ func _finish_lobby_hud_return() -> void:
 
 func _launch(battle: bool) -> void:
     if stage!="lobby":
+        return
+    # Ranked cannot be disguised as an offline match or accrue fictitious RP.
+    # Opening the real HUD editor may temporarily enter Training by design.
+    if _selected_match_mode=="ranked" and not _hud_editor_requested:
         return
     stage="loading"
     FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",null,
