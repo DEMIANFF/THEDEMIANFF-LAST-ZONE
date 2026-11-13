@@ -57,7 +57,11 @@ var cover_last_block_reason: String=""
 var _cover_serial: int=0
 var _covers: Array[StaticBody3D]=[]
 var tracer_events: int = 0
+var bot_tracer_events: int=0
 const TRACER_CAPACITY: int=8
+# Additional pooled enemy tracers are rendered only for real ray hits.
+# Separate from the existing 8-player pool (old QA invariant).
+const BOT_TRACER_CAPACITY: int=8
 # Visual effect length is bounded. Damage range and obstruction checks are
 # unchanged; the 90 m yellow streak on Android was just a drawn cylinder.
 const TRACER_MAX_LENGTH: float=24.0
@@ -66,6 +70,10 @@ var _tracers: Array[MeshInstance3D]=[]
 var _tracer_lifetimes: Array[float]=[]
 var _tracer_cursor: int=0
 var _tracer_materials: Array[StandardMaterial3D]=[]
+var _bot_tracers: Array[MeshInstance3D]=[]
+var _bot_tracer_lifetimes: Array[float]=[]
+var _bot_tracer_cursor: int=0
+var _bot_tracer_material: StandardMaterial3D
 var last_shot: Dictionary={}
 
 
@@ -97,6 +105,10 @@ func _process(dt: float) -> void:
         if _tracer_lifetimes[i]>0.0:
             _tracer_lifetimes[i]=maxf(0.0,_tracer_lifetimes[i]-dt)
             _tracers[i].visible=_tracer_lifetimes[i]>0.0
+    for i in range(_bot_tracers.size()):
+        if _bot_tracer_lifetimes[i]>0.0:
+            _bot_tracer_lifetimes[i]=maxf(0.0,_bot_tracer_lifetimes[i]-dt)
+            _bot_tracers[i].visible=_bot_tracer_lifetimes[i]>0.0
     if _heal_remaining>0.0:
         var moving: bool=(operator._move_axis.length_squared()>.01 or
             operator._sprint_touch or operator._jump_requested or
@@ -389,6 +401,9 @@ func deploy_aurora_cover() -> bool:
 
 func end_sector_battle() -> void:
     _cancel_healing()
+    for i in range(_bot_tracers.size()):
+        _bot_tracer_lifetimes[i]=0.0
+        _bot_tracers[i].visible=false
     sector_battle_active=false
     _clear_cover()
     cover_charges=0
@@ -499,6 +514,7 @@ func _ensure_encounter_capacity() -> void:
         bot.eliminated.connect(_on_bot_eliminated)
         bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
         bot.weapon_fired.connect(_on_bot_weapon_fired.bind(bot))
+        bot.shot_trace.connect(_on_bot_trace)
         if navigation:
             navigation.actors.append(bot)
         add_child(bot)
@@ -628,6 +644,19 @@ func _prepare_tracers() -> void:
         add_child(tracer)
         _tracers.append(tracer)
         _tracer_lifetimes.append(0.0)
+    _bot_tracer_material=StandardMaterial3D.new()
+    _bot_tracer_material.albedo_color=Color(.99,.31,.19)
+    _bot_tracer_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    for i in range(BOT_TRACER_CAPACITY):
+        var visual:=MeshInstance3D.new()
+        visual.name="EnemyShotTracer"+str(i)
+        visual.mesh=mesh
+        visual.material_override=_bot_tracer_material
+        visual.visible=false
+        visual.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        add_child(visual)
+        _bot_tracers.append(visual)
+        _bot_tracer_lifetimes.append(0.0)
 
 
 func _spawn_tracer(from: Vector3,to: Vector3) -> void:
@@ -644,6 +673,26 @@ func _spawn_tracer(from: Vector3,to: Vector3) -> void:
     _tracer_lifetimes[_tracer_cursor]=TRACER_LIFETIME
     _tracer_cursor=(_tracer_cursor+1)%TRACER_CAPACITY
     tracer_events+=1
+
+
+## Red tracer only for an actual bot PhysicsServer shot, never a predicted
+## decorative muzzle flash or an imaginary online opponent.
+func _on_bot_trace(from: Vector3,to: Vector3) -> void:
+    var span: Vector3=to-from
+    if not span.is_finite() or span.length_squared()<=.0001 or
+            _bot_tracers.is_empty():
+        return
+    var distance: float=minf(span.length(),TRACER_MAX_LENGTH)
+    var heading: Vector3=span.normalized()
+    var visual: MeshInstance3D=_bot_tracers[_bot_tracer_cursor]
+    visual.global_transform=Transform3D(
+        Basis(Quaternion(Vector3.UP,heading))*
+        Basis.from_scale(Vector3(.011,distance,.011)),
+        from+heading*distance*.5)
+    visual.visible=true
+    _bot_tracer_lifetimes[_bot_tracer_cursor]=TRACER_LIFETIME
+    _bot_tracer_cursor=(_bot_tracer_cursor+1)%BOT_TRACER_CAPACITY
+    bot_tracer_events+=1
 
 
 func _sync_hud() -> void:
@@ -666,6 +715,7 @@ func _make_targets() -> void:
         bot.eliminated.connect(_on_bot_eliminated)
         bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
         bot.weapon_fired.connect(_on_bot_weapon_fired.bind(bot))
+        bot.shot_trace.connect(_on_bot_trace)
         add_child(bot)
         _targets.append(bot)
 
