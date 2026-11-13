@@ -54,11 +54,15 @@ func setup(source: AnimationPlayer) -> void:
     action_clip.animation="AuroraFire"
     var blend:=AnimationNodeBlendTree.new()
     blend.add_node("Locomotion",states)
+    # Keep gait animation phase proportional to the real CharacterBody
+    # speed, instead of playing fast run clips during a blocked doorway.
+    blend.add_node("GaitSpeed",AnimationNodeTimeScale.new())
     blend.add_node("Action",action_clip)
     blend.add_node("ActionSpeed",AnimationNodeTimeScale.new())
     blend.add_node("UpperBody",one_shot)
     blend.connect_node("ActionSpeed",0,"Action")
-    blend.connect_node("UpperBody",0,"Locomotion")
+    blend.connect_node("GaitSpeed",0,"Locomotion")
+    blend.connect_node("UpperBody",0,"GaitSpeed")
     blend.connect_node("UpperBody",1,"ActionSpeed")
     blend.connect_node("output",0,"UpperBody")
     tree=AnimationTree.new()
@@ -75,6 +79,20 @@ func setup(source: AnimationPlayer) -> void:
     tree.active=true
     playback=tree.get("parameters/Locomotion/playback")
     playback.start("AuroraArmedIdle")
+
+## Bounded playback adjustment for existing authored and rigged gait clips.
+## Does not change collider movement, firing cadence or AnimationTree phase.
+static func gait_multiplier(actual_speed: float,reference_speed: float) -> float:
+    if not is_finite(actual_speed) or not is_finite(reference_speed) or reference_speed<=0:
+        return 1.0
+    return clampf(actual_speed/reference_speed,.75,1.30)
+
+
+func set_gait_speed(actual_speed: float,reference_speed: float) -> void:
+    if tree!=null:
+        tree.set("parameters/GaitSpeed/scale",
+            gait_multiplier(actual_speed,reference_speed))
+
 
 func play(clip: String) -> void:
     if states.has_node(clip) and playback.get_current_node()!=clip:
