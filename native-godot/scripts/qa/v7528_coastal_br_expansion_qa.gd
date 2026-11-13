@@ -125,6 +125,12 @@ func _verify() -> void:
     for enemy in combat._targets:
         check(is_equal_approx(enemy.safe_radius,director.radius),
             "bot uses a stale danger radius while storm damage advances")
+    # V75.55 adds exactly one physical supply when phase 2 begins.
+    # The original 25 caches must remain untouched and separately usable.
+    check(director.get_loot_remaining()==26 and
+        director.get_node_or_null("AuroraPhaseSupply1") is Area3D,
+        "phase update failed to create exactly one real bonus cache")
+    var before_pickups: int=director.get_loot_remaining()
     var pickup: Area3D=director.get_node("AuroraInteriorLoot1")
     var anchor: Vector3=coastal.interior_supply_spots[0]
     check(is_equal_approx(pickup.global_position.y,anchor.y+.50),
@@ -136,7 +142,7 @@ func _verify() -> void:
     await physics_frame
     pickup._collect(player)
     check(pickup.collected and combat.medkits_remaining==before+1 and
-        director.get_loot_remaining()==24,
+        director.get_loot_remaining()==before_pickups-1,
         "entering a real home cannot collect the indoor medkit")
     # Each actual indoor pickup must be obtainable from its floor anchor,
     # not simply counted or rendered in a house inaccessible to the player.
@@ -152,7 +158,7 @@ func _verify() -> void:
         loot._collect(player)
         check(loot.collected,"interior capsule "+str(index+1)+
             " is unreachable, blocked, or has invalid resource pickup")
-    check(director.get_loot_remaining()==17,
+    check(director.get_loot_remaining()==before_pickups-8,
         "eight indoor capsules were not independently collectible")
     if not failed:
         print("V7528_COASTAL_BR PASS all houses walked=",walked_houses,
