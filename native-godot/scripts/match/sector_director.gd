@@ -336,7 +336,7 @@ func _finish(victory: bool) -> void:
     hud.set_battle_button("REINICIAR BR")
     hud.show_match_result(victory,combat.eliminations,int(elapsed),rank,
         participants,int(extras["damage"]),int(extras["loot"]),
-        int(extras["accuracy"]))
+        int(extras["accuracy"]),int(extras["headshots"]))
     hud.impact(("¡VICTORIA DEL SECTOR!" if victory else "PARTIDA TERMINADA / REINTENTAR") if last_match_saved else "ALERTA: NO SE GUARDO EL RESULTADO")
     round_ended.emit(victory)
 
