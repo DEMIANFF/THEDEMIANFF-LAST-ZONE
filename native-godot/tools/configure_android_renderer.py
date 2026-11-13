@@ -25,7 +25,9 @@ def configure(variant: str) -> None:
     assert 'renderer/rendering_method.mobile="gl_compatibility"' not in project
     assert 'version/code=51' in preset
     assert 'version/name="75.61.0-mobile-vulkan"' in preset
-    assert 'export_path="out/THEDEMIAN-V75.61-MOTOROLA-VULKAN.apk"' in preset, (\n        "No stale OpenGL/diagnostic APK path allowed")\n    assert 'package/unique_name="com.thedemianff.lastzone.nativepreview"' in preset
+    assert 'export_path="out/THEDEMIAN-V75.61-MOTOROLA-VULKAN.apk"' in preset, (
+        "No stale OpenGL/diagnostic APK path allowed")
+    assert 'package/unique_name="com.thedemianff.lastzone.nativepreview"' in preset
     print("AURORA_VULKAN_ONLY Android=mobile/vulkan desktop=compatibility versionCode=51")
 
 
