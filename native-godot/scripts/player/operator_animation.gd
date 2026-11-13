@@ -15,7 +15,7 @@ func setup(source: AnimationPlayer) -> void:
         if not clip.begins_with("Aurora"):
             continue
         var animation:=source.get_animation(clip)
-        animation.loop_mode=Animation.LOOP_NONE if clip in ["AuroraFire","AuroraReloadAR","AuroraReloadAWM","AuroraHit","AuroraLand","AuroraJump"] else Animation.LOOP_LINEAR
+        animation.loop_mode=Animation.LOOP_NONE if clip in ["AuroraFire","AuroraReloadAR","AuroraReloadAWM","AuroraHeal","AuroraHit","AuroraLand","AuroraJump"] else Animation.LOOP_LINEAR
         var node:=AnimationNodeAnimation.new()
         node.animation=clip
         states.add_node(clip,node)

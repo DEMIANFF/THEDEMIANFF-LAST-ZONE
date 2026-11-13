@@ -80,6 +80,8 @@ var _camera_pivot: Node3D
 var _camera: Camera3D
 var _avatar: Node3D
 var _animation_controller: Node
+var _medkit_visual: Node3D
+var _medkit_socket: BoneAttachment3D
 var _landing_seconds: float=0.0
 var _footstep_distance: float=0.0
 var _ground_locomotion: String="Idle"
@@ -177,6 +179,7 @@ func _ready() -> void:
             add_child(_animation_controller)
             _animation_controller.setup(_animator)
         _play_matching_animation("AuroraArmedIdle")
+        _build_medkit_visual()
     else:
         push_warning("CC0 female operator GLB not yet generated. No cube character substituted.")
     # Build the actual canopy meshes and materials once during scene load,
@@ -911,11 +914,128 @@ func set_ads(ads: bool, zoom: float) -> void:
     _current_clip=""
 
 
+## Authored on Lila's actual left-hand bone, not a camera overlay or a
+## static object in the lobby. Built once and reused for every healing action.
+## The medical injector is purely cosmetic; inventory/health are owned
+## exclusively by the authoritative real combat first-aid channel.
+func _build_medkit_visual() -> void:
+    if _avatar==null:
+        return
+    var skeleton: Skeleton3D=_avatar.find_child(
+        "Skeleton3D",true,false) as Skeleton3D
+    if skeleton==null:
+        return
+    var hand: String=""
+    for i in range(skeleton.get_bone_count()):
+        var name: String=skeleton.get_bone_name(i)
+        if name.to_lower().ends_with("lefthand"):
+            hand=name
+            break
+    if hand.is_empty():
+        push_warning("Lila medical hand attachment unavailable")
+        return
+    _medkit_socket=BoneAttachment3D.new()
+    _medkit_socket.name="LilaMedkitHandSocket"
+    _medkit_socket.bone_name=hand
+    skeleton.add_child(_medkit_socket)
+    _medkit_visual=Node3D.new()
+    _medkit_visual.name="LilaAuroraMedicalInjector"
+    _medkit_socket.add_child(_medkit_visual)
+    var skeleton_scale: float=skeleton.global_transform.basis.get_scale().x
+    if skeleton_scale>.00001:
+        _medkit_visual.scale=Vector3.ONE/skeleton_scale
+        _medkit_visual.position=Vector3(.015,-.035,-.020)/skeleton_scale
+    _medkit_visual.rotation_degrees=Vector3(16,0,88)
+    var dark:=StandardMaterial3D.new()
+    dark.albedo_color=Color(.045,.086,.16)
+    dark.metallic=.38
+    dark.roughness=.43
+    var white:=StandardMaterial3D.new()
+    white.albedo_color=Color(.81,.92,1.0)
+    white.metallic=.13
+    white.roughness=.32
+    var cyan:=StandardMaterial3D.new()
+    cyan.albedo_color=Color(.12,.62,1.0)
+    cyan.emission_enabled=true
+    cyan.emission=Color(.08,.39,.9)
+    cyan.emission_energy_multiplier=.45
+    cyan.roughness=.38
+    # One reusable low-poly medical cartridge, neck, blue window and
+    # tactile raised cross. Avoid new allocations on every medkit use.
+    var cartridge:=CylinderMesh.new()
+    cartridge.top_radius=.040
+    cartridge.bottom_radius=.053
+    cartridge.height=.18
+    cartridge.radial_segments=12
+    var body:=MeshInstance3D.new()
+    body.name="AuroraInjectorCartridge"
+    body.mesh=cartridge
+    body.material_override=white
+    _medkit_visual.add_child(body)
+    var cap:=CylinderMesh.new()
+    cap.top_radius=.056
+    cap.bottom_radius=.056
+    cap.height=.034
+    cap.radial_segments=12
+    var cap_visual:=MeshInstance3D.new()
+    cap_visual.name="AuroraInjectorCap"
+    cap_visual.mesh=cap
+    cap_visual.position.y=.097
+    cap_visual.material_override=dark
+    _medkit_visual.add_child(cap_visual)
+    var window:=CylinderMesh.new()
+    window.top_radius=.044
+    window.bottom_radius=.044
+    window.height=.046
+    window.radial_segments=12
+    var window_visual:=MeshInstance3D.new()
+    window_visual.name="AuroraInjectorDoseWindow"
+    window_visual.mesh=window
+    window_visual.position.y=-.025
+    window_visual.material_override=cyan
+    _medkit_visual.add_child(window_visual)
+    for i in range(2):
+        var piece:=BoxMesh.new()
+        piece.size=(Vector3(.009,.048,.004) if i==0
+            else Vector3(.037,.011,.004))
+        var plus:=MeshInstance3D.new()
+        plus.name="AuroraMedicalEmblem"+str(i)
+        plus.mesh=piece
+        plus.position=Vector3(0,.029,.055)
+        plus.material_override=dark
+        _medkit_visual.add_child(plus)
+    _medkit_visual.visible=false
+
+
+func start_medkit_animation(seconds: float) -> bool:
+    if not can_act() or not is_finite(seconds) or seconds<=0.0:
+        return false
+    if _animation_controller==null or _animator==null or not _animator.has_animation("AuroraHeal"):
+        return false
+    _combat_action="AuroraHeal"
+    _combat_action_seconds=seconds
+    if _medkit_visual:
+        _medkit_visual.visible=true
+    _animation_controller.action("AuroraHeal",seconds)
+    return true
+
+
+func stop_medkit_animation() -> void:
+    if _medkit_visual:
+        _medkit_visual.visible=false
+    if _combat_action=="AuroraHeal":
+        _combat_action=""
+        _combat_action_seconds=0.0
+        if _animation_controller:
+            _animation_controller.cancel_action()
+
+
 func set_equipped_weapon(index: int) -> void:
     _weapon_index=clampi(index,0,1)
     _current_clip=""
     _combat_action=""
     _combat_action_seconds=0.0
+    stop_medkit_animation()
     if _animation_controller:
         _animation_controller.cancel_action()
 
@@ -1155,6 +1275,7 @@ func reset_controls() -> void:
     _recoil_pitch=0.0
     _combat_action=""
     _combat_action_seconds=0.0
+    stop_medkit_animation()
     if _animation_controller:
         _animation_controller.cancel_action()
 
