@@ -111,6 +111,8 @@ func _ready() -> void:
     operator.player_damaged.connect(_on_healing_damage)
     operator.armor_changed.connect(func(_value: float): _sync_hud())
     hud.aurora_cover_pressed.connect(_on_cover_pressed)
+    operator.tactical_acceleration_activated.connect(
+        hud.start_tactical_acceleration)
     _make_targets()
     _draw_weapon_rig()
     _prepare_tracers()
@@ -561,6 +563,7 @@ func begin_sector_battle() -> void:
         if is_instance_valid(bot):
             bot.configure_sector_battle(_targets)
     if _weapon_visuals:
+        _weapon_visuals.set_awm_owned(weapon_owned[1])
         _weapon_visuals.equip(0)
     operator.set_equipped_weapon(0)
     hud.set_training_radar_sources(operator,_targets)
@@ -693,7 +696,9 @@ func collect_sector_loot(kind: String) -> bool:
             if weapon_owned[1]:
                 return false
             weapon_owned[1]=true
-            hud.impact("AWM RECOGIDA / BOTON ARMA PARA EQUIPAR")
+            if _weapon_visuals:
+                _weapon_visuals.set_awm_owned(true)
+            hud.impact("AWM RECOGIDA / VISIBLE EN ESPALDA")
         _:
             return false
     loot_collected+=1
@@ -888,7 +893,10 @@ func _on_bot_eliminated(_agent: CharacterBody3D,killer: Node3D) -> void:
     if killer==operator:
         eliminations+=1
         hud.set_eliminations(eliminations)
-        hud.impact("BAJA CONFIRMADA  /  "+str(eliminations))
+        if sector_battle_active and operator.activate_tactical_acceleration():
+            hud.impact("LILA / ACELERACION TACTICA")
+        else:
+            hud.impact("BAJA CONFIRMADA  /  "+str(eliminations))
 
 
 func _draw_weapon_rig() -> void:
@@ -898,6 +906,7 @@ func _draw_weapon_rig() -> void:
     _weapon_visuals.name="ActiveWeaponVisuals"
     add_child(_weapon_visuals)
     _weapon_visuals.attach_to_player(operator)
+    _weapon_visuals.set_awm_owned(weapon_owned[1])
     _weapon_model=_weapon_visuals.ak
     operator.set_equipped_weapon(weapon_index)
     if _weapon_visuals.right_hand_socket==null:

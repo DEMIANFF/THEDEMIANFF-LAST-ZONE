@@ -145,6 +145,11 @@ func _create_full_rig() -> void:
     if protagonist_kit!=null:
         protagonist_kit.visible=false
         protagonist_kit.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    var protagonist_hair: MeshInstance3D=_rig.find_child(
+        "LilaAuroraOriginalHair",true,false) as MeshInstance3D
+    if protagonist_hair!=null:
+        protagonist_hair.visible=false
+        protagonist_hair.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     if operator.has_method("fit_operator_visual"):
         operator.fit_operator_visual(_rig)
     _animation=_rig.find_child("AnimationPlayer",true,false) as AnimationPlayer

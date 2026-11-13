@@ -16,6 +16,10 @@ const TOUCH_DEADZONE: float = 0.12
 # Valid large deliberate swipes still accumulate across successive events.
 const CAMERA_MAX_SWIPE_PIXELS: float = 160.0
 const JUMP_BUFFER_SECONDS: float = 0.14
+# Lila's approved "Aceleración Táctica": temporary mobility after a
+# physically confirmed player kill, not by timers or fictional rewards.
+const LILA_ACCELERATION_SECONDS: float=4.0
+const LILA_ACCELERATION_MULTIPLIER: float=1.20
 
 signal training_health_changed(value: float)
 signal armor_changed(value: float)
@@ -29,10 +33,12 @@ signal footstep(on_stone: bool)
 signal jumped
 signal grounded_impact(on_stone: bool)
 signal sprint_cancelled
+signal tactical_acceleration_activated(duration: float)
 @export var approved_operator_scene: PackedScene
 var training_health: float = 100.0
 # Armor absorbs direct combat damage but not radiation outside the ring.
 var armor_points: float=0.0
+var tactical_acceleration_remaining: float=0.0
 const MAX_ARMOR: float=75.0
 var battle_royale_active: bool = false
 var royale_eliminated: bool = false
@@ -177,6 +183,8 @@ func _physics_process(delta: float) -> void:
         velocity=Vector3.ZERO
         return
     _training_immunity=maxf(0.0,_training_immunity-delta)
+    tactical_acceleration_remaining=maxf(0.0,
+        tactical_acceleration_remaining-delta)
     # A jump pressed in midair may be buffered briefly near touchdown, but
     # never kept indefinitely to trigger a surprise second jump on landing.
     _jump_buffer_seconds=maxf(0.0,_jump_buffer_seconds-delta)
@@ -206,6 +214,11 @@ func _physics_process(delta: float) -> void:
         target_speed = WALK_SPEED * .52
     elif run_fast:
         target_speed = RUN_SPEED
+    # A physical elimination briefly increases actual walk/run mobility.
+    # Crouching, ADS and held fire never gain a hidden speed advantage.
+    if not _crouching and not _ads_active and not _fire_held:
+        target_speed*=tactical_acceleration_scale(
+            tactical_acceleration_remaining)
     var target_velocity := world_direction * target_speed
 
     velocity.x = move_toward(velocity.x, target_velocity.x, ACCELERATION * delta)
@@ -779,12 +792,14 @@ func equip_armor(points: float=75.0) -> bool:
 
 func end_sector_battle() -> void:
     round_finished=true
+    tactical_acceleration_remaining=0.0
     velocity=Vector3.ZERO
     reset_controls()
 
 
 func begin_sector_battle(from_airdrop: bool=false) -> void:
     reset_controls()
+    tactical_acceleration_remaining=0.0
     round_finished=false
     battle_royale_active = true
     royale_eliminated = false
@@ -816,6 +831,22 @@ func set_touch_move_axis(direction: Vector2) -> void:
     _move_axis=Vector2.ZERO
     if direction.is_finite() and strength>TOUCH_DEADZONE and not round_finished and not royale_eliminated:
         _move_axis=direction.normalized()*clampf((strength-TOUCH_DEADZONE)/(1.0-TOUCH_DEADZONE),0.0,1.0)
+
+
+## Bounded speed boost; applies to actual CharacterBody target velocity.
+## All shots, damage, collision checks and player stats remain authoritative.
+static func tactical_acceleration_scale(seconds: float) -> float:
+    if not is_finite(seconds) or seconds<=0.0:
+        return 1.0
+    return LILA_ACCELERATION_MULTIPLIER
+
+
+func activate_tactical_acceleration() -> bool:
+    if not battle_royale_active or not can_act():
+        return false
+    tactical_acceleration_remaining=LILA_ACCELERATION_SECONDS
+    tactical_acceleration_activated.emit(tactical_acceleration_remaining)
+    return true
 
 
 func set_touch_run(active: bool) -> void:

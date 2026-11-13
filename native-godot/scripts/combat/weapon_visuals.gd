@@ -8,9 +8,14 @@ const AWM_PATH: String="res://assets/weapons/aurora_awm.glb"
 
 var operator: CharacterBody3D
 var right_hand_socket: BoneAttachment3D
+var spine_socket: BoneAttachment3D
 var mount: Node3D
+var back_mount: Node3D
 var ak: Node3D
 var awm: Node3D
+var back_ak: Node3D
+var back_awm: Node3D
+var awm_owned: bool=false
 var selected_weapon: int=0
 var equipped_visual_scale: float=1.0
 var attachment_uses_hand: bool=false
@@ -60,12 +65,44 @@ func attach_to_player(player: CharacterBody3D) -> void:
         mount.rotation_degrees=Vector3(-12,0,0)
         push_warning("No usable right-hand bone; visible temporary chest mount")
 
-    ak=_load_visual(AK_PATH,"AK74TacticalVisual")
-    awm=_load_visual(AWM_PATH,"AWMPrecisionRifleVisual")
+    # The spare rifle rides a real spine bone and therefore animates with
+    # crouch, sprint, jumps and parachute. It is not glued to the HUD camera.
+    var spine_id: int=-1
+    if skeleton:
+        for i in range(skeleton.get_bone_count()):
+            if skeleton.get_bone_name(i).to_lower().ends_with("spine"):
+                spine_id=i
+                break
+    if skeleton and spine_id>=0:
+        spine_socket=BoneAttachment3D.new()
+        spine_socket.name="SpineHolsterSocket"
+        spine_socket.bone_name=skeleton.get_bone_name(spine_id)
+        skeleton.add_child(spine_socket)
+        back_mount=Node3D.new()
+        back_mount.name="BackHolsterMount"
+        spine_socket.add_child(back_mount)
+        var scale_compensation: float=skeleton.global_transform.basis.get_scale().x
+        if scale_compensation>.00001:
+            back_mount.scale=Vector3.ONE/scale_compensation
+            back_mount.position=Vector3(.075,.035,-.155)/scale_compensation
+        back_mount.rotation_degrees=Vector3(13,-11,53)
+    elif skeleton:
+        push_warning("Aurora spine bone missing; back holster disabled safely")
+    else:
+        # Headless/asset-free source builds still keep working hand weapons.
+        back_mount=null
+
+    ak=_load_visual(AK_PATH,"AK74TacticalVisual",mount)
+    awm=_load_visual(AWM_PATH,"AWMPrecisionRifleVisual",mount)
+    if back_mount:
+        back_ak=_load_visual(AK_PATH,"AK74BackHolsterVisual",back_mount)
+        back_awm=_load_visual(AWM_PATH,"AWMBackHolsterVisual",back_mount)
+    set_awm_owned(false)
     equip(0)
 
 
-func _load_visual(path: String, display_name: String) -> Node3D:
+func _load_visual(path: String, display_name: String,
+        holder: Node3D) -> Node3D:
     if not ResourceLoader.exists(path):
         push_warning("Weapon visual missing: "+path)
         return null
@@ -75,7 +112,7 @@ func _load_visual(path: String, display_name: String) -> Node3D:
         return null
     var visual:=source.instantiate() as Node3D
     visual.name=display_name
-    mount.add_child(visual)
+    holder.add_child(visual)
     var minimum:=Vector3(INF,INF,INF)
     var maximum:=Vector3(-INF,-INF,-INF)
     for item in visual.find_children("*","MeshInstance3D",true,false):
@@ -132,12 +169,30 @@ func _align_mount_to_sight() -> void:
         grip_world+basis*Vector3(.015,-.027,-.02))
 
 
-func equip(index: int) -> void:
-    selected_weapon=clampi(index,0,1)
+## The AWM is visible on Lila's back ONLY after its world pickup.
+## When it is equipped, the default AR-7 moves to the spine holster.
+func set_awm_owned(owned: bool) -> void:
+    awm_owned=owned
+    _sync_equipment_visibility()
+
+
+func _sync_equipment_visibility() -> void:
     if ak:
         ak.visible=selected_weapon==0
     if awm:
-        awm.visible=selected_weapon==1
+        awm.visible=selected_weapon==1 and awm_owned
+    if back_ak:
+        back_ak.visible=selected_weapon==1 and awm_owned
+    if back_awm:
+        back_awm.visible=selected_weapon==0 and awm_owned
+
+
+func equip(index: int) -> void:
+    if index!=0 and index!=1:
+        return
+    # Do not display a weapon that is neither owned nor available.
+    selected_weapon=index if index==0 or awm_owned else 0
+    _sync_equipment_visibility()
 
 
 func currently_equipped() -> Node3D:
