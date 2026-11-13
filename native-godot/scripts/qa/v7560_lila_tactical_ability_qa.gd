@@ -86,7 +86,7 @@ func _verify() -> void:
     check(hud._lila_ability_label.text.is_empty(),
         "expired Lila skill left a permanent overlay")
     player.tactical_acceleration_remaining=0.0
-    check(player.tactical_acceleration_scale(
+    check(OPERATOR.tactical_acceleration_scale(
         player.tactical_acceleration_remaining)==1.0,
         "expired sprint acceleration remains permanently active")
     player.royale_eliminated=true
