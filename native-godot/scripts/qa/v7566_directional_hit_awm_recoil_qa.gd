@@ -100,6 +100,14 @@ func _verify() -> void:
     check(combat._weapon_visuals.attachment_uses_hand and
         combat._medical_visual.attachment_uses_hand,
         "hit animations removed weapon or actual 3D medkit hand sockets")
+    # Actual match bootstrap initializes the state-machine playback on
+    # the render/idle callback. Give it the same first-quarter-second warmup
+    # before injecting artificially immediate hits; these test hits have
+    # no physics-world travel time. This is NOT a gameplay sleep/timer.
+    await frames(18)
+    check(controller.tree.active and
+        controller.playback.get_current_node()=="AuroraArmedIdle",
+        "animation state machine did not settle after BR scene startup")
     var damaged: Array[float]=[]
     var directions: Array[Vector3]=[]
     player.player_damaged.connect(func(amount: float): damaged.append(amount))
