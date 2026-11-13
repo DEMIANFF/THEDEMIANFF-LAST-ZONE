@@ -53,14 +53,14 @@ static func _valid_extra_fields(extra: Dictionary) -> bool:
         if int(v)<0 or int(v)>int(EXTENDED_LIMITS[key]):
             return false
     if extra.has("rank") and extra.has("participants"):
-        if int(extra["rank"])<1 or int(extra["participants"])<1 or
-                int(extra["rank"])>int(extra["participants"]):
+        if (int(extra["rank"])<1 or int(extra["participants"])<1 or
+                int(extra["rank"])>int(extra["participants"])):
             return false
     if extra.has("hits") and extra.has("shots"):
         if int(extra["hits"])>int(extra["shots"]):
             return false
-    if extra.has("accuracy") and extra.has("shots") and
-            int(extra["shots"])==0 and int(extra["accuracy"])>0:
+    if (extra.has("accuracy") and extra.has("shots") and
+            int(extra["shots"])==0 and int(extra["accuracy"])>0):
         return false
     return true
 
