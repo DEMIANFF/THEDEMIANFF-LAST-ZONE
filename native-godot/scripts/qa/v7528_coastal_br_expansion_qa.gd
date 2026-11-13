@@ -79,7 +79,7 @@ func _verify() -> void:
     # interval without waiting through a real five-minute battle.
     var previous: float=director.INITIAL_RADIUS
     var last_phase: int=0
-    for second in range(0,281,7):
+    for second in range(0,int(director.SHRINK_DURATION)+1,15):
         var state: Dictionary=director.zone_state_at(float(second))
         var current: float=float(state["radius"])
         var stage: int=int(state["phase"])
@@ -90,15 +90,18 @@ func _verify() -> void:
         last_phase=stage
         previous=current
     for phase in range(4):
-        var entry: Dictionary=director.zone_state_at(float(phase)*70.0)
-        var hold: Dictionary=director.zone_state_at(float(phase)*70.0+9.0)
-        var close: Dictionary=director.zone_state_at(float(phase)*70.0+64.0)
+        var t: float=float(phase)*director.PHASE_SECONDS
+        var entry: Dictionary=director.zone_state_at(t)
+        var hold: Dictionary=director.zone_state_at(
+            t+director.PHASE_HOLD_SECONDS*.70)
+        var close: Dictionary=director.zone_state_at(
+            t+director.PHASE_SECONDS-6.0)
         check(int(entry["phase"])==phase and
             is_equal_approx(float(entry["radius"]),float(hold["radius"])),
             "zone preparation hold missing at phase "+str(phase+1))
         check(float(close["radius"])<float(hold["radius"]),
             "zone did not physically contract during phase "+str(phase+1))
-    var finished: Dictionary=director.zone_state_at(280.0)
+    var finished: Dictionary=director.zone_state_at(director.SHRINK_DURATION)
     check(int(finished["phase"])==4 and
         is_equal_approx(float(finished["radius"]),director.FINAL_RADIUS),
         "last safe zone radius or terminal phase incorrect")
