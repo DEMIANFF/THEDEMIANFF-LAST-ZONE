@@ -111,6 +111,8 @@ func _ready() -> void:
     operator.player_damaged.connect(_on_healing_damage)
     operator.armor_changed.connect(func(_value: float): _sync_hud())
     hud.aurora_cover_pressed.connect(_on_cover_pressed)
+    operator.tactical_acceleration_activated.connect(
+        hud.start_tactical_acceleration)
     _make_targets()
     _draw_weapon_rig()
     _prepare_tracers()
@@ -891,7 +893,10 @@ func _on_bot_eliminated(_agent: CharacterBody3D,killer: Node3D) -> void:
     if killer==operator:
         eliminations+=1
         hud.set_eliminations(eliminations)
-        hud.impact("BAJA CONFIRMADA  /  "+str(eliminations))
+        if sector_battle_active and operator.activate_tactical_acceleration():
+            hud.impact("LILA / ACELERACION TACTICA")
+        else:
+            hud.impact("BAJA CONFIRMADA  /  "+str(eliminations))
 
 
 func _draw_weapon_rig() -> void:
