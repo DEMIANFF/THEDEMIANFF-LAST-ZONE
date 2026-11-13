@@ -667,7 +667,13 @@ func _select_tab(tab: String) -> void:
             _info.text="SOCIAL / SIN CONEXIÓN\nAmigos, clanes y escuadras necesitan un servicio online real."
         "CUENTA":
             var stats: Dictionary=_offline_records.snapshot()
-            _info.text="CUENTA / PERFIL LOCAL\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\nLos resultados y monedas se guardan en este dispositivo.\nGoogle y Firebase aún no están vinculados a Godot.\nLas monedas locales NO son un saldo de servidor ni se transfieren automáticamente al futuro juego online."%int(stats.get("local_coins",0))
+            var health: Dictionary=_offline_records.auto_backup_status()
+            var auto_text: String="COPIA AUTOMÁTICA LOCAL: %d partidas verificadas"%int(
+                health.get("played",0)) if bool(health.get("in_sync",false)) else (
+                "COPIA AUTOMÁTICA LOCAL: pendiente" if not bool(health.get("available",false))
+                else "COPIA AUTOMÁTICA LOCAL: desactualizada")
+            _info.text="CUENTA / PERFIL LOCAL\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nSe conserva una copia privada adicional después de cada partida guardada.\nNo sobrevive a una desinstalación. Google/Firebase aún no están conectados a Godot.\nEl saldo offline NO se puede gastar online ni transferir automáticamente."%[
+                int(stats.get("local_coins",0)),auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()
