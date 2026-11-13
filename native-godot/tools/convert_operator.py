@@ -648,6 +648,7 @@ clips=[
     ('AuroraFire',.05,6,True),
     ('AuroraReloadAR',.10,48,True),
     ('AuroraReloadAWM',.10,93,True),
+    ('AuroraHeal',.008,90,True),
     ('AuroraHit',.035,10,True),
     ('AuroraLand',.035,12,True),
     ('AuroraJump',.12,30,True),
@@ -703,6 +704,32 @@ for clip_name, amplitude, frames, armed in clips:
                 forearm.rotation_mode = "QUATERNION"
                 forearm.rotation_quaternion = armed_pose["forearm_" + side.lower()[0]] @ Quaternion(Vector((1,0,0)), pulse * amount)
                 forearm.keyframe_insert(data_path="rotation_quaternion", frame=frame)
+        if clip_name == "AuroraHeal":
+            # Three-second first-aid channel; both arms move towards the
+            # opposite forearm to operate the bone-mounted Lila injector.
+            # This is authored animation keyframing, not a HUD-only effect.
+            # Ease hands toward the bandage and back with a visible hold.
+            hold=min(1.0,max(0.0,pulse*2.2))
+            for side in ("Left","Right"):
+                upper=arm.pose.bones["rig:"+side+"Arm"]
+                forearm=arm.pose.bones["rig:"+side+"ForeArm"]
+                upper.rotation_mode='QUATERNION'
+                forearm.rotation_mode='QUATERNION'
+                sign=1.0 if side=="Left" else -1.0
+                upper.rotation_quaternion=(
+                    armed_pose["arm_"+side.lower()[0]]
+                    @ Quaternion(Vector((0,0,1)),sign*.30*hold)
+                    @ Quaternion(Vector((1,0,0)),-.24*hold))
+                forearm.rotation_quaternion=(
+                    armed_pose["forearm_"+side.lower()[0]]
+                    @ Quaternion(Vector((1,0,0)),(.69 if side=="Left" else 1.05)*hold)
+                    @ Quaternion(Vector((0,1,0)),sign*.16*hold))
+                upper.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+                forearm.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+            spine=arm.pose.bones["rig:Spine"]
+            spine.rotation_mode='QUATERNION'
+            spine.rotation_quaternion=Quaternion(Vector((1,0,0)),.075*hold)
+            spine.keyframe_insert(data_path="rotation_quaternion",frame=frame)
         if clip_name in ("AuroraFire", "AuroraHit"):
             if clip_name=="AuroraFire":
                 # A visible coordinated recoil impulse moves the animated
