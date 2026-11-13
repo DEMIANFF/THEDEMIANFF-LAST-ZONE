@@ -26,6 +26,7 @@ const AWM_RELOAD_SECONDS: float=3.10
 const BOT = preload("res://scripts/ai/aurora_bot.gd")
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
+const MEDKIT_VISUAL = preload("res://scripts/player/aurora_medkit_visual.gd")
 const COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 
 var operator: CharacterBody3D
@@ -49,6 +50,7 @@ var reloads_completed: int=0
 var empty_magazine_attempts: int=0
 var _targets: Array[CharacterBody3D]=[]
 var _weapon_visuals: Node3D
+var _medical_visual: Node3D
 var _weapon_model: Node3D # Explicit visual reference for older scripts
 var eliminations: int = 0
 # Measured from actual CharacterBody3D health lost and successful Area3D pickups.
@@ -115,6 +117,7 @@ func _ready() -> void:
         hud.start_tactical_acceleration)
     _make_targets()
     _draw_weapon_rig()
+    _draw_medical_rig()
     _prepare_tracers()
     _sync_hud()
     hud.set_medkit_count(medkits_remaining)
@@ -271,6 +274,7 @@ func _on_heal() -> void:
         hud.set_aim(false,"MIRA LIBRE",1.0)
     _heal_remaining=HEAL_APPLY_SECONDS
     _heal_anchor=operator.global_position
+    _set_medical_presentation(true)
     hud.set_heal_channel(true,_heal_remaining,HEAL_APPLY_SECONDS,medkits_remaining)
     hud.impact("APLICANDO BOTIQUIN / 3 SEGUNDOS")
 
@@ -284,6 +288,7 @@ func _cancel_healing(reason: String="") -> void:
     if _heal_remaining<=0.0:
         return
     _heal_remaining=0.0
+    _set_medical_presentation(false)
     hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
     if not reason.is_empty():
         hud.impact(reason)
@@ -292,6 +297,7 @@ func _cancel_healing(reason: String="") -> void:
 func _complete_healing() -> void:
     # The medkit is deducted exactly once, only when the channel completes.
     _heal_remaining=0.0
+    _set_medical_presentation(false)
     hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
     if not operator.can_act() or medkits_remaining<=0 or operator.training_health>=99.5:
         return
@@ -897,6 +903,26 @@ func _on_bot_eliminated(_agent: CharacterBody3D,killer: Node3D) -> void:
             hud.impact("LILA / ACELERACION TACTICA")
         else:
             hud.impact("BAJA CONFIRMADA  /  "+str(eliminations))
+
+
+func _draw_medical_rig() -> void:
+    _medical_visual=MEDKIT_VISUAL.new()
+    _medical_visual.name="LilaMedicalVisuals"
+    add_child(_medical_visual)
+    _medical_visual.attach_to_operator(operator)
+
+
+func _set_medical_presentation(active: bool) -> void:
+    if _medical_visual:
+        _medical_visual.set_healing(active)
+    if _weapon_visuals:
+        _weapon_visuals.set_medical_busy(active)
+    if active:
+        # Authored upper-body action overlaps the actual physical medic
+        # channel; cancellation never awards health or wastes inventory.
+        operator.play_weapon_action("heal",HEAL_APPLY_SECONDS)
+    else:
+        operator.cancel_medical_action()
 
 
 func _draw_weapon_rig() -> void:
