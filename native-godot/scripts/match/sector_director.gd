@@ -212,8 +212,8 @@ func _process(delta: float) -> void:
         _ui_clock=.33
         var radial_distance: float=Vector2(player.global_position.x,
             player.global_position.z).distance_to(CENTER)
-        var outside: bool=not player.royale_eliminated and
-            radial_distance>radius
+        var outside: bool=(not player.royale_eliminated and
+            radial_distance>radius)
         hud.set_zone_threat(outside,maxf(0.0,radial_distance-radius))
         if outside and not _was_player_outside:
             _zone_entries+=1
