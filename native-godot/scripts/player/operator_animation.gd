@@ -6,6 +6,7 @@ var playback: AnimationNodeStateMachinePlayback
 var action_clip:=AnimationNodeAnimation.new()
 var animator: AnimationPlayer
 var upper_tracks: Array[NodePath]=[]
+var _action_request_serial: int=0
 
 func setup(source: AnimationPlayer) -> void:
     animator=source
@@ -15,7 +16,7 @@ func setup(source: AnimationPlayer) -> void:
         if not clip.begins_with("Aurora"):
             continue
         var animation:=source.get_animation(clip)
-        animation.loop_mode=Animation.LOOP_NONE if clip in ["AuroraFire","AuroraReloadAR","AuroraReloadAWM","AuroraHeal","AuroraHit","AuroraLand","AuroraJump"] else Animation.LOOP_LINEAR
+        animation.loop_mode=Animation.LOOP_NONE if clip in ["AuroraFire","AuroraReloadAR","AuroraReloadAWM","AuroraBoltAWM","AuroraHeal","AuroraHit","AuroraLand","AuroraJump"] else Animation.LOOP_LINEAR
         var node:=AnimationNodeAnimation.new()
         node.animation=clip
         states.add_node(clip,node)
@@ -102,11 +103,36 @@ func play(clip: String) -> void:
         playback.travel(clip)
 
 func action(clip: String,duration: float) -> void:
-    if not animator.has_animation(clip):
+    if animator==null or tree==null or not animator.has_animation(clip):
         return
     action_clip.animation=clip
-    tree.set("parameters/ActionSpeed/scale",animator.get_animation(clip).length/maxf(duration,.05))
-    tree.set("parameters/UpperBody/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+    tree.set("parameters/ActionSpeed/scale",
+        animator.get_animation(clip).length/maxf(duration,.05))
+    # Godot evaluates AnimationTree in idle, NOT in the touch/physics
+    # callback. A weapon change can ABORT and then FIRE in the same tick.
+    # Queue the actual trigger to idle so the old abort has been consumed.
+    # A generation token prevents cancelled/obsolete actions reappearing.
+    _action_request_serial+=1
+    call_deferred("_activate_queued_action",_action_request_serial)
+
+
+func _activate_queued_action(serial: int) -> void:
+    if not is_inside_tree() or serial!=_action_request_serial:
+        return
+    # A weapon swap can ABORT the previous action and request the AWM bolt
+    # in the same physics tick. A deferred call alone may still run BEFORE
+    # AnimationTree's IDLE callback consumes ABORT. Wait for one animation
+    # evaluation boundary before FIRE. A generation token drops obsolete
+    # requests when the player heals, switches weapons, or leaves the round.
+    await get_tree().process_frame
+    if serial!=_action_request_serial or tree==null or not tree.active:
+        return
+    tree.set("parameters/UpperBody/request",
+        AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+
 
 func cancel_action() -> void:
-    tree.set("parameters/UpperBody/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
+    _action_request_serial+=1
+    if tree:
+        tree.set("parameters/UpperBody/request",
+            AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)

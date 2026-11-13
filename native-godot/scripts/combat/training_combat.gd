@@ -347,7 +347,10 @@ func _shoot() -> void:
     cooldown=AWM_BOLT_SECONDS if weapon_index==1 else .105
     _sync_hud()
     operator.apply_recoil(.02 if weapon_index==1 else .005)
-    operator.play_weapon_action("fire",.24 if weapon_index==1 else .13)
+    # The AWM's real 0.50s bolt is synchronized with the EXISTING
+    # ballistic fire cooldown; the AR retains its shorter automatic action.
+    operator.play_weapon_action("fire",
+        AWM_BOLT_SECONDS if weapon_index==1 else .13)
     var camera:=operator.get_view_camera() as Camera3D
     if camera==null:
         return
@@ -358,6 +361,10 @@ func _shoot() -> void:
     var direction: Vector3=camera.project_ray_normal(screen_center)
     var muzzle: Vector3=_weapon_visuals.muzzle_position()
     var hit: Dictionary=resolve_shot(from,direction,muzzle)
+    # No muzzle flash on an invalid input, empty magazine or cancelled shot.
+    # The purely visual kick occurs AFTER the real cover/damage ray.
+    if _weapon_visuals:
+        _weapon_visuals.register_shot(weapon_index)
     shot_fired.emit(weapon_index,not hit.is_empty())
     _alert_nearby_bots(muzzle,operator)
     var endpoint: Vector3=hit.get("position",from+direction*250.0)

@@ -659,6 +659,9 @@ clips=[
     ('AuroraAim',.004,40,True),
     ('AuroraAimAWM',.004,40,True),
     ('AuroraFire',.05,6,True),
+    # The existing AWM fires one round per 0.50s bolt cycle; animate the
+    # actual shoulder/elbow/wrist action across the full cooldown.
+    ('AuroraBoltAWM',.055,15,True),
     ('AuroraReloadAR',.10,48,True),
     ('AuroraReloadAWM',.10,93,True),
     ('AuroraHit',.035,10,True),
@@ -740,7 +743,32 @@ for clip_name, amplitude, frames, armed in clips:
             spine.rotation_mode='QUATERNION'
             spine.rotation_quaternion=Quaternion(Vector((1,0,0)),pulse*.055)
             spine.keyframe_insert(data_path="rotation_quaternion",frame=frame)
-        if clip_name in ("AuroraFire", "AuroraHit"):
+        if clip_name in ("AuroraFire", "AuroraBoltAWM", "AuroraHit"):
+            if clip_name=="AuroraBoltAWM":
+                # Phase 0: fire recoil. Phase 1: working the bolt (right
+                # elbow/wrist), with left elbow bracing the stock. No root
+                # translation: the weapon stays tied to RightHand in Godot.
+                recoil=max(0.0,1.0-progress*5.5)
+                bolt=math.sin(math.pi*min(1.0,max(0.0,
+                    (progress-.20)/.66)))
+                for side in ("Right","Left"):
+                    sign=1.0 if side=="Right" else .30
+                    upper=arm.pose.bones["rig:"+side+"Arm"]
+                    forearm=arm.pose.bones["rig:"+side+"ForeArm"]
+                    hand=arm.pose.bones["rig:"+side+"Hand"]
+                    upper.rotation_mode=forearm.rotation_mode=hand.rotation_mode='QUATERNION'
+                    upper.rotation_quaternion=(
+                        armed_pose["arm_"+side.lower()[0]]
+                        @ Quaternion(Vector((1,0,0)),-.11*sign*recoil)
+                        @ Quaternion(Vector((0,0,1)),.13*sign*bolt))
+                    upper.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+                    forearm.rotation_quaternion=(
+                        armed_pose["forearm_"+side.lower()[0]]
+                        @ Quaternion(Vector((1,0,0)),.24*sign*bolt))
+                    forearm.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+                    hand.rotation_quaternion=Quaternion(
+                        Vector((0,1,0)),.12*sign*bolt)
+                    hand.keyframe_insert(data_path="rotation_quaternion",frame=frame)
             if clip_name=="AuroraFire":
                 # A visible coordinated recoil impulse moves the animated
                 # shoulders/elbows around the genuine two-handed grip.
@@ -757,7 +785,9 @@ for clip_name, amplitude, frames, armed in clips:
                     forearm.keyframe_insert(data_path="rotation_quaternion",frame=frame)
             spine = arm.pose.bones["rig:Spine"]
             spine.rotation_mode = "QUATERNION"
-            spine.rotation_quaternion = Quaternion(Vector((1,0,0)), -.10 * pulse if clip_name == "AuroraFire" else .16 * pulse)
+            spine.rotation_quaternion = Quaternion(Vector((1,0,0)),
+                -.13*max(0.0,1.0-progress*5.5) if clip_name=="AuroraBoltAWM"
+                else -.10*pulse if clip_name=="AuroraFire" else .16*pulse)
             spine.keyframe_insert(data_path="rotation_quaternion", frame=frame)
         if crouched:
             pose_crouch(phase, clip_name == "AuroraCrouchWalk")
