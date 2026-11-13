@@ -6,6 +6,7 @@ var playback: AnimationNodeStateMachinePlayback
 var action_clip:=AnimationNodeAnimation.new()
 var animator: AnimationPlayer
 var upper_tracks: Array[NodePath]=[]
+var _action_request_serial: int=0
 
 func setup(source: AnimationPlayer) -> void:
     animator=source
@@ -102,11 +103,28 @@ func play(clip: String) -> void:
         playback.travel(clip)
 
 func action(clip: String,duration: float) -> void:
-    if not animator.has_animation(clip):
+    if animator==null or tree==null or not animator.has_animation(clip):
         return
     action_clip.animation=clip
-    tree.set("parameters/ActionSpeed/scale",animator.get_animation(clip).length/maxf(duration,.05))
-    tree.set("parameters/UpperBody/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+    tree.set("parameters/ActionSpeed/scale",
+        animator.get_animation(clip).length/maxf(duration,.05))
+    # Godot evaluates AnimationTree in idle, NOT in the touch/physics
+    # callback. A weapon change can ABORT and then FIRE in the same tick.
+    # Queue the actual trigger to idle so the old abort has been consumed.
+    # A generation token prevents cancelled/obsolete actions reappearing.
+    _action_request_serial+=1
+    call_deferred("_activate_queued_action",_action_request_serial)
+
+
+func _activate_queued_action(serial: int) -> void:
+    if serial!=_action_request_serial or tree==null or not tree.active:
+        return
+    tree.set("parameters/UpperBody/request",
+        AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+
 
 func cancel_action() -> void:
-    tree.set("parameters/UpperBody/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
+    _action_request_serial+=1
+    if tree:
+        tree.set("parameters/UpperBody/request",
+            AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
