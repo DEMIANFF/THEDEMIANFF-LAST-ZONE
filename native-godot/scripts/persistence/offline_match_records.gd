@@ -1,10 +1,11 @@
 extends RefCounted
 ## Durable, offline-only match statistics for the native Aurora client.
-## No fake Google/Firebase account, no currency, no network; this belongs to
+## No fake Google/Firebase account, premium currency or network; this belongs to
 ## the device-local user:// sandbox and never touches legacy V70 data.
 const SCHEMA: int=1
 const LIMIT: int=12
 const LOCAL_COIN_LIMIT: int=1000000000
+const AUTOBACKUP_SUFFIX: String=".auto"
 # Optional per-match fields preserve schema-1 saves from all prior builds.
 # Never rewrite legacy data or touch Firebase/Google identity collections.
 const EXTENDED_LIMITS: Dictionary={
@@ -166,7 +167,9 @@ func reload() -> bool:
     _load_failed=false
     var primary: Dictionary=_load_file(file_path)
     var best: Dictionary=primary
-    for suffix in [".bak",".tmp"]:
+    # Prefer the highest valid journal revision. The independent last-good
+    # .auto copy can recover the *latest* result if primary and .bak break.
+    for suffix in [".bak",".tmp",AUTOBACKUP_SUFFIX]:
         var candidate: Dictionary=_load_file(file_path+suffix)
         if not candidate.is_empty() and (best.is_empty() or int(candidate["next_match_id"])>int(best["next_match_id"])):
             best=candidate
@@ -177,7 +180,9 @@ func reload() -> bool:
             _pending=best.duplicate(true)
         return true
     _data=_defaults()
-    _load_failed=FileAccess.file_exists(file_path) or FileAccess.file_exists(file_path+".bak")
+    _load_failed=(FileAccess.file_exists(file_path) or
+        FileAccess.file_exists(file_path+".bak") or
+        FileAccess.file_exists(file_path+AUTOBACKUP_SUFFIX))
     return not _load_failed
 
 
@@ -197,6 +202,49 @@ func retry_pending() -> bool:
 
 func snapshot() -> Dictionary:
     return _data.duplicate(true)
+
+
+## Local-only backup. SHA256 detects accidental damage, NOT attacker tampering.
+## It does NOT survive uninstall and is never evidence of cloud identity.
+func auto_backup_status() -> Dictionary:
+    var copy: Dictionary=_load_file(file_path+AUTOBACKUP_SUFFIX)
+    var present: bool=not copy.is_empty()
+    return {
+        "available":present,
+        "in_sync":present and int(copy.get("next_match_id",0))==
+            int(_data.get("next_match_id",0)) and
+            int(copy.get("local_coins",-1))==int(_data.get("local_coins",0)),
+        "played":int(copy.get("played",0)) if present else 0
+    }
+
+
+## User-facing explicit refresh for older valid local profiles without .auto.
+func refresh_auto_backup() -> bool:
+    if not retry_pending() or not reload():
+        return false
+    if _load_file(file_path).is_empty():
+        return false
+    return _sync_auto_backup()
+
+
+func _sync_auto_backup() -> bool:
+    var auto_path: String=file_path+AUTOBACKUP_SUFFIX
+    if _load_file(auto_path)==_data:
+        return true
+    # Copy only a committed and re-validated primary, never a stale in-memory
+    # record or an untrusted external payload.
+    if _load_file(file_path)!=_data:
+        return false
+    var source: String=ProjectSettings.globalize_path(file_path)
+    var staging: String=ProjectSettings.globalize_path(auto_path+".tmp")
+    var destination: String=ProjectSettings.globalize_path(auto_path)
+    if DirAccess.copy_absolute(source,staging)!=OK:
+        return false
+    if _load_file(auto_path+".tmp")!=_data:
+        return false
+    if DirAccess.rename_absolute(staging,destination)!=OK:
+        return false
+    return _load_file(auto_path)==_data
 
 
 func next_match_id() -> int:
@@ -294,4 +342,8 @@ func _write_atomic() -> bool:
         push_warning("Aurora offline stats atomic commit failed; retaining previous save")
         return false
     _loaded_backup=false
+    # The match result was already committed: a failed extra local copy is
+    # reported but never falsely converts a successful result into a failure.
+    if not _sync_auto_backup():
+        push_warning("Aurora local automatic profile backup could not be refreshed")
     return true
