@@ -16,6 +16,7 @@ var awm: Node3D
 var back_ak: Node3D
 var back_awm: Node3D
 var awm_owned: bool=false
+var medical_busy: bool=false
 var selected_weapon: int=0
 var equipped_visual_scale: float=1.0
 var attachment_uses_hand: bool=false
@@ -176,15 +177,22 @@ func set_awm_owned(owned: bool) -> void:
     _sync_equipment_visibility()
 
 
+func set_medical_busy(active: bool) -> void:
+    medical_busy=active
+    _sync_equipment_visibility()
+
+
 func _sync_equipment_visibility() -> void:
     if ak:
-        ak.visible=selected_weapon==0
+        ak.visible=selected_weapon==0 and not medical_busy
     if awm:
-        awm.visible=selected_weapon==1 and awm_owned
+        awm.visible=selected_weapon==1 and awm_owned and not medical_busy
     if back_ak:
-        back_ak.visible=selected_weapon==1 and awm_owned
+        back_ak.visible=awm_owned and (selected_weapon==1 or
+            (selected_weapon==0 and medical_busy))
     if back_awm:
-        back_awm.visible=selected_weapon==0 and awm_owned
+        back_awm.visible=awm_owned and (selected_weapon==0 or
+            (selected_weapon==1 and medical_busy))
 
 
 func equip(index: int) -> void:
