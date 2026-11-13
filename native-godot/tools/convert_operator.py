@@ -4,9 +4,9 @@ Run with Blender (not standard Python):
     blender --background --python convert_operator.py -- source.fbx source.png output.glb
 
 The source is authored by s0ck3t/VideoIntoBlenderModel contributors, declared CC0-1.0
-at assets/LICENCES.md. The skinned CC0 body is combined with an originally authored low-poly
-Lila Aurora signature combat kit. The underlying face, hair and body remain
-provisional until original character sculpting; no third-party game assets are copied.
+at assets/LICENCES.md. The skinned CC0 body has original Aurora signature armor and
+a sculpted, bone-weighted Aurora hairstyle. The imported face and body remain
+provisional. No third-party game assets are copied.
 """
 import bpy
 import sys
@@ -226,6 +226,203 @@ def build_lila_aurora_signature():
     return obj
 
 lila_signature=build_lila_aurora_signature()
+
+# A separate sculpted hairstyle authored for Lila. The imported face/body
+# is still CC0; these strands and materials are original Aurora assets.
+# Approx. 2k vertices in ONE additional skinned mesh, with no per-frame script.
+def build_lila_aurora_hair():
+    from mathutils import Matrix
+
+    head_bone = arm.data.bones["rig:Head"]
+    head = (head_bone.head_local + head_bone.tail_local) * 0.5
+    spine = arm.data.bones["rig:Spine"]
+    height = max(b.head_local.y for b in arm.data.bones) - min(
+        b.tail_local.y for b in arm.data.bones)
+    k = height / 180.0
+    assert 135.0 < height < 260.0
+
+    palette = [
+        ("LilaAuroraHairMidnight", (.018, .034, .051, 1.0), .68, .0),
+        ("LilaAuroraHairPetrol", (.048, .182, .214, 1.0), .56, .0),
+        ("LilaAuroraHairCopperTie", (.58, .285, .116, 1.0), .34, .32),
+    ]
+    materials = []
+    for name, color, rough, metal in palette:
+        material = bpy.data.materials.new(name)
+        material.use_nodes = True
+        material.diffuse_color = color
+        shader = next(n for n in material.node_tree.nodes
+                      if n.type == "BSDF_PRINCIPLED")
+        shader.inputs["Base Color"].default_value = color
+        shader.inputs["Roughness"].default_value = rough
+        shader.inputs["Metallic"].default_value = metal
+        materials.append(material)
+
+    verts, polygons, mat_index = [], [], []
+    # Blender vertex groups are bound to the EXISTING Mixamo-compatible bones.
+    weights = {"rig:Head": [], "rig:Spine": []}
+
+    def vertex(position, head_weight=1.0):
+        index = len(verts)
+        verts.append(tuple(position))
+        weights["rig:Head"].append((index, head_weight))
+        if head_weight < 0.9999:
+            weights["rig:Spine"].append((index, 1.0 - head_weight))
+        return index
+
+    def quad(a,b,c,d,mat):
+        polygons.append((a,b,c,d))
+        mat_index.append(mat)
+
+    # Layered asymmetrical scalp, not a textured primitive sphere or cubes.
+    # The Y/Z orientation follows the vetted FBX; Z+ faces the viewer.
+    scalp_levels = [
+        (13.8, .35), (13.3, 2.5), (11.7, 5.5), (9.1, 7.8),
+        (6.7, 8.9), (4.6, 9.35), (3.0, 9.1),
+    ]
+    columns = 24
+    rings = []
+    for layer, (y, radial) in enumerate(scalp_levels):
+        ring = []
+        for i in range(columns):
+            angle = 2.0*math.pi*i/columns
+            # Subtle off-centre parting, longer back of the crown.
+            asymmetry = .3*math.sin(angle*2.0)
+            x = head.x + (radial*math.cos(angle)+asymmetry)*k
+            z = head.z + radial*math.sin(angle)*k
+            ring.append(vertex(Vector((x,head.y+y*k,z))))
+        rings.append(ring)
+        if layer:
+            for i in range(columns):
+                j = (i+1)%columns
+                quad(rings[layer-1][i], rings[layer-1][j],
+                     ring[j],ring[i],0 if i%7 else 1)
+
+    def strand(name, controls, start_radius, mat, spine_influence=0.0):
+        assert len(controls)>=3
+        circumference = 6
+        paths=[]
+        # Catmull interpolation produces curved, tapered locks without
+        # unsupported Blender geometry-node or hair-particle dependencies.
+        points=[Vector(v) for v in controls]
+        samples=[]
+        for segment in range(len(points)-1):
+            p0=points[max(0,segment-1)]
+            p1=points[segment]
+            p2=points[segment+1]
+            p3=points[min(len(points)-1,segment+2)]
+            for step in range(3):
+                u=step/3.0
+                sample=.5*((2*p1)+(-p0+p2)*u+
+                    (2*p0-5*p1+4*p2-p3)*(u*u)+
+                    (-p0+3*p1-3*p2+p3)*(u*u*u))
+                samples.append(sample)
+        samples.append(points[-1])
+        for step, point in enumerate(samples):
+            phase=step/max(1,len(samples)-1)
+            earlier=samples[max(0,step-1)]
+            later=samples[min(len(samples)-1,step+1)]
+            tangent=(later-earlier).normalized()
+            ref=Vector((0,0,1))
+            if abs(tangent.dot(ref))>.94:
+                ref=Vector((1,0,0))
+            normal=tangent.cross(ref).normalized()
+            binormal=tangent.cross(normal).normalized()
+            radius=start_radius*(.90*(1.0-phase)+.075)
+            # Roots follow head; long rear locks ease into torso pose.
+            hweight=1.0-spine_influence*phase*phase
+            path=[]
+            for side in range(circumference):
+                angle=2*math.pi*side/circumference
+                path.append(vertex(point+(normal*math.cos(angle)+
+                    binormal*math.sin(angle))*radius,hweight))
+            paths.append(path)
+            if step:
+                for side in range(circumference):
+                    nxt=(side+1)%circumference
+                    quad(paths[step-1][side],
+                         paths[step-1][nxt],path[nxt],path[side],mat)
+        # Close the tip to avoid a light-leaking open cylinder.
+        tip=vertex(samples[-1],1.0-spine_influence)
+        for side in range(circumference):
+            polygons.append((paths[-1][side],
+                             paths[-1][(side+1)%circumference],tip))
+            mat_index.append(mat)
+        print("LILA_HAIR_LOCK",name,"samples",len(samples))
+
+    # Rear-layer flowing hair, graded into upper-back movement for soft turns.
+    rear_count=18
+    for i in range(rear_count):
+        theta=math.pi+.055+(math.pi-.11)*i/(rear_count-1)
+        x0=head.x+7.5*k*math.cos(theta)
+        z0=head.z+7.8*k*math.sin(theta)
+        length=(23.0+6.0*(i%4)/3.0)*k
+        sway=(i-rear_count*.5)*.12*k
+        strand("back_%02d"%i,[
+            (x0,head.y+7.0*k,z0),
+            (x0+sway*.4,head.y-1*k,z0-1*k),
+            (x0+sway,head.y-length*.53,z0-2.9*k),
+            (x0+sway*1.5,head.y-length,z0-4*k)
+        ],(.72+.18*(i%3))*k,1 if i%5==0 else 0,.48)
+
+    # Short side-swept fringe frames face instead of covering eyes.
+    fringe_count=11
+    for i in range(fringe_count):
+        x0=head.x+(i-5)*1.38*k
+        endx=x0+(3.0+2*(i/10))*k
+        strand("fringe_%02d"%i,[
+            (x0,head.y+11.3*k,head.z+5.3*k),
+            (x0+.5*k,head.y+9*k,head.z+7.6*k),
+            (endx,head.y+6.7*k,head.z+9.4*k),
+            (endx+1.4*k,head.y+4.5*k,head.z+9.1*k)
+        ],(.68+.15*(i%4))*k,1 if i%4==0 else 0)
+
+    # One distinct tied side ponytail: no expensive real-time cloth solver.
+    for i in range(5):
+        x0=head.x-6.5*k+float(i-2)*1.2*k
+        strand("left_tied_%02d"%i,[
+            (x0,head.y+7.5*k,head.z-2.7*k),
+            (x0-3.5*k,head.y+2.5*k,head.z-5*k),
+            (x0-5*k,head.y-12*k,head.z-7.5*k),
+            (x0-4*k+float(i-2)*.5*k,head.y-29*k,head.z-8*k)
+        ],(1.05-.05*i)*k,1 if i==2 else 0,.42)
+
+    # Copper tie near the ponytail root, still head-bone weighted.
+    strand("signature_hair_tie",[
+        (head.x-9.6*k,head.y+3*k,head.z-5.2*k),
+        (head.x-10.2*k,head.y+2*k,head.z-5.8*k),
+        (head.x-10.6*k,head.y+1*k,head.z-6.3*k)
+    ],1.8*k,2)
+
+    mesh=bpy.data.meshes.new("LilaAuroraHairSculpt")
+    mesh.from_pydata(verts,[],polygons)
+    mesh.update(calc_edges=True)
+    for material in materials:
+        mesh.materials.append(material)
+    for poly, mi in zip(mesh.polygons,mat_index):
+        poly.material_index=mi
+        poly.use_smooth=True
+    obj=bpy.data.objects.new("LilaAuroraOriginalHair",mesh)
+    bpy.context.collection.objects.link(obj)
+    obj.parent=arm
+    obj.matrix_parent_inverse=Matrix.Identity(4)
+    for bone_name, assignments in weights.items():
+        group=obj.vertex_groups.new(name=bone_name)
+        for idx, amount in assignments:
+            if amount>0.0:
+                group.add([idx],amount,"REPLACE")
+    deform=obj.modifiers.new("LilaHairHeadSpineSkin","ARMATURE")
+    deform.object=arm
+    deform.use_deform_preserve_volume=True
+    assert len(verts)<3500, "Lila hair exceeds mobile-geometry budget"
+    assert len(mesh.materials)==3
+    assert len(mesh.polygons)>1000, "Lila procedural hair geometry missing"
+    print("LILA_HAIR_SCULPT_PASS",len(mesh.vertices),
+          "vertices",len(mesh.polygons),"faces",
+          "3 shared materials, head+spine weighted")
+    return obj
+
+lila_hair=build_lila_aurora_hair()
 
 # Add a small, genuine articulated locomotion set using named pose-bone channels.
 # These are deliberately modest authoring clips, not fictitious mocap/AAA animation.
