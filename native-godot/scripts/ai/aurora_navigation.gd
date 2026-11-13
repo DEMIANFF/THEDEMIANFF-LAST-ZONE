@@ -9,6 +9,7 @@ var actors: Array[CharacterBody3D]=[]
 var graph:=AStar3D.new()
 var available: bool=false
 var route_requests: int=0
+var cover_route_probes: int=0
 var build_msec: int=0
 var max_build_slice_usec: int=0
 var _ground_ray:=PhysicsRayQueryParameters3D.new()
@@ -26,6 +27,8 @@ const EDGE_SLICE_USEC: int=1800
 # Each full segment sweep performs many synchronous 3D collision queries.
 # Limit sweeps as well as wall-clock time; one long sweep cannot be preempted.
 const EDGE_MAX_SEGMENTS_PER_TICK: int=8
+# Avoid multiplying expensive A* route checks across 30 autonomous bots.
+const COVER_ROUTE_PROBE_LIMIT: int=8
 var _warmup: int=INITIAL_PHYSICS_WARMUP
 var _started: int=0
 var _building_edges: bool=false
@@ -245,18 +248,31 @@ func route(from: Vector3,to: Vector3) -> PackedVector3Array:
     return path
 
 func find_cover(from: Vector3, threat: Vector3) -> Vector3:
-    # Only solid, reachable cover within 18 m; never select through a wall.
-    var best:=Vector3(INF,INF,INF)
-    var distance:=18.0*18.0
+    # Rank by cheap distance first. The old code could pathfind dozens of
+    # cover points for every wounded/reloading bot and stall a mobile frame.
+    var invalid:=Vector3(INF,INF,INF)
+    if not available or not from.is_finite() or not threat.is_finite():
+        return invalid
+    var candidates: Array[Dictionary]=[]
     for candidate in district.cover_points:
         var cost: float=from.distance_squared_to(candidate)
-        if cost>=distance:
-            continue
-        var ray:=PhysicsRayQueryParameters3D.create(threat+Vector3.UP*1.35,candidate+Vector3.UP*1.0)
+        if cost<18.0*18.0 and candidate.is_finite():
+            candidates.append({"position":candidate,"cost":cost})
+    candidates.sort_custom(func(a: Dictionary,b: Dictionary):
+        return float(a["cost"])<float(b["cost"]))
+    var probes: int=0
+    for item in candidates:
+        if probes>=COVER_ROUTE_PROBE_LIMIT:
+            break
+        var point: Vector3=item["position"]
+        # The threatened shooter must NOT have a clear ray to the cover.
+        var ray:=PhysicsRayQueryParameters3D.create(
+            threat+Vector3.UP*1.35,point+Vector3.UP*1.0)
         ray.exclude=_exclusions()
         if get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
             continue
-        if not route(from,candidate).is_empty():
-            best=candidate
-            distance=cost
-    return best
+        probes+=1
+        cover_route_probes+=1
+        if not route(from,point).is_empty():
+            return point
+    return invalid
