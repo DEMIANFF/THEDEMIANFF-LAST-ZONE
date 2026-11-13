@@ -9,7 +9,7 @@ const LIMIT: int=12
 const EXTENDED_LIMITS: Dictionary={
     "rank":100,"participants":100,"damage":500000,
     "accuracy":100,"loot":1000,"shots":20000,
-    "hits":20000,"reloads":10000
+    "hits":20000,"headshots":20000,"reloads":10000
 }
 
 var file_path: String
