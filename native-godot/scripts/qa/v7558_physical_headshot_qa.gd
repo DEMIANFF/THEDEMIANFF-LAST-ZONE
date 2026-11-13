@@ -103,9 +103,10 @@ func _verify() -> void:
         "empty, environmental or invalid hits were falsely counted")
 
     # Complete the same physical duel with a final headshot.
-    if physical_head.get("collider")==enemy:
+    var real_finisher: Dictionary=space.intersect_ray(upper)
+    if real_finisher.get("collider")==enemy:
         combat.shots_fired_total=3
-        var final_hit: Dictionary=combat._apply_verified_opponent_hit(physical_head)
+        var final_hit: Dictionary=combat._apply_verified_opponent_hit(real_finisher)
         check(bool(final_hit.get("critical",false)) and
             bool(final_hit.get("eliminated",false)) and
             enemy.health==0.0 and combat.eliminations==1 and
