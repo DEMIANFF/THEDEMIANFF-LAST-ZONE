@@ -37,6 +37,16 @@ var _hit: Label
 var _incoming_hint: Label
 var _incoming_timer: float=0.0
 var _health_label: Label
+var _armor_label: Label
+var _combat_feed_label: Label
+var _hit_confirm_label: Label
+var _zone_warning_label: Label
+var _reload_button: Button
+var _reload_progress: ProgressBar
+var _hit_confirm_timer: float=0.0
+var _combat_events: Array[Dictionary]=[]
+const MAX_VISIBLE_COMBAT_EVENTS: int=4
+const COMBAT_EVENT_DURATION: float=4.5
 var _hint: Label
 var _hit_timer: float = 0.0
 var _fps_clock: float = 0.0
@@ -125,6 +135,8 @@ func _ready() -> void:
     _compass.name="CameraHeading"
     _eliminations_label=_text(root,"BAJAS 0",.72,.027,16,Color(.99,.63,.55),HORIZONTAL_ALIGNMENT_LEFT)
     _health_label = _text(root,"SALUD 100 / 100",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
+    _armor_label=_text(root,"",.018,.128,14,Color(.52,.85,1),HORIZONTAL_ALIGNMENT_LEFT)
+    _armor_label.name="PlayerArmorStatus"
     _health_meter=ProgressBar.new()
     _health_meter.name="PlayerHealthMeter"
     _health_meter.anchor_left=.02
@@ -190,6 +202,14 @@ func _ready() -> void:
     root.add_child(_reticle)
     _hint = _text(root,"ARRASTRA PARA GIRAR  ·  IZQUIERDA PARA MOVER",.23,.94,12,Color(.68,.86,.90),HORIZONTAL_ALIGNMENT_CENTER)
     _hit = _text(root,"",.36,.375,21,Color(1,.80,.41),HORIZONTAL_ALIGNMENT_CENTER)
+    _hit_confirm_label=_text(root,"",.54,.37,19,Color(1,.91,.43),HORIZONTAL_ALIGNMENT_LEFT)
+    _hit_confirm_label.name="ConfirmedBulletDamage"
+    _zone_warning_label=_text(root,"",.35,.255,17,Color(1,.43,.30),HORIZONTAL_ALIGNMENT_CENTER)
+    _zone_warning_label.name="ActualZoneDistance"
+    _combat_feed_label=_text(root,"",.35,.185,12,Color(.91,.96,.99),HORIZONTAL_ALIGNMENT_RIGHT)
+    _combat_feed_label.name="ActualEliminationFeed"
+    _combat_feed_label.vertical_alignment=VERTICAL_ALIGNMENT_TOP
+    _combat_feed_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _incoming_hint=_text(root,"",.39,.22,17,Color(1,.47,.37),HORIZONTAL_ALIGNMENT_CENTER)
     _incoming_hint.name="IncomingAttackDirection"
     _incoming_hint.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -209,7 +229,25 @@ func _ready() -> void:
     fire_pad.released.connect(_fire_up)
     fire_pad.look_dragged.connect(func(delta: Vector2): fire_aim_changed.emit(delta))
     _aim_button=_button(root,"MIRA",.778,.66,74,62,Color(.12,.39,.49),_aim_down)
-    _button(root,"RECARGA",.790,.80,81,59,Color(.14,.30,.37),_reload_down)
+    _reload_button=_button(root,"RECARGA",.790,.80,81,59,Color(.14,.30,.37),_reload_down)
+    # Child bar follows a HUD-edited reload button. It is not another touch
+    # target and does not interfere with fire-pad drag or other fingers.
+    _reload_progress=ProgressBar.new()
+    _reload_progress.name="ActualReloadProgress"
+    _reload_progress.position=Vector2(6,66)
+    _reload_progress.size=Vector2(64,6)
+    _reload_progress.show_percentage=false
+    _reload_progress.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _reload_progress.max_value=100.0
+    _reload_progress.value=0.0
+    _reload_progress.visible=false
+    var reload_track:=StyleBoxFlat.new()
+    reload_track.bg_color=Color(.04,.08,.11,.90)
+    var reload_fill:=StyleBoxFlat.new()
+    reload_fill.bg_color=Color(.94,.74,.36,.97)
+    _reload_progress.add_theme_stylebox_override("background",reload_track)
+    _reload_progress.add_theme_stylebox_override("fill",reload_fill)
+    _reload_button.add_child(_reload_progress)
     _button(root,"ARMA",.905,.87,79,59,Color(.19,.35,.41),_weapon_down)
     _run_button=_button(root,"CORRER",.11,.61,82,57,Color(.09,.30,.36),_run_down,_run_up)
     _jump_button=_button(root,"SALTAR",.685,.82,76,54,Color(.12,.34,.41),_jump_down)
@@ -455,7 +493,8 @@ func clear_match_result() -> void:
 
 
 func show_match_result(victory: bool,kills: int,seconds_alive: int,
-        rank: int=1,participants: int=9,damage: int=0,loot_count: int=0) -> void:
+        rank: int=1,participants: int=9,damage: int=0,loot_count: int=0,
+        accuracy: int=0) -> void:
     if not _result_window or not _result_text:
         return
     var summary: String="VICTORIA AURORA" if victory else "ELIMINADA"
@@ -465,6 +504,7 @@ func show_match_result(victory: bool,kills: int,seconds_alive: int,
         maxi(1,rank),maxi(1,participants)]
     _result_text.text+="\nBAJAS: %d | DAÑO: %d | BOTÍN: %d"%[
         maxi(0,kills),maxi(0,damage),maxi(0,loot_count)]
+    _result_text.text+="\nPRECISIÓN: %d%%"%clampi(accuracy,0,100)
     _result_text.text+="\nTIEMPO: "+minutes+":"+seconds+"\nREINICIAR BR"
     _result_window.visible=true
 
@@ -580,8 +620,9 @@ func set_inventory_snapshot(items: Dictionary) -> void:
         +"CHALECO %d/75 | BOTIQUINES %d | BARRERAS %d"%[
             int(items.get("armor",0)),int(items.get("medkits",0)),
             int(items.get("covers",0))]
-        +"\nRECOGIDOS: %d | DAÑO: %d"%[
-            int(items.get("loot_collected",0)),int(items.get("damage_dealt",0))])
+        +"\nBOTÍN: %d | DAÑO: %d | PRECISIÓN: %d%%"%[
+            int(items.get("loot_collected",0)),int(items.get("damage_dealt",0)),
+            int(items.get("accuracy",0))])
 
 
 func set_medkit_count(count: int) -> void:
@@ -663,6 +704,73 @@ func show_incoming_fire(at: Vector3,actor: CharacterBody3D) -> void:
     _incoming_timer=.95
 
 
+## Display only confirmed health loss from the real ballistic ray.
+func show_confirmed_hit(damage: float,eliminated: bool) -> void:
+    if _hit_confirm_label==null or not is_finite(damage) or damage<=0.0:
+        return
+    _hit_confirm_label.text="BAJA +%d"%roundi(damage) if eliminated else "+%d"%roundi(damage)
+    _hit_confirm_label.add_theme_color_override("font_color",
+        Color(1,.45,.31) if eliminated else Color(1,.91,.43))
+    _hit_confirm_timer=.65
+
+
+func set_reload_state(active: bool,remaining: float,total: float) -> void:
+    if _reload_progress:
+        _reload_progress.visible=active
+        _reload_progress.value=100.0*(1.0-clampf(
+            remaining/maxf(.001,total),0.0,1.0))
+    if _reload_button:
+        _reload_button.text=("CARGA %d"%maxi(1,ceili(remaining))) if active else "RECARGA"
+
+
+func set_ammo_warning(loaded: int,reserve: int,capacity: int) -> void:
+    if _ammo==null:
+        return
+    var depleted: bool=loaded<=0 and reserve<=0
+    var low: bool=loaded<=maxi(1,int(ceil(float(capacity)*.20)))
+    _ammo.add_theme_color_override("font_color",
+        Color(1,.34,.29) if depleted else Color(1,.69,.30) if low else Color(1,.79,.49))
+    _ammo.text=str(loaded)+" / "+str(reserve)+("  SIN BALAS" if depleted else "")
+
+
+func set_armor_status(armor: float) -> void:
+    if _armor_label!=null:
+        _armor_label.text="ESCUDO %d / 75"%clampi(roundi(armor),0,75)
+
+
+func set_zone_threat(outside: bool,distance_meters: float) -> void:
+    if _zone_warning_label!=null:
+        _zone_warning_label.text="FUERA DE ZONA / %dm AL CÍRCULO"%ceili(
+            maxf(0.0,distance_meters)) if outside else ""
+
+
+## At most four event lines and only genuine CharacterBody3D eliminations.
+func push_combat_event(message: String) -> void:
+    if message.is_empty():
+        return
+    _combat_events.append({"line":message.left(65),"remaining":COMBAT_EVENT_DURATION})
+    if _combat_events.size()>MAX_VISIBLE_COMBAT_EVENTS:
+        _combat_events.pop_front()
+    _refresh_combat_feed()
+
+
+func clear_combat_events() -> void:
+    _combat_events.clear()
+    _hit_confirm_timer=0.0
+    if _hit_confirm_label:
+        _hit_confirm_label.text=""
+    _refresh_combat_feed()
+
+
+func _refresh_combat_feed() -> void:
+    if _combat_feed_label==null:
+        return
+    var messages: PackedStringArray=PackedStringArray()
+    for event in _combat_events:
+        messages.append(str(event["line"]))
+    _combat_feed_label.text="\n".join(messages)
+
+
 func impact(message: String) -> void:
     if _hit:
         _hit.text=message
@@ -670,6 +778,18 @@ func impact(message: String) -> void:
 
 
 func _process(delta: float) -> void:
+    if _hit_confirm_timer>0.0:
+        _hit_confirm_timer=maxf(0.0,_hit_confirm_timer-delta)
+        if _hit_confirm_timer==0.0 and _hit_confirm_label:
+            _hit_confirm_label.text=""
+    var changed_feed: bool=false
+    for i in range(_combat_events.size()-1,-1,-1):
+        _combat_events[i]["remaining"]=float(_combat_events[i]["remaining"])-delta
+        if float(_combat_events[i]["remaining"])<=0.0:
+            _combat_events.remove_at(i)
+            changed_feed=true
+    if changed_feed:
+        _refresh_combat_feed()
     if _incoming_timer>0.0:
         _incoming_timer=maxf(0.0,_incoming_timer-delta)
         if _incoming_timer==0.0 and _incoming_hint:
@@ -717,6 +837,7 @@ func _layout() -> void:
     _place(_training_radar,Rect2(origin+Vector2(24,62),Vector2(156,142)))
     _place(_map_button,Rect2(origin+Vector2(201,103),Vector2(76,76)))
     _place(_health_label,Rect2(origin+Vector2(w*.5-85,h-91),Vector2(170,28)))
+    _place(_armor_label,Rect2(origin+Vector2(w*.5-85,h-118),Vector2(170,24)))
     _health_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _place(_health_meter,Rect2(origin+Vector2(w*.5-85,h-61),Vector2(170,12)))
     _place(_weapon,Rect2(origin+Vector2(w-260,16),Vector2(230,30)))
@@ -731,6 +852,9 @@ func _layout() -> void:
     _place(_inventory_button,Rect2(origin+Vector2(w-281,108),Vector2(78,78)))
     _place(_inventory_panel,Rect2(origin+Vector2(w-410,164),Vector2(290,169)))
     _place(_incoming_hint,Rect2(origin+Vector2(w*.5-144,109),Vector2(288,28)))
+    _place(_hit_confirm_label,Rect2(origin+Vector2(w*.5+65,h*.35),Vector2(132,28)))
+    _place(_zone_warning_label,Rect2(origin+Vector2(w*.5-160,139),Vector2(320,28)))
+    _place(_combat_feed_label,Rect2(origin+Vector2(w*.5-160,168),Vector2(320,74)))
     _place(_hint,Rect2(origin+Vector2(w*.5-210,h-32),Vector2(420,24)))
     _hint.add_theme_font_size_override("font_size",11)
     _place(_hit,Rect2(origin+Vector2(w*.5-300,128),Vector2(600,50)))
@@ -959,6 +1083,8 @@ func is_action_at(point: Vector2) -> bool:
 
 func reset_controls() -> void:
     var root: Control=get_node("AuroraTacticalOverlay")
+    set_reload_state(false,0.0,0.0)
+    set_zone_threat(false,0.0)
     root.get_node("MovePad").reset()
     root.get_node("DirectionalFirePad").reset()
     if _inventory_panel:
