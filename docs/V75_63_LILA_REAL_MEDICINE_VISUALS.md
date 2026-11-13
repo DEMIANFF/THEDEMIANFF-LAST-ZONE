@@ -49,5 +49,12 @@
 
 Nueva prueba `v7563_lila_real_medkit_qa.gd` sobre `Main.tscn`, personaje real y botín real. La CI valida además que el GLB producido por Blender contiene la nueva animación y que la APK exportada vuelve a superar todas las pruebas existentes. El PR permanece draft hasta pruebas verdes.
 
+### Evidencia visual genuina del motor
+El script `v7563` se complementa con `capture_lila_medkit_preview.gd`: la CI levanta `Main.tscn` en Godot 4.7.2 mediante xvfb/OpenGL Compatibility **solo para capturas de escritorio**, conserva la simulación de botín/curación y genera:
+- `out/aurora-v75-63-lila-medkit-active.png`: personaje 3D durante la animación `AuroraHeal`, inyector adjunto a hueso y HUD de botiquín activo.
+- `out/aurora-v75-63-lila-medkit-finished.png`: misma cámara después de la curación real de **exactamente 45 HP**, con el inyector oculto.
+
+Las dos capturas se incluyen como artefactos de GitHub Actions junto a la APK Vulkan para comparar la implementación real. **No son renders conceptuales ni prueba de ejecución física en Motorola**. La cámara se aproxima exclusivamente para revisión visual y no altera la cámara jugable almacenada.
+
 ## Limitaciones abiertas
 La cara y parte del cuerpo de Lila siguen sobre una base CC0 provisional, aunque ya lleva peinado lavanda y uniforme Aurora original parcial. El nuevo inyector no sustituye una animación con IK avanzado para manos, ni acredita por sí mismo 60 FPS en el Motorola. El juego continúa offline contra bots; **no son 50 humanos conectados**. La meta de 1.000 mejoras es un plan acumulativo auditable y no una cifra declarada terminada.
