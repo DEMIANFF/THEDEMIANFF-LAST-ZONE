@@ -117,12 +117,19 @@ func _verify() -> void:
         player._training_immunity=0.0
         player.receive_training_hit(6.0,false,
             player.global_position+player.global_basis*entry.offset)
-        # OneShot requests are evaluated by the actual AnimationTree on
-        # a render callback, not synchronously inside receive_training_hit.
-        await process_frame
+        # OneShot requests are evaluated by the actual AnimationTree
+        # on IDLE/render ticks; advancing only to process_frame can observe
+        # the frame BEFORE the mixer evaluates its request.
+        await frames(3)
+        var active: bool=bool(controller.tree.get(
+            "parameters/UpperBody/active"))
+        print("V7566_IMPACT_TRACE expected=",entry.clip,
+            " actual=",player.last_hit_reaction,
+            " action=",controller.action_clip.animation,
+            " active=",active,
+            " health=",player.training_health)
         check(player.last_hit_reaction==entry.clip and
-            controller.action_clip.animation==entry.clip and
-            controller.tree.get("parameters/UpperBody/active"),
+            controller.action_clip.animation==entry.clip and active,
             "real incoming damage did not play matching local-space reaction")
         hp-=6.0
         check(absf(player.training_health-hp)<.01 and
