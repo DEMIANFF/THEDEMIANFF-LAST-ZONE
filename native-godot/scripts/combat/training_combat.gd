@@ -380,8 +380,9 @@ static func physical_hit_damage(weapon: int,is_critical: bool) -> float:
     if weapon!=0 and weapon!=1:
         return 0.0
     var base_damage: float=float(AWM_DAMAGE if weapon==1 else AR_DAMAGE)
-    var bonus: float=(AWM_HEADSHOT_MULTIPLIER if weapon==1
-        else AR_HEADSHOT_MULTIPLIER) if is_critical else 1.0
+    var bonus: float=1.0
+    if is_critical:
+        bonus=AWM_HEADSHOT_MULTIPLIER if weapon==1 else AR_HEADSHOT_MULTIPLIER
     return base_damage*bonus
 
 
