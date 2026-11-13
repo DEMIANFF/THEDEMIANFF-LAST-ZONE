@@ -10,6 +10,13 @@ signal bot_eliminated(victim: CharacterBody3D, killer: Node3D)
 
 const AR_DAMAGE: int=26
 const AWM_DAMAGE: int=115
+# OpponentCollider is an actual 1.74 m capsule whose base is at local y=.01.
+# A headshot is only awarded when the PhysicsServer's real hit enters
+# the upper capsule section, not merely when the camera points high.
+const HEADSHOT_START_HEIGHT: float=1.43
+const HEADSHOT_TOP_HEIGHT: float=1.78
+const AR_HEADSHOT_MULTIPLIER: float=1.85
+const AWM_HEADSHOT_MULTIPLIER: float=1.65
 const AWM_BOLT_SECONDS: float=.50
 # Field first aid uses a real time window. Interruptions never waste a kit.
 const HEAL_APPLY_SECONDS: float=3.0
@@ -37,6 +44,7 @@ var _reload_duration: float=0.0
 var _reload_ui_clock: float=0.0
 var shots_fired_total: int=0
 var shots_hit_total: int=0
+var headshots_total: int=0
 var reloads_completed: int=0
 var empty_magazine_attempts: int=0
 var _targets: Array[CharacterBody3D]=[]
@@ -351,18 +359,60 @@ func _shoot() -> void:
     impact_occurred.emit()
     var body=hit.get("collider")
     if body is CharacterBody3D and body.is_in_group("training_target"):
-        var old_health: float=float(body.health)
-        var eliminated: bool=body.take_training_damage(float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE),operator)
-        var actual_damage: float=maxf(0.0,old_health-float(body.health))
-        damage_dealt+=actual_damage
-        if actual_damage>0.0:
-            shots_hit_total+=1
-            hud.show_confirmed_hit(actual_damage,eliminated)
-        hud.impact("ENEMIGO NEUTRALIZADO" if eliminated else "IMPACTO CONFIRMADO")
-        _sync_hud()
+        # The same physical hit used for collision determines damage region.
+        # Never infer a critical hit from crosshair projection alone.
+        _apply_verified_opponent_hit(hit)
     elif body is StaticBody3D and body.is_in_group("aurora_deployable_cover"):
         body.call("take_damage",float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE))
         hud.impact("BARRERA AURORA / IMPACTO")
+
+
+## Safe classification for the actual 1.74m OpponentCollider. Must be
+## called after a physical ray confirms this actor is the collider.
+static func is_critical_contact(contact: Vector3,foot: Vector3) -> bool:
+    if not contact.is_finite() or not foot.is_finite():
+        return false
+    var height: float=contact.y-foot.y
+    return height>=HEADSHOT_START_HEIGHT and height<=HEADSHOT_TOP_HEIGHT
+
+
+static func physical_hit_damage(weapon: int,is_critical: bool) -> float:
+    if weapon!=0 and weapon!=1:
+        return 0.0
+    var base_damage: float=float(AWM_DAMAGE if weapon==1 else AR_DAMAGE)
+    var bonus: float=(AWM_HEADSHOT_MULTIPLIER if weapon==1
+        else AR_HEADSHOT_MULTIPLIER) if is_critical else 1.0
+    return base_damage*bonus
+
+
+## Only the dictionary returned by the PhysicsServer's actual ray enters
+## this path in a match. Real damage and health loss still come from the
+## CharacterBody3D; misses, walls and dead bots never produce headshots.
+func _apply_verified_opponent_hit(hit: Dictionary) -> Dictionary:
+    var actor: Object=hit.get("collider")
+    var point: Variant=hit.get("position")
+    if not (actor is CharacterBody3D and
+            is_instance_valid(actor) and actor.is_in_group("training_target")
+            and point is Vector3 and (point as Vector3).is_finite()
+            and actor.health>0.0):
+        return {}
+    var opponent: CharacterBody3D=actor
+    var critical: bool=is_critical_contact(point,opponent.global_position)
+    var before: float=float(opponent.health)
+    var eliminated: bool=opponent.take_training_damage(
+        physical_hit_damage(weapon_index,critical),operator)
+    var caused: float=maxf(0.0,before-float(opponent.health))
+    if caused<=0.0:
+        return {}
+    shots_hit_total+=1
+    if critical:
+        headshots_total+=1
+    damage_dealt+=caused
+    hud.show_confirmed_hit(caused,eliminated,critical)
+    hud.impact("TIRO A LA CABEZA" if critical else
+        "ENEMIGO NEUTRALIZADO" if eliminated else "IMPACTO CONFIRMADO")
+    _sync_hud()
+    return {"critical":critical,"damage":caused,"eliminated":eliminated}
 
 
 func _clear_cover() -> void:
@@ -494,6 +544,7 @@ func begin_sector_battle() -> void:
     hud.set_reload_state(false,0.0,0.0)
     shots_fired_total=0
     shots_hit_total=0
+    headshots_total=0
     reloads_completed=0
     empty_magazine_attempts=0
     hud.clear_combat_events()
@@ -673,6 +724,7 @@ func inventory_snapshot() -> Dictionary:
         "loot_collected":loot_collected,
         "shots_fired":shots_fired_total,
         "shots_hit":shots_hit_total,
+        "headshots":headshots_total,
         "accuracy":shot_accuracy_percent(),
         "reloads":reloads_completed
     }
