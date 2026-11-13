@@ -359,7 +359,9 @@ func _show_lobby() -> void:
     _ensure_lobby_navigation()
     _lobby_nav.visible=true
     _profile_strip.visible=true
-    _profile_strip.text="THEDEMIAN: LAST ZONE    ·    PUERTO AURORA     |     PERFIL LOCAL     |     %d PARTIDAS    ·    %d VICTORIAS"%[int(stats.get("played",0)),int(stats.get("wins",0))]
+    _profile_strip.text="PERFIL LOCAL  ·  %d partidas  ·  %d victorias  |  MONEDAS %d (locales)  ·  DIAMANTES: sin conexión"%[
+        int(stats.get("played",0)),int(stats.get("wins",0)),
+        int(stats.get("local_coins",0))]
     _preview_touch=-1
     _preview_mouse_drag=false
     _preview_resume_spin=2.0
@@ -576,7 +578,8 @@ func _select_tab(tab: String) -> void:
                 _info.text+="  •  %d bajas"%int(recent.get("kills",0))
             _info.text+="\nRecompensas de misiones: pendientes."
         "TIENDA":
-            _info.text="TIENDA / EN CONSTRUCCIÓN\nSin transacciones, moneda premium ni inventario de compras ficticios."
+            var stats: Dictionary=_offline_records.snapshot()
+            _info.text="TIENDA / PREPARACIÓN DE CATÁLOGO\nMONEDAS LOCALES: %d\nSe ganan al concluir partidas clásicas; compras aún deshabilitadas.\nDIAMANTES: sin cartera online. No hay recargas ni transacciones activas."%int(stats.get("local_coins",0))
         "EVENTOS":
             _info.text="EVENTOS / PRÓXIMA ETAPA\nSe activarán cuando haya programación, objetivos y recompensas verificables."
         "PASE":
@@ -584,7 +587,8 @@ func _select_tab(tab: String) -> void:
         "SOCIAL":
             _info.text="SOCIAL / SIN CONEXIÓN\nAmigos, clanes y escuadras necesitan un servicio online real."
         "CUENTA":
-            _info.text="CUENTA / GUARDADO LOCAL\nLos resultados se almacenan en este dispositivo. Google y Firebase no están vinculados a Godot."
+            var stats: Dictionary=_offline_records.snapshot()
+            _info.text="CUENTA / PERFIL LOCAL\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\nLos resultados y monedas se guardan en este dispositivo.\nGoogle y Firebase aún no están vinculados a Godot.\nLas monedas locales NO son un saldo de servidor ni se transfieren automáticamente al futuro juego online."%int(stats.get("local_coins",0))
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()
