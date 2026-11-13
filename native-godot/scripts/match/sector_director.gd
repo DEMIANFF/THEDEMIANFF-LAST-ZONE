@@ -16,6 +16,8 @@ const CENTER: Vector2 = Vector2(0.0,-24.0)
 const TICK: float = 1.0
 # Max 15 minutes of sparse FPS samples at two measurements per second.
 const MAX_PERF_SAMPLES: int=1800
+# Physical supplies from actual combat eliminations, capped for mobile GPU/CPU.
+const MAX_OPPONENT_DROPS: int=12
 const PHASE_COUNT: int=4
 const PHASE_SECONDS: float=SHRINK_DURATION/float(PHASE_COUNT)
 const PHASE_HOLD_SECONDS: float=12.0
@@ -44,6 +46,8 @@ var _pending_result: Dictionary={}
 var _save_clock: float=0.0
 var _perf_clock: float=0.0
 var _perf_samples: Array[float]=[]
+var _opponent_drops_spawned: int=0
+var _dropped_opponents: Dictionary={}
 
 
 func _ready() -> void:
@@ -65,6 +69,7 @@ func _ready() -> void:
     hud.jump_pressed.connect(_flight.request_jump_or_parachute)
     hud.start_battle_requested.connect(begin_aircraft_phase)
     player.player_eliminated.connect(_on_player_eliminated)
+    combat.bot_eliminated.connect(_on_opponent_eliminated)
     hud.set_sector_state("ENTRENAMIENTO",4,0.0,0)
     hud.set_battle_button("INICIAR BR")
 
@@ -136,6 +141,8 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _ui_clock=0.0
     _perf_clock=0.0
     _perf_samples.clear()
+    _opponent_drops_spawned=0
+    _dropped_opponents.clear()
     player.begin_sector_battle(from_airdrop)
     combat.begin_sector_battle()
     # The previous round can end with a 12 m radius. Reset every bot's
@@ -303,6 +310,39 @@ func _spawn_loot() -> void:
                 "AuroraInteriorLoot"+str(i+1),at.y)
 
 
+## Loot is produced by an actual CharacterBody3D death, never by fake
+## timers or respawn counters. One cache per victim per round, at most 12
+## active additions to keep collision and draw costs bounded on Motorola.
+func _on_opponent_eliminated(victim: CharacterBody3D,killer: Node3D) -> void:
+    if mode!="sector_battle" or match_ended or not combat.sector_battle_active:
+        return
+    if not is_instance_valid(victim):
+        return
+    var victim_id: int=victim.get_instance_id()
+    if _dropped_opponents.has(victim_id):
+        return
+    _dropped_opponents[victim_id]=true
+    var position: Vector3=victim.global_position
+    if not position.is_finite() or is_outside_zone(position):
+        return
+    if _opponent_drops_spawned>=MAX_OPPONENT_DROPS:
+        return
+    _opponent_drops_spawned+=1
+    # Rewards come from real combat. Player eliminations favor supplies,
+    # while AI-on-AI kills may still leave usable ammunition in the world.
+    var kind: String="ammo_ar"
+    if killer==player:
+        kind="medkit" if _opponent_drops_spawned%3==0 else "ammo_ar"
+    elif _opponent_drops_spawned%4==0:
+        kind="armor_plate"
+    var at:=Vector2(position.x,position.z)
+    var ground_y: float=float(terrain.height_at(at.x,at.y))
+    # Keep loot on a raised walkable deck when the bot died inside a villa,
+    # and never float a cache below the current physical standing surface.
+    var surface_y: float=maxf(ground_y,position.y-.15)
+    _make_pickup(at,kind,"AuroraOpponentLoot"+str(_opponent_drops_spawned),surface_y,true)
+
+
 func _historic_floor_at(at: Vector2) -> float:
     # Some of the original 16 "outdoor" coordinates overlap an older house
     # (notably the AWM rounds in CENTRO DE EXPLORACION). If so, use the
@@ -326,12 +366,13 @@ func _historic_floor_at(at: Vector2) -> float:
 
 
 func _make_pickup(at: Vector2,kind: String,pickup_name: String,
-        floor_height: float=NAN) -> void:
+        floor_height: float=NAN,from_opponent: bool=false) -> void:
     if not is_finite(floor_height):
         floor_height=_historic_floor_at(at)
     var pickup: Area3D=LOOT.new()
     pickup.name=pickup_name
     pickup.pickup_type=kind
+    pickup.from_opponent=from_opponent
     pickup.player=player
     pickup.combat=combat
     pickup.terrain=terrain

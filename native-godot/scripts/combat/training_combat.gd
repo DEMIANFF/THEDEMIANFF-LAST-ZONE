@@ -5,6 +5,8 @@ signal impact_occurred
 signal reload_started
 signal healed
 signal bot_shot(world_position: Vector3)
+## Actual battle elimination event for physical opponent supply drops.
+signal bot_eliminated(victim: CharacterBody3D, killer: Node3D)
 
 const AR_DAMAGE: int=26
 const AWM_DAMAGE: int=115
@@ -618,6 +620,8 @@ func _alert_nearby_bots(at: Vector3, shooter: Node3D) -> void:
 func _on_bot_eliminated(_agent: CharacterBody3D,killer: Node3D) -> void:
     # Correct BR stats: only kills caused by this player count. Enemy-on-enemy
     # and zone eliminations reduce alive count but do NOT credit a player kill.
+    if sector_battle_active:
+        bot_eliminated.emit(_agent,killer)
     if killer==operator:
         eliminations+=1
         hud.set_eliminations(eliminations)

@@ -10,6 +10,8 @@ var world_spot: Vector2=Vector2.ZERO
 # Exterior loot uses the terrain mesh exactly as before.
 var surface_height_override: float=NAN
 var collected: bool=false
+# Visual identity for an actual opponent elimination reward.
+var from_opponent: bool=false
 var _visual: Node3D
 var _phase: float=0.0
 var _pickup_clock: float=0.0
@@ -81,6 +83,8 @@ func _ready() -> void:
         "backpack": floating_name.text="MOCHILA TACTICA"
         "weapon_awm": floating_name.text="RECOGER AWM"
         _: floating_name.text="MUNICION AWM"
+    if from_opponent:
+        floating_name.text="RIVAL / "+floating_name.text
     floating_name.font_size=44 if pickup_type=="weapon_awm" else 38
     floating_name.pixel_size=.005
     floating_name.position.y=1.72 if pickup_type=="weapon_awm" else .94
