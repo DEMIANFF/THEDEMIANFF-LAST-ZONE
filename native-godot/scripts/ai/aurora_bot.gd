@@ -4,6 +4,8 @@ const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.
 ## grounded patrol and actual damage. This is not a networked human player.
 signal eliminated(agent: CharacterBody3D, killer: Node3D)
 signal weapon_fired(world_position: Vector3)
+## This line is derived from the actual PhysicsServer hit; never a fake shot.
+signal shot_trace(from: Vector3,to: Vector3)
 
 const WALK_SPEED: float = 1.85
 const CHASE_SPEED: float = 2.45
@@ -11,12 +13,31 @@ const SIGHT_RANGE: float = 31.0
 const SHOOT_RANGE: float = 21.0
 const HEARING_RANGE: float = 42.0
 const GRAVITY: float = 17.5
+# All agents use actual ammo/reload time; combat cannot fire infinitely.
+const MAGAZINE_CAPACITY: int=18
+const RELOAD_SECONDS: float=2.25
+const BURST_ROUNDS: int=2
+const BURST_SHOT_GAP: float=.37
+const BURST_RECOVERY: float=1.10
+# Raycasts dominate CPU cost in 20/30-agent encounters; rank cheap distance
+# candidates before executing a bounded number of collision-aware sight rays.
+const MAX_VISION_RAYS: int=5
+const TARGET_STICKINESS_METERS: float=3.5
+const STRAFE_SWITCH_SECONDS: float=2.7
+const ZONE_SAFE_FRACTION: float=.80
 
 var navigation: Node3D
 var behavior: String="patrol"
 var shots_fired: int=0
 var shots_hit: int=0
 var heard_shots: int=0
+var reloads_completed: int=0
+var vision_rays_last: int=0
+var vision_rays_total: int=0
+var _magazine: int=MAGAZINE_CAPACITY
+var _reload_remaining: float=0.0
+var _burst_count: int=0
+var _strafe_clock: float=0.0
 var _random:=RandomNumberGenerator.new()
 var _movement_probe:=KinematicCollision3D.new()
 var _route:=PackedVector3Array()
@@ -168,6 +189,12 @@ func _physics_process(dt: float) -> void:
         return
     _route_clock-=dt
     _cover_clock-=dt
+    _strafe_clock-=dt
+    if _reload_remaining>0.0:
+        _reload_remaining=maxf(0.0,_reload_remaining-dt)
+        if _reload_remaining<=0.0:
+            _magazine=MAGAZINE_CAPACITY
+            reloads_completed+=1
     _suppression_seconds=maxf(0.0,_suppression_seconds-dt)
     _sense_clock-=dt
     _attack_clock-=dt
@@ -191,11 +218,22 @@ func _physics_process(dt: float) -> void:
         var flank: Vector3=Vector3(-delta_to_player.z,0,delta_to_player.x).normalized()
         destination=_last_seen+flank*sin(_idle_phase)*2.2
         target_speed=CHASE_SPEED
+        # Reposition to the side of a visible opponent rather than always
+        # rushing to the same target point. Stable for several seconds to
+        # avoid churn in navigation requests and mobile physics queries.
+        if _target_visible and distance<SHOOT_RANGE*.9 and distance>4.0:
+            if _strafe_clock<=0.0:
+                _avoid_side*=-1.0
+                _strafe_clock=STRAFE_SWITCH_SECONDS+float(get_instance_id()%3)*.19
+            var maintain_range: Vector3=delta_to_player.normalized()*clampf(distance-12.0,-2.0,2.0)
+            destination=global_position+flank*_avoid_side*3.7+maintain_range
+            behavior="strafe"
     else:
         _idle_phase+=dt*.31
         destination=_anchor+Vector3(cos(_idle_phase)*4.0,0,sin(_idle_phase)*4.0)
 
-    if (health<=45.0 or (health<=70.0 and _suppression_seconds>0.0)) and _alert_time>0 and navigation and navigation.available:
+    if (health<=45.0 or (health<=70.0 and _suppression_seconds>0.0) or
+            _reload_remaining>0.0) and _alert_time>0 and navigation and navigation.available:
         if _cover_clock<=0:
             _cover_point=navigation.find_cover(global_position,_last_seen)
             _cover_clock=4.0
@@ -204,7 +242,7 @@ func _physics_process(dt: float) -> void:
             behavior="cover"
     if sector_battle and Vector2(global_position.x,global_position.z).distance_to(safe_center)>safe_radius-4.0:
         behavior="zone_escape"
-        destination=Vector3(safe_center.x,global_position.y,safe_center.y)
+        destination=safe_zone_destination(global_position,safe_center,safe_radius)
         target_speed=CHASE_SPEED
     if navigation and navigation.available:
         if _route_clock<=0 and (destination.distance_squared_to(_route_goal)>6.25 or _route.is_empty()):
@@ -235,9 +273,21 @@ func _physics_process(dt: float) -> void:
     velocity.y-=GRAVITY*dt
     move_and_slide()
 
-    if _target_visible and distance<SHOOT_RANGE and _attack_clock<=0 and _has_line_of_fire(_target_actor):
-        _attack_clock=1.0+float(get_instance_id()%4)*.18
-        _fire_at_target(_target_actor)
+    if (_target_visible and distance<SHOOT_RANGE and
+            _attack_clock<=0.0 and _reload_remaining<=0.0 and
+            _has_line_of_fire(_target_actor)):
+        if _magazine<=0:
+            _begin_reload()
+        elif _fire_at_target(_target_actor):
+            _magazine-=1
+            _burst_count+=1
+            if _magazine<=0:
+                _begin_reload()
+            elif _burst_count>=BURST_ROUNDS:
+                _burst_count=0
+                _attack_clock=BURST_RECOVERY+float(get_instance_id()%4)*.14
+            else:
+                _attack_clock=BURST_SHOT_GAP
     if _animation:
         var action: String="AuroraWalk" if Vector2(velocity.x,velocity.z).length()>.8 else "AuroraIdle"
         if action!=_clip:
@@ -245,30 +295,58 @@ func _physics_process(dt: float) -> void:
             _clip=action
 
 
+## Distance prioritization keeps ray queries bounded as the match grows
+## from 9 toward 30 real collision-driven opponents. Previous verified target
+## receives a small stickiness margin, but never bypasses occlusion checks.
 func _sense_player() -> void:
+    var previous: CharacterBody3D=_target_actor
     _target_visible=false
     _target_actor=null
-    var closest: CharacterBody3D=null
-    var best: float=SIGHT_RANGE
+    vision_rays_last=0
     var choices: Array[CharacterBody3D]=[operator]
     if sector_battle:
         choices.append_array(_foes)
+    var candidates: Array[Dictionary]=[]
     for foe in choices:
         if foe==self or not is_instance_valid(foe):
             continue
         if foe==operator and operator.royale_eliminated:
             continue
-        if foe!=operator and foe.health<=0:
+        if foe!=operator and foe.health<=0.0:
             continue
-        var distance: float=global_position.distance_to(foe.global_position)
-        if distance < best:
-            if _has_line_of_fire(foe):
-                closest=foe
-                best=distance
-    if closest != null:
+        var d2: float=global_position.distance_squared_to(foe.global_position)
+        if d2<SIGHT_RANGE*SIGHT_RANGE:
+            candidates.append({"foe":foe,"distance_sq":d2})
+    candidates.sort_custom(func(a: Dictionary,b: Dictionary):
+        return float(a["distance_sq"])<float(b["distance_sq"]))
+    var found: CharacterBody3D=null
+    var found_distance: float=INF
+    for item in candidates:
+        if vision_rays_last>=MAX_VISION_RAYS:
+            break
+        var foe: CharacterBody3D=item["foe"] as CharacterBody3D
+        vision_rays_last+=1
+        vision_rays_total+=1
+        if _has_line_of_fire(foe):
+            found=foe
+            found_distance=float(item["distance_sq"])
+            break
+    # Prefer a recently verified enemy within a small switching margin,
+    # as long as it remains alive, visible and within the sight radius.
+    if (found!=null and is_instance_valid(previous) and previous!=found and
+            vision_rays_last<MAX_VISION_RAYS and
+            (previous==operator or previous.health>0.0)):
+        var prior_distance: float=global_position.distance_squared_to(previous.global_position)
+        if prior_distance<SIGHT_RANGE*SIGHT_RANGE and prior_distance<=(
+                sqrt(found_distance)+TARGET_STICKINESS_METERS)*(
+                sqrt(found_distance)+TARGET_STICKINESS_METERS):
+            vision_rays_last+=1
+            vision_rays_total+=1
+            if _has_line_of_fire(previous):
+                found=previous
+    if found!=null:
         _target_visible=true
-        _target_actor=closest
-
+        _target_actor=found
 
 ## Perception of audible gunfire is not visual detection. Move toward the
 ## last noise source, then use ordinary LOS checks before shooting.
@@ -304,6 +382,15 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _target_visible=false
     _target_actor=null
     _attack_clock=1.3
+    _magazine=MAGAZINE_CAPACITY
+    _reload_remaining=0.0
+    _burst_count=0
+    _strafe_clock=0.0
+    reloads_completed=0
+    shots_fired=0
+    shots_hit=0
+    vision_rays_last=0
+    vision_rays_total=0
     _alert_time=0.0
     _suppression_seconds=0.0
     _last_attacker=null
@@ -317,7 +404,7 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
 
 
 func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
-    if health<=0:
+    if health<=0.0 or not is_finite(damage) or damage<=0.0:
         return false
     health=maxf(0,health-damage)
     if is_instance_valid(attacker):
@@ -327,6 +414,7 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
         # Enter cover planning at most once per incident; the existing
         # route budget still bounds PhysicsServer queries on Motorola.
         _cover_clock=0.0
+        _sense_clock=0.0
     elif is_instance_valid(_target_actor):
         _last_seen=_target_actor.global_position
     _alert_time=5.5
@@ -374,18 +462,20 @@ func _has_line_of_fire(foe: CharacterBody3D) -> bool:
         (obstacle as StaticBody3D).is_in_group("aurora_deployable_cover"))
 
 
-func _fire_at_target(foe: CharacterBody3D) -> void:
-    if not is_instance_valid(foe):
-        return
+func _fire_at_target(foe: CharacterBody3D) -> bool:
+    if not is_instance_valid(foe) or _reload_remaining>0.0 or _magazine<=0:
+        return false
     shots_fired+=1
     weapon_fired.emit(global_position)
     var distance: float=global_position.distance_to(foe.global_position)
     var spread: float=clampf(distance/SHOOT_RANGE,0.0,1.0)*.52
     var sideways: Vector3=(foe.global_position-global_position).cross(Vector3.UP).normalized()
     var endpoint: Vector3=foe.global_position+Vector3.UP*(1.0+_random.randf_range(-spread*.6,spread*.6))+sideways*_random.randf_range(-spread,spread)
-    var ray:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*1.35,endpoint)
+    var muzzle: Vector3=global_position+Vector3.UP*1.35
+    var ray:=PhysicsRayQueryParameters3D.create(muzzle,endpoint)
     ray.exclude=[get_rid()]
     var hit:=get_world_3d().direct_space_state.intersect_ray(ray)
+    shot_trace.emit(muzzle,hit.get("position",endpoint))
     var actor: Object=hit.get("collider")
     if actor==operator and not operator.royale_eliminated:
         operator.receive_training_hit(5.0)
@@ -395,6 +485,31 @@ func _fire_at_target(foe: CharacterBody3D) -> void:
         shots_hit+=1
     elif actor is StaticBody3D and actor.is_in_group("aurora_deployable_cover"):
         actor.call("take_damage",12.0)
+    return true
+
+
+## Reloading consumes time in physical combat, without emitting fake shots.
+func _begin_reload() -> void:
+    if _reload_remaining>0.0 or health<=0.0:
+        return
+    _reload_remaining=RELOAD_SECONDS
+    _burst_count=0
+    _attack_clock=RELOAD_SECONDS
+
+
+## Move inside the next safe circle without stacking all rivals at center.
+static func safe_zone_destination(position: Vector3,center: Vector2,
+        safe_radius_value: float) -> Vector3:
+    if (not position.is_finite() or not center.is_finite() or
+            not is_finite(safe_radius_value) or safe_radius_value<=0.0):
+        return position
+    var radial:=Vector2(position.x-center.x,position.z-center.y)
+    if radial.length_squared()<.0001:
+        return Vector3(center.x,position.y,center.y)
+    var inner_radius: float=maxf(0.0,minf(safe_radius_value*ZONE_SAFE_FRACTION,
+        safe_radius_value-5.0))
+    var target: Vector2=center+radial.normalized()*inner_radius
+    return Vector3(target.x,position.y,target.y)
 
 
 func _blocked_ahead(direction: Vector3) -> bool:
