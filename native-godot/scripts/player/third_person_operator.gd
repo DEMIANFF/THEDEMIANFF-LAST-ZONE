@@ -892,7 +892,8 @@ func activate_tactical_acceleration() -> bool:
 
 
 func set_touch_run(active: bool) -> void:
-    _sprint_touch=active and can_act()
+    # Do not silently re-latch sprint while the player holds a scoped view.
+    _sprint_touch=active and can_act() and not _ads_active and not _crouching
 
 
 func touch_jump() -> void:
@@ -952,6 +953,9 @@ func set_crouch(active: bool) -> void:
         # Refuse to stretch collision into an overhead obstacle.
         crouch_state_changed.emit(true)
         return
+    if active and _sprint_touch:
+        _sprint_touch=false
+        sprint_cancelled.emit()
     _apply_crouch(active)
 
 
