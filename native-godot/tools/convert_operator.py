@@ -597,9 +597,14 @@ def pose_crouch(phase, walking):
 # Use authored foot positions, a two-bone knee solve and pelvis motion during
 # the locomotion clips. This is a provisional procedural gait, not mocap or
 # finished two-handed weapon IK.
-def pose_ground_gait(phase, running):
+def pose_ground_gait(phase, running, lateral=0.0, backward=False):
+    # Directional foot placements authored on the existing real humanoid:
+    # side steps move the foot targets along X, reverse steps move along -Z.
+    # Keep feet planted at mid-stride; avoid body-root displacement/teleport.
     hips=arm.pose.bones["rig:Hips"]
-    hips.location=Vector((0.0,(1.8 if running else 1.0)*(1.0-math.cos(2.0*phase)),0.0))
+    side_shift=lateral*0.65*math.sin(phase) if lateral else 0.0
+    hips.location=Vector((side_shift,
+        (1.8 if running else 1.0)*(1.0-math.cos(2.0*phase)),0.0))
     hips.keyframe_insert(data_path="location")
     stride=23.0 if running else 14.0
     lift=10.0 if running else 6.0
@@ -613,7 +618,10 @@ def pose_ground_gait(phase, running):
         upper_rest=knee_rest-thigh.bone.head_local
         lower_rest=foot_rest-knee_rest
         swing=math.sin(phase)*sign
-        target=foot_rest+Vector((0.0,max(0.0,swing)*lift,math.cos(phase)*sign*stride))
+        foot_forward=math.cos(phase)*sign*stride
+        step_x=lateral*foot_forward*.91
+        step_z=foot_forward*(-.72 if backward else .18 if lateral else 1.0)
+        target=foot_rest+Vector((step_x,max(0.0,swing)*lift,step_z))
         diff=target-hip
         reach=max(.001,diff.length)
         d=min(reach,(upper_rest.length+lower_rest.length)*.995)
@@ -643,6 +651,11 @@ clips=[
     ('AuroraArmedIdle',.008,60,True),
     ('AuroraArmedWalk',.12,32,True),
     ('AuroraArmedRun',.20,24,True),
+    # Three physically authored tactical directions for ads/fire movement.
+    # These are skeletal steps, not camera offsets or cosmetic HUD labels.
+    ('AuroraArmedStrafeLeft',.11,32,True),
+    ('AuroraArmedStrafeRight',.11,32,True),
+    ('AuroraArmedBackpedal',.12,32,True),
     ('AuroraAim',.004,40,True),
     ('AuroraAimAWM',.004,40,True),
     ('AuroraFire',.05,6,True),
@@ -663,7 +676,9 @@ for clip_name, amplitude, frames, armed in clips:
     crouched = clip_name.startswith("AuroraCrouch") or clip_name == "AuroraLand"
     # Additional gait samples smooth alternation of feet and weight transfer.
     key_frames=sorted({1+int(round(frames*step/12)) for step in range(13)}) if clip_name in (
-        "AuroraWalk","AuroraRun","AuroraArmedWalk","AuroraArmedRun") else [
+        "AuroraWalk","AuroraRun","AuroraArmedWalk","AuroraArmedRun",
+        "AuroraArmedStrafeLeft","AuroraArmedStrafeRight",
+        "AuroraArmedBackpedal") else [
         1,1+frames//4,1+frames//2,1+3*frames//4,1+frames]
     for frame in key_frames:
         phase = math.tau * (frame - 1) / frames
@@ -756,8 +771,14 @@ for clip_name, amplitude, frames, armed in clips:
                     bone.rotation_mode = "QUATERNION"
                     bone.rotation_quaternion = Quaternion((1,0,0,0))
                     bone.keyframe_insert(data_path="rotation_quaternion", frame=frame)
-            if clip_name in ("AuroraWalk","AuroraRun","AuroraArmedWalk","AuroraArmedRun"):
-                pose_ground_gait(phase,clip_name.endswith("Run"))
+            if clip_name in (
+                    "AuroraWalk","AuroraRun","AuroraArmedWalk",
+                    "AuroraArmedRun","AuroraArmedStrafeLeft",
+                    "AuroraArmedStrafeRight","AuroraArmedBackpedal"):
+                side=(-1.0 if clip_name=="AuroraArmedStrafeLeft"
+                    else 1.0 if clip_name=="AuroraArmedStrafeRight" else 0.0)
+                pose_ground_gait(phase,clip_name.endswith("Run"),side,
+                    clip_name=="AuroraArmedBackpedal")
     track = arm.animation_data.nla_tracks.new()
     track.name = clip_name
     strip = track.strips.new(clip_name, 1, action)

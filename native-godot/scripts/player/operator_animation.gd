@@ -28,8 +28,11 @@ func setup(source: AnimationPlayer) -> void:
             # Synchronise footstep phase between the two grounded gait clips.
             # Restarting a run at frame zero on every speed change caused the
             # operator's feet to snap, especially under sustained gunfire.
-            var gait: bool=(from=="AuroraArmedWalk" and to=="AuroraArmedRun") or \
-                (from=="AuroraArmedRun" and to=="AuroraArmedWalk")
+            var grounded_gaits: Array[String]=[
+                "AuroraArmedWalk","AuroraArmedRun",
+                "AuroraArmedStrafeLeft","AuroraArmedStrafeRight",
+                "AuroraArmedBackpedal"]
+            var gait: bool=(from in grounded_gaits and to in grounded_gaits)
             # Fully blend into/out of authored crouch, ADS and landing
             # poses instead of snapping the skinned rig at a stance edge.
             var stance: bool=("Crouch" in from or "Crouch" in to or
