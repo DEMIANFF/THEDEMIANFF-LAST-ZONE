@@ -655,6 +655,7 @@ clips=[
     ('AuroraParachute',.045,48,False),
     ('AuroraCrouch',.01,48,True),
     ('AuroraCrouchWalk',.10,28,True),
+    ('AuroraHeal',.015,90,True),
 ]
 for clip_name, amplitude, frames, armed in clips:
     action = bpy.data.actions.new(clip_name)
@@ -703,6 +704,27 @@ for clip_name, amplitude, frames, armed in clips:
                 forearm.rotation_mode = "QUATERNION"
                 forearm.rotation_quaternion = armed_pose["forearm_" + side.lower()[0]] @ Quaternion(Vector((1,0,0)), pulse * amount)
                 forearm.keyframe_insert(data_path="rotation_quaternion", frame=frame)
+        if clip_name=="AuroraHeal":
+            # The medkit is physically attached to LeftHand in Godot.
+            # Lean the elbows and hands toward chest/stomach with a small
+            # rhythmic bandage motion; locomotion remains a separate track.
+            for side,sign in (("Left",1.0),("Right",-1.0)):
+                arm_bone=arm.pose.bones["rig:"+side+"Arm"]
+                lower=arm.pose.bones["rig:"+side+"ForeArm"]
+                arm_bone.rotation_mode='QUATERNION'
+                lower.rotation_mode='QUATERNION'
+                side_key=side.lower()[0]
+                bend=math.sin(progress*math.pi)*(.36 if side=="Left" else .23)
+                arm_bone.rotation_quaternion=(armed_pose["arm_"+side_key] @
+                    Quaternion(Vector((0,0,1)),sign*bend))
+                arm_bone.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+                lower.rotation_quaternion=(armed_pose["forearm_"+side_key] @
+                    Quaternion(Vector((1,0,0)),pulse*(.30 if side=="Left" else .22)))
+                lower.keyframe_insert(data_path="rotation_quaternion",frame=frame)
+            spine=arm.pose.bones["rig:Spine"]
+            spine.rotation_mode='QUATERNION'
+            spine.rotation_quaternion=Quaternion(Vector((1,0,0)),pulse*.055)
+            spine.keyframe_insert(data_path="rotation_quaternion",frame=frame)
         if clip_name in ("AuroraFire", "AuroraHit"):
             if clip_name=="AuroraFire":
                 # A visible coordinated recoil impulse moves the animated
