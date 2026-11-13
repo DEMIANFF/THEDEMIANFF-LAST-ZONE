@@ -14,7 +14,7 @@ func check(ok: bool,why: String) -> void:
         push_error("V7557_MATCH_LEDGER "+why)
 
 func _clean() -> void:
-    for suffix in ["",".bak",".tmp"]:
+    for suffix in ["",".bak",".tmp",".auto",".auto.tmp"]:
         var file: String=ProjectSettings.globalize_path(QA_PATH+suffix)
         if FileAccess.file_exists(file):
             DirAccess.remove_absolute(file)
@@ -74,8 +74,8 @@ func _verify() -> void:
     check(reopened.next_match_id()==3,
         "rejected invalid records consumed a future match ID")
 
-    # The previous valid backup survives a corrupted primary, even when
-    # the latest entry uses new optional telemetry.
+    # The newest automatic backup survives corrupted primary with complete
+    # telemetry, while the old .bak remains a secondary fallback.
     var bad:=FileAccess.open(QA_PATH,FileAccess.WRITE)
     check(bad!=null,"cannot test interrupted local journal write")
     if bad!=null:
@@ -83,12 +83,12 @@ func _verify() -> void:
         bad.flush()
         bad.close()
     var recovered=RECORDS.new(QA_PATH)
-    check(recovered.next_match_id()==2 and
-        int(recovered.snapshot()["played"])==1,
-        "legacy backup recovery no longer works with extended journals")
-    check(recovered.record_result(2,false,1,420,measured),
-        "recovered backup cannot append extended result idempotently")
-    check(RECORDS.new(QA_PATH).next_match_id()==3,
+    check(recovered.next_match_id()==3 and
+        int(recovered.snapshot()["played"])==2,
+        "automatic recovery rolled back verified extended match results")
+    check(recovered.record_result(3,false,1,420,measured),
+        "recovered auto backup cannot append extended result idempotently")
+    check(RECORDS.new(QA_PATH).next_match_id()==4,
         "recovered atomic journal did not commit new metadata")
 
     var game: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
@@ -138,7 +138,7 @@ func _verify() -> void:
     player.set_physics_process(false)
     for bot in combat._targets:
         bot.set_physics_process(false)
-    check(director._match_id==3 and
+    check(director._match_id==4 and
         director.get_loot_remaining()==25,
         "new match reuses old ID or lost the original physical loot")
     # These synthetic values are ONLY ledger math fixtures, not alleged
