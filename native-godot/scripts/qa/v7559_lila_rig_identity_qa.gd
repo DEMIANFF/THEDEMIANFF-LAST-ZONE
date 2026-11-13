@@ -87,6 +87,16 @@ func _verify() -> void:
     if body!=null:
         check(body.mesh.get_surface_count()==3 and
             body.skin!=null,"gameplay uses decorative rather than skinned gear")
+    var enemy: CharacterBody3D=combat._targets[0]
+    var enemy_rig: Node3D=enemy.get("_rig") as Node3D
+    check(enemy_rig!=null,"physical near-range opponent lost skinned body")
+    if enemy_rig!=null:
+        var enemy_kit: MeshInstance3D=enemy_rig.find_child(
+            "LilaAuroraSignatureKit",true,false) as MeshInstance3D
+        check(enemy_kit!=null and not enemy_kit.visible,
+            "enemies must not wear Lila's original signature outfit")
+        check(enemy.get_node_or_null("OpponentCollider")!=null,
+            "making outfits distinct must not remove physical AI collisions")
     var frontend: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(frontend)
     frontend._show_lobby()
@@ -108,6 +118,6 @@ func _verify() -> void:
     if not failed:
         print("V7559_LILA_RIG PASS original_gear=19 lowpoly=1 "+
             "skinned=1 materials=3 original_skeleton=1 "+
-            "authored_clips=14 lobby3d=1 game3d=1 "+
+            "authored_clips=14 lobby3d=1 game3d=1 exclusive_to_lila=1 "+
             "collision=preserved camera=preserved vulkan=1")
     quit(1 if failed else 0)
