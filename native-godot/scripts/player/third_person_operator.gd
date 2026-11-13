@@ -927,12 +927,25 @@ func play_weapon_action(action: String, seconds: float) -> void:
             requested="AuroraFire"
         "reload":
             requested="AuroraReloadAWM" if _weapon_index==1 else "AuroraReloadAR"
+        "heal":
+            requested="AuroraHeal"
         _:
             return
     _combat_action=requested
     _combat_action_seconds=maxf(0.05,seconds)
     if _animation_controller:
         _animation_controller.action(requested,seconds)
+
+
+func cancel_medical_action() -> void:
+    # Do not cancel a gun animation or reset the character's locomotion
+    # when this is called by unrelated lifecycle transitions.
+    if _combat_action!="AuroraHeal":
+        return
+    _combat_action=""
+    _combat_action_seconds=0.0
+    if _animation_controller:
+        _animation_controller.cancel_action()
 
 
 func set_firing(active: bool) -> void:
