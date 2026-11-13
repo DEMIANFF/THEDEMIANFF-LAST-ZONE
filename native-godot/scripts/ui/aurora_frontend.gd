@@ -41,6 +41,8 @@ var _lobby_nav: VBoxContainer
 var _profile_strip: Label
 var _stats_strip: Label
 var _currency_strip: Label
+var _objective_selector: OptionButton
+var _objective_page: String="missions"
 var _preview_touch: int=-1
 var _preview_mouse_drag: bool=false
 var _preview_drag_last: Vector2=Vector2.ZERO
@@ -419,6 +421,16 @@ func _show_lobby() -> void:
     _page.add_child(_encounter_selector)
     _lobby_mode_status=_label("",12)
     _lobby_mode_status.name="ModeAvailability"
+    _objective_selector=OptionButton.new()
+    _objective_selector.name="ObjectivesCategorySelector"
+    _objective_selector.custom_minimum_size=Vector2(265,35)
+    _objective_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+    _objective_selector.add_item("MISIONES",0)
+    _objective_selector.add_item("LOGROS",1)
+    _objective_selector.add_item("EVENTOS",2)
+    _objective_selector.select(["missions","achievements","events"].find(_objective_page))
+    _objective_selector.item_selected.connect(_on_objective_category_selected)
+    _page.add_child(_objective_selector)
     # Long account and match history text remains reachable on small screens.
     _lobby_detail_scroll=ScrollContainer.new()
     _lobby_detail_scroll.name="LobbyDetailsScroll"
@@ -435,6 +447,56 @@ func _show_lobby() -> void:
     _lobby_detail_scroll.add_child(_info)
     _build_settings()
     _select_tab(_selected_tab)
+
+
+func _on_objective_category_selected(index: int) -> void:
+    if _objective_selector==null:
+        return
+    match _objective_selector.get_item_id(index):
+        0:
+            _objective_page="missions"
+        1:
+            _objective_page="achievements"
+        2:
+            _objective_page="events"
+        _:
+            _objective_page="missions"
+    _update_objective_details()
+
+
+## These milestones are displayed from verified saved matches. They are not
+## a server event, seasonal quest or purchasable reward.
+func _update_objective_details() -> void:
+    if _info==null or _offline_records==null:
+        return
+    var stats: Dictionary=_offline_records.snapshot()
+    var played: int=int(stats.get("played",0))
+    var wins: int=int(stats.get("wins",0))
+    var kills: int=int(stats.get("kills",0))
+    match _objective_page:
+        "missions":
+            _info.text="MISIONES / METAS LOCALES\n"
+            _info.text+="Partidas clásicas: %d / 3\n"%mini(played,3)
+            _info.text+="Eliminaciones acumuladas: %d / 5\n"%mini(kills,5)
+            _info.text+="Victorias: %d / 1\n"%mini(wins,1)
+            _info.text+="Los valores se calculan con resultados realmente guardados.\n"
+            _info.text+="Las recompensas de misiones online no están habilitadas."
+        "achievements":
+            _info.text="LOGROS / HISTORIAL REAL\n"
+            _info.text+=("Primera partida: COMPLETADO" if played>=1 else
+                "Primera partida: PENDIENTE")+"\n"
+            _info.text+=("Primera victoria: COMPLETADO" if wins>=1 else
+                "Primera victoria: PENDIENTE")+"\n"
+            _info.text+=("10 eliminaciones: COMPLETADO" if kills>=10 else
+                "10 eliminaciones: %d / 10"%kills)+"\n"
+            _info.text+="Sin premios ni trofeos online ficticios."
+        "events":
+            _info.text="EVENTOS / SIN TEMPORADA ACTIVA\n"
+            _info.text+="Los eventos con fechas, objetivos y premios necesitan "
+            _info.text+="cuenta, programación y validación del servidor.\n"
+            _info.text+="Tus resultados clásicos locales se siguen guardando."
+        _:
+            _info.text="OBJETIVOS / NO DISPONIBLES"
 
 
 func _on_match_mode_selected(index: int) -> void:
@@ -455,7 +517,8 @@ func _on_match_mode_selected(index: int) -> void:
 func _sync_lobby_match_mode() -> void:
     if stage!="lobby" or _match_mode_selector==null:
         return
-    var show_modes: bool=_selected_tab!="AJUSTES"
+    var show_modes: bool=_selected_tab not in ["AJUSTES","OBJETIVOS"]
+    _objective_selector.visible=_selected_tab=="OBJETIVOS"
     _lobby_mode_heading.visible=show_modes
     _match_mode_selector.visible=show_modes
     _lobby_play_modes.visible=show_modes and _selected_match_mode!="ranked"
@@ -464,7 +527,7 @@ func _sync_lobby_match_mode() -> void:
     _lobby_mode_caption.visible=show_modes and _selected_match_mode=="classic"
     _encounter_selector.visible=show_modes and _selected_match_mode=="classic"
     _lobby_mode_status.visible=show_modes
-    _lobby_detail_scroll.visible=show_modes
+    _lobby_detail_scroll.visible=_selected_tab!="AJUSTES"
     match _selected_match_mode:
         "classic":
             _lobby_mode_status.text="CLÁSICO LOCAL · %d participantes (1 humano + IA).\nSolo disponible sin rango."%_encounter_count
@@ -547,7 +610,8 @@ func _ensure_lobby_navigation() -> void:
     _lobby_nav.anchor_bottom=.94
     _lobby_nav.add_theme_constant_override("separation",4)
     _surface.add_child(_lobby_nav)
-    for tab in ["PERSONAJE","ARMAS","MISIONES","TIENDA","EVENTOS","PASE","SOCIAL","CUENTA","AJUSTES"]:
+    # Missions, achievements and events share one section to preserve space.
+    for tab in ["PERSONAJE","ARMAS","OBJETIVOS","TIENDA","PASE","SOCIAL","CUENTA","AJUSTES"]:
         var tab_name: String=tab
         var button:=_button(tab_name,Callable(self,"_select_tab").bind(tab_name),176)
         button.name="Tab"+tab_name
@@ -592,20 +656,11 @@ func _select_tab(tab: String) -> void:
                         float(measured.get("quality_scale",1.0))*100.0]
         "ARMAS":
             _info.text="ARSENAL ACTIVO\nAR-7: mira x2 / x4.\nAWM: mira x8 y cerrojo automático.\nBR: AWM sobre el suelo, en la PLAZA (8, 24).\nENTRENAMIENTO: pulsa ARMA para probarla."
-        "MISIONES":
-            var stats: Dictionary=_offline_records.snapshot()
-            var latest: Array=stats.get("history",[])
-            _info.text="REGISTRO REAL / OFFLINE\n%d partidas  •  %d victorias"%[int(stats.get("played",0)),int(stats.get("wins",0))]
-            if not latest.is_empty():
-                var recent: Dictionary=latest[0]
-                _info.text+="\nÚltima: "+("VICTORIA" if recent.get("victory",false) else "DERROTA")
-                _info.text+="  •  %d bajas"%int(recent.get("kills",0))
-            _info.text+="\nRecompensas de misiones: pendientes."
+        "OBJETIVOS":
+            _update_objective_details()
         "TIENDA":
             var stats: Dictionary=_offline_records.snapshot()
             _info.text="TIENDA / PREPARACIÓN DE CATÁLOGO\nMONEDAS LOCALES: %d\nSe ganan al concluir partidas clásicas; compras aún deshabilitadas.\nDIAMANTES: sin cartera online. No hay recargas ni transacciones activas."%int(stats.get("local_coins",0))
-        "EVENTOS":
-            _info.text="EVENTOS / PRÓXIMA ETAPA\nSe activarán cuando haya programación, objetivos y recompensas verificables."
         "PASE":
             _info.text="PASE DE BATALLA / PLANIFICADO\nAún no existen temporadas pagadas ni cobros habilitados."
         "SOCIAL":
