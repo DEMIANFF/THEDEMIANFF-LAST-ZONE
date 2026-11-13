@@ -14,7 +14,8 @@ boot_splash/stretch_mode=4
 
 [rendering]
 renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
+renderer/rendering_method.mobile="mobile"
+rendering_device/driver.android="vulkan"
 textures/default_filters/use_nearest_mipmap_filter=false
 textures/vram_compression/import_etc2_astc=true
 
