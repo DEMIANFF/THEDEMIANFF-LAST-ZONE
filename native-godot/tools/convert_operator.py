@@ -116,9 +116,9 @@ def build_lila_aurora_signature():
     back = spine.z - 11.5*k
 
     colors = [
-        ("LilaAuroraMidnightFabric", (.045, .105, .145, 1.0), .84, .08),
-        ("LilaAuroraCopperArmor", (.58, .30, .14, 1.0), .51, .43),
-        ("LilaAuroraSignalCyan", (.035, .68, .79, 1.0), .38, .12),
+        ("LilaAuroraObsidianArmor", (.023, .047, .087, 1.0), .78, .12),
+        ("LilaAuroraIcePlateArmor", (.76, .85, .97, 1.0), .43, .30),
+        ("LilaAuroraBlueSignal", (.08, .40, .95, 1.0), .31, .18),
     ]
     materials = []
     for label, rgba, roughness, metallic in colors:
@@ -242,9 +242,9 @@ def build_lila_aurora_hair():
     assert 135.0 < height < 260.0
 
     palette = [
-        ("LilaAuroraHairMidnight", (.018, .034, .051, 1.0), .68, .0),
-        ("LilaAuroraHairPetrol", (.048, .182, .214, 1.0), .56, .0),
-        ("LilaAuroraHairCopperTie", (.58, .285, .116, 1.0), .34, .32),
+        ("LilaAuroraHairLavender", (.61, .45, .82, 1.0), .58, .0),
+        ("LilaAuroraHairIrisHighlight", (.85, .74, .98, 1.0), .48, .0),
+        ("LilaAuroraHairBlueTie", (.17, .40, .94, 1.0), .33, .22),
     ]
     materials = []
     for name, color, rough, metal in palette:
@@ -387,7 +387,7 @@ def build_lila_aurora_hair():
             (x0-4*k+float(i-2)*.5*k,head.y-29*k,head.z-8*k)
         ],(1.05-.05*i)*k,1 if i==2 else 0,.42)
 
-    # Copper tie near the ponytail root, still head-bone weighted.
+    # Blue technical hair clasp near the ponytail, head-bone weighted.
     strand("signature_hair_tie",[
         (head.x-9.6*k,head.y+3*k,head.z-5.2*k),
         (head.x-10.2*k,head.y+2*k,head.z-5.8*k),
