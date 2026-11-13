@@ -679,8 +679,8 @@ func _spawn_tracer(from: Vector3,to: Vector3) -> void:
 ## decorative muzzle flash or an imaginary online opponent.
 func _on_bot_trace(from: Vector3,to: Vector3) -> void:
     var span: Vector3=to-from
-    if not span.is_finite() or span.length_squared()<=.0001 or
-            _bot_tracers.is_empty():
+    if (not span.is_finite() or span.length_squared()<=.0001 or
+            _bot_tracers.is_empty()):
         return
     var distance: float=minf(span.length(),TRACER_MAX_LENGTH)
     var heading: Vector3=span.normalized()
