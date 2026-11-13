@@ -9,7 +9,7 @@ const LIMIT: int=12
 const EXTENDED_LIMITS: Dictionary={
     "rank":100,"participants":100,"damage":500000,
     "accuracy":100,"loot":1000,"shots":20000,
-    "hits":20000,"reloads":10000
+    "hits":20000,"headshots":20000,"reloads":10000
 }
 
 var file_path: String
@@ -58,6 +58,9 @@ static func _valid_extra_fields(extra: Dictionary) -> bool:
             return false
     if extra.has("hits") and extra.has("shots"):
         if int(extra["hits"])>int(extra["shots"]):
+            return false
+    if extra.has("headshots") and extra.has("hits"):
+        if int(extra["headshots"])>int(extra["hits"]):
             return false
     if (extra.has("accuracy") and extra.has("shots") and
             int(extra["shots"])==0 and int(extra["accuracy"])>0):
