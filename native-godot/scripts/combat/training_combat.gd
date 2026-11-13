@@ -35,6 +35,9 @@ var _targets: Array[CharacterBody3D]=[]
 var _weapon_visuals: Node3D
 var _weapon_model: Node3D # Explicit visual reference for older scripts
 var eliminations: int = 0
+# Measured from actual CharacterBody3D health lost and successful Area3D pickups.
+var damage_dealt: float=0.0
+var loot_collected: int=0
 var medkits_remaining: int = 2
 var _heal_remaining: float=0.0
 var _heal_anchor: Vector3=Vector3.ZERO
@@ -83,6 +86,9 @@ func _ready() -> void:
     hud.aim_pressed.connect(_on_aim)
     hud.reload_pressed.connect(_on_reload)
     hud.weapon_pressed.connect(_on_weapon)
+    hud.inventory_equip_requested.connect(_equip_inventory_weapon)
+    operator.incoming_fire.connect(func(at: Vector3):
+        hud.show_incoming_fire(at,operator))
     hud.fire_aim_changed.connect(operator.fire_aim_delta)
     operator.sprint_cancelled.connect(hud.cancel_sprint)
     hud.heal_pressed.connect(_on_heal)
@@ -160,18 +166,25 @@ func _on_fire_released() -> void:
 
 
 func _on_weapon() -> void:
-    if not operator.can_act():
+    _equip_inventory_weapon(1-weapon_index)
+
+
+## Both the quick-switch button and actual inventory use this same
+## authoritative equipment path, so an uncollected AWM cannot be equipped.
+func _equip_inventory_weapon(index: int) -> void:
+    if not operator.can_act() or index<0 or index>=weapon_owned.size():
         return
-    _cancel_healing("CURACION CANCELADA / ARMA")
-    var candidate: int=1-weapon_index
-    if not weapon_owned[candidate]:
+    if not weapon_owned[index]:
         hud.impact("ARMA SIN RECOGER / BUSCA LA AWM")
         return
-    weapon_index=candidate
+    if index==weapon_index:
+        return
+    _cancel_healing("CURACION CANCELADA / ARMA")
+    weapon_index=index
     trigger_held=false
     operator.set_firing(false)
     cooldown=.20
-    reload_timer=0
+    reload_timer=0.0
     aim_active=false
     current_zoom=1.0
     if _weapon_visuals:
@@ -180,7 +193,6 @@ func _on_weapon() -> void:
     operator.set_ads(false,1.0)
     hud.set_aim(false,"MIRA LIBRE",1.0)
     _sync_hud()
-
 
 func _on_aim() -> void:
     if not operator.can_act():
@@ -304,8 +316,11 @@ func _shoot() -> void:
     impact_occurred.emit()
     var body=hit.get("collider")
     if body is CharacterBody3D and body.is_in_group("training_target"):
+        var old_health: float=float(body.health)
         var eliminated: bool=body.take_training_damage(float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE),operator)
+        damage_dealt+=maxf(0.0,old_health-float(body.health))
         hud.impact("ENEMIGO NEUTRALIZADO" if eliminated else "IMPACTO CONFIRMADO")
+        _sync_hud()
     elif body is StaticBody3D and body.is_in_group("aurora_deployable_cover"):
         body.call("take_damage",float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE))
         hud.impact("BARRERA AURORA / IMPACTO")
@@ -438,6 +453,8 @@ func begin_sector_battle() -> void:
     backpack_level=0
     medkits_remaining=2
     eliminations=0
+    damage_dealt=0.0
+    loot_collected=0
     _ensure_encounter_capacity()
     for bot in _targets:
         if is_instance_valid(bot):
@@ -578,6 +595,7 @@ func collect_sector_loot(kind: String) -> bool:
             hud.impact("AWM RECOGIDA / BOTON ARMA PARA EQUIPAR")
         _:
             return false
+    loot_collected+=1
     _sync_hud()
     return true
 
@@ -600,7 +618,9 @@ func inventory_snapshot() -> Dictionary:
         "medkits":medkits_remaining,
         "covers":cover_charges,
         "backpack":backpack_level,
-        "armor":roundi(operator.armor_points)
+        "armor":roundi(operator.armor_points),
+        "damage_dealt":roundi(damage_dealt),
+        "loot_collected":loot_collected
     }
 
 

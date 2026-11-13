@@ -10,6 +10,7 @@ signal aurora_cover_pressed
 signal aim_pressed
 signal reload_pressed
 signal weapon_pressed
+signal inventory_equip_requested(slot: int)
 signal run_pressed
 signal run_released
 signal jump_pressed
@@ -33,6 +34,8 @@ var _status: Label
 var _fps: Label
 var _compass: Label
 var _hit: Label
+var _incoming_hint: Label
+var _incoming_timer: float=0.0
 var _health_label: Label
 var _hint: Label
 var _hit_timer: float = 0.0
@@ -66,6 +69,8 @@ var _settings_button: Button
 var _inventory_button: Button
 var _inventory_panel: PanelContainer
 var _inventory_label: Label
+var _inventory_ar: Button
+var _inventory_awm: Button
 var air_stage: String="ground"
 var _hud_layout: RefCounted
 var _hud_editor: Control
@@ -185,6 +190,9 @@ func _ready() -> void:
     root.add_child(_reticle)
     _hint = _text(root,"ARRASTRA PARA GIRAR  ·  IZQUIERDA PARA MOVER",.23,.94,12,Color(.68,.86,.90),HORIZONTAL_ALIGNMENT_CENTER)
     _hit = _text(root,"",.36,.375,21,Color(1,.80,.41),HORIZONTAL_ALIGNMENT_CENTER)
+    _incoming_hint=_text(root,"",.39,.22,17,Color(1,.47,.37),HORIZONTAL_ALIGNMENT_CENTER)
+    _incoming_hint.name="IncomingAttackDirection"
+    _incoming_hint.mouse_filter=Control.MOUSE_FILTER_IGNORE
 
     var fire_pad: Control = DIRECTIONAL_FIRE.new()
     fire_pad.name="DirectionalFirePad"
@@ -240,7 +248,7 @@ func _ready() -> void:
     _inventory_panel=PanelContainer.new()
     _inventory_panel.name="RealMatchInventory"
     _inventory_panel.visible=false
-    _inventory_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _inventory_panel.mouse_filter=Control.MOUSE_FILTER_STOP
     var inventory_skin:=StyleBoxFlat.new()
     inventory_skin.bg_color=Color(.025,.075,.11,.95)
     inventory_skin.border_color=Color(.25,.76,.86,.91)
@@ -254,7 +262,27 @@ func _ready() -> void:
     _inventory_label.add_theme_color_override("font_color",Color(.87,.96,.98))
     _inventory_label.text="INVENTARIO / SIN PARTIDA"
     _inventory_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
-    _inventory_panel.add_child(_inventory_label)
+    var contents:=VBoxContainer.new()
+    contents.name="InventoryActions"
+    contents.add_theme_constant_override("separation",5)
+    _inventory_panel.add_child(contents)
+    contents.add_child(_inventory_label)
+    var selectors:=HBoxContainer.new()
+    selectors.name="InventoryWeaponSelectors"
+    selectors.add_theme_constant_override("separation",8)
+    contents.add_child(selectors)
+    _inventory_ar=Button.new()
+    _inventory_ar.name="EquipAR"
+    _inventory_ar.text="EQUIPAR AR-7"
+    _inventory_ar.custom_minimum_size=Vector2(125,35)
+    _inventory_ar.pressed.connect(func(): inventory_equip_requested.emit(0))
+    selectors.add_child(_inventory_ar)
+    _inventory_awm=Button.new()
+    _inventory_awm.name="EquipAWM"
+    _inventory_awm.text="EQUIPAR AWM"
+    _inventory_awm.custom_minimum_size=Vector2(125,35)
+    _inventory_awm.pressed.connect(func(): inventory_equip_requested.emit(1))
+    selectors.add_child(_inventory_awm)
     var pad: Control=VIRTUAL_PAD.new()
     pad.name="MovePad"
     pad.anchor_left=.05
@@ -426,13 +454,18 @@ func clear_match_result() -> void:
         _result_window.visible=false
 
 
-func show_match_result(victory: bool,kills: int,seconds_alive: int) -> void:
+func show_match_result(victory: bool,kills: int,seconds_alive: int,
+        rank: int=1,participants: int=9,damage: int=0,loot_count: int=0) -> void:
     if not _result_window or not _result_text:
         return
     var summary: String="VICTORIA AURORA" if victory else "ELIMINADA"
     var minutes: String=str(int(seconds_alive/60)).pad_zeros(2)
     var seconds: String=str(seconds_alive%60).pad_zeros(2)
-    _result_text.text=summary+"\nBAJAS: "+str(kills)+"  |  TIEMPO: "+minutes+":"+seconds+"\nPULSA REINICIAR BR"
+    _result_text.text=summary+"\nPOSICIÓN: #%d / %d"%[
+        maxi(1,rank),maxi(1,participants)]
+    _result_text.text+="\nBAJAS: %d | DAÑO: %d | BOTÍN: %d"%[
+        maxi(0,kills),maxi(0,damage),maxi(0,loot_count)]
+    _result_text.text+="\nTIEMPO: "+minutes+":"+seconds+"\nREINICIAR BR"
     _result_window.visible=true
 
 
@@ -531,6 +564,10 @@ func _toggle_inventory() -> void:
 func set_inventory_snapshot(items: Dictionary) -> void:
     if _inventory_label==null:
         return
+    if _inventory_ar:
+        _inventory_ar.disabled=not bool(items.get("ar_owned",false))
+    if _inventory_awm:
+        _inventory_awm.disabled=not bool(items.get("awm_owned",false))
     var ar: String="AR-7 %d/%d (max %d)"%[
         int(items.get("ar_loaded",0)),int(items.get("ar_reserve",0)),
         int(items.get("ar_capacity",0))]
@@ -540,9 +577,11 @@ func set_inventory_snapshot(items: Dictionary) -> void:
     _inventory_label.text=(
         "EQUIPO AURORA / %s\n"%("MOCHILA NIVEL 1" if int(items.get("backpack",0))>0 else "SIN MOCHILA")
         +ar+"\n"+awm+"\n"
-        +"CHALECO %d/75  |  BOTIQUINES %d  |  BARRERAS %d"%[
+        +"CHALECO %d/75 | BOTIQUINES %d | BARRERAS %d"%[
             int(items.get("armor",0)),int(items.get("medkits",0)),
-            int(items.get("covers",0))])
+            int(items.get("covers",0))]
+        +"\nRECOGIDOS: %d | DAÑO: %d"%[
+            int(items.get("loot_collected",0)),int(items.get("damage_dealt",0))])
 
 
 func set_medkit_count(count: int) -> void:
@@ -604,6 +643,26 @@ func set_aim(active: bool,scope: String,zoom: float=1.0) -> void:
         _hint.text=scope+"  ·  FUEGO Y ARRASTRA PARA PRECISION" if active else "CÁMARA LIBRE  ·  ARRASTRA FUEGO PARA APUNTAR"
 
 
+## Uses the independently rotatable third-person camera to identify a real
+## ballistic threat; it never invents an offscreen opponent or target lock.
+func show_incoming_fire(at: Vector3,actor: CharacterBody3D) -> void:
+    if _incoming_hint==null or not at.is_finite() or not is_instance_valid(actor):
+        return
+    var toward: Vector3=at-actor.global_position
+    toward.y=0.0
+    if toward.length_squared()<.01:
+        return
+    var camera_yaw: float=float(actor.get("_yaw"))
+    var facing: Vector3=-Basis(Vector3.UP,camera_yaw).z
+    var right: Vector3=Basis(Vector3.UP,camera_yaw).x
+    toward=toward.normalized()
+    var side: float=right.dot(toward)
+    var forward: float=facing.dot(toward)
+    var sector: String="FRENTE" if forward>.55 else "DETRÁS" if forward<-.55 else "DERECHA" if side>0.0 else "IZQUIERDA"
+    _incoming_hint.text="DAÑO DESDE "+sector
+    _incoming_timer=.95
+
+
 func impact(message: String) -> void:
     if _hit:
         _hit.text=message
@@ -611,6 +670,10 @@ func impact(message: String) -> void:
 
 
 func _process(delta: float) -> void:
+    if _incoming_timer>0.0:
+        _incoming_timer=maxf(0.0,_incoming_timer-delta)
+        if _incoming_timer==0.0 and _incoming_hint:
+            _incoming_hint.text=""
     if _damage_flash and _damage_flash.color.a>0:
         _damage_flash.color.a=maxf(0.0,_damage_flash.color.a-delta*.38)
     _fps_clock-=delta
@@ -666,7 +729,8 @@ func _layout() -> void:
     _place(_exit_button,Rect2(origin+Vector2(w-107,108),Vector2(78,78)))
     _place(_settings_button,Rect2(origin+Vector2(w-194,108),Vector2(78,78)))
     _place(_inventory_button,Rect2(origin+Vector2(w-281,108),Vector2(78,78)))
-    _place(_inventory_panel,Rect2(origin+Vector2(w-410,164),Vector2(290,127)))
+    _place(_inventory_panel,Rect2(origin+Vector2(w-410,164),Vector2(290,169)))
+    _place(_incoming_hint,Rect2(origin+Vector2(w*.5-144,109),Vector2(288,28)))
     _place(_hint,Rect2(origin+Vector2(w*.5-210,h-32),Vector2(420,24)))
     _hint.add_theme_font_size_override("font_size",11)
     _place(_hit,Rect2(origin+Vector2(w*.5-300,128),Vector2(600,50)))

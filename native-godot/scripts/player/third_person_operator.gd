@@ -21,6 +21,8 @@ signal training_health_changed(value: float)
 signal armor_changed(value: float)
 signal player_eliminated
 signal player_damaged(amount: float)
+## Position provided only when an actual ray-hit enemy attacks.
+signal incoming_fire(attacker_world_position: Vector3)
 signal landed_from_airdrop
 signal crouch_state_changed(active: bool)
 signal footstep(on_stone: bool)
@@ -251,7 +253,9 @@ func _physics_process(delta: float) -> void:
             grounded_impact.emit(_on_stone_footing())
 
     if _camera:
-        var desired_fov: float = clampf(74.0 / _ads_zoom, 9.0, 74.0) if _ads_active else 74.0
+        # Running widens visibility slightly; ADS FOV remains exclusive and
+        # camera distance does not move closer to Lila or hide enemies.
+        var desired_fov: float = clampf(74.0 / _ads_zoom, 9.0, 74.0) if _ads_active else (77.0 if run_fast and move_strength>.25 else 74.0)
         _camera.fov = lerpf(_camera.fov, desired_fov, 1.0 - exp(-delta * 11.0))
         var desired_distance: float = 1.15 if _ads_active and _ads_zoom >= 6.0 else 3.65 if _ads_active else 4.6
         var preferred_shoulder: float=.16 if _ads_active and _ads_zoom>=6.0 else .38
@@ -293,6 +297,9 @@ func _physics_process(delta: float) -> void:
             _combat_action=""
         var speed: float=Vector2(velocity.x,velocity.z).length()
         var locomotion: String=_select_locomotion(speed)
+        if _animation_controller:
+            _animation_controller.set_gait_speed(speed,
+                RUN_SPEED if locomotion=="Run" else WALK_SPEED if locomotion=="Walk" else 1.0)
         var clip: String="AuroraArmed"+locomotion
         if _crouching:
             clip="AuroraCrouchWalk" if speed>=.75 else "AuroraCrouch"
@@ -724,7 +731,8 @@ func _create_parachute() -> void:
         _parachute_visual.add_child(cord)
 
 
-func receive_training_hit(amount: float, environmental: bool=false) -> void:
+func receive_training_hit(amount: float, environmental: bool=false,
+        attacker_world_position: Vector3=Vector3(INF,INF,INF)) -> void:
     if amount<=0 or royale_eliminated or round_finished or (not environmental and _training_immunity>0):
         return
     var health_damage: float=amount
@@ -736,6 +744,8 @@ func receive_training_hit(amount: float, environmental: bool=false) -> void:
     training_health=maxf(0.0,training_health-health_damage)
     training_health_changed.emit(training_health)
     player_damaged.emit(health_damage)
+    if not environmental and attacker_world_position.is_finite():
+        incoming_fire.emit(attacker_world_position)
     if _animation_controller and _combat_action_seconds<=.24:
         _animation_controller.action("AuroraHit",.22)
     if not environmental:
