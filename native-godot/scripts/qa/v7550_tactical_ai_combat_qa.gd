@@ -75,6 +75,10 @@ func _verify() -> void:
         "visible nearby enemies do not change their side-step position")
     check(attacker.shots_fired==1 and target.health<hp_before,
         "live physics ray did not hit opponent in finite final-round shot")
+    check(combat.bot_tracer_events>=1 and
+        combat._bot_tracers.size()==combat.BOT_TRACER_CAPACITY and
+        combat._bot_tracers.any(func(t: MeshInstance3D): return t.visible),
+        "real enemy shooting did not render a pooled red physics-grounded projectile")
     check(attacker._magazine==0 and attacker._reload_remaining>2.0,
         "spent magazine failed to initiate a timed tactical reload")
     var sound_count: int=attacker.shots_fired
