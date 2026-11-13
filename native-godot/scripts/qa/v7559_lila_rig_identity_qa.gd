@@ -33,9 +33,24 @@ func verify_lila_kit(container: Node3D,context: String) -> MeshInstance3D:
     check(parent_skeleton!=null and parent_skeleton.get_bone_count()>35,
         context+" original articulated body skeleton was replaced")
     if part.mesh!=null:
+        # FBX/Godot import can permute Y-up to Z-up and normalize model
+        # metres via parent transforms. Compare to the original body mesh,
+        # not to an assumed raw Y height in centimetres.
         var aabb: AABB=part.mesh.get_aabb()
-        check(aabb.size.y>110.0 and aabb.size.y<280.0,
-            context+" armor scale no longer matches centimeter FBX body")
+        var source_body: MeshInstance3D=null
+        for candidate in container.find_children(
+                "*","MeshInstance3D",true,false):
+            if candidate!=part and candidate.mesh!=null:
+                source_body=candidate
+                break
+        check(source_body!=null,
+            context+" no original humanoid mesh remains under the skin")
+        if source_body!=null:
+            var base_size: float=source_body.mesh.get_aabb().size.length()
+            var kit_size: float=aabb.size.length()
+            var ratio: float=kit_size/maxf(.001,base_size)
+            check(is_finite(ratio) and ratio>.08 and ratio<1.4,
+                context+" outfit proportions differ from the original body")
         for i in range(part.mesh.get_surface_count()):
             var material: Material=part.mesh.surface_get_material(i)
             check(material!=null and material.resource_name.begins_with(
