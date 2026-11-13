@@ -122,14 +122,19 @@ func _verify() -> void:
             supply.global_position.x,supply.global_position.z)+.49,
         "new supplies are decorative or buried under the actual world")
     var before: int=combat.medkits_remaining
+    var before_world_count: int=director.get_loot_remaining()
     player.global_position=supply.global_position-Vector3.UP
     player.velocity=Vector3.ZERO
     await physics_frame
     await physics_frame
-    supply._collect(player)
-    check(supply.collected and combat.medkits_remaining==before+1 and
-        combat.loot_collected>=2,
-        "phase medkit does not use real collision/inventory collection")
+    # A physics signal or the loot's real proximity loop may already have
+    # collected and freed this Area3D. Never call a method on a dead node.
+    if is_instance_valid(supply) and not supply.collected:
+        supply._collect(player)
+    check(combat.medkits_remaining==before+1 and
+        combat.loot_collected>=2 and
+        director.get_loot_remaining()==before_world_count-1,
+        "phase medkit did not enter real inventory or leave the world")
     check(hud._inventory_label.text.contains("RECOGIDOS:"),
         "HUD does not display verified physical pickups")
 
