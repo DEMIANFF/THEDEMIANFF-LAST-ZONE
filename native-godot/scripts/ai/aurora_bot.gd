@@ -25,6 +25,14 @@ const MAX_VISION_RAYS: int=5
 const TARGET_STICKINESS_METERS: float=3.5
 const STRAFE_SWITCH_SECONDS: float=2.7
 const ZONE_SAFE_FRACTION: float=.80
+# Every real AI opponent carries exactly ONE field medkit. The channel
+# is vulnerable, time-bound and can be interrupted by physical damage.
+const FIELD_MEDKIT_CAPACITY: int=1
+const FIELD_MEDKIT_SECONDS: float=3.0
+const FIELD_MEDKIT_HEAL: float=40.0
+const FIELD_MEDKIT_HEALTH_THRESHOLD: float=38.0
+const FIELD_MEDKIT_INTERRUPTED_COOLDOWN: float=1.25
+const PROACTIVE_RELOAD_THRESHOLD: int=4
 
 var navigation: Node3D
 var behavior: String="patrol"
@@ -36,6 +44,11 @@ var vision_rays_last: int=0
 var vision_rays_total: int=0
 var _magazine: int=MAGAZINE_CAPACITY
 var _reload_remaining: float=0.0
+var _field_medkits: int=FIELD_MEDKIT_CAPACITY
+var _heal_remaining: float=0.0
+var _heal_cooldown: float=0.0
+var heal_channels_completed: int=0
+var heal_channels_interrupted: int=0
 var _burst_count: int=0
 var _strafe_clock: float=0.0
 var _random:=RandomNumberGenerator.new()
@@ -210,12 +223,36 @@ func _physics_process(dt: float) -> void:
             _magazine=MAGAZINE_CAPACITY
             reloads_completed+=1
     _suppression_seconds=maxf(0.0,_suppression_seconds-dt)
+    _heal_cooldown=maxf(0.0,_heal_cooldown-dt)
+    # Medicines are a real timed, interruptible action on CharacterBody3D.
+    # An opponent cannot move/fire while channeling, and mobile distant
+    # AI frame staggering preserves the same elapsed seconds through dt.
+    if _advance_field_heal(dt):
+        velocity.x=move_toward(velocity.x,0.0,10.0*dt)
+        velocity.z=move_toward(velocity.z,0.0,10.0*dt)
+        velocity.y-=GRAVITY*dt
+        move_and_slide()
+        if _animation and _clip!="AuroraCrouch":
+            _animation.play("AuroraCrouch",.18)
+            _clip="AuroraCrouch"
+        return
     _sense_clock-=dt
     _attack_clock-=dt
     _alert_time=maxf(0.0,_alert_time-dt)
     if _sense_clock<=0:
         _sense_clock=.22+float(get_instance_id()%5)*.025
         _sense_player()
+
+    # Heal only out of immediate sight and inside the real safe ring;
+    # taking damage, resuming fire or entering zone hazard interrupts it.
+    if _should_field_heal():
+        _begin_field_heal()
+        return
+    # Reload a nearly empty physical magazine while hidden from opponents;
+    # a visible close target must never pause a live firefight unnecessarily.
+    if _reload_remaining<=0.0 and _magazine>0 and
+            _magazine<=PROACTIVE_RELOAD_THRESHOLD and not _target_visible:
+        _begin_reload()
 
     var target: CharacterBody3D = _target_actor if _target_visible and is_instance_valid(_target_actor) else operator
     var delta_to_player: Vector3=target.global_position-global_position
@@ -398,6 +435,14 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _attack_clock=1.3
     _magazine=MAGAZINE_CAPACITY
     _reload_remaining=0.0
+    _field_medkits=FIELD_MEDKIT_CAPACITY
+    _heal_remaining=0.0
+    _heal_cooldown=0.0
+    heal_channels_completed=0
+    heal_channels_interrupted=0
+    var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
+    if name_plate:
+        name_plate.text="ENEMIGO IA"
     _burst_count=0
     _strafe_clock=0.0
     reloads_completed=0
@@ -420,6 +465,7 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
 func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
     if health<=0.0 or not is_finite(damage) or damage<=0.0:
         return false
+    _interrupt_field_heal()
     health=maxf(0,health-damage)
     if is_instance_valid(attacker):
         _last_attacker=attacker
@@ -451,6 +497,14 @@ func _respawn() -> void:
     if not respawn_enabled:
         return
     health=100
+    _field_medkits=FIELD_MEDKIT_CAPACITY
+    _heal_remaining=0.0
+    _heal_cooldown=0.0
+    heal_channels_completed=0
+    heal_channels_interrupted=0
+    var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
+    if name_plate:
+        name_plate.text="ENEMIGO IA"
     global_position=_anchor
     visible=true
     var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
@@ -463,6 +517,62 @@ func _respawn() -> void:
     _target_visible=false
     _dead_time=0
     set_physics_process(true)
+
+## Battle Royale medkits do not regenerate magically. They are limited
+## to one item in this opponent's actual spawn inventory, then consumed.
+func _should_field_heal() -> bool:
+    if not sector_battle or health<=0.0 or health>FIELD_MEDKIT_HEALTH_THRESHOLD:
+        return false
+    if _field_medkits<=0 or _heal_remaining>0.0 or _heal_cooldown>0.0:
+        return false
+    if _target_visible:
+        return false
+    var distance_to_safe: float=Vector2(global_position.x,global_position.z).distance_to(safe_center)
+    return distance_to_safe<=safe_radius
+
+
+func _begin_field_heal() -> bool:
+    if not _should_field_heal():
+        return false
+    _heal_remaining=FIELD_MEDKIT_SECONDS
+    _attack_clock=maxf(_attack_clock,FIELD_MEDKIT_SECONDS)
+    var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
+    if name_plate:
+        name_plate.text="RIVAL / CURANDO"
+    return true
+
+
+## True only when a heal was active at the beginning of this physics
+## callback; ending the channel never grants a free attack in the same tick.
+func _advance_field_heal(dt: float) -> bool:
+    if _heal_remaining<=0.0:
+        return false
+    if health<=0.0 or not sector_battle:
+        _interrupt_field_heal()
+        return true
+    _heal_remaining=maxf(0.0,_heal_remaining-maxf(0.0,dt))
+    if _heal_remaining<=0.0:
+        var restored: float=minf(100.0,health+FIELD_MEDKIT_HEAL)
+        if restored>health and _field_medkits>0:
+            health=restored
+            _field_medkits-=1
+            heal_channels_completed+=1
+        var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
+        if name_plate:
+            name_plate.text="ENEMIGO IA"
+    return true
+
+
+func _interrupt_field_heal() -> void:
+    if _heal_remaining<=0.0:
+        return
+    _heal_remaining=0.0
+    _heal_cooldown=maxf(_heal_cooldown,FIELD_MEDKIT_INTERRUPTED_COOLDOWN)
+    heal_channels_interrupted+=1
+    var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
+    if name_plate:
+        name_plate.text="ENEMIGO IA"
+
 
 func _has_line_of_fire(foe: CharacterBody3D) -> bool:
     if not is_instance_valid(foe):
