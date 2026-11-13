@@ -22,6 +22,11 @@ const PHASE_COUNT: int=4
 const PHASE_SECONDS: float=SHRINK_DURATION/float(PHASE_COUNT)
 const PHASE_HOLD_SECONDS: float=12.0
 const PHASE_RADII: Array[float]=[INITIAL_RADIUS,84.0,53.0,28.0,FINAL_RADIUS]
+# Physically accessible supply coordinates on the established Aurora island.
+# Three supplies maximum, introduced only as the existing ring contracts.
+const RESUPPLY_SITES: Array[Vector2]=[
+    Vector2(8.0,-6.0),Vector2(-11.0,-17.0),Vector2(5.0,-35.0)]
+const RESUPPLY_TYPES: Array[String]=["ammo_ar","armor_plate","medkit"]
 
 var player: CharacterBody3D
 var combat: Node3D
@@ -48,6 +53,7 @@ var _perf_clock: float=0.0
 var _perf_samples: Array[float]=[]
 var _opponent_drops_spawned: int=0
 var _dropped_opponents: Dictionary={}
+var _phase_supplies: Dictionary={}
 
 
 func _ready() -> void:
@@ -143,6 +149,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _perf_samples.clear()
     _opponent_drops_spawned=0
     _dropped_opponents.clear()
+    _phase_supplies.clear()
     player.begin_sector_battle(from_airdrop)
     combat.begin_sector_battle()
     # The previous round can end with a 12 m radius. Reset every bot's
@@ -188,6 +195,8 @@ func _process(delta: float) -> void:
     radius=float(state["radius"])
     zone_phase=int(state["phase"])
     zone_seconds_remaining=int(state["remaining"])
+    if zone_phase>=1 and zone_phase<=3 and not _phase_supplies.has(zone_phase):
+        _spawn_phase_resupply(zone_phase)
     _zone_visual.set_safe_radius(radius)
     # Bot hazard decisions are made in physics; they must never lag behind
     # the actual damaging ring just because HUD updates are rate-limited.
@@ -206,6 +215,22 @@ func _process(delta: float) -> void:
         _finish(false)
     elif combat.active_fighter_count()==1:
         _finish(true)
+
+
+## Battle-generated loot is another real Area3D supply, not a fake
+## reward message. The same collection/collision/slot limits apply as
+## indoors. At most three extra caches are created in one match.
+func _spawn_phase_resupply(phase: int) -> void:
+    if mode!="sector_battle" or match_ended or phase<1 or phase>3:
+        return
+    if _phase_supplies.has(phase):
+        return
+    _phase_supplies[phase]=true
+    var at: Vector2=RESUPPLY_SITES[phase-1]
+    var kind: String=RESUPPLY_TYPES[phase-1]
+    if not is_outside_zone(Vector3(at.x,0.0,at.y)):
+        _make_pickup(at,kind,"AuroraPhaseSupply"+str(phase))
+        hud.impact("SUMINISTROS AURORA / FASE "+str(phase))
 
 
 func _sync_bot_safe_zone() -> void:
@@ -271,7 +296,13 @@ func _finish(victory: bool) -> void:
     retry_result()
     hud.set_sector_state("VICTORIA AURORA" if victory else "ELIMINADA / AURORA", combat.active_fighter_count(),radius,int(elapsed))
     hud.set_battle_button("REINICIAR BR")
-    hud.show_match_result(victory,combat.eliminations,int(elapsed))
+    # Final rank uses the real surviving CharacterBody3D roster, not
+    # fabricated network participants or simulated match telemetry.
+    var participants: int=int(combat.get("encounter_size"))
+    var rank: int=1 if victory else clampi(combat.active_fighter_count()+1,2,participants)
+    hud.show_match_result(victory,combat.eliminations,int(elapsed),rank,
+        participants,roundi(float(combat.get("damage_dealt"))),
+        int(combat.get("loot_collected")))
     hud.impact(("¡VICTORIA DEL SECTOR!" if victory else "PARTIDA TERMINADA / REINTENTAR") if last_match_saved else "ALERTA: NO SE GUARDO EL RESULTADO")
     round_ended.emit(victory)
 
