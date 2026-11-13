@@ -54,6 +54,8 @@ var _perf_samples: Array[float]=[]
 var _opponent_drops_spawned: int=0
 var _dropped_opponents: Dictionary={}
 var _phase_supplies: Dictionary={}
+var _was_player_outside: bool=false
+var _zone_entries: int=0
 
 
 func _ready() -> void:
@@ -101,6 +103,7 @@ func begin_aircraft_phase() -> void:
     combat.set_process(false)
     combat.visible=false
     hud.reset_controls()
+    hud.set_zone_threat(false,0.0)
     mode="aircraft"
     match_ended=false
     hud.clear_match_result()
@@ -150,6 +153,9 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _opponent_drops_spawned=0
     _dropped_opponents.clear()
     _phase_supplies.clear()
+    _was_player_outside=false
+    _zone_entries=0
+    hud.set_zone_threat(false,0.0)
     player.begin_sector_battle(from_airdrop)
     combat.begin_sector_battle()
     # The previous round can end with a 12 m radius. Reset every bot's
@@ -204,6 +210,15 @@ func _process(delta: float) -> void:
     _ui_clock-=delta
     if _ui_clock<=0:
         _ui_clock=.33
+        var radial_distance: float=Vector2(player.global_position.x,
+            player.global_position.z).distance_to(CENTER)
+        var outside: bool=not player.royale_eliminated and
+            radial_distance>radius
+        hud.set_zone_threat(outside,maxf(0.0,radial_distance-radius))
+        if outside and not _was_player_outside:
+            _zone_entries+=1
+            hud.impact("ZONA PELIGROSA / REGRESA AL CIRCULO")
+        _was_player_outside=outside
         hud.set_sector_zone(CENTER,radius)
         var status: String="ZONA FINAL" if zone_phase>=PHASE_COUNT else             "ZONA %d/%d · %ds"%[zone_phase+1,PHASE_COUNT,zone_seconds_remaining]
         hud.set_sector_state(status,combat.active_fighter_count(),radius,int(elapsed))
@@ -267,8 +282,9 @@ func is_outside_zone(position: Vector3) -> bool:
 func _check_hazard_damage() -> void:
     var damage: float=6.0 if zone_phase<=0 else 8.0 if zone_phase==1         else 10.0 if zone_phase==2 else 13.0
     if not player.royale_eliminated and is_outside_zone(player.global_position):
+        # Continuous proximity warning already exists; avoid overwriting
+        # hit confirmations and weapon cues every single damage tick.
         player.receive_training_hit(damage,true)
-        hud.impact("ZONA AURORA / VUELVE AL CIRCULO")
     for actor in combat._targets:
         if is_instance_valid(actor) and actor.health>0 and is_outside_zone(actor.global_position):
             actor.take_training_damage(damage)
@@ -292,6 +308,7 @@ func _finish(victory: bool) -> void:
     player.end_sector_battle()
     hud.reset_controls()
     hud.set_match_controls(false)
+    hud.set_zone_threat(false,0.0)
     _pending_result={"id":_match_id,"victory":victory,"kills":combat.eliminations,"seconds":int(elapsed)}
     retry_result()
     hud.set_sector_state("VICTORIA AURORA" if victory else "ELIMINADA / AURORA", combat.active_fighter_count(),radius,int(elapsed))
@@ -302,7 +319,7 @@ func _finish(victory: bool) -> void:
     var rank: int=1 if victory else clampi(combat.active_fighter_count()+1,2,participants)
     hud.show_match_result(victory,combat.eliminations,int(elapsed),rank,
         participants,roundi(float(combat.get("damage_dealt"))),
-        int(combat.get("loot_collected")))
+        int(combat.get("loot_collected")),combat.shot_accuracy_percent())
     hud.impact(("¡VICTORIA DEL SECTOR!" if victory else "PARTIDA TERMINADA / REINTENTAR") if last_match_saved else "ALERTA: NO SE GUARDO EL RESULTADO")
     round_ended.emit(victory)
 
