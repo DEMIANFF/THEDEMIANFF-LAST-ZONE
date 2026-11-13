@@ -122,6 +122,11 @@ func _verify() -> void:
     check(not player._sprint_touch,
         "touch sprint relatches silently while ADS remains active")
     player.set_ads(false,1.0)
+    # Test stand/crouch well away from the physical blocker. Otherwise
+    # refusal to stand below a wall would be correct gameplay behavior.
+    player.global_position=Vector3(810,15.56,810)
+    player.velocity=Vector3.ZERO
+    await frames(12)
     player.set_touch_run(true)
     player.set_crouch(true)
     check(player._crouching and not player._sprint_touch and
