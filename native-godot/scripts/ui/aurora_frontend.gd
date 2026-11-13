@@ -754,7 +754,7 @@ func _build_preview() -> void:
         var source:=load("res://assets/characters/aurora_operator.glb") as PackedScene
         if source!=null:
             _preview_avatar=source.instantiate() as Node3D
-            _preview_avatar.name="LilaAuroraRigPreview"
+            _preview_avatar.name="ProvisionalRig3D"
             stage3d.add_child(_preview_avatar)
             _fit_avatar_for_preview(_preview_avatar)
             var anim:=_preview_avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
