@@ -39,6 +39,8 @@ var _preview_caption: Label
 var _offline_records: RefCounted
 var _lobby_nav: VBoxContainer
 var _profile_strip: Label
+var _stats_strip: Label
+var _currency_strip: Label
 var _preview_touch: int=-1
 var _preview_mouse_drag: bool=false
 var _preview_drag_last: Vector2=Vector2.ZERO
@@ -221,6 +223,10 @@ func _welcome() -> void:
         _lobby_nav.visible=false
     if _profile_strip:
         _profile_strip.visible=false
+    if _stats_strip:
+        _stats_strip.visible=false
+    if _currency_strip:
+        _currency_strip.visible=false
     _page.anchor_left=.07
     _page.anchor_right=.63
     _page.anchor_top=.015
@@ -358,10 +364,16 @@ func _show_lobby() -> void:
     _preview_caption.anchor_bottom=.875
     _ensure_lobby_navigation()
     _lobby_nav.visible=true
+    # Three independently clipped headers keep the original brand legible
+    # without the coin balance covering Lila, the player record or the emblem.
     _profile_strip.visible=true
-    _profile_strip.text="PERFIL LOCAL  ·  %d partidas  ·  %d victorias  |  MONEDAS %d (locales)  ·  DIAMANTES: sin conexión"%[
-        int(stats.get("played",0)),int(stats.get("wins",0)),
-        int(stats.get("local_coins",0))]
+    _profile_strip.text="THEDEMIAN: LAST ZONE"
+    _stats_strip.visible=true
+    _stats_strip.text="LOCAL · %d PARTIDAS · %d VICTORIAS"%[
+        int(stats.get("played",0)),int(stats.get("wins",0))]
+    _currency_strip.visible=true
+    _currency_strip.text="MONEDAS %d  |  DIAMANTES —"%int(
+        stats.get("local_coins",0))
     _preview_touch=-1
     _preview_mouse_drag=false
     _preview_resume_spin=2.0
@@ -480,21 +492,33 @@ func _on_encounter_selected(index: int) -> void:
             else "Configuración móvil recomendada"]
 
 
+func _make_header_label(label_name: String,left: float,right: float,
+        font_size: int) -> Label:
+    var strip:=Label.new()
+    strip.name=label_name
+    strip.anchor_left=left
+    strip.anchor_right=right
+    strip.anchor_top=.035
+    strip.anchor_bottom=.035
+    strip.offset_bottom=43
+    strip.clip_text=true
+    strip.add_theme_font_size_override("font_size",font_size)
+    strip.add_theme_color_override("font_color",Color(.90,.97,1))
+    strip.add_theme_color_override("font_shadow_color",Color(.01,.035,.07))
+    strip.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _surface.add_child(strip)
+    return strip
+
+
 func _ensure_lobby_navigation() -> void:
     if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         return
-    _profile_strip=Label.new()
-    _profile_strip.name="LocalProfileStrip"
-    _profile_strip.anchor_left=.034
-    _profile_strip.anchor_right=.89
-    _profile_strip.anchor_top=.035
-    _profile_strip.anchor_bottom=.035
-    _profile_strip.offset_bottom=43
-    _profile_strip.add_theme_font_size_override("font_size",16)
-    _profile_strip.add_theme_color_override("font_color",Color(.90,.97,1))
-    _profile_strip.add_theme_color_override("font_shadow_color",Color(.01,.035,.07))
-    _profile_strip.mouse_filter=Control.MOUSE_FILTER_IGNORE
-    _surface.add_child(_profile_strip)
+    _profile_strip=_make_header_label(
+        "LocalProfileStrip",.034,.365,16)
+    _stats_strip=_make_header_label(
+        "LocalStatisticsStrip",.375,.665,12)
+    _currency_strip=_make_header_label(
+        "LocalCurrencyStrip",.676,.895,12)
     var backplate:=ColorRect.new()
     backplate.name="LobbyMenuBackplate"
     backplate.anchor_left=.665
