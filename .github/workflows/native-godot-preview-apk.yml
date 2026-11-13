@@ -66,9 +66,9 @@ jobs:
                       if n.get('name')=='LilaAuroraOriginalHair']
           hair_mats=[m for m in scene.get('materials',[])
                      if m.get('name','').startswith('LilaAuroraHair')]
-          assert len(hair_meshes)==1, 'Lila's original curved hair mesh was not exported'
+          assert len(hair_meshes)==1, 'Original Lila curved hair mesh was not exported'
           assert len(hair_nodes)==1 and 'skin' in hair_nodes[0], \
-              'Lila's new hair is not weighted to the humanoid armature'
+              'Lila hairstyle is not weighted to the humanoid armature'
           assert len(hair_mats)==3,'Lila sculpted hair needs 3 original PBR materials'
           hair_vertices=sum(scene['accessors'][p['attributes']['POSITION']]['count']
                             for p in hair_meshes[0]['primitives'])
