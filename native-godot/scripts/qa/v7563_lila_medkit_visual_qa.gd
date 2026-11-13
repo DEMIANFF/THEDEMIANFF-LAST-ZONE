@@ -77,7 +77,7 @@ func _verify() -> void:
         var mesh: MeshInstance3D=element as MeshInstance3D
         check(mesh!=null and mesh.mesh is BoxMesh and
             mesh.material_override is StandardMaterial3D and
-            not mesh.cast_shadow==GeometryInstance3D.SHADOW_CASTING_SETTING_ON,
+            mesh.cast_shadow!=GeometryInstance3D.SHADOW_CASTING_SETTING_ON,
             "real medical geometry is missing or expensive shadow casting enabled")
 
     combat._process(1.0)
