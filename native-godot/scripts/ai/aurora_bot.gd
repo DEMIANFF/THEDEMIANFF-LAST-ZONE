@@ -136,6 +136,15 @@ func _create_full_rig() -> void:
     _rig=source.instantiate() as Node3D
     _rig.name="OpponentRig"
     add_child(_rig)
+    # The underlying CC0 rig is shared to keep one character GLB and
+    # existing 30-agent collision/LOD performance. However Lila's
+    # individually authored Aurora field kit belongs ONLY to the player:
+    # enemies must not appear dressed as the protagonist.
+    var protagonist_kit: MeshInstance3D=_rig.find_child(
+        "LilaAuroraSignatureKit",true,false) as MeshInstance3D
+    if protagonist_kit!=null:
+        protagonist_kit.visible=false
+        protagonist_kit.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     if operator.has_method("fit_operator_visual"):
         operator.fit_operator_visual(_rig)
     _animation=_rig.find_child("AnimationPlayer",true,false) as AnimationPlayer

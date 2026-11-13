@@ -4,8 +4,9 @@ Run with Blender (not standard Python):
     blender --background --python convert_operator.py -- source.fbx source.png output.glb
 
 The source is authored by s0ck3t/VideoIntoBlenderModel contributors, declared CC0-1.0
-at assets/LICENCES.md. This is a temporary female Aurora operator visual,
-NOT final original Lila art. No Free Fire / Blood Strike assets are copied.
+at assets/LICENCES.md. The skinned CC0 body is combined with an originally authored low-poly
+Lila Aurora signature combat kit. The underlying face, hair and body remain
+provisional until original character sculpting; no third-party game assets are copied.
 """
 import bpy
 import sys
@@ -74,6 +75,157 @@ for obj in meshes:
                 if tex.image:
                     tex.image.pack()
         mat.blend_method = 'OPAQUE' if hasattr(mat, 'blend_method') else 'OPAQUE'
+
+# Add a coherent ORIGINAL Aurora tactical kit to the vetted skinned CC0 body.
+# This is a Lila identity milestone, not yet an original face/hair/base sculpt.
+# All pieces are single-bone weighted, in ONE mesh/drawable using three
+# shared simple PBR materials; they move with authored skeletal animations.
+def build_lila_aurora_signature():
+    from mathutils import Matrix
+
+    needed = [
+        "rig:Hips", "rig:Spine", "rig:Head",
+        "rig:LeftArm", "rig:RightArm",
+        "rig:LeftForeArm", "rig:RightForeArm",
+        "rig:LeftUpLeg", "rig:RightUpLeg",
+    ]
+    missing = [name for name in needed if arm.data.bones.get(name) is None]
+    assert not missing, "Lila requires an articulated body: " + ", ".join(missing)
+
+    def center(name):
+        bone = arm.data.bones[name]
+        return (bone.head_local + bone.tail_local) * 0.5
+
+    hips = center("rig:Hips")
+    spine = center("rig:Spine")
+    head = center("rig:Head")
+    shoulder_l = center("rig:LeftArm")
+    shoulder_r = center("rig:RightArm")
+    forearm_l = center("rig:LeftForeArm")
+    forearm_r = center("rig:RightForeArm")
+    knee_l = center("rig:LeftUpLeg")
+    knee_r = center("rig:RightUpLeg")
+    height = max(b.head_local.y for b in arm.data.bones) - min(
+        b.tail_local.y for b in arm.data.bones)
+    assert 135.0 < height < 260.0, "Lila FBX is not in expected centimetres"
+    # Scale uniform authored additions to rig proportions, not a second
+    # hardcoded one-size-fits-all body controller.
+    k = height / 180.0
+    chest_y = hips.y * .37 + head.y * .63
+    front = spine.z + 12.0*k
+    back = spine.z - 11.5*k
+
+    colors = [
+        ("LilaAuroraMidnightFabric", (.045, .105, .145, 1.0), .84, .08),
+        ("LilaAuroraCopperArmor", (.58, .30, .14, 1.0), .51, .43),
+        ("LilaAuroraSignalCyan", (.035, .68, .79, 1.0), .38, .12),
+    ]
+    materials = []
+    for label, rgba, roughness, metallic in colors:
+        mat = bpy.data.materials.new(label)
+        mat.diffuse_color = rgba
+        mat.use_nodes = True
+        shader = mat.node_tree.nodes.get("Principled BSDF")
+        if shader is None:
+            shader = next(n for n in mat.node_tree.nodes
+                          if n.type == "BSDF_PRINCIPLED")
+        shader.inputs["Base Color"].default_value = rgba
+        shader.inputs["Roughness"].default_value = roughness
+        shader.inputs["Metallic"].default_value = metallic
+        materials.append(mat)
+
+    vertices, faces, face_materials = [], [], []
+    bone_vertices = {}
+
+    def plate(label, xyz, dims, material_index, bone_name):
+        assert all(0.3*k <= d <= 45.0*k for d in dims), (
+            "Out-of-bounds Lila kit piece: " + label)
+        x, y, z = xyz
+        dx, dy, dz = [a*.5 for a in dims]
+        start = len(vertices)
+        vertices.extend([
+            (x-dx,y-dy,z-dz), (x+dx,y-dy,z-dz),
+            (x+dx,y+dy,z-dz), (x-dx,y+dy,z-dz),
+            (x-dx,y-dy,z+dz), (x+dx,y-dy,z+dz),
+            (x+dx,y+dy,z+dz), (x-dx,y+dy,z+dz),
+        ])
+        for idx in (0, 1, 2, 3, 4, 5):
+            quads = [
+                (0,3,2,1), (4,5,6,7), (0,1,5,4),
+                (3,7,6,2), (0,4,7,3), (1,2,6,5)]
+            faces.append(tuple(start+i for i in quads[idx]))
+            face_materials.append(material_index)
+        bone_vertices.setdefault(bone_name, []).extend(range(start,start+8))
+        print("LILA_GEAR_PART",label, "BONE",bone_name)
+
+    # Original silhouette: restrained asymmetry rather than a copied
+    # third-party battle-royale skin. Positive Z is the source model front.
+    plate("inner_chest_harness",(spine.x,chest_y,front),
+          (26*k,19*k,3*k),0,"rig:Spine")
+    plate("aurora_chest_plaque",(spine.x,chest_y+3*k,front+2*k),
+          (12*k,8*k,1.5*k),1,"rig:Spine")
+    plate("signal_chest_stripe",(spine.x,chest_y+3*k,front+3.1*k),
+          (9*k,1.5*k,.7*k),2,"rig:Spine")
+    plate("left_chest_webbing",(spine.x-10*k,chest_y-2*k,front+2*k),
+          (3*k,18*k,2*k),1,"rig:Spine")
+    plate("right_chest_webbing",(spine.x+10*k,chest_y-2*k,front+2*k),
+          (3*k,18*k,2*k),0,"rig:Spine")
+    plate("left_pauldron",(shoulder_l.x,shoulder_l.y+1*k,
+          shoulder_l.z+3*k),(12*k,6*k,11*k),0,"rig:LeftArm")
+    plate("right_pauldron",(shoulder_r.x,shoulder_r.y+1*k,
+          shoulder_r.z+3*k),(12*k,6*k,11*k),1,"rig:RightArm")
+    plate("left_wrist_console",(forearm_l.x,forearm_l.y,
+          forearm_l.z+3*k),(7*k,5*k,7*k),2,"rig:LeftForeArm")
+    plate("right_wrist_guard",(forearm_r.x,forearm_r.y,
+          forearm_r.z+3*k),(7*k,5*k,7*k),0,"rig:RightForeArm")
+    plate("back_radio",(spine.x,chest_y-1*k,back),
+          (15*k,19*k,6*k),0,"rig:Spine")
+    plate("radio_antenna",(spine.x+4*k,chest_y+13*k,back-2*k),
+          (1*k,13*k,1*k),2,"rig:Spine")
+    plate("utility_belt",(hips.x,hips.y+3*k,hips.z+5*k),
+          (32*k,7*k,5*k),0,"rig:Hips")
+    plate("belt_emblem",(hips.x,hips.y+3*k,hips.z+8*k),
+          (7*k,5*k,1*k),1,"rig:Hips")
+    plate("left_utility_case",(hips.x-12*k,hips.y-5*k,hips.z+7*k),
+          (8*k,12*k,6*k),1,"rig:Hips")
+    plate("right_utility_case",(hips.x+12*k,hips.y-5*k,hips.z+7*k),
+          (8*k,12*k,6*k),0,"rig:Hips")
+    plate("left_knee_protector",(knee_l.x,knee_l.y-7*k,
+          knee_l.z+7*k),(10*k,9*k,3*k),0,"rig:LeftUpLeg")
+    plate("right_knee_protector",(knee_r.x,knee_r.y-7*k,
+          knee_r.z+7*k),(10*k,9*k,3*k),1,"rig:RightUpLeg")
+    plate("head_signal_band",(head.x,head.y+8*k,head.z+9*k),
+          (17*k,3*k,2*k),2,"rig:Head")
+    plate("headband_center",(head.x,head.y+8*k,head.z+10.6*k),
+          (4*k,3*k,1*k),1,"rig:Head")
+
+    mesh = bpy.data.meshes.new("LilaAuroraSignatureSkin")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.update(calc_edges=True)
+    for mat in materials:
+        mesh.materials.append(mat)
+    for face, material in zip(mesh.polygons, face_materials):
+        face.material_index = material
+    obj = bpy.data.objects.new("LilaAuroraSignatureKit", mesh)
+    bpy.context.collection.objects.link(obj)
+    # Parent-local coordinates match armature rest-space; the armature
+    # modifier deforms all accessories with the original CC0 skeletal clips.
+    obj.parent = arm
+    obj.matrix_parent_inverse = Matrix.Identity(4)
+    for name, ids in bone_vertices.items():
+        group = obj.vertex_groups.new(name=name)
+        group.add(ids,1.0,'REPLACE')
+    deform = obj.modifiers.new("LilaSkinToOriginalArmature","ARMATURE")
+    deform.object = arm
+    deform.use_deform_preserve_volume = True
+    assert len(mesh.vertices)==19*8, "Every Lila kit piece must remain skinned"
+    assert len(mesh.polygons)==19*6, "Only static low-poly armor is permitted"
+    assert len(mesh.materials)==3
+    print("LILA_SIGNATURE_KIT_PASS",len(mesh.vertices),"vertices",
+          len(mesh.polygons),"faces",len(bone_vertices),"weighted_bones")
+    return obj
+
+lila_signature=build_lila_aurora_signature()
 
 # Add a small, genuine articulated locomotion set using named pose-bone channels.
 # These are deliberately modest authoring clips, not fictitious mocap/AAA animation.
