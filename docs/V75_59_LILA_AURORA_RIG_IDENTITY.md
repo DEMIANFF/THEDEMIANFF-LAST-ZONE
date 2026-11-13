@@ -41,6 +41,7 @@ El cuerpo 3D humanoide, la textura de piel y el cabello proceden **todavía** de
 - El lobby mantiene vista 3D con arrastre para girar, escena de hangar y avatar animado. Texto honesto: «Lila Aurora V1 • base CC0 provisional». No llamar final a la cara/cabello.
 - El controlador conserva `CharacterBody3D`, cápsula de colisión 1.82 m, cámara detrás a 4.6 m, SpringArm/corrección de obstáculos, AnimationTree y blend de armas.
 - Se mantienen Godot móvil Vulkan, bajada de detalle para 20/30 rivales IA y recursos locales liberados del lobby al entrar a partida.
+- El mismo modelo CC0 puede usarse para rivales, pero **el uniforme exclusivo de Lila se oculta en los enemigos**. Así se conserva un recurso 3D compartido, se reducen superficies renderizadas por rival y la protagonista resulta identificable.
 - La CI valida **antes** del importado Godot que el GLB incluye un Mesh con nombre LilaAuroraSignature, un nodo skinned vinculado a armature, al menos 152 vértices de armadura y los tres materiales originales.
 - Prueba `v7559_lila_rig_identity_qa.gd`: instancia la escena de juego y la escena de lobby, comprueba el mismo uniforme 3D animado, 3 materiales originales, skin con esqueleto real, clips de movimientos/combate, física, cámara y texto de divulgación.
 - En la CI los tests históricos se vuelven a ejecutar desde archivos de fuente y desde los recursos de la **única APK Vulkan** exportada. La firma v2/v3 y versión se verifican sin renovar certificados.
