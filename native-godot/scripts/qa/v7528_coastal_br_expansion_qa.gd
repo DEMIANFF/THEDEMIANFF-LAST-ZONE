@@ -121,7 +121,7 @@ func _verify() -> void:
             "bot began with an incorrect safe-zone center")
     # Deliberately change the zone without waiting for the HUD's 0.33s tick.
     # This verifies AI and damaging ring agree on the very same process tick.
-    director.elapsed=105.0
+    director.elapsed=director.PHASE_SECONDS*1.5
     director._process(0.0)
     check(director.zone_phase==1 and director.radius<director.INITIAL_RADIUS,
         "second phase did not contract the physical ring")
