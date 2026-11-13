@@ -561,6 +561,7 @@ func begin_sector_battle() -> void:
         if is_instance_valid(bot):
             bot.configure_sector_battle(_targets)
     if _weapon_visuals:
+        _weapon_visuals.set_awm_owned(weapon_owned[1])
         _weapon_visuals.equip(0)
     operator.set_equipped_weapon(0)
     hud.set_training_radar_sources(operator,_targets)
@@ -693,7 +694,9 @@ func collect_sector_loot(kind: String) -> bool:
             if weapon_owned[1]:
                 return false
             weapon_owned[1]=true
-            hud.impact("AWM RECOGIDA / BOTON ARMA PARA EQUIPAR")
+            if _weapon_visuals:
+                _weapon_visuals.set_awm_owned(true)
+            hud.impact("AWM RECOGIDA / VISIBLE EN ESPALDA")
         _:
             return false
     loot_collected+=1
@@ -898,6 +901,7 @@ func _draw_weapon_rig() -> void:
     _weapon_visuals.name="ActiveWeaponVisuals"
     add_child(_weapon_visuals)
     _weapon_visuals.attach_to_player(operator)
+    _weapon_visuals.set_awm_owned(weapon_owned[1])
     _weapon_model=_weapon_visuals.ak
     operator.set_equipped_weapon(weapon_index)
     if _weapon_visuals.right_hand_socket==null:
