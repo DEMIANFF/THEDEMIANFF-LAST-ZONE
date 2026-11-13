@@ -118,7 +118,18 @@ func _verify() -> void:
     check(cancelled[0]==1 and not player._sprint_touch and
         player._ads_active and player._ads_zoom==2.0,
         "aiming while sprinting did not cancel the actual run control")
+    player.set_touch_run(true)
+    check(not player._sprint_touch,
+        "touch sprint relatches silently while ADS remains active")
     player.set_ads(false,1.0)
+    player.set_touch_run(true)
+    player.set_crouch(true)
+    check(player._crouching and not player._sprint_touch and
+        cancelled[0]==2,
+        "crouch failed to cancel sprint in controls and the real HUD")
+    player.set_crouch(false)
+    check(not player._sprint_touch,
+        "standing resumed sprint unexpectedly after crouching")
     check(player.get_view_camera()!=null and
         player.get_view_camera().position.z>1.0,
         "ADS broke real safe third-person camera distance")
@@ -168,5 +179,5 @@ func _verify() -> void:
         print("V7561_LILA_MOTION PASS physical_sprint=1 "+
             "wall_stop=1 gait_displacement=1 footstep_no_spam=1 "+
             "coyote_jump=1 buffered_touch=1 double_jump=blocked "+
-            "ads_sprint_cancel=1 camera=1 restart=clean vulkan=1")
+            "ads_sprint_cancel=1 crouch_sprint_cancel=1 camera=1 restart=clean vulkan=1")
     quit(1 if failed else 0)
