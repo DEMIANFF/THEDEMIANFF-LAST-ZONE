@@ -222,6 +222,7 @@ jobs:
           grep -F 'V7558_HEADSHOTS PASS' native-godot/out/qa-exported-vulkan/v7558_physical_headshot_qa.log
           grep -F 'V7559_LILA_RIG PASS' native-godot/out/qa-exported-vulkan/v7559_lila_rig_identity_qa.log
           grep -F 'V7560_LILA_HOLSTERS PASS' native-godot/out/qa-exported-vulkan/v7560_lila_hair_holster_qa.log
+          grep -F 'V7560_LILA_ABILITY PASS' native-godot/out/qa-exported-vulkan/v7560_lila_tactical_ability_qa.log
           sha256sum "$APK" > native-godot/out/SHA256SUMS.txt
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v4
