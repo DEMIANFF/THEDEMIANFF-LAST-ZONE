@@ -38,6 +38,9 @@ var _incoming_hint: Label
 var _incoming_timer: float=0.0
 var _health_label: Label
 var _armor_label: Label
+var _lila_ability_label: Label
+var _lila_ability_seconds: float=0.0
+var _lila_ability_displayed: int=-1
 var _combat_feed_label: Label
 var _hit_confirm_label: Label
 var _zone_warning_label: Label
@@ -137,6 +140,10 @@ func _ready() -> void:
     _health_label = _text(root,"SALUD 100 / 100",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
     _armor_label=_text(root,"",.018,.128,14,Color(.52,.85,1),HORIZONTAL_ALIGNMENT_LEFT)
     _armor_label.name="PlayerArmorStatus"
+    _lila_ability_label=_text(root,"",.42,.17,15,
+        Color(.87,.69,1.0),HORIZONTAL_ALIGNMENT_CENTER)
+    _lila_ability_label.name="LilaTacticalAcceleration"
+    _lila_ability_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _health_meter=ProgressBar.new()
     _health_meter.name="PlayerHealthMeter"
     _health_meter.anchor_left=.02
@@ -744,6 +751,28 @@ func set_armor_status(armor: float) -> void:
         _armor_label.text="ESCUDO %d / 75"%clampi(roundi(armor),0,75)
 
 
+## This display follows a real kill-confirmed gameplay status; it creates
+## no reward, fake velocity or extra touch target of its own.
+func start_tactical_acceleration(seconds: float) -> void:
+    if not is_finite(seconds) or seconds<=0.0:
+        return
+    _lila_ability_seconds=seconds
+    _lila_ability_displayed=-1
+    _refresh_lila_ability()
+
+
+func _refresh_lila_ability() -> void:
+    if _lila_ability_label==null:
+        return
+    var second: int=ceili(_lila_ability_seconds)
+    if second==_lila_ability_displayed:
+        return
+    _lila_ability_displayed=second
+    _lila_ability_label.text=(
+        "LILA / ACELERACIÓN TÁCTICA %ds"%second
+        if second>0 else "")
+
+
 func set_zone_threat(outside: bool,distance_meters: float) -> void:
     if _zone_warning_label!=null:
         _zone_warning_label.text="FUERA DE ZONA / %dm AL CÍRCULO"%ceili(
@@ -784,6 +813,9 @@ func impact(message: String) -> void:
 
 
 func _process(delta: float) -> void:
+    if _lila_ability_seconds>0.0:
+        _lila_ability_seconds=maxf(0.0,_lila_ability_seconds-delta)
+        _refresh_lila_ability()
     if _hit_confirm_timer>0.0:
         _hit_confirm_timer=maxf(0.0,_hit_confirm_timer-delta)
         if _hit_confirm_timer==0.0 and _hit_confirm_label:
@@ -844,6 +876,8 @@ func _layout() -> void:
     _place(_map_button,Rect2(origin+Vector2(201,103),Vector2(76,76)))
     _place(_health_label,Rect2(origin+Vector2(w*.5-85,h-91),Vector2(170,28)))
     _place(_armor_label,Rect2(origin+Vector2(w*.5-85,h-118),Vector2(170,24)))
+    _place(_lila_ability_label,Rect2(origin+Vector2(w*.5-165,h-149),
+        Vector2(330,27)))
     _health_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _place(_health_meter,Rect2(origin+Vector2(w*.5-85,h-61),Vector2(170,12)))
     _place(_weapon,Rect2(origin+Vector2(w-260,16),Vector2(230,30)))
@@ -1091,6 +1125,9 @@ func reset_controls() -> void:
     var root: Control=get_node("AuroraTacticalOverlay")
     set_reload_state(false,0.0,0.0)
     set_zone_threat(false,0.0)
+    _lila_ability_seconds=0.0
+    _lila_ability_displayed=-1
+    _refresh_lila_ability()
     root.get_node("MovePad").reset()
     root.get_node("DirectionalFirePad").reset()
     if _inventory_panel:
