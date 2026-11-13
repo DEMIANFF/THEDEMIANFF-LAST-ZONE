@@ -14,6 +14,8 @@ const AWM_BOLT_SECONDS: float=.50
 # Field first aid uses a real time window. Interruptions never waste a kit.
 const HEAL_APPLY_SECONDS: float=3.0
 const HEAL_MOVE_TOLERANCE_SQ: float=.16
+const AR_RELOAD_SECONDS: float=1.55
+const AWM_RELOAD_SECONDS: float=3.10
 const BOT = preload("res://scripts/ai/aurora_bot.gd")
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
@@ -31,6 +33,12 @@ var aim_active: bool=false
 var current_zoom: float=1.0
 var cooldown: float=0.0
 var reload_timer: float=0.0
+var _reload_duration: float=0.0
+var _reload_ui_clock: float=0.0
+var shots_fired_total: int=0
+var shots_hit_total: int=0
+var reloads_completed: int=0
+var empty_magazine_attempts: int=0
 var _targets: Array[CharacterBody3D]=[]
 var _weapon_visuals: Node3D
 var _weapon_model: Node3D # Explicit visual reference for older scripts
@@ -131,17 +139,26 @@ func _process(dt: float) -> void:
         _cancel_healing()
         trigger_held=false
         reload_timer=0.0
+        _reload_duration=0.0
+        hud.set_reload_state(false,0.0,0.0)
         return
     cooldown=maxf(0,cooldown-dt)
     if reload_timer>0:
         reload_timer=maxf(0,reload_timer-dt)
+        _reload_ui_clock-=dt
         if reload_timer==0:
             var cap: int=5 if weapon_index==1 else 30
             var taken: int=mini(cap-ammo[weapon_index],reserve[weapon_index])
             ammo[weapon_index]+=taken
             reserve[weapon_index]-=taken
+            reloads_completed+=1
+            _reload_duration=0.0
+            hud.set_reload_state(false,0.0,0.0)
             hud.impact("RECARGA COMPLETADA")
             _sync_hud()
+        elif _reload_ui_clock<=0.0:
+            _reload_ui_clock=.10
+            hud.set_reload_state(true,reload_timer,_reload_duration)
     if trigger_held and weapon_index==0 and cooldown<=0 and reload_timer<=0:
         _shoot()
 
@@ -150,6 +167,12 @@ func _on_fire_pressed() -> void:
     if not operator.can_act():
         return
     if operator.royale_eliminated or operator.round_finished:
+        return
+    if ammo[weapon_index]<=0 and reserve[weapon_index]<=0:
+        empty_magazine_attempts+=1
+        trigger_held=false
+        operator.set_firing(false)
+        hud.impact("SIN MUNICION / BUSCA BOTIN")
         return
     _cancel_healing("CURACION CANCELADA / DISPARO")
     trigger_held=true
@@ -185,6 +208,8 @@ func _equip_inventory_weapon(index: int) -> void:
     operator.set_firing(false)
     cooldown=.20
     reload_timer=0.0
+    _reload_duration=0.0
+    hud.set_reload_state(false,0.0,0.0)
     aim_active=false
     current_zoom=1.0
     if _weapon_visuals:
@@ -277,7 +302,10 @@ func _on_reload() -> void:
     if ammo[weapon_index]>=cap or reserve[weapon_index]<=0:
         hud.impact("SIN NECESIDAD DE RECARGA")
         return
-    reload_timer=3.1 if weapon_index==1 else 1.55
+    reload_timer=AWM_RELOAD_SECONDS if weapon_index==1 else AR_RELOAD_SECONDS
+    _reload_duration=reload_timer
+    _reload_ui_clock=0.0
+    hud.set_reload_state(true,reload_timer,_reload_duration)
     operator.play_weapon_action("reload",reload_timer)
     reload_started.emit()
     hud.impact("RECARGANDO")
@@ -289,9 +317,16 @@ func _shoot() -> void:
     if operator.royale_eliminated or cooldown>0 or reload_timer>0:
         return
     if ammo[weapon_index]<=0:
-        _on_reload()
+        if reserve[weapon_index]>0:
+            _on_reload()
+        else:
+            trigger_held=false
+            operator.set_firing(false)
+            empty_magazine_attempts+=1
+            hud.impact("SIN MUNICION / BUSCA BOTIN")
         return
     ammo[weapon_index]-=1
+    shots_fired_total+=1
     cooldown=AWM_BOLT_SECONDS if weapon_index==1 else .105
     _sync_hud()
     operator.apply_recoil(.02 if weapon_index==1 else .005)
@@ -318,7 +353,11 @@ func _shoot() -> void:
     if body is CharacterBody3D and body.is_in_group("training_target"):
         var old_health: float=float(body.health)
         var eliminated: bool=body.take_training_damage(float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE),operator)
-        damage_dealt+=maxf(0.0,old_health-float(body.health))
+        var actual_damage: float=maxf(0.0,old_health-float(body.health))
+        damage_dealt+=actual_damage
+        if actual_damage>0.0:
+            shots_hit_total+=1
+            hud.show_confirmed_hit(actual_damage,eliminated)
         hud.impact("ENEMIGO NEUTRALIZADO" if eliminated else "IMPACTO CONFIRMADO")
         _sync_hud()
     elif body is StaticBody3D and body.is_in_group("aurora_deployable_cover"):
@@ -416,6 +455,9 @@ func deploy_aurora_cover() -> bool:
 
 func end_sector_battle() -> void:
     _cancel_healing()
+    reload_timer=0.0
+    _reload_duration=0.0
+    hud.set_reload_state(false,0.0,0.0)
     for i in range(_bot_tracers.size()):
         _bot_tracer_lifetimes[i]=0.0
         _bot_tracers[i].visible=false
@@ -447,6 +489,14 @@ func begin_sector_battle() -> void:
     weapon_index=0
     cooldown=0.0
     reload_timer=0.0
+    _reload_duration=0.0
+    _reload_ui_clock=0.0
+    hud.set_reload_state(false,0.0,0.0)
+    shots_fired_total=0
+    shots_hit_total=0
+    reloads_completed=0
+    empty_magazine_attempts=0
+    hud.clear_combat_events()
     ammo=[30,5]
     reserve=[90,12]
     weapon_owned=[true,false]
@@ -620,8 +670,20 @@ func inventory_snapshot() -> Dictionary:
         "backpack":backpack_level,
         "armor":roundi(operator.armor_points),
         "damage_dealt":roundi(damage_dealt),
-        "loot_collected":loot_collected
+        "loot_collected":loot_collected,
+        "shots_fired":shots_fired_total,
+        "shots_hit":shots_hit_total,
+        "accuracy":shot_accuracy_percent(),
+        "reloads":reloads_completed
     }
+
+
+## Only actual damage to a living CharacterBody3D counts as a successful hit.
+func shot_accuracy_percent() -> int:
+    if shots_fired_total<=0:
+        return 0
+    return clampi(roundi(100.0*float(shots_hit_total)/
+        float(shots_fired_total)),0,100)
 
 
 func resolve_shot(from: Vector3, direction: Vector3, muzzle: Vector3) -> Dictionary:
@@ -717,6 +779,9 @@ func _on_bot_trace(from: Vector3,to: Vector3) -> void:
 
 func _sync_hud() -> void:
     hud.set_weapon("AWM / FRANCOTIRADOR" if weapon_index==1 else "AR-7 / ASALTO",ammo[weapon_index],reserve[weapon_index])
+    hud.set_ammo_warning(ammo[weapon_index],reserve[weapon_index],
+        5 if weapon_index==1 else 30)
+    hud.set_armor_status(operator.armor_points)
     hud.set_inventory_snapshot(inventory_snapshot())
 
 
@@ -759,6 +824,15 @@ func _on_bot_eliminated(_agent: CharacterBody3D,killer: Node3D) -> void:
     # and zone eliminations reduce alive count but do NOT credit a player kill.
     if sector_battle_active:
         bot_eliminated.emit(_agent,killer)
+        var victim: String="RIVAL %02d"%maxi(1,_targets.find(_agent)+1)
+        var event: String=""
+        if killer==operator:
+            event="TU ELIMINASTE "+victim
+        elif killer==null:
+            event="ZONA ELIMINO "+victim
+        else:
+            event=("RIVAL %02d"%maxi(1,_targets.find(killer)+1))+" ELIMINO "+victim
+        hud.push_combat_event(event)
     if killer==operator:
         eliminations+=1
         hud.set_eliminations(eliminations)
