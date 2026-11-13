@@ -69,6 +69,18 @@ func _verify() -> void:
     if controller==null or player._animator==null:
         quit(1)
         return
+    # The OneShot mask must include the NEW neck reaction, while its
+    # existing legs, hips and feet continue to run the V75.65 gait.
+    var neck_filtered: bool=false
+    for track in controller.upper_tracks:
+        var bone: String=str(track).to_lower()
+        if "neck" in bone:
+            neck_filtered=true
+        check(not ("hips" in bone or "upleg" in bone or
+                "foot" in bone or "thigh" in bone),
+            "recoil/hit overlay took over lower-body walking physics")
+    check(neck_filtered,
+        "directional hit animation cannot bend Lila's neck: missing upper mask")
     for name in ["AuroraHitFront","AuroraHitBack","AuroraHitLeft",
             "AuroraHitRight","AuroraFireAWM"]:
         check(player._animator.has_animation(name) and
