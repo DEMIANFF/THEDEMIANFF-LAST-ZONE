@@ -48,9 +48,9 @@ func _verify() -> void:
     check(director.retry_result() and director.last_match_saved,"round retry failed")
     director._finish(true)
     check(RECORDS.new(path).next_match_id()==4,"round duplicated on retry")
-    # If no existing snapshot is valid, do not start an unsaveable new round
-    # or overwrite the damaged profile with a fresh zeroed ledger.
-    for suffix in ["",".bak"]:
+    # If every snapshot is invalid (including .auto), deployment must stop
+    # rather than overwrite the damaged profile with an empty account.
+    for suffix in ["",".bak",".auto"]:
         var broken:=FileAccess.open(path+suffix,FileAccess.WRITE)
         broken.store_string("truncated")
         broken.close()
@@ -59,7 +59,7 @@ func _verify() -> void:
     check(director.match_ended and director.mode=="sector_battle","invalid profile allowed deployment")
     director.start_sector_battle()
     check(director.match_ended and FileAccess.get_file_as_string(path)=="truncated","invalid profile overwritten")
-    for suffix in ["",".tmp",".bak"]:
+    for suffix in ["",".tmp",".bak",".auto",".auto.tmp"]:
         DirAccess.remove_absolute(ProjectSettings.globalize_path(path+suffix))
     print("PERSISTENCE_RECOVERY PASS staged recovery, legacy, corrupt temporary, integrated retry, invalid-profile guard")
     quit(1 if failed else 0)
