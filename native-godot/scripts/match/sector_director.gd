@@ -375,6 +375,23 @@ func _spawn_loot() -> void:
                 "AuroraInteriorLoot"+str(i+1),at.y)
 
 
+## A dead rival drops only what remains in that actual CharacterBody3D
+## inventory; no "random" armor or unlimited ammo is created on death.
+## The first player kill remains a physical ammo cache; every third player
+## kill may award an unused field medkit, if the rival still owns one.
+static func opponent_inventory_reward(rounds_loaded: int,medkits_owned: int,
+        killed_by_player: bool,cache_index: int) -> Dictionary:
+    var rounds: int=clampi(rounds_loaded,0,18)
+    var kits: int=clampi(medkits_owned,0,1)
+    if killed_by_player and cache_index%3==0 and kits>0:
+        return {"kind":"medkit","quantity":kits}
+    if rounds>0:
+        return {"kind":"ammo_ar","quantity":rounds}
+    if kits>0:
+        return {"kind":"medkit","quantity":kits}
+    return {}
+
+
 ## Loot is produced by an actual CharacterBody3D death, never by fake
 ## timers or respawn counters. One cache per victim per round, at most 12
 ## active additions to keep collision and draw costs bounded on Motorola.
@@ -392,20 +409,21 @@ func _on_opponent_eliminated(victim: CharacterBody3D,killer: Node3D) -> void:
         return
     if _opponent_drops_spawned>=MAX_OPPONENT_DROPS:
         return
+    var supply: Dictionary=opponent_inventory_reward(
+        int(victim.get("_magazine")),int(victim.get("_field_medkits")),
+        killer==player,_opponent_drops_spawned+1)
+    if supply.is_empty():
+        return  # A rival with no ammo/medkit cannot create fictitious loot.
     _opponent_drops_spawned+=1
-    # Rewards come from real combat. Player eliminations favor supplies,
-    # while AI-on-AI kills may still leave usable ammunition in the world.
-    var kind: String="ammo_ar"
-    if killer==player:
-        kind="medkit" if _opponent_drops_spawned%3==0 else "ammo_ar"
-    elif _opponent_drops_spawned%4==0:
-        kind="armor_plate"
+    var kind: String=str(supply["kind"])
+    var amount: int=int(supply["quantity"])
     var at:=Vector2(position.x,position.z)
     var ground_y: float=float(terrain.height_at(at.x,at.y))
     # Keep loot on a raised walkable deck when the bot died inside a villa,
     # and never float a cache below the current physical standing surface.
     var surface_y: float=maxf(ground_y,position.y-.15)
-    _make_pickup(at,kind,"AuroraOpponentLoot"+str(_opponent_drops_spawned),surface_y,true)
+    _make_pickup(at,kind,"AuroraOpponentLoot"+str(_opponent_drops_spawned),
+        surface_y,true,amount)
 
 
 func _historic_floor_at(at: Vector2) -> float:
@@ -431,13 +449,15 @@ func _historic_floor_at(at: Vector2) -> float:
 
 
 func _make_pickup(at: Vector2,kind: String,pickup_name: String,
-        floor_height: float=NAN,from_opponent: bool=false) -> void:
+        floor_height: float=NAN,from_opponent: bool=false,
+        quantity: int=-1) -> void:
     if not is_finite(floor_height):
         floor_height=_historic_floor_at(at)
     var pickup: Area3D=LOOT.new()
     pickup.name=pickup_name
     pickup.pickup_type=kind
     pickup.from_opponent=from_opponent
+    pickup.quantity=quantity
     pickup.player=player
     pickup.combat=combat
     pickup.terrain=terrain
