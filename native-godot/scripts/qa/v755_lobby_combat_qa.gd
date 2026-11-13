@@ -18,12 +18,13 @@ func verify() -> void:
     front._show_lobby()
     await process_frame
     check(front.stage=="lobby","lobby not displayed")
-    check(front._lobby_nav!=null and front._lobby_nav.get_child_count()==9,"real navigation tabs missing")
+    check(front._lobby_nav!=null and front._lobby_nav.get_child_count()==8,
+        "merged objectives navigation tabs missing")
     check(front._preview_container.visible,"character 3D preview hidden")
     check(front._surface.has_node("OriginalAuroraCoast"),"Aurora background missing")
     check(front._page.find_child("BattleButton",true,false)!=null,"BR launch missing")
     check(front._page.find_child("TrainingButton",true,false)!=null,"training launch missing")
-    for tab in ["PERSONAJE","ARMAS","MISIONES","TIENDA","EVENTOS","PASE","SOCIAL","CUENTA","AJUSTES"]:
+    for tab in ["PERSONAJE","ARMAS","OBJETIVOS","TIENDA","PASE","SOCIAL","CUENTA","AJUSTES"]:
         front._select_tab(tab)
         check(front._info.text.length()>15,"empty tab "+tab)
         check(front._settings_panel.visible==(tab=="AJUSTES"),"incorrect setting panel visibility "+tab)
