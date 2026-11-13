@@ -471,7 +471,7 @@ func _select_tab(tab: String) -> void:
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot()
-            _info.text="OPERADORA / LILA EN DESARROLLO\nModelo 3D provisional."
+            _info.text="LILA / TRAJE TÁCTICO AURORA V1\n19 piezas originales sobre esqueleto y modelo base CC0 provisional."
             _info.text+="\nPARTIDAS %d  •  VICTORIAS %d  •  BAJAS %d"%[int(stats.get("played",0)),int(stats.get("wins",0)),int(stats.get("kills",0))]
             _info.text+="\nRÉCORD %d BAJAS  •  %d S VIVO"%[int(stats.get("best_kills",0)),int(stats.get("longest_survival_seconds",0))]
             var measured: Dictionary=PERFORMANCE.latest()
@@ -682,8 +682,9 @@ func _return_to_lobby() -> void:
 
 func _build_preview() -> void:
     # Real native 3D viewport, not a copied Free Fire character illustration.
-    # Shows the current TEMPORARY CC0 operator. Final original Lila requires
-    # separately authored mesh, UVs, hair, original outfit and refined rig.
+    # Shows the actual skinned Lila Aurora v1 tactical kit, built directly
+    # into the same GLB used by gameplay. Its CC0 face/hair/base body remain
+    # provisional; no unsupported claim of final custom face sculpt.
     _preview_container=SubViewportContainer.new()
     _preview_container.name="AvatarPreview"
     _preview_container.anchor_left=.29
@@ -753,7 +754,7 @@ func _build_preview() -> void:
         var source:=load("res://assets/characters/aurora_operator.glb") as PackedScene
         if source!=null:
             _preview_avatar=source.instantiate() as Node3D
-            _preview_avatar.name="ProvisionalRig3D"
+            _preview_avatar.name="LilaAuroraRigPreview"
             stage3d.add_child(_preview_avatar)
             _fit_avatar_for_preview(_preview_avatar)
             var anim:=_preview_avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
@@ -767,7 +768,7 @@ func _build_preview() -> void:
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
-    caption.text="LILA  •  MODELO 3D PROVISIONAL   ↻ DESLIZA PARA GIRAR"
+    caption.text="LILA AURORA V1  •  BASE CC0 PROVISIONAL   ↻ GIRAR"
     caption.anchor_left=.29
     caption.anchor_right=.65
     caption.anchor_top=.90
