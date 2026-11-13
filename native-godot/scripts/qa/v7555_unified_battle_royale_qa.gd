@@ -75,14 +75,19 @@ func _verify() -> void:
     check(combat.weapon_index==0,
         "inventory selection bypassed live weapon ownership")
     var weapon: Area3D=director.get_node("AuroraAWMWeaponPickup")
+    var loot_before_awm: int=director.get_loot_remaining()
     player.global_position=weapon.global_position-Vector3.UP
     player.velocity=Vector3.ZERO
     await physics_frame
     await physics_frame
-    weapon._collect(player)
-    check(weapon.collected and combat.weapon_owned[1] and
-        not hud._inventory_awm.disabled,
-        "world AWM pickup failed to enable actual inventory action")
+    # The exported Android project may process body_entered/_process first:
+    # obtaining the weapon should free the pickup, not cause a second call.
+    if is_instance_valid(weapon) and not weapon.collected:
+        weapon._collect(player)
+    check(combat.weapon_owned[1] and
+        not hud._inventory_awm.disabled and
+        director.get_loot_remaining()==loot_before_awm-1,
+        "world AWM pickup failed to enter inventory or leave physical world")
     hud._toggle_inventory()
     check(panel.visible and panel.get_node_or_null(
         "InventoryActions/InventoryWeaponSelectors/EquipAR")!=null,
