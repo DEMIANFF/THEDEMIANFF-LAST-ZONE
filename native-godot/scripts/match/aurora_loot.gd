@@ -12,6 +12,9 @@ var surface_height_override: float=NAN
 var collected: bool=false
 # Visual identity for an actual opponent elimination reward.
 var from_opponent: bool=false
+# -1 means the standard world pickup amount; death caches record a real
+# bounded item quantity taken from the victim's remaining inventory.
+var quantity: int=-1
 var _visual: Node3D
 var _phase: float=0.0
 var _pickup_clock: float=0.0
@@ -85,6 +88,8 @@ func _ready() -> void:
         _: floating_name.text="MUNICION AWM"
     if from_opponent:
         floating_name.text="RIVAL / "+floating_name.text
+        if quantity>0:
+            floating_name.text+=" x"+str(quantity)
     floating_name.font_size=44 if pickup_type=="weapon_awm" else 38
     floating_name.pixel_size=.005
     floating_name.position.y=1.72 if pickup_type=="weapon_awm" else .94
@@ -168,7 +173,7 @@ func _collect(body: Node3D) -> void:
     ray.exclude=[player.get_rid()]
     if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
         return
-    if combat.collect_sector_loot(pickup_type):
+    if combat.collect_sector_loot(pickup_type,quantity,from_opponent):
         collected=true
         set_deferred("monitoring",false)
         _visual.visible=false
