@@ -16,6 +16,25 @@ func check(ok: bool,why: String) -> void:
         push_error("V7566_AWM_BOLT_RECOIL "+why)
 
 
+## Only decorative kick should be removed from the ray. Bone motion
+## and changing from hip carry to camera ADS may move the hand legitimately.
+static func expected_unrecoiled_muzzle(weapons: Node3D,
+        operator: CharacterBody3D,barrel: float) -> Vector3:
+    var camera: Camera3D=operator.get_view_camera()
+    var engaged: bool=bool(operator.get("_ads_active")) or bool(
+        operator.get("_fire_held"))
+    var forward: Vector3=-camera.global_basis.z if engaged else (
+        -operator.global_basis.z)
+    var basis: Basis=Basis.looking_at(forward.normalized(),Vector3.UP)
+    var grip: Vector3=weapons.right_hand_socket.global_position
+    return grip+basis*Vector3(.015,-.027,-.02)+basis*Vector3(0,.03,-barrel)
+
+
+func frames(n: int) -> void:
+    for i in range(n):
+        await physics_frame
+
+
 func _verify() -> void:
     check(str(ProjectSettings.get_setting(
         "rendering/renderer/rendering_method.mobile"))=="mobile",
@@ -84,9 +103,11 @@ func _verify() -> void:
         operator._combat_action=="AuroraFire",
         "AR actual bullet isn't synchronized with pooled muzzle flash")
     var after_flash_muzzle: Vector3=visuals.muzzle_position()
+    var expected_ar: Vector3=expected_unrecoiled_muzzle(
+        visuals,operator,.78)
     check(first_muzzle.is_finite() and after_flash_muzzle.is_finite() and
-        first_muzzle.distance_to(after_flash_muzzle)<.012,
-        "visual recoil moved the authoritative physical muzzle ray")
+        after_flash_muzzle.distance_to(expected_ar)<.005,
+        "visual-only recoil contaminated the current right-hand ballistic ray")
     combat._on_fire_released()
     visuals._process(.20)
     check(not effect.visible and visuals._flash_remaining==0.0 and
@@ -127,11 +148,17 @@ func _verify() -> void:
         absf(operator._combat_action_seconds-.50)<.001 and
         controller.action_clip.animation=="AuroraBoltAWM",
         "real AWM round does not trigger authored half-second bolt and flash")
-    await process_frame
+    # Several real idle/physics ticks are required for the AnimationTree
+    # one-shot to evaluate, unlike the immediate action request above.
+    await frames(6)
     check(controller.tree.get("parameters/UpperBody/active"),
         "AWM bolt is not actually playing on Lila's upper body animation tree")
-    check(awm_muzzle.distance_to(visuals.muzzle_position())<.012,
-        "sniper visual recoil changed the actual ballistic muzzle")
+    var actual_awm: Vector3=visuals.muzzle_position()
+    var expected_awm: Vector3=expected_unrecoiled_muzzle(
+        visuals,operator,1.10)
+    check(actual_awm.is_finite() and
+        actual_awm.distance_to(expected_awm)<.005,
+        "AWM flash altered its current authoritative barrel ray")
     combat._process(.6)
     check(combat.ammo[1]==awm_ammo-1,
         "AWM unexpectedly fired automatically while fire button was held")
