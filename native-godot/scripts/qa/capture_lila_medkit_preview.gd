@@ -21,7 +21,8 @@ func _capture() -> void:
     player.set_physics_process(false)
     for bot in combat._targets:
         bot.set_physics_process(false)
-    player.receive_training_hit(35.0,true)
+    player.receive_training_hit(48.0,true)
+    var health_before_heal: float=player.training_health
     combat._on_heal()
     if not player._medkit_visual or not player._medkit_visual.visible or (
             player._combat_action!="AuroraHeal"):
@@ -50,8 +51,9 @@ func _capture() -> void:
         push_error("Could not save rendered post-medkit frame")
         quit(4)
         return
-    if player._medkit_visual.visible or combat._heal_remaining>0:
-        push_error("Completed real healing left a phantom 3D medical item")
+    if (player._medkit_visual.visible or combat._heal_remaining>0 or
+            absf(player.training_health-health_before_heal-45.0)>.01):
+        push_error("Completed real healing failed: invalid HP or phantom 3D medical item")
         quit(5)
         return
     print("V7563_MEDKIT_RENDER PASS ",active.get_width(),"x",
