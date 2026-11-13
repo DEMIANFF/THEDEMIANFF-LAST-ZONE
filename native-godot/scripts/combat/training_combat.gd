@@ -271,6 +271,9 @@ func _on_heal() -> void:
         hud.set_aim(false,"MIRA LIBRE",1.0)
     _heal_remaining=HEAL_APPLY_SECONDS
     _heal_anchor=operator.global_position
+    # Same timed, interruptible channel drives physical medicine and the
+    # skinned Lila action. The visual has no independent health timer.
+    operator.start_medkit_animation(_heal_remaining)
     hud.set_heal_channel(true,_heal_remaining,HEAL_APPLY_SECONDS,medkits_remaining)
     hud.impact("APLICANDO BOTIQUIN / 3 SEGUNDOS")
 
@@ -284,6 +287,7 @@ func _cancel_healing(reason: String="") -> void:
     if _heal_remaining<=0.0:
         return
     _heal_remaining=0.0
+    operator.stop_medkit_animation()
     hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
     if not reason.is_empty():
         hud.impact(reason)
@@ -292,6 +296,7 @@ func _cancel_healing(reason: String="") -> void:
 func _complete_healing() -> void:
     # The medkit is deducted exactly once, only when the channel completes.
     _heal_remaining=0.0
+    operator.stop_medkit_animation()
     hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
     if not operator.can_act() or medkits_remaining<=0 or operator.training_health>=99.5:
         return
