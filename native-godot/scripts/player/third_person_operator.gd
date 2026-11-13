@@ -954,7 +954,7 @@ func play_weapon_action(action: String, seconds: float) -> void:
     var requested: String=""
     match action:
         "fire":
-            requested="AuroraFire"
+            requested="AuroraBoltAWM" if _weapon_index==1 else "AuroraFire"
         "reload":
             requested="AuroraReloadAWM" if _weapon_index==1 else "AuroraReloadAR"
         "heal":
