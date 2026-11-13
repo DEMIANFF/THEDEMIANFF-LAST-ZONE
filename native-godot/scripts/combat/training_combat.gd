@@ -11,6 +11,9 @@ signal bot_eliminated(victim: CharacterBody3D, killer: Node3D)
 const AR_DAMAGE: int=26
 const AWM_DAMAGE: int=115
 const AWM_BOLT_SECONDS: float=.50
+# Field first aid uses a real time window. Interruptions never waste a kit.
+const HEAL_APPLY_SECONDS: float=3.0
+const HEAL_MOVE_TOLERANCE_SQ: float=.16
 const BOT = preload("res://scripts/ai/aurora_bot.gd")
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
@@ -33,6 +36,8 @@ var _weapon_visuals: Node3D
 var _weapon_model: Node3D # Explicit visual reference for older scripts
 var eliminations: int = 0
 var medkits_remaining: int = 2
+var _heal_remaining: float=0.0
+var _heal_anchor: Vector3=Vector3.ZERO
 # Real match equipment: two weapon slots, an upgradeable backpack and armor.
 # The BR's AWM must be found as a physical pickup; training keeps both guns.
 var weapon_owned: Array[bool]=[true,true]
@@ -73,6 +78,7 @@ func _ready() -> void:
     hud.fire_aim_changed.connect(operator.fire_aim_delta)
     operator.sprint_cancelled.connect(hud.cancel_sprint)
     hud.heal_pressed.connect(_on_heal)
+    operator.player_damaged.connect(_on_healing_damage)
     operator.armor_changed.connect(func(_value: float): _sync_hud())
     hud.aurora_cover_pressed.connect(_on_cover_pressed)
     _make_targets()
@@ -80,6 +86,7 @@ func _ready() -> void:
     _prepare_tracers()
     _sync_hud()
     hud.set_medkit_count(medkits_remaining)
+    hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
 
 
 func _process(dt: float) -> void:
@@ -90,7 +97,20 @@ func _process(dt: float) -> void:
         if _tracer_lifetimes[i]>0.0:
             _tracer_lifetimes[i]=maxf(0.0,_tracer_lifetimes[i]-dt)
             _tracers[i].visible=_tracer_lifetimes[i]>0.0
+    if _heal_remaining>0.0:
+        var moving: bool=(operator._move_axis.length_squared()>.01 or
+            operator._sprint_touch or operator._jump_requested or
+            operator.global_position.distance_squared_to(_heal_anchor)>HEAL_MOVE_TOLERANCE_SQ)
+        if not operator.can_act() or moving:
+            _cancel_healing("CURACION INTERRUMPIDA")
+        else:
+            _heal_remaining=maxf(0.0,_heal_remaining-maxf(0.0,dt))
+            if _heal_remaining<=0.0:
+                _complete_healing()
+            else:
+                hud.set_heal_channel(true,_heal_remaining,HEAL_APPLY_SECONDS,medkits_remaining)
     if not operator.can_act():
+        _cancel_healing()
         trigger_held=false
         reload_timer=0.0
         return
@@ -113,6 +133,7 @@ func _on_fire_pressed() -> void:
         return
     if operator.royale_eliminated or operator.round_finished:
         return
+    _cancel_healing("CURACION CANCELADA / DISPARO")
     trigger_held=true
     operator.set_firing(true)
     if weapon_index==1:
@@ -129,6 +150,7 @@ func _on_fire_released() -> void:
 func _on_weapon() -> void:
     if not operator.can_act():
         return
+    _cancel_healing("CURACION CANCELADA / ARMA")
     var candidate: int=1-weapon_index
     if not weapon_owned[candidate]:
         hud.impact("ARMA SIN RECOGER / BUSCA LA AWM")
@@ -151,6 +173,7 @@ func _on_weapon() -> void:
 func _on_aim() -> void:
     if not operator.can_act():
         return
+    _cancel_healing("CURACION CANCELADA / MIRA")
     # AR cycles through free -> x2 -> x4 -> free. AWM has its exclusive x8.
     if weapon_index == 1:
         current_zoom = 1.0 if current_zoom >= 8.0 else 8.0
@@ -163,15 +186,50 @@ func _on_aim() -> void:
 
 
 func _on_heal() -> void:
-    if not operator.can_act():
+    if _heal_remaining>0.0:
+        # Press the same medkit button again to cancel without consuming it.
+        _cancel_healing("CURACION CANCELADA")
         return
-    if operator.royale_eliminated:
+    if not operator.can_act():
         return
     if medkits_remaining<=0:
         hud.impact("SIN BOTIQUINES")
         return
     if operator.training_health>=99.5:
         hud.impact("SALUD COMPLETA")
+        return
+    if trigger_held or reload_timer>0.0 or operator._sprint_touch or
+            operator._move_axis.length_squared()>.01 or
+            Vector2(operator.velocity.x,operator.velocity.z).length_squared()>.49:
+        hud.impact("DETENTE PARA CURAR")
+        return
+    # Camera look remains free while stationary; movement, damage, fire,
+    # zoom, reload and weapon change cancel an in-progress medical action.
+    _heal_remaining=HEAL_APPLY_SECONDS
+    _heal_anchor=operator.global_position
+    hud.set_heal_channel(true,_heal_remaining,HEAL_APPLY_SECONDS,medkits_remaining)
+    hud.impact("APLICANDO BOTIQUIN / 3 SEGUNDOS")
+
+
+func _on_healing_damage(amount: float) -> void:
+    if amount>0.0:
+        _cancel_healing("CURACION INTERRUMPIDA POR DANO")
+
+
+func _cancel_healing(reason: String="") -> void:
+    if _heal_remaining<=0.0:
+        return
+    _heal_remaining=0.0
+    hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
+    if not reason.is_empty():
+        hud.impact(reason)
+
+
+func _complete_healing() -> void:
+    # The medkit is deducted exactly once, only when the channel completes.
+    _heal_remaining=0.0
+    hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
+    if not operator.can_act() or medkits_remaining<=0 or operator.training_health>=99.5:
         return
     medkits_remaining-=1
     operator.receive_training_heal(45.0)
@@ -180,10 +238,10 @@ func _on_heal() -> void:
     hud.impact("BOTIQUIN +45 VIDA")
     healed.emit()
 
-
 func _on_reload() -> void:
     if not operator.can_act():
         return
+    _cancel_healing("CURACION CANCELADA / RECARGA")
     if reload_timer>0:
         return
     var cap: int=5 if weapon_index==1 else 30
@@ -244,6 +302,7 @@ func _clear_cover() -> void:
 
 
 func _on_cover_pressed() -> void:
+    _cancel_healing("CURACION CANCELADA / BARRERA")
     deploy_aurora_cover()
 
 
@@ -324,6 +383,7 @@ func deploy_aurora_cover() -> bool:
 
 
 func end_sector_battle() -> void:
+    _cancel_healing()
     sector_battle_active=false
     _clear_cover()
     cover_charges=0
@@ -338,6 +398,7 @@ func end_sector_battle() -> void:
 
 
 func begin_sector_battle() -> void:
+    _cancel_healing()
     _clear_cover()
     sector_battle_active=true
     cover_charges=2
@@ -367,6 +428,7 @@ func begin_sector_battle() -> void:
     hud.set_training_radar_sources(operator,_targets)
     hud.set_aim(false,"MIRA LIBRE",1.0)
     hud.set_medkit_count(medkits_remaining)
+    hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
     hud.set_eliminations(0)
     _sync_hud()
 
