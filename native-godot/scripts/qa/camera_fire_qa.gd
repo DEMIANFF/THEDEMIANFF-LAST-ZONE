@@ -126,12 +126,21 @@ func _verify() -> void:
         push_error("Tactical radar missing")
         quit(64)
         return
+    # Real V75.49 field first aid: wait for the 3-second channel and
+    # ensure no health or inventory changes before completion.
     player.training_health=46.0
+    player.velocity=Vector3.ZERO
+    player.set_touch_move_axis(Vector2.ZERO)
     var before_medkits: int=combat.medkits_remaining
     combat._on_heal()
-    if absf(player.training_health-91.0)>.01 or combat.medkits_remaining!=before_medkits-1:
-        push_error("Training medkit did not heal actual player health / consume inventory")
+    if combat._heal_remaining<=0.0 or player.training_health!=46.0 or combat.medkits_remaining!=before_medkits:
+        push_error("Field first aid must NOT heal instantly or consume a kit on press")
         quit(65)
         return
-    print("TPS_QA PASS: free look, fire drag, optics, crouch, real radar and medkit")
+    combat._process(combat.HEAL_APPLY_SECONDS+.1)
+    if absf(player.training_health-91.0)>.01 or combat.medkits_remaining!=before_medkits-1:
+        push_error("Completed timed field first aid did not restore health or consume one kit")
+        quit(65)
+        return
+    print("TPS_QA PASS: free look, fire drag, optics, crouch, real radar and delayed medkit")
     quit(0)
