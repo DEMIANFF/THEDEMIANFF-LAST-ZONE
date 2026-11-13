@@ -346,6 +346,17 @@ func _physics_process(delta: float) -> void:
             _animation_controller.set_gait_speed(speed,
                 RUN_SPEED if locomotion=="Run" else WALK_SPEED if locomotion=="Walk" else 1.0)
         var clip: String="AuroraArmed"+locomotion
+        # Real post-collision motion, projected into Lila's facing space:
+        # ADS/backwards/strafe steps stay under the independently animated
+        # rifle grip. No camera-linked avatar sliding or fake root motion.
+        if (_ads_active or _fire_held) and is_on_floor() and not _crouching:
+            var physical_motion: Vector3=(global_position-before_move)/maxf(delta,.001)
+            var relative_motion: Vector3=global_basis.inverse()*Vector3(
+                physical_motion.x,0.0,physical_motion.z)
+            var tactical: String=tactical_gait_clip(relative_motion,
+                actual_speed,true)
+            if not tactical.is_empty():
+                clip=tactical
         if _crouching:
             clip="AuroraCrouchWalk" if speed>=.75 else "AuroraCrouch"
         elif not is_on_floor():
@@ -356,6 +367,25 @@ func _physics_process(delta: float) -> void:
             clip="AuroraLand"
         if clip!=_current_clip:
             _play_matching_animation(clip)
+
+
+## Select animation from physics-resolved displacement in the character's
+## local facing frame, NOT the touch joystick alone. A sideways shove into
+## a solid wall thus cannot play a strafing run while standing still.
+static func tactical_gait_clip(local_motion: Vector3,actual_speed: float,
+        aiming: bool) -> String:
+    if not aiming or not local_motion.is_finite() or not is_finite(actual_speed):
+        return ""
+    if actual_speed<.75:
+        return ""
+    var lateral: float=absf(local_motion.x)
+    var forward: float=absf(local_motion.z)
+    if lateral>forward*.78 and lateral>1.0:
+        return "AuroraArmedStrafeLeft" if local_motion.x<0.0 else (
+            "AuroraArmedStrafeRight")
+    if local_motion.z>1.0 and local_motion.z>lateral*.78:
+        return "AuroraArmedBackpedal"
+    return ""
 
 
 ## Bounded actual metres/second, never a desired target speed or an
