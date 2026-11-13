@@ -43,6 +43,8 @@ var _run_button: Button
 var _crouch_button: Button
 var _aim_button: Button
 var _medkit_button: Button
+var _heal_progress_bar: ProgressBar
+var _heal_channel_active: bool=false
 var _cover_button: Button
 var _cover_charges: int=0
 var _cover_cooldown: float=0.0
@@ -205,6 +207,25 @@ func _ready() -> void:
     _jump_button=_button(root,"SALTAR",.685,.82,76,54,Color(.12,.34,.41),_jump_down)
     _crouch_button=_button(root,"AGACHAR",.68,.70,80,53,Color(.16,.30,.36),_crouch_down)
     _medkit_button=_button(root,"CURAR 2",.575,.855,84,56,Color(.20,.36,.29),_heal_down)
+    # The progress bar is a child of the editable medkit button, so it
+    # follows the player's saved HUD placement, scaling and transparency.
+    _heal_progress_bar=ProgressBar.new()
+    _heal_progress_bar.name="AuroraFirstAidProgress"
+    _heal_progress_bar.position=Vector2(5,66)
+    _heal_progress_bar.size=Vector2(68,7)
+    _heal_progress_bar.min_value=0.0
+    _heal_progress_bar.max_value=100.0
+    _heal_progress_bar.value=0.0
+    _heal_progress_bar.show_percentage=false
+    _heal_progress_bar.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _heal_progress_bar.visible=false
+    var first_aid_track:=StyleBoxFlat.new()
+    first_aid_track.bg_color=Color(.06,.11,.09,.88)
+    var first_aid_fill:=StyleBoxFlat.new()
+    first_aid_fill.bg_color=Color(.34,.91,.63,.98)
+    _heal_progress_bar.add_theme_stylebox_override("background",first_aid_track)
+    _heal_progress_bar.add_theme_stylebox_override("fill",first_aid_fill)
+    _medkit_button.add_child(_heal_progress_bar)
     _cover_button=_button(root,"BARRERA 0",.52,.68,96,55,Color(.13,.53,.68),_cover_down)
     _cover_button.visible=false
     _cover_button.disabled=true
@@ -525,8 +546,21 @@ func set_inventory_snapshot(items: Dictionary) -> void:
 
 
 func set_medkit_count(count: int) -> void:
-    if _medkit_button:
+    if _medkit_button and not _heal_channel_active:
         _medkit_button.text="CURAR "+str(count)
+
+
+## Render a real interrupted or completed medkit channel. This control
+## remains attached to the user's persisted HUD medkit position.
+func set_heal_channel(active: bool,seconds_left: float,total_seconds: float,
+        medkits: int) -> void:
+    _heal_channel_active=active
+    if _medkit_button:
+        _medkit_button.text="CANCELAR" if active else "CURAR "+str(medkits)
+    if _heal_progress_bar:
+        _heal_progress_bar.visible=active
+        _heal_progress_bar.value=100.0*(1.0-clampf(
+            seconds_left/maxf(.001,total_seconds),0.0,1.0))
 
 
 func set_training_radar_sources(character: CharacterBody3D, enemies: Array[CharacterBody3D]) -> void:
