@@ -18,7 +18,7 @@ func _verify() -> void:
     if DirAccess.make_dir_recursive_absolute(full.get_base_dir())!=OK:
         _fail(160,"Unable to create isolated QA dir")
         return
-    for suffix in ["",".bak",".tmp"]:
+    for suffix in ["",".bak",".tmp",".auto",".auto.tmp"]:
         var candidate: String=ProjectSettings.globalize_path(TEST_FILE+suffix)
         if FileAccess.file_exists(candidate):
             DirAccess.remove_absolute(candidate)
@@ -49,8 +49,8 @@ func _verify() -> void:
     if log.size()!=2 or int(log[0].get("match_id",0))!=2 or not bool(log[1].get("victory",false)):
         _fail(167,"Match history order or contents incorrect")
         return
-    # Simulate interrupted write/corruption. Last-known good backup should
-    # still provide a consistent snapshot (first completed match).
+    # Primary corruption: independent automatic copy retains the newest
+    # validated result, including the second match and its local coins.
     var bad:=FileAccess.open(TEST_FILE,FileAccess.WRITE)
     if bad==null:
         _fail(168,"Cannot simulate a damaged current profile")
@@ -59,17 +59,17 @@ func _verify() -> void:
     bad.flush()
     bad.close()
     var recovered=RECORDS.new(TEST_FILE)
-    if int(recovered.snapshot().get("played",0))!=1 or recovered.next_match_id()!=2:
-        _fail(169,"Corrupted file did not recover previous valid backup")
+    if int(recovered.snapshot().get("played",0))!=2 or recovered.next_match_id()!=3:
+        _fail(169,"Corrupted primary lost latest verified auto backup")
         return
-    if not recovered.record_result(2,false,2,200):
+    if not recovered.record_result(3,false,2,200):
         _fail(170,"Recovered match history could not commit safely")
         return
     var committed=RECORDS.new(TEST_FILE)
-    if int(committed.snapshot().get("played",0))!=2 or int(committed.snapshot().get("kills",0))!=5:
+    if int(committed.snapshot().get("played",0))!=3 or int(committed.snapshot().get("kills",0))!=6:
         _fail(171,"Recovered stats lost on a subsequent write")
         return
-    for suffix in ["",".bak",".tmp"]:
+    for suffix in ["",".bak",".tmp",".auto",".auto.tmp"]:
         var candidate: String=ProjectSettings.globalize_path(TEST_FILE+suffix)
         if FileAccess.file_exists(candidate):
             DirAccess.remove_absolute(candidate)

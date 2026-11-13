@@ -14,7 +14,7 @@ func check(ok: bool,reason: String) -> void:
         push_error("V7569_OBJECTIVES "+reason)
 
 func _clean() -> void:
-    for suffix in ["",".bak",".tmp"]:
+    for suffix in ["",".bak",".tmp",".auto",".auto.tmp"]:
         var file: String=ProjectSettings.globalize_path(QA_PATH+suffix)
         if FileAccess.file_exists(file):
             DirAccess.remove_absolute(file)
