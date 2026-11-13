@@ -494,7 +494,7 @@ func clear_match_result() -> void:
 
 func show_match_result(victory: bool,kills: int,seconds_alive: int,
         rank: int=1,participants: int=9,damage: int=0,loot_count: int=0,
-        accuracy: int=0) -> void:
+        accuracy: int=0,headshots: int=0) -> void:
     if not _result_window or not _result_text:
         return
     var summary: String="VICTORIA AURORA" if victory else "ELIMINADA"
@@ -504,7 +504,8 @@ func show_match_result(victory: bool,kills: int,seconds_alive: int,
         maxi(1,rank),maxi(1,participants)]
     _result_text.text+="\nBAJAS: %d | DAÑO: %d | BOTÍN: %d"%[
         maxi(0,kills),maxi(0,damage),maxi(0,loot_count)]
-    _result_text.text+="\nPRECISIÓN: %d%%"%clampi(accuracy,0,100)
+    _result_text.text+="\nPRECISIÓN: %d%% | CABEZA: %d"%[
+        clampi(accuracy,0,100),maxi(0,headshots)]
     _result_text.text+="\nTIEMPO: "+minutes+":"+seconds+"\nREINICIAR BR"
     _result_window.visible=true
 
@@ -622,7 +623,8 @@ func set_inventory_snapshot(items: Dictionary) -> void:
             int(items.get("covers",0))]
         +"\nRECOGIDOS: %d | DAÑO: %d | PRECISIÓN: %d%%"%[
             int(items.get("loot_collected",0)),int(items.get("damage_dealt",0)),
-            int(items.get("accuracy",0))])
+            int(items.get("accuracy",0))]
+        +"\nTIROS A LA CABEZA: %d"%int(items.get("headshots",0)))
 
 
 func set_medkit_count(count: int) -> void:
@@ -705,13 +707,17 @@ func show_incoming_fire(at: Vector3,actor: CharacterBody3D) -> void:
 
 
 ## Display only confirmed health loss from the real ballistic ray.
-func show_confirmed_hit(damage: float,eliminated: bool) -> void:
+func show_confirmed_hit(damage: float,eliminated: bool,
+        headshot: bool=false) -> void:
     if _hit_confirm_label==null or not is_finite(damage) or damage<=0.0:
         return
-    _hit_confirm_label.text="BAJA +%d"%roundi(damage) if eliminated else "+%d"%roundi(damage)
+    if headshot:
+        _hit_confirm_label.text="CABEZA / BAJA +%d"%roundi(damage) if eliminated else "CABEZA +%d"%roundi(damage)
+    else:
+        _hit_confirm_label.text="BAJA +%d"%roundi(damage) if eliminated else "+%d"%roundi(damage)
     _hit_confirm_label.add_theme_color_override("font_color",
-        Color(1,.45,.31) if eliminated else Color(1,.91,.43))
-    _hit_confirm_timer=.65
+        Color(1,.30,.29) if headshot else Color(1,.45,.31) if eliminated else Color(1,.91,.43))
+    _hit_confirm_timer=.85 if headshot else .65
 
 
 func set_reload_state(active: bool,remaining: float,total: float) -> void:
