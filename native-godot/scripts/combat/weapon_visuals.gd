@@ -5,6 +5,13 @@ extends Node3D
 
 const AK_PATH: String="res://assets/weapons/ak74-tactical.glb"
 const AWM_PATH: String="res://assets/weapons/aurora_awm.glb"
+# The flame and kick are strictly third-person visuals; aiming physics uses
+# the original shoulder ray and the pre-recoil muzzle, never decorative sparks.
+const FLASH_SECONDS: float=.075
+const AR_VISUAL_KICK: float=.022
+const AWM_VISUAL_KICK: float=.092
+const MAX_VISUAL_KICK: float=.14
+const VISUAL_RECOIL_RECOVERY: float=1.15
 
 var operator: CharacterBody3D
 var right_hand_socket: BoneAttachment3D
@@ -20,6 +27,11 @@ var medical_busy: bool=false
 var selected_weapon: int=0
 var equipped_visual_scale: float=1.0
 var attachment_uses_hand: bool=false
+var muzzle_flash: Node3D
+var _flash_remaining: float=0.0
+var _visual_kick: float=0.0
+var _unrecoiled_muzzle: Vector3=Vector3.ZERO
+var visual_shots: int=0
 
 
 func attach_to_player(player: CharacterBody3D) -> void:
@@ -98,6 +110,7 @@ func attach_to_player(player: CharacterBody3D) -> void:
     if back_mount:
         back_ak=_load_visual(AK_PATH,"AK74BackHolsterVisual",back_mount)
         back_awm=_load_visual(AWM_PATH,"AWMBackHolsterVisual",back_mount)
+    _build_reusable_muzzle_flash()
     set_awm_owned(false)
     equip(0)
 
@@ -147,7 +160,52 @@ func _load_visual(path: String, display_name: String,
     return visual
 
 
-func _process(_delta: float) -> void:
+## A single three-mesh energy flash. No particles, dynamic lighting,
+## scene instantiation per shot or high-frequency CPU allocations.
+func _build_reusable_muzzle_flash() -> void:
+    if mount==null or muzzle_flash!=null:
+        return
+    muzzle_flash=Node3D.new()
+    muzzle_flash.name="AuroraPooledMuzzleFlash"
+    mount.add_child(muzzle_flash)
+    var core_material:=StandardMaterial3D.new()
+    core_material.resource_name="AuroraMuzzleIgnition"
+    core_material.albedo_color=Color(.93,.87,.52)
+    core_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    var sparkle_material:=StandardMaterial3D.new()
+    sparkle_material.resource_name="AuroraMuzzleSparks"
+    sparkle_material.albedo_color=Color(.15,.80,1.0)
+    sparkle_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    var core:=MeshInstance3D.new()
+    core.name="IgnitionCore"
+    var sphere:=SphereMesh.new()
+    sphere.radius=.053
+    sphere.height=.13
+    sphere.radial_segments=8
+    sphere.rings=4
+    core.mesh=sphere
+    core.material_override=core_material
+    core.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    muzzle_flash.add_child(core)
+    for index in range(2):
+        var streak:=MeshInstance3D.new()
+        streak.name="CrossSpark"+str(index)
+        var mesh:=BoxMesh.new()
+        mesh.size=Vector3(.025,.15,.025) if index==0 else Vector3(.15,.025,.025)
+        streak.mesh=mesh
+        streak.material_override=sparkle_material
+        streak.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        muzzle_flash.add_child(streak)
+    muzzle_flash.visible=false
+
+
+func _process(delta: float) -> void:
+    if is_finite(delta) and delta>0.0:
+        _flash_remaining=maxf(0.0,_flash_remaining-delta)
+        _visual_kick=move_toward(_visual_kick,0.0,
+            VISUAL_RECOIL_RECOVERY*delta)
+    if muzzle_flash:
+        muzzle_flash.visible=_flash_remaining>0.0 and not medical_busy
     _align_mount_to_sight()
 
 
@@ -166,8 +224,14 @@ func _align_mount_to_sight() -> void:
         return
     var basis: Basis=Basis.looking_at(forward.normalized(),Vector3.UP)
     var grip_world: Vector3=right_hand_socket.global_position
-    mount.global_transform=Transform3D(basis,
-        grip_world+basis*Vector3(.015,-.027,-.02))
+    # Retain the ORIGINAL ray origin even when the third-person mesh kicks.
+    # This keeps chest-to-muzzle cover checks and headshot ballistics stable.
+    var rest_origin: Vector3=grip_world+basis*Vector3(.015,-.027,-.02)
+    _unrecoiled_muzzle=rest_origin+basis*Vector3(0,.03,
+        -1.10 if selected_weapon==1 else -.78)
+    var mesh_basis: Basis=basis*Basis(Vector3.RIGHT,_visual_kick)
+    mount.global_transform=Transform3D(mesh_basis,
+        rest_origin+basis.z*(_visual_kick*.22))
 
 
 ## The AWM is visible on Lila's back ONLY after its world pickup.
@@ -179,6 +243,9 @@ func set_awm_owned(owned: bool) -> void:
 
 func set_medical_busy(active: bool) -> void:
     medical_busy=active
+    if active:
+        _flash_remaining=0.0
+        _visual_kick=0.0
     _sync_equipment_visibility()
 
 
@@ -202,7 +269,29 @@ func equip(index: int) -> void:
         return
     # Do not display a weapon that is neither owned nor available.
     selected_weapon=index if index==0 or awm_owned else 0
+    _flash_remaining=0.0
+    _visual_kick=0.0
+    if muzzle_flash:
+        muzzle_flash.position=Vector3(0,.03,
+            -1.10 if selected_weapon==1 else -.78)
+        muzzle_flash.visible=false
     _sync_equipment_visibility()
+
+
+## Triggered only by an authoritative shot that already consumed ammo.
+## AR gets a subtle sustained recoil, AWM a larger brief single kick.
+func register_shot(weapon: int) -> void:
+    if weapon!=selected_weapon or medical_busy or mount==null:
+        return
+    visual_shots+=1
+    _flash_remaining=FLASH_SECONDS
+    _visual_kick=clampf(_visual_kick+
+        (AWM_VISUAL_KICK if weapon==1 else AR_VISUAL_KICK),
+        0.0,MAX_VISUAL_KICK)
+    if muzzle_flash:
+        muzzle_flash.position=Vector3(0,.03,-1.10 if weapon==1 else -.78)
+        muzzle_flash.visible=true
+    _align_mount_to_sight()
 
 
 func currently_equipped() -> Node3D:
@@ -234,6 +323,7 @@ func equipped_global_length() -> float:
 
 
 func muzzle_position() -> Vector3:
-    # Input may fire between render frames: align before computing the ray.
+    # Input may fire between render frames. Return the stable pre-recoil
+    # world muzzle: flash/recoil cannot alter the actual ballistic ray.
     _align_mount_to_sight()
-    return mount.to_global(Vector3(0,.03,-1.10 if selected_weapon==1 else -.78))
+    return _unrecoiled_muzzle
