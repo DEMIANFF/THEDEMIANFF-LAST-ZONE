@@ -250,8 +250,8 @@ func _physics_process(dt: float) -> void:
         return
     # Reload a nearly empty physical magazine while hidden from opponents;
     # a visible close target must never pause a live firefight unnecessarily.
-    if _reload_remaining<=0.0 and _magazine>0 and
-            _magazine<=PROACTIVE_RELOAD_THRESHOLD and not _target_visible:
+    if (_reload_remaining<=0.0 and _magazine>0 and
+            _magazine<=PROACTIVE_RELOAD_THRESHOLD and not _target_visible):
         _begin_reload()
 
     var target: CharacterBody3D = _target_actor if _target_visible and is_instance_valid(_target_actor) else operator
@@ -523,7 +523,8 @@ func _respawn() -> void:
 func _should_field_heal() -> bool:
     if not sector_battle or health<=0.0 or health>FIELD_MEDKIT_HEALTH_THRESHOLD:
         return false
-    if _field_medkits<=0 or _heal_remaining>0.0 or _heal_cooldown>0.0:
+    if (_field_medkits<=0 or _heal_remaining>0.0 or
+            _heal_cooldown>0.0 or _reload_remaining>0.0):
         return false
     if _target_visible:
         return false
@@ -535,7 +536,6 @@ func _begin_field_heal() -> bool:
     if not _should_field_heal():
         return false
     _heal_remaining=FIELD_MEDKIT_SECONDS
-    _attack_clock=maxf(_attack_clock,FIELD_MEDKIT_SECONDS)
     var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
     if name_plate:
         name_plate.text="RIVAL / CURANDO"
@@ -557,6 +557,7 @@ func _advance_field_heal(dt: float) -> bool:
             health=restored
             _field_medkits-=1
             heal_channels_completed+=1
+        _attack_clock=maxf(_attack_clock,.35)
         var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
         if name_plate:
             name_plate.text="ENEMIGO IA"
