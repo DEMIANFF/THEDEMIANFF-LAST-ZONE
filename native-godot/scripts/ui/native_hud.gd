@@ -620,7 +620,7 @@ func set_inventory_snapshot(items: Dictionary) -> void:
         +"CHALECO %d/75 | BOTIQUINES %d | BARRERAS %d"%[
             int(items.get("armor",0)),int(items.get("medkits",0)),
             int(items.get("covers",0))]
-        +"\nBOTÍN: %d | DAÑO: %d | PRECISIÓN: %d%%"%[
+        +"\nRECOGIDOS: %d | DAÑO: %d | PRECISIÓN: %d%%"%[
             int(items.get("loot_collected",0)),int(items.get("damage_dealt",0)),
             int(items.get("accuracy",0))])
 
