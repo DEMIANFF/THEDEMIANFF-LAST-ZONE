@@ -6,6 +6,7 @@ const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.g
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const LOBBY_STAGE=preload("res://scripts/ui/aurora_lobby_stage_3d.gd")
+const LOBBY_COMPANION=preload("res://scripts/ui/aurora_robot_companion.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
@@ -73,6 +74,22 @@ var _lobby_play_modes: VBoxContainer
 var _lobby_detail_scroll: ScrollContainer
 var _battle_entry: Button
 var _training_entry: Button
+var _login_status_label: Label
+var _login_google_button: Button
+var _login_guest_button: Button
+var _login_pending_provider: String=""
+var _login_waiting_provider: String=""
+var _login_timer: Timer
+var _login_manage_button: Button
+var _bottom_navigation: HBoxContainer
+var _left_shortcuts: VBoxContainer
+var _social_panel: PanelContainer
+var _social_status_label: Label
+var _top_account_button: Button
+var _top_settings_button: Button
+var _top_social_button: Button
+var _play_match_card: PanelContainer
+var _banner: Label
 
 
 func _ready() -> void:
@@ -87,6 +104,13 @@ func _ready() -> void:
     _save_timer.wait_time=.4
     _save_timer.timeout.connect(_save_preferences)
     add_child(_save_timer)
+    _login_timer=Timer.new()
+    _login_timer.name="NativeAuthPolling"
+    _login_timer.wait_time=1.2
+    _login_timer.one_shot=false
+    _login_timer.timeout.connect(_poll_login_state)
+    add_child(_login_timer)
+    _login_timer.start()
     set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     mouse_filter=Control.MOUSE_FILTER_STOP
     _surface=Control.new()
@@ -248,65 +272,176 @@ func _button(value: String, callback: Callable, width: float=260.0) -> Button:
 
 
 func _welcome() -> void:
+    # Authentication is an ENTRY flow, never a row of permanent lobby badges.
+    # This screen offers actual Firebase providers and a clearly separate
+    # LOCAL offline choice. It never labels an unverified ID as official.
     stage="welcome"
     visible=true
-    if _preview_container:
+    _login_pending_provider=""
+    _login_waiting_provider=""
+    if _preview_container!=null and is_instance_valid(_preview_container):
         _preview_container.visible=false
-    if _preview_caption:
+    if _preview_caption!=null and is_instance_valid(_preview_caption):
         _preview_caption.visible=false
-    if _lobby_nav:
+    if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         _lobby_nav.visible=false
-    if _profile_strip:
-        _profile_strip.visible=false
-    if _stats_strip:
-        _stats_strip.visible=false
-    if _currency_strip:
-        _currency_strip.visible=false
-    _page.anchor_left=.07
-    _page.anchor_right=.63
-    _page.anchor_top=.015
-    _page.anchor_bottom=.995
-    _page.add_theme_constant_override("separation",5)
+    if _bottom_navigation!=null and is_instance_valid(_bottom_navigation):
+        _bottom_navigation.visible=false
+    if _social_panel!=null and is_instance_valid(_social_panel):
+        _social_panel.visible=false
+    if _top_account_button!=null and is_instance_valid(_top_account_button):
+        _top_account_button.visible=false
+    if _top_settings_button!=null and is_instance_valid(_top_settings_button):
+        _top_settings_button.visible=false
+    if _top_social_button!=null and is_instance_valid(_top_social_button):
+        _top_social_button.visible=false
+    if _play_match_card!=null and is_instance_valid(_play_match_card):
+        _play_match_card.visible=false
+    if _banner!=null and is_instance_valid(_banner):
+        _banner.visible=false
+    for item in [_profile_strip,_stats_strip,_currency_strip]:
+        if item!=null and is_instance_valid(item):
+            item.visible=false
+    _page.anchor_left=.28
+    _page.anchor_right=.73
+    _page.anchor_top=.095
+    _page.anchor_bottom=.975
+    _page.add_theme_constant_override("separation",6)
     _brand_logo.visible=true
-    # Keep emblem in a clean title-side hero area. Previously it covered
-    # the diagnostic buttons and character selection at phone resolution.
     _brand_logo.anchor_left=.76
     _brand_logo.anchor_right=.91
-    _brand_logo.anchor_top=.12
-    _brand_logo.anchor_bottom=.43
+    _brand_logo.anchor_top=.08
+    _brand_logo.anchor_bottom=.25
     _clear_page()
-    _label("THEDEMIAN: LAST ZONE",33)
-    _label("PUERTO AURORA  •  EL ÚLTIMO HORIZONTE",20)
-    _label("Operación de supervivencia — diagnóstico de desarrollo",14)
-    var enter:=_button("ENTRAR",Callable(self,"_show_lobby"))
+    var head:=_label("THEDEMIAN: LAST ZONE",28)
+    head.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    var tagline:=_label("BASE AURORA  ·  IDENTIDAD DE JUGADOR",13)
+    tagline.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _login_status_label=_label("COMPROBANDO APP CHECK...",12)
+    _login_status_label.name="LoginTransportStatus"
+    _login_status_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _login_status_label.add_theme_color_override("font_color",Color(.95,.81,.49))
+    _login_google_button=_button("CONTINUAR CON GOOGLE",
+        Callable(self,"_begin_welcome_auth").bind("google"),320)
+    _login_google_button.name="WelcomeGoogleSignIn"
+    _login_google_button.custom_minimum_size.y=42
+    _login_google_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _style_primary_action(_login_google_button)
+    _page.add_child(_login_google_button)
+    _login_guest_button=_button("ENTRAR COMO INVITADO",
+        Callable(self,"_begin_welcome_auth").bind("guest"),320)
+    _login_guest_button.name="WelcomeGuestSignIn"
+    _login_guest_button.custom_minimum_size.y=40
+    _login_guest_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _page.add_child(_login_guest_button)
+    var enter:=_button("JUGAR SIN CONEXIÓN",
+        Callable(self,"_enter_local_lobby"),320)
     enter.name="EnterButton"
+    enter.custom_minimum_size.y=39
+    enter.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _page.add_child(enter)
-    _label("Esta versión prueba partidas offline. El multijugador y las cuentas en Godot todavía no están disponibles.",14)
+    var disclosure:=_label(
+        "Google e Invitado: acceso Firebase real. Sin conexión: partidas locales. "+
+        "El ID y el respaldo cloud solo aparecen tras confirmación del servidor.",11)
+    disclosure.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    var diag:=_button("DIAGNÓSTICOS DE DESARROLLO",
+        Callable(self,"_show_startup_diagnostics"),320)
+    diag.name="StartupDiagnosticEntry"
+    diag.custom_minimum_size.y=27
+    diag.add_theme_font_size_override("font_size",11)
+    diag.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _page.add_child(diag)
+    _poll_login_state()
+
+
+func _enter_local_lobby() -> void:
+    _login_pending_provider=""
+    _login_waiting_provider=""
+    _show_lobby()
+
+
+func _begin_welcome_auth(provider: String) -> void:
+    if stage!="welcome" or provider not in ["google","guest"]:
+        return
+    _login_pending_provider=provider
+    _poll_login_state()
+
+
+func _poll_login_state() -> void:
+    if stage!="welcome" or _login_status_label==null or not is_instance_valid(_login_status_label):
+        return
+    var health: Dictionary=FIREBASE_BRIDGE.status()
+    if not bool(health.get("ready",false)):
+        _login_status_label.text="ACCESO PENDIENTE · "+_firebase_state_message(
+            str(health.get("reason","desconocido")))
+        return
+    # The SDK may need time to obtain Play Integrity. A user-initiated
+    # request is retried only until it was actually submitted; no fake
+    # login, no automatic account swapping or repeated Google popups.
+    if not _login_pending_provider.is_empty():
+        var provider: String=_login_pending_provider
+        _login_pending_provider=""
+        var attempt: Dictionary=FIREBASE_BRIDGE.request_sign_in(provider)
+        if bool(attempt.get("queued",false)):
+            _login_waiting_provider=provider
+            _login_status_label.text="INICIANDO "+provider.to_upper()+" · CONFIRMANDO CUENTA"
+        else:
+            _login_status_label.text="NO SE PUDO INICIAR · "+_firebase_state_message(
+                str(attempt.get("reason","desconocido")))
+        return
+    var session: Dictionary=FIREBASE_BRIDGE.session_state()
+    var enter: Button=_page.get_node_or_null("EnterButton") as Button
+    if bool(session.get("authenticated",false)):
+        _login_waiting_provider=""
+        if bool(session.get("identity_confirmed",false)):
+            _login_status_label.text="SESIÓN CONFIRMADA · ID "+str(session.get("official_id",""))
+        else:
+            _login_status_label.text="CUENTA AUTENTICADA · ID PENDIENTE DEL SERVIDOR"
+        if enter!=null:
+            enter.text="CONTINUAR AL LOBBY"
+        return
+    if enter!=null:
+        enter.text="JUGAR SIN CONEXIÓN"
+    if not _login_waiting_provider.is_empty():
+        if bool(session.get("pending",false)):
+            _login_status_label.text="VALIDANDO CUENTA "+_login_waiting_provider.to_upper()
+        else:
+            var reason: String=str(session.get("reason",""))
+            _login_status_label.text=("ACCESO NO CONFIRMADO · "+_firebase_state_message(reason)
+                if not reason.is_empty() else "ESPERANDO CONFIRMACIÓN DE FIREBASE")
+            _login_waiting_provider=""
+        return
+    _login_status_label.text="GOOGLE E INVITADO DISPONIBLES"
+
+func _show_startup_diagnostics() -> void:
+    stage="startup_diagnostics"
+    _clear_page()
+    _page.anchor_left=.26
+    _page.anchor_right=.78
+    _page.anchor_top=.10
+    _page.anchor_bottom=.94
+    _label("DIAGNÓSTICOS DE DESARROLLO",21)
     var test_mode: Button=_button(
         "VUELO "+FLIGHT_SAFETY_MODE.label_for(FLIGHT_SAFETY_MODE.current_mode()),
-        Callable(self,"_cycle_flight_diagnostic"),390)
+        Callable(self,"_cycle_flight_diagnostic"),350)
     test_mode.name="FlightDiagnosticModeButton"
-    test_mode.add_theme_font_size_override("font_size",15)
     _page.add_child(test_mode)
     var startup_button: Button=_button(
         "CARGA "+STARTUP_DIAG.label(),
-        Callable(self,"_cycle_scene_load_diagnostic"),405)
+        Callable(self,"_cycle_scene_load_diagnostic"),350)
     startup_button.name="SceneStartupDiagnosticButton"
-    startup_button.add_theme_font_size_override("font_size",15)
     _page.add_child(startup_button)
     var trace: Dictionary=FLIGHT_DIAGNOSTICS.last()
     if not trace.is_empty():
-        var state: String=str(trace.get("state",""))
-        _label(("VUELO ANTERIOR SIN TERMINAR" if state=="active" else "ÚLTIMO VUELO REGISTRADO")+
-            " / "+str(trace.get("phase","desconocido")),15)
-        _label("Último evento: "+str(trace.get("note",""))+
-            " · FPS "+str(trace.get("fps","?"))+
-            " · #"+str(trace.get("sequence",0)),13)
-        _page.add_child(_button("VER REGISTRO DETALLADO",Callable(self,"_show_flight_details"),295))
+        _label("ÚLTIMO VUELO: "+str(trace.get("phase","desconocido")),12)
+        _page.add_child(_button("VER REGISTRO DETALLADO",
+            Callable(self,"_show_flight_details"),320))
     var saved: Dictionary=FLIGHT_DIAGNOSTICS.last(true)
     if not saved.is_empty():
-        _page.add_child(_button("VER VUELO INTERRUMPIDO ANTERIOR",
-            Callable(self,"_show_previous_flight_details"),350))
+        _page.add_child(_button("VER VUELO ANTERIOR",
+            Callable(self,"_show_previous_flight_details"),320))
+    _page.add_child(_button("VOLVER AL INICIO",
+        Callable(self,"_welcome"),250))
 
 
 func _copy_flight_diagnostics(previous: bool=false) -> void:
@@ -378,29 +513,35 @@ func _show_lobby() -> void:
     _brand_logo.visible=true
     # Logo stays outside the full-width profile strip and never crosses
     # over player statistics or the rotating 3D character.
-    _brand_logo.anchor_left=.911
-    _brand_logo.anchor_right=.96
-    _brand_logo.anchor_top=.018
-    _brand_logo.anchor_bottom=.126
-    # The live 3D operator is now the central focus; navigation and content
-    # keep independent safe margins in 960x434 landscape.
-    _page.anchor_left=.687
-    _page.anchor_right=.97
-    _page.anchor_top=.157
-    _page.anchor_bottom=.944
-    _page.add_theme_constant_override("separation",3)
-    _preview_container.anchor_left=.237
-    _preview_container.anchor_right=.665
-    _preview_container.anchor_top=.145
-    _preview_container.anchor_bottom=.865
+    _brand_logo.anchor_left=.944
+    _brand_logo.anchor_right=.975
+    _brand_logo.anchor_top=.019
+    _brand_logo.anchor_bottom=.117
+    # Base Aurora: large real 3D operator at centre; separate commerce,
+    # social/match card, full-width top and bottom navigation layers.
+    _page.anchor_left=.702
+    _page.anchor_right=.977
+    _page.anchor_top=.495
+    _page.anchor_bottom=.87
+    _page.add_theme_constant_override("separation",2)
+    _preview_container.anchor_left=.216
+    _preview_container.anchor_right=.697
+    _preview_container.anchor_top=.13
+    _preview_container.anchor_bottom=.864
     _preview_container.visible=true
     _preview_caption.visible=true
-    _preview_caption.anchor_left=.237
-    _preview_caption.anchor_right=.665
-    _preview_caption.anchor_top=.872
-    _preview_caption.anchor_bottom=.872
+    _preview_caption.anchor_left=.216
+    _preview_caption.anchor_right=.697
+    _preview_caption.anchor_top=.820
+    _preview_caption.anchor_bottom=.820
     _ensure_lobby_navigation()
-    _lobby_nav.visible=true
+    _lobby_nav.visible=false
+    _left_shortcuts.visible=true
+    _bottom_navigation.visible=true
+    _top_account_button.visible=true
+    _top_settings_button.visible=true
+    _top_social_button.visible=true
+    _banner.visible=true
     # Three independently clipped headers keep the original brand legible
     # without the coin balance covering Lila, the player record or the emblem.
     _profile_strip.visible=true
@@ -408,7 +549,7 @@ func _show_lobby() -> void:
     _stats_strip.visible=true
     _update_identity_strip(stats)
     _currency_strip.visible=true
-    _currency_strip.text="MONEDAS %d  |  DIAMANTES —"%int(
+    _currency_strip.text="MONEDAS %d\nDIAMANTES —"%int(
         stats.get("local_coins",0))
     _preview_touch=-1
     _preview_mouse_drag=false
@@ -416,17 +557,17 @@ func _show_lobby() -> void:
     if _preview_avatar:
         _preview_avatar.rotation.y=0.0
     _clear_page()
-    _lobby_section_title=_label("JUGAR · PUERTO AURORA",19)
+    _lobby_section_title=_label("BATTLE ROYALE · BASE AURORA",17)
     _lobby_section_title.name="LobbySectionTitle"
     _lobby_section_title.add_theme_color_override("font_color",Color(.96,.96,.88))
-    _lobby_section_hint=_label("CLÁSICO LOCAL  /  IA",11)
+    _lobby_section_hint=_label("CLÁSICO LOCAL  ·  1 JUGADOR + IA",10)
     _lobby_section_hint.name="LobbySectionHint"
     _lobby_section_hint.add_theme_color_override("font_color",Color(.57,.84,.94))
     _lobby_mode_heading=_label("MODALIDAD DE PARTIDA",13)
     _lobby_mode_heading.add_theme_color_override("font_color",Color(.96,.77,.38))
     _match_mode_selector=OptionButton.new()
     _match_mode_selector.name="MatchModeSelector"
-    _match_mode_selector.custom_minimum_size=Vector2(265,36)
+    _match_mode_selector.custom_minimum_size=Vector2(245,32)
     _match_mode_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
     _match_mode_selector.add_item("CLÁSICO · IA LOCAL",0)
     _match_mode_selector.add_item("CLASIFICATORIA · ONLINE PENDIENTE",1)
@@ -437,12 +578,13 @@ func _show_lobby() -> void:
     _lobby_play_modes=VBoxContainer.new()
     _lobby_play_modes.name="PlayModes"
     _page.add_child(_lobby_play_modes)
-    _battle_entry=_button("JUGAR CLÁSICO",Callable(self,"_launch").bind(true),255)
+    _battle_entry=_button("INICIAR",Callable(self,"_launch").bind(true),240)
     _battle_entry.name="BattleButton"
-    _battle_entry.custom_minimum_size.y=48
+    _battle_entry.custom_minimum_size.y=46
+    _battle_entry.add_theme_font_size_override("font_size",23)
     _style_primary_action(_battle_entry)
     _lobby_play_modes.add_child(_battle_entry)
-    _training_entry=_button("ENTRENAR",Callable(self,"_launch").bind(false),255)
+    _training_entry=_button("INICIAR ENTRENAMIENTO",Callable(self,"_launch").bind(false),240)
     _training_entry.name="TrainingButton"
     _training_entry.custom_minimum_size.y=48
     _style_primary_action(_training_entry)
@@ -451,7 +593,7 @@ func _show_lobby() -> void:
     _lobby_mode_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
     _encounter_selector=OptionButton.new()
     _encounter_selector.name="OfflineEncounterSize"
-    _encounter_selector.custom_minimum_size=Vector2(257,34)
+    _encounter_selector.custom_minimum_size=Vector2(245,30)
     _encounter_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
     _encounter_selector.add_item("9 participantes · Móvil recomendado",9)
     _encounter_selector.add_item("20 participantes · Prueba de carga",20)
@@ -481,12 +623,18 @@ func _show_lobby() -> void:
     _auth_guest_button.custom_minimum_size.y=36
     _auth_guest_button.add_theme_font_size_override("font_size",14)
     _page.add_child(_auth_guest_button)
-    _firebase_check_button=_button("REVISAR CONEXIÓN / APP CHECK",
+    _firebase_check_button=_button("VER ESTADO DE CUENTA / RESPALDO",
         Callable(self,"_check_firebase_connection"),255)
     _firebase_check_button.name="FirebaseConnectionCheckButton"
     _firebase_check_button.custom_minimum_size.y=29
     _firebase_check_button.add_theme_font_size_override("font_size",12)
     _page.add_child(_firebase_check_button)
+    _login_manage_button=_button("GESTIONAR ACCESO / CAMBIAR CUENTA",
+        Callable(self,"_welcome"),255)
+    _login_manage_button.name="OpenAccountSignInScreen"
+    _login_manage_button.custom_minimum_size.y=33
+    _login_manage_button.add_theme_font_size_override("font_size",12)
+    _page.add_child(_login_manage_button)
     # Local profile edit never overwrites the cloud account or invents an ID.
     _name_entry=LineEdit.new()
     _name_entry.name="LocalPlayerNameEntry"
@@ -695,10 +843,10 @@ func _sync_lobby_match_mode() -> void:
     _name_save_button.visible=show_name
     _firebase_check_button.visible=show_name
     _account_connection_label.visible=show_name
-    # Never hide account providers. The SDK/App Check gate must disable
-    # unsafe actions, not make the controls disappear from the UI.
-    _auth_guest_button.visible=show_name
-    _auth_google_button.visible=show_name
+    _login_manage_button.visible=show_name
+    # Login providers belong only to the dedicated entry/account-change UI.
+    _auth_guest_button.visible=false
+    _auth_google_button.visible=false
     if show_name:
         var health: Dictionary=FIREBASE_BRIDGE.status()
         var ready: bool=bool(health.get("ready",false))
@@ -706,7 +854,7 @@ func _sync_lobby_match_mode() -> void:
         _auth_google_button.disabled=not ready
         var message: String=str(health.get("reason","desconocido"))
         _account_connection_label.text=(
-            "FIREBASE LISTO · Selecciona un acceso" if ready else
+            "FIREBASE DISPONIBLE · Gestiona el acceso" if ready else
             "CONEXIÓN PENDIENTE · "+_firebase_state_message(message))
         _account_connection_label.tooltip_text=message
         _auth_google_button.tooltip_text=(
@@ -714,15 +862,15 @@ func _sync_lobby_match_mode() -> void:
         _auth_guest_button.tooltip_text=(
             "Crear o recuperar sesión anónima" if ready else message)
     _objective_selector.visible=_selected_tab=="OBJETIVOS"
-    _lobby_mode_heading.visible=show_modes
+    _lobby_mode_heading.visible=false
     _match_mode_selector.visible=show_modes
     _lobby_play_modes.visible=show_modes and _selected_match_mode!="ranked"
     _battle_entry.visible=show_modes and _selected_match_mode=="classic"
     _training_entry.visible=show_modes and _selected_match_mode=="training"
-    _lobby_mode_caption.visible=show_modes and _selected_match_mode=="classic"
+    _lobby_mode_caption.visible=false
     _encounter_selector.visible=show_modes and _selected_match_mode=="classic"
-    _lobby_mode_status.visible=show_modes
-    _lobby_detail_scroll.visible=_selected_tab!="AJUSTES"
+    _lobby_mode_status.visible=show_modes and _selected_match_mode=="ranked"
+    _lobby_detail_scroll.visible=not show_modes and _selected_tab not in ["AJUSTES","PRESET"]
     match _selected_match_mode:
         "classic":
             _lobby_mode_status.text="CLÁSICO LOCAL · %d participantes (1 humano + IA).\nSolo disponible sin rango."%_encounter_count
@@ -772,11 +920,11 @@ func _ensure_lobby_navigation() -> void:
     if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         return
     _profile_strip=_make_header_label(
-        "LocalProfileStrip",.035,.325,18)
+        "LocalProfileStrip",.03,.30,16)
     _stats_strip=_make_header_label(
-        "LocalStatisticsStrip",.365,.665,13)
+        "LocalStatisticsStrip",.31,.54,12)
     _currency_strip=_make_header_label(
-        "LocalCurrencyStrip",.69,.897,12)
+        "LocalCurrencyStrip",.55,.723,11)
     var backplate:=ColorRect.new()
     backplate.name="LobbyMenuBackplate"
     backplate.anchor_left=.674
@@ -789,11 +937,11 @@ func _ensure_lobby_navigation() -> void:
     _surface.move_child(backplate,1)
     var navplate:=ColorRect.new()
     navplate.name="LobbySidebarBackplate"
-    navplate.anchor_left=.026
-    navplate.anchor_right=.226
-    navplate.anchor_top=.15
-    navplate.anchor_bottom=.954
-    navplate.color=Color(.020,.041,.066,.95)
+    navplate.anchor_left=.013
+    navplate.anchor_right=.212
+    navplate.anchor_top=.267
+    navplate.anchor_bottom=.865
+    navplate.color=Color(.022,.029,.074,.92)
     navplate.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _surface.add_child(navplate)
     _surface.move_child(navplate,2)
@@ -819,31 +967,238 @@ func _ensure_lobby_navigation() -> void:
             _style_primary_action(button)
         _lobby_nav.add_child(button)
 
+    # The previous nine-tab rail remains as the gameplay routing contract,
+    # but its redundant giant buttons are hidden. Use the explicit Aurora
+    # commerce rail + bottom arsenal shortcuts instead, as in the supplied
+    # mobile reference, WITHOUT claiming unavailable online purchases.
+    _lobby_nav.visible=false
+    _banner=Label.new()
+    _banner.name="AuroraOperationBanner"
+    _banner.text="◈  BASE AURORA\n      OPERACIÓN LOCAL"
+    _banner.anchor_left=.020
+    _banner.anchor_right=.207
+    _banner.anchor_top=.150
+    _banner.anchor_bottom=.267
+    _banner.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    _banner.add_theme_font_size_override("font_size",14)
+    _banner.add_theme_color_override("font_color",Color(.97,.83,.99))
+    _banner.add_theme_color_override("font_shadow_color",Color(.47,.15,.75,.9))
+    _surface.add_child(_banner)
+
+    _left_shortcuts=VBoxContainer.new()
+    _left_shortcuts.name="AuroraCommerceRail"
+    _left_shortcuts.anchor_left=.021
+    _left_shortcuts.anchor_right=.209
+    _left_shortcuts.anchor_top=.287
+    _left_shortcuts.anchor_bottom=.846
+    _left_shortcuts.add_theme_constant_override("separation",4)
+    _surface.add_child(_left_shortcuts)
+    var quick_items: Array[Array]=[
+        ["▣ TIENDA","TIENDA",""],
+        ["✦ LUCK ROYALE","LUCK",""],
+        ["♛ PASE DE BATALLA","PASE",""],
+        ["▤ EVENTOS","OBJETIVOS","events"],
+        ["☷ MISIONES","OBJETIVOS","missions"],
+        ["★ LOGROS","OBJETIVOS","achievements"]
+    ]
+    for item in quick_items:
+        var label: String=str(item[0])
+        var target: String=str(item[1])
+        var objective: String=str(item[2])
+        var button:=_button(label,Callable(self,"_open_lobby_category").bind(
+            target,objective),160)
+        button.name="Quick"+(objective.to_upper() if not objective.is_empty()
+            else target)
+        button.custom_minimum_size=Vector2(0,30)
+        button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        button.add_theme_font_size_override("font_size",12)
+        _style_aurora_tab(button,Color(.63,.33,.99))
+        _left_shortcuts.add_child(button)
+
+    _bottom_navigation=HBoxContainer.new()
+    _bottom_navigation.name="AuroraBottomNavigation"
+    _bottom_navigation.anchor_left=.027
+    _bottom_navigation.anchor_right=.978
+    _bottom_navigation.anchor_top=.870
+    _bottom_navigation.anchor_bottom=.974
+    _bottom_navigation.add_theme_constant_override("separation",7)
+    _surface.add_child(_bottom_navigation)
+    for item in [
+        ["INVENTARIO","INVENTARIO"],["ARMAS","ARMAS"],
+        ["PERSONAJES","PERSONAJE"],["PRESET","PRESET"],
+        ["CLAN","SOCIAL"]
+    ]:
+        var target: String=str(item[1])
+        var button:=_button(str(item[0]),
+            Callable(self,"_select_tab").bind(target),0)
+        button.name="Bottom"+target
+        button.custom_minimum_size=Vector2(0,30)
+        button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        button.add_theme_font_size_override("font_size",12)
+        _style_aurora_tab(button,Color(.50,.31,.81))
+        _bottom_navigation.add_child(button)
+
+    _social_panel=PanelContainer.new()
+    _social_panel.name="AuroraRealSocialPanel"
+    _social_panel.anchor_left=.704
+    _social_panel.anchor_right=.977
+    _social_panel.anchor_top=.165
+    _social_panel.anchor_bottom=.476
+    var social_style:=StyleBoxFlat.new()
+    social_style.bg_color=Color(.026,.022,.072,.92)
+    social_style.border_color=Color(.43,.28,.69)
+    social_style.set_border_width_all(1)
+    social_style.set_corner_radius_all(5)
+    _social_panel.add_theme_stylebox_override("panel",social_style)
+    _surface.add_child(_social_panel)
+    var social_content:=VBoxContainer.new()
+    social_content.name="SocialContent"
+    social_content.add_theme_constant_override("separation",4)
+    _social_panel.add_child(social_content)
+    var social_title:=Label.new()
+    social_title.text="AMIGOS · SOCIAL"
+    social_title.name="FriendsHeading"
+    social_title.add_theme_font_size_override("font_size",15)
+    social_title.add_theme_color_override("font_color",Color(.9,.85,1))
+    social_content.add_child(social_title)
+    _social_status_label=Label.new()
+    _social_status_label.name="ActualFriendsStatus"
+    _social_status_label.text="Sin amigos conectados\nServicio multijugador pendiente"
+    _social_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    _social_status_label.add_theme_font_size_override("font_size",11)
+    _social_status_label.add_theme_color_override("font_color",Color(.75,.8,.85))
+    social_content.add_child(_social_status_label)
+    var social_open:=_button("VER SOCIAL / CLAN",
+        Callable(self,"_select_tab").bind("SOCIAL"),0)
+    social_open.name="RealSocialEntry"
+    social_open.custom_minimum_size=Vector2(0,29)
+    social_open.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    social_open.add_theme_font_size_override("font_size",12)
+    _style_aurora_tab(social_open,Color(.40,.65,.86))
+    social_content.add_child(social_open)
+
+    _play_match_card=PanelContainer.new()
+    _play_match_card.name="BattleRoyaleModeCard"
+    _play_match_card.anchor_left=.698
+    _play_match_card.anchor_right=.982
+    _play_match_card.anchor_top=.484
+    _play_match_card.anchor_bottom=.864
+    _play_match_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    var match_card_style:=StyleBoxFlat.new()
+    match_card_style.bg_color=Color(.022,.036,.090,.92)
+    match_card_style.border_color=Color(.91,.68,.21)
+    match_card_style.set_border_width_all(2)
+    match_card_style.set_corner_radius_all(7)
+    _play_match_card.add_theme_stylebox_override("panel",match_card_style)
+    _surface.add_child(_play_match_card)
+    _surface.move_child(_play_match_card,2)
+
+    _top_account_button=_button("CUENTA",
+        Callable(self,"_select_tab").bind("CUENTA"),0)
+    _top_account_button.name="TopAccount"
+    _top_account_button.custom_minimum_size=Vector2.ZERO
+    _top_account_button.anchor_left=.790
+    _top_account_button.anchor_right=.863
+    _top_account_button.anchor_top=.038
+    _top_account_button.anchor_bottom=.107
+    _top_account_button.add_theme_font_size_override("font_size",11)
+    _style_aurora_tab(_top_account_button,Color(.53,.39,.87))
+    _surface.add_child(_top_account_button)
+    _top_settings_button=_button("⚙",
+        Callable(self,"_open_settings"),0)
+    _top_settings_button.name="TopSettings"
+    _top_settings_button.custom_minimum_size=Vector2.ZERO
+    _top_settings_button.anchor_left=.875
+    _top_settings_button.anchor_right=.926
+    _top_settings_button.anchor_top=.037
+    _top_settings_button.anchor_bottom=.11
+    _top_settings_button.add_theme_font_size_override("font_size",18)
+    _style_aurora_tab(_top_settings_button,Color(.53,.39,.87))
+    _surface.add_child(_top_settings_button)
+    _top_social_button=_button("♙",
+        Callable(self,"_select_tab").bind("SOCIAL"),0)
+    _top_social_button.name="TopSocial"
+    _top_social_button.custom_minimum_size=Vector2.ZERO
+    _top_social_button.anchor_left=.730
+    _top_social_button.anchor_right=.784
+    _top_social_button.anchor_top=.037
+    _top_social_button.anchor_bottom=.11
+    _top_social_button.add_theme_font_size_override("font_size",17)
+    _style_aurora_tab(_top_social_button,Color(.53,.39,.87))
+    _surface.add_child(_top_social_button)
+
+
+func _style_aurora_tab(button: Button,tint: Color) -> void:
+    var normal:=StyleBoxFlat.new()
+    normal.bg_color=Color(.019,.025,.068,.90)
+    normal.border_color=tint
+    normal.set_border_width_all(1)
+    normal.set_corner_radius_all(5)
+    var hover:=normal.duplicate() as StyleBoxFlat
+    hover.bg_color=Color(.13,.085,.25,.98)
+    var pressed:=hover.duplicate() as StyleBoxFlat
+    pressed.border_color=Color(.98,.77,.31)
+    button.add_theme_stylebox_override("normal",normal)
+    button.add_theme_stylebox_override("hover",hover)
+    button.add_theme_stylebox_override("pressed",pressed)
+    button.add_theme_color_override("font_color",Color(.95,.95,1))
+    button.add_theme_color_override("font_hover_color",Color(1,.88,.64))
+
+
+func _open_lobby_category(tab: String,objective: String="") -> void:
+    if not objective.is_empty():
+        _objective_page=objective
+        if _objective_selector!=null:
+            _objective_selector.select(["missions","achievements","events"].find(
+                objective))
+    _select_tab(tab)
+
 
 func _select_tab(tab: String) -> void:
     _selected_tab=tab
     if stage!="lobby" or _info==null:
         return
-    _settings_panel.visible=tab=="AJUSTES"
+    _settings_panel.visible=tab in ["AJUSTES","PRESET"]
+    if _left_shortcuts!=null:
+        for button in _left_shortcuts.get_children():
+            if button is Button:
+                var target: String=button.name.trim_prefix("Quick")
+                var active: bool=(target==tab or (tab=="OBJETIVOS" and
+                    target==str(_objective_page).to_upper()))
+                button.modulate=Color.WHITE if active else Color(.72,.76,.85)
+    if _bottom_navigation!=null:
+        for button in _bottom_navigation.get_children():
+            if button is Button:
+                button.modulate=(Color.WHITE if button.name=="Bottom"+tab
+                    else Color(.72,.76,.85))
+    if _social_panel!=null:
+        _social_panel.visible=tab=="JUGAR"
+    if _play_match_card!=null:
+        _play_match_card.visible=tab=="JUGAR"
+    _page.anchor_left=.702
+    _page.anchor_right=.977
+    _page.anchor_top=.495 if tab=="JUGAR" else .167
+    _page.anchor_bottom=.865
     for button in _lobby_nav.get_children():
         if button is Button:
             var selected: bool=button.name=="Tab"+tab
             button.modulate=Color(1,1,1) if selected else Color(.76,.82,.89)
     if _lobby_section_title!=null:
         _lobby_section_title.text=(
-            "JUGAR · PUERTO AURORA" if tab=="JUGAR"
+            "BATTLE ROYALE · BASE AURORA" if tab=="JUGAR"
             else "MI CUENTA" if tab=="CUENTA"
-            else "CONFIGURACIÓN" if tab=="AJUSTES"
+            else "CONFIGURACIÓN" if tab in ["AJUSTES","PRESET"]
+            else "EVENTOS / MISIONES / LOGROS" if tab=="OBJETIVOS"
             else tab)
         _lobby_section_hint.text=(
-            "BATTLE ROYALE · CLÁSICO LOCAL" if tab=="JUGAR"
-            else "INICIAR SESIÓN / PERFIL" if tab=="CUENTA"
-            else "CONTROLES Y SENSIBILIDAD" if tab=="AJUSTES"
-            else "CENTRO DE OPERACIONES")
+            "CLÁSICO LOCAL · %d PARTICIPANTES"%_encounter_count if tab=="JUGAR"
+            else "PERFIL / RESPALDO / ACCESO" if tab=="CUENTA"
+            else "CONTROLES / SENSIBILIDAD / HUD" if tab in ["AJUSTES","PRESET"]
+            else "BASE AURORA · CENTRO DE OPERACIONES")
     match tab:
         "JUGAR":
             _info.text="CLÁSICO LOCAL DISPONIBLE\nSelecciona participantes y comienza la partida.\nCLASIFICATORIA: servidor online pendiente."
-        "AJUSTES":
+        "AJUSTES","PRESET":
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot()
@@ -866,17 +1221,21 @@ func _select_tab(tab: String) -> void:
                         str(measured.get("render_method","unknown")).to_upper(),
                         str(measured.get("render_driver","unknown")).to_upper(),
                         float(measured.get("quality_scale",1.0))*100.0]
+        "INVENTARIO":
+            _info.text="INVENTARIO EN PARTIDA\nArmas, munición, casco y botiquines se recogen físicamente en el Battle Royale.\nTu equipo se consulta desde el HUD del combate.\nNo hay compras ni objetos permanentes inventados."
         "ARMAS":
             _info.text="ARSENAL ACTIVO\nAR-7: mira x2 / x4.\nAWM: mira x8 y cerrojo automático.\nBR: AWM sobre el suelo, en la PLAZA (8, 24).\nENTRENAMIENTO: pulsa ARMA para probarla."
         "OBJETIVOS":
             _update_objective_details()
+        "LUCK":
+            _info.text="LUCK ROYALE / SIN SORTEOS ACTIVOS\nSolo se habilitarán sorteos con probabilidades publicadas y un catálogo real.\nNo se cobran monedas ni diamantes mientras el servicio esté desconectado."
         "TIENDA":
             var stats: Dictionary=_offline_records.snapshot()
             _info.text="TIENDA / PREPARACIÓN DE CATÁLOGO\nMONEDAS LOCALES: %d\nSe ganan al concluir partidas clásicas; compras aún deshabilitadas.\nDIAMANTES: sin cartera online. No hay recargas ni transacciones activas."%int(stats.get("local_coins",0))
         "PASE":
             _info.text="PASE DE BATALLA / PLANIFICADO\nAún no existen temporadas pagadas ni cobros habilitados."
         "SOCIAL":
-            _info.text="SOCIAL / SIN CONEXIÓN\nAmigos, clanes y escuadras necesitan un servicio online real."
+            _info.text="AMIGOS Y CLANES\nAún no existe un servidor social autenticado.\nNo hay amigos ficticios, invitaciones simuladas ni chat mundial falso.\nLas partidas locales siguen disponibles."
         "CUENTA":
             var stats: Dictionary=_offline_records.snapshot()
             var health: Dictionary=_offline_records.auto_backup_status()
@@ -892,7 +1251,7 @@ func _select_tab(tab: String) -> void:
                 var remote_name: String=str(session.get("display_name",""))
                 name_line=(remote_name+" (Firebase)" if not remote_name.is_empty()
                     else _player_name.display_name+" (local; nombre remoto pendiente)")
-            _info.text="Firebase / Perfil\nNOMBRE: %s\n%s\n%s\nGoogle e Invitado requieren App Check. El apodo y las monedas siguen guardados localmente; no se declara sincronización sin confirmación del servidor."%[
+            _info.text="Firebase / Perfil\nNOMBRE: %s\n%s\n%s\nGoogle e Invitado se administran en la pantalla de entrada. El apodo y las monedas siguen guardados localmente; no se declara sincronización sin confirmación del servidor."%[
                 name_line,id_line,auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
@@ -1087,7 +1446,7 @@ func _build_preview() -> void:
 
     var viewport:=SubViewport.new()
     viewport.name="PreviewViewport"
-    viewport.size=Vector2i(440,600)
+    viewport.size=Vector2i(768,540)
     viewport.own_world_3d=true
     viewport.transparent_bg=true
     viewport.render_target_update_mode=SubViewport.UPDATE_WHEN_PARENT_VISIBLE
@@ -1118,11 +1477,16 @@ func _build_preview() -> void:
     stage3d.add_child(rim)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
-    camera.position=Vector3(0,1.22,3.45)
-    camera.fov=39
+    camera.position=Vector3(0,1.20,4.05)
+    camera.fov=44
     camera.current=true
     stage3d.add_child(camera)
     camera.look_at(Vector3(0,.88,0),Vector3.UP)
+    var sentinel: Node3D=LOBBY_COMPANION.new()
+    sentinel.name="AuroraSentinelCompanion"
+    sentinel.position=Vector3(1.04,-.04,.30)
+    sentinel.scale=Vector3.ONE*.78
+    stage3d.add_child(sentinel)
     var podium:=MeshInstance3D.new()
     podium.name="PortraitPlatform"
     var disk:=CylinderMesh.new()
@@ -1156,12 +1520,12 @@ func _build_preview() -> void:
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
-    caption.text="LILA AURORA V1  •  BASE CC0 PROVISIONAL   ↻ GIRAR"
+    caption.text="LILA AURORA V1 · RIG PROVISIONAL   ↻ GIRAR"
     caption.anchor_left=.29
     caption.anchor_right=.65
     caption.anchor_top=.90
     caption.anchor_bottom=.90
-    caption.offset_bottom=35
+    caption.offset_bottom=22
     caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     caption.add_theme_font_size_override("font_size",13)
     caption.add_theme_color_override("font_color",Color(.62,.84,.96))

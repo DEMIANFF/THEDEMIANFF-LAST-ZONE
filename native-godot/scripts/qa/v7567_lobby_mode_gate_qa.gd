@@ -86,8 +86,9 @@ func _verify() -> void:
         front._layout_safe()
         check(front._battle_entry.is_visible_in_tree(),
             "Classic start button hidden by responsive layout "+str(size))
-        check(front._lobby_detail_scroll.is_visible_in_tree(),
-            "lobby details panel absent "+str(size))
+        check(front._play_match_card.visible and
+            not front._lobby_detail_scroll.visible,
+            "large Battle Royale card obscured by debug copy "+str(size))
 
     front.queue_free()
     await process_frame

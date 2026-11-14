@@ -31,16 +31,21 @@ func _verify() -> void:
         "JUGAR must be top-level primary action")
     check(front._battle_entry.visible and not front._training_entry.visible,
         "classic must be ready on initial lobby")
-    check(front._lobby_section_title.text.contains("JUGAR"),
-        "lobby title does not reflect play screen")
+    check(front._lobby_section_title.text.contains("BATTLE ROYALE"),
+        "lobby lacks Battle Royale mode card heading")
+    check(front._left_shortcuts.get_child_count()==6 and
+        front._bottom_navigation.get_child_count()==5 and
+        front._social_panel.visible,
+        "reference navigation/menu/social panels not actually built")
+    check(front._preview_container.find_child("AuroraSentinelCompanion",true,false)!=null,
+        "live Base Aurora sentinel companion missing")
 
     front._select_tab("CUENTA")
     await process_frame
     check(front._lobby_section_title.text=="MI CUENTA","dedicated account heading missing")
-    check(front._auth_google_button.visible and front._auth_guest_button.visible,
-        "provider choices hidden in Account")
-    check(front._auth_google_button.disabled and front._auth_guest_button.disabled,
-        "headless unverified Firebase must never allow sign-in")
+    check(not front._auth_google_button.visible and not front._auth_guest_button.visible and
+        front._login_manage_button.visible,
+        "Google/Guest must be exclusive to a dedicated login screen")
     check(front._account_connection_label.visible and
         front._account_connection_label.text.contains("CONEXIÓN PENDIENTE"),
         "precise blocked Firebase status is not visibly explained")
@@ -60,9 +65,8 @@ func _verify() -> void:
         front._layout_safe()
         await process_frame
         var safe: Rect2=root.get_visible_rect()
-        for ctl in [front._auth_google_button,front._auth_guest_button,
-                front._firebase_check_button,front._name_entry,
-                front._name_save_button]:
+        for ctl in [front._firebase_check_button,front._login_manage_button,
+                front._name_entry,front._name_save_button]:
             check(ctl.is_visible_in_tree() and safe.encloses(ctl.get_global_rect()),
                 "Account action clipped: "+ctl.name+" "+str(resolution))
         check(safe.encloses(front._preview_container.get_global_rect()),
@@ -75,9 +79,15 @@ func _verify() -> void:
     check(front._battle_entry.visible and
         not front._auth_google_button.visible and not front._auth_guest_button.visible,
         "JUGAR actions did not recover after Account")
+    front._welcome()
+    await process_frame
+    check(front._login_google_button.visible and front._login_guest_button.visible,
+        "real Google and anonymous entry screen is missing")
+    check(front._login_status_label.text.contains("PENDIENTE"),
+        "headless login screen falsely claims authenticated Firebase")
     front.queue_free()
     await process_frame
     if not failed:
-        print("V7577_LOBBY_ACCOUNT PASS nav=jugar providers=visible_but_safe "+
+        print("V7577_LOBBY_ACCOUNT PASS nav=commerce_and_bottom login=entry_only "+
             "android=fail_closed mobile=964x434 identity=not_fabricated")
     quit(1 if failed else 0)

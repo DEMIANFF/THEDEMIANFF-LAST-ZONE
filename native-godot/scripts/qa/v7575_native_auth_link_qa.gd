@@ -39,10 +39,10 @@ func _verify() -> void:
     front._select_tab("CUENTA")
     check(front._auth_guest_button!=null and front._auth_google_button!=null,
         "Godot lacks Google and guest native request controls")
-    check(front._auth_guest_button.visible and
-        front._auth_google_button.visible and
-        front._auth_guest_button.disabled and front._auth_google_button.disabled,
-        "login choices must remain visible but gated without native Firebase")
+    check(not front._auth_guest_button.visible and
+        not front._auth_google_button.visible and
+        front._login_manage_button.visible,
+        "provider choices must be on entry screen, not permanently in lobby")
     check(front._info.text.contains("ID OFICIAL: PENDIENTE"),
         "account forged a permanent ID without a backend")
     front._start_native_auth("guest")
@@ -54,9 +54,9 @@ func _verify() -> void:
     front._check_firebase_connection()
     check(front._info.text.contains("SIN CONEXIÓN"),
         "Firebase preflight must remain fail-closed on current preview")
-    check(front._auth_guest_button.visible and front._auth_google_button.visible and
-        front._auth_guest_button.disabled and front._auth_google_button.disabled,
-        "preflight must preserve visible but disabled login actions")
+    check(not front._auth_guest_button.visible and not front._auth_google_button.visible and
+        front._login_manage_button.visible,
+        "account must route to dedicated, safe login screen")
 
     for res in [Vector2i(960,540),Vector2i(1280,720)]:
         root.size=res
@@ -71,6 +71,15 @@ func _verify() -> void:
         not front._auth_guest_button.visible and
         not front._auth_google_button.visible,
         "local Classic controls were not restored after Account")
+    front._welcome()
+    await process_frame
+    check(front._login_google_button.visible and front._login_guest_button.visible and
+        front._page.get_node_or_null("EnterButton")!=null,
+        "dedicated Google/Guest and local offline entry buttons missing")
+    front._begin_welcome_auth("google")
+    check(front._login_status_label.text.contains("PENDIENTE") and
+        not bool(BRIDGE.status().get("ready",true)),
+        "headless Google request falsified App Check readiness")
     front.queue_free()
     await process_frame
     if not failed:

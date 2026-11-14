@@ -1,0 +1,100 @@
+extends SceneTree
+## V75.78 in-engine reference integration, not an image-only promise.
+## Never contacts production Firebase or manufactures premium currency/friends.
+const BRIDGE=preload("res://scripts/persistence/aurora_firebase_bridge.gd")
+var failed: bool=false
+
+func _initialize() -> void:
+    call_deferred("_verify")
+
+func check(ok: bool,reason: String) -> void:
+    if not ok:
+        failed=true
+        push_error("V7578_AURORA_LOBBY "+reason)
+
+func _verify() -> void:
+    var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
+    root.add_child(front)
+    await process_frame
+    check(front.stage=="welcome","startup entry screen not first")
+    check(front._login_google_button.is_visible_in_tree() and
+        front._login_guest_button.is_visible_in_tree() and
+        front._page.get_node_or_null("EnterButton")!=null,
+        "real Google, Guest and explicit local entry options unavailable")
+    check(not bool(BRIDGE.status().get("ready",true)) and
+        front._login_status_label.text.contains("PENDIENTE"),
+        "headless preview misreported App Check as verified")
+    front._enter_local_lobby()
+    await process_frame
+    check(front.stage=="lobby" and front._selected_tab=="JUGAR",
+        "offline entry did not open native Battle Royale lobby")
+    check(front._left_shortcuts.get_child_count()==6 and
+        front._bottom_navigation.get_child_count()==5,
+        "commerce rail or inventory/arsenal/preset/clan bar incomplete")
+    check(front._left_shortcuts.has_node("QuickTIENDA") and
+        front._left_shortcuts.has_node("QuickLUCK") and
+        front._left_shortcuts.has_node("QuickEVENTS") and
+        front._left_shortcuts.has_node("QuickMISSIONS") and
+        front._left_shortcuts.has_node("QuickACHIEVEMENTS"),
+        "store, luck, events, missions, achievement controls missing")
+    check(front._social_panel.visible and
+        front._social_status_label.text.contains("Sin amigos conectados"),
+        "unavailable online social system was misrepresented")
+    check(front._play_match_card.visible and
+        front._battle_entry.text=="INICIAR" and front._battle_entry.visible,
+        "golden Battle Royale start card not functional")
+    check(front._preview_container.find_child(
+        "AuroraSentinelCompanion",true,false)!=null,
+        "original 3D sentinel companion absent")
+    check(not front._auth_guest_button.visible and
+        not front._auth_google_button.visible,
+        "login providers wrongly shown in gameplay lobby")
+    check(front._currency_strip.text.contains("MONEDAS") and
+        front._currency_strip.text.contains("DIAMANTES"),
+        "wallet structure missing")
+    front._open_lobby_category("OBJETIVOS","missions")
+    check(front._info.text.contains("MISIONES / METAS LOCALES"),
+        "mission shortcut did not route to real saved-match goals")
+    front._open_lobby_category("OBJETIVOS","achievements")
+    check(front._info.text.contains("LOGROS / HISTORIAL REAL"),
+        "achievement shortcut did not read real match records")
+    front._open_lobby_category("OBJETIVOS","events")
+    check(front._info.text.contains("SIN TEMPORADA ACTIVA"),
+        "events cannot suggest fake rewards")
+    front._select_tab("INVENTARIO")
+    check(front._info.text.contains("INVENTARIO EN PARTIDA"),
+        "inventory module not wired to actual match equipment")
+    front._select_tab("PRESET")
+    check(front._settings_panel.visible and
+        front._settings_panel.find_child("EditHUDEntry",true,false)!=null,
+        "preset control should open working real HUD editor")
+    front._top_account_button.emit_signal("pressed")
+    check(front._selected_tab=="CUENTA" and
+        front._login_manage_button.is_visible_in_tree(),
+        "top account shortcut did not reach account settings")
+    check(front._info.text.contains("ID OFICIAL: PENDIENTE"),
+        "unverified identity was fabricated")
+    for resolution in [Vector2i(964,434),Vector2i(960,540),
+            Vector2i(1280,720),Vector2i(2712,1220)]:
+        root.size=resolution
+        await process_frame
+        await process_frame
+        front._layout_safe()
+        await process_frame
+        var screen: Rect2=root.get_visible_rect()
+        for ctl in [front._top_account_button,front._top_settings_button,
+                front._login_manage_button,front._name_entry,
+                front._name_save_button,front._preview_container]:
+            check(screen.encloses(ctl.get_global_rect()),
+                "Aurora lobby control clipped "+ctl.name+" "+str(resolution))
+    front._login_manage_button.emit_signal("pressed")
+    check(front.stage=="welcome" and
+        front._login_google_button.visible and front._login_guest_button.visible,
+        "changing accounts failed to return to dedicated provider screen")
+    front.queue_free()
+    await process_frame
+    if not failed:
+        print("V7578_AURORA_LOBBY PASS login=entry_only local=playable "+
+            "left_rail=6 bottom_navigation=5 social=truthful companion=3d "+
+            "missions=journal hud=real account=no_fake_id motorola=964x434")
+    quit(1 if failed else 0)

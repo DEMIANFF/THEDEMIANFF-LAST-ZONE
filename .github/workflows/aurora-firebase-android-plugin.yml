@@ -6,6 +6,7 @@ on:
       - codex/v75-75-android-firebase-native-plugin-vulkan
       - codex/v75-76-motorola-firebase-gradle-integration-vulkan
       - codex/v75-77-lobby-account-ux-firebase-native
+      - codex/v75-78-aurora-full-lobby-login-navigation
     paths:
       - 'firebase-godot-bridge/**'
       - '.github/workflows/aurora-firebase-android-plugin.yml'
