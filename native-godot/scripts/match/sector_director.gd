@@ -1,5 +1,6 @@
 extends Node3D
-## Small offline Aurora sector elimination match. NOT a 100-player/server match.
+## Actual offline Aurora elimination match, now supporting 9/20/30/50 local agents.
+## This is not networked multiplayer or a 100-player server match.
 ## Owns the real shrinking hazard, alive counter, victory/defeat and sector loot.
 
 signal round_ended(victory: bool)
@@ -14,6 +15,10 @@ const FINAL_RADIUS: float = 12.0
 # Four phases total ten minutes rather than the previous 4m40s.
 # Early victories remain possible when all physical enemies are eliminated.
 const SHRINK_DURATION: float = 600.0
+# After the four normal phases, the physical last circle closes during
+# a 60-second final combat window, rather than remaining at 12m forever.
+const OVERTIME_DURATION: float = 60.0
+const OVERTIME_RADIUS: float = 0.75
 const CENTER: Vector2 = Vector2(0.0,-24.0)
 const TICK: float = 1.0
 # Max 15 minutes of sparse FPS samples at two measurements per second.
@@ -203,8 +208,11 @@ func _process(delta: float) -> void:
     radius=float(state["radius"])
     zone_phase=int(state["phase"])
     zone_seconds_remaining=int(state["remaining"])
-    if zone_phase>=1 and zone_phase<=3 and not _phase_supplies.has(zone_phase):
-        _spawn_phase_resupply(zone_phase)
+    # A mobile resume can jump over multiple phase boundaries. Do not lose
+    # phase transitions or create duplicate supplies after a large delta.
+    for phase in range(1,mini(zone_phase,3)+1):
+        if not _phase_supplies.has(phase):
+            _spawn_phase_resupply(phase)
     _zone_visual.set_safe_radius(radius)
     # Bot hazard decisions are made in physics; they must never lag behind
     # the actual damaging ring just because HUD updates are rate-limited.
@@ -222,7 +230,11 @@ func _process(delta: float) -> void:
             hud.impact("ZONA PELIGROSA / REGRESA AL CIRCULO")
         _was_player_outside=outside
         hud.set_sector_zone(CENTER,radius)
-        var status: String="ZONA FINAL" if zone_phase>=PHASE_COUNT else             "ZONA %d/%d · %ds"%[zone_phase+1,PHASE_COUNT,zone_seconds_remaining]
+        var status: String=("CIERRE FINAL · %ds"%zone_seconds_remaining
+            if zone_phase>=PHASE_COUNT and zone_seconds_remaining>0
+            else "COMBATE FINAL / ZONA CERRADA" if zone_phase>=PHASE_COUNT
+            else "ZONA %d/%d · %ds"%[
+                zone_phase+1,PHASE_COUNT,zone_seconds_remaining])
         hud.set_sector_state(status,combat.active_fighter_count(),radius,int(elapsed))
     _damage_clock+=delta
     if _damage_clock>=TICK:
@@ -263,8 +275,14 @@ func _sync_bot_safe_zone() -> void:
 ## Radar, terrain ring and hazard radius all read the same returned radius.
 func zone_state_at(seconds: float) -> Dictionary:
     var time: float=clampf(seconds,0.0,SHRINK_DURATION)
-    if time>=SHRINK_DURATION:
-        return {"radius":FINAL_RADIUS,"phase":PHASE_COUNT,"remaining":0}
+    if seconds>=SHRINK_DURATION:
+        var overtime: float=clampf(seconds-SHRINK_DURATION,
+            0.0,OVERTIME_DURATION)
+        var t: float=overtime/OVERTIME_DURATION
+        var ease: float=t*t*(3.0-2.0*t)
+        return {"radius":lerpf(FINAL_RADIUS,OVERTIME_RADIUS,ease),
+            "phase":PHASE_COUNT,
+            "remaining":maxi(0,int(ceil(OVERTIME_DURATION-overtime)))}
     var phase: int=clampi(int(floor(time/PHASE_SECONDS)),0,PHASE_COUNT-1)
     var within: float=time-float(phase)*PHASE_SECONDS
     var progress: float=clampf((within-PHASE_HOLD_SECONDS)/
@@ -282,7 +300,12 @@ func is_outside_zone(position: Vector3) -> bool:
 
 
 func _check_hazard_damage() -> void:
-    var damage: float=6.0 if zone_phase<=0 else 8.0 if zone_phase==1         else 10.0 if zone_phase==2 else 13.0
+    var damage: float=6.0 if zone_phase<=0 else 8.0 if zone_phase==1 else 10.0 if zone_phase==2 else 13.0
+    if elapsed>=SHRINK_DURATION:
+        # The terminal ring physically closes; late storm exposure is more
+        # dangerous for both player and every surviving actual bot.
+        damage=13.0+clampf(elapsed-SHRINK_DURATION,0.0,
+            OVERTIME_DURATION)*.15
     if not player.royale_eliminated and is_outside_zone(player.global_position):
         # Continuous proximity warning already exists; avoid overwriting
         # hit confirmations and weapon cues every single damage tick.
