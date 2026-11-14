@@ -81,10 +81,10 @@ func _verify() -> void:
             break
     check(player.air_mode=="ground" and director.mode=="sector_battle",
         "auto canopy handoff broke landing")
-    check(combat.visible and combat.active_fighter_count()==9,
+    check(combat.visible and combat.active_fighter_count()==50,
         "auto canopy handoff lost the existing playable offline sector")
     check(TRACE.last().get("state","")=="completed",
         "successful match left an active flight crash report")
     print("CANOPY_AUTO_HANDOFF PASS physics phase queued, HUD deferred, ",
-        "mesh stable, 1st canopy tick, 9-player real landing")
+        "mesh stable, 1st canopy tick, 50-player real landing")
     quit(1 if failed else 0)

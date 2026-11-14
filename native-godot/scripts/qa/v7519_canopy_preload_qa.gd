@@ -73,8 +73,8 @@ func _verify() -> void:
             break
     check(player.air_mode=="ground" and director.mode=="sector_battle",
         "protected prebuilt canopy broke ground handoff")
-    check(combat.visible and combat.active_fighter_count()==9,
-        "real eight bots and player did not resume")
+    check(combat.visible and combat.active_fighter_count()==50,
+        "real 49 bots and player did not resume")
     print("V7519_PREWARM PASS original mesh identity, deferred visibility, ",
-        "actor-first physics markers, physical slowdown and 9-person sector")
+        "actor-first physics markers, physical slowdown and 50-person sector")
     quit(1 if failed else 0)

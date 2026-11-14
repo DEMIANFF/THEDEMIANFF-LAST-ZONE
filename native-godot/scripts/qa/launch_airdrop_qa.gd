@@ -148,7 +148,7 @@ func _verify() -> void:
         quit(142)
         return
     var combat:=game.get_node("CombatRange") as Node3D
-    if combat.active_fighter_count()!=9 or hud.air_stage!="ground":
+    if combat.active_fighter_count()!=50 or hud.air_stage!="ground":
         push_error("Ground HUD/match participants not restored")
         quit(143)
         return
