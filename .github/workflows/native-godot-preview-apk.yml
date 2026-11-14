@@ -337,9 +337,38 @@ jobs:
       - name: Export dedicated Motorola Firebase Gradle diagnostic APK
         run: |
           set -euo pipefail
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.76-MOTOROLA-FIREBASE-GRADLE.apk
           APK="native-godot/out/THEDEMIAN-V75.76-MOTOROLA-FIREBASE-GRADLE.apk"
-          test -s "$APK"
+          LOG="native-godot/out/firebase-gradle-export.log"
+          # Headless Godot 4.7.2 may emit an ADB daemon error at shutdown.
+          # Preserve its exit code and export diagnostics; do not assume either
+          # a completed progress bar or this ADB message means success.
+          set +e
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.76-MOTOROLA-FIREBASE-GRADLE.apk > "$LOG" 2>&1
+          GODOT_EXIT=$?
+          set -e
+          tail -n 65 "$LOG"
+          if [ ! -s "$APK" ]; then
+            echo "::error::Godot exit $GODOT_EXIT and no Gradle APK exists. Inspect the captured Gradle export log."
+            exit 1
+          fi
+          # An output file alone is not enough: the archive must be complete,
+          # contain the Godot engine and exported project, and pass every
+          # signature, ABI, plugin and alignment validation below.
+          python3 - "$APK" <<'PY'
+          import sys,zipfile
+          from pathlib import Path
+          apk=Path(sys.argv[1])
+          with zipfile.ZipFile(apk) as z:
+              names=set(z.namelist())
+              assert "AndroidManifest.xml" in names, "Missing Android manifest"
+              assert "assets/project.binary" in names, "Missing Godot game assets"
+              assert any(s.startswith("lib/arm64-v8a/") and s.endswith(".so") for s in names), "Missing 64-bit game engine"
+              assert z.testzip() is None, "APK archive failed CRC"
+          print("AURORA_GRADLE_ARCHIVE_COMPLETE",apk.stat().st_size)
+          PY
+          if [ "$GODOT_EXIT" -ne 0 ]; then
+            echo "::warning::Godot returned $GODOT_EXIT despite producing an intact APK; requiring all independent Android verification gates."
+          fi
           # Godot/Gradle debug signing may omit APK signature scheme v3 even
           # with the correct certificate. Re-sign the already aligned Gradle
           # output using the PINNED existing preview certificate (no new key).
@@ -390,4 +419,7 @@ jobs:
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
             native-godot/out/vulkan-verification/
+            native-godot/out/firebase-gradle-export.log
+            native-godot/out/firebase-gradle-signer-check.txt
+            native-godot/out/firebase-gradle-verification/
           retention-days: 14
