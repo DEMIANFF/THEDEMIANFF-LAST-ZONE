@@ -348,11 +348,24 @@ func _physics_process(dt: float) -> void:
         destination=safe_zone_destination(global_position,
             next_safe_center,next_safe_radius)
         target_speed=CHASE_SPEED
-    # Immediate threat always overrides advance planning: never march
-    # deeper into a damaging circle just to reach the next phase.
-    if sector_battle and Vector2(global_position.x,global_position.z).distance_to(safe_center)>safe_radius-4.0:
+    # On a tiny endgame ring, ordinary patrol waypoints can lie metres
+    # outside a 0.75m safety circle. Hold in real walkable space instead
+    # of repeatedly walking into the hazard and turning back. Real nearby
+    # enemies and next-circle rotation remain independent priorities.
+    if (sector_battle and behavior=="patrol" and
+            should_hold_final_zone(destination,safe_center,safe_radius,false)):
+        behavior="zone_hold"
+        destination=safe_zone_destination(global_position,
+            safe_center,safe_radius)
+        target_speed=WALK_SPEED
+    # Immediate storm threat always overrides the next-phase rotation.
+    # Scale the margin with the ring: the old fixed four-metre buffer
+    # marked EVERY bot as escaping forever when the ring was 0.75m wide.
+    if sector_battle and should_escape_current_zone(
+            global_position,safe_center,safe_radius):
         behavior="zone_escape"
-        destination=safe_zone_destination(global_position,safe_center,safe_radius)
+        destination=safe_zone_destination(global_position,
+            safe_center,safe_radius)
         target_speed=CHASE_SPEED
     if navigation and navigation.available:
         if _route_clock<=0 and (destination.distance_squared_to(_route_goal)>6.25 or _route.is_empty()):
@@ -723,6 +736,28 @@ static func should_rotate_to_next_zone(position: Vector3,next_center: Vector2,
     return current.distance_to(next_center)>maxf(0.0,next_radius-2.0)
 
 
+## Only use the current ring's real center/radius: no invulnerable safe
+## states or simulated movement. A proportional safety buffer is essential
+## when the last ring contracts below 4m.
+static func should_escape_current_zone(position: Vector3,center: Vector2,
+        radius: float) -> bool:
+    if (not position.is_finite() or not center.is_finite() or
+            not is_finite(radius) or radius<=0.0):
+        return false
+    var border_margin: float=minf(4.0,radius*.20)
+    var allowed: float=maxf(0.0,radius-border_margin)
+    return Vector2(position.x,position.z).distance_to(center)>allowed
+
+
+static func should_hold_final_zone(destination: Vector3,center: Vector2,
+        radius: float,engaged: bool) -> bool:
+    if (engaged or not destination.is_finite() or not center.is_finite()
+            or not is_finite(radius) or radius<=0.0 or radius>12.0):
+        return false
+    return Vector2(destination.x,destination.z).distance_to(
+        center)>maxf(0.05,radius*.80)
+
+
 static func safe_zone_destination(position: Vector3,center: Vector2,
         safe_radius_value: float) -> Vector3:
     if (not position.is_finite() or not center.is_finite() or
@@ -731,8 +766,12 @@ static func safe_zone_destination(position: Vector3,center: Vector2,
     var radial:=Vector2(position.x-center.x,position.z-center.y)
     if radial.length_squared()<.0001:
         return Vector3(center.x,position.y,center.y)
-    var inner_radius: float=maxf(0.0,minf(safe_radius_value*ZONE_SAFE_FRACTION,
-        safe_radius_value-5.0))
+    # Radius below 5m previously made the destination EXACTLY the ring
+    # center for every rival. Keep distinct radial approaches inside the
+    # true safe circle; physical collisions and storm damage remain active.
+    var inner_radius: float=(safe_radius_value*.55 if safe_radius_value<=5.0
+        else maxf(0.0,minf(safe_radius_value*ZONE_SAFE_FRACTION,
+        safe_radius_value-5.0)))
     var target: Vector2=center+radial.normalized()*inner_radius
     return Vector3(target.x,position.y,target.y)
 

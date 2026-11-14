@@ -19,6 +19,7 @@ on:
       - codex/v75-88-moving-safe-zone-br-vulkan
       - codex/v75-89-50-bot-ai-frame-budget-vulkan
       - codex/v75-90-br-ai-rotation-vulkan
+      - codex/v75-91-final-ring-ai-stability-vulkan
     paths:
       - 'firebase-godot-bridge/**'
       - '.github/workflows/aurora-firebase-android-plugin.yml'
