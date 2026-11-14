@@ -1,5 +1,5 @@
 extends SceneTree
-## V75.88: only authentic Godot renders of real Lila GLB armor materials.
+## V75.89: only authentic Godot renders of real Lila GLB armor materials.
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
 
 func _initialize() -> void:
