@@ -480,7 +480,7 @@ func _save_player_name() -> void:
     var candidate: String=_name_entry.text
     var saved: Error=_player_name.save_name(candidate)
     if saved!=OK:
-        _info.text="NOMBRE NO GUARDADO\\nUsa entre 3 y 16 caracteres: letras, números, espacios internos o _.\\nNo se permiten nombres reservados."
+        _info.text="NOMBRE NO GUARDADO\nUsa entre 3 y 16 caracteres: letras, números, espacios internos o _.\nNo se permiten nombres reservados."
         return
     _name_entry.text=_player_name.display_name
     _update_identity_strip(_offline_records.snapshot())
@@ -713,7 +713,7 @@ func _select_tab(tab: String) -> void:
                 health.get("played",0)) if bool(health.get("in_sync",false)) else (
                 "COPIA AUTOMÁTICA LOCAL: pendiente" if not bool(health.get("available",false))
                 else "COPIA AUTOMÁTICA LOCAL: desactualizada")
-            _info.text="CUENTA / PERFIL LOCAL\\nNOMBRE: %s\\nID OFICIAL: PENDIENTE DE FIREBASE\\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\\n%s\\nEl nombre se guarda en este dispositivo. El ID secuencial 00001+ solo se asignará tras autenticar en Firebase.\\nGoogle/Firebase aún no están conectados a Godot; la copia local no sobrevive a una desinstalación. El saldo offline NO es una cartera online."%[
+            _info.text="CUENTA / PERFIL LOCAL\nNOMBRE: %s\nID OFICIAL: PENDIENTE DE FIREBASE\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nEl nombre se guarda en este dispositivo. El ID secuencial 00001+ solo se asignará tras autenticar en Firebase.\nGoogle/Firebase aún no están conectados a Godot; la copia local no sobrevive a una desinstalación. El saldo offline NO es una cartera online."%[
                 _player_name.display_name,int(stats.get("local_coins",0)),auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
