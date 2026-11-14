@@ -80,6 +80,7 @@ var _login_pending_provider: String=""
 var _login_timer: Timer
 var _login_manage_button: Button
 var _bottom_navigation: HBoxContainer
+var _left_shortcuts: VBoxContainer
 var _social_panel: PanelContainer
 var _social_status_label: Label
 var _top_account_button: Button
@@ -493,29 +494,35 @@ func _show_lobby() -> void:
     _brand_logo.visible=true
     # Logo stays outside the full-width profile strip and never crosses
     # over player statistics or the rotating 3D character.
-    _brand_logo.anchor_left=.911
-    _brand_logo.anchor_right=.96
-    _brand_logo.anchor_top=.018
-    _brand_logo.anchor_bottom=.126
-    # The live 3D operator is now the central focus; navigation and content
-    # keep independent safe margins in 960x434 landscape.
-    _page.anchor_left=.687
-    _page.anchor_right=.97
-    _page.anchor_top=.157
-    _page.anchor_bottom=.944
-    _page.add_theme_constant_override("separation",3)
-    _preview_container.anchor_left=.237
-    _preview_container.anchor_right=.665
-    _preview_container.anchor_top=.145
-    _preview_container.anchor_bottom=.865
+    _brand_logo.anchor_left=.944
+    _brand_logo.anchor_right=.983
+    _brand_logo.anchor_top=.019
+    _brand_logo.anchor_bottom=.117
+    # Base Aurora: large real 3D operator at centre; separate commerce,
+    # social/match card, full-width top and bottom navigation layers.
+    _page.anchor_left=.702
+    _page.anchor_right=.977
+    _page.anchor_top=.495
+    _page.anchor_bottom=.87
+    _page.add_theme_constant_override("separation",2)
+    _preview_container.anchor_left=.216
+    _preview_container.anchor_right=.697
+    _preview_container.anchor_top=.13
+    _preview_container.anchor_bottom=.864
     _preview_container.visible=true
     _preview_caption.visible=true
-    _preview_caption.anchor_left=.237
-    _preview_caption.anchor_right=.665
-    _preview_caption.anchor_top=.872
-    _preview_caption.anchor_bottom=.872
+    _preview_caption.anchor_left=.216
+    _preview_caption.anchor_right=.697
+    _preview_caption.anchor_top=.845
+    _preview_caption.anchor_bottom=.845
     _ensure_lobby_navigation()
-    _lobby_nav.visible=true
+    _lobby_nav.visible=false
+    _left_shortcuts.visible=true
+    _bottom_navigation.visible=true
+    _top_account_button.visible=true
+    _top_settings_button.visible=true
+    _top_social_button.visible=true
+    _banner.visible=true
     # Three independently clipped headers keep the original brand legible
     # without the coin balance covering Lila, the player record or the emblem.
     _profile_strip.visible=true
@@ -531,10 +538,10 @@ func _show_lobby() -> void:
     if _preview_avatar:
         _preview_avatar.rotation.y=0.0
     _clear_page()
-    _lobby_section_title=_label("JUGAR · PUERTO AURORA",19)
+    _lobby_section_title=_label("BATTLE ROYALE · BASE AURORA",17)
     _lobby_section_title.name="LobbySectionTitle"
     _lobby_section_title.add_theme_color_override("font_color",Color(.96,.96,.88))
-    _lobby_section_hint=_label("CLÁSICO LOCAL  /  IA",11)
+    _lobby_section_hint=_label("CLÁSICO LOCAL  ·  1 JUGADOR + IA",10)
     _lobby_section_hint.name="LobbySectionHint"
     _lobby_section_hint.add_theme_color_override("font_color",Color(.57,.84,.94))
     _lobby_mode_heading=_label("MODALIDAD DE PARTIDA",13)
@@ -552,12 +559,13 @@ func _show_lobby() -> void:
     _lobby_play_modes=VBoxContainer.new()
     _lobby_play_modes.name="PlayModes"
     _page.add_child(_lobby_play_modes)
-    _battle_entry=_button("JUGAR CLÁSICO",Callable(self,"_launch").bind(true),255)
+    _battle_entry=_button("INICIAR",Callable(self,"_launch").bind(true),240)
     _battle_entry.name="BattleButton"
-    _battle_entry.custom_minimum_size.y=48
+    _battle_entry.custom_minimum_size.y=52
+    _battle_entry.add_theme_font_size_override("font_size",23)
     _style_primary_action(_battle_entry)
     _lobby_play_modes.add_child(_battle_entry)
-    _training_entry=_button("ENTRENAR",Callable(self,"_launch").bind(false),255)
+    _training_entry=_button("INICIAR ENTRENAMIENTO",Callable(self,"_launch").bind(false),240)
     _training_entry.name="TrainingButton"
     _training_entry.custom_minimum_size.y=48
     _style_primary_action(_training_entry)
