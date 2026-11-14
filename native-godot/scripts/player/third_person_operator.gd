@@ -7,6 +7,8 @@ const ACCELERATION: float = 16.0
 const GRAVITY: float = 17.5
 const LOOK_SENSITIVITY: float = 0.0032
 const ANIMATION_CONTROLLER=preload("res://scripts/player/operator_animation.gd")
+const LOCAL_PLAYER_RECORDS=preload("res://scripts/persistence/offline_match_records.gd")
+const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
@@ -171,6 +173,11 @@ func _ready() -> void:
         _avatar.name = "AuroraFemaleRiggedOperator"
         add_child(_avatar)
         fit_operator_visual(_avatar)
+        # Actual purchased palette is loaded from the same verified offline
+        # journal as match rewards. No texture swapping during physics.
+        var cosmetic: Dictionary=LOCAL_PLAYER_RECORDS.new().cosmetic_state()
+        COSMETICS.apply_to_operator(_avatar,str(
+            cosmetic.get("equipped","aurora_base")))
         _normal_visual_scale = _avatar.scale
         _normal_visual_y = _avatar.position.y
         _animator = _avatar.find_child("*AnimationPlayer*", true, false) as AnimationPlayer
