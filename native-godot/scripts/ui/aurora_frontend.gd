@@ -493,8 +493,9 @@ func _update_identity_strip(stats: Dictionary) -> void:
         return
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
     if bool(session.get("identity_confirmed",false)):
+        var server_name: String=str(session.get("display_name",""))
         _stats_strip.text="%s · ID %s · CUENTA"%[
-            str(session.get("display_name","Operador")),
+            server_name if not server_name.is_empty() else "NOMBRE PENDIENTE",
             str(session.get("official_id",""))]
     else:
         _stats_strip.text="%s · %d P · %d V · LOCAL"%[
@@ -531,8 +532,9 @@ func _check_firebase_connection() -> void:
     if bool(session.get("identity_confirmed",false)):
         _info.text="FIREBASE AUTH / SESIÓN AUTENTICADA\n"
         _info.text+="ID OFICIAL: %s\n"%str(session.get("official_id",""))
-        _info.text+="NOMBRE DE CUENTA: %s\n"%str(
-            session.get("display_name","Operador"))
+        var server_name: String=str(session.get("display_name",""))
+        _info.text+="NOMBRE DE CUENTA: %s\n"%(
+            server_name if not server_name.is_empty() else "Pendiente de servidor")
         _info.text+="Proveedor: %s\n"%str(session.get("provider",""))
         _info.text+="Estos datos provienen de callables Firebase. El saldo y las partidas locales NO se sincronizan automáticamente."
         _update_identity_strip(_offline_records.snapshot())
@@ -798,7 +800,9 @@ func _select_tab(tab: String) -> void:
             var name_line: String=_player_name.display_name+" (local)"
             if bool(session.get("identity_confirmed",false)):
                 id_line="ID OFICIAL: %s"%str(session.get("official_id",""))
-                name_line=str(session.get("display_name","Operador"))+" (Firebase)"
+                var remote_name: String=str(session.get("display_name",""))
+                name_line=(remote_name+" (Firebase)" if not remote_name.is_empty()
+                    else _player_name.display_name+" (local; nombre remoto pendiente)")
             _info.text="CUENTA / IDENTIDAD\nNOMBRE: %s\n%s\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nPuedes editar el nombre local; no se envía automáticamente al servidor. Pulsa Verificar Firebase / App Check para conocer el estado real.\nEl respaldo offline permanece en este dispositivo hasta que se implemente una restauración cloud verificada."%[
                 name_line,id_line,int(stats.get("local_coins",0)),auto_text]
         _:
