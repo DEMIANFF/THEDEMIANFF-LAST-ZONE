@@ -56,7 +56,7 @@ func _verify() -> void:
         check(root.get_visible_rect().encloses(
             front._firebase_check_button.get_global_rect()),
             "Firebase status control exceeds mobile safe layout")
-    front._select_tab("PERSONAJE")
+    front._select_tab("JUGAR")
     check(not front._firebase_check_button.visible and
         front._battle_entry.visible,
         "Firebase diagnostics failed to restore Classic lobby controls")
