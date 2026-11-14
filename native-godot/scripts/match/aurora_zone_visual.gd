@@ -15,13 +15,21 @@ func _ready() -> void:
     _surface.name="SectorBoundaryMesh"
     _surface.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(_surface)
-    set_safe_radius(safe_radius,true)
+    set_zone_state(world_center,safe_radius,true)
 
 
 func set_safe_radius(value: float,force: bool=false) -> void:
-    var new_radius: float=maxf(3.0,value)
-    if not force and absf(new_radius-safe_radius)<.4:
+    set_zone_state(world_center,value,force)
+
+
+func set_zone_state(center: Vector2,value: float,force: bool=false) -> void:
+    # The visible ring and dangerous radius MUST have the same sub-1m
+    # overtime radius; a fixed minimum of 3m misled players at match end.
+    var new_radius: float=maxf(.35,value)
+    if (not force and absf(new_radius-safe_radius)<.32 and
+            center.distance_squared_to(world_center)<.12):
         return
+    world_center=center
     safe_radius=new_radius
     if _surface==null:
         return
@@ -41,7 +49,8 @@ func set_safe_radius(value: float,force: bool=false) -> void:
         var a:=Vector3(world_a.x,terrain.height_at(world_a.x,world_a.y)+.65,world_a.y)
         var b:=Vector3(world_b.x,terrain.height_at(world_b.x,world_b.y)+.65,world_b.y)
         # Solid 0.5m luminous ground ring (paired triangles).
-        _quad(vertices,colors,indices,a,a-ca_to_3d(ca)*.52,b-ca_to_3d(cb)*.52,b,line,line,line,line)
+        var rim_width: float=minf(.52,safe_radius*.32)
+        _quad(vertices,colors,indices,a,a-ca_to_3d(ca)*rim_width,b-ca_to_3d(cb)*rim_width,b,line,line,line,line)
         # Atmospheric boundary. No obstacle collider: hazard affects health, not
         # physical locomotion.
         _quad(vertices,colors,indices,a,b,b+Vector3.UP*8.0,a+Vector3.UP*8.0,wall_bottom,wall_bottom,wall_top,wall_top)

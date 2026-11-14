@@ -16,6 +16,7 @@ on:
       - codex/v75-85-real-local-skin-shop-vulkan
       - codex/v75-86-real-outfit-visual-review-vulkan
       - codex/v75-87-single-50-player-br-lobby-vulkan
+      - codex/v75-88-moving-safe-zone-br-vulkan
     paths:
       - 'firebase-godot-bridge/**'
       - '.github/workflows/aurora-firebase-android-plugin.yml'
