@@ -18,7 +18,11 @@ El segundo producto, **APK Gradle con plugin Firebase** `THEDEMIAN-V75.76-MOTORO
 ## Acciones necesarias en Firebase Console, a realizar por el propietario antes de probar inicio real
 
 1. Entrar en **Firebase Console** con el proyecto `thedemianff-last-zone` → Configuración del proyecto → Tus aplicaciones → **Agregar Android**, sin borrar la app Android histórica `com.thedemianff.lastzone`.
-2. Registrar EXACTAMENTE `com.thedemianff.lastzone.nativepreview` y las huellas públicas **SHA-1 y SHA-256 del certificado de firma de la APK preview Godot**. No registrar las huellas de la app WebView antigua si tiene otra firma. Esas huellas se pueden extraer del APK o del certificado pinneado; jamás compartir el keystore o su contraseña.
+2. Registrar EXACTAMENTE `com.thedemianff.lastzone.nativepreview` y las huellas públicas **SHA-1 y SHA-256 del certificado de firma de la APK preview Godot**. Las verificamos en `vulkan-verification/signature.txt` de la [CI V75.74 aprobada](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43598406656):
+   - **SHA-1:** `B9:1E:EA:C8:C4:6C:EB:5E:64:E3:27:0A:86:A9:23:48:C2:1F:0A:CD`.
+   - **SHA-256:** `60:39:06:83:C6:89:EA:73:76:DB:A5:39:24:50:92:9E:30:04:45:89:18:9C:9A:20:0D:4D:B5:48:06:F4:A6:53`.
+   - **Certificado:** `CN=THEDEMIANFF Aurora QA Preview Only` — prueba, NO firma de publicación.
+   No usar huellas de la WebView antigua si tiene otra firma. Jamás compartir el keystore o su contraseña.
 3. En Authentication → Sign-in method: habilitar **Anónimo** e **Google**. Si Google genera configuración OAuth adicional, descargar nuevamente el `google-services.json` de la **nueva aplicación Android Godot**, que incluya el cliente Web OAuth.
 4. En Google Cloud Console/Firebase **App Check → Play Integrity**, habilitar la API Play Integrity, registrar `com.thedemianff.lastzone.nativepreview` y la SHA-256 correspondiente. Revisar política para APK **instalada fuera de Google Play**. No activar un enforcement global que bloquee la aplicación antigua.
 5. Guardar el JSON correcto mediante **GitHub → Settings → Secrets and variables → Actions → New repository secret** como `AURORA_NATIVE_GOOGLE_SERVICES_B64` (contenido Base64 del JSON). No publicarlo en issues, commits, ni capturas. El pipeline comprueba el registro y, si falla, detiene la compilación. No agregar `google-services.json` al repositorio.
