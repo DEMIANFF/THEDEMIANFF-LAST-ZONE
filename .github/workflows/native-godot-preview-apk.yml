@@ -477,7 +477,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: V7587-FAILED-VALIDATION-LOGS
+          name: V7590-FAILED-VALIDATION-LOGS
           path: |
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
