@@ -84,6 +84,10 @@ var safe_radius: float=INF
 var _avoid_side: float=1.0
 ## Mobile-only visual LOD. Agents remain real damageable CharacterBody3D
 ## enemies with their own AI and collisions at every distance.
+# Preserve physics, ammunition and real AI for all 49 rivals. Only GPU-heavy
+# skinned visuals are bounded; overflow stays a visible low-poly enemy.
+const MAX_DETAILED_ENEMY_RIGS: int=14
+const DETAILED_ENEMY_GROUP: String="AuroraDetailedEnemyRig"
 var distance_lod: bool=false
 var _lod_body: MeshInstance3D
 var _lod_clock: float=0.0
@@ -143,12 +147,16 @@ func _create_lod_visual() -> void:
 func _create_full_rig() -> void:
     if _rig!=null or STARTUP_DIAG.without_enemy_rigs():
         return
+    if distance_lod and get_tree().get_nodes_in_group(
+            DETAILED_ENEMY_GROUP).size()>=MAX_DETAILED_ENEMY_RIGS:
+        return
     if not ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
         return
     var source:=load("res://assets/characters/aurora_operator.glb") as PackedScene
     _rig=source.instantiate() as Node3D
     _rig.name="OpponentRig"
     add_child(_rig)
+    _rig.add_to_group(DETAILED_ENEMY_GROUP)
     # The underlying CC0 rig is shared to keep one character GLB and
     # existing 30-agent collision/LOD performance. However Lila's
     # individually authored Aurora field kit belongs ONLY to the player:
@@ -178,6 +186,9 @@ func _set_full_visual(closer: bool) -> void:
     if closer:
         _create_full_rig()
     elif _rig!=null:
+        # The group lease is freed immediately, not after the next
+        # render frame, to allow another nearby opponent to use the slot.
+        _rig.remove_from_group(DETAILED_ENEMY_GROUP)
         _rig.queue_free()
         _rig=null
         _animation=null
