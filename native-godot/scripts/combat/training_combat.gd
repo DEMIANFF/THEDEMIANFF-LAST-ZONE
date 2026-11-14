@@ -75,6 +75,9 @@ var sector_battle_active: bool = false
 ## Single visible Battle Royale playlist: 50 physical fighters, offline.
 ## Internal small-roster sizes remain ONLY for deterministic engineering QA.
 const CLASSIC_BR_PARTICIPANTS: int=50
+# The parachute landing must not overlap an enemy spawn; this is only a
+# pre-match placement rule, not invulnerability or fake active-bot movement.
+const PLAYER_LANDING_CLEARANCE: float=14.0
 var encounter_size: int=9
 const ALLOWED_ENCOUNTERS: Array[int]=[9,20,30,CLASSIC_BR_PARTICIPANTS]
 var cover_charges: int=0
@@ -572,6 +575,7 @@ func begin_sector_battle() -> void:
     loot_collected=0
     opponent_caches_collected=0
     _ensure_encounter_capacity()
+    _protect_player_landing_from_spawn_overlap()
     for bot in _targets:
         if is_instance_valid(bot):
             bot.configure_sector_battle(_targets)
@@ -648,6 +652,45 @@ func _encounter_spawn(index: int) -> Vector2:
     # Emergency deterministic location for a malformed/empty terrain.
     # The real 50-opponent QA rejects this if it overlaps another fighter.
     return Vector2(33,-10)
+
+
+## The 50 physical opponents exist before combat but must start on
+## walkable land away from the player's real parachute landing. Only
+## reposition rivals during round initialization, before they become
+## combat-active, using the original terrain and collision constraints.
+## Training and internal small-roster QA retain their historic placements.
+func _protect_player_landing_from_spawn_overlap() -> void:
+    if (encounter_size!=CLASSIC_BR_PARTICIPANTS or
+            not is_instance_valid(operator) or
+            not operator.global_position.is_finite()):
+        return
+    var landing: Vector2=Vector2(operator.global_position.x,
+        operator.global_position.z)
+    for i in range(_targets.size()):
+        var bot: CharacterBody3D=_targets[i]
+        if not is_instance_valid(bot) or bot.spawn_coordinates.distance_squared_to(
+                landing)>=PLAYER_LANDING_CLEARANCE*PLAYER_LANDING_CLEARANCE:
+            continue
+        var at: Vector2=_find_clear_away_from_landing(i,landing)
+        if not at.is_finite():
+            push_error("Aurora no clear BR enemy position away from actual landing "+
+                str(i))
+            continue
+        bot.set_match_spawn(at)
+
+
+func _find_clear_away_from_landing(index: int,landing: Vector2) -> Vector2:
+    var base_angle: float=float(index+53)*2.3999632297
+    var origin: Vector2=Vector2(0.0,-24.0)
+    for attempt in range(512):
+        var angle: float=base_angle+float(attempt)*.61803398875
+        var distance: float=21.0+float((index*17+attempt*29)%77)
+        var at: Vector2=origin+Vector2.from_angle(angle)*distance
+        if (at.distance_squared_to(landing)>=
+                PLAYER_LANDING_CLEARANCE*PLAYER_LANDING_CLEARANCE and
+                _spawn_has_clearance(at)):
+            return at
+    return Vector2(INF,INF)
 
 
 func _ensure_encounter_capacity() -> void:
