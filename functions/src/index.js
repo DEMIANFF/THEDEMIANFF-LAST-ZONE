@@ -4,6 +4,7 @@ const { initializeApp, getApps } = require('firebase-admin/app');
 const { FieldValue, getFirestore } = require('firebase-admin/firestore');
 const { HttpsError, onCall } = require('firebase-functions/v2/https');
 const { assignSequentialPlayerId, getAuthenticatedUid } = require('./identity');
+const { saveOfflineProgress, loadOfflineProgress } = require('./offline-progress');
 
 if (getApps().length === 0) initializeApp();
 
@@ -23,4 +24,24 @@ exports.ensurePlayerIdentity = onCall(
     });
     return { number };
   },
+);
+
+// V75.72: Authenticated storage of explicitly UNVERIFIED offline results.
+// App Check enforcement intentionally prevents use until a trusted Godot
+// Android Auth/AppCheck bridge is configured; no auto-deployment is performed.
+exports.saveLocalProgressSnapshot = onCall(
+  { region: 'us-central1', maxInstances: 10, enforceAppCheck: true },
+  async (request) => saveOfflineProgress({
+    firestore, request,
+    serverTimestamp: () => FieldValue.serverTimestamp(),
+    createError: asHttpsError,
+  }),
+);
+
+exports.loadLocalProgressSnapshot = onCall(
+  { region: 'us-central1', maxInstances: 10, enforceAppCheck: true },
+  async (request) => loadOfflineProgress({
+    firestore, request,
+    createError: asHttpsError,
+  }),
 );
