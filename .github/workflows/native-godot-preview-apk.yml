@@ -27,6 +27,20 @@ jobs:
           node-version: '22'
       - name: Verify Firebase Android bridge prerequisites (no deployment)
         run: python3 native-godot/tools/audit_firebase_native_preflight.py --assert-blocked
+      - name: Preflight exact-package Firebase JSON before expensive Android build
+        env:
+          AURORA_NATIVE_GOOGLE_SERVICES_B64: ${{ secrets.AURORA_NATIVE_GOOGLE_SERVICES_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "${AURORA_NATIVE_GOOGLE_SERVICES_B64:-}" ]; then
+            umask 077
+            CONFIG="$(mktemp /tmp/aurora-firebase-config.XXXXXX.json)"
+            trap 'rm -f "$CONFIG"' EXIT
+            printf '%s' "$AURORA_NATIVE_GOOGLE_SERVICES_B64" | base64 --decode > "$CONFIG"
+            python3 native-godot/tools/prepare_firebase_gradle_trial.py validate --firebase-json "$CONFIG"
+          else
+            echo "AURORA_FIREBASE_JSON_PREFLIGHT_DIAGNOSTIC_ONLY missing_secret=1"
+          fi
       - name: Test Firebase offline-progress callables (no deployment)
         run: |
           node --version
