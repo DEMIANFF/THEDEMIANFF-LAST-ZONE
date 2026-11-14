@@ -39,9 +39,10 @@ func _verify() -> void:
     front._select_tab("CUENTA")
     check(front._auth_guest_button!=null and front._auth_google_button!=null,
         "Godot lacks Google and guest native request controls")
-    check(not front._auth_guest_button.visible and
-        not front._auth_google_button.visible,
-        "sign-in buttons displayed without working native Firebase")
+    check(front._auth_guest_button.visible and
+        front._auth_google_button.visible and
+        front._auth_guest_button.disabled and front._auth_google_button.disabled,
+        "login choices must remain visible but gated without native Firebase")
     check(front._info.text.contains("ID OFICIAL: PENDIENTE"),
         "account forged a permanent ID without a backend")
     front._start_native_auth("guest")
@@ -53,9 +54,9 @@ func _verify() -> void:
     front._check_firebase_connection()
     check(front._info.text.contains("SIN CONEXIÓN"),
         "Firebase preflight must remain fail-closed on current preview")
-    check(not front._auth_google_button.visible and
-        not front._auth_guest_button.visible,
-        "preflight accidentally unlocked unconfigured login")
+    check(front._auth_guest_button.visible and front._auth_google_button.visible and
+        front._auth_guest_button.disabled and front._auth_google_button.disabled,
+        "preflight must preserve visible but disabled login actions")
 
     for res in [Vector2i(960,540),Vector2i(1280,720)]:
         root.size=res
@@ -65,7 +66,7 @@ func _verify() -> void:
         check(root.get_visible_rect().encloses(
             front._firebase_check_button.get_global_rect()),
             "Firebase check control clipped at "+str(res))
-    front._select_tab("PERSONAJE")
+    front._select_tab("JUGAR")
     check(front._battle_entry.visible and
         not front._auth_guest_button.visible and
         not front._auth_google_button.visible,
