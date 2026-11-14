@@ -5,6 +5,7 @@ const { FieldValue, getFirestore } = require('firebase-admin/firestore');
 const { HttpsError, onCall } = require('firebase-functions/v2/https');
 const { assignSequentialPlayerId, getAuthenticatedUid } = require('./identity');
 const { saveOfflineProgress, loadOfflineProgress } = require('./offline-progress');
+const { readPlayerProfile, savePlayerDisplayName } = require('./player-profile');
 
 if (getApps().length === 0) initializeApp();
 
@@ -42,6 +43,24 @@ exports.loadLocalProgressSnapshot = onCall(
   { region: 'us-central1', maxInstances: 10, enforceAppCheck: true },
   async (request) => loadOfflineProgress({
     firestore, request,
+    createError: asHttpsError,
+  }),
+);
+
+// V75.73: Firebase-owned numeric ID and nickname. Require the existing
+// ensurePlayerIdentity callable to assign the five-digit ID first.
+exports.getPlayerProfile = onCall(
+  { region: 'us-central1', maxInstances: 10, enforceAppCheck: true },
+  async (request) => readPlayerProfile({
+    firestore, request, createError: asHttpsError,
+  }),
+);
+
+exports.setPlayerDisplayName = onCall(
+  { region: 'us-central1', maxInstances: 10, enforceAppCheck: true },
+  async (request) => savePlayerDisplayName({
+    firestore, request,
+    serverTimestamp: () => FieldValue.serverTimestamp(),
     createError: asHttpsError,
   }),
 );

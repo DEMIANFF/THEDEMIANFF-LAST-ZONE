@@ -9,6 +9,7 @@ const LOBBY_STAGE=preload("res://scripts/ui/aurora_lobby_stage_3d.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
+const LOCAL_PLAYER_NAME=preload("res://scripts/persistence/local_player_name.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
@@ -37,6 +38,9 @@ var _preview_container: SubViewportContainer
 var _preview_avatar: Node3D
 var _preview_caption: Label
 var _offline_records: RefCounted
+var _player_name: RefCounted
+var _name_entry: LineEdit
+var _name_save_button: Button
 var _lobby_nav: VBoxContainer
 var _profile_strip: Label
 var _stats_strip: Label
@@ -68,6 +72,7 @@ func _ready() -> void:
     name = "AuroraFront"
     _preferences=CAMERA_PREFERENCES.new()
     _mobile_options=PLAYER_SETTINGS.new()
+    _player_name=LOCAL_PLAYER_NAME.new()
     # Frame cap is a runtime option; imported texture compression remains a build-time choice.
     Engine.max_fps=_mobile_options.fps_limit()
     _save_timer=Timer.new()
@@ -371,8 +376,7 @@ func _show_lobby() -> void:
     _profile_strip.visible=true
     _profile_strip.text="THEDEMIAN: LAST ZONE"
     _stats_strip.visible=true
-    _stats_strip.text="LOCAL · %d PARTIDAS · %d VICTORIAS"%[
-        int(stats.get("played",0)),int(stats.get("wins",0))]
+    _update_identity_strip(stats)
     _currency_strip.visible=true
     _currency_strip.text="MONEDAS %d  |  DIAMANTES —"%int(
         stats.get("local_coins",0))
@@ -421,6 +425,19 @@ func _show_lobby() -> void:
     _page.add_child(_encounter_selector)
     _lobby_mode_status=_label("",12)
     _lobby_mode_status.name="ModeAvailability"
+    # Real editable local identity; no fake online ID, UID or auth status.
+    _name_entry=LineEdit.new()
+    _name_entry.name="LocalPlayerNameEntry"
+    _name_entry.max_length=16
+    _name_entry.placeholder_text="Nombre de jugador (3 a 16 caracteres)"
+    _name_entry.text=_player_name.display_name
+    _name_entry.custom_minimum_size=Vector2(265,35)
+    _name_entry.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+    _page.add_child(_name_entry)
+    _name_save_button=_button("GUARDAR NOMBRE LOCAL",
+        Callable(self,"_save_player_name"),265)
+    _name_save_button.name="SaveLocalPlayerNameButton"
+    _page.add_child(_name_save_button)
     _objective_selector=OptionButton.new()
     _objective_selector.name="ObjectivesCategorySelector"
     _objective_selector.custom_minimum_size=Vector2(265,35)
@@ -447,6 +464,27 @@ func _show_lobby() -> void:
     _lobby_detail_scroll.add_child(_info)
     _build_settings()
     _select_tab(_selected_tab)
+
+
+func _update_identity_strip(stats: Dictionary) -> void:
+    if _stats_strip==null or _player_name==null:
+        return
+    _stats_strip.text="%s · %d P · %d V · LOCAL"%[
+        _player_name.display_name,int(stats.get("played",0)),
+        int(stats.get("wins",0))]
+
+
+func _save_player_name() -> void:
+    if stage!="lobby" or _player_name==null or _name_entry==null:
+        return
+    var candidate: String=_name_entry.text
+    var saved: Error=_player_name.save_name(candidate)
+    if saved!=OK:
+        _info.text="NOMBRE NO GUARDADO\nUsa entre 3 y 16 caracteres: letras, números, espacios internos o _.\nNo se permiten nombres reservados."
+        return
+    _name_entry.text=_player_name.display_name
+    _update_identity_strip(_offline_records.snapshot())
+    _select_tab("CUENTA")
 
 
 func _on_objective_category_selected(index: int) -> void:
@@ -517,7 +555,10 @@ func _on_match_mode_selected(index: int) -> void:
 func _sync_lobby_match_mode() -> void:
     if stage!="lobby" or _match_mode_selector==null:
         return
-    var show_modes: bool=not (_selected_tab in ["AJUSTES","OBJETIVOS"])
+    var show_modes: bool=not (_selected_tab in ["AJUSTES","OBJETIVOS","CUENTA"])
+    var show_name: bool=_selected_tab=="CUENTA"
+    _name_entry.visible=show_name
+    _name_save_button.visible=show_name
     _objective_selector.visible=_selected_tab=="OBJETIVOS"
     _lobby_mode_heading.visible=show_modes
     _match_mode_selector.visible=show_modes
@@ -672,8 +713,8 @@ func _select_tab(tab: String) -> void:
                 health.get("played",0)) if bool(health.get("in_sync",false)) else (
                 "COPIA AUTOMÁTICA LOCAL: pendiente" if not bool(health.get("available",false))
                 else "COPIA AUTOMÁTICA LOCAL: desactualizada")
-            _info.text="CUENTA / PERFIL LOCAL\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nSe conserva una copia privada adicional después de cada partida guardada.\nNo sobrevive a una desinstalación. Google/Firebase aún no están conectados a Godot.\nEl saldo offline NO se puede gastar online ni transferir automáticamente."%[
-                int(stats.get("local_coins",0)),auto_text]
+            _info.text="CUENTA / PERFIL LOCAL\nNOMBRE: %s\nID OFICIAL: PENDIENTE DE FIREBASE\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nEl nombre se guarda en este dispositivo. El ID secuencial 00001+ solo se asignará tras autenticar en Firebase.\nGoogle/Firebase aún no están conectados a Godot; la copia local no sobrevive a una desinstalación. El saldo offline NO es una cartera online."%[
+                _player_name.display_name,int(stats.get("local_coins",0)),auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()
