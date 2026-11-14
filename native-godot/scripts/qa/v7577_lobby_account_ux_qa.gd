@@ -13,6 +13,13 @@ func check(ok: bool, detail: String) -> void:
         push_error("V7577_LOBBY_ACCOUNT "+detail)
 
 func _verify() -> void:
+    # Guard against the exact V75.76 device regression: JNISingleton
+    # exposes Java methods via has_java_method(), not Object.has_method().
+    var bridge_source: String=FileAccess.get_file_as_string(
+        "res://scripts/persistence/aurora_firebase_bridge.gd")
+    check(bridge_source.contains('native.call("has_java_method"') and
+        not bridge_source.contains("native.has_method(method_name)"),
+        "Firebase JNI contract must use Godot 4.7 Java method introspection")
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
     front._show_lobby()
