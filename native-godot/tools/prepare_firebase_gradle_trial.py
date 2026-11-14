@@ -97,9 +97,16 @@ def write_firebase_resources(path: Path) -> None:
     strings = verified_client(obj)
     # Generated at build time, never checked in. Android resources normally
     # produced by Google's google-services Gradle plugin; equivalent values.
-    target = ROOT / "android" / "build" / "src" / "main" / "res" / "values"
-    if not target.parent.is_dir():
-        raise FileNotFoundError("Godot Gradle app's src/main is missing")
+    # Godot's official Android source template has the Gradle app module at
+    # android/build, but may omit src/main until custom resources are added.
+    # Android Gradle's conventional main source set discovers this directory
+    # when created; do not require an initially existing src/main folder.
+    host = ROOT / "android" / "build"
+    build_file = host / "build.gradle"
+    if not build_file.is_file() or "com.android.application" not in build_file.read_text(
+            encoding="utf-8"):
+        raise FileNotFoundError("Godot Android application Gradle module is missing")
+    target = host / "src" / "main" / "res" / "values"
     target.mkdir(parents=True, exist_ok=True)
     root = Element("resources")
     for name, value in strings.items():
