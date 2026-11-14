@@ -507,7 +507,7 @@ func _check_firebase_connection() -> void:
         _info.text+="instalar el plugin Godot v2 y verificar App Check."
         return
     _info.text="PLUGIN ANDROID DETECTADO\n"
-    _info.text+="App Check verificado para iniciar autenticación.\n"
+    _info.text+="Token App Check disponible localmente; el servidor debe validarlo.\n"
     _info.text+="Ninguna sesión ni ID se considera confirmado todavía."
 
 
