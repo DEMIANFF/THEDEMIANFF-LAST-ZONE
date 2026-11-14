@@ -892,7 +892,7 @@ func _select_tab(tab: String) -> void:
                 var remote_name: String=str(session.get("display_name",""))
                 name_line=(remote_name+" (Firebase)" if not remote_name.is_empty()
                     else _player_name.display_name+" (local; nombre remoto pendiente)")
-            _info.text="FIREBASE / PERFIL\nNOMBRE: %s\n%s\n%s\nGoogle e Invitado requieren App Check. El apodo y las monedas siguen guardados localmente; no se declara sincronización sin confirmación del servidor."%[
+            _info.text="Firebase / Perfil\nNOMBRE: %s\n%s\n%s\nGoogle e Invitado requieren App Check. El apodo y las monedas siguen guardados localmente; no se declara sincronización sin confirmación del servidor."%[
                 name_line,id_line,auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
