@@ -44,9 +44,9 @@ static func status() -> Dictionary:
     if not (state is Dictionary):
         return _blocked("plugin_status_invalid")
     var details: Dictionary=state
-    if int(details.get("api_version",-1))!=API_VERSION or \
-            details.get("provider")!="play_integrity" or \
-            details.get("configured")!=true:
+    if (int(details.get("api_version",-1))!=API_VERSION or
+            details.get("provider")!="play_integrity" or
+            details.get("configured")!=true):
         return _blocked("firebase_configuration_incomplete")
     # A plugin loaded without a successful attestation is not trusted.
     if details.get("app_check")!="verified":
