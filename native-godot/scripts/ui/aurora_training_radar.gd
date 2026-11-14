@@ -8,6 +8,9 @@ var _tick: float=0.0
 var _zone_enabled: bool=false
 var _zone_world_center: Vector2=Vector2.ZERO
 var _zone_radius: float=90.0
+var _next_zone_enabled: bool=false
+var _next_zone_center: Vector2=Vector2.ZERO
+var _next_zone_radius: float=90.0
 var rotate_with_camera: bool=true
 var _waypoint: Vector2=Vector2(INF,INF)
 
@@ -39,7 +42,14 @@ func set_waypoint(at: Vector2) -> void:
 func set_zone(center: Vector2,radius: float) -> void:
     _zone_enabled=true
     _zone_world_center=center
-    _zone_radius=maxf(3.0,radius)
+    _zone_radius=maxf(.35,radius)
+    queue_redraw()
+
+
+func set_next_zone(center: Vector2,radius: float) -> void:
+    _next_zone_enabled=true
+    _next_zone_center=center
+    _next_zone_radius=maxf(.35,radius)
     queue_redraw()
 
 
@@ -71,6 +81,19 @@ func _draw() -> void:
         var screen_position: Vector2=center+offset.rotated(-yaw)*(radius/world_range)
         var mapped_radius: float=_zone_radius*radius/world_range
         draw_arc(screen_position,mapped_radius,0,TAU,72,Color(.42,.97,1.0,.91),2.7,true)
+    if _next_zone_enabled:
+        # A subtle planned-ring marker is essential when the safe-zone
+        # center moves; the player sees WHERE to rotate, not a random
+        # unseen moving hazard. The marker uses exact geometry, not fake
+        # target coordinates or a second selectable match option.
+        var next_offset: Vector2=_next_zone_center-Vector2(
+            player.global_position.x,player.global_position.z)
+        var next_position: Vector2=center+next_offset.rotated(-yaw)*(
+            radius/world_range)
+        var planned_radius: float=_next_zone_radius*radius/world_range
+        draw_arc(next_position,maxf(.4,planned_radius),0,TAU,60,
+            Color(.99,.79,.37,.85),1.6,true)
+        draw_circle(next_position,2.0,Color(.99,.79,.37,.8))
     if _waypoint.is_finite():
         var position: Vector2=Vector2(player.global_position.x,player.global_position.z)
         var waypoint_delta: Vector2=(_waypoint-position).rotated(-yaw)

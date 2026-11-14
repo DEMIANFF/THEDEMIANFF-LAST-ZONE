@@ -1,5 +1,5 @@
 extends Node3D
-## Actual offline Aurora elimination match, now supporting 9/20/30/50 local agents.
+## Real 50-participant offline Aurora elimination round; only internal QA scales smaller.
 ## This is not networked multiplayer or a 100-player server match.
 ## Owns the real shrinking hazard, alive counter, victory/defeat and sector loot.
 
@@ -30,6 +30,9 @@ const PHASE_COUNT: int=4
 const PHASE_SECONDS: float=SHRINK_DURATION/float(PHASE_COUNT)
 const PHASE_HOLD_SECONDS: float=24.0
 const PHASE_RADII: Array[float]=[INITIAL_RADIUS,84.0,53.0,28.0,FINAL_RADIUS]
+# Per-phase center shift stays strictly inside the radius loss. Every new
+# circle is enclosed by the last one, including during interpolation.
+const ZONE_CENTER_PROGRESS: Array[float]=[0.0,.40,.70,.88,1.0]
 # Physically accessible supply coordinates on the established Aurora island.
 # Three supplies maximum, introduced only as the existing ring contracts.
 const RESUPPLY_SITES: Array[Vector2]=[
@@ -44,6 +47,8 @@ var mode: String = "training"
 var match_ended: bool = false
 var elapsed: float = 0.0
 var radius: float = INITIAL_RADIUS
+var zone_center: Vector2=CENTER
+var _phase_centers: Array[Vector2]=[]
 var zone_phase: int=0
 var zone_seconds_remaining: int=0
 var _damage_clock: float = 0.0
@@ -149,14 +154,17 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     # One unique completed match ID is committed only after actual victory
     # or defeat. Abandoning a round does not fabricate completed statistics.
     _match_id=_records.next_match_id()
+    _configure_zone_centers(_match_id)
     last_match_saved=false
     elapsed = 0.0
     radius = INITIAL_RADIUS
     zone_phase=0
     zone_seconds_remaining=int(PHASE_SECONDS)
+    zone_center=CENTER
     _zone_visual.visible=true
-    _zone_visual.set_safe_radius(radius,true)
-    hud.set_sector_zone(CENTER,radius)
+    _zone_visual.set_zone_state(zone_center,radius,true)
+    hud.set_sector_zone(zone_center,radius)
+    hud.set_next_sector_zone(_zone_center_at(1),PHASE_RADII[1])
     _damage_clock=0.0
     _ui_clock=0.0
     _perf_clock=0.0
@@ -210,6 +218,7 @@ func _process(delta: float) -> void:
                 _perf_samples.append(fps)
     var state: Dictionary=zone_state_at(elapsed)
     radius=float(state["radius"])
+    zone_center=state["center"]
     zone_phase=int(state["phase"])
     zone_seconds_remaining=int(state["remaining"])
     # A mobile resume can jump over multiple phase boundaries. Do not lose
@@ -217,7 +226,7 @@ func _process(delta: float) -> void:
     for phase in range(1,mini(zone_phase,3)+1):
         if not _phase_supplies.has(phase):
             _spawn_phase_resupply(phase)
-    _zone_visual.set_safe_radius(radius)
+    _zone_visual.set_zone_state(zone_center,radius)
     # Bot hazard decisions are made in physics; they must never lag behind
     # the actual damaging ring just because HUD updates are rate-limited.
     _sync_bot_safe_zone()
@@ -225,7 +234,7 @@ func _process(delta: float) -> void:
     if _ui_clock<=0:
         _ui_clock=.33
         var radial_distance: float=Vector2(player.global_position.x,
-            player.global_position.z).distance_to(CENTER)
+            player.global_position.z).distance_to(zone_center)
         var outside: bool=(not player.royale_eliminated and
             radial_distance>radius)
         hud.set_zone_threat(outside,maxf(0.0,radial_distance-radius))
@@ -233,7 +242,11 @@ func _process(delta: float) -> void:
             _zone_entries+=1
             hud.impact("ZONA PELIGROSA / REGRESA AL CIRCULO")
         _was_player_outside=outside
-        hud.set_sector_zone(CENTER,radius)
+        hud.set_sector_zone(zone_center,radius)
+        var next_phase: int=mini(zone_phase+1,PHASE_COUNT)
+        var next_radius: float=(PHASE_RADII[next_phase]
+            if zone_phase<PHASE_COUNT else OVERTIME_RADIUS)
+        hud.set_next_sector_zone(_zone_center_at(next_phase),next_radius)
         var status: String=("CIERRE FINAL · %ds"%zone_seconds_remaining
             if zone_phase>=PHASE_COUNT and zone_seconds_remaining>0
             else "COMBATE FINAL / ZONA CERRADA" if zone_phase>=PHASE_COUNT
@@ -261,7 +274,20 @@ func _spawn_phase_resupply(phase: int) -> void:
     _phase_supplies[phase]=true
     var at: Vector2=RESUPPLY_SITES[phase-1]
     var kind: String=RESUPPLY_TYPES[phase-1]
-    if not is_outside_zone(Vector3(at.x,0.0,at.y)):
+    # A relocated storm must not silently cancel its physical phase loot:
+    # search for a clear, reachable supply spot INSIDE the actual safe circle.
+    if is_outside_zone(Vector3(at.x,0.0,at.y)) or not combat._is_clear_spawn(at):
+        for attempt in range(32):
+            var angle: float=float(phase)*2.399963+float(attempt)*2.399963
+            var distance: float=minf(14.0,radius*.42)*(
+                .28+float(attempt%7)*.10)
+            var candidate: Vector2=zone_center+Vector2.from_angle(angle)*distance
+            if (not is_outside_zone(Vector3(candidate.x,0.0,candidate.y)) and
+                    combat._is_clear_spawn(candidate)):
+                at=candidate
+                break
+    if (not is_outside_zone(Vector3(at.x,0.0,at.y)) and
+            combat._is_clear_spawn(at)):
         _make_pickup(at,kind,"AuroraPhaseSupply"+str(phase))
         hud.impact("SUMINISTROS AURORA / FASE "+str(phase))
 
@@ -269,8 +295,43 @@ func _spawn_phase_resupply(phase: int) -> void:
 func _sync_bot_safe_zone() -> void:
     for bot in combat._targets:
         if is_instance_valid(bot) and bot.health>0:
-            bot.safe_center=CENTER
+            bot.safe_center=zone_center
             bot.safe_radius=radius
+
+
+## A new match has a seeded destination ON WALKABLE LAND instead of a
+## permanently centered storm. Phase centers are deterministic for a match
+## (debuggable with the persisted sequential match ID), not network users.
+## The max displacement of 46m multiplied by the largest 0.40 phase step
+## is less than the first radius loss (28m); subsequent steps are smaller.
+func _configure_zone_centers(match_id: int) -> void:
+    var random:=RandomNumberGenerator.new()
+    random.seed=int(match_id)*9539+7588
+    var destination: Vector2=CENTER
+    for attempt in range(64):
+        var angle: float=random.randf_range(0.0,TAU)
+        var distance: float=random.randf_range(19.0,46.0)
+        var candidate: Vector2=CENTER+Vector2.from_angle(angle)*distance
+        if combat._is_clear_spawn(candidate):
+            destination=candidate
+            break
+    if destination==CENTER:
+        for candidate in RESUPPLY_SITES:
+            if combat._is_clear_spawn(candidate):
+                destination=candidate
+                break
+    _phase_centers.clear()
+    for progress in ZONE_CENTER_PROGRESS:
+        _phase_centers.append(CENTER.lerp(destination,progress))
+
+
+func _zone_center_at(phase: int,progress: float=0.0) -> Vector2:
+    if _phase_centers.size()!=PHASE_COUNT+1:
+        return CENTER
+    if phase>=PHASE_COUNT:
+        return _phase_centers[PHASE_COUNT]
+    return _phase_centers[phase].lerp(_phase_centers[phase+1],
+        clampf(progress,0.0,1.0))
 
 
 ## Four actual scheduled storm phases, beginning wide enough to cover both
@@ -285,6 +346,7 @@ func zone_state_at(seconds: float) -> Dictionary:
         var t: float=overtime/OVERTIME_DURATION
         var ease: float=t*t*(3.0-2.0*t)
         return {"radius":lerpf(FINAL_RADIUS,OVERTIME_RADIUS,ease),
+            "center":_zone_center_at(PHASE_COUNT),
             "phase":PHASE_COUNT,
             "remaining":maxi(0,int(ceil(OVERTIME_DURATION-overtime)))}
     var phase: int=clampi(int(floor(time/PHASE_SECONDS)),0,PHASE_COUNT-1)
@@ -294,13 +356,14 @@ func zone_state_at(seconds: float) -> Dictionary:
     var eased: float=progress*progress*(3.0-2.0*progress)
     return {
         "radius":lerpf(PHASE_RADII[phase],PHASE_RADII[phase+1],eased),
+        "center":_zone_center_at(phase,eased),
         "phase":phase,
         "remaining":maxi(0,int(ceil(PHASE_SECONDS-within)))
     }
 
 
 func is_outside_zone(position: Vector3) -> bool:
-    return Vector2(position.x,position.z).distance_to(CENTER)>radius
+    return Vector2(position.x,position.z).distance_to(zone_center)>radius
 
 
 func _check_hazard_damage() -> void:
