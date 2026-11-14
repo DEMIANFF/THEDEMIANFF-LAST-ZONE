@@ -134,6 +134,21 @@ func _ready() -> void:
         _create_full_rig()
 
 
+## Restore the same actual health/collider-bearing agent at its new
+## terrain-correct match spawn BEFORE the next BR round becomes active.
+## Never teleport a live opponent away from a player during combat.
+func set_match_spawn(at: Vector2) -> void:
+    # A reused bot keeps sector_battle=true after its previous finished
+    # match. Its physics process is disabled at that boundary, so permit
+    # legitimate next-round placement while rejecting an active combatant.
+    if (not at.is_finite() or terrain==null or
+            (sector_battle and is_physics_processing())):
+        return
+    spawn_coordinates=at
+    _anchor=Vector3(at.x,terrain.height_at(at.x,at.y)+.15,at.y)
+    global_position=_anchor
+
+
 func _create_lod_visual() -> void:
     _lod_body=MeshInstance3D.new()
     _lod_body.name="DistantEnemyVisual"
