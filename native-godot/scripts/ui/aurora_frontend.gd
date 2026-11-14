@@ -899,10 +899,10 @@ func _on_encounter_selected(index: int) -> void:
     if _encounter_selector==null:
         return
     _encounter_count=_encounter_selector.get_item_id(index)
-    if _encounter_count not in [9,20,30]:
+    if _encounter_count not in [9,20,30,50]:
         _encounter_count=9
-    # These are all OFFLINE AI opponents. Human 20/30 player sessions
-    # still require dedicated server authority and replication.
+    # All modes are OFFLINE AI opponents. Human duo/squad, 50-player
+    # network replication and authoritative matchmaking remain gated.
     _sync_lobby_match_mode()
     if _info!=null and stage=="lobby":
         _info.text="SECTOR LOCAL %d · 1 OPERADOR + %d IA\n%s"%[

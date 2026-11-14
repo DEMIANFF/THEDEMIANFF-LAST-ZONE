@@ -22,6 +22,23 @@ func _verify() -> void:
         DIRECTOR.OVERTIME_DURATION==60.0 and
         DIRECTOR.OVERTIME_RADIUS>0.0,
         "11-minute real final ring is not configured")
+    # Check the actual player-facing OptionButton: adding a fourth label is
+    # not enough if the selection callback silently resets 50 back to 9.
+    var menu: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
+    root.add_child(menu)
+    await process_frame
+    menu._enter_local_lobby()
+    await process_frame
+    check(menu._encounter_selector.get_item_count()==4 and
+        menu._encounter_selector.get_item_id(3)==50,
+        "the live mobile lobby does not offer the physical 50-player mode")
+    menu._encounter_selector.select(3)
+    menu._on_encounter_selected(3)
+    check(menu._encounter_count==50 and
+        menu._info.text.contains("SECTOR LOCAL 50"),
+        "lobby selection callback rejected 50 and reset to nine")
+    menu.queue_free()
+    await process_frame
     var game: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
     root.add_child(game)
     var combat: Node3D=game.get_node("CombatRange")
