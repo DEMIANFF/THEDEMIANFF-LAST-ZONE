@@ -62,7 +62,13 @@ def verified_client(config: dict) -> dict:
         if info.get("android_client_info", {}).get("package_name") == PACKAGE:
             apps.append(client)
     if len(apps) != 1:
-        raise ValueError("Firebase app registration does not match exactly one Godot Android package")
+        raise ValueError(
+            "Firebase JSON does not contain exactly one Android app for "
+            + PACKAGE + ". Download google-services.json from THIS "
+            "Firebase Android app, not the legacy app. Chrome may have "
+            "saved it as google-services (1).json; update the GitHub secret "
+            "with that exact file. No credentials were printed."
+        )
     client = apps[0]
     project = config.get("project_info", {})
     if not project.get("project_id") or not project.get("project_number"):
@@ -137,11 +143,16 @@ dependencies {
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("step", choices=["stage", "configure"])
+    parser.add_argument("step", choices=["stage", "configure", "validate"])
     parser.add_argument("--firebase-json", type=Path)
     args = parser.parse_args()
     if args.step == "stage":
         stage_addon()
+    elif args.step == "validate":
+        if args.firebase_json is None:
+            raise ValueError("A Firebase JSON path is required for validation")
+        verified_client(json.loads(args.firebase_json.read_text(encoding="utf-8")))
+        print("AURORA_FIREBASE_JSON_PREFLIGHT_PASS package=" + PACKAGE)
     else:
         configure_host(args.firebase_json)
 
