@@ -78,6 +78,7 @@ var _login_status_label: Label
 var _login_google_button: Button
 var _login_guest_button: Button
 var _login_pending_provider: String=""
+var _login_waiting_provider: String=""
 var _login_timer: Timer
 var _login_manage_button: Button
 var _bottom_navigation: HBoxContainer
@@ -277,6 +278,7 @@ func _welcome() -> void:
     stage="welcome"
     visible=true
     _login_pending_provider=""
+    _login_waiting_provider=""
     if _preview_container!=null and is_instance_valid(_preview_container):
         _preview_container.visible=false
     if _preview_caption!=null and is_instance_valid(_preview_caption):
@@ -354,6 +356,7 @@ func _welcome() -> void:
 
 func _enter_local_lobby() -> void:
     _login_pending_provider=""
+    _login_waiting_provider=""
     _show_lobby()
 
 
@@ -367,33 +370,48 @@ func _begin_welcome_auth(provider: String) -> void:
 func _poll_login_state() -> void:
     if stage!="welcome" or _login_status_label==null or not is_instance_valid(_login_status_label):
         return
-    var session: Dictionary=FIREBASE_BRIDGE.session_state()
-    if bool(session.get("authenticated",false)):
-        if bool(session.get("identity_confirmed",false)):
-            _login_status_label.text="SESIÓN CONFIRMADA · ID "+str(session.get("official_id",""))
-        else:
-            _login_status_label.text="CUENTA AUTENTICADA · ID PENDIENTE DEL SERVIDOR"
-        if not _login_pending_provider.is_empty():
-            _login_pending_provider=""
-            _show_lobby()
-        return
     var health: Dictionary=FIREBASE_BRIDGE.status()
     if not bool(health.get("ready",false)):
         _login_status_label.text="ACCESO PENDIENTE · "+_firebase_state_message(
             str(health.get("reason","desconocido")))
         return
-    if _login_pending_provider.is_empty():
-        _login_status_label.text="GOOGLE E INVITADO DISPONIBLES"
+    # The SDK may need time to obtain Play Integrity. A user-initiated
+    # request is retried only until it was actually submitted; no fake
+    # login, no automatic account swapping or repeated Google popups.
+    if not _login_pending_provider.is_empty():
+        var provider: String=_login_pending_provider
+        _login_pending_provider=""
+        var attempt: Dictionary=FIREBASE_BRIDGE.request_sign_in(provider)
+        if bool(attempt.get("queued",false)):
+            _login_waiting_provider=provider
+            _login_status_label.text="INICIANDO "+provider.to_upper()+" · CONFIRMANDO CUENTA"
+        else:
+            _login_status_label.text="NO SE PUDO INICIAR · "+_firebase_state_message(
+                str(attempt.get("reason","desconocido")))
         return
-    var provider: String=_login_pending_provider
-    _login_pending_provider=""
-    var attempt: Dictionary=FIREBASE_BRIDGE.request_sign_in(provider)
-    if bool(attempt.get("queued",false)):
-        _login_status_label.text="INICIANDO "+provider.to_upper()+" · CONFIRMANDO CUENTA"
-    else:
-        _login_status_label.text="NO SE PUDO INICIAR · "+_firebase_state_message(
-            str(attempt.get("reason","desconocido")))
-
+    var session: Dictionary=FIREBASE_BRIDGE.session_state()
+    var enter: Button=_page.get_node_or_null("EnterButton") as Button
+    if bool(session.get("authenticated",false)):
+        _login_waiting_provider=""
+        if bool(session.get("identity_confirmed",false)):
+            _login_status_label.text="SESIÓN CONFIRMADA · ID "+str(session.get("official_id",""))
+        else:
+            _login_status_label.text="CUENTA AUTENTICADA · ID PENDIENTE DEL SERVIDOR"
+        if enter!=null:
+            enter.text="CONTINUAR AL LOBBY"
+        return
+    if enter!=null:
+        enter.text="JUGAR SIN CONEXIÓN"
+    if not _login_waiting_provider.is_empty():
+        if bool(session.get("pending",false)):
+            _login_status_label.text="VALIDANDO CUENTA "+_login_waiting_provider.to_upper()
+        else:
+            var reason: String=str(session.get("reason",""))
+            _login_status_label.text=("ACCESO NO CONFIRMADO · "+_firebase_state_message(reason)
+                if not reason.is_empty() else "ESPERANDO CONFIRMACIÓN DE FIREBASE")
+            _login_waiting_provider=""
+        return
+    _login_status_label.text="GOOGLE E INVITADO DISPONIBLES"
 
 func _show_startup_diagnostics() -> void:
     stage="startup_diagnostics"
