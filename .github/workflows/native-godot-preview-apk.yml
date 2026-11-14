@@ -1,4 +1,4 @@
-name: Aurora V75.80 Vulkan Mobile only signed ARM64
+name: Aurora V75.80 Godot QA (Android release manual only)
 concurrency:
   group: aurora-android-${{ github.ref }}
   cancel-in-progress: true
@@ -186,6 +186,7 @@ jobs:
           test -s native-godot/out/aurora-v75-80-login.png
           test -s native-godot/out/aurora-v75-80-lobby.png
           test -s native-godot/out/aurora-v75-80-account.png
+          echo "V7580_FRONTEND_CAPTURE PASS login=lobby=account rendered_on_Godot"
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_coastal_preview.gd
           test -s native-godot/out/aurora-v75-19-coastal-quarter.png
           test -s native-godot/out/aurora-v75-19-coastal-street.png
@@ -214,6 +215,7 @@ jobs:
           grep -F 'CANOPY_OPENGL_RENDER PASS' native-godot/out/qa/canopy-render.log
           test -s native-godot/out/audit-first-canopy-opengl.png
       - name: Configure permanent signed preview identity
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           PREVIEW_KEYSTORE_B64: ${{ secrets.AURORA_PREVIEW_KEYSTORE_B64 }}
         run: |
@@ -250,9 +252,12 @@ jobs:
           printf '%s\n' "$actual" > native-godot/out/preview-signer-sha256.txt
           echo "Pinned non-production preview certificate: $actual"
 
+      # APK builds are manual workflow_dispatch ONLY during game development.
+      # Push builds verify game mechanics, real rendering and mobile layouts.
       # One production-directed Android preview: Mobile/Vulkan ONLY.
       # Desktop headless QA may use OpenGL to run on CI; no OpenGL APK built.
       - name: Export signed Vulkan Mobile APK (single release)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           set -euo pipefail
           if grep -E "SCRIPT ERROR:|ERROR:" native-godot/out/qa/responsive-render.log; then exit 1; fi
@@ -264,6 +269,7 @@ jobs:
           godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.80-MOTOROLA-VULKAN.apk
           test -s native-godot/out/THEDEMIAN-V75.80-MOTOROLA-VULKAN.apk
       - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           set -euo pipefail
           APK=native-godot/out/THEDEMIAN-V75.80-MOTOROLA-VULKAN.apk
@@ -302,6 +308,7 @@ jobs:
           sha256sum "$APK" > native-godot/out/SHA256SUMS.txt
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         with:
           name: THEDEMIAN-V75.80-MOTOROLA-VULKAN
           path: |
@@ -322,11 +329,14 @@ jobs:
       # plugin. It is deliberately not the normal signed Vulkan preview.
       # Without an EXACT Godot Android registration it is diagnostics-only.
       - uses: gradle/actions/setup-gradle@v4
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         with:
           gradle-version: '8.13'
       - name: Compile matching Godot 4.7.2 Firebase SDK bridge AARs
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: gradle -p firebase-godot-bridge :plugin:assembleDebug :plugin:assembleRelease --no-daemon
       - name: Install separate Firebase Android Gradle template and addon
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           set -euo pipefail
           python3 native-godot/tools/prepare_firebase_gradle_trial.py stage
@@ -346,6 +356,7 @@ jobs:
           grep -Fx '4.7.2.stable' native-godot/android/.build_version
           echo AURORA_GODOT_472_GRADLE_TEMPLATE_PASS
       - name: Configure isolated Firebase test host (no production writes)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           AURORA_NATIVE_GOOGLE_SERVICES_B64: ${{ secrets.AURORA_NATIVE_GOOGLE_SERVICES_B64 }}
         run: |
@@ -359,6 +370,7 @@ jobs:
           fi
           godot --headless --path native-godot --editor --quit
       - name: Export dedicated Motorola Firebase Gradle diagnostic APK
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           set -euo pipefail
           APK="native-godot/out/THEDEMIAN-V75.80-MOTOROLA-FIREBASE-GRADLE.apk"
@@ -436,6 +448,7 @@ jobs:
           sha256sum "$APK" > native-godot/out/FIREBASE-GRADLE-SHA256SUMS.txt
           { echo 'V75.80 Motorola Firebase Gradle integration; login requires matching Firebase app + App Check'; git rev-parse HEAD; } > native-godot/out/FIREBASE-GRADLE-BUILD.txt
       - uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         with:
           name: THEDEMIAN-V75.80-MOTOROLA-FIREBASE-GRADLE-DIAGNOSTIC
           path: |
@@ -447,7 +460,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: V7577-FAILED-VALIDATION-LOGS
+          name: V7580-FAILED-VALIDATION-LOGS
           path: |
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/

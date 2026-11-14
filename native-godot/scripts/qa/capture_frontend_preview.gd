@@ -12,7 +12,7 @@ func _capture() -> void:
         await process_frame
     var welcome: Image=root.get_texture().get_image()
     var one: Error=welcome.save_png("res://out/aurora-v75-19-welcome.png")
-    if one!=OK or welcome.save_png("res://out/aurora-v75-79-login.png")!=OK:
+    if one!=OK or welcome.save_png("res://out/aurora-v75-80-login.png")!=OK:
         push_error("V75.80 login screenshot failed")
         quit(1)
         return
@@ -21,7 +21,7 @@ func _capture() -> void:
         await process_frame
     var lobby: Image=root.get_texture().get_image()
     var two: Error=lobby.save_png("res://out/aurora-v75-19-lobby.png")
-    if two!=OK or lobby.save_png("res://out/aurora-v75-79-lobby.png")!=OK:
+    if two!=OK or lobby.save_png("res://out/aurora-v75-80-lobby.png")!=OK:
         push_error("V75.80 lobby screenshot failed")
         quit(2)
         return
@@ -30,10 +30,12 @@ func _capture() -> void:
         await process_frame
     var account: Image=root.get_texture().get_image()
     var account_saved: Error=account.save_png("res://out/aurora-v75-77-account.png")
-    if account_saved!=OK or account.save_png("res://out/aurora-v75-79-account.png")!=OK:
+    if account_saved!=OK or account.save_png("res://out/aurora-v75-80-account.png")!=OK:
         push_error("V75.80 account screen screenshot failed")
         quit(3)
         return
     print("AURORA_FRONTEND_RENDER",welcome.get_width(),"x",welcome.get_height(),
         " login is separated from playable lobby; 3D assets and buttons render in Godot")
+    front.queue_free()
+    await process_frame
     quit(0)
