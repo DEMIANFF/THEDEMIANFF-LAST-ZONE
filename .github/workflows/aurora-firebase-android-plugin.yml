@@ -22,6 +22,7 @@ on:
       - codex/v75-91-final-ring-ai-stability-vulkan
       - codex/v75-92-gunfire-radar-privacy-vulkan
       - codex/v75-93-physical-elimination-integrity-vulkan
+      - codex/v75-94-storm-ai-threat-and-route-pacing-vulkan
     paths:
       - 'firebase-godot-bridge/**'
       - '.github/workflows/aurora-firebase-android-plugin.yml'
