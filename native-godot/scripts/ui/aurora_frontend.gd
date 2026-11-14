@@ -10,6 +10,7 @@ const GAME = preload("res://scenes/Main.tscn")
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const LOCAL_PLAYER_NAME=preload("res://scripts/persistence/local_player_name.gd")
+const FIREBASE_BRIDGE=preload("res://scripts/persistence/aurora_firebase_bridge.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
@@ -41,6 +42,7 @@ var _offline_records: RefCounted
 var _player_name: RefCounted
 var _name_entry: LineEdit
 var _name_save_button: Button
+var _firebase_check_button: Button
 var _lobby_nav: VBoxContainer
 var _profile_strip: Label
 var _stats_strip: Label
@@ -438,6 +440,12 @@ func _show_lobby() -> void:
         Callable(self,"_save_player_name"),265)
     _name_save_button.name="SaveLocalPlayerNameButton"
     _page.add_child(_name_save_button)
+    _firebase_check_button=_button("VERIFICAR FIREBASE / APP CHECK",
+        Callable(self,"_check_firebase_connection"),265)
+    _firebase_check_button.name="FirebaseConnectionCheckButton"
+    _firebase_check_button.custom_minimum_size.y=32
+    _firebase_check_button.add_theme_font_size_override("font_size",13)
+    _page.add_child(_firebase_check_button)
     _objective_selector=OptionButton.new()
     _objective_selector.name="ObjectivesCategorySelector"
     _objective_selector.custom_minimum_size=Vector2(265,35)
@@ -485,6 +493,22 @@ func _save_player_name() -> void:
     _name_entry.text=_player_name.display_name
     _update_identity_strip(_offline_records.snapshot())
     _select_tab("CUENTA")
+
+
+func _check_firebase_connection() -> void:
+    if stage!="lobby" or _selected_tab!="CUENTA" or _info==null:
+        return
+    var state: Dictionary=FIREBASE_BRIDGE.status()
+    if not bool(state.get("ready",false)):
+        _info.text="FIREBASE / APP CHECK: SIN CONEXIÓN\n"
+        _info.text+="Estado: %s\n"%str(state.get("reason","desconocido"))
+        _info.text+="No se ha iniciado sesión Google/invitado ni asignado ID.\n"
+        _info.text+="Primero se necesita registrar el paquete Android y su SHA-256, "
+        _info.text+="instalar el plugin Godot v2 y verificar App Check."
+        return
+    _info.text="PLUGIN ANDROID DETECTADO\n"
+    _info.text+="Token App Check disponible localmente; el servidor debe validarlo.\n"
+    _info.text+="Ninguna sesión ni ID se considera confirmado todavía."
 
 
 func _on_objective_category_selected(index: int) -> void:
@@ -559,6 +583,7 @@ func _sync_lobby_match_mode() -> void:
     var show_name: bool=_selected_tab=="CUENTA"
     _name_entry.visible=show_name
     _name_save_button.visible=show_name
+    _firebase_check_button.visible=show_name
     _objective_selector.visible=_selected_tab=="OBJETIVOS"
     _lobby_mode_heading.visible=show_modes
     _match_mode_selector.visible=show_modes
@@ -713,7 +738,7 @@ func _select_tab(tab: String) -> void:
                 health.get("played",0)) if bool(health.get("in_sync",false)) else (
                 "COPIA AUTOMÁTICA LOCAL: pendiente" if not bool(health.get("available",false))
                 else "COPIA AUTOMÁTICA LOCAL: desactualizada")
-            _info.text="CUENTA / PERFIL LOCAL\nNOMBRE: %s\nID OFICIAL: PENDIENTE DE FIREBASE\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nEl nombre se guarda en este dispositivo. El ID secuencial 00001+ solo se asignará tras autenticar en Firebase.\nGoogle/Firebase aún no están conectados a Godot; la copia local no sobrevive a una desinstalación. El saldo offline NO es una cartera online."%[
+            _info.text="CUENTA / PERFIL LOCAL\nNOMBRE: %s\nID OFICIAL: PENDIENTE DE FIREBASE\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nEl nombre se guarda en este dispositivo. El ID secuencial 00001+ solo se asignará tras autenticar en Firebase. Pulsa Verificar Firebase / App Check para comprobar el estado nativo.\nGoogle/Firebase aún no están conectados a Godot; la copia local no sobrevive a una desinstalación. El saldo offline NO es una cartera online."%[
                 _player_name.display_name,int(stats.get("local_coins",0)),auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
