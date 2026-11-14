@@ -244,7 +244,7 @@ jobs:
           python3 native-godot/tools/configure_android_renderer.py --variant mobile
           grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
           grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
-          grep -Fx 'version/code=66' native-godot/export_presets.cfg
+          grep -Fx 'version/code=67' native-godot/export_presets.cfg
           godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.77-MOTOROLA-VULKAN.apk
           test -s native-godot/out/THEDEMIAN-V75.77-MOTOROLA-VULKAN.apk
       - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
