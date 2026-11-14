@@ -558,16 +558,31 @@ func _save_player_name() -> void:
     _select_tab("CUENTA")
 
 
+func _firebase_state_message(reason: String) -> String:
+    if reason=="android_device_required":
+        return "El acceso requiere un dispositivo Android"
+    if reason=="android_plugin_missing":
+        return "Esta APK no incluye el plugin de acceso"
+    if reason.begins_with("plugin_contract_incomplete"):
+        return "Plugin detectado, faltan métodos: "+reason.get_slice(":",1)
+    if reason=="firebase_configuration_incomplete":
+        return "Firebase todavía no se ha inicializado"
+    if reason=="app_check_unverified":
+        return "App Check pendiente: revisa internet y Google Play"
+    return reason.replace("_"," ")
+
+
 func _check_firebase_connection() -> void:
     if stage!="lobby" or _selected_tab!="CUENTA" or _info==null:
         return
     var state: Dictionary=FIREBASE_BRIDGE.status()
+    _sync_lobby_match_mode()
     if not bool(state.get("ready",false)):
         _info.text="FIREBASE / APP CHECK: SIN CONEXIÓN\n"
-        _info.text+="Estado: %s\n"%str(state.get("reason","desconocido"))
-        _info.text+="No se ha iniciado sesión Google/invitado ni asignado ID.\n"
-        _info.text+="Primero se necesita registrar el paquete Android y su SHA-256, "
-        _info.text+="instalar el plugin Godot v2 y verificar App Check."
+        _info.text+="Estado: %s\n"%_firebase_state_message(
+            str(state.get("reason","desconocido")))
+        _info.text+="No se ha iniciado sesión ni asignado ID.\n"
+        _info.text+="Google e Invitado estarán disponibles al verificar App Check."
         return
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
     _sync_lobby_match_mode()
@@ -692,7 +707,7 @@ func _sync_lobby_match_mode() -> void:
         var message: String=str(health.get("reason","desconocido"))
         _account_connection_label.text=(
             "FIREBASE LISTO · Selecciona un acceso" if ready else
-            "CONEXIÓN PENDIENTE · "+message.replace("_"," "))
+            "CONEXIÓN PENDIENTE · "+_firebase_state_message(message))
         _account_connection_label.tooltip_text=message
         _auth_google_button.tooltip_text=(
             "Acceder con la cuenta Google" if ready else message)
