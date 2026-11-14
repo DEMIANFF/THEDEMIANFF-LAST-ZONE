@@ -34,7 +34,7 @@ var _page: VBoxContainer
 var _info: Label
 var _game: Node3D
 var _primary: Button
-var _selected_tab: String = "PERSONAJE"
+var _selected_tab: String = "JUGAR"
 var _preview_container: SubViewportContainer
 var _preview_avatar: Node3D
 var _preview_caption: Label
@@ -45,6 +45,9 @@ var _name_save_button: Button
 var _firebase_check_button: Button
 var _auth_guest_button: Button
 var _auth_google_button: Button
+var _account_connection_label: Label
+var _lobby_section_title: Label
+var _lobby_section_hint: Label
 var _lobby_nav: VBoxContainer
 var _profile_strip: Label
 var _stats_strip: Label
@@ -354,25 +357,27 @@ func _show_lobby() -> void:
     _brand_logo.visible=true
     # Logo stays outside the full-width profile strip and never crosses
     # over player statistics or the rotating 3D character.
-    _brand_logo.anchor_left=.909
-    _brand_logo.anchor_right=.958
-    _brand_logo.anchor_top=.022
-    _brand_logo.anchor_bottom=.137
-    _page.anchor_left=.67
+    _brand_logo.anchor_left=.911
+    _brand_logo.anchor_right=.96
+    _brand_logo.anchor_top=.018
+    _brand_logo.anchor_bottom=.126
+    # The live 3D operator is now the central focus; navigation and content
+    # keep independent safe margins in 960x434 landscape.
+    _page.anchor_left=.687
     _page.anchor_right=.97
-    _page.anchor_top=.16
-    _page.anchor_bottom=.94
-    _page.add_theme_constant_override("separation",5)
-    _preview_container.anchor_left=.29
-    _preview_container.anchor_right=.65
-    _preview_container.anchor_top=.14
-    _preview_container.anchor_bottom=.86
+    _page.anchor_top=.157
+    _page.anchor_bottom=.944
+    _page.add_theme_constant_override("separation",3)
+    _preview_container.anchor_left=.237
+    _preview_container.anchor_right=.665
+    _preview_container.anchor_top=.145
+    _preview_container.anchor_bottom=.865
     _preview_container.visible=true
     _preview_caption.visible=true
-    _preview_caption.anchor_left=.29
-    _preview_caption.anchor_right=.65
-    _preview_caption.anchor_top=.875
-    _preview_caption.anchor_bottom=.875
+    _preview_caption.anchor_left=.237
+    _preview_caption.anchor_right=.665
+    _preview_caption.anchor_top=.872
+    _preview_caption.anchor_bottom=.872
     _ensure_lobby_navigation()
     _lobby_nav.visible=true
     # Three independently clipped headers keep the original brand legible
@@ -390,8 +395,12 @@ func _show_lobby() -> void:
     if _preview_avatar:
         _preview_avatar.rotation.y=0.0
     _clear_page()
-    _label("PUERTO AURORA  /  BR",22)
-    _label("THEDEMIAN · LOBBY LOCAL",12)
+    _lobby_section_title=_label("JUGAR · PUERTO AURORA",19)
+    _lobby_section_title.name="LobbySectionTitle"
+    _lobby_section_title.add_theme_color_override("font_color",Color(.96,.96,.88))
+    _lobby_section_hint=_label("CLÁSICO LOCAL  /  IA",11)
+    _lobby_section_hint.name="LobbySectionHint"
+    _lobby_section_hint.add_theme_color_override("font_color",Color(.57,.84,.94))
     _lobby_mode_heading=_label("MODALIDAD DE PARTIDA",13)
     _lobby_mode_heading.add_theme_color_override("font_color",Color(.96,.77,.38))
     _match_mode_selector=OptionButton.new()
@@ -407,23 +416,25 @@ func _show_lobby() -> void:
     _lobby_play_modes=VBoxContainer.new()
     _lobby_play_modes.name="PlayModes"
     _page.add_child(_lobby_play_modes)
-    _battle_entry=_button("INICIAR CLÁSICO",Callable(self,"_launch").bind(true),265)
+    _battle_entry=_button("JUGAR CLÁSICO",Callable(self,"_launch").bind(true),255)
     _battle_entry.name="BattleButton"
-    _battle_entry.custom_minimum_size.y=42
+    _battle_entry.custom_minimum_size.y=48
+    _style_primary_action(_battle_entry)
     _lobby_play_modes.add_child(_battle_entry)
-    _training_entry=_button("INICIAR ENTRENAMIENTO",Callable(self,"_launch").bind(false),265)
+    _training_entry=_button("ENTRENAR",Callable(self,"_launch").bind(false),255)
     _training_entry.name="TrainingButton"
-    _training_entry.custom_minimum_size.y=42
+    _training_entry.custom_minimum_size.y=48
+    _style_primary_action(_training_entry)
     _lobby_play_modes.add_child(_training_entry)
-    _lobby_mode_caption=_label("PARTICIPANTES LOCALES · SOLO CON IA",12)
+    _lobby_mode_caption=_label("PARTICIPANTES · MODO SIN CONEXIÓN",11)
     _lobby_mode_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
     _encounter_selector=OptionButton.new()
     _encounter_selector.name="OfflineEncounterSize"
     _encounter_selector.custom_minimum_size=Vector2(257,34)
     _encounter_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
-    _encounter_selector.add_item("9 TOTAL · 1 + 8 IA (estable)",9)
-    _encounter_selector.add_item("20 TOTAL · 1 + 19 IA (prueba)",20)
-    _encounter_selector.add_item("30 TOTAL · 1 + 29 IA (carga)",30)
+    _encounter_selector.add_item("9 participantes · Móvil recomendado",9)
+    _encounter_selector.add_item("20 participantes · Prueba de carga",20)
+    _encounter_selector.add_item("30 participantes · Carga alta",30)
     _encounter_selector.select([9,20,30].find(_encounter_count))
     _encounter_selector.item_selected.connect(_on_encounter_selected)
     _page.add_child(_encounter_selector)
