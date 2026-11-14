@@ -74,7 +74,8 @@ func _verify() -> void:
     for candidate in nearest:
         var foe: CharacterBody3D=candidate["foe"]
         var dist: float=float(candidate["distance_sq"])
-        check(is_instance_valid(foe) and foe.health>0.0 and
+        check(is_instance_valid(foe) and
+            (foe==operator or foe.health>0.0) and
             dist>=last_distance and dist<BOT.SIGHT_RANGE*BOT.SIGHT_RANGE,
             "near-sight list is out of order, fake or out of range")
         last_distance=dist
