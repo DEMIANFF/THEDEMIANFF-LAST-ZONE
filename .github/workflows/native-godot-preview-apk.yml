@@ -321,6 +321,7 @@ jobs:
           grep -F 'V7588_MOVING_ZONE PASS' native-godot/out/qa-exported-vulkan/v7588_moving_zone_qa.log
           grep -F 'V7589_BOT_AI_BUDGET PASS' native-godot/out/qa-exported-vulkan/v7589_fifty_bot_ai_budget_qa.log
           grep -F 'V7590_ZONE_ROTATION PASS' native-godot/out/qa-exported-vulkan/v7590_proactive_zone_rotation_qa.log
+          grep -F 'V7590_FIFTY_RESULTS PASS' native-godot/out/qa-exported-vulkan/v7590_fifty_survivor_results_qa.log
           sha256sum "$APK" > native-godot/out/SHA256SUMS.txt
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v4

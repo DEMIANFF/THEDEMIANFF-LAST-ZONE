@@ -340,7 +340,7 @@ func _physics_process(dt: float) -> void:
     # Rotate toward the next ACTUAL circle near the end of the phase.
     # Prioritize live engagements and physical cover, but avoid waiting
     # until the storm is already damaging a distant rival.
-    var engaged: bool=_target_visible and distance<SHOOT_RANGE
+    var engaged: bool=(_target_visible and distance<SHOOT_RANGE) or behavior=="cover"
     if sector_battle and next_zone_active and should_rotate_to_next_zone(
             global_position,next_safe_center,next_safe_radius,
             zone_seconds_remaining,engaged):
