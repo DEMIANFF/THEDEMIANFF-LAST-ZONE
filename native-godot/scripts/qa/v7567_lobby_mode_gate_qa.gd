@@ -20,7 +20,7 @@ func _verify() -> void:
     var selector: OptionButton=front._match_mode_selector
     check(selector!=null and selector.get_item_count()==3,
         "Clásico, Clasificatoria and Entrenamiento are not selectable")
-    check(front._selected_match_mode=="classic" and front._battle_entry.visible,
+    check(front._selected_tab=="JUGAR" and front._selected_match_mode=="classic" and front._battle_entry.visible,
         "local Classic must be the initial playable mode")
     check(not front._training_entry.visible,
         "Training must not obscure the Classic start button")
@@ -64,7 +64,7 @@ func _verify() -> void:
         front._info.text.contains("Firebase") and
         front._info.text.contains("ID OFICIAL: PENDIENTE"),
         "account screen falsely claims Godot cloud login or player ID")
-    front._select_tab("PERSONAJE")
+    front._select_tab("JUGAR")
     check(selector.visible and front._training_entry.visible and
         not front._battle_entry.visible,
         "return from Account did not preserve Training selection")
