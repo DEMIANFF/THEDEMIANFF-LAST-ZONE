@@ -19,8 +19,9 @@ const RELOAD_SECONDS: float=2.25
 const BURST_ROUNDS: int=2
 const BURST_SHOT_GAP: float=.37
 const BURST_RECOVERY: float=1.10
-# Raycasts dominate CPU cost in 20/30-agent encounters; rank cheap distance
-# candidates before executing a bounded number of collision-aware sight rays.
+# Keep only the nearest five candidates before executing bounded physical
+# occlusion rays. Sorting full 50-actor lists every 0.2s causes needless
+# allocation churn across 49 autonomous agents on Android.
 const MAX_VISION_RAYS: int=5
 const TARGET_STICKINESS_METERS: float=3.5
 const STRAFE_SWITCH_SECONDS: float=2.7
@@ -386,30 +387,52 @@ func _physics_process(dt: float) -> void:
             _clip=action
 
 
-## Distance prioritization keeps ray queries bounded as the match grows
-## from 9 toward 30 real collision-driven opponents. Previous verified target
-## receives a small stickiness margin, but never bypasses occlusion checks.
+## Build a bounded sorted list of actual nearby CharacterBody3D
+## opponents. Each bot examines at most five nearest candidates with real
+## PhysicsServer raycast checks; farther bodies still exist, fight and take
+## damage normally. No artificial eliminations or fake distant targets.
+func _insert_sight_candidate(picks: Array[Dictionary],
+        foe: CharacterBody3D) -> void:
+    if foe==self or not is_instance_valid(foe):
+        return
+    if foe==operator and operator.royale_eliminated:
+        return
+    if foe!=operator and foe.health<=0.0:
+        return
+    var distance_sq: float=global_position.distance_squared_to(
+        foe.global_position)
+    if distance_sq>=SIGHT_RANGE*SIGHT_RANGE:
+        return
+    var place: int=picks.size()
+    while place>0 and distance_sq<float(picks[place-1]["distance_sq"]):
+        place-=1
+    if place>=MAX_VISION_RAYS:
+        return
+    picks.insert(place,{"foe":foe,"distance_sq":distance_sq})
+    if picks.size()>MAX_VISION_RAYS:
+        picks.pop_back()
+
+
+func _nearest_sight_candidates() -> Array[Dictionary]:
+    var picks: Array[Dictionary]=[]
+    if is_instance_valid(operator):
+        _insert_sight_candidate(picks,operator)
+    if sector_battle:
+        for foe in _foes:
+            _insert_sight_candidate(picks,foe)
+    return picks
+
+
+## A prior confirmed target may be retained within a 3.5m switching margin,
+## but only after a new real collision-aware line-of-sight verification.
 func _sense_player() -> void:
     var previous: CharacterBody3D=_target_actor
     _target_visible=false
     _target_actor=null
     vision_rays_last=0
-    var choices: Array[CharacterBody3D]=[operator]
-    if sector_battle:
-        choices.append_array(_foes)
-    var candidates: Array[Dictionary]=[]
-    for foe in choices:
-        if foe==self or not is_instance_valid(foe):
-            continue
-        if foe==operator and operator.royale_eliminated:
-            continue
-        if foe!=operator and foe.health<=0.0:
-            continue
-        var d2: float=global_position.distance_squared_to(foe.global_position)
-        if d2<SIGHT_RANGE*SIGHT_RANGE:
-            candidates.append({"foe":foe,"distance_sq":d2})
-    candidates.sort_custom(func(a: Dictionary,b: Dictionary):
-        return float(a["distance_sq"])<float(b["distance_sq"]))
+    # No full 50-person sorted allocation: cap memory and LOS work to
+    # the same nearest-five observable physical agents.
+    var candidates: Array[Dictionary]=_nearest_sight_candidates()
     var found: CharacterBody3D=null
     var found_distance: float=INF
     for item in candidates:
@@ -496,7 +519,11 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     heard_shots=0
     _last_seen=Vector3.ZERO
     _route.clear()
-    _route_clock=0.0
+    # Do not start 49 path planners and vision scans on the same landing
+    # physics frame. All agents stay physical, move and fight after a short
+    # deterministic stagger; no one is disabled or silently culled.
+    _route_clock=.08+float(get_instance_id()%13)*.035
+    _sense_clock=.04+float(get_instance_id()%17)*.020
     _route_goal=Vector3(INF,INF,INF)
     _cover_point=Vector3(INF,INF,INF)
     _cover_clock=0.0
