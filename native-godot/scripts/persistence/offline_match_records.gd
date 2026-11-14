@@ -5,6 +5,10 @@ extends RefCounted
 const SCHEMA: int=1
 const LIMIT: int=12
 const LOCAL_COIN_LIMIT: int=1000000000
+# Free, local-only Operation Pass: no online inventory, season purchase or RP.
+const PASS_TIERS: int=12
+const PASS_TIER_POINTS: int=240
+const PASS_REWARD_COINS: int=50
 const AUTOBACKUP_SUFFIX: String=".auto"
 # Optional per-match fields preserve schema-1 saves from all prior builds.
 # Never rewrite legacy data or touch Firebase/Google identity collections.
@@ -32,6 +36,7 @@ func _defaults() -> Dictionary:
         "schema":SCHEMA,
         "next_match_id":1,
         "local_coins":0,
+        "pass_claims":[],
         "played":0,
         "wins":0,
         "kills":0,
@@ -94,6 +99,23 @@ func _valid(value: Variant) -> bool:
             return false
     if not (d.get("history") is Array):
         return false
+    # Legacy schema-1 journals omit pass_claims and remain valid.
+    var claims: Variant=d.get("pass_claims",[])
+    if not (claims is Array) or claims.size()>PASS_TIERS:
+        return false
+    var unlocked: int=mini(PASS_TIERS,int(floor(
+        float(pass_points(d))/float(PASS_TIER_POINTS))))
+    var previous_tier: int=0
+    for tier_value in claims:
+        if not (tier_value is int or tier_value is float):
+            return false
+        if not is_finite(float(tier_value)) or (
+                float(tier_value)!=float(int(tier_value))):
+            return false
+        var tier: int=int(tier_value)
+        if tier<=previous_tier or tier>unlocked:
+            return false
+        previous_tier=tier
     if int(d["next_match_id"])!=int(d["played"])+1:
         return false
     var records: Array=d["history"]
@@ -150,6 +172,11 @@ func _load_file(path: String) -> Dictionary:
         for key in ["schema","next_match_id","played","wins","kills","survival_seconds","best_kills","longest_survival_seconds"]:
             parsed[key]=int(parsed[key])
         parsed["local_coins"]=int(parsed.get("local_coins",0))
+        if parsed.has("pass_claims"):
+            var normalized: Array=[]
+            for claimed_tier in parsed["pass_claims"]:
+                normalized.append(int(claimed_tier))
+            parsed["pass_claims"]=normalized
         for record in parsed["history"]:
             if record.has("local_coins_awarded"):
                 record["local_coins_awarded"]=int(record["local_coins_awarded"])
@@ -171,7 +198,14 @@ func reload() -> bool:
     # .auto copy can recover the *latest* result if primary and .bak break.
     for suffix in [".bak",".tmp",AUTOBACKUP_SUFFIX]:
         var candidate: Dictionary=_load_file(file_path+suffix)
-        if not candidate.is_empty() and (best.is_empty() or int(candidate["next_match_id"])>int(best["next_match_id"])):
+        # When only a free-pass claim changes, next_match_id is unchanged.
+        # Prefer the newest verified number of one-time claims, preventing
+        # a stale .bak from masking the latest signed .auto recovery copy.
+        if not candidate.is_empty() and (best.is_empty() or
+                int(candidate["next_match_id"])>int(best["next_match_id"]) or
+                (int(candidate["next_match_id"])==int(best["next_match_id"]) and
+                (candidate.get("pass_claims",[]) as Array).size()>
+                (best.get("pass_claims",[]) as Array).size())):
             best=candidate
     if not best.is_empty():
         _data=best
@@ -249,6 +283,60 @@ func _sync_auto_backup() -> bool:
 
 func next_match_id() -> int:
     return int(_data["next_match_id"])
+
+
+## Points are derived exclusively from confirmed, committed match totals.
+## Historical saves automatically have the same earned pass progression.
+static func pass_points(data: Dictionary) -> int:
+    var matches: int=clampi(int(data.get("played",0)),0,100000)
+    var kills: int=clampi(int(data.get("kills",0)),0,100000)
+    var wins: int=clampi(int(data.get("wins",0)),0,matches)
+    var minutes: int=clampi(int(floor(float(
+        data.get("survival_seconds",0))/60.0)),0,100000)
+    return matches*30+kills*12+wins*90+minutes*2
+
+
+func free_pass_state() -> Dictionary:
+    var points: int=pass_points(_data)
+    var unlocked: int=clampi(int(points/PASS_TIER_POINTS),0,PASS_TIERS)
+    var claims: Array=_data.get("pass_claims",[])
+    var next_claimable: int=0
+    for tier in range(1,unlocked+1):
+        if not claims.has(tier):
+            next_claimable=tier
+            break
+    return {
+        "points":points,"unlocked":unlocked,"claimed":claims.size(),
+        "next_claimable":next_claimable,"reward":PASS_REWARD_COINS,
+        "tier_count":PASS_TIERS,
+        "progress":(PASS_TIER_POINTS if unlocked>=PASS_TIERS
+            else points%PASS_TIER_POINTS),
+        "progress_max":PASS_TIER_POINTS
+    }
+
+
+## One committed on-device transaction, not a button that grants fake coins.
+## Pending retries never auto-claim another reward on the same tap.
+func claim_next_pass_reward() -> bool:
+    var was_pending: bool=not _pending.is_empty()
+    if not retry_pending() or was_pending or not reload():
+        return false
+    var state: Dictionary=free_pass_state()
+    var tier: int=int(state["next_claimable"])
+    if (tier<=0 or
+            int(_data.get("local_coins",0))>
+            LOCAL_COIN_LIMIT-PASS_REWARD_COINS):
+        return false
+    var previous: Dictionary=_data.duplicate(true)
+    var claims: Array=_data.get("pass_claims",[]).duplicate()
+    claims.append(tier)
+    _data["pass_claims"]=claims
+    _data["local_coins"]=int(_data.get("local_coins",0))+PASS_REWARD_COINS
+    if not _write_atomic():
+        _pending=_data.duplicate(true)
+        _data=previous
+        return false
+    return true
 
 
 ## Strictly offline reward schedule. This balance is NOT a cloud wallet and

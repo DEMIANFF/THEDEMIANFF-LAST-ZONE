@@ -89,6 +89,8 @@ var _top_account_button: Button
 var _top_settings_button: Button
 var _top_social_button: Button
 var _play_match_card: PanelContainer
+var _pass_claim_button: Button
+var _pass_progress: ProgressBar
 var _banner: Label
 
 
@@ -673,6 +675,19 @@ func _show_lobby() -> void:
     _objective_selector.select(["missions","achievements","events"].find(_objective_page))
     _objective_selector.item_selected.connect(_on_objective_category_selected)
     _page.add_child(_objective_selector)
+    _pass_progress=ProgressBar.new()
+    _pass_progress.name="AuroraFreePassProgress"
+    _pass_progress.custom_minimum_size=Vector2(245,16)
+    _pass_progress.max_value=MATCH_RECORDS.PASS_TIER_POINTS
+    _pass_progress.show_percentage=false
+    _page.add_child(_pass_progress)
+    _pass_claim_button=_button("RECLAMAR RECOMPENSA LOCAL",
+        Callable(self,"_claim_pass_reward"),245)
+    _pass_claim_button.name="AuroraFreePassClaim"
+    _pass_claim_button.custom_minimum_size.y=37
+    _pass_claim_button.add_theme_font_size_override("font_size",14)
+    _style_primary_action(_pass_claim_button)
+    _page.add_child(_pass_claim_button)
     # Long account and match history text remains reachable on small screens.
     _lobby_detail_scroll=ScrollContainer.new()
     _lobby_detail_scroll.name="LobbyDetailsScroll"
@@ -882,6 +897,8 @@ func _sync_lobby_match_mode() -> void:
     _training_entry.visible=show_modes and _selected_match_mode=="training"
     _lobby_mode_caption.visible=false
     _encounter_selector.visible=show_modes and _selected_match_mode=="classic"
+    _pass_progress.visible=_selected_tab=="PASE"
+    _pass_claim_button.visible=_selected_tab=="PASE"
     _lobby_mode_status.visible=show_modes and _selected_match_mode=="ranked"
     _lobby_detail_scroll.visible=not show_modes and _selected_tab not in ["AJUSTES","PRESET"]
     match _selected_match_mode:
@@ -1249,7 +1266,7 @@ func _select_tab(tab: String) -> void:
             var stats: Dictionary=_offline_records.snapshot()
             _info.text="TIENDA / PREPARACIÓN DE CATÁLOGO\nMONEDAS LOCALES: %d\nSe ganan al concluir partidas clásicas; compras aún deshabilitadas.\nDIAMANTES: sin cartera online. No hay recargas ni transacciones activas."%int(stats.get("local_coins",0))
         "PASE":
-            _info.text="PASE DE BATALLA / PLANIFICADO\nAún no existen temporadas pagadas ni cobros habilitados."
+            _refresh_free_pass()
         "SOCIAL":
             _info.text="AMIGOS Y CLANES\nAún no existe un servidor social autenticado.\nNo hay amigos ficticios, invitaciones simuladas ni chat mundial falso.\nLas partidas locales siguen disponibles."
         "CUENTA":
@@ -1272,6 +1289,43 @@ func _select_tab(tab: String) -> void:
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()
+
+func _refresh_free_pass() -> void:
+    # Displays earned, verified local match progression. Paid tiers and
+    # unverified online entitlements remain disabled.
+    if _offline_records==null or _info==null:
+        return
+    var state: Dictionary=_offline_records.free_pass_state()
+    _info.text="OPERACIÓN AURORA · PASE GRATUITO LOCAL\n"+(
+        "NIVELES DESBLOQUEADOS: %d / %d\n"%[
+            int(state["unlocked"]),int(state["tier_count"])]) + (
+        "PUNTOS DE PARTIDAS: %d\n"%int(state["points"])) + (
+        "RECOMPENSAS COBRADAS: %d\n"%int(state["claimed"])) + (
+        "Juega BR local para progresar. Cada nivel cuesta %d puntos.\n"%(
+            MATCH_RECORDS.PASS_TIER_POINTS)) + (
+        "Premio real por nivel: %d MONEDAS LOCALES.\n"%int(state["reward"])) + (
+        "Sin temporada de pago, diamantes, pase premium ni servidor de rangos.")
+    if _pass_progress!=null:
+        _pass_progress.value=float(state["progress"])
+    if _pass_claim_button!=null:
+        var next_tier: int=int(state["next_claimable"])
+        _pass_claim_button.disabled=next_tier<=0
+        _pass_claim_button.text=("RECLAMAR NIVEL %d · +%d MONEDAS"%[
+            next_tier,int(state["reward"])] if next_tier>0
+            else "SIN RECOMPENSAS POR RECLAMAR")
+
+
+func _claim_pass_reward() -> void:
+    if stage!="lobby" or _selected_tab!="PASE" or _offline_records==null:
+        return
+    if not _offline_records.claim_next_pass_reward():
+        _refresh_free_pass()
+        return
+    var stats: Dictionary=_offline_records.snapshot()
+    _currency_strip.text="MONEDAS %d\nDIAMANTES —"%int(
+        stats.get("local_coins",0))
+    _refresh_free_pass()
+
 
 func _launch_hud_editor() -> void:
     if stage!="lobby":
