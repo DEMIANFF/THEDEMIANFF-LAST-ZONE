@@ -12,6 +12,7 @@ on:
       - codex/v75-81-fifty-ai-final-zone-vulkan
       - codex/v75-82-aurora-free-pass-ledger-vulkan
       - codex/v75-83-mobile-ai-rig-budget-vulkan
+      - codex/v75-84-near-combat-ai-rig-priority-vulkan
     paths:
       - 'firebase-godot-bridge/**'
       - '.github/workflows/aurora-firebase-android-plugin.yml'

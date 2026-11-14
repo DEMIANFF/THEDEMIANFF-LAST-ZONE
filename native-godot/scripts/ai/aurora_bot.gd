@@ -144,11 +144,40 @@ func _create_lod_visual() -> void:
     add_child(_lod_body)
 
 
+func _reserve_detailed_rig_slot() -> bool:
+    # A close, combat-visible rival can replace a much farther detailed
+    # LOD agent without exceeding the mobile 14-rig allocation.
+    var detail_nodes: Array[Node]=get_tree().get_nodes_in_group(
+        DETAILED_ENEMY_GROUP)
+    if detail_nodes.size()<MAX_DETAILED_ENEMY_RIGS:
+        return true
+    if not is_instance_valid(operator):
+        return false
+    var my_distance: float=global_position.distance_to(
+        operator.global_position)
+    var worst_distance: float=my_distance+8.0
+    var furthest: Node3D
+    for detail in detail_nodes:
+        var holder: Node3D=detail.get_parent() as Node3D
+        if holder==null or holder==self or not (
+                bool(holder.get("distance_lod"))):
+            continue
+        var distance: float=holder.global_position.distance_to(
+            operator.global_position)
+        if distance>worst_distance:
+            worst_distance=distance
+            furthest=holder
+    if furthest==null:
+        return false
+    furthest.call("_set_full_visual",false)
+    return get_tree().get_nodes_in_group(
+        DETAILED_ENEMY_GROUP).size()<MAX_DETAILED_ENEMY_RIGS
+
+
 func _create_full_rig() -> void:
     if _rig!=null or STARTUP_DIAG.without_enemy_rigs():
         return
-    if distance_lod and get_tree().get_nodes_in_group(
-            DETAILED_ENEMY_GROUP).size()>=MAX_DETAILED_ENEMY_RIGS:
+    if distance_lod and not _reserve_detailed_rig_slot():
         return
     if not ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
         return
