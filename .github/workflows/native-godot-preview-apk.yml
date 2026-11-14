@@ -182,6 +182,7 @@ jobs:
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_frontend_preview.gd
           test -s native-godot/out/aurora-v75-19-welcome.png
           test -s native-godot/out/aurora-v75-19-lobby.png
+          test -s native-godot/out/aurora-v75-77-account.png
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_coastal_preview.gd
           test -s native-godot/out/aurora-v75-19-coastal-quarter.png
           test -s native-godot/out/aurora-v75-19-coastal-street.png
@@ -279,6 +280,7 @@ jobs:
           grep -F 'V7573_PLAYER_NAME PASS' native-godot/out/qa-exported-vulkan/v7573_local_name_identity_qa.log
           grep -F 'V7574_FIREBASE_PREFLIGHT PASS' native-godot/out/qa-exported-vulkan/v7574_firebase_bridge_preflight_qa.log
           grep -F 'V7575_AUTH_LINK PASS' native-godot/out/qa-exported-vulkan/v7575_native_auth_link_qa.log
+          grep -F 'V7577_LOBBY_ACCOUNT PASS' native-godot/out/qa-exported-vulkan/v7577_lobby_account_ux_qa.log
           sha256sum "$APK" > native-godot/out/SHA256SUMS.txt
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v4
@@ -293,6 +295,7 @@ jobs:
             native-godot/out/BUILD.txt
             native-godot/out/preview-signer-sha256.txt
             native-godot/out/aurora-v75-19-lobby.png
+            native-godot/out/aurora-v75-77-account.png
           retention-days: 30
       # A second, isolated Godot Gradle build packages the actual Firebase
       # plugin. It is deliberately not the normal signed Vulkan preview.
