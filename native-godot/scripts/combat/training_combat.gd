@@ -611,27 +611,38 @@ func _is_clear_spawn(at: Vector2) -> bool:
     return absf(left-right)<3.5 and absf(front-rear)<3.5
 
 
+func _spawn_has_clearance(at: Vector2) -> bool:
+    if not _is_clear_spawn(at):
+        return false
+    for rival in _targets:
+        if is_instance_valid(rival) and at.distance_squared_to(
+                rival.spawn_coordinates)<3.2*3.2:
+            return false
+    return true
+
+
 func _encounter_spawn(index: int) -> Vector2:
-    # Fixed seed gives reproducible, testable safe locations. Distributed
-    # across the ACTIVE 112m storm circle, instead of stacked inside homes.
+    # Offline match: each physical combatant starts on distinct walkable
+    # terrain. Low-discrepancy angular sampling covers inner/outer sectors
+    # without piling 49 rivals around one fixed fallback coordinate.
     var base: float=float(index)*2.3999632297
-    for attempt in range(96):
-        var angle: float=base+float(attempt)*.55
-        var radius: float=52.0+float((index*13+attempt*7)%40)
+    for attempt in range(128):
+        var angle: float=base+float(attempt)*.61803398875
+        var radius: float=22.0+float((index*17+attempt*11)%75)
         var at:=Vector2(sin(angle),cos(angle))*radius+Vector2(0,-24)
-        if not _is_clear_spawn(at):
-            continue
-        # Prevent additional bot bodies occupying the same initial space.
-        # Check the real roster, not only terrain/house collisions.
-        var separated: bool=true
-        for rival in _targets:
-            if is_instance_valid(rival) and at.distance_to(
-                    rival.spawn_coordinates)<3.2:
-                separated=false
-                break
-        if separated:
+        if _spawn_has_clearance(at):
             return at
-    # Fallback to a previously proven landing point, never underground.
+    # Search progressively around the full island if a ring intersects
+    # houses, rocks or steep slopes; NEVER blindly stack at (33,-10).
+    for attempt in range(400):
+        var phase: float=base+float(attempt)*2.3999632297
+        var radius: float=16.0+float((index*29+attempt*31)%81)
+        var at:=Vector2(cos(phase),sin(phase))*radius+Vector2(0,-24)
+        if _spawn_has_clearance(at):
+            return at
+    push_warning("Aurora cannot find distinct walkable opponent spawn "+str(index))
+    # Emergency deterministic location for a malformed/empty terrain.
+    # The real 50-opponent QA rejects this if it overlaps another fighter.
     return Vector2(33,-10)
 
 
@@ -660,8 +671,8 @@ func _ensure_encounter_capacity() -> void:
             navigation.actors.append(bot)
         add_child(bot)
         _targets.append(bot)
-    # A selected 9-player game must not retain active agents from a
-    # previous 50-participant local stress match in the same scene.
+    # Internal smaller QA fixtures must not keep agents from an earlier
+    # 50-fighter round. This resizing is NOT exposed in the Battle Royale UI.
     while _targets.size()>needed:
         var last: CharacterBody3D=_targets.pop_back()
         if navigation:

@@ -68,10 +68,24 @@ func _verify() -> void:
         if opponent.get_node_or_null("OpponentCollider") is CollisionShape3D:
             colliders+=1
     check(colliders==49,"BR opponents have no actual physical hitboxes")
+    var positioned: Array[Vector2]=[]
+    var seabed: float=float(game.get_node("AuroraTerrain").sea_level)
+    for i in range(combat._targets.size()):
+        var rival: CharacterBody3D=combat._targets[i]
+        var at: Vector2=rival.spawn_coordinates
+        if i>=8:
+            check(combat._is_clear_spawn(at),
+                "rival spawned in unsafe sea, building or steep terrain "+str(i))
+        for previous in positioned:
+            check(at.distance_to(previous)>=3.1,
+                "two physical enemies overlap at game deployment: "+str(i))
+        positioned.append(at)
+    check(positioned.size()==49 and is_finite(seabed),
+        "50-person BR did not retain finite terrain and real spawn positions")
     game.queue_free()
     await process_frame
     if not failed:
         print("V7587_SINGLE_BR50 PASS no_selector=1 mode=classic "+
-            "aircraft=50 physical_rivals=49 collisions=49 "+
+            "aircraft=50 physical_rivals=49 collisions=49 unique_spawns=49 "+
             "multiplayer_online=not_claimed")
     quit(1 if failed else 0)
