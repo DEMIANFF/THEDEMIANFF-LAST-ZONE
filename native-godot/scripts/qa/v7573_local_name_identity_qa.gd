@@ -69,7 +69,7 @@ func _verify() -> void:
     check(LOCAL_NAME.new(QA_PATH).display_name=="AURORA_2026" and
         boot._info.text.contains("NOMBRE NO GUARDADO"),
         "invalid nickname overwrote a valid saved profile")
-    boot._select_tab("PERSONAJE")
+    boot._select_tab("JUGAR")
     check(not boot._name_entry.visible and
         not boot._name_save_button.visible and
         boot._battle_entry.visible,
