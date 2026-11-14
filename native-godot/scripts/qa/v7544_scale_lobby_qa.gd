@@ -1,5 +1,5 @@
 extends SceneTree
-## Real collision-enabled 9/20/30 offline participants and genuine 3D
+## Real collision-enabled 9/20/30/50 offline participants and genuine 3D
 ## lobby scenery. Never counts simulated clients as human online players.
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 var failed: bool=false
@@ -82,14 +82,18 @@ func _verify() -> void:
     check(front.stage=="lobby" and front._encounter_count==9,
         "lobby must default to verified 9-participant gameplay")
     var selector: OptionButton=front._encounter_selector
-    check(selector!=null and selector.get_item_count()==3,
-        "lobby missing the real 9/20/30 participant selector")
+    check(selector!=null and selector.get_item_count()==4 and
+        selector.get_item_id(3)==50,
+        "lobby missing the real 9/20/30/50 participant selector")
     front._on_encounter_selected(1)
     check(front._encounter_count==20,
         "lobby 20 mode not transferred to match configuration")
     front._on_encounter_selected(2)
     check(front._encounter_count==30,
         "lobby 30-person load test is not selectable")
+    front._on_encounter_selected(3)
+    check(front._encounter_count==50,
+        "lobby 50-person experimental AI setting is not selectable")
     var preview: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage/AuroraReal3DLobbyEnvironment")
     check(preview!=null and preview.find_children("*","MeshInstance3D",true,false).size()>40,
