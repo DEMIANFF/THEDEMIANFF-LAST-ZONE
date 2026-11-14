@@ -1139,26 +1139,47 @@ func _select_tab(tab: String) -> void:
     _selected_tab=tab
     if stage!="lobby" or _info==null:
         return
-    _settings_panel.visible=tab=="AJUSTES"
+    _settings_panel.visible=tab in ["AJUSTES","PRESET"]
+    if _left_shortcuts!=null:
+        for button in _left_shortcuts.get_children():
+            if button is Button:
+                var target: String=button.name.trim_prefix("Quick")
+                var active: bool=(target==tab or (tab=="OBJETIVOS" and
+                    target==str(_objective_page).to_upper()))
+                button.modulate=Color.WHITE if active else Color(.72,.76,.85)
+    if _bottom_navigation!=null:
+        for button in _bottom_navigation.get_children():
+            if button is Button:
+                button.modulate=(Color.WHITE if button.name=="Bottom"+tab
+                    else Color(.72,.76,.85))
+    if _social_panel!=null:
+        _social_panel.visible=tab=="JUGAR"
+    if _play_match_card!=null:
+        _play_match_card.visible=tab=="JUGAR"
+    _page.anchor_left=.702
+    _page.anchor_right=.977
+    _page.anchor_top=.495 if tab=="JUGAR" else .167
+    _page.anchor_bottom=.865
     for button in _lobby_nav.get_children():
         if button is Button:
             var selected: bool=button.name=="Tab"+tab
             button.modulate=Color(1,1,1) if selected else Color(.76,.82,.89)
     if _lobby_section_title!=null:
         _lobby_section_title.text=(
-            "JUGAR · PUERTO AURORA" if tab=="JUGAR"
+            "BATTLE ROYALE · BASE AURORA" if tab=="JUGAR"
             else "MI CUENTA" if tab=="CUENTA"
-            else "CONFIGURACIÓN" if tab=="AJUSTES"
+            else "CONFIGURACIÓN" if tab in ["AJUSTES","PRESET"]
+            else "EVENTOS / MISIONES / LOGROS" if tab=="OBJETIVOS"
             else tab)
         _lobby_section_hint.text=(
-            "BATTLE ROYALE · CLÁSICO LOCAL" if tab=="JUGAR"
-            else "INICIAR SESIÓN / PERFIL" if tab=="CUENTA"
-            else "CONTROLES Y SENSIBILIDAD" if tab=="AJUSTES"
-            else "CENTRO DE OPERACIONES")
+            "CLÁSICO LOCAL · %d PARTICIPANTES"%_encounter_count if tab=="JUGAR"
+            else "PERFIL / RESPALDO / ACCESO" if tab=="CUENTA"
+            else "CONTROLES / SENSIBILIDAD / HUD" if tab in ["AJUSTES","PRESET"]
+            else "BASE AURORA · CENTRO DE OPERACIONES")
     match tab:
         "JUGAR":
             _info.text="CLÁSICO LOCAL DISPONIBLE\nSelecciona participantes y comienza la partida.\nCLASIFICATORIA: servidor online pendiente."
-        "AJUSTES":
+        "AJUSTES","PRESET":
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot()
@@ -1181,17 +1202,21 @@ func _select_tab(tab: String) -> void:
                         str(measured.get("render_method","unknown")).to_upper(),
                         str(measured.get("render_driver","unknown")).to_upper(),
                         float(measured.get("quality_scale",1.0))*100.0]
+        "INVENTARIO":
+            _info.text="INVENTARIO EN PARTIDA\nArmas, munición, casco y botiquines se recogen físicamente en el Battle Royale.\nTu equipo se consulta desde el HUD del combate.\nNo hay compras ni objetos permanentes inventados."
         "ARMAS":
             _info.text="ARSENAL ACTIVO\nAR-7: mira x2 / x4.\nAWM: mira x8 y cerrojo automático.\nBR: AWM sobre el suelo, en la PLAZA (8, 24).\nENTRENAMIENTO: pulsa ARMA para probarla."
         "OBJETIVOS":
             _update_objective_details()
+        "LUCK":
+            _info.text="LUCK ROYALE / SIN SORTEOS ACTIVOS\nSolo se habilitarán sorteos con probabilidades publicadas y un catálogo real.\nNo se cobran monedas ni diamantes mientras el servicio esté desconectado."
         "TIENDA":
             var stats: Dictionary=_offline_records.snapshot()
             _info.text="TIENDA / PREPARACIÓN DE CATÁLOGO\nMONEDAS LOCALES: %d\nSe ganan al concluir partidas clásicas; compras aún deshabilitadas.\nDIAMANTES: sin cartera online. No hay recargas ni transacciones activas."%int(stats.get("local_coins",0))
         "PASE":
             _info.text="PASE DE BATALLA / PLANIFICADO\nAún no existen temporadas pagadas ni cobros habilitados."
         "SOCIAL":
-            _info.text="SOCIAL / SIN CONEXIÓN\nAmigos, clanes y escuadras necesitan un servicio online real."
+            _info.text="AMIGOS Y CLANES\nAún no existe un servidor social autenticado.\nNo hay amigos ficticios, invitaciones simuladas ni chat mundial falso.\nLas partidas locales siguen disponibles."
         "CUENTA":
             var stats: Dictionary=_offline_records.snapshot()
             var health: Dictionary=_offline_records.auto_backup_status()
@@ -1207,7 +1232,7 @@ func _select_tab(tab: String) -> void:
                 var remote_name: String=str(session.get("display_name",""))
                 name_line=(remote_name+" (Firebase)" if not remote_name.is_empty()
                     else _player_name.display_name+" (local; nombre remoto pendiente)")
-            _info.text="Firebase / Perfil\nNOMBRE: %s\n%s\n%s\nGoogle e Invitado requieren App Check. El apodo y las monedas siguen guardados localmente; no se declara sincronización sin confirmación del servidor."%[
+            _info.text="Firebase / Perfil\nNOMBRE: %s\n%s\n%s\nGoogle e Invitado se administran en la pantalla de entrada. El apodo y las monedas siguen guardados localmente; no se declara sincronización sin confirmación del servidor."%[
                 name_line,id_line,auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
