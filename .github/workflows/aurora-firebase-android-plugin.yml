@@ -32,26 +32,36 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
-      - name: Compile actual Firebase SDK / Godot plugin AAR
-        run: gradle -p firebase-godot-bridge :plugin:assembleDebug --no-daemon --stacktrace
+      - name: Compile actual Firebase SDK / Godot plugin AARs
+        run: gradle -p firebase-godot-bridge :plugin:assembleDebug :plugin:assembleRelease --no-daemon --stacktrace
       - name: Validate native manifest and compiled plugin entry
         run: |
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
           from io import BytesIO
-          p=Path("firebase-godot-bridge/plugin/build/outputs/aar/plugin-debug.aar")
-          assert p.is_file() and p.stat().st_size > 1000, "No Android library produced"
-          with ZipFile(p) as aar:
-              manifest=aar.read("AndroidManifest.xml")
-              assert manifest, "Missing compiled AndroidManifest.xml"
-              with ZipFile(BytesIO(aar.read("classes.jar"))) as classes:
-                  found=[z for z in classes.namelist() if z.endswith("AuroraFirebasePlugin.class")]
-                  assert len(found)==1, f"Missing Godot v2 initializer: {found}"
-          print("AURORA_FIREBASE_PLUGIN_AAR_PASS",p.stat().st_size)
+          import shutil
+          outputs=Path("firebase-godot-bridge/plugin/build/outputs/aar")
+          addon=Path("firebase-godot-bridge/out/AuroraFirebase")
+          shutil.copytree("firebase-godot-bridge/addon/AuroraFirebase",addon)
+          for variant in ("debug","release"):
+              p=outputs/("plugin-"+variant+".aar")
+              assert p.is_file() and p.stat().st_size > 1000, "No Android library produced: "+variant
+              with ZipFile(p) as aar:
+                  manifest=aar.read("AndroidManifest.xml")
+                  assert manifest, "Missing compiled AndroidManifest.xml"
+                  with ZipFile(BytesIO(aar.read("classes.jar"))) as classes:
+                      found=[z for z in classes.namelist() if z.endswith("AuroraFirebasePlugin.class")]
+                      assert len(found)==1, "Missing Godot v2 initializer: "+repr(found)
+              target=addon/"bin"/variant/("AuroraFirebase-"+variant+".aar")
+              target.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copy2(p,target)
+              print("AURORA_FIREBASE_PLUGIN_AAR_PASS",variant,p.stat().st_size)
+          print("AURORA_GODOT_V2_ADDON_PACKAGE_PASS",
+                sorted(str(p.relative_to(addon)) for p in addon.rglob("*") if p.is_file()))
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: AURORA-FIREBASE-V75.75-SOURCE-PLUGIN-AAR-NOT-IN_APK
-          path: firebase-godot-bridge/plugin/build/outputs/aar/plugin-debug.aar
+          name: AURORA-FIREBASE-V75.75-GODOT-V2-ADDON-NOT_IN_GAME
+          path: firebase-godot-bridge/out/AuroraFirebase/
           retention-days: 14
