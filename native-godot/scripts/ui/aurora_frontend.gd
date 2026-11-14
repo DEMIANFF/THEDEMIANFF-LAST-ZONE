@@ -604,12 +604,18 @@ func _show_lobby() -> void:
     _auth_guest_button.custom_minimum_size.y=36
     _auth_guest_button.add_theme_font_size_override("font_size",14)
     _page.add_child(_auth_guest_button)
-    _firebase_check_button=_button("REVISAR CONEXIÓN / APP CHECK",
+    _firebase_check_button=_button("VER ESTADO DE CUENTA / RESPALDO",
         Callable(self,"_check_firebase_connection"),255)
     _firebase_check_button.name="FirebaseConnectionCheckButton"
     _firebase_check_button.custom_minimum_size.y=29
     _firebase_check_button.add_theme_font_size_override("font_size",12)
     _page.add_child(_firebase_check_button)
+    _login_manage_button=_button("GESTIONAR ACCESO / CAMBIAR CUENTA",
+        Callable(self,"_welcome"),255)
+    _login_manage_button.name="OpenAccountSignInScreen"
+    _login_manage_button.custom_minimum_size.y=33
+    _login_manage_button.add_theme_font_size_override("font_size",12)
+    _page.add_child(_login_manage_button)
     # Local profile edit never overwrites the cloud account or invents an ID.
     _name_entry=LineEdit.new()
     _name_entry.name="LocalPlayerNameEntry"
@@ -818,10 +824,10 @@ func _sync_lobby_match_mode() -> void:
     _name_save_button.visible=show_name
     _firebase_check_button.visible=show_name
     _account_connection_label.visible=show_name
-    # Never hide account providers. The SDK/App Check gate must disable
-    # unsafe actions, not make the controls disappear from the UI.
-    _auth_guest_button.visible=show_name
-    _auth_google_button.visible=show_name
+    _login_manage_button.visible=show_name
+    # Login providers belong only to the dedicated entry/account-change UI.
+    _auth_guest_button.visible=false
+    _auth_google_button.visible=false
     if show_name:
         var health: Dictionary=FIREBASE_BRIDGE.status()
         var ready: bool=bool(health.get("ready",false))
@@ -829,7 +835,7 @@ func _sync_lobby_match_mode() -> void:
         _auth_google_button.disabled=not ready
         var message: String=str(health.get("reason","desconocido"))
         _account_connection_label.text=(
-            "FIREBASE LISTO · Selecciona un acceso" if ready else
+            "FIREBASE DISPONIBLE · Gestiona el acceso" if ready else
             "CONEXIÓN PENDIENTE · "+_firebase_state_message(message))
         _account_connection_label.tooltip_text=message
         _auth_google_button.tooltip_text=(
@@ -837,15 +843,15 @@ func _sync_lobby_match_mode() -> void:
         _auth_guest_button.tooltip_text=(
             "Crear o recuperar sesión anónima" if ready else message)
     _objective_selector.visible=_selected_tab=="OBJETIVOS"
-    _lobby_mode_heading.visible=show_modes
+    _lobby_mode_heading.visible=false
     _match_mode_selector.visible=show_modes
     _lobby_play_modes.visible=show_modes and _selected_match_mode!="ranked"
     _battle_entry.visible=show_modes and _selected_match_mode=="classic"
     _training_entry.visible=show_modes and _selected_match_mode=="training"
-    _lobby_mode_caption.visible=show_modes and _selected_match_mode=="classic"
+    _lobby_mode_caption.visible=false
     _encounter_selector.visible=show_modes and _selected_match_mode=="classic"
-    _lobby_mode_status.visible=show_modes
-    _lobby_detail_scroll.visible=_selected_tab!="AJUSTES"
+    _lobby_mode_status.visible=show_modes and _selected_match_mode=="ranked"
+    _lobby_detail_scroll.visible=not show_modes and _selected_tab not in ["AJUSTES","PRESET"]
     match _selected_match_mode:
         "classic":
             _lobby_mode_status.text="CLÁSICO LOCAL · %d participantes (1 humano + IA).\nSolo disponible sin rango."%_encounter_count
