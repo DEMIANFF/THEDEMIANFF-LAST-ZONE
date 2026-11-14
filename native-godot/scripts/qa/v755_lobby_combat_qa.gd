@@ -18,18 +18,18 @@ func verify() -> void:
     front._show_lobby()
     await process_frame
     check(front.stage=="lobby","lobby not displayed")
-    check(front._lobby_nav!=null and front._lobby_nav.get_child_count()==8,
+    check(front._lobby_nav!=null and front._lobby_nav.get_child_count()==9,
         "merged objectives navigation tabs missing")
     check(front._preview_container.visible,"character 3D preview hidden")
     check(front._surface.has_node("OriginalAuroraCoast"),"Aurora background missing")
     check(front._page.find_child("BattleButton",true,false)!=null,"BR launch missing")
     check(front._page.find_child("TrainingButton",true,false)!=null,"training launch missing")
-    for tab in ["PERSONAJE","ARMAS","OBJETIVOS","TIENDA","PASE","SOCIAL","CUENTA","AJUSTES"]:
+    for tab in ["JUGAR","PERSONAJE","ARMAS","OBJETIVOS","TIENDA","PASE","SOCIAL","CUENTA","AJUSTES"]:
         front._select_tab(tab)
         check(front._info.text.length()>15,"empty tab "+tab)
         check(front._settings_panel.visible==(tab=="AJUSTES"),"incorrect setting panel visibility "+tab)
     check(front._info.text.find("Sensibilidad")>=0,"camera setting disclosure")
-    front._select_tab("PERSONAJE")
+    front._select_tab("JUGAR")
     for resolution in [Vector2i(1024,768),Vector2i(1280,720),Vector2i(2712,1220)]:
         root.size=resolution
         await process_frame
