@@ -324,6 +324,24 @@ jobs:
           godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.76-MOTOROLA-FIREBASE-GRADLE.apk
           APK="native-godot/out/THEDEMIAN-V75.76-MOTOROLA-FIREBASE-GRADLE.apk"
           test -s "$APK"
+          # Godot/Gradle debug signing may omit APK signature scheme v3 even
+          # with the correct certificate. Re-sign the already aligned Gradle
+          # output using the PINNED existing preview certificate (no new key).
+          # Require v2 + v3 so both signed APK variants pass the same gate.
+          SIGNER="$ANDROID_HOME/build-tools/35.0.1/apksigner"
+          "$SIGNER" sign \
+            --ks "$HOME/.android/debug.keystore" \
+            --ks-key-alias androiddebugkey \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --out "${APK%.apk}.resigned.apk" "$APK"
+          mv "${APK%.apk}.resigned.apk" "$APK"
+          "$SIGNER" verify --verbose --print-certs "$APK" > native-godot/out/firebase-gradle-signer-check.txt
+          grep -F 'Verified using v2 scheme (APK Signature Scheme v2): true' native-godot/out/firebase-gradle-signer-check.txt
+          grep -F 'Verified using v3 scheme (APK Signature Scheme v3): true' native-godot/out/firebase-gradle-signer-check.txt
           python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/firebase-gradle-verification
           expected="$(cat native-godot/out/preview-signer-sha256.txt)"
           grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/firebase-gradle-verification/signature.txt
