@@ -73,6 +73,20 @@ var _lobby_play_modes: VBoxContainer
 var _lobby_detail_scroll: ScrollContainer
 var _battle_entry: Button
 var _training_entry: Button
+var _login_status_label: Label
+var _login_google_button: Button
+var _login_guest_button: Button
+var _login_pending_provider: String=""
+var _login_timer: Timer
+var _login_manage_button: Button
+var _bottom_navigation: HBoxContainer
+var _social_panel: PanelContainer
+var _social_status_label: Label
+var _top_account_button: Button
+var _top_settings_button: Button
+var _top_social_button: Button
+var _play_match_card: PanelContainer
+var _banner: Label
 
 
 func _ready() -> void:
@@ -87,6 +101,13 @@ func _ready() -> void:
     _save_timer.wait_time=.4
     _save_timer.timeout.connect(_save_preferences)
     add_child(_save_timer)
+    _login_timer=Timer.new()
+    _login_timer.name="NativeAuthPolling"
+    _login_timer.wait_time=1.2
+    _login_timer.one_shot=false
+    _login_timer.timeout.connect(_poll_login_state)
+    add_child(_login_timer)
+    _login_timer.start()
     set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     mouse_filter=Control.MOUSE_FILTER_STOP
     _surface=Control.new()
@@ -248,65 +269,159 @@ func _button(value: String, callback: Callable, width: float=260.0) -> Button:
 
 
 func _welcome() -> void:
+    # Authentication is an ENTRY flow, never a row of permanent lobby badges.
+    # This screen offers actual Firebase providers and a clearly separate
+    # LOCAL offline choice. It never labels an unverified ID as official.
     stage="welcome"
     visible=true
-    if _preview_container:
+    _login_pending_provider=""
+    if _preview_container!=null and is_instance_valid(_preview_container):
         _preview_container.visible=false
-    if _preview_caption:
+    if _preview_caption!=null and is_instance_valid(_preview_caption):
         _preview_caption.visible=false
-    if _lobby_nav:
+    if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         _lobby_nav.visible=false
-    if _profile_strip:
-        _profile_strip.visible=false
-    if _stats_strip:
-        _stats_strip.visible=false
-    if _currency_strip:
-        _currency_strip.visible=false
-    _page.anchor_left=.07
-    _page.anchor_right=.63
-    _page.anchor_top=.015
-    _page.anchor_bottom=.995
-    _page.add_theme_constant_override("separation",5)
+    if _bottom_navigation!=null and is_instance_valid(_bottom_navigation):
+        _bottom_navigation.visible=false
+    if _social_panel!=null and is_instance_valid(_social_panel):
+        _social_panel.visible=false
+    if _top_account_button!=null and is_instance_valid(_top_account_button):
+        _top_account_button.visible=false
+    if _top_settings_button!=null and is_instance_valid(_top_settings_button):
+        _top_settings_button.visible=false
+    if _top_social_button!=null and is_instance_valid(_top_social_button):
+        _top_social_button.visible=false
+    if _play_match_card!=null and is_instance_valid(_play_match_card):
+        _play_match_card.visible=false
+    if _banner!=null and is_instance_valid(_banner):
+        _banner.visible=false
+    for item in [_profile_strip,_stats_strip,_currency_strip]:
+        if item!=null and is_instance_valid(item):
+            item.visible=false
+    _page.anchor_left=.28
+    _page.anchor_right=.73
+    _page.anchor_top=.095
+    _page.anchor_bottom=.975
+    _page.add_theme_constant_override("separation",6)
     _brand_logo.visible=true
-    # Keep emblem in a clean title-side hero area. Previously it covered
-    # the diagnostic buttons and character selection at phone resolution.
     _brand_logo.anchor_left=.76
     _brand_logo.anchor_right=.91
-    _brand_logo.anchor_top=.12
-    _brand_logo.anchor_bottom=.43
+    _brand_logo.anchor_top=.08
+    _brand_logo.anchor_bottom=.25
     _clear_page()
-    _label("THEDEMIAN: LAST ZONE",33)
-    _label("PUERTO AURORA  •  EL ÚLTIMO HORIZONTE",20)
-    _label("Operación de supervivencia — diagnóstico de desarrollo",14)
-    var enter:=_button("ENTRAR",Callable(self,"_show_lobby"))
+    var head:=_label("THEDEMIAN: LAST ZONE",28)
+    head.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    var tagline:=_label("BASE AURORA  ·  IDENTIDAD DE JUGADOR",13)
+    tagline.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _login_status_label=_label("COMPROBANDO APP CHECK...",12)
+    _login_status_label.name="LoginTransportStatus"
+    _login_status_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _login_status_label.add_theme_color_override("font_color",Color(.95,.81,.49))
+    _login_google_button=_button("CONTINUAR CON GOOGLE",
+        Callable(self,"_begin_welcome_auth").bind("google"),320)
+    _login_google_button.name="WelcomeGoogleSignIn"
+    _login_google_button.custom_minimum_size.y=42
+    _login_google_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _style_primary_action(_login_google_button)
+    _page.add_child(_login_google_button)
+    _login_guest_button=_button("ENTRAR COMO INVITADO",
+        Callable(self,"_begin_welcome_auth").bind("guest"),320)
+    _login_guest_button.name="WelcomeGuestSignIn"
+    _login_guest_button.custom_minimum_size.y=40
+    _login_guest_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _page.add_child(_login_guest_button)
+    var enter:=_button("JUGAR SIN CONEXIÓN",
+        Callable(self,"_enter_local_lobby"),320)
     enter.name="EnterButton"
+    enter.custom_minimum_size.y=39
+    enter.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _page.add_child(enter)
-    _label("Esta versión prueba partidas offline. El multijugador y las cuentas en Godot todavía no están disponibles.",14)
+    var disclosure:=_label(
+        "Google e Invitado: acceso Firebase real. Sin conexión: partidas locales. "+
+        "El ID y el respaldo cloud solo aparecen tras confirmación del servidor.",11)
+    disclosure.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    var diag:=_button("DIAGNÓSTICOS DE DESARROLLO",
+        Callable(self,"_show_startup_diagnostics"),320)
+    diag.name="StartupDiagnosticEntry"
+    diag.custom_minimum_size.y=27
+    diag.add_theme_font_size_override("font_size",11)
+    diag.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _page.add_child(diag)
+    _poll_login_state()
+
+
+func _enter_local_lobby() -> void:
+    _login_pending_provider=""
+    _show_lobby()
+
+
+func _begin_welcome_auth(provider: String) -> void:
+    if stage!="welcome" or provider not in ["google","guest"]:
+        return
+    _login_pending_provider=provider
+    _poll_login_state()
+
+
+func _poll_login_state() -> void:
+    if stage!="welcome" or _login_status_label==null or not is_instance_valid(_login_status_label):
+        return
+    var session: Dictionary=FIREBASE_BRIDGE.session_state()
+    if bool(session.get("authenticated",false)):
+        if bool(session.get("identity_confirmed",false)):
+            _login_status_label.text="SESIÓN CONFIRMADA · ID "+str(session.get("official_id",""))
+        else:
+            _login_status_label.text="CUENTA AUTENTICADA · ID PENDIENTE DEL SERVIDOR"
+        if not _login_pending_provider.is_empty():
+            _login_pending_provider=""
+            _show_lobby()
+        return
+    var health: Dictionary=FIREBASE_BRIDGE.status()
+    if not bool(health.get("ready",false)):
+        _login_status_label.text="ACCESO PENDIENTE · "+_firebase_state_message(
+            str(health.get("reason","desconocido")))
+        return
+    if _login_pending_provider.is_empty():
+        _login_status_label.text="GOOGLE E INVITADO DISPONIBLES"
+        return
+    var provider: String=_login_pending_provider
+    _login_pending_provider=""
+    var attempt: Dictionary=FIREBASE_BRIDGE.request_sign_in(provider)
+    if bool(attempt.get("queued",false)):
+        _login_status_label.text="INICIANDO "+provider.to_upper()+" · CONFIRMANDO CUENTA"
+    else:
+        _login_status_label.text="NO SE PUDO INICIAR · "+_firebase_state_message(
+            str(attempt.get("reason","desconocido")))
+
+
+func _show_startup_diagnostics() -> void:
+    stage="startup_diagnostics"
+    _clear_page()
+    _page.anchor_left=.26
+    _page.anchor_right=.78
+    _page.anchor_top=.10
+    _page.anchor_bottom=.94
+    _label("DIAGNÓSTICOS DE DESARROLLO",21)
     var test_mode: Button=_button(
         "VUELO "+FLIGHT_SAFETY_MODE.label_for(FLIGHT_SAFETY_MODE.current_mode()),
-        Callable(self,"_cycle_flight_diagnostic"),390)
+        Callable(self,"_cycle_flight_diagnostic"),350)
     test_mode.name="FlightDiagnosticModeButton"
-    test_mode.add_theme_font_size_override("font_size",15)
     _page.add_child(test_mode)
     var startup_button: Button=_button(
         "CARGA "+STARTUP_DIAG.label(),
-        Callable(self,"_cycle_scene_load_diagnostic"),405)
+        Callable(self,"_cycle_scene_load_diagnostic"),350)
     startup_button.name="SceneStartupDiagnosticButton"
-    startup_button.add_theme_font_size_override("font_size",15)
     _page.add_child(startup_button)
     var trace: Dictionary=FLIGHT_DIAGNOSTICS.last()
     if not trace.is_empty():
-        var state: String=str(trace.get("state",""))
-        _label(("VUELO ANTERIOR SIN TERMINAR" if state=="active" else "ÚLTIMO VUELO REGISTRADO")+
-            " / "+str(trace.get("phase","desconocido")),15)
-        _label("Último evento: "+str(trace.get("note",""))+
-            " · FPS "+str(trace.get("fps","?"))+
-            " · #"+str(trace.get("sequence",0)),13)
-        _page.add_child(_button("VER REGISTRO DETALLADO",Callable(self,"_show_flight_details"),295))
+        _label("ÚLTIMO VUELO: "+str(trace.get("phase","desconocido")),12)
+        _page.add_child(_button("VER REGISTRO DETALLADO",
+            Callable(self,"_show_flight_details"),320))
     var saved: Dictionary=FLIGHT_DIAGNOSTICS.last(true)
     if not saved.is_empty():
-        _page.add_child(_button("VER VUELO INTERRUMPIDO ANTERIOR",
-            Callable(self,"_show_previous_flight_details"),350))
+        _page.add_child(_button("VER VUELO ANTERIOR",
+            Callable(self,"_show_previous_flight_details"),320))
+    _page.add_child(_button("VOLVER AL INICIO",
+        Callable(self,"_welcome"),250))
 
 
 func _copy_flight_diagnostics(previous: bool=false) -> void:
