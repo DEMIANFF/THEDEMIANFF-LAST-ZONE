@@ -674,15 +674,30 @@ func _on_match_mode_selected(index: int) -> void:
 func _sync_lobby_match_mode() -> void:
     if stage!="lobby" or _match_mode_selector==null:
         return
-    var show_modes: bool=not (_selected_tab in ["AJUSTES","OBJETIVOS","CUENTA"])
+    var show_modes: bool=_selected_tab=="JUGAR"
     var show_name: bool=_selected_tab=="CUENTA"
     _name_entry.visible=show_name
     _name_save_button.visible=show_name
     _firebase_check_button.visible=show_name
-    var native_ready: bool=show_name and bool(
-        FIREBASE_BRIDGE.status().get("ready",false))
-    _auth_guest_button.visible=native_ready
-    _auth_google_button.visible=native_ready
+    _account_connection_label.visible=show_name
+    # Never hide account providers. The SDK/App Check gate must disable
+    # unsafe actions, not make the controls disappear from the UI.
+    _auth_guest_button.visible=show_name
+    _auth_google_button.visible=show_name
+    if show_name:
+        var health: Dictionary=FIREBASE_BRIDGE.status()
+        var ready: bool=bool(health.get("ready",false))
+        _auth_guest_button.disabled=not ready
+        _auth_google_button.disabled=not ready
+        var message: String=str(health.get("reason","desconocido"))
+        _account_connection_label.text=(
+            "FIREBASE LISTO · Selecciona un acceso" if ready else
+            "CONEXIÓN PENDIENTE · "+message.replace("_"," "))
+        _account_connection_label.tooltip_text=message
+        _auth_google_button.tooltip_text=(
+            "Acceder con la cuenta Google" if ready else message)
+        _auth_guest_button.tooltip_text=(
+            "Crear o recuperar sesión anónima" if ready else message)
     _objective_selector.visible=_selected_tab=="OBJETIVOS"
     _lobby_mode_heading.visible=show_modes
     _match_mode_selector.visible=show_modes
@@ -798,8 +813,21 @@ func _select_tab(tab: String) -> void:
     for button in _lobby_nav.get_children():
         if button is Button:
             var selected: bool=button.name=="Tab"+tab
-            button.modulate=Color(1,.83,.48) if selected else Color.WHITE
+            button.modulate=Color(1,1,1) if selected else Color(.76,.82,.89)
+    if _lobby_section_title!=null:
+        _lobby_section_title.text=(
+            "JUGAR · PUERTO AURORA" if tab=="JUGAR"
+            else "MI CUENTA" if tab=="CUENTA"
+            else "CONFIGURACIÓN" if tab=="AJUSTES"
+            else tab)
+        _lobby_section_hint.text=(
+            "BATTLE ROYALE · CLÁSICO LOCAL" if tab=="JUGAR"
+            else "INICIAR SESIÓN / PERFIL" if tab=="CUENTA"
+            else "CONTROLES Y SENSIBILIDAD" if tab=="AJUSTES"
+            else "CENTRO DE OPERACIONES")
     match tab:
+        "JUGAR":
+            _info.text="CLÁSICO LOCAL DISPONIBLE\nSelecciona participantes y comienza la partida.\nCLASIFICATORIA: servidor online pendiente."
         "AJUSTES":
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
@@ -849,8 +877,8 @@ func _select_tab(tab: String) -> void:
                 var remote_name: String=str(session.get("display_name",""))
                 name_line=(remote_name+" (Firebase)" if not remote_name.is_empty()
                     else _player_name.display_name+" (local; nombre remoto pendiente)")
-            _info.text="CUENTA / IDENTIDAD\nNOMBRE: %s\n%s\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nPuedes editar el nombre local; no se envía automáticamente al servidor. Pulsa Verificar Firebase / App Check para conocer el estado real.\nGoogle e Invitado requieren el plugin Firebase y App Check; todavía no se han confirmado en esta APK. El respaldo offline permanece en este dispositivo hasta que se implemente una restauración cloud verificada."%[
-                name_line,id_line,int(stats.get("local_coins",0)),auto_text]
+            _info.text="FIREBASE / PERFIL\nNOMBRE: %s\n%s\n%s\nGoogle e Invitado requieren App Check. El apodo y las monedas siguen guardados localmente; no se declara sincronización sin confirmación del servidor."%[
+                name_line,id_line,auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()
