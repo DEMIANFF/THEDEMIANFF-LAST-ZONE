@@ -297,6 +297,14 @@ func _sync_bot_safe_zone() -> void:
         if is_instance_valid(bot) and bot.health>0:
             bot.safe_center=zone_center
             bot.safe_radius=radius
+            # The destination is an actual later ring, not a fabricated
+            # client waypoint. Disable advance rotation after phase four.
+            bot.next_zone_active=zone_phase<PHASE_COUNT
+            bot.zone_seconds_remaining=zone_seconds_remaining
+            bot.next_safe_center=_zone_center_at(
+                mini(zone_phase+1,PHASE_COUNT))
+            bot.next_safe_radius=(PHASE_RADII[mini(zone_phase+1,PHASE_COUNT)]
+                if zone_phase<PHASE_COUNT else OVERTIME_RADIUS)
 
 
 ## A new match has a seeded destination ON WALKABLE LAND instead of a

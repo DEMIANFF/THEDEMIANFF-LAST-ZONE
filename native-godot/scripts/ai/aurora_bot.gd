@@ -26,6 +26,7 @@ const MAX_VISION_RAYS: int=5
 const TARGET_STICKINESS_METERS: float=3.5
 const STRAFE_SWITCH_SECONDS: float=2.7
 const ZONE_SAFE_FRACTION: float=.80
+const NEXT_ZONE_ROTATE_SECONDS: int=45
 # Every real AI opponent carries exactly ONE field medkit. The channel
 # is vulnerable, time-bound and can be interrupted by physical damage.
 const FIELD_MEDKIT_CAPACITY: int=1
@@ -82,6 +83,10 @@ var _animation: AnimationPlayer
 var _clip: String = ""
 var safe_center: Vector2=Vector2.ZERO
 var safe_radius: float=INF
+var next_safe_center: Vector2=Vector2.ZERO
+var next_safe_radius: float=INF
+var zone_seconds_remaining: int=0
+var next_zone_active: bool=false
 var _avoid_side: float=1.0
 ## Mobile-only visual LOD. Agents remain real damageable CharacterBody3D
 ## enemies with their own AI and collisions at every distance.
@@ -332,6 +337,19 @@ func _physics_process(dt: float) -> void:
         if _cover_point.is_finite() and _cover_clock>1.0:
             destination=_cover_point
             behavior="cover"
+    # Rotate toward the next ACTUAL circle near the end of the phase.
+    # Prioritize live engagements and physical cover, but avoid waiting
+    # until the storm is already damaging a distant rival.
+    var engaged: bool=_target_visible and distance<SHOOT_RANGE
+    if sector_battle and next_zone_active and should_rotate_to_next_zone(
+            global_position,next_safe_center,next_safe_radius,
+            zone_seconds_remaining,engaged):
+        behavior="zone_rotate"
+        destination=safe_zone_destination(global_position,
+            next_safe_center,next_safe_radius)
+        target_speed=CHASE_SPEED
+    # Immediate threat always overrides advance planning: never march
+    # deeper into a damaging circle just to reach the next phase.
     if sector_battle and Vector2(global_position.x,global_position.z).distance_to(safe_center)>safe_radius-4.0:
         behavior="zone_escape"
         destination=safe_zone_destination(global_position,safe_center,safe_radius)
@@ -519,6 +537,10 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     heard_shots=0
     _last_seen=Vector3.ZERO
     _route.clear()
+    next_zone_active=false
+    next_safe_center=Vector2.ZERO
+    next_safe_radius=INF
+    zone_seconds_remaining=0
     # Do not start 49 path planners and vision scans on the same landing
     # physics frame. All agents stay physical, move and fight after a short
     # deterministic stagger; no one is disabled or silently culled.
@@ -690,6 +712,17 @@ func _begin_reload() -> void:
 
 
 ## Move inside the next safe circle without stacking all rivals at center.
+static func should_rotate_to_next_zone(position: Vector3,next_center: Vector2,
+        next_radius: float,seconds_remaining: int,engaged: bool) -> bool:
+    if (engaged or not position.is_finite() or not next_center.is_finite()
+            or not is_finite(next_radius) or next_radius<=0.0):
+        return false
+    if seconds_remaining<=0 or seconds_remaining>NEXT_ZONE_ROTATE_SECONDS:
+        return false
+    var current: Vector2=Vector2(position.x,position.z)
+    return current.distance_to(next_center)>maxf(0.0,next_radius-2.0)
+
+
 static func safe_zone_destination(position: Vector3,center: Vector2,
         safe_radius_value: float) -> Vector3:
     if (not position.is_finite() or not center.is_finite() or
