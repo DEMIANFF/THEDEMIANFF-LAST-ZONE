@@ -69,8 +69,8 @@ func _verify() -> void:
             break
     check(director.mode=="sector_battle" and player.air_mode=="ground",
         "parachute failed to restore ground mode")
-    check(combat.visible and combat.active_fighter_count()==9,
-        "real nine-participant sector was not restored")
+    check(combat.visible and combat.active_fighter_count()==50,
+        "real 50-participant sector was not restored")
     check(TRACE.last().get("state","")=="completed",
         "landing did not complete persistent flight record")
     print("V7518_CANOPY PASS deferred mesh, first physics tick, canopy slowdown, ",

@@ -46,8 +46,8 @@ func _verify() -> void:
         options.get_item_count()==3,
         "objectives switcher is not visible and functional")
     check(not front._battle_entry.visible and
-        not front._encounter_selector.visible,
-        "mode buttons cover the objectives details")
+        front.find_child("OfflineEncounterSize",true,false)==null,
+        "Battle Royale controls or obsolete participant selector cover objectives")
     check(front._info.text.contains("2 / 3") and
         front._info.text.contains("5 / 5") and
         front._info.text.contains("1 / 1"),

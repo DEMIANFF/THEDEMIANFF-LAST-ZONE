@@ -30,19 +30,24 @@ func _verify() -> void:
     player.set_physics_process(false)
     for rival in combat._targets:
         rival.set_physics_process(false)
+    # Build the full visual budget first. Allocations are allowed to evict
+    # earlier owners, so choosing a candidate inside that loop gives a stale
+    # reference and falsely reports a missing close-rival LOD swap.
+    for rival in combat._targets:
+        if rival.distance_lod and rival._rig==null:
+            rival._set_full_visual(true)
     var chosen_distant: CharacterBody3D
     var chosen_near: CharacterBody3D
     for rival in combat._targets:
         if not rival.distance_lod:
             continue
-        if rival._rig==null:
-            rival._set_full_visual(true)
         if rival._rig!=null and chosen_distant==null:
             chosen_distant=rival
-    for rival in combat._targets:
-        if rival.distance_lod and rival._rig==null:
+        if rival._rig==null and chosen_near==null:
             chosen_near=rival
-            break
+    check(chosen_distant!=null and chosen_distant._rig!=null and
+        chosen_near!=null and chosen_near._rig==null,
+        "priority fixture did not select one current rig owner and one LOD")
     check(combat.active_fighter_count()==50 and
         get_nodes_in_group(BOT.DETAILED_ENEMY_GROUP).size()==
             BOT.MAX_DETAILED_ENEMY_RIGS,

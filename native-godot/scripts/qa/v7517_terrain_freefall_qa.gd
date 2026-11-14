@@ -86,11 +86,11 @@ func _verify() -> void:
             break
     check(director.mode=="sector_battle" and player.air_mode=="ground",
         "removing roof rays broke genuine touchdown or combat")
-    check(combat.visible and combat.active_fighter_count()==9 and
+    check(combat.visible and combat.active_fighter_count()==50 and
         hud.air_stage=="ground",
         "ground match was not restored after protected real canopy")
     check(str(TRACE.last().get("state",""))=="completed",
         "successful landing retained an active crash breadcrumb")
     print("V7517_TERRAIN_FREEFALL PASS Motorola horizontal crash route, ",
-        "39-m boundary, real 26-m parachute and full 9-participant ground battle")
+        "39-m boundary, real 26-m parachute and full 50-participant ground battle")
     quit(1 if failed else 0)

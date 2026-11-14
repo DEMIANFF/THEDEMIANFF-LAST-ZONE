@@ -24,8 +24,9 @@ func _verify() -> void:
         "local Classic must be the initial playable mode")
     check(not front._training_entry.visible,
         "Training must not obscure the Classic start button")
-    check(front._encounter_selector.visible and front._encounter_count==9,
-        "safe 9-person local configuration lost")
+    check(front.find_child("OfflineEncounterSize",true,false)==null and
+        front._lobby_section_hint.text.contains("50 PARTICIPANTES"),
+        "only one fixed Battle Royale size should be visible")
     check(front._lobby_detail_scroll is ScrollContainer,
         "long lobby information is not scrollable on mobile")
 
@@ -35,8 +36,8 @@ func _verify() -> void:
         "ranked selection not retained in lobby state")
     check(not front._battle_entry.visible and not front._training_entry.visible,
         "ranked incorrectly exposes an offline start button")
-    check(not front._encounter_selector.visible,
-        "AI count shown as a ranked human queue")
+    check(front.find_child("OfflineEncounterSize",true,false)==null,
+        "AI participant selector reappeared during ranked navigation")
     check(front._lobby_mode_status.text.contains("BLOQUEADA"),
         "ranked readiness/security conditions not disclosed")
     front._launch(true)
@@ -50,7 +51,8 @@ func _verify() -> void:
     front._on_match_mode_selected(2)
     check(front._selected_match_mode=="training" and front._training_entry.visible,
         "real Training mode button not available")
-    check(not front._battle_entry.visible and not front._encounter_selector.visible,
+    check(not front._battle_entry.visible and
+        not front._lobby_mode_caption.visible,
         "Training displays Classic-only controls")
 
     front._select_tab("AJUSTES")
@@ -75,10 +77,9 @@ func _verify() -> void:
 
     selector.select(0)
     front._on_match_mode_selected(0)
-    front._on_encounter_selected(1)
-    check(front._encounter_count==20 and
-        front._lobby_mode_status.text.contains("20 participantes"),
-        "Classic AI count not reflected in mode availability")
+    check(front._lobby_mode_status.text.contains("50 PARTICIPANTES") and
+        front._lobby_mode_caption.visible,
+        "Classic mode no longer identifies its single 50-fighter roster")
     for size in [Vector2i(960,540),Vector2i(1280,720)]:
         root.size=size
         await process_frame

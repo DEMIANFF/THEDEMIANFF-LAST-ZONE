@@ -79,10 +79,10 @@ func _verify() -> void:
         "ground bots/combat render did not return on landing")
     check(navigation.is_physics_processing() or bool(navigation.available),
         "pathfinding did not resume after landing")
-    check(combat.active_fighter_count()==9 and hud.air_stage=="ground",
-        "ground Battle Royale controls or eight bots were not restored")
+    check(combat.active_fighter_count()==50 and hud.air_stage=="ground",
+        "ground Battle Royale controls or 49 bots were not restored")
     check(TRACE.last().get("state","")=="completed",
         "successful landing left a false active crash report")
     print("V7516_AIRCRAFT PASS: first render/physics frame checkpoint, aircraft ticks, ",
-        "paused pathfinding and 3D combat, restored real 9-participant match")
+        "paused pathfinding and 3D combat, restored real 50-participant match")
     quit(1 if failed else 0)

@@ -8,6 +8,7 @@ signal round_ended(victory: bool)
 const LOOT = preload("res://scripts/match/aurora_loot.gd")
 const ZONE_VISUAL = preload("res://scripts/match/aurora_zone_visual.gd")
 const DROP_SEQUENCE = preload("res://scripts/match/airdrop_sequence.gd")
+const COMBAT_ROSTER=preload("res://scripts/combat/training_combat.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const INITIAL_RADIUS: float = 112.0
@@ -96,6 +97,9 @@ func begin_aircraft_phase() -> void:
         return
     if not _ready_for_round():
         return
+    # Every player-accessible deployment (including Training HUD -> BR)
+    # uses the SAME 50-person classic roster, without any difficulty menu.
+    combat.set_encounter_size(COMBAT_ROSTER.CLASSIC_BR_PARTICIPANTS)
     combat.end_sector_battle()
     # There is no ground combat or pathfinding in the aircraft. Do not keep
     # the animated bot world, 3D gun rigs or navigation shape sweeps running
