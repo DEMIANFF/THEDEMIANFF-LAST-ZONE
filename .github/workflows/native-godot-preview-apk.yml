@@ -301,7 +301,7 @@ jobs:
           test -s native-godot/android/build/gradlew
           # Godot 4.7.2's official template installer also writes these two
           # metadata files in res://android; merely unzipping is insufficient.
-          printf '4.7.2.stable\\n' > native-godot/android/.build_version
+          echo 4.7.2.stable > native-godot/android/.build_version
           touch native-godot/android/build/.gdignore
           grep -Fx '4.7.2.stable' native-godot/android/.build_version
           echo AURORA_GODOT_472_GRADLE_TEMPLATE_PASS
