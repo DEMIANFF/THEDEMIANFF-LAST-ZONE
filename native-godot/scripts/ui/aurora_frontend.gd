@@ -205,6 +205,27 @@ func _label(value: String, font_size: int=24) -> Label:
     return line
 
 
+func _style_primary_action(button: Button) -> void:
+    var style:=StyleBoxFlat.new()
+    style.bg_color=Color(.91,.68,.24)
+    style.border_color=Color(.99,.86,.47)
+    style.set_border_width_all(1)
+    style.set_corner_radius_all(9)
+    var hover:=style.duplicate() as StyleBoxFlat
+    hover.bg_color=Color(1.0,.77,.31)
+    var disabled:=style.duplicate() as StyleBoxFlat
+    disabled.bg_color=Color(.15,.21,.27,.90)
+    disabled.border_color=Color(.30,.39,.46)
+    button.add_theme_stylebox_override("normal",style)
+    button.add_theme_stylebox_override("hover",hover)
+    button.add_theme_stylebox_override("pressed",hover)
+    button.add_theme_stylebox_override("disabled",disabled)
+    button.add_theme_color_override("font_color",Color(.05,.09,.13))
+    button.add_theme_color_override("font_hover_color",Color(.05,.09,.13))
+    button.add_theme_color_override("font_pressed_color",Color(.05,.09,.13))
+    button.add_theme_color_override("font_disabled_color",Color(.75,.80,.84))
+
+
 func _button(value: String, callback: Callable, width: float=260.0) -> Button:
     var button:=Button.new()
     button.text=value
@@ -440,37 +461,47 @@ func _show_lobby() -> void:
     _page.add_child(_encounter_selector)
     _lobby_mode_status=_label("",12)
     _lobby_mode_status.name="ModeAvailability"
-    # Real editable local identity; no fake online ID, UID or auth status.
+    # Account actions are now ABOVE the editable local name. Both providers
+    # remain visible in Cuenta even when App Check has not finished; gated
+    # buttons cannot accidentally fabricate an authenticated identity.
+    _account_connection_label=_label("COMPROBANDO FIREBASE...",12)
+    _account_connection_label.name="FirebaseConnectionStatus"
+    _account_connection_label.add_theme_color_override(
+        "font_color",Color(.92,.80,.50))
+    _auth_google_button=_button("CONTINUAR CON GOOGLE",
+        Callable(self,"_start_native_auth").bind("google"),255)
+    _auth_google_button.name="FirebaseGoogleSignInButton"
+    _auth_google_button.custom_minimum_size.y=38
+    _auth_google_button.add_theme_font_size_override("font_size",15)
+    _style_primary_action(_auth_google_button)
+    _page.add_child(_auth_google_button)
+    _auth_guest_button=_button("ENTRAR COMO INVITADO",
+        Callable(self,"_start_native_auth").bind("guest"),255)
+    _auth_guest_button.name="FirebaseGuestSignInButton"
+    _auth_guest_button.custom_minimum_size.y=36
+    _auth_guest_button.add_theme_font_size_override("font_size",14)
+    _page.add_child(_auth_guest_button)
+    _firebase_check_button=_button("REVISAR CONEXIÓN / APP CHECK",
+        Callable(self,"_check_firebase_connection"),255)
+    _firebase_check_button.name="FirebaseConnectionCheckButton"
+    _firebase_check_button.custom_minimum_size.y=29
+    _firebase_check_button.add_theme_font_size_override("font_size",12)
+    _page.add_child(_firebase_check_button)
+    # Local profile edit never overwrites the cloud account or invents an ID.
     _name_entry=LineEdit.new()
     _name_entry.name="LocalPlayerNameEntry"
     _name_entry.max_length=16
-    _name_entry.placeholder_text="Nombre de jugador (3 a 16 caracteres)"
+    _name_entry.placeholder_text="Apodo local (3 a 16 caracteres)"
     _name_entry.text=_player_name.display_name
-    _name_entry.custom_minimum_size=Vector2(265,35)
+    _name_entry.custom_minimum_size=Vector2(255,32)
     _name_entry.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
     _page.add_child(_name_entry)
-    _name_save_button=_button("GUARDAR NOMBRE LOCAL",
-        Callable(self,"_save_player_name"),265)
+    _name_save_button=_button("GUARDAR APODO LOCAL",
+        Callable(self,"_save_player_name"),255)
     _name_save_button.name="SaveLocalPlayerNameButton"
+    _name_save_button.custom_minimum_size.y=30
+    _name_save_button.add_theme_font_size_override("font_size",12)
     _page.add_child(_name_save_button)
-    _firebase_check_button=_button("VERIFICAR FIREBASE / APP CHECK",
-        Callable(self,"_check_firebase_connection"),265)
-    _firebase_check_button.name="FirebaseConnectionCheckButton"
-    _firebase_check_button.custom_minimum_size.y=32
-    _firebase_check_button.add_theme_font_size_override("font_size",13)
-    _page.add_child(_firebase_check_button)
-    _auth_guest_button=_button("ENTRAR COMO INVITADO",
-        Callable(self,"_start_native_auth").bind("guest"),265)
-    _auth_guest_button.name="FirebaseGuestSignInButton"
-    _auth_guest_button.custom_minimum_size.y=31
-    _auth_guest_button.add_theme_font_size_override("font_size",13)
-    _page.add_child(_auth_guest_button)
-    _auth_google_button=_button("CONTINUAR CON GOOGLE",
-        Callable(self,"_start_native_auth").bind("google"),265)
-    _auth_google_button.name="FirebaseGoogleSignInButton"
-    _auth_google_button.custom_minimum_size.y=31
-    _auth_google_button.add_theme_font_size_override("font_size",13)
-    _page.add_child(_auth_google_button)
     _objective_selector=OptionButton.new()
     _objective_selector.name="ObjectivesCategorySelector"
     _objective_selector.custom_minimum_size=Vector2(265,35)
