@@ -53,6 +53,9 @@ var _weapon_visuals: Node3D
 var _medical_visual: Node3D
 var _weapon_model: Node3D # Explicit visual reference for older scripts
 var eliminations: int = 0
+# Only one health-death signal per physical enemy may award kills, loot and
+# public kill-feed events. Reset at the start of each new 50-person round.
+var _eliminated_actors_this_round: Dictionary={}
 # Measured from actual CharacterBody3D health lost and successful Area3D pickups.
 var damage_dealt: float=0.0
 var loot_collected: int=0
@@ -564,6 +567,7 @@ func begin_sector_battle() -> void:
     backpack_level=0
     medkits_remaining=2
     eliminations=0
+    _eliminated_actors_this_round.clear()
     damage_dealt=0.0
     loot_collected=0
     opponent_caches_collected=0
@@ -920,23 +924,34 @@ func _alert_nearby_bots(at: Vector3, shooter: Node3D) -> void:
 
 
 func _on_bot_eliminated(_agent: CharacterBody3D,killer: Node3D) -> void:
-    # Correct BR stats: only kills caused by this player count. Enemy-on-enemy
-    # and zone eliminations reduce alive count but do NOT credit a player kill.
-    if sector_battle_active:
-        bot_eliminated.emit(_agent,killer)
-        var victim: String="RIVAL %02d"%maxi(1,_targets.find(_agent)+1)
-        var event: String=""
-        if killer==operator:
-            event="TU ELIMINASTE "+victim
-        elif killer==null:
-            event="ZONA ELIMINO "+victim
-        else:
-            event=("RIVAL %02d"%maxi(1,_targets.find(killer)+1))+" ELIMINO "+victim
-        hud.push_combat_event(event)
-    if killer==operator:
-        eliminations+=1
+    # Only one REAL CharacterBody3D death may count within an active BR
+    # round. Training bots respawn; post-match damage/events must never
+    # become player eliminations, wallet payments or phantom loot.
+    if (not sector_battle_active or not is_instance_valid(_agent) or
+            not _targets.has(_agent) or _agent.health>0.0):
+        return
+    var id: int=_agent.get_instance_id()
+    if _eliminated_actors_this_round.has(id):
+        return
+    _eliminated_actors_this_round[id]=true
+    var credited_to_player: bool=(killer==operator and
+        not operator.royale_eliminated)
+    bot_eliminated.emit(_agent,killer)
+    var victim: String="RIVAL %02d"%maxi(1,_targets.find(_agent)+1)
+    var event: String=""
+    if credited_to_player:
+        event="TU ELIMINASTE "+victim
+    elif killer==null:
+        event="ZONA ELIMINO "+victim
+    elif is_instance_valid(killer) and _targets.has(killer):
+        event=("RIVAL %02d"%maxi(1,_targets.find(killer)+1))+" ELIMINO "+victim
+    else:
+        event="RIVAL ELIMINADO · "+victim
+    hud.push_combat_event(event)
+    if credited_to_player:
+        eliminations=mini(eliminations+1,_targets.size())
         hud.set_eliminations(eliminations)
-        if sector_battle_active and operator.activate_tactical_acceleration():
+        if operator.activate_tactical_acceleration():
             hud.impact("LILA / ACELERACION TACTICA")
         else:
             hud.impact("BAJA CONFIRMADA  /  "+str(eliminations))
