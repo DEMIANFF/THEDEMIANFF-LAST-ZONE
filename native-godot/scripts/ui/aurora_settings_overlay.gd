@@ -6,6 +6,7 @@ signal hud_editor_requested
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
 const MATCH_RECORDS=preload("res://scripts/persistence/offline_match_records.gd")
+const LOCAL_PROFILE_EXPORT=preload("res://scripts/persistence/local_profile_export.gd")
 const RENDER_BUDGET=preload("res://scripts/render/aurora_render_budget.gd")
 const UI_PATH: String="user://aurora_ui_options.cfg"
 const AUDIO_PATH: String="user://aurora_audio.cfg"
@@ -425,6 +426,14 @@ func _account_page() -> void:
         +"No sobrevive a desinstalación; no es una copia Firebase.")
     _make_button(_content,"VERIFICAR / ACTUALIZAR RESPALDO LOCAL",
         _refresh_local_profile_backup)
+    _heading("PAQUETE DE PROGRESO LOCAL (PREPARACIÓN FIREBASE)")
+    _info("Genera un archivo privado versionado con partidas reales. "
+        +"Excluye monedas y diamantes y no se envía a Internet. "
+        +"La copia sigue dentro del juego y se pierde al desinstalar.")
+    _make_button(_content,"GENERAR PAQUETE LOCAL VERIFICADO",
+        _export_profile_snapshot)
+    _make_button(_content,"COMPROBAR PAQUETE DE PROGRESO",
+        _verify_profile_snapshot)
     _heading("VISIBILIDAD Y SEGURIDAD")
     _info("Espectadores, privacidad de clasificación, amigos y gestión de cuentas online estarán disponibles cuando exista el servicio multijugador.")
     _info("No hay botones de desvincular, borrar cuenta o iniciar sesión ficticios. Los datos existentes de Firebase no se modifican.")
@@ -439,6 +448,26 @@ func _refresh_local_profile_backup() -> void:
     _status.text="Copia local verificada: %d partidas"%int(
         state.get("played",0)) if bool(state.get("in_sync",false)) else (
         "No se pudo comprobar la copia local")
+
+
+func _export_profile_snapshot() -> void:
+    var result: Dictionary=LOCAL_PROFILE_EXPORT.create()
+    if bool(result.get("valid",false)):
+        _status.text="Paquete local verificado: %d partidas. Sin subir a Firebase."%int(
+            result.get("played",0))
+    else:
+        _status.text="No se pudo generar el paquete local: "+str(
+            result.get("reason","error"))
+
+
+func _verify_profile_snapshot() -> void:
+    var result: Dictionary=LOCAL_PROFILE_EXPORT.inspect()
+    if bool(result.get("valid",false)):
+        _status.text="Paquete local válido: %d partidas. Sin respaldo remoto."%int(
+            result.get("played",0))
+    else:
+        _status.text="Paquete local no verificado: "+str(
+            result.get("reason","error"))
 
 
 func _backup_local_settings() -> void:
