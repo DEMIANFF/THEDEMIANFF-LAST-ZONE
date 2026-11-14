@@ -6,6 +6,7 @@ const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.g
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const LOBBY_STAGE=preload("res://scripts/ui/aurora_lobby_stage_3d.gd")
+const LOBBY_COMPANION=preload("res://scripts/ui/aurora_robot_companion.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
@@ -1427,7 +1428,7 @@ func _build_preview() -> void:
 
     var viewport:=SubViewport.new()
     viewport.name="PreviewViewport"
-    viewport.size=Vector2i(440,600)
+    viewport.size=Vector2i(768,540)
     viewport.own_world_3d=true
     viewport.transparent_bg=true
     viewport.render_target_update_mode=SubViewport.UPDATE_WHEN_PARENT_VISIBLE
@@ -1458,11 +1459,16 @@ func _build_preview() -> void:
     stage3d.add_child(rim)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
-    camera.position=Vector3(0,1.22,3.45)
-    camera.fov=39
+    camera.position=Vector3(0,1.20,4.05)
+    camera.fov=44
     camera.current=true
     stage3d.add_child(camera)
     camera.look_at(Vector3(0,.88,0),Vector3.UP)
+    var sentinel: Node3D=LOBBY_COMPANION.new()
+    sentinel.name="AuroraSentinelCompanion"
+    sentinel.position=Vector3(1.04,-.04,.30)
+    sentinel.scale=Vector3.ONE*.78
+    stage3d.add_child(sentinel)
     var podium:=MeshInstance3D.new()
     podium.name="PortraitPlatform"
     var disk:=CylinderMesh.new()
@@ -1496,7 +1502,7 @@ func _build_preview() -> void:
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
-    caption.text="LILA AURORA V1  •  BASE CC0 PROVISIONAL   ↻ GIRAR"
+    caption.text="LILA AURORA · OPERADORA 3D   ↻ GIRAR"
     caption.anchor_left=.29
     caption.anchor_right=.65
     caption.anchor_top=.90
