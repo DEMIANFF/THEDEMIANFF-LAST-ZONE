@@ -25,6 +25,15 @@ func _capture() -> void:
         push_error("V75 lobby screenshot failed")
         quit(2)
         return
+    front._select_tab("CUENTA")
+    for i in range(5):
+        await process_frame
+    var account: Image=root.get_texture().get_image()
+    var account_saved: Error=account.save_png("res://out/aurora-v75-77-account.png")
+    if account_saved!=OK:
+        push_error("V75.77 account screen screenshot failed")
+        quit(3)
+        return
     print("AURORA_FRONTEND_RENDER",welcome.get_width(),"x",welcome.get_height(),
-        " welcome/lobby are original Godot GUI not imported third-party sprites")
+        " welcome/lobby/account are original Godot GUI with visible Firebase actions")
     quit(0)
