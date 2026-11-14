@@ -164,6 +164,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _zone_visual.visible=true
     _zone_visual.set_zone_state(zone_center,radius,true)
     hud.set_sector_zone(zone_center,radius)
+    hud.set_next_sector_zone(_zone_center_at(1),PHASE_RADII[1])
     _damage_clock=0.0
     _ui_clock=0.0
     _perf_clock=0.0
@@ -242,6 +243,10 @@ func _process(delta: float) -> void:
             hud.impact("ZONA PELIGROSA / REGRESA AL CIRCULO")
         _was_player_outside=outside
         hud.set_sector_zone(zone_center,radius)
+        var next_phase: int=mini(zone_phase+1,PHASE_COUNT)
+        var next_radius: float=(PHASE_RADII[next_phase]
+            if zone_phase<PHASE_COUNT else OVERTIME_RADIUS)
+        hud.set_next_sector_zone(_zone_center_at(next_phase),next_radius)
         var status: String=("CIERRE FINAL · %ds"%zone_seconds_remaining
             if zone_phase>=PHASE_COUNT and zone_seconds_remaining>0
             else "COMBATE FINAL / ZONA CERRADA" if zone_phase>=PHASE_COUNT

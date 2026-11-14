@@ -61,11 +61,17 @@ func _verify() -> void:
         last_radius=radius
         last_center=center
     director._process(120.0)
+    var radar: Control=game.get_node("TrainingHUD")._training_radar
     var actual: Dictionary=director.zone_state_at(120.0)
     check(director.zone_center.distance_to(actual["center"])<.001 and
         director._zone_visual.world_center.distance_to(director.zone_center)<.001 and
         absf(director._zone_visual.safe_radius-director.radius)<.35,
         "gameplay damage radius or visible ring does not follow moving center")
+    check(absf(float(radar.get("_zone_radius"))-director.radius)<.001 and
+        absf(float(radar.get("_next_zone_radius"))-DIRECTOR.PHASE_RADII[1])<.001 and
+        (radar.get("_next_zone_center") as Vector2).distance_to(
+            director._phase_centers[1])<.001,
+        "real minimap lost current/next moving storm circles")
     for bot in combat._targets:
         check(bot.safe_center.distance_to(director.zone_center)<.001,
             "bot AI still navigates toward outdated fixed storm center")
@@ -80,10 +86,13 @@ func _verify() -> void:
         absf(director._zone_visual.safe_radius-DIRECTOR.OVERTIME_RADIUS)<.001 and
         director._zone_visual.world_center.distance_to(final_center)<.001,
         "visible final ring stays 3m while actual damage zone is 0.75m")
+    check(absf(float(radar.get("_zone_radius"))-DIRECTOR.OVERTIME_RADIUS)<.001
+        and absf(float(radar.get("_next_zone_radius"))-DIRECTOR.OVERTIME_RADIUS)<.001,
+        "minimap or next circle still reports 3m at true 0.75m end")
     game.queue_free()
     await process_frame
     if not failed:
         print("V7588_MOVING_ZONE PASS roster=50 seeded=1 nested=1 "+
-            "visual_hazard_center=aligned bots=49 final_radius=0.75 "+
+            "visual_hazard_center=aligned radar_next=1 bots=49 final_radius=0.75 "+
             "online=not_claimed motorola_fps=unmeasured")
     quit(1 if failed else 0)

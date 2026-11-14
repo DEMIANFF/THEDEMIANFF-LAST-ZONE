@@ -522,6 +522,11 @@ func set_sector_zone(center: Vector2,radius: float) -> void:
         _training_radar.call("set_zone",center,radius)
 
 
+func set_next_sector_zone(center: Vector2,radius: float) -> void:
+    if _training_radar:
+        _training_radar.call("set_next_zone",center,radius)
+
+
 func set_battle_button(label: String) -> void:
     if _battle_button:
         _battle_button.text=label
@@ -531,7 +536,10 @@ func set_battle_button(label: String) -> void:
 
 func set_sector_state(status: String, alive: int, safe_radius: float, elapsed_seconds: int) -> void:
     if _battle_status:
-        _battle_status.text=status+"  |  "+str(alive)+" VIVOS  |  "+str(roundi(safe_radius))+"m  |  "+str(int(elapsed_seconds/60)).pad_zeros(2)+":"+str(elapsed_seconds%60).pad_zeros(2)
+        var radius_label: String=("%.2fm"%safe_radius if safe_radius<1.0
+            else "%.1fm"%safe_radius if safe_radius<3.0
+            else "%dm"%roundi(safe_radius))
+        _battle_status.text=status+"  |  "+str(alive)+" VIVOS  |  "+radius_label+"  |  "+str(int(elapsed_seconds/60)).pad_zeros(2)+":"+str(elapsed_seconds%60).pad_zeros(2)
     if _status:
         _status.text="THEDEMIANFF / AURORA     "+status
 
