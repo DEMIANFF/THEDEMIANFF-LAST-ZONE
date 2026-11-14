@@ -57,10 +57,21 @@ func _verify() -> void:
     check(front._settings_panel.visible and not selector.visible,
         "Settings does not make room for full controls on a small screen")
     front._select_tab("CUENTA")
-    check(not front._settings_panel.visible and selector.visible,
-        "return from Settings does not restore mode navigation")
-    check(front._info.text.contains("Google") and front._info.text.contains("Firebase"),
-        "account screen falsely claims Godot cloud login is implemented")
+    check(not front._settings_panel.visible and not selector.visible and
+        front._name_entry.visible,
+        "account identity editor did not replace match controls")
+    check(front._info.text.contains("Google") and
+        front._info.text.contains("Firebase") and
+        front._info.text.contains("ID OFICIAL: PENDIENTE"),
+        "account screen falsely claims Godot cloud login or player ID")
+    front._select_tab("PERSONAJE")
+    check(selector.visible and front._training_entry.visible and
+        not front._battle_entry.visible,
+        "return from Account did not preserve Training selection")
+    selector.select(0)
+    front._on_match_mode_selected(0)
+    check(front._battle_entry.visible and not front._training_entry.visible,
+        "switching back to Classic after Account did not restore start button")
 
     selector.select(0)
     front._on_match_mode_selected(0)
