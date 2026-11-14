@@ -54,8 +54,9 @@ func _verify() -> void:
         "nearby living opponent ignored a real bot weapon signal")
     check(listener._last_seen.distance_to(origin)<.001,
         "sound investigation did not use the physical gunshot position")
-    check(listener._route.is_empty() and listener._route_clock==0.0,
-        "new gunfire failed to refresh navigation toward sound")
+    check(listener._route.is_empty() and listener._route_clock>0.0 and
+        listener._route_clock<.25,
+        "real gunfire failed to schedule prompt staggered navigation")
     check(listener._sense_clock<=.1 and not listener._target_visible,
         "hearing incorrectly provided instant line-of-sight target lock")
     check(shooter.heard_shots==0,"shooter investigated its own gunshot")

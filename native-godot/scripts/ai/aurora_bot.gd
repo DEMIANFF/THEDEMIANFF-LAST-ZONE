@@ -35,6 +35,8 @@ const FIELD_MEDKIT_HEAL: float=40.0
 const FIELD_MEDKIT_HEALTH_THRESHOLD: float=38.0
 const FIELD_MEDKIT_INTERRUPTED_COOLDOWN: float=1.25
 const PROACTIVE_RELOAD_THRESHOLD: int=4
+# 17 separate CPU buckets prevent 49 real agents from replanning together.
+const ROUTE_REPLAN_BUCKETS: int=17
 
 var navigation: Node3D
 var behavior: String="patrol"
@@ -329,8 +331,14 @@ func _physics_process(dt: float) -> void:
         _idle_phase+=dt*.31
         destination=_anchor+Vector3(cos(_idle_phase)*4.0,0,sin(_idle_phase)*4.0)
 
-    if (health<=45.0 or (health<=70.0 and _suppression_seconds>0.0) or
-            _reload_remaining>0.0) and _alert_time>0 and navigation and navigation.available:
+    # Storm exposure is NOT enemy fire. Avoid expensive cover queries and
+    # false attacker pursuit while a real body must escape the hazard.
+    var escaping_storm: bool=sector_battle and should_escape_current_zone(
+        global_position,safe_center,safe_radius)
+    if (not escaping_storm and
+            (health<=45.0 or (health<=70.0 and _suppression_seconds>0.0) or
+            _reload_remaining>0.0) and _alert_time>0 and
+            navigation and navigation.available):
         if _cover_clock<=0:
             _cover_point=navigation.find_cover(global_position,_last_seen)
             _cover_clock=4.0
@@ -361,8 +369,7 @@ func _physics_process(dt: float) -> void:
     # Immediate storm threat always overrides the next-phase rotation.
     # Scale the margin with the ring: the old fixed four-metre buffer
     # marked EVERY bot as escaping forever when the ring was 0.75m wide.
-    if sector_battle and should_escape_current_zone(
-            global_position,safe_center,safe_radius):
+    if escaping_storm:
         behavior="zone_escape"
         destination=safe_zone_destination(global_position,
             safe_center,safe_radius)
@@ -371,7 +378,7 @@ func _physics_process(dt: float) -> void:
         if _route_clock<=0 and (destination.distance_squared_to(_route_goal)>6.25 or _route.is_empty()):
             _route=navigation.route(global_position,destination)
             _route_goal=destination
-            _route_clock=.9+float(get_instance_id()%4)*.07
+            _route_clock=route_replan_interval(get_instance_id())
         while not _route.is_empty() and Vector2(_route[0].x-global_position.x,_route[0].z-global_position.z).length()<.65:
             _route.remove_at(0)
         if not _route.is_empty():
@@ -506,7 +513,10 @@ func hear_gunshot(at: Vector3, originator: Node3D) -> void:
     _last_seen=at
     _alert_time=maxf(_alert_time,4.5)
     _sense_clock=minf(_sense_clock,.10)
-    _route_clock=0.0
+    # Schedule an urgent but staggered real navigation request. One loud
+    # gunfight must not make up to 49 agents request A* on the same frame.
+    _route_clock=minf(_route_clock,.025+
+        float(get_instance_id()%ROUTE_REPLAN_BUCKETS)*.012)
     _route.clear()
     _route_goal=Vector3(INF,INF,INF)
     heard_shots+=1
@@ -577,9 +587,10 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
         # route budget still bounds PhysicsServer queries on Motorola.
         _cover_clock=0.0
         _sense_clock=0.0
-    elif is_instance_valid(_target_actor):
-        _last_seen=_target_actor.global_position
-    _alert_time=5.5
+        _alert_time=maxf(_alert_time,5.5)
+    # A null attacker means ambient/zone damage: interrupt healing and
+    # reduce real HP, but do not fabricate a shooter, reset cover queries
+    # or refresh pursuit against an unrelated player.
     if health<=0:
         _dead_time=7.0
         visible=false
@@ -739,6 +750,10 @@ static func should_rotate_to_next_zone(position: Vector3,next_center: Vector2,
 ## Only use the current ring's real center/radius: no invulnerable safe
 ## states or simulated movement. A proportional safety buffer is essential
 ## when the last ring contracts below 4m.
+static func route_replan_interval(id: int) -> float:
+    return .90+float(posmod(id,ROUTE_REPLAN_BUCKETS))*.027
+
+
 static func should_escape_current_zone(position: Vector3,center: Vector2,
         radius: float) -> bool:
     if (not position.is_finite() or not center.is_finite() or
