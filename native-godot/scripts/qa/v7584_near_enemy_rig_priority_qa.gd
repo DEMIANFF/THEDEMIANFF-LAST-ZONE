@@ -51,8 +51,14 @@ func _verify() -> void:
         "cannot test a skinned distant owner and low-poly close rival")
     if chosen_distant!=null and chosen_near!=null:
         var origin: Vector3=player.global_position
-        chosen_distant.global_position=origin+Vector3(46.0,0.0,0.0)
-        chosen_near.global_position=origin+Vector3(4.0,0.0,0.0)
+        # All current detailed LOD owners are placed close enough that
+        # the designated 120m owner is uniquely farthest. The selection
+        # is deterministic even when terrain spawns vary between builds.
+        for rival in combat._targets:
+            if rival.distance_lod and rival._rig!=null:
+                rival.global_position=origin+Vector3(12.0,0.0,0.0)
+        chosen_distant.global_position=origin+Vector3(120.0,0.0,0.0)
+        chosen_near.global_position=origin+Vector3(2.0,0.0,0.0)
         var cap_before: int=get_nodes_in_group(
             BOT.DETAILED_ENEMY_GROUP).size()
         chosen_near._set_full_visual(true)
