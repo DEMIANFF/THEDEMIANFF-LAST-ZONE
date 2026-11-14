@@ -167,7 +167,8 @@ func _ready() -> void:
     _brand_logo.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     _brand_logo.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _surface.add_child(_brand_logo)
-    _build_preview()
+    # Build the heavy skinned 3D preview only when the player enters the lobby.
+    # Welcome/login no longer owns an unnecessary 3D render target or rig.
     get_viewport().size_changed.connect(_layout_safe)
     _layout_safe.call_deferred()
     _welcome()
@@ -293,10 +294,7 @@ func _welcome() -> void:
     visible=true
     _login_pending_provider=""
     _login_waiting_provider=""
-    if _preview_container!=null and is_instance_valid(_preview_container):
-        _preview_container.visible=false
-    if _preview_caption!=null and is_instance_valid(_preview_caption):
-        _preview_caption.visible=false
+    _release_preview()
     if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         _lobby_nav.visible=false
     if _bottom_navigation!=null and is_instance_valid(_bottom_navigation):
@@ -1342,13 +1340,7 @@ func _launch(battle: bool) -> void:
     # Unload the 440x600 offscreen character renderer (its own 3D world,
     # lights, rig and textures) before entering a memory-heavy Android match.
     # Hiding it only stopped drawing but retained VRAM/mesh allocations.
-    if _preview_container and is_instance_valid(_preview_container):
-        _preview_container.queue_free()
-    if _preview_caption and is_instance_valid(_preview_caption):
-        _preview_caption.queue_free()
-    _preview_container=null
-    _preview_caption=null
-    _preview_avatar=null
+    _release_preview()
     _clear_page()
     _label("PREPARANDO PUERTO AURORA",27)
     _label("Cargando terreno, colisiones, personaje, armas y patrullas...",18)
@@ -1442,6 +1434,21 @@ func _return_to_lobby() -> void:
     _hud_editor_requested=false
     _hud_editor_origin=""
     _show_lobby()
+
+
+func _release_preview() -> void:
+    # A hidden SubViewport still retains its render target and imported
+    # skinned rig. Queue-free it on logout AND before 3D match creation.
+    if _preview_container!=null and is_instance_valid(_preview_container):
+        _preview_container.queue_free()
+    if _preview_caption!=null and is_instance_valid(_preview_caption):
+        _preview_caption.queue_free()
+    _preview_container=null
+    _preview_caption=null
+    _preview_avatar=null
+    _preview_touch=-1
+    _preview_mouse_drag=false
+    _preview_resume_spin=0.0
 
 
 func _build_preview() -> void:
