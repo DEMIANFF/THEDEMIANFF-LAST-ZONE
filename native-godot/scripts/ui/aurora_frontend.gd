@@ -895,11 +895,11 @@ func _ensure_lobby_navigation() -> void:
     if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         return
     _profile_strip=_make_header_label(
-        "LocalProfileStrip",.035,.325,18)
+        "LocalProfileStrip",.03,.30,16)
     _stats_strip=_make_header_label(
-        "LocalStatisticsStrip",.365,.665,13)
+        "LocalStatisticsStrip",.31,.54,12)
     _currency_strip=_make_header_label(
-        "LocalCurrencyStrip",.69,.897,12)
+        "LocalCurrencyStrip",.55,.784,12)
     var backplate:=ColorRect.new()
     backplate.name="LobbyMenuBackplate"
     backplate.anchor_left=.674
@@ -912,11 +912,11 @@ func _ensure_lobby_navigation() -> void:
     _surface.move_child(backplate,1)
     var navplate:=ColorRect.new()
     navplate.name="LobbySidebarBackplate"
-    navplate.anchor_left=.026
-    navplate.anchor_right=.226
-    navplate.anchor_top=.15
-    navplate.anchor_bottom=.954
-    navplate.color=Color(.020,.041,.066,.95)
+    navplate.anchor_left=.013
+    navplate.anchor_right=.212
+    navplate.anchor_top=.267
+    navplate.anchor_bottom=.865
+    navplate.color=Color(.022,.029,.074,.92)
     navplate.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _surface.add_child(navplate)
     _surface.move_child(navplate,2)
@@ -941,6 +941,192 @@ func _ensure_lobby_navigation() -> void:
         if tab=="JUGAR":
             _style_primary_action(button)
         _lobby_nav.add_child(button)
+
+    # The previous nine-tab rail remains as the gameplay routing contract,
+    # but its redundant giant buttons are hidden. Use the explicit Aurora
+    # commerce rail + bottom arsenal shortcuts instead, as in the supplied
+    # mobile reference, WITHOUT claiming unavailable online purchases.
+    _lobby_nav.visible=false
+    _banner=Label.new()
+    _banner.name="AuroraOperationBanner"
+    _banner.text="◈  BASE AURORA\n      OPERACIÓN LOCAL"
+    _banner.anchor_left=.020
+    _banner.anchor_right=.207
+    _banner.anchor_top=.150
+    _banner.anchor_bottom=.267
+    _banner.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    _banner.add_theme_font_size_override("font_size",14)
+    _banner.add_theme_color_override("font_color",Color(.97,.83,.99))
+    _banner.add_theme_color_override("font_shadow_color",Color(.47,.15,.75,.9))
+    _surface.add_child(_banner)
+
+    _left_shortcuts=VBoxContainer.new()
+    _left_shortcuts.name="AuroraCommerceRail"
+    _left_shortcuts.anchor_left=.021
+    _left_shortcuts.anchor_right=.209
+    _left_shortcuts.anchor_top=.287
+    _left_shortcuts.anchor_bottom=.846
+    _left_shortcuts.add_theme_constant_override("separation",4)
+    _surface.add_child(_left_shortcuts)
+    var quick_items: Array[Array]=[
+        ["▣ TIENDA","TIENDA",""],
+        ["✦ LUCK ROYALE","LUCK",""],
+        ["♛ PASE DE BATALLA","PASE",""],
+        ["▤ EVENTOS","OBJETIVOS","events"],
+        ["☷ MISIONES","OBJETIVOS","missions"],
+        ["★ LOGROS","OBJETIVOS","achievements"]
+    ]
+    for item in quick_items:
+        var label: String=str(item[0])
+        var target: String=str(item[1])
+        var objective: String=str(item[2])
+        var button:=_button(label,Callable(self,"_open_lobby_category").bind(
+            target,objective),160)
+        button.name="Quick"+(objective.to_upper() if not objective.is_empty()
+            else target)
+        button.custom_minimum_size=Vector2(0,30)
+        button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        button.add_theme_font_size_override("font_size",12)
+        _style_aurora_tab(button,Color(.63,.33,.99))
+        _left_shortcuts.add_child(button)
+
+    _bottom_navigation=HBoxContainer.new()
+    _bottom_navigation.name="AuroraBottomNavigation"
+    _bottom_navigation.anchor_left=.027
+    _bottom_navigation.anchor_right=.978
+    _bottom_navigation.anchor_top=.870
+    _bottom_navigation.anchor_bottom=.974
+    _bottom_navigation.add_theme_constant_override("separation",7)
+    _surface.add_child(_bottom_navigation)
+    for item in [
+        ["INVENTARIO","INVENTARIO"],["ARMAS","ARMAS"],
+        ["PERSONAJES","PERSONAJE"],["PRESET","PRESET"],
+        ["CLAN","SOCIAL"]
+    ]:
+        var target: String=str(item[1])
+        var button:=_button(str(item[0]),
+            Callable(self,"_select_tab").bind(target),0)
+        button.name="Bottom"+target
+        button.custom_minimum_size=Vector2(0,30)
+        button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        button.add_theme_font_size_override("font_size",12)
+        _style_aurora_tab(button,Color(.50,.31,.81))
+        _bottom_navigation.add_child(button)
+
+    _social_panel=PanelContainer.new()
+    _social_panel.name="AuroraRealSocialPanel"
+    _social_panel.anchor_left=.704
+    _social_panel.anchor_right=.977
+    _social_panel.anchor_top=.165
+    _social_panel.anchor_bottom=.476
+    var social_style:=StyleBoxFlat.new()
+    social_style.bg_color=Color(.026,.022,.072,.92)
+    social_style.border_color=Color(.43,.28,.69)
+    social_style.set_border_width_all(1)
+    social_style.set_corner_radius_all(5)
+    _social_panel.add_theme_stylebox_override("panel",social_style)
+    _surface.add_child(_social_panel)
+    var social_content:=VBoxContainer.new()
+    social_content.name="SocialContent"
+    social_content.add_theme_constant_override("separation",4)
+    _social_panel.add_child(social_content)
+    var social_title:=Label.new()
+    social_title.text="AMIGOS · SOCIAL"
+    social_title.name="FriendsHeading"
+    social_title.add_theme_font_size_override("font_size",15)
+    social_title.add_theme_color_override("font_color",Color(.9,.85,1))
+    social_content.add_child(social_title)
+    _social_status_label=Label.new()
+    _social_status_label.name="ActualFriendsStatus"
+    _social_status_label.text="Sin amigos conectados\nServicio multijugador pendiente"
+    _social_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    _social_status_label.add_theme_font_size_override("font_size",11)
+    _social_status_label.add_theme_color_override("font_color",Color(.75,.8,.85))
+    social_content.add_child(_social_status_label)
+    var social_open:=_button("VER SOCIAL / CLAN",
+        Callable(self,"_select_tab").bind("SOCIAL"),0)
+    social_open.name="RealSocialEntry"
+    social_open.custom_minimum_size=Vector2(0,29)
+    social_open.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    social_open.add_theme_font_size_override("font_size",12)
+    _style_aurora_tab(social_open,Color(.40,.65,.86))
+    social_content.add_child(social_open)
+
+    _play_match_card=PanelContainer.new()
+    _play_match_card.name="BattleRoyaleModeCard"
+    _play_match_card.anchor_left=.698
+    _play_match_card.anchor_right=.982
+    _play_match_card.anchor_top=.484
+    _play_match_card.anchor_bottom=.864
+    _play_match_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    var match_card_style:=StyleBoxFlat.new()
+    match_card_style.bg_color=Color(.022,.036,.090,.92)
+    match_card_style.border_color=Color(.91,.68,.21)
+    match_card_style.set_border_width_all(2)
+    match_card_style.set_corner_radius_all(7)
+    _play_match_card.add_theme_stylebox_override("panel",match_card_style)
+    _surface.add_child(_play_match_card)
+    _surface.move_child(_play_match_card,2)
+
+    _top_account_button=_button("CUENTA",
+        Callable(self,"_select_tab").bind("CUENTA"),0)
+    _top_account_button.name="TopAccount"
+    _top_account_button.custom_minimum_size=Vector2.ZERO
+    _top_account_button.anchor_left=.790
+    _top_account_button.anchor_right=.863
+    _top_account_button.anchor_top=.038
+    _top_account_button.anchor_bottom=.107
+    _top_account_button.add_theme_font_size_override("font_size",11)
+    _style_aurora_tab(_top_account_button,Color(.53,.39,.87))
+    _surface.add_child(_top_account_button)
+    _top_settings_button=_button("⚙",
+        Callable(self,"_open_settings"),0)
+    _top_settings_button.name="TopSettings"
+    _top_settings_button.custom_minimum_size=Vector2.ZERO
+    _top_settings_button.anchor_left=.875
+    _top_settings_button.anchor_right=.926
+    _top_settings_button.anchor_top=.037
+    _top_settings_button.anchor_bottom=.11
+    _top_settings_button.add_theme_font_size_override("font_size",18)
+    _style_aurora_tab(_top_settings_button,Color(.53,.39,.87))
+    _surface.add_child(_top_settings_button)
+    _top_social_button=_button("♙",
+        Callable(self,"_select_tab").bind("SOCIAL"),0)
+    _top_social_button.name="TopSocial"
+    _top_social_button.custom_minimum_size=Vector2.ZERO
+    _top_social_button.anchor_left=.730
+    _top_social_button.anchor_right=.784
+    _top_social_button.anchor_top=.037
+    _top_social_button.anchor_bottom=.11
+    _top_social_button.add_theme_font_size_override("font_size",17)
+    _style_aurora_tab(_top_social_button,Color(.53,.39,.87))
+    _surface.add_child(_top_social_button)
+
+
+func _style_aurora_tab(button: Button,tint: Color) -> void:
+    var normal:=StyleBoxFlat.new()
+    normal.bg_color=Color(.019,.025,.068,.90)
+    normal.border_color=tint
+    normal.set_border_width_all(1)
+    normal.set_corner_radius_all(5)
+    var hover:=normal.duplicate() as StyleBoxFlat
+    hover.bg_color=Color(.13,.085,.25,.98)
+    var pressed:=hover.duplicate() as StyleBoxFlat
+    pressed.border_color=Color(.98,.77,.31)
+    button.add_theme_stylebox_override("normal",normal)
+    button.add_theme_stylebox_override("hover",hover)
+    button.add_theme_stylebox_override("pressed",pressed)
+    button.add_theme_color_override("font_color",Color(.95,.95,1))
+    button.add_theme_color_override("font_hover_color",Color(1,.88,.64))
+
+
+func _open_lobby_category(tab: String,objective: String="") -> void:
+    if not objective.is_empty():
+        _objective_page=objective
+        if _objective_selector!=null:
+            _objective_selector.select(["missions","achievements","events"].find(
+                objective))
+    _select_tab(tab)
 
 
 func _select_tab(tab: String) -> void:
