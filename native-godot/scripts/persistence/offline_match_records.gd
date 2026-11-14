@@ -291,7 +291,8 @@ static func pass_points(data: Dictionary) -> int:
     var matches: int=clampi(int(data.get("played",0)),0,100000)
     var kills: int=clampi(int(data.get("kills",0)),0,100000)
     var wins: int=clampi(int(data.get("wins",0)),0,matches)
-    var minutes: int=clampi(int(data.get("survival_seconds",0))/60,0,100000)
+    var minutes: int=clampi(int(floor(float(
+        data.get("survival_seconds",0))/60.0)),0,100000)
     return matches*30+kills*12+wins*90+minutes*2
 
 
@@ -322,8 +323,9 @@ func claim_next_pass_reward() -> bool:
         return false
     var state: Dictionary=free_pass_state()
     var tier: int=int(state["next_claimable"])
-    if tier<=0 or int(_data.get("local_coins",0))>
-            LOCAL_COIN_LIMIT-PASS_REWARD_COINS:
+    if (tier<=0 or
+            int(_data.get("local_coins",0))>
+            LOCAL_COIN_LIMIT-PASS_REWARD_COINS):
         return false
     var previous: Dictionary=_data.duplicate(true)
     var claims: Array=_data.get("pass_claims",[]).duplicate()
