@@ -514,7 +514,7 @@ func _show_lobby() -> void:
     # Logo stays outside the full-width profile strip and never crosses
     # over player statistics or the rotating 3D character.
     _brand_logo.anchor_left=.944
-    _brand_logo.anchor_right=.983
+    _brand_logo.anchor_right=.975
     _brand_logo.anchor_top=.019
     _brand_logo.anchor_bottom=.117
     # Base Aurora: large real 3D operator at centre; separate commerce,
@@ -532,8 +532,8 @@ func _show_lobby() -> void:
     _preview_caption.visible=true
     _preview_caption.anchor_left=.216
     _preview_caption.anchor_right=.697
-    _preview_caption.anchor_top=.845
-    _preview_caption.anchor_bottom=.845
+    _preview_caption.anchor_top=.820
+    _preview_caption.anchor_bottom=.820
     _ensure_lobby_navigation()
     _lobby_nav.visible=false
     _left_shortcuts.visible=true
@@ -549,7 +549,7 @@ func _show_lobby() -> void:
     _stats_strip.visible=true
     _update_identity_strip(stats)
     _currency_strip.visible=true
-    _currency_strip.text="MONEDAS %d  |  DIAMANTES —"%int(
+    _currency_strip.text="MONEDAS %d\nDIAMANTES —"%int(
         stats.get("local_coins",0))
     _preview_touch=-1
     _preview_mouse_drag=false
@@ -567,7 +567,7 @@ func _show_lobby() -> void:
     _lobby_mode_heading.add_theme_color_override("font_color",Color(.96,.77,.38))
     _match_mode_selector=OptionButton.new()
     _match_mode_selector.name="MatchModeSelector"
-    _match_mode_selector.custom_minimum_size=Vector2(265,36)
+    _match_mode_selector.custom_minimum_size=Vector2(245,32)
     _match_mode_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
     _match_mode_selector.add_item("CLÁSICO · IA LOCAL",0)
     _match_mode_selector.add_item("CLASIFICATORIA · ONLINE PENDIENTE",1)
@@ -580,7 +580,7 @@ func _show_lobby() -> void:
     _page.add_child(_lobby_play_modes)
     _battle_entry=_button("INICIAR",Callable(self,"_launch").bind(true),240)
     _battle_entry.name="BattleButton"
-    _battle_entry.custom_minimum_size.y=52
+    _battle_entry.custom_minimum_size.y=46
     _battle_entry.add_theme_font_size_override("font_size",23)
     _style_primary_action(_battle_entry)
     _lobby_play_modes.add_child(_battle_entry)
@@ -593,7 +593,7 @@ func _show_lobby() -> void:
     _lobby_mode_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
     _encounter_selector=OptionButton.new()
     _encounter_selector.name="OfflineEncounterSize"
-    _encounter_selector.custom_minimum_size=Vector2(257,34)
+    _encounter_selector.custom_minimum_size=Vector2(245,30)
     _encounter_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
     _encounter_selector.add_item("9 participantes · Móvil recomendado",9)
     _encounter_selector.add_item("20 participantes · Prueba de carga",20)
@@ -924,7 +924,7 @@ func _ensure_lobby_navigation() -> void:
     _stats_strip=_make_header_label(
         "LocalStatisticsStrip",.31,.54,12)
     _currency_strip=_make_header_label(
-        "LocalCurrencyStrip",.55,.784,12)
+        "LocalCurrencyStrip",.55,.723,11)
     var backplate:=ColorRect.new()
     backplate.name="LobbyMenuBackplate"
     backplate.anchor_left=.674
@@ -1525,7 +1525,7 @@ func _build_preview() -> void:
     caption.anchor_right=.65
     caption.anchor_top=.90
     caption.anchor_bottom=.90
-    caption.offset_bottom=35
+    caption.offset_bottom=22
     caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     caption.add_theme_font_size_override("font_size",13)
     caption.add_theme_color_override("font_color",Color(.62,.84,.96))
