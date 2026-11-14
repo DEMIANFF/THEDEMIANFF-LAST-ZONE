@@ -189,6 +189,16 @@ jobs:
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_weapon_preview.gd
           test -s native-godot/out/aurora-v74-1-ak74.png
           test -s native-godot/out/aurora-v74-1-awm.png
+      # Preserve real in-engine screenshots even if a later APK gate fails.
+      # This lets the Motorola UI redesign be reviewed before installation.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: THEDEMIAN-V75.77-LOBBY-ACCOUNT-PREVIEW
+          path: |
+            native-godot/out/aurora-v75-19-welcome.png
+            native-godot/out/aurora-v75-19-lobby.png
+            native-godot/out/aurora-v75-77-account.png
+          retention-days: 30
       - name: Render expanded Motorola layout and verify absence of side bars
         run: xvfb-run -a -s "-screen 0 2712x1220x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_responsive_preview.gd > native-godot/out/qa/responsive-render.log 2>&1
       - name: Render real first animated canopy in desktop OpenGL compatibility
