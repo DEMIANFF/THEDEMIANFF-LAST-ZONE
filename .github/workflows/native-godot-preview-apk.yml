@@ -372,14 +372,18 @@ jobs:
           # Godot/Gradle debug signing may omit APK signature scheme v3 even
           # with the correct certificate. Re-sign the already aligned Gradle
           # output using the PINNED existing preview certificate (no new key).
-          # Require v2 + v3 so both signed APK variants pass the same gate.
+          # apksigner defaulted to APK v3 ONLY because Gradle selected an
+          # Android 9+ min SDK. Force signature coverage from API 24 when
+          # signing, which includes both v2 and v3 without changing the
+          # manifest's actual Android minSdkVersion. Require both gates.
           SIGNER="$ANDROID_HOME/build-tools/35.0.1/apksigner"
           "$SIGNER" sign \
             --ks "$HOME/.android/debug.keystore" \
             --ks-key-alias androiddebugkey \
             --ks-pass pass:android \
             --key-pass pass:android \
-            --v1-signing-enabled true \
+            --min-sdk-version 24 \
+            --v1-signing-enabled false \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
             --out "${APK%.apk}.resigned.apk" "$APK"
