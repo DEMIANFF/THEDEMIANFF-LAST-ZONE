@@ -742,47 +742,51 @@ func _ensure_lobby_navigation() -> void:
     if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         return
     _profile_strip=_make_header_label(
-        "LocalProfileStrip",.034,.365,16)
+        "LocalProfileStrip",.035,.325,18)
     _stats_strip=_make_header_label(
-        "LocalStatisticsStrip",.375,.665,12)
+        "LocalStatisticsStrip",.365,.665,13)
     _currency_strip=_make_header_label(
-        "LocalCurrencyStrip",.676,.895,12)
+        "LocalCurrencyStrip",.69,.897,12)
     var backplate:=ColorRect.new()
     backplate.name="LobbyMenuBackplate"
-    backplate.anchor_left=.665
-    backplate.anchor_right=.978
-    backplate.anchor_top=.16
-    backplate.anchor_bottom=.945
-    backplate.color=Color(.036,.03,.093,.93)
+    backplate.anchor_left=.674
+    backplate.anchor_right=.981
+    backplate.anchor_top=.15
+    backplate.anchor_bottom=.954
+    backplate.color=Color(.023,.039,.070,.96)
     backplate.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _surface.add_child(backplate)
     _surface.move_child(backplate,1)
     var navplate:=ColorRect.new()
     navplate.name="LobbySidebarBackplate"
-    navplate.anchor_left=.028
-    navplate.anchor_right=.264
-    navplate.anchor_top=.167
-    navplate.anchor_bottom=.947
-    navplate.color=Color(.023,.045,.096,.88)
+    navplate.anchor_left=.026
+    navplate.anchor_right=.226
+    navplate.anchor_top=.15
+    navplate.anchor_bottom=.954
+    navplate.color=Color(.020,.041,.066,.95)
     navplate.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _surface.add_child(navplate)
     _surface.move_child(navplate,2)
     _lobby_nav=VBoxContainer.new()
     _lobby_nav.name="LobbyNavigation"
-    _lobby_nav.anchor_left=.035
-    _lobby_nav.anchor_right=.255
-    _lobby_nav.anchor_top=.19
-    _lobby_nav.anchor_bottom=.94
+    _lobby_nav.anchor_left=.038
+    _lobby_nav.anchor_right=.211
+    _lobby_nav.anchor_top=.177
+    _lobby_nav.anchor_bottom=.93
     _lobby_nav.add_theme_constant_override("separation",4)
     _surface.add_child(_lobby_nav)
-    # Missions, achievements and events share one section to preserve space.
-    for tab in ["PERSONAJE","ARMAS","OBJETIVOS","TIENDA","PASE","SOCIAL","CUENTA","AJUSTES"]:
+    # A prominent JUGAR entry is always first. Remaining modules have
+    # permanent locations, rather than being buried under overlapping UI.
+    for tab in ["JUGAR","PERSONAJE","ARMAS","OBJETIVOS","TIENDA","PASE","SOCIAL","CUENTA","AJUSTES"]:
         var tab_name: String=tab
-        var button:=_button(tab_name,Callable(self,"_select_tab").bind(tab_name),176)
+        var button:=_button(tab_name,Callable(self,"_select_tab").bind(tab_name),154)
         button.name="Tab"+tab_name
         var compact: bool=_surface.size.y<620.0
-        button.custom_minimum_size=Vector2(176,30 if compact else 43)
-        button.add_theme_font_size_override("font_size",12 if compact else 18)
+        button.custom_minimum_size=Vector2(154,31 if compact else 42)
+        button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        button.add_theme_font_size_override("font_size",13 if compact else 17)
+        if tab=="JUGAR":
+            _style_primary_action(button)
         _lobby_nav.add_child(button)
 
 
