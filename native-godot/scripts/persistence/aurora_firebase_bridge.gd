@@ -1,7 +1,7 @@
 extends RefCounted
-## V75.75 - fail-closed Godot transport for the separately built native
-## Firebase Android v2 plugin. The preview APK still excludes the plugin,
-## and no Firebase project credentials or production rollout are enabled.
+## V75.77 - fail-closed Godot transport for the native Android Firebase
+## plugin. Only the separate Gradle APK includes native SDK + Google Services.
+## A transport-ready state is not a server-authenticated account.
 ## Never store, expose or print Firebase Auth tokens or App Check tokens.
 const PLUGIN_NAME: String="AuroraFirebase"
 const API_VERSION: int=1
@@ -38,7 +38,9 @@ static func status() -> Dictionary:
     for method_name in ["getBridgeStatus","beginGuestSignIn",
             "beginGoogleSignIn","getSessionState"]:
         if not native.has_method(method_name):
-            return _blocked("plugin_contract_incomplete")
+            # Include only the missing public method name. This is safe for
+            # mobile diagnostics and never discloses tokens or Firebase keys.
+            return _blocked("plugin_contract_incomplete:"+method_name)
     var encoded: Variant=native.call("getBridgeStatus")
     if not (encoded is String):
         return _blocked("plugin_status_invalid")
