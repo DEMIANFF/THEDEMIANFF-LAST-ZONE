@@ -1,7 +1,7 @@
 extends RefCounted
-## V75.74 - fail-closed adapter for a FUTURE Godot Android v2 Firebase plugin.
-## This release has NO native plugin, no Firebase Auth, no Google session, no
-## App Check attestation, no callable traffic and no cloud restore.
+## V75.75 - fail-closed Godot transport for the separately built native
+## Firebase Android v2 plugin. The preview APK still excludes the plugin,
+## and no Firebase project credentials or production rollout are enabled.
 ## Never store, expose or print Firebase Auth tokens or App Check tokens.
 const PLUGIN_NAME: String="AuroraFirebase"
 const API_VERSION: int=1
@@ -13,6 +13,7 @@ static func contract() -> Dictionary:
         "status_method":"getBridgeStatus",
         "guest_method":"beginGuestSignIn",
         "google_method":"beginGoogleSignIn",
+        "session_method":"getSessionState",
         "requires_gradle":true,
         "requires_app_check":true
     }
@@ -34,7 +35,8 @@ static func status() -> Dictionary:
     if not Engine.has_singleton(PLUGIN_NAME):
         return _blocked("android_plugin_missing")
     var native: Object=Engine.get_singleton(PLUGIN_NAME)
-    for method_name in ["getBridgeStatus","beginGuestSignIn","beginGoogleSignIn"]:
+    for method_name in ["getBridgeStatus","beginGuestSignIn",
+            "beginGoogleSignIn","getSessionState"]:
         if not native.has_method(method_name):
             return _blocked("plugin_contract_incomplete")
     var encoded: Variant=native.call("getBridgeStatus")
@@ -48,7 +50,8 @@ static func status() -> Dictionary:
             details.get("provider")!="play_integrity" or
             details.get("configured")!=true):
         return _blocked("firebase_configuration_incomplete")
-    # A plugin loaded without a successful attestation is not trusted.
+    # A token returned by the SDK is NOT a server-verified attestation.
+    # Only protected Firebase Functions can perform that validation.
     if details.get("app_check")!="token_ready":
         return _blocked("app_check_unverified")
     # This only enables a future *attempt* to authenticate: it is not a
@@ -57,7 +60,7 @@ static func status() -> Dictionary:
         "ready":true,
         "reason":"native_transport_ready",
         "firebase_auth":"session_not_asserted",
-        "app_check":"verified",
+        "app_check":"token_ready",
         "player_id":"not_assigned"
     }
 
@@ -80,3 +83,50 @@ static func request_sign_in(provider: String) -> Dictionary:
     else:
         native.call("beginGoogleSignIn")
     return {"queued":true,"authenticated":false,"reason":"request_dispatched"}
+
+
+## This metadata is for display only, never an input authorizing Firestore
+## writes. Firebase callables must verify Auth UID and App Check server-side.
+static func session_state() -> Dictionary:
+    var current: Dictionary=status()
+    if not bool(current.get("ready",false)):
+        return {
+            "authenticated":false,
+            "identity_confirmed":false,
+            "reason":current.get("reason","not_available")
+        }
+    var native: Object=Engine.get_singleton(PLUGIN_NAME)
+    var raw: Variant=native.call("getSessionState")
+    if not (raw is String):
+        return {"authenticated":false,"identity_confirmed":false,
+            "reason":"invalid_native_session"}
+    var parsed: Variant=JSON.parse_string(raw)
+    if not (parsed is Dictionary):
+        return {"authenticated":false,"identity_confirmed":false,
+            "reason":"invalid_native_session"}
+    var payload: Dictionary=parsed
+    if payload.get("authenticated")!=true:
+        return {"authenticated":false,"identity_confirmed":false,
+            "reason":str(payload.get("reason","not_signed_in"))}
+    var provider: String=str(payload.get("provider",""))
+    if not (provider in ["guest","google"]):
+        return {"authenticated":false,"identity_confirmed":false,
+            "reason":"provider_invalid"}
+    var id: String=str(payload.get("official_id",""))
+    var confirmed: bool=payload.get("identity_confirmed")==true
+    if confirmed:
+        if (id.length()!=5 or not id.is_valid_int() or
+                int(id)<1 or int(id)>99999 or
+                str(int(id)).pad_zeros(5)!=id):
+            return {"authenticated":true,"identity_confirmed":false,
+                "provider":provider,"reason":"official_id_invalid"}
+    var name: String=str(payload.get("display_name",""))
+    return {
+        "authenticated":true,
+        "identity_confirmed":confirmed,
+        "official_id":id if confirmed else "",
+        "display_name":name if confirmed else "",
+        "provider":provider,
+        "pending":payload.get("pending")==true,
+        "reason":str(payload.get("reason","identity_pending"))
+    }
