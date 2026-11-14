@@ -34,7 +34,7 @@ var _page: VBoxContainer
 var _info: Label
 var _game: Node3D
 var _primary: Button
-var _selected_tab: String = "PERSONAJE"
+var _selected_tab: String = "JUGAR"
 var _preview_container: SubViewportContainer
 var _preview_avatar: Node3D
 var _preview_caption: Label
@@ -45,6 +45,9 @@ var _name_save_button: Button
 var _firebase_check_button: Button
 var _auth_guest_button: Button
 var _auth_google_button: Button
+var _account_connection_label: Label
+var _lobby_section_title: Label
+var _lobby_section_hint: Label
 var _lobby_nav: VBoxContainer
 var _profile_strip: Label
 var _stats_strip: Label
@@ -202,6 +205,27 @@ func _label(value: String, font_size: int=24) -> Label:
     return line
 
 
+func _style_primary_action(button: Button) -> void:
+    var style:=StyleBoxFlat.new()
+    style.bg_color=Color(.91,.68,.24)
+    style.border_color=Color(.99,.86,.47)
+    style.set_border_width_all(1)
+    style.set_corner_radius_all(9)
+    var hover:=style.duplicate() as StyleBoxFlat
+    hover.bg_color=Color(1.0,.77,.31)
+    var disabled:=style.duplicate() as StyleBoxFlat
+    disabled.bg_color=Color(.15,.21,.27,.90)
+    disabled.border_color=Color(.30,.39,.46)
+    button.add_theme_stylebox_override("normal",style)
+    button.add_theme_stylebox_override("hover",hover)
+    button.add_theme_stylebox_override("pressed",hover)
+    button.add_theme_stylebox_override("disabled",disabled)
+    button.add_theme_color_override("font_color",Color(.05,.09,.13))
+    button.add_theme_color_override("font_hover_color",Color(.05,.09,.13))
+    button.add_theme_color_override("font_pressed_color",Color(.05,.09,.13))
+    button.add_theme_color_override("font_disabled_color",Color(.75,.80,.84))
+
+
 func _button(value: String, callback: Callable, width: float=260.0) -> Button:
     var button:=Button.new()
     button.text=value
@@ -354,25 +378,27 @@ func _show_lobby() -> void:
     _brand_logo.visible=true
     # Logo stays outside the full-width profile strip and never crosses
     # over player statistics or the rotating 3D character.
-    _brand_logo.anchor_left=.909
-    _brand_logo.anchor_right=.958
-    _brand_logo.anchor_top=.022
-    _brand_logo.anchor_bottom=.137
-    _page.anchor_left=.67
+    _brand_logo.anchor_left=.911
+    _brand_logo.anchor_right=.96
+    _brand_logo.anchor_top=.018
+    _brand_logo.anchor_bottom=.126
+    # The live 3D operator is now the central focus; navigation and content
+    # keep independent safe margins in 960x434 landscape.
+    _page.anchor_left=.687
     _page.anchor_right=.97
-    _page.anchor_top=.16
-    _page.anchor_bottom=.94
-    _page.add_theme_constant_override("separation",5)
-    _preview_container.anchor_left=.29
-    _preview_container.anchor_right=.65
-    _preview_container.anchor_top=.14
-    _preview_container.anchor_bottom=.86
+    _page.anchor_top=.157
+    _page.anchor_bottom=.944
+    _page.add_theme_constant_override("separation",3)
+    _preview_container.anchor_left=.237
+    _preview_container.anchor_right=.665
+    _preview_container.anchor_top=.145
+    _preview_container.anchor_bottom=.865
     _preview_container.visible=true
     _preview_caption.visible=true
-    _preview_caption.anchor_left=.29
-    _preview_caption.anchor_right=.65
-    _preview_caption.anchor_top=.875
-    _preview_caption.anchor_bottom=.875
+    _preview_caption.anchor_left=.237
+    _preview_caption.anchor_right=.665
+    _preview_caption.anchor_top=.872
+    _preview_caption.anchor_bottom=.872
     _ensure_lobby_navigation()
     _lobby_nav.visible=true
     # Three independently clipped headers keep the original brand legible
@@ -390,8 +416,12 @@ func _show_lobby() -> void:
     if _preview_avatar:
         _preview_avatar.rotation.y=0.0
     _clear_page()
-    _label("PUERTO AURORA  /  BR",22)
-    _label("THEDEMIAN · LOBBY LOCAL",12)
+    _lobby_section_title=_label("JUGAR · PUERTO AURORA",19)
+    _lobby_section_title.name="LobbySectionTitle"
+    _lobby_section_title.add_theme_color_override("font_color",Color(.96,.96,.88))
+    _lobby_section_hint=_label("CLÁSICO LOCAL  /  IA",11)
+    _lobby_section_hint.name="LobbySectionHint"
+    _lobby_section_hint.add_theme_color_override("font_color",Color(.57,.84,.94))
     _lobby_mode_heading=_label("MODALIDAD DE PARTIDA",13)
     _lobby_mode_heading.add_theme_color_override("font_color",Color(.96,.77,.38))
     _match_mode_selector=OptionButton.new()
@@ -407,59 +437,71 @@ func _show_lobby() -> void:
     _lobby_play_modes=VBoxContainer.new()
     _lobby_play_modes.name="PlayModes"
     _page.add_child(_lobby_play_modes)
-    _battle_entry=_button("INICIAR CLÁSICO",Callable(self,"_launch").bind(true),265)
+    _battle_entry=_button("JUGAR CLÁSICO",Callable(self,"_launch").bind(true),255)
     _battle_entry.name="BattleButton"
-    _battle_entry.custom_minimum_size.y=42
+    _battle_entry.custom_minimum_size.y=48
+    _style_primary_action(_battle_entry)
     _lobby_play_modes.add_child(_battle_entry)
-    _training_entry=_button("INICIAR ENTRENAMIENTO",Callable(self,"_launch").bind(false),265)
+    _training_entry=_button("ENTRENAR",Callable(self,"_launch").bind(false),255)
     _training_entry.name="TrainingButton"
-    _training_entry.custom_minimum_size.y=42
+    _training_entry.custom_minimum_size.y=48
+    _style_primary_action(_training_entry)
     _lobby_play_modes.add_child(_training_entry)
-    _lobby_mode_caption=_label("PARTICIPANTES LOCALES · SOLO CON IA",12)
+    _lobby_mode_caption=_label("PARTICIPANTES · MODO SIN CONEXIÓN",11)
     _lobby_mode_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
     _encounter_selector=OptionButton.new()
     _encounter_selector.name="OfflineEncounterSize"
     _encounter_selector.custom_minimum_size=Vector2(257,34)
     _encounter_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
-    _encounter_selector.add_item("9 TOTAL · 1 + 8 IA (estable)",9)
-    _encounter_selector.add_item("20 TOTAL · 1 + 19 IA (prueba)",20)
-    _encounter_selector.add_item("30 TOTAL · 1 + 29 IA (carga)",30)
+    _encounter_selector.add_item("9 participantes · Móvil recomendado",9)
+    _encounter_selector.add_item("20 participantes · Prueba de carga",20)
+    _encounter_selector.add_item("30 participantes · Carga alta",30)
     _encounter_selector.select([9,20,30].find(_encounter_count))
     _encounter_selector.item_selected.connect(_on_encounter_selected)
     _page.add_child(_encounter_selector)
     _lobby_mode_status=_label("",12)
     _lobby_mode_status.name="ModeAvailability"
-    # Real editable local identity; no fake online ID, UID or auth status.
+    # Account actions are now ABOVE the editable local name. Both providers
+    # remain visible in Cuenta even when App Check has not finished; gated
+    # buttons cannot accidentally fabricate an authenticated identity.
+    _account_connection_label=_label("COMPROBANDO FIREBASE...",12)
+    _account_connection_label.name="FirebaseConnectionStatus"
+    _account_connection_label.add_theme_color_override(
+        "font_color",Color(.92,.80,.50))
+    _auth_google_button=_button("CONTINUAR CON GOOGLE",
+        Callable(self,"_start_native_auth").bind("google"),255)
+    _auth_google_button.name="FirebaseGoogleSignInButton"
+    _auth_google_button.custom_minimum_size.y=38
+    _auth_google_button.add_theme_font_size_override("font_size",15)
+    _style_primary_action(_auth_google_button)
+    _page.add_child(_auth_google_button)
+    _auth_guest_button=_button("ENTRAR COMO INVITADO",
+        Callable(self,"_start_native_auth").bind("guest"),255)
+    _auth_guest_button.name="FirebaseGuestSignInButton"
+    _auth_guest_button.custom_minimum_size.y=36
+    _auth_guest_button.add_theme_font_size_override("font_size",14)
+    _page.add_child(_auth_guest_button)
+    _firebase_check_button=_button("REVISAR CONEXIÓN / APP CHECK",
+        Callable(self,"_check_firebase_connection"),255)
+    _firebase_check_button.name="FirebaseConnectionCheckButton"
+    _firebase_check_button.custom_minimum_size.y=29
+    _firebase_check_button.add_theme_font_size_override("font_size",12)
+    _page.add_child(_firebase_check_button)
+    # Local profile edit never overwrites the cloud account or invents an ID.
     _name_entry=LineEdit.new()
     _name_entry.name="LocalPlayerNameEntry"
     _name_entry.max_length=16
-    _name_entry.placeholder_text="Nombre de jugador (3 a 16 caracteres)"
+    _name_entry.placeholder_text="Apodo local (3 a 16 caracteres)"
     _name_entry.text=_player_name.display_name
-    _name_entry.custom_minimum_size=Vector2(265,35)
+    _name_entry.custom_minimum_size=Vector2(255,32)
     _name_entry.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
     _page.add_child(_name_entry)
-    _name_save_button=_button("GUARDAR NOMBRE LOCAL",
-        Callable(self,"_save_player_name"),265)
+    _name_save_button=_button("GUARDAR APODO LOCAL",
+        Callable(self,"_save_player_name"),255)
     _name_save_button.name="SaveLocalPlayerNameButton"
+    _name_save_button.custom_minimum_size.y=30
+    _name_save_button.add_theme_font_size_override("font_size",12)
     _page.add_child(_name_save_button)
-    _firebase_check_button=_button("VERIFICAR FIREBASE / APP CHECK",
-        Callable(self,"_check_firebase_connection"),265)
-    _firebase_check_button.name="FirebaseConnectionCheckButton"
-    _firebase_check_button.custom_minimum_size.y=32
-    _firebase_check_button.add_theme_font_size_override("font_size",13)
-    _page.add_child(_firebase_check_button)
-    _auth_guest_button=_button("ENTRAR COMO INVITADO",
-        Callable(self,"_start_native_auth").bind("guest"),265)
-    _auth_guest_button.name="FirebaseGuestSignInButton"
-    _auth_guest_button.custom_minimum_size.y=31
-    _auth_guest_button.add_theme_font_size_override("font_size",13)
-    _page.add_child(_auth_guest_button)
-    _auth_google_button=_button("CONTINUAR CON GOOGLE",
-        Callable(self,"_start_native_auth").bind("google"),265)
-    _auth_google_button.name="FirebaseGoogleSignInButton"
-    _auth_google_button.custom_minimum_size.y=31
-    _auth_google_button.add_theme_font_size_override("font_size",13)
-    _page.add_child(_auth_google_button)
     _objective_selector=OptionButton.new()
     _objective_selector.name="ObjectivesCategorySelector"
     _objective_selector.custom_minimum_size=Vector2(265,35)
@@ -516,16 +558,31 @@ func _save_player_name() -> void:
     _select_tab("CUENTA")
 
 
+func _firebase_state_message(reason: String) -> String:
+    if reason=="android_device_required":
+        return "El acceso requiere un dispositivo Android"
+    if reason=="android_plugin_missing":
+        return "Esta APK no incluye el plugin de acceso"
+    if reason.begins_with("plugin_contract_incomplete"):
+        return "Plugin detectado, faltan métodos: "+reason.get_slice(":",1)
+    if reason=="firebase_configuration_incomplete":
+        return "Firebase todavía no se ha inicializado"
+    if reason=="app_check_unverified":
+        return "App Check pendiente: revisa internet y Google Play"
+    return reason.replace("_"," ")
+
+
 func _check_firebase_connection() -> void:
     if stage!="lobby" or _selected_tab!="CUENTA" or _info==null:
         return
     var state: Dictionary=FIREBASE_BRIDGE.status()
+    _sync_lobby_match_mode()
     if not bool(state.get("ready",false)):
         _info.text="FIREBASE / APP CHECK: SIN CONEXIÓN\n"
-        _info.text+="Estado: %s\n"%str(state.get("reason","desconocido"))
-        _info.text+="No se ha iniciado sesión Google/invitado ni asignado ID.\n"
-        _info.text+="Primero se necesita registrar el paquete Android y su SHA-256, "
-        _info.text+="instalar el plugin Godot v2 y verificar App Check."
+        _info.text+="Estado: %s\n"%_firebase_state_message(
+            str(state.get("reason","desconocido")))
+        _info.text+="No se ha iniciado sesión ni asignado ID.\n"
+        _info.text+="Google e Invitado estarán disponibles al verificar App Check."
         return
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
     _sync_lobby_match_mode()
@@ -632,15 +689,30 @@ func _on_match_mode_selected(index: int) -> void:
 func _sync_lobby_match_mode() -> void:
     if stage!="lobby" or _match_mode_selector==null:
         return
-    var show_modes: bool=not (_selected_tab in ["AJUSTES","OBJETIVOS","CUENTA"])
+    var show_modes: bool=_selected_tab=="JUGAR"
     var show_name: bool=_selected_tab=="CUENTA"
     _name_entry.visible=show_name
     _name_save_button.visible=show_name
     _firebase_check_button.visible=show_name
-    var native_ready: bool=show_name and bool(
-        FIREBASE_BRIDGE.status().get("ready",false))
-    _auth_guest_button.visible=native_ready
-    _auth_google_button.visible=native_ready
+    _account_connection_label.visible=show_name
+    # Never hide account providers. The SDK/App Check gate must disable
+    # unsafe actions, not make the controls disappear from the UI.
+    _auth_guest_button.visible=show_name
+    _auth_google_button.visible=show_name
+    if show_name:
+        var health: Dictionary=FIREBASE_BRIDGE.status()
+        var ready: bool=bool(health.get("ready",false))
+        _auth_guest_button.disabled=not ready
+        _auth_google_button.disabled=not ready
+        var message: String=str(health.get("reason","desconocido"))
+        _account_connection_label.text=(
+            "FIREBASE LISTO · Selecciona un acceso" if ready else
+            "CONEXIÓN PENDIENTE · "+_firebase_state_message(message))
+        _account_connection_label.tooltip_text=message
+        _auth_google_button.tooltip_text=(
+            "Acceder con la cuenta Google" if ready else message)
+        _auth_guest_button.tooltip_text=(
+            "Crear o recuperar sesión anónima" if ready else message)
     _objective_selector.visible=_selected_tab=="OBJETIVOS"
     _lobby_mode_heading.visible=show_modes
     _match_mode_selector.visible=show_modes
@@ -700,47 +772,51 @@ func _ensure_lobby_navigation() -> void:
     if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         return
     _profile_strip=_make_header_label(
-        "LocalProfileStrip",.034,.365,16)
+        "LocalProfileStrip",.035,.325,18)
     _stats_strip=_make_header_label(
-        "LocalStatisticsStrip",.375,.665,12)
+        "LocalStatisticsStrip",.365,.665,13)
     _currency_strip=_make_header_label(
-        "LocalCurrencyStrip",.676,.895,12)
+        "LocalCurrencyStrip",.69,.897,12)
     var backplate:=ColorRect.new()
     backplate.name="LobbyMenuBackplate"
-    backplate.anchor_left=.665
-    backplate.anchor_right=.978
-    backplate.anchor_top=.16
-    backplate.anchor_bottom=.945
-    backplate.color=Color(.036,.03,.093,.93)
+    backplate.anchor_left=.674
+    backplate.anchor_right=.981
+    backplate.anchor_top=.15
+    backplate.anchor_bottom=.954
+    backplate.color=Color(.023,.039,.070,.96)
     backplate.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _surface.add_child(backplate)
     _surface.move_child(backplate,1)
     var navplate:=ColorRect.new()
     navplate.name="LobbySidebarBackplate"
-    navplate.anchor_left=.028
-    navplate.anchor_right=.264
-    navplate.anchor_top=.167
-    navplate.anchor_bottom=.947
-    navplate.color=Color(.023,.045,.096,.88)
+    navplate.anchor_left=.026
+    navplate.anchor_right=.226
+    navplate.anchor_top=.15
+    navplate.anchor_bottom=.954
+    navplate.color=Color(.020,.041,.066,.95)
     navplate.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _surface.add_child(navplate)
     _surface.move_child(navplate,2)
     _lobby_nav=VBoxContainer.new()
     _lobby_nav.name="LobbyNavigation"
-    _lobby_nav.anchor_left=.035
-    _lobby_nav.anchor_right=.255
-    _lobby_nav.anchor_top=.19
-    _lobby_nav.anchor_bottom=.94
+    _lobby_nav.anchor_left=.038
+    _lobby_nav.anchor_right=.211
+    _lobby_nav.anchor_top=.177
+    _lobby_nav.anchor_bottom=.93
     _lobby_nav.add_theme_constant_override("separation",4)
     _surface.add_child(_lobby_nav)
-    # Missions, achievements and events share one section to preserve space.
-    for tab in ["PERSONAJE","ARMAS","OBJETIVOS","TIENDA","PASE","SOCIAL","CUENTA","AJUSTES"]:
+    # A prominent JUGAR entry is always first. Remaining modules have
+    # permanent locations, rather than being buried under overlapping UI.
+    for tab in ["JUGAR","PERSONAJE","ARMAS","OBJETIVOS","TIENDA","PASE","SOCIAL","CUENTA","AJUSTES"]:
         var tab_name: String=tab
-        var button:=_button(tab_name,Callable(self,"_select_tab").bind(tab_name),176)
+        var button:=_button(tab_name,Callable(self,"_select_tab").bind(tab_name),154)
         button.name="Tab"+tab_name
         var compact: bool=_surface.size.y<620.0
-        button.custom_minimum_size=Vector2(176,30 if compact else 43)
-        button.add_theme_font_size_override("font_size",12 if compact else 18)
+        button.custom_minimum_size=Vector2(154,31 if compact else 42)
+        button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        button.add_theme_font_size_override("font_size",13 if compact else 17)
+        if tab=="JUGAR":
+            _style_primary_action(button)
         _lobby_nav.add_child(button)
 
 
@@ -752,8 +828,21 @@ func _select_tab(tab: String) -> void:
     for button in _lobby_nav.get_children():
         if button is Button:
             var selected: bool=button.name=="Tab"+tab
-            button.modulate=Color(1,.83,.48) if selected else Color.WHITE
+            button.modulate=Color(1,1,1) if selected else Color(.76,.82,.89)
+    if _lobby_section_title!=null:
+        _lobby_section_title.text=(
+            "JUGAR · PUERTO AURORA" if tab=="JUGAR"
+            else "MI CUENTA" if tab=="CUENTA"
+            else "CONFIGURACIÓN" if tab=="AJUSTES"
+            else tab)
+        _lobby_section_hint.text=(
+            "BATTLE ROYALE · CLÁSICO LOCAL" if tab=="JUGAR"
+            else "INICIAR SESIÓN / PERFIL" if tab=="CUENTA"
+            else "CONTROLES Y SENSIBILIDAD" if tab=="AJUSTES"
+            else "CENTRO DE OPERACIONES")
     match tab:
+        "JUGAR":
+            _info.text="CLÁSICO LOCAL DISPONIBLE\nSelecciona participantes y comienza la partida.\nCLASIFICATORIA: servidor online pendiente."
         "AJUSTES":
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
@@ -803,8 +892,8 @@ func _select_tab(tab: String) -> void:
                 var remote_name: String=str(session.get("display_name",""))
                 name_line=(remote_name+" (Firebase)" if not remote_name.is_empty()
                     else _player_name.display_name+" (local; nombre remoto pendiente)")
-            _info.text="CUENTA / IDENTIDAD\nNOMBRE: %s\n%s\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nPuedes editar el nombre local; no se envía automáticamente al servidor. Pulsa Verificar Firebase / App Check para conocer el estado real.\nGoogle e Invitado requieren el plugin Firebase y App Check; todavía no se han confirmado en esta APK. El respaldo offline permanece en este dispositivo hasta que se implemente una restauración cloud verificada."%[
-                name_line,id_line,int(stats.get("local_coins",0)),auto_text]
+            _info.text="Firebase / Perfil\nNOMBRE: %s\n%s\n%s\nGoogle e Invitado requieren App Check. El apodo y las monedas siguen guardados localmente; no se declara sincronización sin confirmación del servidor."%[
+                name_line,id_line,auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()

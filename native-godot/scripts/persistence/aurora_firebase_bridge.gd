@@ -1,7 +1,7 @@
 extends RefCounted
-## V75.75 - fail-closed Godot transport for the separately built native
-## Firebase Android v2 plugin. The preview APK still excludes the plugin,
-## and no Firebase project credentials or production rollout are enabled.
+## V75.77 - fail-closed Godot transport for the native Android Firebase
+## plugin. Only the separate Gradle APK includes native SDK + Google Services.
+## A transport-ready state is not a server-authenticated account.
 ## Never store, expose or print Firebase Auth tokens or App Check tokens.
 const PLUGIN_NAME: String="AuroraFirebase"
 const API_VERSION: int=1
@@ -35,10 +35,16 @@ static func status() -> Dictionary:
     if not Engine.has_singleton(PLUGIN_NAME):
         return _blocked("android_plugin_missing")
     var native: Object=Engine.get_singleton(PLUGIN_NAME)
+    # Godot's Android plugin is a JNISingleton, whose dynamic Java methods
+    # are NOT guaranteed to appear in Object.has_method(). Godot 4.7 exposes
+    # JNISingleton.has_java_method(StringName) for this exact contract check.
+    if not native.has_method("has_java_method"):
+        return _blocked("android_jni_method_api_unavailable")
     for method_name in ["getBridgeStatus","beginGuestSignIn",
             "beginGoogleSignIn","getSessionState"]:
-        if not native.has_method(method_name):
-            return _blocked("plugin_contract_incomplete")
+        if not bool(native.call("has_java_method",StringName(method_name))):
+            # Only a public method name is exposed; no tokens or private data.
+            return _blocked("plugin_contract_incomplete:"+method_name)
     var encoded: Variant=native.call("getBridgeStatus")
     if not (encoded is String):
         return _blocked("plugin_status_invalid")

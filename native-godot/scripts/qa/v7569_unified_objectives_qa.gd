@@ -34,8 +34,8 @@ func _verify() -> void:
     front._show_lobby()
     await process_frame
     front._offline_records=RECORDS.new(QA_PATH)
-    check(front._lobby_nav.get_child_count()==8,
-        "consolidated lobby still overflows with nine sections")
+    check(front._lobby_nav.get_child_count()==9,
+        "consolidated objectives must remain under one tab while JUGAR is first")
     check(front._lobby_nav.get_node_or_null("TabOBJETIVOS")!=null and
         front._lobby_nav.get_node_or_null("TabEVENTOS")==null and
         front._lobby_nav.get_node_or_null("TabMISIONES")==null,
@@ -62,7 +62,7 @@ func _verify() -> void:
     check(front._info.text.contains("SIN TEMPORADA ACTIVA") and
         front._info.text.contains("validación del servidor"),
         "events advertise a nonexistent online season or fake reward")
-    front._select_tab("PERSONAJE")
+    front._select_tab("JUGAR")
     check(not options.visible and front._battle_entry.visible,
         "objective menu did not restore real Classic start button")
     check(front._currency_strip.text.contains("MONEDAS") and
