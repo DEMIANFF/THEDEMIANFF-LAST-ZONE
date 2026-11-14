@@ -1,0 +1,57 @@
+name: Aurora Firebase Android v2 plugin isolated build
+
+on:
+  push:
+    branches:
+      - codex/v75-75-android-firebase-native-plugin-vulkan
+    paths:
+      - 'firebase-godot-bridge/**'
+      - '.github/workflows/aurora-firebase-android-plugin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurora-firebase-plugin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile-native-plugin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+      - name: Install Android 36 build platform
+        run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Compile actual Firebase SDK / Godot plugin AAR
+        run: gradle -p firebase-godot-bridge :plugin:assembleDebug --no-daemon --stacktrace
+      - name: Validate native manifest and compiled plugin entry
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          from io import BytesIO
+          p=Path("firebase-godot-bridge/plugin/build/outputs/aar/plugin-debug.aar")
+          assert p.is_file() and p.stat().st_size > 1000, "No Android library produced"
+          with ZipFile(p) as aar:
+              manifest=aar.read("AndroidManifest.xml")
+              assert manifest, "Missing compiled AndroidManifest.xml"
+              with ZipFile(BytesIO(aar.read("classes.jar"))) as classes:
+                  found=[z for z in classes.namelist() if z.endswith("AuroraFirebasePlugin.class")]
+                  assert len(found)==1, f"Missing Godot v2 initializer: {found}"
+          print("AURORA_FIREBASE_PLUGIN_AAR_PASS",p.stat().st_size)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AURORA-FIREBASE-V75.75-SOURCE-PLUGIN-AAR-NOT-IN_APK
+          path: firebase-godot-bridge/plugin/build/outputs/aar/plugin-debug.aar
+          retention-days: 14
