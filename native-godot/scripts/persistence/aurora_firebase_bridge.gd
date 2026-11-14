@@ -49,7 +49,7 @@ static func status() -> Dictionary:
             details.get("configured")!=true):
         return _blocked("firebase_configuration_incomplete")
     # A plugin loaded without a successful attestation is not trusted.
-    if details.get("app_check")!="verified":
+    if details.get("app_check")!="token_ready":
         return _blocked("app_check_unverified")
     # This only enables a future *attempt* to authenticate: it is not a
     # claim that any Google or guest session has already been established.
