@@ -13,6 +13,7 @@ on:
       - codex/v75-82-aurora-free-pass-ledger-vulkan
       - codex/v75-83-mobile-ai-rig-budget-vulkan
       - codex/v75-84-near-combat-ai-rig-priority-vulkan
+      - codex/v75-85-real-local-skin-shop-vulkan
     paths:
       - 'firebase-godot-bridge/**'
       - '.github/workflows/aurora-firebase-android-plugin.yml'

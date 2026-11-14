@@ -9,6 +9,12 @@ const LOCAL_COIN_LIMIT: int=1000000000
 const PASS_TIERS: int=12
 const PASS_TIER_POINTS: int=240
 const PASS_REWARD_COINS: int=50
+# Two original, unlockable palette variants; no premium or network items.
+const LOCAL_SKINS: Dictionary={
+    "aurora_base":0,
+    "aurora_glacier":200,
+    "aurora_ember":300
+}
 const AUTOBACKUP_SUFFIX: String=".auto"
 # Optional per-match fields preserve schema-1 saves from all prior builds.
 # Never rewrite legacy data or touch Firebase/Google identity collections.
@@ -37,6 +43,9 @@ func _defaults() -> Dictionary:
         "next_match_id":1,
         "local_coins":0,
         "pass_claims":[],
+        "profile_revision":0,
+        "owned_skins":["aurora_base"],
+        "equipped_skin":"aurora_base",
         "played":0,
         "wins":0,
         "kills":0,
@@ -97,6 +106,28 @@ func _valid(value: Variant) -> bool:
                 float(coins)!=float(int(coins)) or int(coins)<0 or
                 int(coins)>LOCAL_COIN_LIMIT):
             return false
+    # An old valid journal has no cosmetic keys. Never manufacture
+    # purchases or mistake a local paint job for a Firebase entitlement.
+    var revision: Variant=d.get("profile_revision",0)
+    if not (revision is int or revision is float) or not (
+            is_finite(float(revision))) or (
+            float(revision)!=float(int(revision))) or int(revision)<0 or (
+            int(revision)>1000000000):
+        return false
+    var owned: Variant=d.get("owned_skins",["aurora_base"])
+    if not (owned is Array) or owned.is_empty() or (
+            owned.size()>LOCAL_SKINS.size()) or not owned.has("aurora_base"):
+        return false
+    var unique_skins: Dictionary={}
+    for skin_value in owned:
+        if not (skin_value is String) or not LOCAL_SKINS.has(skin_value):
+            return false
+        if unique_skins.has(skin_value):
+            return false
+        unique_skins[skin_value]=true
+    var equipped: Variant=d.get("equipped_skin","aurora_base")
+    if not (equipped is String) or not owned.has(equipped):
+        return false
     if not (d.get("history") is Array):
         return false
     # Legacy schema-1 journals omit pass_claims and remain valid.
@@ -172,6 +203,10 @@ func _load_file(path: String) -> Dictionary:
         for key in ["schema","next_match_id","played","wins","kills","survival_seconds","best_kills","longest_survival_seconds"]:
             parsed[key]=int(parsed[key])
         parsed["local_coins"]=int(parsed.get("local_coins",0))
+        parsed["profile_revision"]=int(parsed.get("profile_revision",0))
+        parsed["owned_skins"]=parsed.get("owned_skins",["aurora_base"])
+        parsed["equipped_skin"]=str(parsed.get(
+            "equipped_skin","aurora_base"))
         if parsed.has("pass_claims"):
             var normalized: Array=[]
             for claimed_tier in parsed["pass_claims"]:
@@ -198,14 +233,18 @@ func reload() -> bool:
     # .auto copy can recover the *latest* result if primary and .bak break.
     for suffix in [".bak",".tmp",AUTOBACKUP_SUFFIX]:
         var candidate: Dictionary=_load_file(file_path+suffix)
-        # When only a free-pass claim changes, next_match_id is unchanged.
-        # Prefer the newest verified number of one-time claims, preventing
-        # a stale .bak from masking the latest signed .auto recovery copy.
+        # A cosmetic purchase, selection or one-time pass claim may not
+        # increment next_match_id. Use monotonic local revision on ties.
+        # Old V75.82 data had no revision: retain legacy claim-count tie.
         if not candidate.is_empty() and (best.is_empty() or
                 int(candidate["next_match_id"])>int(best["next_match_id"]) or
                 (int(candidate["next_match_id"])==int(best["next_match_id"]) and
+                (int(candidate.get("profile_revision",0))>
+                    int(best.get("profile_revision",0)) or
+                (int(candidate.get("profile_revision",0))==
+                    int(best.get("profile_revision",0)) and
                 (candidate.get("pass_claims",[]) as Array).size()>
-                (best.get("pass_claims",[]) as Array).size())):
+                    (best.get("pass_claims",[]) as Array).size())))):
             best=candidate
     if not best.is_empty():
         _data=best
@@ -332,6 +371,60 @@ func claim_next_pass_reward() -> bool:
     claims.append(tier)
     _data["pass_claims"]=claims
     _data["local_coins"]=int(_data.get("local_coins",0))+PASS_REWARD_COINS
+    _data["profile_revision"]=int(_data.get("profile_revision",0))+1
+    if not _write_atomic():
+        _pending=_data.duplicate(true)
+        _data=previous
+        return false
+    return true
+
+
+## Read-only catalog. Player unlocks are local, verified journal entries.
+func cosmetic_state() -> Dictionary:
+    return {
+        "owned":(_data.get("owned_skins",["aurora_base"]) as Array).duplicate(),
+        "equipped":str(_data.get("equipped_skin","aurora_base")),
+        "catalog":LOCAL_SKINS.duplicate(),
+        "coins":int(_data.get("local_coins",0))
+    }
+
+
+func purchase_local_skin(skin: String) -> bool:
+    var had_pending: bool=not _pending.is_empty()
+    if had_pending or not reload() or not retry_pending():
+        return false
+    if not LOCAL_SKINS.has(skin) or skin=="aurora_base":
+        return false
+    var price: int=int(LOCAL_SKINS[skin])
+    var owned: Array=_data.get("owned_skins",["aurora_base"])
+    if owned.has(skin) or price<=0 or (
+            int(_data.get("local_coins",0))<price):
+        return false
+    var previous: Dictionary=_data.duplicate(true)
+    var new_owned: Array=owned.duplicate()
+    new_owned.append(skin)
+    _data["owned_skins"]=new_owned
+    _data["equipped_skin"]=skin
+    _data["local_coins"]=int(_data.get("local_coins",0))-price
+    _data["profile_revision"]=int(_data.get("profile_revision",0))+1
+    if not _write_atomic():
+        _pending=_data.duplicate(true)
+        _data=previous
+        return false
+    return true
+
+
+func equip_local_skin(skin: String) -> bool:
+    var had_pending: bool=not _pending.is_empty()
+    if had_pending or not reload() or not retry_pending():
+        return false
+    if not LOCAL_SKINS.has(skin) or (
+            not (_data.get("owned_skins",[]) as Array).has(skin)) or (
+            str(_data.get("equipped_skin",""))==skin):
+        return false
+    var previous: Dictionary=_data.duplicate(true)
+    _data["equipped_skin"]=skin
+    _data["profile_revision"]=int(_data.get("profile_revision",0))+1
     if not _write_atomic():
         _pending=_data.duplicate(true)
         _data=previous
@@ -375,6 +468,7 @@ func record_result(match_id: int,victory: bool,kills: int,
     # Wallet and match result use ONE atomic journal commit, so retries cannot
     # add the same payout twice after an interrupted write.
     _data["local_coins"]=int(_data.get("local_coins",0))+reward
+    _data["profile_revision"]=int(_data.get("profile_revision",0))+1
     var history: Array=_data["history"]
     var entry: Dictionary={
         "match_id":match_id,

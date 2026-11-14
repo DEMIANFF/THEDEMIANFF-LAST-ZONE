@@ -10,6 +10,7 @@ const LOBBY_COMPANION=preload("res://scripts/ui/aurora_robot_companion.gd")
 const GAME = preload("res://scenes/Main.tscn")
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
+const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
 const LOCAL_PLAYER_NAME=preload("res://scripts/persistence/local_player_name.gd")
 const FIREBASE_BRIDGE=preload("res://scripts/persistence/aurora_firebase_bridge.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
@@ -91,6 +92,10 @@ var _top_social_button: Button
 var _play_match_card: PanelContainer
 var _pass_claim_button: Button
 var _pass_progress: ProgressBar
+var _shop_selector: OptionButton
+var _shop_buy_button: Button
+var _shop_equip_button: Button
+var _shop_selected_skin: String="aurora_glacier"
 var _banner: Label
 
 
@@ -570,6 +575,8 @@ func _show_lobby() -> void:
     _preview_resume_spin=2.0
     if _preview_avatar:
         _preview_avatar.rotation.y=0.0
+        COSMETICS.apply_to_operator(_preview_avatar,str(
+            _offline_records.cosmetic_state()["equipped"]))
     _clear_page()
     _lobby_section_title=_label("BATTLE ROYALE · BASE AURORA",17)
     _lobby_section_title.name="LobbySectionTitle"
@@ -688,6 +695,28 @@ func _show_lobby() -> void:
     _pass_claim_button.add_theme_font_size_override("font_size",14)
     _style_primary_action(_pass_claim_button)
     _page.add_child(_pass_claim_button)
+    _shop_selector=OptionButton.new()
+    _shop_selector.name="AuroraLocalSkinSelector"
+    _shop_selector.custom_minimum_size=Vector2(245,31)
+    _shop_selector.add_item("LILA · AURORA ORIGINAL",0)
+    _shop_selector.add_item("LILA · AURORA GLACIAL",1)
+    _shop_selector.add_item("LILA · AURORA FUEGO",2)
+    _shop_selector.select(1)
+    _shop_selector.item_selected.connect(_on_shop_skin_selected)
+    _page.add_child(_shop_selector)
+    _shop_buy_button=_button("COMPRAR TRAJE LOCAL",
+        Callable(self,"_buy_local_skin"),245)
+    _shop_buy_button.name="AuroraRealSkinPurchase"
+    _shop_buy_button.custom_minimum_size.y=34
+    _shop_buy_button.add_theme_font_size_override("font_size",13)
+    _style_primary_action(_shop_buy_button)
+    _page.add_child(_shop_buy_button)
+    _shop_equip_button=_button("EQUIPAR TRAJE LOCAL",
+        Callable(self,"_equip_local_skin"),245)
+    _shop_equip_button.name="AuroraRealSkinEquip"
+    _shop_equip_button.custom_minimum_size.y=33
+    _shop_equip_button.add_theme_font_size_override("font_size",13)
+    _page.add_child(_shop_equip_button)
     # Long account and match history text remains reachable on small screens.
     _lobby_detail_scroll=ScrollContainer.new()
     _lobby_detail_scroll.name="LobbyDetailsScroll"
@@ -899,6 +928,9 @@ func _sync_lobby_match_mode() -> void:
     _encounter_selector.visible=show_modes and _selected_match_mode=="classic"
     _pass_progress.visible=_selected_tab=="PASE"
     _pass_claim_button.visible=_selected_tab=="PASE"
+    _shop_selector.visible=_selected_tab=="TIENDA"
+    _shop_buy_button.visible=_selected_tab=="TIENDA"
+    _shop_equip_button.visible=_selected_tab=="TIENDA"
     _lobby_mode_status.visible=show_modes and _selected_match_mode=="ranked"
     _lobby_detail_scroll.visible=not show_modes and _selected_tab not in ["AJUSTES","PRESET"]
     match _selected_match_mode:
@@ -1263,8 +1295,7 @@ func _select_tab(tab: String) -> void:
         "LUCK":
             _info.text="LUCK ROYALE / SIN SORTEOS ACTIVOS\nSolo se habilitarán sorteos con probabilidades publicadas y un catálogo real.\nNo se cobran monedas ni diamantes mientras el servicio esté desconectado."
         "TIENDA":
-            var stats: Dictionary=_offline_records.snapshot()
-            _info.text="TIENDA / PREPARACIÓN DE CATÁLOGO\nMONEDAS LOCALES: %d\nSe ganan al concluir partidas clásicas; compras aún deshabilitadas.\nDIAMANTES: sin cartera online. No hay recargas ni transacciones activas."%int(stats.get("local_coins",0))
+            _refresh_local_skin_store()
         "PASE":
             _refresh_free_pass()
         "SOCIAL":
@@ -1289,6 +1320,68 @@ func _select_tab(tab: String) -> void:
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()
+
+func _on_shop_skin_selected(index: int) -> void:
+    var ids: Array[String]=["aurora_base","aurora_glacier","aurora_ember"]
+    if index>=0 and index<ids.size():
+        _shop_selected_skin=ids[index]
+    if stage=="lobby" and _selected_tab=="TIENDA":
+        _refresh_local_skin_store()
+
+
+func _refresh_local_skin_store() -> void:
+    if _offline_records==null or _info==null:
+        return
+    var state: Dictionary=_offline_records.cosmetic_state()
+    var skin: String=_shop_selected_skin
+    var price: int=int(MATCH_RECORDS.LOCAL_SKINS.get(skin,0))
+    var owned: bool=(state["owned"] as Array).has(skin)
+    var equipped: bool=str(state["equipped"])==skin
+    _info.text="TIENDA AURORA · TRAJES ORIGINALES 3D\n"+(
+        "MONEDAS LOCALES: %d\n"%int(state["coins"]))+(
+        "SELECCIONADO: %s\n"%skin.to_upper())+(
+        "PRECIO: %d · %s\n"%[price,
+            "COMPRADO" if owned else "NO COMPRADO"])+(
+        "EQUIPADO: %s\n"%str(state["equipped"]).to_upper())+(
+        "Dos paletas tácticas reales sobre la armadura de Lila. "+
+        "Sólo monedas de partidas guardadas. "+
+        "Sin pagos, diamantes ni compras en línea.")
+    _shop_buy_button.disabled=owned or price<=0 or (
+        int(state["coins"])<price)
+    _shop_buy_button.text=("COMPRADO" if owned else
+        "COMPRAR · %d MONEDAS LOCALES"%price)
+    _shop_equip_button.disabled=not owned or equipped
+    _shop_equip_button.text=(
+        "EQUIPADO" if equipped else "EQUIPAR TRAJE")
+
+
+func _update_cosmetic_after_transaction() -> void:
+    var state: Dictionary=_offline_records.cosmetic_state()
+    _currency_strip.text="MONEDAS %d\nDIAMANTES —"%int(
+        state["coins"])
+    if _preview_avatar!=null and is_instance_valid(_preview_avatar):
+        COSMETICS.apply_to_operator(_preview_avatar,
+            str(state["equipped"]))
+    _refresh_local_skin_store()
+
+
+func _buy_local_skin() -> void:
+    if stage!="lobby" or _selected_tab!="TIENDA":
+        return
+    if _offline_records.purchase_local_skin(_shop_selected_skin):
+        _update_cosmetic_after_transaction()
+    else:
+        _refresh_local_skin_store()
+
+
+func _equip_local_skin() -> void:
+    if stage!="lobby" or _selected_tab!="TIENDA":
+        return
+    if _offline_records.equip_local_skin(_shop_selected_skin):
+        _update_cosmetic_after_transaction()
+    else:
+        _refresh_local_skin_store()
+
 
 func _refresh_free_pass() -> void:
     # Displays earned, verified local match progression. Paid tiers and
