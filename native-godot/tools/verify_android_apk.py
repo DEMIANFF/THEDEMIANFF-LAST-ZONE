@@ -13,7 +13,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("apk", type=Path)
 parser.add_argument("--build-tools", type=Path, required=True)
 parser.add_argument("--logs", type=Path, required=True)
+parser.add_argument("--verify-min-sdk", type=int,
+                    help="Explicit API floor for cryptographic scheme coverage; "
+                         "used by the dedicated Firebase Gradle APK to check v2 "
+                         "on Android 7+ while still verifying v3 on Android 9+")
 args = parser.parse_args()
+if args.verify_min_sdk is not None and args.verify_min_sdk < 24:
+    parser.error("--verify-min-sdk must be at least 24")
 args.logs.mkdir(parents=True, exist_ok=True)
 
 # Read version metadata from the active Godot export preset.
@@ -82,9 +88,18 @@ assert f"package: name='{package_name}'" in badging, 'Unexpected Android package
 assert f"versionCode='{version_code}'" in badging and f"versionName='{version_name}'" in badging, 'Unexpected Android build version'
 assert "native-code: 'arm64-v8a'" in badging.splitlines()
 assert "application-debuggable" in badging.splitlines()
-signature = run("apksigner", ["verify", "--verbose", "--print-certs"], "signature.txt")
-assert "Verified using v2 scheme (APK Signature Scheme v2): true" in signature
-assert "Verified using v3 scheme (APK Signature Scheme v3): true" in signature
+signature_args = ["verify", "--verbose", "--print-certs"]
+if args.verify_min_sdk is not None:
+    signature_args += ["--min-sdk-version", str(args.verify_min_sdk)]
+signature = run("apksigner", signature_args, "signature.txt")
+# Verify the signature scheme on the requested platform range. apksigner's
+# default starts at the manifest minSdk; a Vulkan app targeting API 28+
+# may therefore report v2=false even if the v2 block is present and valid.
+# Only the Firebase Gradle trial supplies --verify-min-sdk 24 explicitly.
+assert "Verified using v2 scheme (APK Signature Scheme v2): true" in signature, (
+    "v2 signature not verified over Android API 24+")
+assert "Verified using v3 scheme (APK Signature Scheme v3): true" in signature, (
+    "v3 signature not verified over Android API 28+")
 run("zipalign", ["-c", "-P", "16", "-v", "4"], "alignment.txt")
 libraries = []
 with zipfile.ZipFile(args.apk) as archive:

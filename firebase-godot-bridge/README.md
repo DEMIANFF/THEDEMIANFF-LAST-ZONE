@@ -18,7 +18,7 @@ This source module builds a **real Android AAR** implementing the Godot Android 
 
 `.github/workflows/aurora-firebase-android-plugin.yml` compiles both debug and release AARs, checks their native class/manifest, then packages `plugin.cfg`, `export_plugin.gd` and the binaries under `out/AuroraFirebase/`. The uploaded addon is **not an installable game APK** and is **not enabled** in the signed Vulkan preview. This compile does not connect to Firebase or prove a working App Check attestation.
 
-The optional `addon/AuroraFirebase/export_plugin.gd` intentionally returns **no automatic Maven dependencies**. The matching Android host Gradle build must declare the Firebase SDK BoM and the Credential Manager dependencies shown in `plugin/build.gradle.kts`. Activating the addon without that host configuration will not create a functioning app. The module currently compiles against the stable Godot Android Maven API used by the reference template; runtime compatibility with the target Godot build requires device testing.
+The optional `addon/AuroraFirebase/export_plugin.gd` intentionally returns **no automatic Maven dependencies**. The matching Android host Gradle build must declare the Firebase SDK BoM and the Credential Manager dependencies shown in `plugin/build.gradle.kts`. Activating the addon without that host configuration will not create a functioning app. The module compiles against `org.godotengine:godot:4.7.2.stable` using `compileOnly` to avoid bundling a second engine into the AAR. Runtime compatibility still requires an integrated APK/device test.
 
 ## Future activation — do not skip steps
 

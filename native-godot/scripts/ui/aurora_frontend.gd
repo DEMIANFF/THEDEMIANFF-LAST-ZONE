@@ -803,7 +803,7 @@ func _select_tab(tab: String) -> void:
                 var remote_name: String=str(session.get("display_name",""))
                 name_line=(remote_name+" (Firebase)" if not remote_name.is_empty()
                     else _player_name.display_name+" (local; nombre remoto pendiente)")
-            _info.text="CUENTA / IDENTIDAD\nNOMBRE: %s\n%s\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nPuedes editar el nombre local; no se envía automáticamente al servidor. Pulsa Verificar Firebase / App Check para conocer el estado real.\nEl respaldo offline permanece en este dispositivo hasta que se implemente una restauración cloud verificada."%[
+            _info.text="CUENTA / IDENTIDAD\nNOMBRE: %s\n%s\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nPuedes editar el nombre local; no se envía automáticamente al servidor. Pulsa Verificar Firebase / App Check para conocer el estado real.\nGoogle e Invitado requieren el plugin Firebase y App Check; todavía no se han confirmado en esta APK. El respaldo offline permanece en este dispositivo hasta que se implemente una restauración cloud verificada."%[
                 name_line,id_line,int(stats.get("local_coins",0)),auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"

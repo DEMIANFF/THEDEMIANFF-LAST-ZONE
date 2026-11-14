@@ -1,15 +1,16 @@
-name: Aurora V75.75 Vulkan Mobile only signed ARM64
+name: Aurora V75.76 Vulkan Mobile only signed ARM64
 concurrency:
   group: aurora-android-${{ github.ref }}
   cancel-in-progress: true
 on:
   push:
-    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit, codex/godot-flight-blackbox-diagnostics, codex/godot-shared-scene-crash-audit, codex/v75-20-training-freefall-crash-isolation, codex/v75-21-mobile-physics-animation-hardening, codex/v75-22-motorola-crash-window-recovery, codex/v75-23-android-audio-thread-recovery, codex/v75-24-wav-loop-buffer-safety, codex/v75-25-120hz-stable-preview-signing, codex/v75-26-camera-controls-motion-polish, codex/v75-27-lobby-hud-editor, codex/v75-28-puerto-aurora-sector-expansion, codex/v75-29-zone-bot-sync-house-qa, codex/v75-30-combat-sound-awareness, codex/v75-34-integrated-combat-inventory-aurora, codex/v75-40-residential-terrain-foundations, codex/v75-41-house-hud-settings-integration, codex/v75-42-aurora-tactical-map-aircraft-brand, codex/v75-43-map-lobby-brand-awm-polish, codex/v75-44-aurora-playable-scale-visual-core, codex/v75-45-mobile-render-pipeline-budget, codex/v75-46-vulkan-mobile-ab-test, codex/v75-47-vulkan-frame-pacing-optimizations, codex/v75-48-vulkan-only-real-battle-loot, codex/v75-49-tactical-healing-vulkan, codex/v75-50-tactical-ai-combat-vulkan, codex/v75-55-unified-battle-royale-integration-vulkan, codex/v75-56-combat-feedback-quality-vulkan, codex/v75-57-ten-minute-match-ledger-vulkan, codex/v75-58-physical-headshots-vulkan, codex/v75-59-lila-aurora-rig-identity-vulkan, codex/v75-60-lila-hair-weapon-holsters-vulkan, codex/v75-61-lila-motion-precision-vulkan, codex/v75-62-tactical-bot-medicine-vulkan, codex/v75-63-lila-3d-medkit-animation-vulkan, codex/v75-64-physical-opponent-inventory-loot-vulkan, codex/v75-65-lila-tactical-strafe-animations-vulkan, codex/v75-66-hit-react-awm-animation-vulkan, codex/v75-67-lobby-classic-ranked-gating-vulkan, codex/v75-68-local-coins-wallet-vulkan, codex/v75-69-unified-objectives-lobby-vulkan, codex/v75-70-local-profile-autobackup-recovery-vulkan, codex/v75-71-verified-local-profile-export-vulkan, codex/v75-72-firebase-backup-server-contract, codex/v75-73-player-name-sequential-id-vulkan, codex/v75-74-firebase-auth-appcheck-bridge-preflight-vulkan, codex/v75-75-android-firebase-native-plugin-vulkan]
+    branches: [codex/v72-native-visual-slice, codex/v73-native-quality-combat, codex/v73-1-motorola-fixes, codex/v73-2-tps-fire-drag, codex/v74-aurora-offline-royale, codex/v74-1-weapons-ik-awm, codex/v75-br-flow-animations, codex/v75-1-real-match-progression, codex/v75-2-motorola-recovery, codex/v75-3-battle-royale-improvements, codex/v75-4-aim-animation-recovery, codex/v75-5-aurora-lobby-combat-ui, codex/v75-6-puerto-aurora-3d-district, codex/v75-7-terrain-camera-audio-repair, codex/v75-11-aurora-gait-coastal-detail, codex/v75-11-landing-stability-fix, codex/v75-12-per-scope-mobile-settings, codex/v75-13-aurora-deployable-cover, codex/v75-14-mobile-freefall-crash-recovery, codex/v75-15-aircraft-jump-transition-isolation, codex/v75-16-aircraft-startup-isolation, codex/v75-17-mobile-freefall-terrain-protection, codex/v75-18-parachute-transition-isolation, codex/v75-19-prewarmed-canopy-native-trace, codex/godot-canopy-physics-audit, codex/godot-flight-blackbox-diagnostics, codex/godot-shared-scene-crash-audit, codex/v75-20-training-freefall-crash-isolation, codex/v75-21-mobile-physics-animation-hardening, codex/v75-22-motorola-crash-window-recovery, codex/v75-23-android-audio-thread-recovery, codex/v75-24-wav-loop-buffer-safety, codex/v75-25-120hz-stable-preview-signing, codex/v75-26-camera-controls-motion-polish, codex/v75-27-lobby-hud-editor, codex/v75-28-puerto-aurora-sector-expansion, codex/v75-29-zone-bot-sync-house-qa, codex/v75-30-combat-sound-awareness, codex/v75-34-integrated-combat-inventory-aurora, codex/v75-40-residential-terrain-foundations, codex/v75-41-house-hud-settings-integration, codex/v75-42-aurora-tactical-map-aircraft-brand, codex/v75-43-map-lobby-brand-awm-polish, codex/v75-44-aurora-playable-scale-visual-core, codex/v75-45-mobile-render-pipeline-budget, codex/v75-46-vulkan-mobile-ab-test, codex/v75-47-vulkan-frame-pacing-optimizations, codex/v75-48-vulkan-only-real-battle-loot, codex/v75-49-tactical-healing-vulkan, codex/v75-50-tactical-ai-combat-vulkan, codex/v75-55-unified-battle-royale-integration-vulkan, codex/v75-56-combat-feedback-quality-vulkan, codex/v75-57-ten-minute-match-ledger-vulkan, codex/v75-58-physical-headshots-vulkan, codex/v75-59-lila-aurora-rig-identity-vulkan, codex/v75-60-lila-hair-weapon-holsters-vulkan, codex/v75-61-lila-motion-precision-vulkan, codex/v75-62-tactical-bot-medicine-vulkan, codex/v75-63-lila-3d-medkit-animation-vulkan, codex/v75-64-physical-opponent-inventory-loot-vulkan, codex/v75-65-lila-tactical-strafe-animations-vulkan, codex/v75-66-hit-react-awm-animation-vulkan, codex/v75-67-lobby-classic-ranked-gating-vulkan, codex/v75-68-local-coins-wallet-vulkan, codex/v75-69-unified-objectives-lobby-vulkan, codex/v75-70-local-profile-autobackup-recovery-vulkan, codex/v75-71-verified-local-profile-export-vulkan, codex/v75-72-firebase-backup-server-contract, codex/v75-73-player-name-sequential-id-vulkan, codex/v75-74-firebase-auth-appcheck-bridge-preflight-vulkan, codex/v75-75-android-firebase-native-plugin-vulkan, codex/v75-76-motorola-firebase-gradle-integration-vulkan]
     paths:
       - 'native-godot/**'
       - 'functions/**'
       - '.github/workflows/native-godot-preview-apk.yml'
       - '.github/qa-signing/**'
+      - 'firebase-godot-bridge/**'
   workflow_dispatch:
 
 permissions:
@@ -26,6 +27,22 @@ jobs:
           node-version: '22'
       - name: Verify Firebase Android bridge prerequisites (no deployment)
         run: python3 native-godot/tools/audit_firebase_native_preflight.py --assert-blocked
+      - name: Preflight exact-package Firebase JSON before expensive Android build
+        env:
+          AURORA_NATIVE_GOOGLE_SERVICES_B64: ${{ secrets.AURORA_NATIVE_GOOGLE_SERVICES_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "${AURORA_NATIVE_GOOGLE_SERVICES_B64:-}" ]; then
+            umask 077
+            CONFIG="$(mktemp /tmp/aurora-firebase-config.XXXXXX.json)"
+            trap 'rm -f "$CONFIG"' EXIT
+            printf '%s' "$AURORA_NATIVE_GOOGLE_SERVICES_B64" | base64 --decode > "$CONFIG"
+            python3 native-godot/tools/prepare_firebase_gradle_trial.py validate --firebase-json "$CONFIG"
+          else
+            echo "AURORA_FIREBASE_JSON_PREFLIGHT_DIAGNOSTIC_ONLY missing_secret=1"
+          fi
+      - name: Test official Godot Android Gradle resource layout without credentials
+        run: python3 -m unittest discover -s native-godot/tools -p 'test_firebase_gradle_trial.py' -v
       - name: Test Firebase offline-progress callables (no deployment)
         run: |
           node --version
@@ -129,7 +146,7 @@ jobs:
         run: |
           curl -fL --retry 3 --retry-delay 4 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz' -o /tmp/aurora-templates.tpz
           mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
-          unzip -jo /tmp/aurora-templates.tpz 'templates/android_debug.apk' 'templates/android_release.apk' -d "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          unzip -jo /tmp/aurora-templates.tpz 'templates/android_debug.apk' 'templates/android_release.apk' 'templates/android_source.zip' -d "$HOME/.local/share/godot/export_templates/4.7.2.stable"
           echo 4.7.2.stable > "$HOME/.local/share/godot/export_templates/4.7.2.stable/version.txt"
           test -s "$HOME/.local/share/godot/export_templates/4.7.2.stable/android_debug.apk"
           rm /tmp/aurora-templates.tpz
@@ -195,7 +212,7 @@ jobs:
           expected="60390683c689ea7376dba5392450929e30044589189c9a200d4db54806f4a653"
           actual="$(keytool -exportcert -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sha256sum | awk '{print $1}')"
           if [ "$actual" != "$expected" ]; then
-            echo "::error::The keystore certificate differs from pinned V75.75 preview identity. Refusing to produce APKs that cannot update."
+            echo "::error::The keystore certificate differs from pinned V75.76 preview identity. Refusing to produce APKs that cannot update."
             exit 1
           fi
           # Godot otherwise falls back to its own transient Android debug key.
@@ -226,13 +243,13 @@ jobs:
           python3 native-godot/tools/configure_android_renderer.py --variant mobile
           grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
           grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
-          grep -Fx 'version/code=65' native-godot/export_presets.cfg
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.75-MOTOROLA-VULKAN.apk
-          test -s native-godot/out/THEDEMIAN-V75.75-MOTOROLA-VULKAN.apk
+          grep -Fx 'version/code=66' native-godot/export_presets.cfg
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.76-MOTOROLA-VULKAN.apk
+          test -s native-godot/out/THEDEMIAN-V75.76-MOTOROLA-VULKAN.apk
       - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
         run: |
           set -euo pipefail
-          APK=native-godot/out/THEDEMIAN-V75.75-MOTOROLA-VULKAN.apk
+          APK=native-godot/out/THEDEMIAN-V75.76-MOTOROLA-VULKAN.apk
           python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/vulkan-verification
           expected="$(cat native-godot/out/preview-signer-sha256.txt)"
           grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/vulkan-verification/signature.txt
@@ -266,9 +283,9 @@ jobs:
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIAN-V75.75-MOTOROLA-VULKAN
+          name: THEDEMIAN-V75.76-MOTOROLA-VULKAN
           path: |
-            native-godot/out/THEDEMIAN-V75.75-MOTOROLA-VULKAN.apk
+            native-godot/out/THEDEMIAN-V75.76-MOTOROLA-VULKAN.apk
             native-godot/out/vulkan-verification/
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
@@ -277,6 +294,132 @@ jobs:
             native-godot/out/preview-signer-sha256.txt
             native-godot/out/aurora-v75-19-lobby.png
           retention-days: 30
+      # A second, isolated Godot Gradle build packages the actual Firebase
+      # plugin. It is deliberately not the normal signed Vulkan preview.
+      # Without an EXACT Godot Android registration it is diagnostics-only.
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Compile matching Godot 4.7.2 Firebase SDK bridge AARs
+        run: gradle -p firebase-godot-bridge :plugin:assembleDebug :plugin:assembleRelease --no-daemon
+      - name: Install separate Firebase Android Gradle template and addon
+        run: |
+          set -euo pipefail
+          python3 native-godot/tools/prepare_firebase_gradle_trial.py stage
+          # Godot's editor template-installer UI needs Android device discovery,
+          # which is unavailable in headless CI; directly install the pinned
+          # android_source.zip shipped with the SAME Godot 4.7.2 template.
+          TEMPLATE="$HOME/.local/share/godot/export_templates/4.7.2.stable/android_source.zip"
+          test -s "$TEMPLATE"
+          mkdir -p native-godot/android/build
+          unzip -q "$TEMPLATE" -d native-godot/android/build
+          test -s native-godot/android/build/build.gradle
+          test -s native-godot/android/build/gradlew
+          # Godot 4.7.2's official template installer also writes these two
+          # metadata files in res://android; merely unzipping is insufficient.
+          echo 4.7.2.stable > native-godot/android/.build_version
+          touch native-godot/android/build/.gdignore
+          grep -Fx '4.7.2.stable' native-godot/android/.build_version
+          echo AURORA_GODOT_472_GRADLE_TEMPLATE_PASS
+      - name: Configure isolated Firebase test host (no production writes)
+        env:
+          AURORA_NATIVE_GOOGLE_SERVICES_B64: ${{ secrets.AURORA_NATIVE_GOOGLE_SERVICES_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "${AURORA_NATIVE_GOOGLE_SERVICES_B64:-}" ]; then
+            printf '%s' "$AURORA_NATIVE_GOOGLE_SERVICES_B64" | base64 --decode > /tmp/aurora-native-gs.json
+            python3 native-godot/tools/prepare_firebase_gradle_trial.py configure --firebase-json /tmp/aurora-native-gs.json
+            rm -f /tmp/aurora-native-gs.json
+          else
+            python3 native-godot/tools/prepare_firebase_gradle_trial.py configure
+          fi
+          godot --headless --path native-godot --editor --quit
+      - name: Export dedicated Motorola Firebase Gradle diagnostic APK
+        run: |
+          set -euo pipefail
+          APK="native-godot/out/THEDEMIAN-V75.76-MOTOROLA-FIREBASE-GRADLE.apk"
+          LOG="native-godot/out/firebase-gradle-export.log"
+          # Headless Godot 4.7.2 may emit an ADB daemon error at shutdown.
+          # Preserve its exit code and export diagnostics; do not assume either
+          # a completed progress bar or this ADB message means success.
+          set +e
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.76-MOTOROLA-FIREBASE-GRADLE.apk > "$LOG" 2>&1
+          GODOT_EXIT=$?
+          set -e
+          tail -n 65 "$LOG"
+          if [ ! -s "$APK" ]; then
+            echo "::error::Godot exit $GODOT_EXIT and no Gradle APK exists. Inspect the captured Gradle export log."
+            exit 1
+          fi
+          # An output file alone is not enough: the archive must be complete,
+          # contain the Godot engine and exported project, and pass every
+          # signature, ABI, plugin and alignment validation below.
+          python3 - "$APK" <<'PY'
+          import sys,zipfile
+          from pathlib import Path
+          apk=Path(sys.argv[1])
+          with zipfile.ZipFile(apk) as z:
+              names=set(z.namelist())
+              assert "AndroidManifest.xml" in names, "Missing Android manifest"
+              assert "assets/project.binary" in names, "Missing Godot game assets"
+              assert any(s.startswith("lib/arm64-v8a/") and s.endswith(".so") for s in names), "Missing 64-bit game engine"
+              assert z.testzip() is None, "APK archive failed CRC"
+          print("AURORA_GRADLE_ARCHIVE_COMPLETE",apk.stat().st_size)
+          PY
+          if [ "$GODOT_EXIT" -ne 0 ]; then
+            echo "::warning::Godot returned $GODOT_EXIT despite producing an intact APK; requiring all independent Android verification gates."
+          fi
+          # Godot/Gradle debug signing may omit APK signature scheme v3 even
+          # with the correct certificate. Re-sign the already aligned Gradle
+          # output using the PINNED existing preview certificate (no new key).
+          # apksigner defaulted to APK v3 ONLY because Gradle selected an
+          # Android 9+ min SDK. Force signature coverage from API 24 when
+          # signing, which includes both v2 and v3 without changing the
+          # manifest's actual Android minSdkVersion. Require both gates.
+          SIGNER="$ANDROID_HOME/build-tools/35.0.1/apksigner"
+          "$SIGNER" sign \
+            --ks "$HOME/.android/debug.keystore" \
+            --ks-key-alias androiddebugkey \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --min-sdk-version 24 \
+            --v1-signing-enabled false \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --out "${APK%.apk}.resigned.apk" "$APK"
+          mv "${APK%.apk}.resigned.apk" "$APK"
+          # Verify with the manifest's real minSdk AND with API24 to
+          # actively exercise both the v2 (API24-27) and v3 (API28+)
+          # cryptographic signing blocks. Neither check is skipped.
+          "$SIGNER" verify --verbose --print-certs "$APK" > native-godot/out/firebase-gradle-signer-manifest.txt
+          grep -F 'Verified using v3 scheme (APK Signature Scheme v3): true' native-godot/out/firebase-gradle-signer-manifest.txt
+          "$SIGNER" verify --min-sdk-version 24 --verbose --print-certs "$APK" > native-godot/out/firebase-gradle-signer-check.txt
+          grep -F 'Verified using v2 scheme (APK Signature Scheme v2): true' native-godot/out/firebase-gradle-signer-check.txt
+          grep -F 'Verified using v3 scheme (APK Signature Scheme v3): true' native-godot/out/firebase-gradle-signer-check.txt
+          python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/firebase-gradle-verification --verify-min-sdk 24
+          expected="$(cat native-godot/out/preview-signer-sha256.txt)"
+          grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/firebase-gradle-verification/signature.txt
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          apk=Path('native-godot/out/THEDEMIAN-V75.76-MOTOROLA-FIREBASE-GRADLE.apk')
+          with zipfile.ZipFile(apk) as archive:
+              dex=[z for z in archive.namelist() if z.startswith('classes') and z.endswith('.dex')]
+              assert dex, 'No Android DEX compiled'
+              assert any(b'AuroraFirebasePlugin' in archive.read(z) for z in dex), 'The native Firebase plugin is NOT installed in the APK'
+          print('AURORA_FIREBASE_INSTALLED_APK_PASS package=preview plugin=classes.dex')
+          PY
+          sha256sum "$APK" > native-godot/out/FIREBASE-GRADLE-SHA256SUMS.txt
+          { echo 'V75.76 Motorola Firebase Gradle integration; login requires matching Firebase app + App Check'; git rev-parse HEAD; } > native-godot/out/FIREBASE-GRADLE-BUILD.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: THEDEMIAN-V75.76-MOTOROLA-FIREBASE-GRADLE-DIAGNOSTIC
+          path: |
+            native-godot/out/THEDEMIAN-V75.76-MOTOROLA-FIREBASE-GRADLE.apk
+            native-godot/out/FIREBASE-GRADLE-SHA256SUMS.txt
+            native-godot/out/FIREBASE-GRADLE-BUILD.txt
+            native-godot/out/firebase-gradle-verification/
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -285,4 +428,8 @@ jobs:
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
             native-godot/out/vulkan-verification/
+            native-godot/out/firebase-gradle-export.log
+            native-godot/out/firebase-gradle-signer-check.txt
+            native-godot/out/firebase-gradle-signer-manifest.txt
+            native-godot/out/firebase-gradle-verification/
           retention-days: 14

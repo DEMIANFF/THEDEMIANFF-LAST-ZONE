@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/v75-75-android-firebase-native-plugin-vulkan
+      - codex/v75-76-motorola-firebase-gradle-integration-vulkan
     paths:
       - 'firebase-godot-bridge/**'
       - '.github/workflows/aurora-firebase-android-plugin.yml'
