@@ -8,6 +8,7 @@ on:
       - codex/v75-77-lobby-account-ux-firebase-native
       - codex/v75-78-aurora-full-lobby-login-navigation
       - codex/v75-79-aurora-premium-lobby-overhaul
+      - codex/v75-80-lobby-vram-lifecycle-vulkan
     paths:
       - 'firebase-godot-bridge/**'
       - '.github/workflows/aurora-firebase-android-plugin.yml'
