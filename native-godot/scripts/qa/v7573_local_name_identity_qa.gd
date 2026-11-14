@@ -94,7 +94,7 @@ func _verify() -> void:
     var bad:=FileAccess.open(QA_PATH,FileAccess.WRITE)
     check(bad!=null,"cannot simulate damaged nickname profile")
     if bad!=null:
-        bad.store_string("[player]\nname=!!!\n")
+        bad.store_string("[player]\nschema=1\nname=\"INVALID!!\"\n")
         bad.close()
     var recovered=LOCAL_NAME.new(QA_PATH)
     check(recovered.recovered and recovered.display_name=="Ñandú_777",
