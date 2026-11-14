@@ -41,4 +41,6 @@ func _capture() -> void:
         quit(2)
         return
     print("COASTAL_3D_RENDER_PASS ",screenshot.get_width(),"x",screenshot.get_height())
+    game.queue_free()
+    await process_frame
     quit(0)
