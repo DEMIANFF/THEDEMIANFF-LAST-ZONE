@@ -140,6 +140,18 @@ func _ready() -> void:
     painted.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _surface.add_child(painted)
     _surface.move_child(painted,0)
+    # Original artwork, rasterized once by Godot's SVG importer rather than
+    # redrawing a procedural checkerboard and zigzag aurora every frame.
+    var arctic_art:=TextureRect.new()
+    arctic_art.name="AuroraWinterBaseArtwork"
+    arctic_art.texture=load("res://assets/ui/aurora_winter_base.svg")
+    arctic_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    arctic_art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+    arctic_art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
+    arctic_art.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _surface.add_child(arctic_art)
+    _surface.move_child(arctic_art,1)
+    painted.visible=false
     _page=VBoxContainer.new()
     _page.name="Page"
     _page.anchor_left=.07
@@ -1459,8 +1471,9 @@ func _build_preview() -> void:
     stage3d.add_child(hangar)
     var ambient:=WorldEnvironment.new()
     var env:=Environment.new()
-    env.background_mode=Environment.BG_COLOR
-    env.background_color=Color(.025,.06,.095)
+    # Let the 3D operator and companion stand against the winter art.
+    env.background_mode=Environment.BG_CLEAR_COLOR
+    env.background_color=Color(.016,.021,.048,0.0)
     env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
     env.ambient_light_color=Color(.55,.72,.91)
     env.ambient_light_energy=.85
@@ -1477,15 +1490,15 @@ func _build_preview() -> void:
     stage3d.add_child(rim)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
-    camera.position=Vector3(0,1.20,4.05)
-    camera.fov=44
+    camera.position=Vector3(-.10,1.22,3.30)
+    camera.fov=40
     camera.current=true
     stage3d.add_child(camera)
-    camera.look_at(Vector3(0,.88,0),Vector3.UP)
+    camera.look_at(Vector3(-.08,.96,0),Vector3.UP)
     var sentinel: Node3D=LOBBY_COMPANION.new()
     sentinel.name="AuroraSentinelCompanion"
-    sentinel.position=Vector3(1.04,-.04,.30)
-    sentinel.scale=Vector3.ONE*.78
+    sentinel.position=Vector3(1.06,-.03,.19)
+    sentinel.scale=Vector3.ONE*.69
     stage3d.add_child(sentinel)
     var podium:=MeshInstance3D.new()
     podium.name="PortraitPlatform"
@@ -1555,7 +1568,7 @@ func _fit_avatar_for_preview(visual: Node3D) -> void:
     var length: float=(max_z-min_z) if is_z_up else (max_y-min_y)
     if length<=.001:
         return
-    var factor: float=clampf(1.76/length,.00001,100.0)
+    var factor: float=clampf(1.96/length,.00001,100.0)
     visual.scale=Vector3.ONE*factor
     if is_z_up:
         visual.rotation.x=PI*.5
