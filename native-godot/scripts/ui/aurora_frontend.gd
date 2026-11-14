@@ -43,6 +43,8 @@ var _player_name: RefCounted
 var _name_entry: LineEdit
 var _name_save_button: Button
 var _firebase_check_button: Button
+var _auth_guest_button: Button
+var _auth_google_button: Button
 var _lobby_nav: VBoxContainer
 var _profile_strip: Label
 var _stats_strip: Label
@@ -446,6 +448,18 @@ func _show_lobby() -> void:
     _firebase_check_button.custom_minimum_size.y=32
     _firebase_check_button.add_theme_font_size_override("font_size",13)
     _page.add_child(_firebase_check_button)
+    _auth_guest_button=_button("ENTRAR COMO INVITADO",
+        Callable(self,"_start_native_auth").bind("guest"),265)
+    _auth_guest_button.name="FirebaseGuestSignInButton"
+    _auth_guest_button.custom_minimum_size.y=31
+    _auth_guest_button.add_theme_font_size_override("font_size",13)
+    _page.add_child(_auth_guest_button)
+    _auth_google_button=_button("CONTINUAR CON GOOGLE",
+        Callable(self,"_start_native_auth").bind("google"),265)
+    _auth_google_button.name="FirebaseGoogleSignInButton"
+    _auth_google_button.custom_minimum_size.y=31
+    _auth_google_button.add_theme_font_size_override("font_size",13)
+    _page.add_child(_auth_google_button)
     _objective_selector=OptionButton.new()
     _objective_selector.name="ObjectivesCategorySelector"
     _objective_selector.custom_minimum_size=Vector2(265,35)
@@ -477,9 +491,15 @@ func _show_lobby() -> void:
 func _update_identity_strip(stats: Dictionary) -> void:
     if _stats_strip==null or _player_name==null:
         return
-    _stats_strip.text="%s · %d P · %d V · LOCAL"%[
-        _player_name.display_name,int(stats.get("played",0)),
-        int(stats.get("wins",0))]
+    var session: Dictionary=FIREBASE_BRIDGE.session_state()
+    if bool(session.get("identity_confirmed",false)):
+        _stats_strip.text="%s · ID %s · CUENTA"%[
+            str(session.get("display_name","Operador")),
+            str(session.get("official_id",""))]
+    else:
+        _stats_strip.text="%s · %d P · %d V · LOCAL"%[
+            _player_name.display_name,int(stats.get("played",0)),
+            int(stats.get("wins",0))]
 
 
 func _save_player_name() -> void:
@@ -506,9 +526,40 @@ func _check_firebase_connection() -> void:
         _info.text+="Primero se necesita registrar el paquete Android y su SHA-256, "
         _info.text+="instalar el plugin Godot v2 y verificar App Check."
         return
-    _info.text="PLUGIN ANDROID DETECTADO\n"
-    _info.text+="Token App Check disponible localmente; el servidor debe validarlo.\n"
-    _info.text+="Ninguna sesión ni ID se considera confirmado todavía."
+    var session: Dictionary=FIREBASE_BRIDGE.session_state()
+    _sync_lobby_match_mode()
+    if bool(session.get("identity_confirmed",false)):
+        _info.text="FIREBASE AUTH / SESIÓN AUTENTICADA\n"
+        _info.text+="ID OFICIAL: %s\n"%str(session.get("official_id",""))
+        _info.text+="NOMBRE DE CUENTA: %s\n"%str(
+            session.get("display_name","Operador"))
+        _info.text+="Proveedor: %s\n"%str(session.get("provider",""))
+        _info.text+="Estos datos provienen de callables Firebase. El saldo y las partidas locales NO se sincronizan automáticamente."
+        _update_identity_strip(_offline_records.snapshot())
+        return
+    if bool(session.get("authenticated",false)):
+        _info.text="FIREBASE AUTH / SESIÓN ACTIVA\n"
+        _info.text+="ID PERMANENTE: PENDIENTE DEL SERVIDOR\n"
+        _info.text+="Estado: %s\n"%str(session.get("reason","identity_pending"))
+        _info.text+="No se muestran IDs hasta comprobar ensurePlayerIdentity."
+        return
+    _info.text="PLUGIN FIREBASE ANDROID DETECTADO\n"
+    _info.text+="Token App Check disponible; falta autenticar.\n"
+    _info.text+="Selecciona Invitado o Google. El backend verificará el token antes de dar un ID."
+
+
+func _start_native_auth(provider: String) -> void:
+    if stage!="lobby" or _selected_tab!="CUENTA":
+        return
+    var attempt: Dictionary=FIREBASE_BRIDGE.request_sign_in(provider)
+    if not bool(attempt.get("queued",false)):
+        _info.text="ACCESO NO INICIADO\n"
+        _info.text+="Estado: %s\n"%str(attempt.get("reason","bloqueado"))
+        _info.text+="No se han modificado UID, perfil ni monedas."
+        return
+    _info.text="SOLICITUD DE ACCESO ENVIADA\n"
+    _info.text+="Proveedor: %s\n"%provider
+    _info.text+="La confirmación es asíncrona. Pulsa Verificar Firebase / App Check para consultar la sesión y el ID real."
 
 
 func _on_objective_category_selected(index: int) -> void:
@@ -584,6 +635,10 @@ func _sync_lobby_match_mode() -> void:
     _name_entry.visible=show_name
     _name_save_button.visible=show_name
     _firebase_check_button.visible=show_name
+    var native_ready: bool=show_name and bool(
+        FIREBASE_BRIDGE.status().get("ready",false))
+    _auth_guest_button.visible=native_ready
+    _auth_google_button.visible=native_ready
     _objective_selector.visible=_selected_tab=="OBJETIVOS"
     _lobby_mode_heading.visible=show_modes
     _match_mode_selector.visible=show_modes
@@ -738,8 +793,14 @@ func _select_tab(tab: String) -> void:
                 health.get("played",0)) if bool(health.get("in_sync",false)) else (
                 "COPIA AUTOMÁTICA LOCAL: pendiente" if not bool(health.get("available",false))
                 else "COPIA AUTOMÁTICA LOCAL: desactualizada")
-            _info.text="CUENTA / PERFIL LOCAL\nNOMBRE: %s\nID OFICIAL: PENDIENTE DE FIREBASE\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nEl nombre se guarda en este dispositivo. El ID secuencial 00001+ solo se asignará tras autenticar en Firebase. Pulsa Verificar Firebase / App Check para comprobar el estado nativo.\nGoogle/Firebase aún no están conectados a Godot; la copia local no sobrevive a una desinstalación. El saldo offline NO es una cartera online."%[
-                _player_name.display_name,int(stats.get("local_coins",0)),auto_text]
+            var session: Dictionary=FIREBASE_BRIDGE.session_state()
+            var id_line: String="ID OFICIAL: PENDIENTE DE FIREBASE"
+            var name_line: String=_player_name.display_name+" (local)"
+            if bool(session.get("identity_confirmed",false)):
+                id_line="ID OFICIAL: %s"%str(session.get("official_id",""))
+                name_line=str(session.get("display_name","Operador"))+" (Firebase)"
+            _info.text="CUENTA / IDENTIDAD\nNOMBRE: %s\n%s\nMONEDAS LOCALES: %d · DIAMANTES: sin conexión\n%s\nPuedes editar el nombre local; no se envía automáticamente al servidor. Pulsa Verificar Firebase / App Check para conocer el estado real.\nEl respaldo offline permanece en este dispositivo hasta que se implemente una restauración cloud verificada."%[
+                name_line,id_line,int(stats.get("local_coins",0)),auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()
