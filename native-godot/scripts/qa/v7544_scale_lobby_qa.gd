@@ -1,5 +1,5 @@
 extends SceneTree
-## Real collision-enabled 9/20/30/50 offline participants and genuine 3D
+## Internal physics stress fixtures plus ONE 50-fighter playable BR lobby.
 ## lobby scenery. Never counts simulated clients as human online players.
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 var failed: bool=false
@@ -79,21 +79,13 @@ func _verify() -> void:
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
     front._show_lobby()
-    check(front.stage=="lobby" and front._encounter_count==9,
-        "lobby must default to verified 9-participant gameplay")
-    var selector: OptionButton=front._encounter_selector
-    check(selector!=null and selector.get_item_count()==4 and
-        selector.get_item_id(3)==50,
-        "lobby missing the real 9/20/30/50 participant selector")
-    front._on_encounter_selected(1)
-    check(front._encounter_count==20,
-        "lobby 20 mode not transferred to match configuration")
-    front._on_encounter_selected(2)
-    check(front._encounter_count==30,
-        "lobby 30-person load test is not selectable")
-    front._on_encounter_selected(3)
-    check(front._encounter_count==50,
-        "lobby 50-person experimental AI setting is not selectable")
+    check(front.stage=="lobby" and
+        front.get_node_or_null("OfflineEncounterSize")==null and
+        front.find_child("OfflineEncounterSize",true,false)==null,
+        "engineering roster selector leaked into user-facing BR lobby")
+    check(front._lobby_section_hint.text.contains("50 PARTICIPANTES") and
+        front._lobby_mode_caption.text.contains("49 IA"),
+        "lobby does not present one fixed 50-fighter Battle Royale")
     var preview: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage/AuroraReal3DLobbyEnvironment")
     check(preview!=null and preview.find_children("*","MeshInstance3D",true,false).size()>40,

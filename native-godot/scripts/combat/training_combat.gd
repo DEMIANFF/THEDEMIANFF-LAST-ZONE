@@ -69,10 +69,11 @@ const AWM_RESERVE_BASE: int=30
 const AR_RESERVE_BACKPACK: int=360
 const AWM_RESERVE_BACKPACK: int=60
 var sector_battle_active: bool = false
-## Offline encounter cap, including the human player. No fake network users.
-## The standard 9-person round remains the safe Motorola default.
+## Single visible Battle Royale playlist: 50 physical fighters, offline.
+## Internal small-roster sizes remain ONLY for deterministic engineering QA.
+const CLASSIC_BR_PARTICIPANTS: int=50
 var encounter_size: int=9
-const ALLOWED_ENCOUNTERS: Array[int]=[9,20,30,50]
+const ALLOWED_ENCOUNTERS: Array[int]=[9,20,30,CLASSIC_BR_PARTICIPANTS]
 var cover_charges: int=0
 var cover_cooldown: float=0.0
 var cover_last_block_reason: String=""

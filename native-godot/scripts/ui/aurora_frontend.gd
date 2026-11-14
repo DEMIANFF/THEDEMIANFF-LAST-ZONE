@@ -8,6 +8,7 @@ const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const LOBBY_STAGE=preload("res://scripts/ui/aurora_lobby_stage_3d.gd")
 const LOBBY_COMPANION=preload("res://scripts/ui/aurora_robot_companion.gd")
 const GAME = preload("res://scenes/Main.tscn")
+const COMBAT_ROSTER=preload("res://scripts/combat/training_combat.gd")
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
@@ -64,8 +65,6 @@ var _hud_editor_requested: bool=false
 var _hud_editor_origin: String=""
 var _settings_modal: CanvasLayer
 var _brand_logo: TextureRect
-var _encounter_count: int=9
-var _encounter_selector: OptionButton
 var _match_mode_selector: OptionButton
 var _selected_match_mode: String="classic"
 var _lobby_mode_heading: Label
@@ -581,7 +580,7 @@ func _show_lobby() -> void:
     _lobby_section_title=_label("BATTLE ROYALE · BASE AURORA",17)
     _lobby_section_title.name="LobbySectionTitle"
     _lobby_section_title.add_theme_color_override("font_color",Color(.96,.96,.88))
-    _lobby_section_hint=_label("CLÁSICO LOCAL  ·  1 JUGADOR + IA",10)
+    _lobby_section_hint=_label("BR CLÁSICO · 50 PARTICIPANTES",10)
     _lobby_section_hint.name="LobbySectionHint"
     _lobby_section_hint.add_theme_color_override("font_color",Color(.57,.84,.94))
     _lobby_mode_heading=_label("MODALIDAD DE PARTIDA",13)
@@ -610,19 +609,8 @@ func _show_lobby() -> void:
     _training_entry.custom_minimum_size.y=48
     _style_primary_action(_training_entry)
     _lobby_play_modes.add_child(_training_entry)
-    _lobby_mode_caption=_label("PARTICIPANTES · MODO SIN CONEXIÓN",11)
+    _lobby_mode_caption=_label("50 PARTICIPANTES · 1 OPERADOR + 49 IA",11)
     _lobby_mode_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
-    _encounter_selector=OptionButton.new()
-    _encounter_selector.name="OfflineEncounterSize"
-    _encounter_selector.custom_minimum_size=Vector2(245,30)
-    _encounter_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
-    _encounter_selector.add_item("9 participantes · Móvil recomendado",9)
-    _encounter_selector.add_item("20 participantes · Prueba de carga",20)
-    _encounter_selector.add_item("30 participantes · Carga alta",30)
-    _encounter_selector.add_item("50 participantes · IA / estrés experimental",50)
-    _encounter_selector.select([9,20,30,50].find(_encounter_count))
-    _encounter_selector.item_selected.connect(_on_encounter_selected)
-    _page.add_child(_encounter_selector)
     _lobby_mode_status=_label("",12)
     _lobby_mode_status.name="ModeAvailability"
     # Account actions are now ABOVE the editable local name. Both providers
@@ -924,8 +912,7 @@ func _sync_lobby_match_mode() -> void:
     _lobby_play_modes.visible=show_modes and _selected_match_mode!="ranked"
     _battle_entry.visible=show_modes and _selected_match_mode=="classic"
     _training_entry.visible=show_modes and _selected_match_mode=="training"
-    _lobby_mode_caption.visible=false
-    _encounter_selector.visible=show_modes and _selected_match_mode=="classic"
+    _lobby_mode_caption.visible=show_modes and _selected_match_mode=="classic"
     _pass_progress.visible=_selected_tab=="PASE"
     _pass_claim_button.visible=_selected_tab=="PASE"
     _shop_selector.visible=_selected_tab=="TIENDA"
@@ -935,29 +922,13 @@ func _sync_lobby_match_mode() -> void:
     _lobby_detail_scroll.visible=not show_modes and _selected_tab not in ["AJUSTES","PRESET"]
     match _selected_match_mode:
         "classic":
-            _lobby_mode_status.text="CLÁSICO LOCAL · %d participantes (1 humano + IA).\nSolo disponible sin rango."%_encounter_count
+            _lobby_mode_status.text="BR CLÁSICO LOCAL · 50 PARTICIPANTES (1 JUGADOR + 49 IA).\nSin clasificación online."
         "ranked":
             _lobby_mode_status.text="CLASIFICATORIA BLOQUEADA\nRequiere cuentas, servidor autoritativo y anti-trampas."
         "training":
             _lobby_mode_status.text="ENTRENAMIENTO LOCAL · Sin puntos competitivos."
         _:
             _lobby_mode_status.text="Modo no disponible"
-
-
-func _on_encounter_selected(index: int) -> void:
-    if _encounter_selector==null:
-        return
-    _encounter_count=_encounter_selector.get_item_id(index)
-    if _encounter_count not in [9,20,30,50]:
-        _encounter_count=9
-    # All modes are OFFLINE AI opponents. Human duo/squad, 50-player
-    # network replication and authoritative matchmaking remain gated.
-    _sync_lobby_match_mode()
-    if _info!=null and stage=="lobby":
-        _info.text="SECTOR LOCAL %d · 1 OPERADOR + %d IA\n%s"%[
-            _encounter_count,_encounter_count-1,
-            "Carga elevada: verifica FPS en Motorola" if _encounter_count>9
-            else "Configuración móvil recomendada"]
 
 
 func _make_header_label(label_name: String,left: float,right: float,
@@ -1256,13 +1227,13 @@ func _select_tab(tab: String) -> void:
             else "EVENTOS / MISIONES / LOGROS" if tab=="OBJETIVOS"
             else tab)
         _lobby_section_hint.text=(
-            "CLÁSICO LOCAL · %d PARTICIPANTES"%_encounter_count if tab=="JUGAR"
+            "BR CLÁSICO · 50 PARTICIPANTES" if tab=="JUGAR"
             else "PERFIL / RESPALDO / ACCESO" if tab=="CUENTA"
             else "CONTROLES / SENSIBILIDAD / HUD" if tab in ["AJUSTES","PRESET"]
             else "BASE AURORA · CENTRO DE OPERACIONES")
     match tab:
         "JUGAR":
-            _info.text="CLÁSICO LOCAL DISPONIBLE\nSelecciona participantes y comienza la partida.\nCLASIFICATORIA: servidor online pendiente."
+            _info.text="BR CLÁSICO · 50 PARTICIPANTES\n1 operador y 49 rivales IA. Pulsa INICIAR para desplegarte.\nCLASIFICATORIA ONLINE: pendiente de servidor."
         "AJUSTES","PRESET":
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
@@ -1525,7 +1496,7 @@ func _activate_game(battle: bool) -> void:
     stage="battle" if battle else "training"
     if battle:
         var combat: Node3D=_game.get_node("CombatRange")
-        combat.call("set_encounter_size",_encounter_count)
+        combat.call("set_encounter_size",COMBAT_ROSTER.CLASSIC_BR_PARTICIPANTS)
         var match_director: Node3D=_game.get_node("AuroraSectorMatch")
         FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",player,
             "battle_aircraft_begin_before")
