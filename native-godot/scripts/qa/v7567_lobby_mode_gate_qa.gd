@@ -65,8 +65,13 @@ func _verify() -> void:
         front._info.text.contains("ID OFICIAL: PENDIENTE"),
         "account screen falsely claims Godot cloud login or player ID")
     front._select_tab("PERSONAJE")
-    check(selector.visible and front._battle_entry.visible,
-        "return from Account did not restore local Classic navigation")
+    check(selector.visible and front._training_entry.visible and
+        not front._battle_entry.visible,
+        "return from Account did not preserve Training selection")
+    selector.select(0)
+    front._on_match_mode_selected(0)
+    check(front._battle_entry.visible and not front._training_entry.visible,
+        "switching back to Classic after Account did not restore start button")
 
     selector.select(0)
     front._on_match_mode_selected(0)
