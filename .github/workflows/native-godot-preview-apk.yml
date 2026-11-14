@@ -290,8 +290,16 @@ jobs:
         run: |
           set -euo pipefail
           python3 native-godot/tools/prepare_firebase_gradle_trial.py stage
-          godot --headless --path native-godot --editor --install-android-build-template --quit
+          # Godot's editor template-installer UI needs Android device discovery,
+          # which is unavailable in headless CI; directly install the pinned
+          # android_source.zip shipped with the SAME Godot 4.7.2 template.
+          TEMPLATE="$HOME/.local/share/godot/export_templates/4.7.2.stable/android_source.zip"
+          test -s "$TEMPLATE"
+          mkdir -p native-godot/android/build
+          unzip -q "$TEMPLATE" -d native-godot/android/build
           test -s native-godot/android/build/build.gradle
+          test -s native-godot/android/build/gradlew
+          echo AURORA_GODOT_472_GRADLE_TEMPLATE_PASS
       - name: Configure isolated Firebase test host (no production writes)
         env:
           AURORA_NATIVE_GOOGLE_SERVICES_B64: ${{ secrets.AURORA_NATIVE_GOOGLE_SERVICES_B64 }}
