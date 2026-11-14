@@ -37,7 +37,7 @@ func _capture() -> void:
             await process_frame
         await RenderingServer.frame_post_draw
         var image: Image=root.get_texture().get_image()
-        var path: String="res://out/aurora-v75-87-skin-"+name+".png"
+        var path: String="res://out/aurora-v75-89-skin-"+name+".png"
         if image.save_png(path)!=OK:
             push_error("V7586_SKIN_RENDER file missing "+path)
             quit(5)
