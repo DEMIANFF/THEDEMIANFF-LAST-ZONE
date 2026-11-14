@@ -12,7 +12,7 @@ func _capture() -> void:
         await process_frame
     var welcome: Image=root.get_texture().get_image()
     var one: Error=welcome.save_png("res://out/aurora-v75-19-welcome.png")
-    if one!=OK or welcome.save_png("res://out/aurora-v75-89-login.png")!=OK:
+    if one!=OK or welcome.save_png("res://out/aurora-v75-91-login.png")!=OK:
         push_error("V75.91 login screenshot failed")
         quit(1)
         return
@@ -21,7 +21,7 @@ func _capture() -> void:
         await process_frame
     var lobby: Image=root.get_texture().get_image()
     var two: Error=lobby.save_png("res://out/aurora-v75-19-lobby.png")
-    if two!=OK or lobby.save_png("res://out/aurora-v75-89-lobby.png")!=OK:
+    if two!=OK or lobby.save_png("res://out/aurora-v75-91-lobby.png")!=OK:
         push_error("V75.91 lobby screenshot failed")
         quit(2)
         return
@@ -30,7 +30,7 @@ func _capture() -> void:
         await process_frame
     var account: Image=root.get_texture().get_image()
     var account_saved: Error=account.save_png("res://out/aurora-v75-77-account.png")
-    if account_saved!=OK or account.save_png("res://out/aurora-v75-89-account.png")!=OK:
+    if account_saved!=OK or account.save_png("res://out/aurora-v75-91-account.png")!=OK:
         push_error("V75.91 account screen screenshot failed")
         quit(3)
         return
