@@ -1,10 +1,15 @@
 extends SceneTree
 ## Render real Godot welcome/lobby UI from original native controls.
+const CAPTURE_VERSION=preload("res://scripts/qa/aurora_capture_version.gd")
 func _initialize() -> void:
     call_deferred("_capture")
 
 
 func _capture() -> void:
+    var tag: String=CAPTURE_VERSION.tag()
+    if tag.is_empty():
+        quit(7)
+        return
     var boot: PackedScene=load("res://scenes/Boot.tscn")
     var front: Control=boot.instantiate()
     root.add_child(front)
@@ -12,8 +17,8 @@ func _capture() -> void:
         await process_frame
     var welcome: Image=root.get_texture().get_image()
     var one: Error=welcome.save_png("res://out/aurora-v75-19-welcome.png")
-    if one!=OK or welcome.save_png("res://out/aurora-v75-91-login.png")!=OK:
-        push_error("V75.91 login screenshot failed")
+    if one!=OK or welcome.save_png("res://out/aurora-"+tag+"-login.png")!=OK:
+        push_error("V75.92 login screenshot failed")
         quit(1)
         return
     front.call("_show_lobby")
@@ -21,8 +26,8 @@ func _capture() -> void:
         await process_frame
     var lobby: Image=root.get_texture().get_image()
     var two: Error=lobby.save_png("res://out/aurora-v75-19-lobby.png")
-    if two!=OK or lobby.save_png("res://out/aurora-v75-91-lobby.png")!=OK:
-        push_error("V75.91 lobby screenshot failed")
+    if two!=OK or lobby.save_png("res://out/aurora-"+tag+"-lobby.png")!=OK:
+        push_error("V75.92 lobby screenshot failed")
         quit(2)
         return
     front._select_tab("CUENTA")
@@ -30,8 +35,8 @@ func _capture() -> void:
         await process_frame
     var account: Image=root.get_texture().get_image()
     var account_saved: Error=account.save_png("res://out/aurora-v75-77-account.png")
-    if account_saved!=OK or account.save_png("res://out/aurora-v75-91-account.png")!=OK:
-        push_error("V75.91 account screen screenshot failed")
+    if account_saved!=OK or account.save_png("res://out/aurora-"+tag+"-account.png")!=OK:
+        push_error("V75.92 account screen screenshot failed")
         quit(3)
         return
     print("AURORA_FRONTEND_RENDER",welcome.get_width(),"x",welcome.get_height(),

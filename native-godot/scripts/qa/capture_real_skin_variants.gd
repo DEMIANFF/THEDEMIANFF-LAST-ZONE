@@ -1,11 +1,16 @@
 extends SceneTree
-## V75.91: only authentic Godot renders of real Lila GLB armor materials.
+## V75.92: only authentic Godot renders of real Lila GLB armor materials.
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
+const CAPTURE_VERSION=preload("res://scripts/qa/aurora_capture_version.gd")
 
 func _initialize() -> void:
     call_deferred("_capture")
 
 func _capture() -> void:
+    var tag: String=CAPTURE_VERSION.tag()
+    if tag.is_empty():
+        quit(7)
+        return
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
     await process_frame
@@ -37,7 +42,7 @@ func _capture() -> void:
             await process_frame
         await RenderingServer.frame_post_draw
         var image: Image=root.get_texture().get_image()
-        var path: String="res://out/aurora-v75-91-skin-"+name+".png"
+        var path: String="res://out/aurora-"+tag+"-skin-"+name+".png"
         if image.save_png(path)!=OK:
             push_error("V7586_SKIN_RENDER file missing "+path)
             quit(5)

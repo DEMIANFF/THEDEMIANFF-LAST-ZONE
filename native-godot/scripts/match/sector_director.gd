@@ -91,6 +91,7 @@ func _ready() -> void:
     hud.start_battle_requested.connect(begin_aircraft_phase)
     player.player_eliminated.connect(_on_player_eliminated)
     combat.bot_eliminated.connect(_on_opponent_eliminated)
+    combat.bot_shot.connect(_on_rival_gunfire)
     hud.set_sector_state("ENTRENAMIENTO",4,0.0,0)
     hud.set_battle_button("INICIAR BR")
 
@@ -122,6 +123,7 @@ func begin_aircraft_phase() -> void:
     hud.set_zone_threat(false,0.0)
     mode="aircraft"
     match_ended=false
+    hud.set_radar_battle_mode(true)
     hud.clear_match_result()
     hud.set_battle_button("DESPLIEGUE")
     hud.set_sector_state("AERONAVE / AURORA",int(combat.get("encounter_size")),INITIAL_RADIUS,0)
@@ -163,6 +165,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     zone_center=CENTER
     _zone_visual.visible=true
     _zone_visual.set_zone_state(zone_center,radius,true)
+    hud.set_radar_battle_mode(true)
     hud.set_sector_zone(zone_center,radius)
     hud.set_next_sector_zone(_zone_center_at(1),PHASE_RADII[1])
     _damage_clock=0.0
@@ -390,6 +393,13 @@ func _check_hazard_damage() -> void:
             actor.take_training_damage(damage)
 
 
+func _on_rival_gunfire(at: Vector3) -> void:
+    # Only physical shots from currently active enemies are audible.
+    # Training, aircraft and completed matches never leak enemy positions.
+    if mode=="sector_battle" and not match_ended:
+        hud.note_enemy_gunfire(at)
+
+
 func _on_player_eliminated() -> void:
     if mode=="sector_battle" and not match_ended:
         _finish(false)
@@ -408,6 +418,7 @@ func _finish(victory: bool) -> void:
     player.end_sector_battle()
     hud.reset_controls()
     hud.set_match_controls(false)
+    hud.clear_radar_gunfire()
     hud.set_zone_threat(false,0.0)
     # Rank and combat metrics must be captured BEFORE the atomic ledger
     # commit, not only drawn on a temporary results screen.

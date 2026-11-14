@@ -527,6 +527,21 @@ func set_next_sector_zone(center: Vector2,radius: float) -> void:
         _training_radar.call("set_next_zone",center,radius)
 
 
+func set_radar_battle_mode(enabled: bool) -> void:
+    if _training_radar:
+        _training_radar.call("set_battle_mode",enabled)
+
+
+func note_enemy_gunfire(at: Vector3) -> void:
+    if _training_radar:
+        _training_radar.call("note_enemy_gunfire",at)
+
+
+func clear_radar_gunfire() -> void:
+    if _training_radar:
+        _training_radar.call("clear_gunfire")
+
+
 func set_battle_button(label: String) -> void:
     if _battle_button:
         _battle_button.text=label
