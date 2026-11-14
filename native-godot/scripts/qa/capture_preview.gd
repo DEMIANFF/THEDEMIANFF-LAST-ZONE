@@ -19,4 +19,6 @@ func _capture() -> void:
         quit(1)
         return
     print("Aurora CI capture:",screenshot.get_width(),"x",screenshot.get_height())
+    instance.queue_free()
+    await process_frame
     quit(0)

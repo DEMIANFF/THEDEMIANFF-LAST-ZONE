@@ -38,4 +38,6 @@ func _capture() -> void:
     print("AURORA_WEAPON_RENDER",ak.get_width(),"x",ak.get_height(),
         " AK visible=",combat._weapon_visuals.ak.visible,
         " AWM visible=",combat._weapon_visuals.awm.visible)
+    game.queue_free()
+    await process_frame
     quit(0)
