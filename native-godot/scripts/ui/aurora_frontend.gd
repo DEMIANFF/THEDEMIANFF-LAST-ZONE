@@ -140,6 +140,18 @@ func _ready() -> void:
     painted.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _surface.add_child(painted)
     _surface.move_child(painted,0)
+    # Original artwork, rasterized once by Godot's SVG importer rather than
+    # redrawing a procedural checkerboard and zigzag aurora every frame.
+    var arctic_art:=TextureRect.new()
+    arctic_art.name="AuroraWinterBaseArtwork"
+    arctic_art.texture=load("res://assets/ui/aurora_winter_base.svg")
+    arctic_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    arctic_art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+    arctic_art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
+    arctic_art.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _surface.add_child(arctic_art)
+    _surface.move_child(arctic_art,1)
+    painted.visible=false
     _page=VBoxContainer.new()
     _page.name="Page"
     _page.anchor_left=.07
@@ -231,12 +243,14 @@ func _label(value: String, font_size: int=24) -> Label:
 
 func _style_primary_action(button: Button) -> void:
     var style:=StyleBoxFlat.new()
-    style.bg_color=Color(.91,.68,.24)
-    style.border_color=Color(.99,.86,.47)
-    style.set_border_width_all(1)
-    style.set_corner_radius_all(9)
+    style.bg_color=Color(.98,.69,.12)
+    style.border_color=Color(1,.90,.47)
+    style.set_border_width_all(2)
+    style.set_corner_radius_all(7)
+    style.shadow_color=Color(.82,.42,.10,.50)
+    style.shadow_size=5
     var hover:=style.duplicate() as StyleBoxFlat
-    hover.bg_color=Color(1.0,.77,.31)
+    hover.bg_color=Color(1.0,.82,.27)
     var disabled:=style.duplicate() as StyleBoxFlat
     disabled.bg_color=Color(.15,.21,.27,.90)
     disabled.border_color=Color(.30,.39,.46)
@@ -974,13 +988,13 @@ func _ensure_lobby_navigation() -> void:
     _lobby_nav.visible=false
     _banner=Label.new()
     _banner.name="AuroraOperationBanner"
-    _banner.text="◈  BASE AURORA\n      OPERACIÓN LOCAL"
+    _banner.text="◈  BASE AURORA\n   TU SIGUIENTE PARTIDA"
     _banner.anchor_left=.020
     _banner.anchor_right=.207
     _banner.anchor_top=.150
     _banner.anchor_bottom=.267
     _banner.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _banner.add_theme_font_size_override("font_size",14)
+    _banner.add_theme_font_size_override("font_size",15)
     _banner.add_theme_color_override("font_color",Color(.97,.83,.99))
     _banner.add_theme_color_override("font_shadow_color",Color(.47,.15,.75,.9))
     _surface.add_child(_banner)
@@ -1045,8 +1059,8 @@ func _ensure_lobby_navigation() -> void:
     _social_panel.anchor_top=.165
     _social_panel.anchor_bottom=.476
     var social_style:=StyleBoxFlat.new()
-    social_style.bg_color=Color(.026,.022,.072,.92)
-    social_style.border_color=Color(.43,.28,.69)
+    social_style.bg_color=Color(.017,.022,.055,.92)
+    social_style.border_color=Color(.58,.25,.85)
     social_style.set_border_width_all(1)
     social_style.set_corner_radius_all(5)
     _social_panel.add_theme_stylebox_override("panel",social_style)
@@ -1056,19 +1070,20 @@ func _ensure_lobby_navigation() -> void:
     social_content.add_theme_constant_override("separation",4)
     _social_panel.add_child(social_content)
     var social_title:=Label.new()
-    social_title.text="AMIGOS · SOCIAL"
+    social_title.text="ESCUADRA  /  AMIGOS"
     social_title.name="FriendsHeading"
     social_title.add_theme_font_size_override("font_size",15)
     social_title.add_theme_color_override("font_color",Color(.9,.85,1))
     social_content.add_child(social_title)
     _social_status_label=Label.new()
     _social_status_label.name="ActualFriendsStatus"
-    _social_status_label.text="Sin amigos conectados\nServicio multijugador pendiente"
+    _social_status_label.text="01  ●  Operador local\nSin amigos conectados · Online pendiente"
     _social_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     _social_status_label.add_theme_font_size_override("font_size",11)
+    _social_status_label.custom_minimum_size.y=40
     _social_status_label.add_theme_color_override("font_color",Color(.75,.8,.85))
     social_content.add_child(_social_status_label)
-    var social_open:=_button("VER SOCIAL / CLAN",
+    var social_open:=_button("GESTIONAR SOCIAL / CLAN",
         Callable(self,"_select_tab").bind("SOCIAL"),0)
     social_open.name="RealSocialEntry"
     social_open.custom_minimum_size=Vector2(0,29)
@@ -1085,10 +1100,12 @@ func _ensure_lobby_navigation() -> void:
     _play_match_card.anchor_bottom=.864
     _play_match_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
     var match_card_style:=StyleBoxFlat.new()
-    match_card_style.bg_color=Color(.022,.036,.090,.92)
-    match_card_style.border_color=Color(.91,.68,.21)
+    match_card_style.bg_color=Color(.012,.024,.063,.95)
+    match_card_style.border_color=Color(.98,.67,.20)
     match_card_style.set_border_width_all(2)
     match_card_style.set_corner_radius_all(7)
+    match_card_style.shadow_color=Color(.82,.32,.08,.38)
+    match_card_style.shadow_size=4
     _play_match_card.add_theme_stylebox_override("panel",match_card_style)
     _surface.add_child(_play_match_card)
     _surface.move_child(_play_match_card,2)
@@ -1459,11 +1476,12 @@ func _build_preview() -> void:
     stage3d.add_child(hangar)
     var ambient:=WorldEnvironment.new()
     var env:=Environment.new()
-    env.background_mode=Environment.BG_COLOR
-    env.background_color=Color(.025,.06,.095)
+    # Let the 3D operator and companion stand against the winter art.
+    env.background_mode=Environment.BG_CLEAR_COLOR
+    env.background_color=Color(.016,.021,.048,0.0)
     env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
-    env.ambient_light_color=Color(.55,.72,.91)
-    env.ambient_light_energy=.85
+    env.ambient_light_color=Color(.64,.72,.89)
+    env.ambient_light_energy=.95
     ambient.environment=env
     stage3d.add_child(ambient)
     var key:=DirectionalLight3D.new()
@@ -1472,20 +1490,22 @@ func _build_preview() -> void:
     stage3d.add_child(key)
     var rim:=DirectionalLight3D.new()
     rim.rotation_degrees=Vector3(26,-135,0)
-    rim.light_color=Color(.36,.75,1)
-    rim.light_energy=.85
+    rim.light_color=Color(.67,.36,1)
+    rim.light_energy=1.0
     stage3d.add_child(rim)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
-    camera.position=Vector3(0,1.20,4.05)
-    camera.fov=44
+    # Keep the real rig large enough to be visible at phone resolution
+    # without cropping feet or hiding the original sentinel companion.
+    camera.position=Vector3(-.10,1.18,3.12)
+    camera.fov=39
     camera.current=true
     stage3d.add_child(camera)
-    camera.look_at(Vector3(0,.88,0),Vector3.UP)
+    camera.look_at(Vector3(-.08,.91,0),Vector3.UP)
     var sentinel: Node3D=LOBBY_COMPANION.new()
     sentinel.name="AuroraSentinelCompanion"
-    sentinel.position=Vector3(1.04,-.04,.30)
-    sentinel.scale=Vector3.ONE*.78
+    sentinel.position=Vector3(1.06,-.03,.19)
+    sentinel.scale=Vector3.ONE*.69
     stage3d.add_child(sentinel)
     var podium:=MeshInstance3D.new()
     podium.name="PortraitPlatform"
@@ -1555,7 +1575,7 @@ func _fit_avatar_for_preview(visual: Node3D) -> void:
     var length: float=(max_z-min_z) if is_z_up else (max_y-min_y)
     if length<=.001:
         return
-    var factor: float=clampf(1.76/length,.00001,100.0)
+    var factor: float=clampf(1.96/length,.00001,100.0)
     visual.scale=Vector3.ONE*factor
     if is_z_up:
         visual.rotation.x=PI*.5
