@@ -15,7 +15,6 @@ import androidx.credentials.exceptions.GetCredentialException;
 
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
-import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.appcheck.FirebaseAppCheck;
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory;
@@ -329,7 +328,7 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                                             }
                                         });
                                 }
-                            } catch (GoogleIdTokenParsingException problem) {
+                            } catch (RuntimeException problem) {
                                 setError("google_token_invalid");
                                 authBusy.set(false);
                             }
