@@ -1520,7 +1520,7 @@ func _build_preview() -> void:
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
-    caption.text="LILA AURORA · OPERADORA 3D   ↻ GIRAR"
+    caption.text="LILA AURORA V1 · RIG PROVISIONAL   ↻ GIRAR"
     caption.anchor_left=.29
     caption.anchor_right=.65
     caption.anchor_top=.90
