@@ -610,7 +610,8 @@ func _show_lobby() -> void:
     _encounter_selector.add_item("9 participantes · Móvil recomendado",9)
     _encounter_selector.add_item("20 participantes · Prueba de carga",20)
     _encounter_selector.add_item("30 participantes · Carga alta",30)
-    _encounter_selector.select([9,20,30].find(_encounter_count))
+    _encounter_selector.add_item("50 participantes · IA / estrés experimental",50)
+    _encounter_selector.select([9,20,30,50].find(_encounter_count))
     _encounter_selector.item_selected.connect(_on_encounter_selected)
     _page.add_child(_encounter_selector)
     _lobby_mode_status=_label("",12)
@@ -898,10 +899,10 @@ func _on_encounter_selected(index: int) -> void:
     if _encounter_selector==null:
         return
     _encounter_count=_encounter_selector.get_item_id(index)
-    if _encounter_count not in [9,20,30]:
+    if _encounter_count not in [9,20,30,50]:
         _encounter_count=9
-    # These are all OFFLINE AI opponents. Human 20/30 player sessions
-    # still require dedicated server authority and replication.
+    # All modes are OFFLINE AI opponents. Human duo/squad, 50-player
+    # network replication and authoritative matchmaking remain gated.
     _sync_lobby_match_mode()
     if _info!=null and stage=="lobby":
         _info.text="SECTOR LOCAL %d · 1 OPERADOR + %d IA\n%s"%[

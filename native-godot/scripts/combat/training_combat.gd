@@ -72,7 +72,7 @@ var sector_battle_active: bool = false
 ## Offline encounter cap, including the human player. No fake network users.
 ## The standard 9-person round remains the safe Motorola default.
 var encounter_size: int=9
-const ALLOWED_ENCOUNTERS: Array[int]=[9,20,30]
+const ALLOWED_ENCOUNTERS: Array[int]=[9,20,30,50]
 var cover_charges: int=0
 var cover_cooldown: float=0.0
 var cover_last_block_reason: String=""
@@ -582,8 +582,9 @@ func begin_sector_battle() -> void:
     _sync_hud()
 
 
-## Explicit offline-only difficulty selection. A 20/30-person session consists
-## of one local user plus 19/29 autonomous combatants, NOT human multiplayer.
+## Explicit offline-only difficulty selection. 50-person stress mode uses
+## one real local player and 49 damageable, autonomous CharacterBody3D bots.
+## It is an experimental Motorola load level, NOT online multiplayer.
 func set_encounter_size(size: int) -> void:
     if size in ALLOWED_ENCOUNTERS:
         encounter_size=size
@@ -617,7 +618,17 @@ func _encounter_spawn(index: int) -> Vector2:
         var angle: float=base+float(attempt)*.55
         var radius: float=52.0+float((index*13+attempt*7)%40)
         var at:=Vector2(sin(angle),cos(angle))*radius+Vector2(0,-24)
-        if _is_clear_spawn(at):
+        if not _is_clear_spawn(at):
+            continue
+        # Prevent additional bot bodies occupying the same initial space.
+        # Check the real roster, not only terrain/house collisions.
+        var separated: bool=true
+        for rival in _targets:
+            if is_instance_valid(rival) and at.distance_to(
+                    rival.spawn_coordinates)<3.2:
+                separated=false
+                break
+        if separated:
             return at
     # Fallback to a previously proven landing point, never underground.
     return Vector2(33,-10)
@@ -627,7 +638,7 @@ func _ensure_encounter_capacity() -> void:
     var original: Array[Vector2]=[
         Vector2(-47,-10),Vector2(55,-17),Vector2(26,-55),
         Vector2(-35,-48)]
-    var needed: int=clampi(encounter_size-1,8,29)
+    var needed: int=clampi(encounter_size-1,8,49)
     while _targets.size()<needed:
         var i: int=_targets.size()
         var bot: CharacterBody3D=BOT.new()
@@ -649,7 +660,7 @@ func _ensure_encounter_capacity() -> void:
         add_child(bot)
         _targets.append(bot)
     # A selected 9-player game must not retain active agents from a
-    # previous 30-bot match in the same scene.
+    # previous 50-participant local stress match in the same scene.
     while _targets.size()>needed:
         var last: CharacterBody3D=_targets.pop_back()
         if navigation:
