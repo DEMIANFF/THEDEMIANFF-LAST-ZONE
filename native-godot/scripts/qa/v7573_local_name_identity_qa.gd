@@ -97,7 +97,7 @@ func _verify() -> void:
         bad.store_string("[player]\nname=!!!\n")
         bad.close()
     var recovered=LOCAL_NAME.new(QA_PATH)
-    check(recovered.recovered and recovered.display_name=="Lila Aurora",
+    check(recovered.recovered and recovered.display_name=="Ñandú_777",
         "corrupted latest nickname did not fall back to valid prior saved name")
     check(recovered.save_name("Operador_2")==OK and
         LOCAL_NAME.new(QA_PATH).display_name=="Operador_2",
