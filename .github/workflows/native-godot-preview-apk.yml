@@ -388,10 +388,15 @@ jobs:
             --v3-signing-enabled true \
             --out "${APK%.apk}.resigned.apk" "$APK"
           mv "${APK%.apk}.resigned.apk" "$APK"
-          "$SIGNER" verify --verbose --print-certs "$APK" > native-godot/out/firebase-gradle-signer-check.txt
+          # Verify with the manifest's real minSdk AND with API24 to
+          # actively exercise both the v2 (API24-27) and v3 (API28+)
+          # cryptographic signing blocks. Neither check is skipped.
+          "$SIGNER" verify --verbose --print-certs "$APK" > native-godot/out/firebase-gradle-signer-manifest.txt
+          grep -F 'Verified using v3 scheme (APK Signature Scheme v3): true' native-godot/out/firebase-gradle-signer-manifest.txt
+          "$SIGNER" verify --min-sdk-version 24 --verbose --print-certs "$APK" > native-godot/out/firebase-gradle-signer-check.txt
           grep -F 'Verified using v2 scheme (APK Signature Scheme v2): true' native-godot/out/firebase-gradle-signer-check.txt
           grep -F 'Verified using v3 scheme (APK Signature Scheme v3): true' native-godot/out/firebase-gradle-signer-check.txt
-          python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/firebase-gradle-verification
+          python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/firebase-gradle-verification --verify-min-sdk 24
           expected="$(cat native-godot/out/preview-signer-sha256.txt)"
           grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/firebase-gradle-verification/signature.txt
           python3 - <<'PY'
@@ -425,5 +430,6 @@ jobs:
             native-godot/out/vulkan-verification/
             native-godot/out/firebase-gradle-export.log
             native-godot/out/firebase-gradle-signer-check.txt
+            native-godot/out/firebase-gradle-signer-manifest.txt
             native-godot/out/firebase-gradle-verification/
           retention-days: 14
