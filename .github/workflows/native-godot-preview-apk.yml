@@ -202,7 +202,7 @@ jobs:
       # This lets the Motorola UI redesign be reviewed before installation.
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIAN-V75.105-LOBBY-ACCOUNT-PREVIEW
+          name: THEDEMIAN-V75.108-LOBBY-ACCOUNT-PREVIEW
           path: |
             native-godot/out/aurora-v75-19-welcome.png
             native-godot/out/aurora-v75-19-lobby.png
@@ -492,7 +492,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: V75102-FAILED-VALIDATION-LOGS
+          name: V75108-FAILED-VALIDATION-LOGS
           path: |
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
