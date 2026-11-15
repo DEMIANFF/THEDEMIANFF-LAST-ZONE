@@ -61,7 +61,7 @@ func _verify() -> void:
     front._select_tab("PERSONAJE")
     check(front._shop_selector.is_visible_in_tree() and
         not front._shop_buy_button.visible and
-        front._info.text.contains("PREVISUALIZAR TRAJE"),
+        front._info.text.contains("VISTA 3D"),
         "Personajes must allow visual outfit testing without a purchase button")
     front._on_shop_skin_selected(2)
     check(front._preview_skin_applied=="aurora_ember",
