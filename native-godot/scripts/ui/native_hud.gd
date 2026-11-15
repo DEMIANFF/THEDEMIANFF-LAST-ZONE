@@ -89,6 +89,8 @@ const EXPANSION_WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 var _inventory_expansion_buttons: Dictionary={}
 var _inventory_expansion_row: HFlowContainer
 var _inventory_syringe: Button
+var _inventory_grenade: Button
+signal grenade_requested
 var air_stage: String="ground"
 var _hud_layout: RefCounted
 var _hud_editor: Control
@@ -350,6 +352,13 @@ func _ready() -> void:
         _inventory_panel.hide()
         syringe_pressed.emit())
     contents.add_child(_inventory_syringe)
+    _inventory_grenade=Button.new()
+    _inventory_grenade.name="ThrowGrenade"
+    _inventory_grenade.visible=false
+    _inventory_grenade.pressed.connect(func():
+        _inventory_panel.hide()
+        grenade_requested.emit())
+    contents.add_child(_inventory_grenade)
     var pad: Control=VIRTUAL_PAD.new()
     pad.name="MovePad"
     pad.anchor_left=.05
@@ -674,6 +683,9 @@ func set_inventory_snapshot(items: Dictionary) -> void:
     var syringes: int=int(items.get("syringes",0))
     _inventory_syringe.visible=syringes>0
     _inventory_syringe.text="USAR JERINGA ×%d"%syringes
+    var grenades: int=int(items.get("grenades",0))
+    _inventory_grenade.visible=grenades>0
+    _inventory_grenade.text="LANZAR GRANADA ×%d"%grenades
     var ar: String="AR-7 %d/%d (max %d)"%[
         int(items.get("ar_loaded",0)),int(items.get("ar_reserve",0)),
         int(items.get("ar_capacity",0))]

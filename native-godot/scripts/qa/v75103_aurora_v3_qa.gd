@@ -45,7 +45,7 @@ func _verify() -> void:
     await physics_frame
 
     expect(combat.active_fighter_count()==50,"50-fighter roster or player spawn changed")
-    expect(director.get_loot_remaining()==36,"classic BR did not spawn its original and added supplies")
+    expect(director.get_loot_remaining()==37,"classic BR did not spawn its original and added supplies")
     expect(not combat.inventory_snapshot()["additions"].has(CATALOG.MP40),"MP40 was granted before pickup")
     var got_mp40: bool=collect(director,player,"AuroraMP40Pickup")
     var got_scar: bool=collect(director,player,"AuroraSCARPickup")

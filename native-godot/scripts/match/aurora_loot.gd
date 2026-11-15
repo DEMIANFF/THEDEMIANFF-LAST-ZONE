@@ -53,6 +53,7 @@ func _ready() -> void:
     match pickup_type:
         "medkit": material.albedo_color=Color(.18,.79,.75)
         "syringe": material.albedo_color=Color(.44,.93,.72)
+        "grenade": material.albedo_color=Color(.70,.64,.29)
         "ammo_ar": material.albedo_color=Color(.89,.66,.21)
         "cover_charge": material.albedo_color=Color(.26,.71,.97)
         "armor_plate": material.albedo_color=Color(.32,.84,.52)
@@ -93,6 +94,7 @@ func _ready() -> void:
     match pickup_type:
         "medkit": floating_name.text="BOTIQUIN"
         "syringe": floating_name.text="JERINGA"
+        "grenade": floating_name.text="GRANADA"
         "ammo_ar": floating_name.text="MUNICION AR"
         "cover_charge": floating_name.text="BARRERA +1"
         "armor_plate": floating_name.text="CHALECO AURORA"
