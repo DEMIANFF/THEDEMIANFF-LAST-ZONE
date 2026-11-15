@@ -28,6 +28,14 @@ func _ready() -> void:
     var recipes: Dictionary={
         "ar_fire":.25,
         "awm_fire":.62,
+        "scar_fire":.32,
+        "mp40_fire":.17,
+        "kriss_fire":.13,
+        "distant_fire":.36,
+        "mp40_extract":.16,
+        "mp40_seat":.20,
+        "mp40_bolt":.23,
+        "eliminated":.68,
         "impact":.24,
         "hit":.29,
         "reload":.40,
@@ -113,7 +121,7 @@ func _update_world_pan(index: int,listener: Camera3D) -> void:
     _world_panners[index].pan=pan
     # 3D-style distance attenuation retained, applied on the audio BUS to
     # avoid per-playback bus-details mutations while a sound is playing.
-    var gain: float=pow(clampf(1.0-distance/90.0,0.001,1.0),2.0)
+    var gain: float=pow(clampf(1.0-distance/150.0,0.001,1.0),2.0)
     AudioServer.set_bus_volume_db(_world_buses[index],linear_to_db(gain))
 
 
@@ -150,17 +158,20 @@ func play_event(kind: String,pitch: float=1.0) -> void:
 
 
 func play_world_shot(at: Vector3) -> void:
-    if not _sound_enabled:
+    if not _sound_enabled or not at.is_finite():
+        return
+    var listener: Camera3D=get_viewport().get_camera_3d()
+    var distance: float=listener.global_position.distance_to(at) if listener else 0.0
+    if distance>=150.0:
         return
     var voice_index: int=_world_cursor
     var source: AudioStreamPlayer=_world_voices[voice_index]
     _world_cursor=(_world_cursor+1)%_world_voices.size()
     source.stop()
     _world_positions[voice_index]=at+Vector3.UP*1.35
-    var listener: Camera3D=get_viewport().get_camera_3d()
     if listener!=null:
         _update_world_pan(voice_index,listener)
-    source.stream=_samples["ar_fire"]
+    source.stream=_samples["distant_fire" if distance>=62.0 else "ar_fire"]
     source.pitch_scale=.91+float(_world_cursor%4)*.04
     source.play()
 
@@ -213,6 +224,23 @@ func _render(kind: String,duration: float) -> AudioStreamWAV:
             "awm_fire":
                 value=.96*high*exp(-t*18.0)+.66*sin(TAU*(72.0*t+38.0*t*t))*exp(-t*7.0)
                 value+=.25*middle*exp(-t*5.0)
+            "scar_fire":
+                value=(.77*middle+.46*pulse)*exp(-t*18.0)+.30*high*exp(-t*42.0)
+            "mp40_fire":
+                value=(.86*high+.34*pulse)*exp(-t*37.0)+.35*middle*exp(-t*16.0)
+            "kriss_fire":
+                value=(.68*high+.53*middle+.24*pulse)*exp(-t*45.0)
+            "distant_fire":
+                value=(.9*low+.17*middle+.16*pulse)*exp(-t*11.0)
+                if t>.12:
+                    value+=.19*low*exp(-(t-.12)*18.0)
+            "mp40_extract","mp40_seat","mp40_bolt":
+                var resonance: float=370.0 if kind=="mp40_extract" else 530.0 if kind=="mp40_seat" else 680.0
+                value=(.59*middle+.20*sin(TAU*resonance*t))*exp(-t*39.0)
+                if kind=="mp40_bolt" and t>.065:
+                    value+=.30*high*exp(-(t-.065)*37.0)
+            "eliminated":
+                value=.35*sin(TAU*(255.0*t-85.0*t*t))*sin(PI*progress)*exp(-t*2.5)
             "impact":
                 value=.65*middle*exp(-t*32.0)+.29*sin(TAU*145.0*t)*exp(-t*25.0)
             "hit":

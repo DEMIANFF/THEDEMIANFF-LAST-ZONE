@@ -371,6 +371,18 @@ def build(source, output):
 
     model.clip("AuroraReloadAR", "Idle", rifle_reload, 1.55)
     model.clip("AuroraReloadAWM", "Idle", sniper_reload, 3.1)
+
+    def mp40_reload(p):
+        reach = smooth_window(p, .21, .35, .06)
+        magazine = smooth_window(p, .39, .69, .18)
+        charge = smooth_window(p, .85, .99, .71)
+        right = add(READY[0], (-.014*magazine, -.021*magazine, -.032*magazine))
+        left = add(READY[1], (-.07*magazine + .036*charge,
+                              -.20*magazine - .075*reach + .093*charge,
+                              -.12*magazine - .09*reach - .08*charge))
+        return (right, left), .095*magazine, -.04*reach
+
+    model.clip("AuroraReloadMP40", "Idle", mp40_reload, 1.85)
     for direction, pitch, roll in (
         ("", .12, 0.), ("Front", .17, 0.), ("Back", -.16, 0.),
         ("Left", .02, -.19), ("Right", .02, .19)

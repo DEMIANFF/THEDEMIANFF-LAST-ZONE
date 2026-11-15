@@ -5,10 +5,12 @@ extends Node3D
 
 const AK_PATH: String="res://assets/weapons/ak74-tactical.glb"
 const AWM_PATH: String="res://assets/weapons/aurora_awm.glb"
+const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 
 var operator: CharacterBody3D
 var right_hand_socket: BoneAttachment3D
 var spine_socket: BoneAttachment3D
+var support_socket: BoneAttachment3D
 var mount: Node3D
 var back_mount: Node3D
 var ak: Node3D
@@ -21,6 +23,12 @@ var flight_holster: bool=false
 var selected_weapon: int=0
 var equipped_visual_scale: float=1.0
 var attachment_uses_hand: bool=false
+var _expansion: Dictionary={}
+var _expansion_holsters: Dictionary={}
+var _mp40_magazine: Node3D
+var _mp40_charging_handle: Node3D
+var _magazine_rest: Transform3D
+var _charging_rest: Vector3
 
 
 func attach_to_player(player: CharacterBody3D) -> void:
@@ -59,6 +67,12 @@ func attach_to_player(player: CharacterBody3D) -> void:
         attachment_uses_hand=true
         print("AURORA_WEAPON_SOCKET bone=",right_hand_socket.bone_name,
             " imported_scale=",parent_scale," compensated_scale=",equipped_visual_scale)
+        var left_hand_id: int=skeleton.find_bone("LeftHand")
+        if left_hand_id>=0:
+            support_socket=BoneAttachment3D.new()
+            support_socket.name="LeftHandReloadSocket"
+            support_socket.bone_name=skeleton.get_bone_name(left_hand_id)
+            skeleton.add_child(support_socket)
     else:
         # Offline source builds may omit generated FBX. This fallback is not
         # marked as a correct rigged-operator weapon pose by QA.
@@ -194,7 +208,63 @@ func set_medical_busy(active: bool) -> void:
     _sync_equipment_visibility()
 
 
+func add_expansion(slot: int) -> bool:
+    if _expansion.has(slot):
+        return true
+    var path: String=WEAPONS.ENTRIES[slot]["asset"]
+    if not ResourceLoader.exists(path):
+        return false
+    var scene:=load(path) as PackedScene
+    if scene==null:
+        return false
+    var carried:=scene.instantiate() as Node3D
+    mount.add_child(carried)
+    _expansion[slot]=carried
+    if back_mount:
+        var holstered:=scene.instantiate() as Node3D
+        back_mount.add_child(holstered)
+        _expansion_holsters[slot]=holstered
+    if slot==WEAPONS.MP40:
+        _mp40_magazine=carried.find_child("Magazine",true,false) as Node3D
+        _mp40_charging_handle=carried.find_child("ChargingHandle",true,false) as Node3D
+        if _mp40_magazine:
+            _magazine_rest=_mp40_magazine.transform
+        if _mp40_charging_handle:
+            _charging_rest=_mp40_charging_handle.position
+    _sync_equipment_visibility()
+    return true
+
+
+func clear_expansion() -> void:
+    for visual: Node3D in _expansion.values()+_expansion_holsters.values():
+        visual.hide()
+        visual.queue_free()
+    _expansion.clear()
+    _expansion_holsters.clear()
+    _mp40_magazine=null
+    _mp40_charging_handle=null
+
+
+func set_mp40_reload_progress(progress: float) -> void:
+    if _mp40_magazine:
+        _mp40_magazine.transform=_magazine_rest
+        if support_socket and progress>.14 and progress<.69:
+            # Translate the actual mesh between the magwell and Lila's
+            # animated support hand, then restore its seat on completion.
+            var hand_weight: float=smoothstep(.14,.28,progress)*(
+                1.0-smoothstep(.53,.69,progress))
+            _mp40_magazine.global_position=_mp40_magazine.global_position.lerp(
+                support_socket.global_position-Vector3.UP*.035,hand_weight)
+    if _mp40_charging_handle:
+        var stroke: float=smoothstep(.76,.85,progress)*(1.0-smoothstep(.85,.95,progress))
+        _mp40_charging_handle.position=_charging_rest+Vector3.BACK*.055*stroke
+
+
 func _sync_equipment_visibility() -> void:
+    for slot: int in _expansion:
+        _expansion[slot].visible=slot==selected_weapon and not (flight_holster or medical_busy)
+    for slot: int in _expansion_holsters:
+        _expansion_holsters[slot].visible=slot==selected_weapon and (flight_holster or medical_busy)
     if flight_holster:
         if ak: ak.hide()
         if awm: awm.hide()
@@ -209,21 +279,25 @@ func _sync_equipment_visibility() -> void:
         # The default AR always belongs to Lila; holster it even before
         # she has found the AWM, rather than making it vanish while healing.
         back_ak.visible=(selected_weapon==1 and awm_owned) or (
-            selected_weapon==0 and medical_busy)
+            selected_weapon==0 and medical_busy) or (
+            selected_weapon>=WEAPONS.SCAR and not awm_owned and not medical_busy)
     if back_awm:
         back_awm.visible=awm_owned and (selected_weapon==0 or
+            (selected_weapon>=WEAPONS.SCAR and not medical_busy) or
             (selected_weapon==1 and medical_busy))
 
 
 func equip(index: int) -> void:
-    if index!=0 and index!=1:
+    if index<WEAPONS.AR or (index>=WEAPONS.SCAR and not _expansion.has(index)):
         return
     # Do not display a weapon that is neither owned nor available.
-    selected_weapon=index if index==0 or awm_owned else 0
+    selected_weapon=index if index!=WEAPONS.AWM or awm_owned else WEAPONS.AR
     _sync_equipment_visibility()
 
 
 func currently_equipped() -> Node3D:
+    if selected_weapon>=WEAPONS.SCAR:
+        return _expansion.get(selected_weapon)
     return ak if selected_weapon==0 else awm
 
 
@@ -254,4 +328,8 @@ func equipped_global_length() -> float:
 func muzzle_position() -> Vector3:
     # Input may fire between render frames: align before computing the ray.
     _align_mount_to_sight()
+    if selected_weapon>=WEAPONS.SCAR:
+        var tip:=currently_equipped().find_child("Muzzle",true,false) as Node3D
+        if tip:
+            return tip.global_position
     return mount.to_global(Vector3(0,.03,-1.10 if selected_weapon==1 else -.78))

@@ -1,5 +1,6 @@
 extends Area3D
 ## Touchable actual 3D ammo/medkit cache. Triggered by CharacterBody3D proximity.
+const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 
 var pickup_type: String = "ammo_ar"
 var player: CharacterBody3D
@@ -51,6 +52,7 @@ func _ready() -> void:
     material.roughness=.31
     match pickup_type:
         "medkit": material.albedo_color=Color(.18,.79,.75)
+        "syringe": material.albedo_color=Color(.44,.93,.72)
         "ammo_ar": material.albedo_color=Color(.89,.66,.21)
         "cover_charge": material.albedo_color=Color(.26,.71,.97)
         "armor_plate": material.albedo_color=Color(.32,.84,.52)
@@ -65,6 +67,16 @@ func _ready() -> void:
     if pickup_type=="weapon_awm":
         # Use the actual authored sniper GLB, not a decorative placeholder.
         item.visible=not _add_ground_weapon_visual()
+    var slot: int=WEAPONS.pickup_slot(pickup_type)
+    if slot>=0:
+        var path: String=WEAPONS.ENTRIES[slot]["asset"]
+        if ResourceLoader.exists(path):
+            var scene:=load(path) as PackedScene
+            if scene:
+                var weapon:=scene.instantiate() as Node3D
+                weapon.position.y=.12
+                _visual.add_child(weapon)
+                item.hide()
     var ring:=MeshInstance3D.new()
     ring.name="SupplyBeacon"
     var ring_mesh:=CylinderMesh.new()
@@ -80,11 +92,16 @@ func _ready() -> void:
     floating_name.name="SupplyLabel"
     match pickup_type:
         "medkit": floating_name.text="BOTIQUIN"
+        "syringe": floating_name.text="JERINGA"
         "ammo_ar": floating_name.text="MUNICION AR"
         "cover_charge": floating_name.text="BARRERA +1"
         "armor_plate": floating_name.text="CHALECO AURORA"
         "backpack": floating_name.text="MOCHILA TACTICA"
         "weapon_awm": floating_name.text="RECOGER AWM"
+        "ammo_smg": floating_name.text="MUNICIÓN SMG"
+        "weapon_scar", "weapon_mp40", "weapon_kriss": floating_name.text="RECOGER "+str(WEAPONS.ENTRIES[slot]["short"])
+        "vest_1", "vest_2", "vest_3": floating_name.text="CHALECO NV. "+pickup_type.get_slice("_",1)
+        "helmet_1", "helmet_2", "helmet_3": floating_name.text="CASCO NV. "+pickup_type.get_slice("_",1)
         _: floating_name.text="MUNICION AWM"
     if from_opponent:
         floating_name.text="RIVAL / "+floating_name.text

@@ -127,10 +127,15 @@ func _ready() -> void:
     add_child(navigation)
     TRACE.checkpoint("active","scene_load",operator,"navigation_ready")
     combat.navigation=navigation
-    combat.shot_fired.connect(func(weapon: int,_hit: bool): sound.play_event("awm_fire" if weapon==1 else "ar_fire",.96+randf()*.08))
+    combat.shot_fired.connect(func(weapon: int,_hit: bool):
+        sound.play_event(COMBAT.WEAPONS.ENTRIES[weapon]["sample"],.96+randf()*.08))
     combat.impact_occurred.connect(func(): sound.play_event("impact"))
     combat.bot_shot.connect(sound.play_world_shot)
-    combat.reload_started.connect(func(): sound.play_event("reload"))
+    combat.reload_started.connect(func():
+        if combat.weapon_index!=COMBAT.WEAPONS.MP40:
+            sound.play_event("reload"))
+    combat.reload_cue.connect(func(sample: StringName): sound.play_event(str(sample)))
+    operator.player_eliminated.connect(func(): sound.play_event("eliminated"))
     combat.healed.connect(func(): sound.play_event("heal"))
     for bot in combat._targets:
         bot.navigation=navigation

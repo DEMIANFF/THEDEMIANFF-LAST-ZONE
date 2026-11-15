@@ -48,6 +48,9 @@ signal tactical_acceleration_activated(duration: float)
 var training_health: float = 100.0
 # Armor absorbs direct combat damage but not radiation outside the ring.
 var armor_points: float=0.0
+var vest_level: int=0
+var helmet_level: int=0
+var helmet_points: float=0.0
 var tactical_acceleration_remaining: float=0.0
 const MAX_ARMOR: float=75.0
 var battle_royale_active: bool = false
@@ -90,6 +93,7 @@ var _current_clip: String = ""
 # AnimationTree state mutations are committed after the active physics callback.
 var _queued_air_clip: String=""
 var _queued_air_phase: String=""
+const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 var _weapon_index: int=0
 var _combat_action: String=""
 var _combat_action_seconds: float=0.0
@@ -113,6 +117,7 @@ var _fire_held: bool = false
 var _crouching: bool = false
 var _normal_visual_scale: Vector3 = Vector3.ONE
 var _normal_visual_y: float = 0.0
+var _protection_visual: Node3D
 
 
 func _ready() -> void:
@@ -834,15 +839,24 @@ func _create_parachute() -> void:
 
 
 func receive_training_hit(amount: float, environmental: bool=false,
-        attacker_world_position: Vector3=Vector3(INF,INF,INF)) -> void:
+        attacker_world_position: Vector3=Vector3(INF,INF,INF),
+        contact: Vector3=Vector3(INF,INF,INF)) -> void:
     if amount<=0 or royale_eliminated or round_finished or (not environmental and _training_immunity>0):
         return
     var health_damage: float=amount
-    if not environmental and armor_points>0.0:
-        var absorbed: float=minf(armor_points,amount*.65)
-        armor_points=maxf(0.0,armor_points-absorbed)
-        armor_changed.emit(armor_points)
-        health_damage-=absorbed
+    if not environmental:
+        var height: float=contact.y-global_position.y
+        var upper_body: bool=helmet_level>0 and contact.is_finite() and (
+            height>=(.98 if _crouching else 1.43) and height<=(1.26 if _crouching else 1.82))
+        var available: float=helmet_points if upper_body else armor_points
+        var absorbed: float=minf(available,amount*.65)
+        if absorbed>0.0:
+            if upper_body:
+                helmet_points-=absorbed
+            else:
+                armor_points-=absorbed
+            armor_changed.emit(armor_points)
+            health_damage-=absorbed
     training_health=maxf(0.0,training_health-health_damage)
     training_health_changed.emit(training_health)
     player_damaged.emit(health_damage)
@@ -898,8 +912,38 @@ func equip_armor(points: float=75.0) -> bool:
     if points<=0.0 or armor_points>=MAX_ARMOR:
         return false
     armor_points=minf(MAX_ARMOR,armor_points+points)
+    vest_level=3
+    _sync_protection_visual()
     armor_changed.emit(armor_points)
     return true
+
+
+func equip_protection(is_helmet: bool,level: int) -> bool:
+    if not battle_royale_active or royale_eliminated or round_finished or level<1 or level>3:
+        return false
+    var current_level: int=helmet_level if is_helmet else vest_level
+    var points: float=helmet_points if is_helmet else armor_points
+    var capacity: float=float(level*(15 if is_helmet else 25))
+    if level<current_level or (level==current_level and points>=capacity):
+        return false
+    if is_helmet:
+        helmet_level=level
+        helmet_points=capacity
+    else:
+        vest_level=level
+        armor_points=capacity
+    _sync_protection_visual()
+    armor_changed.emit(armor_points)
+    return true
+
+
+func _sync_protection_visual() -> void:
+    if _protection_visual==null and _avatar!=null and (helmet_level>0 or vest_level>0):
+        _protection_visual=preload("res://scripts/player/aurora_protection_visual.gd").new()
+        add_child(_protection_visual)
+        _protection_visual.attach(_avatar)
+    if _protection_visual!=null:
+        _protection_visual.apply_levels(helmet_level,vest_level)
 
 
 func end_sector_battle() -> void:
@@ -917,6 +961,10 @@ func begin_sector_battle(from_airdrop: bool=false) -> void:
     royale_eliminated = false
     training_health = 100.0
     armor_points=0.0
+    vest_level=0
+    helmet_level=0
+    helmet_points=0.0
+    _sync_protection_visual()
     armor_changed.emit(armor_points)
     velocity=Vector3.ZERO
     if from_airdrop:
@@ -988,7 +1036,7 @@ func set_ads(ads: bool, zoom: float) -> void:
 
 
 func set_equipped_weapon(index: int) -> void:
-    _weapon_index=clampi(index,0,1)
+    _weapon_index=clampi(index,WEAPONS.AR,WEAPONS.ENTRIES.size()-1)
     _current_clip=""
     _combat_action=""
     _combat_action_seconds=0.0
@@ -1002,7 +1050,10 @@ func play_weapon_action(action: String, seconds: float) -> void:
         "fire":
             requested="AuroraFireAWM" if _weapon_index==1 else "AuroraFire"
         "reload":
-            requested="AuroraReloadAWM" if _weapon_index==1 else "AuroraReloadAR"
+            match _weapon_index:
+                WEAPONS.MP40: requested="AuroraReloadMP40"
+                WEAPONS.AWM: requested="AuroraReloadAWM"
+                _: requested="AuroraReloadAR"
         "heal":
             requested="AuroraHeal"
         _:

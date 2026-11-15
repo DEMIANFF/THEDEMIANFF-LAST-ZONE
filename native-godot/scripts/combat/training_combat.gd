@@ -3,6 +3,7 @@ extends Node3D
 signal shot_fired(weapon: int,hit: bool)
 signal impact_occurred
 signal reload_started
+signal reload_cue(sample: StringName)
 signal healed
 signal bot_shot(world_position: Vector3)
 ## Actual battle elimination event for physical opponent supply drops.
@@ -20,6 +21,7 @@ const AWM_HEADSHOT_MULTIPLIER: float=1.65
 const AWM_BOLT_SECONDS: float=.50
 # Field first aid uses a real time window. Interruptions never waste a kit.
 const HEAL_APPLY_SECONDS: float=3.0
+const SYRINGE_APPLY_SECONDS: float=1.35
 const HEAL_MOVE_TOLERANCE_SQ: float=.16
 const AR_RELOAD_SECONDS: float=1.55
 const AWM_RELOAD_SECONDS: float=3.10
@@ -28,6 +30,7 @@ const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
 const MEDKIT_VISUAL = preload("res://scripts/player/aurora_medkit_visual.gd")
 const COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
+const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 
 var operator: CharacterBody3D
 var hud: CanvasLayer
@@ -43,6 +46,7 @@ var cooldown: float=0.0
 var reload_timer: float=0.0
 var _reload_duration: float=0.0
 var _reload_ui_clock: float=0.0
+var _mp40_reload_cue: int=0
 var shots_fired_total: int=0
 var shots_hit_total: int=0
 var headshots_total: int=0
@@ -61,7 +65,10 @@ var damage_dealt: float=0.0
 var loot_collected: int=0
 var opponent_caches_collected: int=0
 var medkits_remaining: int = 2
+var syringes_remaining: int=0
 var _heal_remaining: float=0.0
+var _heal_duration: float=HEAL_APPLY_SECONDS
+var _healing_with_syringe: bool=false
 var _heal_anchor: Vector3=Vector3.ZERO
 # Real match equipment: two weapon slots, an upgradeable backpack and armor.
 # The BR's AWM must be found as a physical pickup; training keeps both guns.
@@ -118,6 +125,7 @@ func _ready() -> void:
     hud.fire_aim_changed.connect(operator.fire_aim_delta)
     operator.sprint_cancelled.connect(hud.cancel_sprint)
     hud.heal_pressed.connect(_on_heal)
+    hud.syringe_pressed.connect(func(): _on_heal(true))
     operator.player_damaged.connect(_on_healing_damage)
     operator.armor_changed.connect(func(_value: float): _sync_hud())
     hud.aurora_cover_pressed.connect(_on_cover_pressed)
@@ -155,32 +163,32 @@ func _process(dt: float) -> void:
             if _heal_remaining<=0.0:
                 _complete_healing()
             else:
-                hud.set_heal_channel(true,_heal_remaining,HEAL_APPLY_SECONDS,medkits_remaining)
+                hud.set_heal_channel(true,_heal_remaining,_heal_duration,medkits_remaining)
     if not operator.can_act():
         _cancel_healing()
         trigger_held=false
-        reload_timer=0.0
-        _reload_duration=0.0
-        hud.set_reload_state(false,0.0,0.0)
+        _clear_reload()
         return
     cooldown=maxf(0,cooldown-dt)
     if reload_timer>0:
         reload_timer=maxf(0,reload_timer-dt)
         _reload_ui_clock-=dt
+        if weapon_index==WEAPONS.MP40:
+            _advance_mp40_reload(1.0-reload_timer/_reload_duration)
         if reload_timer==0:
-            var cap: int=5 if weapon_index==1 else 30
-            var taken: int=mini(cap-ammo[weapon_index],reserve[weapon_index])
+            var cap: int=WEAPONS.ENTRIES[weapon_index]["capacity"]
+            var pool: int=WEAPONS.reserve_slot(weapon_index)
+            var taken: int=mini(maxi(0,cap-ammo[weapon_index]),reserve[pool])
             ammo[weapon_index]+=taken
-            reserve[weapon_index]-=taken
+            reserve[pool]-=taken
             reloads_completed+=1
-            _reload_duration=0.0
-            hud.set_reload_state(false,0.0,0.0)
+            _clear_reload()
             hud.impact("RECARGA COMPLETADA")
             _sync_hud()
         elif _reload_ui_clock<=0.0:
             _reload_ui_clock=.10
             hud.set_reload_state(true,reload_timer,_reload_duration)
-    if trigger_held and weapon_index==0 and cooldown<=0 and reload_timer<=0:
+    if trigger_held and weapon_index!=WEAPONS.AWM and cooldown<=0 and reload_timer<=0:
         _shoot()
 
 
@@ -189,7 +197,7 @@ func _on_fire_pressed() -> void:
         return
     if operator.royale_eliminated or operator.round_finished:
         return
-    if ammo[weapon_index]<=0 and reserve[weapon_index]<=0:
+    if ammo[weapon_index]<=0 and reserve[WEAPONS.reserve_slot(weapon_index)]<=0:
         empty_magazine_attempts+=1
         trigger_held=false
         operator.set_firing(false)
@@ -210,7 +218,12 @@ func _on_fire_released() -> void:
 
 
 func _on_weapon() -> void:
-    _equip_inventory_weapon(1-weapon_index)
+    for step in range(1,weapon_owned.size()):
+        var next: int=(weapon_index+step)%weapon_owned.size()
+        if weapon_owned[next]:
+            _equip_inventory_weapon(next)
+            return
+    _equip_inventory_weapon(WEAPONS.AWM)
 
 
 ## Both the quick-switch button and actual inventory use this same
@@ -219,7 +232,7 @@ func _equip_inventory_weapon(index: int) -> void:
     if not operator.can_act() or index<0 or index>=weapon_owned.size():
         return
     if not weapon_owned[index]:
-        hud.impact("ARMA SIN RECOGER / BUSCA LA AWM")
+        hud.impact("ARMA SIN RECOGER")
         return
     if index==weapon_index:
         return
@@ -228,9 +241,7 @@ func _equip_inventory_weapon(index: int) -> void:
     trigger_held=false
     operator.set_firing(false)
     cooldown=.20
-    reload_timer=0.0
-    _reload_duration=0.0
-    hud.set_reload_state(false,0.0,0.0)
+    _clear_reload()
     aim_active=false
     current_zoom=1.0
     if _weapon_visuals:
@@ -251,19 +262,20 @@ func _on_aim() -> void:
         current_zoom = 2.0 if current_zoom < 1.8 else 4.0 if current_zoom < 3.8 else 1.0
     aim_active = current_zoom > 1.0
     operator.set_ads(aim_active,current_zoom)
-    var label: String = "MIRA LIBRE" if not aim_active else "AWM / 8X" if weapon_index==1 else "AR / "+str(int(current_zoom))+"X"
+    var label: String="MIRA LIBRE" if not aim_active else "%s / %dX"%[
+        WEAPONS.ENTRIES[weapon_index]["short"],int(current_zoom)]
     hud.set_aim(aim_active,label,current_zoom)
 
 
-func _on_heal() -> void:
+func _on_heal(syringe: bool=false) -> void:
     if _heal_remaining>0.0:
         # Press the same medkit button again to cancel without consuming it.
         _cancel_healing("CURACION CANCELADA")
         return
     if not operator.can_act():
         return
-    if medkits_remaining<=0:
-        hud.impact("SIN BOTIQUINES")
+    if (syringes_remaining if syringe else medkits_remaining)<=0:
+        hud.impact("SIN JERINGAS" if syringe else "SIN BOTIQUINES")
         return
     if operator.training_health>=99.5:
         hud.impact("SALUD COMPLETA")
@@ -280,11 +292,13 @@ func _on_heal() -> void:
         current_zoom=1.0
         operator.set_ads(false,1.0)
         hud.set_aim(false,"MIRA LIBRE",1.0)
-    _heal_remaining=HEAL_APPLY_SECONDS
+    _healing_with_syringe=syringe
+    _heal_duration=SYRINGE_APPLY_SECONDS if syringe else HEAL_APPLY_SECONDS
+    _heal_remaining=_heal_duration
     _heal_anchor=operator.global_position
     _set_medical_presentation(true)
-    hud.set_heal_channel(true,_heal_remaining,HEAL_APPLY_SECONDS,medkits_remaining)
-    hud.impact("APLICANDO BOTIQUIN / 3 SEGUNDOS")
+    hud.set_heal_channel(true,_heal_remaining,_heal_duration,medkits_remaining)
+    hud.impact("APLICANDO JERINGA" if syringe else "APLICANDO BOTIQUIN / 3 SEGUNDOS")
 
 
 func _on_healing_damage(amount: float) -> void:
@@ -297,23 +311,30 @@ func _cancel_healing(reason: String="") -> void:
         return
     _heal_remaining=0.0
     _set_medical_presentation(false)
+    _healing_with_syringe=false
     hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
     if not reason.is_empty():
         hud.impact(reason)
 
 
 func _complete_healing() -> void:
-    # The medkit is deducted exactly once, only when the channel completes.
+    # A consumable is deducted exactly once, when the channel completes.
+    var syringe: bool=_healing_with_syringe
+    _healing_with_syringe=false
     _heal_remaining=0.0
     _set_medical_presentation(false)
     hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
-    if not operator.can_act() or medkits_remaining<=0 or operator.training_health>=99.5:
+    if not operator.can_act() or operator.training_health>=99.5 or (
+            (syringes_remaining if syringe else medkits_remaining)<=0):
         return
-    medkits_remaining-=1
-    operator.receive_training_heal(45.0)
+    if syringe:
+        syringes_remaining-=1
+    else:
+        medkits_remaining-=1
+    operator.receive_training_heal(20.0 if syringe else 45.0)
     _sync_hud()
     hud.set_medkit_count(medkits_remaining)
-    hud.impact("BOTIQUIN +45 VIDA")
+    hud.impact("JERINGA +20 VIDA" if syringe else "BOTIQUIN +45 VIDA")
     healed.emit()
 
 func _on_reload() -> void:
@@ -322,17 +343,37 @@ func _on_reload() -> void:
     _cancel_healing("CURACION CANCELADA / RECARGA")
     if reload_timer>0:
         return
-    var cap: int=5 if weapon_index==1 else 30
-    if ammo[weapon_index]>=cap or reserve[weapon_index]<=0:
+    var cap: int=WEAPONS.ENTRIES[weapon_index]["capacity"]
+    if ammo[weapon_index]>=cap or reserve[WEAPONS.reserve_slot(weapon_index)]<=0:
         hud.impact("SIN NECESIDAD DE RECARGA")
         return
-    reload_timer=AWM_RELOAD_SECONDS if weapon_index==1 else AR_RELOAD_SECONDS
+    reload_timer=WEAPONS.ENTRIES[weapon_index]["reload"]
     _reload_duration=reload_timer
     _reload_ui_clock=0.0
+    _mp40_reload_cue=0
     hud.set_reload_state(true,reload_timer,_reload_duration)
     operator.play_weapon_action("reload",reload_timer)
     reload_started.emit()
     hud.impact("RECARGANDO")
+
+
+func _clear_reload() -> void:
+    if _reload_duration<=0.0 and reload_timer<=0.0:
+        return
+    reload_timer=0.0
+    _reload_duration=0.0
+    _mp40_reload_cue=0
+    if _weapon_visuals:
+        _weapon_visuals.set_mp40_reload_progress(0.0)
+    hud.set_reload_state(false,0.0,0.0)
+
+
+func _advance_mp40_reload(progress: float) -> void:
+    _weapon_visuals.set_mp40_reload_progress(progress)
+    while _mp40_reload_cue<WEAPONS.MP40_RELOAD_MARKS.size() and (
+            progress>=WEAPONS.MP40_RELOAD_MARKS[_mp40_reload_cue]):
+        reload_cue.emit(WEAPONS.MP40_RELOAD_CUES[_mp40_reload_cue])
+        _mp40_reload_cue+=1
 
 
 func _shoot() -> void:
@@ -341,7 +382,7 @@ func _shoot() -> void:
     if operator.royale_eliminated or cooldown>0 or reload_timer>0:
         return
     if ammo[weapon_index]<=0:
-        if reserve[weapon_index]>0:
+        if reserve[WEAPONS.reserve_slot(weapon_index)]>0:
             _on_reload()
         else:
             trigger_held=false
@@ -351,9 +392,9 @@ func _shoot() -> void:
         return
     ammo[weapon_index]-=1
     shots_fired_total+=1
-    cooldown=AWM_BOLT_SECONDS if weapon_index==1 else .105
+    cooldown=WEAPONS.ENTRIES[weapon_index]["cadence"]
     _sync_hud()
-    operator.apply_recoil(.02 if weapon_index==1 else .005)
+    operator.apply_recoil(WEAPONS.ENTRIES[weapon_index]["recoil"])
     operator.play_weapon_action("fire",.24 if weapon_index==1 else .13)
     var camera:=operator.get_view_camera() as Camera3D
     if camera==null:
@@ -379,7 +420,7 @@ func _shoot() -> void:
         # Never infer a critical hit from crosshair projection alone.
         _apply_verified_opponent_hit(hit)
     elif body is StaticBody3D and body.is_in_group("aurora_deployable_cover"):
-        body.call("take_damage",float(AWM_DAMAGE if weapon_index==1 else AR_DAMAGE))
+        body.call("take_damage",physical_hit_damage(weapon_index,false))
         hud.impact("BARRERA AURORA / IMPACTO")
 
 
@@ -393,13 +434,10 @@ static func is_critical_contact(contact: Vector3,foot: Vector3) -> bool:
 
 
 static func physical_hit_damage(weapon: int,is_critical: bool) -> float:
-    if weapon!=0 and weapon!=1:
+    if weapon<0 or weapon>=WEAPONS.ENTRIES.size():
         return 0.0
-    var base_damage: float=float(AWM_DAMAGE if weapon==1 else AR_DAMAGE)
-    var bonus: float=1.0
-    if is_critical:
-        bonus=AWM_HEADSHOT_MULTIPLIER if weapon==1 else AR_HEADSHOT_MULTIPLIER
-    return base_damage*bonus
+    var definition: Dictionary=WEAPONS.ENTRIES[weapon]
+    return float(definition["damage"])*(float(definition["critical"]) if is_critical else 1.0)
 
 
 ## Only the dictionary returned by the PhysicsServer's actual ray enters
@@ -521,9 +559,7 @@ func deploy_aurora_cover() -> bool:
 
 func end_sector_battle() -> void:
     _cancel_healing()
-    reload_timer=0.0
-    _reload_duration=0.0
-    hud.set_reload_state(false,0.0,0.0)
+    _clear_reload()
     for i in range(_bot_tracers.size()):
         _bot_tracer_lifetimes[i]=0.0
         _bot_tracers[i].visible=false
@@ -542,6 +578,7 @@ func end_sector_battle() -> void:
 
 func begin_sector_battle() -> void:
     _cancel_healing()
+    _clear_reload()
     _clear_cover()
     sector_battle_active=true
     cover_charges=2
@@ -569,6 +606,7 @@ func begin_sector_battle() -> void:
     weapon_owned=[true,false]
     backpack_level=0
     medkits_remaining=2
+    syringes_remaining=0
     eliminations=0
     _eliminated_actors_this_round.clear()
     damage_dealt=0.0
@@ -580,6 +618,7 @@ func begin_sector_battle() -> void:
         if is_instance_valid(bot):
             bot.configure_sector_battle(_targets)
     if _weapon_visuals:
+        _weapon_visuals.clear_expansion()
         _weapon_visuals.set_awm_owned(weapon_owned[1])
         _weapon_visuals.equip(0)
     operator.set_equipped_weapon(0)
@@ -770,10 +809,22 @@ func collect_sector_loot(kind: String,quantity: int=-1,
             cover_charges+=1
             hud.set_aurora_cover_count(cover_charges,cover_cooldown)
             hud.impact("BARRERA AURORA +1")
+        "syringe":
+            if syringes_remaining>=3:
+                return false
+            syringes_remaining+=1
+            hud.impact("JERINGA RECOGIDA")
         "armor_plate":
             if not operator.equip_armor(75.0):
                 return false
             hud.impact("CHALECO AURORA EQUIPADO / +75")
+        "vest_1", "vest_2", "vest_3", "helmet_1", "helmet_2", "helmet_3":
+            var is_helmet: bool=kind.begins_with("helmet")
+            var level: int=int(kind.get_slice("_",1))
+            if not operator.equip_protection(is_helmet,level):
+                return false
+            hud.impact(("%s NIVEL %d EQUIPADO")%[
+                "CASCO" if is_helmet else "CHALECO",level])
         "backpack":
             if backpack_level>=1:
                 return false
@@ -786,6 +837,18 @@ func collect_sector_loot(kind: String,quantity: int=-1,
             if _weapon_visuals:
                 _weapon_visuals.set_awm_owned(true)
             hud.impact("AWM RECOGIDA / VISIBLE EN ESPALDA")
+        "weapon_scar", "weapon_mp40", "weapon_kriss":
+            if not _collect_expansion_weapon(WEAPONS.pickup_slot(kind)):
+                return false
+        "ammo_smg":
+            if not _owns_smg():
+                return false
+            var gained: int=mini(30 if quantity<0 else clampi(quantity,0,30),
+                _reserve_limit(WEAPONS.MP40)-reserve[WEAPONS.MP40])
+            if gained<=0:
+                return false
+            reserve[WEAPONS.MP40]+=gained
+            hud.impact("MUNICIÓN SMG +%d"%gained)
         _:
             return false
     loot_collected+=1
@@ -795,12 +858,42 @@ func collect_sector_loot(kind: String,quantity: int=-1,
     return true
 
 
+func _collect_expansion_weapon(slot: int) -> bool:
+    if slot<WEAPONS.SCAR or slot>=WEAPONS.ENTRIES.size():
+        return false
+    if (slot<weapon_owned.size() and weapon_owned[slot]) or not _weapon_visuals.add_expansion(slot):
+        return false
+    var first_smg: bool=WEAPONS.reserve_slot(slot)==WEAPONS.MP40 and not _owns_smg()
+    while weapon_owned.size()<=slot:
+        weapon_owned.append(false)
+        ammo.append(0)
+        reserve.append(0)
+    weapon_owned[slot]=true
+    ammo[slot]=WEAPONS.ENTRIES[slot]["capacity"]
+    if first_smg:
+        reserve[WEAPONS.MP40]=30
+    hud.impact("%s RECOGIDA"%WEAPONS.ENTRIES[slot]["short"])
+    return true
+
+
+func _owns_smg() -> bool:
+    return ((weapon_owned.size()>WEAPONS.MP40 and weapon_owned[WEAPONS.MP40]) or
+        (weapon_owned.size()>WEAPONS.KRISS and weapon_owned[WEAPONS.KRISS]))
+
+
 func _reserve_limit(index: int) -> int:
+    if index==WEAPONS.MP40:
+        return 180 if backpack_level>0 else 90
     return (AWM_RESERVE_BACKPACK if backpack_level>0 else AWM_RESERVE_BASE) if index==1 else (AR_RESERVE_BACKPACK if backpack_level>0 else AR_RESERVE_BASE)
 
 
 func inventory_snapshot() -> Dictionary:
+    var additions: Dictionary={}
+    for index in range(WEAPONS.SCAR,weapon_owned.size()):
+        if weapon_owned[index]:
+            additions[index]={"loaded":ammo[index],"reserve":reserve[WEAPONS.reserve_slot(index)]}
     return {
+        "additions":additions,
         "ar_owned":weapon_owned[0],
         "awm_owned":weapon_owned[1],
         "active_weapon":weapon_index,
@@ -811,9 +904,13 @@ func inventory_snapshot() -> Dictionary:
         "ar_capacity":_reserve_limit(0),
         "awm_capacity":_reserve_limit(1),
         "medkits":medkits_remaining,
+        "syringes":syringes_remaining,
         "covers":cover_charges,
         "backpack":backpack_level,
         "armor":roundi(operator.armor_points),
+        "vest_level":operator.vest_level,
+        "helmet_level":operator.helmet_level,
+        "helmet":roundi(operator.helmet_points),
         "damage_dealt":roundi(damage_dealt),
         "loot_collected":loot_collected,
         "opponent_caches":opponent_caches_collected,
@@ -895,9 +992,9 @@ func _spawn_tracer(from: Vector3,to: Vector3) -> void:
     var distance: float=minf(span.length(),TRACER_MAX_LENGTH)
     var visual: MeshInstance3D=_tracers[_tracer_cursor]
     var heading: Vector3=span.normalized()
-    var radius: float=.014 if weapon_index==0 else .024
+    var radius: float=.024 if weapon_index==WEAPONS.AWM else .014
     visual.global_transform=Transform3D(Basis(Quaternion(Vector3.UP,heading)) * Basis.from_scale(Vector3(radius,distance,radius)),from+heading*distance*.5)
-    visual.material_override=_tracer_materials[weapon_index]
+    visual.material_override=_tracer_materials[1 if weapon_index==WEAPONS.AWM else 0]
     visual.visible=true
     _tracer_lifetimes[_tracer_cursor]=TRACER_LIFETIME
     _tracer_cursor=(_tracer_cursor+1)%TRACER_CAPACITY
@@ -925,10 +1022,12 @@ func _on_bot_trace(from: Vector3,to: Vector3) -> void:
 
 
 func _sync_hud() -> void:
-    hud.set_weapon("AWM / FRANCOTIRADOR" if weapon_index==1 else "AR-7 / ASALTO",ammo[weapon_index],reserve[weapon_index])
-    hud.set_ammo_warning(ammo[weapon_index],reserve[weapon_index],
-        5 if weapon_index==1 else 30)
-    hud.set_armor_status(operator.armor_points)
+    var supply: int=reserve[WEAPONS.reserve_slot(weapon_index)]
+    var definition: Dictionary=WEAPONS.ENTRIES[weapon_index]
+    hud.set_weapon(definition["label"],ammo[weapon_index],supply)
+    hud.set_ammo_warning(ammo[weapon_index],supply,definition["capacity"])
+    hud.set_armor_status(operator.armor_points,operator.vest_level,
+        operator.helmet_points,operator.helmet_level)
     hud.set_inventory_snapshot(inventory_snapshot())
 
 
@@ -1009,13 +1108,13 @@ func _draw_medical_rig() -> void:
 
 func _set_medical_presentation(active: bool) -> void:
     if _medical_visual:
-        _medical_visual.set_healing(active)
+        _medical_visual.set_healing(active,_healing_with_syringe)
     if _weapon_visuals:
         _weapon_visuals.set_medical_busy(active)
     if active:
         # Authored upper-body action overlaps the actual physical medic
         # channel; cancellation never awards health or wastes inventory.
-        operator.play_weapon_action("heal",HEAL_APPLY_SECONDS)
+        operator.play_weapon_action("heal",_heal_duration)
     else:
         operator.cancel_medical_action()
 

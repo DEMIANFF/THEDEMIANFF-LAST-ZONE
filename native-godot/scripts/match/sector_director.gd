@@ -468,6 +468,19 @@ func _spawn_loot() -> void:
     # sits in the accessible central plaza, marked on the large map.
     # Do not grant the gun directly: BR still requires actual collection.
     _make_pickup(Vector2(8,24),"weapon_awm","AuroraAWMWeaponPickup")
+    if combat.encounter_size==50:
+        _make_pickup(Vector2(42,-20),"weapon_scar","AuroraSCARPickup")
+        _make_pickup(Vector2(30,9),"weapon_mp40","AuroraMP40Pickup")
+        _make_pickup(Vector2(12,-13),"weapon_kriss","AuroraKRISSPickup")
+        _make_pickup(Vector2(-38,-12),"ammo_smg","AuroraSMGAmmoPickup")
+        _make_pickup(Vector2(-24,-31),"syringe","AuroraSyringePickup")
+        var gear: Array[Vector2]=[Vector2(27,25),Vector2(32,25),
+            Vector2(-34,30),Vector2(-39,33),Vector2(54,-33),Vector2(59,-33)]
+        for i in range(gear.size()):
+            var level: int=i/2+1
+            var slot: String="vest" if i%2==0 else "helmet"
+            var key: String="%s_%d"%[slot,level]
+            _make_pickup(gear[i],key,"AuroraProtection"+str(i+1))
     # Furnished villas add eight indoor supplies. Their height
     # follows the raised indoor floor, not the terrain underneath a villa.
     var coastal: Node3D=get_parent().get_node_or_null(

@@ -1109,7 +1109,7 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
         hit.get("position",endpoint))
     var actor: Object=hit.get("collider")
     if actor==operator and not operator.royale_eliminated:
-        operator.receive_training_hit(5.0,false,global_position)
+        operator.receive_training_hit(5.0,false,global_position,hit["position"])
         shots_hit+=1
     elif actor is CharacterBody3D and actor.is_in_group("training_target") and actor.health>0:
         actor.take_training_damage(22.0,self)
