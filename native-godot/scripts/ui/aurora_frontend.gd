@@ -1991,8 +1991,9 @@ func _build_preview() -> void:
     _gesture_button.custom_minimum_size=Vector2.ZERO
     _gesture_button.anchor_left=.554
     _gesture_button.anchor_right=.690
-    _gesture_button.anchor_top=.762
-    _gesture_button.anchor_bottom=.809
+    # At 964x434 these real touch targets are >40px high, not tiny labels.
+    _gesture_button.anchor_top=.700
+    _gesture_button.anchor_bottom=.804
     _gesture_button.add_theme_font_size_override("font_size",11)
     _style_aurora_tab(_gesture_button,Color(.53,.77,.93))
     _gesture_button.tooltip_text="Reproducir gesto animado de Lila"
@@ -2010,8 +2011,8 @@ func _build_preview() -> void:
         action.custom_minimum_size=Vector2.ZERO
         action.anchor_left=float(item[3])
         action.anchor_right=float(item[4])
-        action.anchor_top=.762
-        action.anchor_bottom=.809
+        action.anchor_top=.700
+        action.anchor_bottom=.804
         action.add_theme_font_size_override("font_size",11)
         action.tooltip_text=(
             "Girar personaje 3D" if item[0]!="LilaCameraFrame" else
