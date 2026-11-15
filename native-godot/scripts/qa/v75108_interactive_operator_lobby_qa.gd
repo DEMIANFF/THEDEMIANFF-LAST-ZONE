@@ -50,11 +50,13 @@ func _verify() -> void:
         "left turn did not restore starting direction")
     front._operator_controls[2].pressed.emit()
     await create_timer(.38).timeout
-    check(front._preview_zoomed and camera!=null and camera.fov<36.2,
+    check(front._preview_zoomed and camera!=null and absf(camera.fov-45.0)<.3 and
+        camera.position.y>1.43,
         "framing control did not animate actual 3D camera")
     front._operator_controls[2].pressed.emit()
     await create_timer(.38).timeout
-    check(not front._preview_zoomed and absf(camera.fov-38.0)<.2,
+    check(not front._preview_zoomed and absf(camera.fov-54.0)<.3 and
+        absf(camera.position.y-1.18)<.03,
         "framing control did not restore full-body view")
 
     var state_before: Dictionary=front._offline_records.cosmetic_state().duplicate(true)
