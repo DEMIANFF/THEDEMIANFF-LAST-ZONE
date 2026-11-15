@@ -59,7 +59,7 @@ func _verify() -> void:
             "AuroraArmedStrafeRight","AuroraArmedBackpedal"]:
         check(player._animator.has_animation(clip) and
             controller.states.has_node(clip),
-            "original Blender GLB doesn't export actual skeleton clip "+clip)
+            "Lila's GLB or AnimationTree is missing skeleton clip "+clip)
         if player._animator.has_animation(clip):
             var animation: Animation=player._animator.get_animation(clip)
             check(animation.length>.85 and animation.length<1.25 and
@@ -71,10 +71,8 @@ func _verify() -> void:
         "Skeleton3D",true,false) as Skeleton3D
     check(skeleton!=null and skeleton.get_bone_count()>35,
         "Lila's original weighted skeleton was replaced by an animation dummy")
-    var knee: int=skeleton.find_bone("rig_LeftUpLeg")
-    if knee<0:
-        knee=skeleton.find_bone("rig:LeftUpLeg")
-    check(knee>=0,"procedural step lost its original thigh bone")
+    var knee: int=skeleton.find_bone("LeftUpLeg") if skeleton!=null else -1
+    check(knee>=0,"Lila's imported animation lost its original thigh bone")
     if knee<0:
         quit(1)
         return

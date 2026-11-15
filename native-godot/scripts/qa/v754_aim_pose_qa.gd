@@ -56,7 +56,7 @@ func verify() -> void:
     var animator: AnimationPlayer=player._avatar.find_child("AnimationPlayer",true,false)
     check(skeleton!=null and animator!=null,"operator rig missing")
     if skeleton!=null and animator!=null:
-        check(skeleton.find_bone("rig_LeftLeg")>=0,"knee bone absent")
+        check(skeleton.find_bone("LeftLeg")>=0,"knee bone absent")
         check(animator.has_animation("AuroraArmedRun"),"running animation missing")
     print("V754_AIM PASS camera_barrel=",sight.dot(barrel)," tracer_m=",extent)
     quit(1 if failed else 0)

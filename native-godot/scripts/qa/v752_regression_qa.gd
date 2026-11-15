@@ -48,7 +48,7 @@ func _verify() -> void:
     var skeleton: Skeleton3D=rig.find_child("Skeleton3D",true,false)
     var animator: AnimationPlayer=rig.find_child("AnimationPlayer",true,false)
     player.set_physics_process(false)
-    var head: int=skeleton.find_bone("rig_Head")
+    var head: int=skeleton.find_bone("Head")
     animator.play("AuroraArmedIdle",0)
     animator.advance(0.2)
     skeleton.force_update_all_bone_transforms()

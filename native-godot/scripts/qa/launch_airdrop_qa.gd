@@ -30,8 +30,8 @@ func _verify() -> void:
         push_error("V75 original lobby has no visible 3D character preview viewport")
         quit(149)
         return
-    if ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
-        var avatar: Node=preview.get_node_or_null("PreviewViewport/AuroraCharacterStage/ProvisionalRig3D")
+    if ResourceLoader.exists("res://assets/characters/lila_aurora.glb"):
+        var avatar: Node=preview.get_node_or_null("PreviewViewport/AuroraCharacterStage/LilaAuroraPreview")
         if avatar==null:
             push_error("Imported rig did not appear in lobby preview")
             quit(150)

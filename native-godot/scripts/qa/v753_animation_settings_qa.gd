@@ -57,7 +57,7 @@ func verify() -> void:
         var bone:=str(track).to_lower()
         check(not "hips" in bone and not "leg" in bone and not "foot" in bone,"upper layer includes legs")
     var skeleton: Skeleton3D=player._avatar.find_child("Skeleton3D",true,false)
-    var leg: int=skeleton.find_bone("rig_LeftUpLeg")
+    var leg: int=skeleton.find_bone("LeftUpLeg")
     var first: Quaternion=skeleton.get_bone_pose_rotation(leg)
     await frames(10)
     var second: Quaternion=skeleton.get_bone_pose_rotation(leg)

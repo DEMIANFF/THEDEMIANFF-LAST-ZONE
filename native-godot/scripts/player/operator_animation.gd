@@ -1,5 +1,8 @@
 extends Node
 ## Skeletal upper-body one-shots keep the locomotion/stance running underneath.
+const UPPER_BODY_CLIPS: Array[String]=[
+    "AuroraFire","AuroraFireAWM","AuroraHit","AuroraHitFront","AuroraHitBack",
+    "AuroraHitLeft","AuroraHitRight","AuroraReloadAR","AuroraReloadAWM","AuroraHeal"]
 var tree: AnimationTree
 var states: AnimationNodeStateMachine
 var playback: AnimationNodeStateMachinePlayback
@@ -15,11 +18,11 @@ func setup(source: AnimationPlayer) -> void:
         if not clip.begins_with("Aurora"):
             continue
         var animation:=source.get_animation(clip)
-        animation.loop_mode=(Animation.LOOP_NONE if clip in [
-            "AuroraFire","AuroraFireAWM","AuroraReloadAR","AuroraReloadAWM",
-            "AuroraHeal","AuroraHit","AuroraHitFront","AuroraHitBack",
-            "AuroraHitLeft","AuroraHitRight","AuroraLand","AuroraJump"]
+        animation.loop_mode=(Animation.LOOP_NONE if clip in UPPER_BODY_CLIPS or
+            clip in ["AuroraLand","AuroraJump"]
             else Animation.LOOP_LINEAR)
+        if clip in UPPER_BODY_CLIPS:
+            continue
         var node:=AnimationNodeAnimation.new()
         node.animation=clip
         states.add_node(clip,node)
@@ -41,7 +44,9 @@ func setup(source: AnimationPlayer) -> void:
             # poses instead of snapping the skinned rig at a stance edge.
             var stance: bool=("Crouch" in from or "Crouch" in to or
                 "Aim" in from or "Aim" in to)
-            var airborne: bool=("Jump" in from or "Land" in to)
+            var airborne: bool=("Jump" in from or "Land" in to or
+                from=="AuroraFreefall" or to=="AuroraFreefall" or
+                from=="AuroraParachute" or to=="AuroraParachute")
             transition.xfade_time=.10 if airborne else .24 if stance else .20 if gait else .14
             if gait:
                 transition.switch_mode=AnimationNodeStateMachineTransition.SWITCH_MODE_SYNC
@@ -56,10 +61,7 @@ func setup(source: AnimationPlayer) -> void:
     # directional injury and future two-handed/medical gestures.
     # This union is constructed once, never in the render/physics loop.
     var selected_paths: Dictionary={}
-    for clip_name in ["AuroraFire","AuroraFireAWM",
-            "AuroraHit","AuroraHitFront","AuroraHitBack",
-            "AuroraHitLeft","AuroraHitRight",
-            "AuroraReloadAR","AuroraReloadAWM","AuroraHeal"]:
+    for clip_name in UPPER_BODY_CLIPS:
         if not source.has_animation(clip_name):
             continue
         var sample: Animation=source.get_animation(clip_name)

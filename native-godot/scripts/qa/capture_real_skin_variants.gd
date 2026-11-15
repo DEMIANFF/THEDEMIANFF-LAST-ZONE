@@ -23,9 +23,9 @@ func _capture() -> void:
         quit(1)
         return
     var kit: MeshInstance3D=visual.find_child(
-        "LilaAuroraSignatureKit",true,false) as MeshInstance3D
-    if kit==null or kit.mesh==null or kit.mesh.get_surface_count()<3:
-        push_error("V7586_SKIN_RENDER original PBR armor missing")
+        "Lila_Aurora_Mesh",true,false) as MeshInstance3D
+    if kit==null or kit.mesh==null or kit.mesh.get_surface_count()!=1:
+        push_error("V7586_SKIN_RENDER supplied skinned Lila mesh missing")
         quit(2)
         return
     for name in ["aurora_base","aurora_glacier","aurora_ember"]:
@@ -33,7 +33,7 @@ func _capture() -> void:
             push_error("V7586_SKIN_RENDER cannot apply "+name)
             quit(3)
             return
-        var material: Material=kit.get_surface_override_material(2)
+        var material: Material=kit.get_surface_override_material(0)
         if (material!=null)==(name=="aurora_base"):
             push_error("V7586_SKIN_RENDER material did not change "+name)
             quit(4)
@@ -48,7 +48,7 @@ func _capture() -> void:
             quit(5)
             return
     if not COSMETICS.apply_to_operator(visual,"aurora_base") or (
-            kit.get_surface_override_material(2)!=null):
+            kit.get_surface_override_material(0)!=null):
         push_error("V7586_SKIN_RENDER failed to restore source material")
         quit(6)
         return

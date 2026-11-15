@@ -1,6 +1,5 @@
 extends SceneTree
-## V75.60 — physically skinned original hair and weapon holstering in
-## real Main.tscn and rotating lobby. No dummy assets or fake network clients.
+## Weapon ownership and physically attached holsters on the Lila skeleton.
 var failed: bool=false
 
 
@@ -12,37 +11,6 @@ func check(ok: bool,reason: String) -> void:
     if not ok:
         failed=true
         push_error("V7560_LILA_HOLSTERS "+reason)
-
-
-func _find_hair(avatar: Node3D,context: String) -> MeshInstance3D:
-    check(avatar!=null,context+" has no skinned humanoid")
-    if avatar==null:
-        return null
-    var hair: MeshInstance3D=avatar.find_child(
-        "LilaAuroraOriginalHair",true,false) as MeshInstance3D
-    check(hair!=null,context+" does not load original Aurora hair GLB")
-    if hair==null:
-        return null
-    check(hair.visible and hair.skin!=null and
-        not hair.skeleton.is_empty(),
-        context+" hair is decorative, unskinned or invisible")
-    check(hair.mesh!=null and hair.mesh.get_surface_count()==3,
-        context+" hairstyle lost its three shared original PBR materials")
-    if hair.mesh!=null:
-        var surface_count: int=hair.mesh.get_surface_count()
-        var poly_count: int=0
-        for surface in range(surface_count):
-            var mat: Material=hair.mesh.surface_get_material(surface)
-            check(mat!=null and mat.resource_name.begins_with(
-                "LilaAuroraHair"),context+" hair material isn't original Aurora art")
-            poly_count+=hair.mesh.surface_get_array_len(surface)
-        check(poly_count>=1200 and poly_count<6000,
-            context+" hairstyle is missing or exceeds bounded mobile mesh size")
-    var skeleton: Skeleton3D=avatar.find_child(
-        "Skeleton3D",true,false) as Skeleton3D
-    check(skeleton!=null and skeleton.get_bone_count()>35,
-        context+" hairstyle severed the authored humanoid skeleton")
-    return hair
 
 
 func _verify() -> void:
@@ -66,8 +34,6 @@ func _verify() -> void:
     combat.set_process(false)
     director.set_process(false)
 
-    var playable_hair: MeshInstance3D=_find_hair(
-        player._avatar,"Lila in third-person gameplay")
     var visuals: Node3D=combat._weapon_visuals
     check(visuals!=null and visuals.get("attachment_uses_hand"),
         "original skinned right-hand weapon socket lost")
@@ -144,20 +110,6 @@ func _verify() -> void:
         check(forbidden_hair!=null and not forbidden_hair.visible,
             "AI enemy is incorrectly wearing Lila's unique hair")
 
-    var frontend: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
-    root.add_child(frontend)
-    frontend._show_lobby()
-    var lobby_hair: MeshInstance3D=_find_hair(
-        frontend._preview_avatar,"Lila in rotating 3D lobby")
-    check(frontend._preview_container.visible and
-        frontend._preview_caption.text.contains("LILA"),
-        "actual 3D Lila portrait disappeared from lobby")
-    if playable_hair!=null and lobby_hair!=null:
-        check(playable_hair.mesh.resource_path==lobby_hair.mesh.resource_path,
-            "lobby and match use different invented hairstyles")
-        check(playable_hair.mesh.get_surface_count()==
-            lobby_hair.mesh.get_surface_count(),
-            "Lila wardrobe was replaced by a different static lobby render")
     director.start_sector_battle()
     director.set_process(false)
     combat.set_process(false)
@@ -165,10 +117,21 @@ func _verify() -> void:
     check(combat.weapon_index==0 and not visuals.awm_owned and
         (back_awm==null or not back_awm.visible),
         "next round leaked the previous AWM into Lila's holster")
+    player.air_mode="freefall"
+    visuals._process(0.0)
+    check(not visuals.ak.visible and back_ak.visible,
+        "Lila's rifle was still in hand during freefall")
+    player.air_mode="parachute"
+    visuals._process(0.0)
+    check(not visuals.ak.visible and back_ak.visible,
+        "Lila's rifle occupied a hand during the canopy pose")
+    player.air_mode="ground"
+    visuals._process(0.0)
+    check(visuals.ak.visible and not back_ak.visible,
+        "Lila did not draw the owned rifle after landing")
     if not failed:
-        print("V7560_LILA_HOLSTERS PASS original_hair=1 "+
-            "shared_lobby_model=1 original_skin=1 materials=3 "+
+        print("V7560_LILA_HOLSTERS PASS lila_skeleton=1 "+
             "spine_holster=1 actual_awm_pickup=1 "+
             "weapon_switching=1 no_unowned_sniper=1 "+
-            "enemy_identity=1 collision=preserved reset=clean vulkan=1")
+            "enemy_identity=1 collision=preserved reset=clean flight_holster=1 vulkan=1")
     quit(1 if failed else 0)

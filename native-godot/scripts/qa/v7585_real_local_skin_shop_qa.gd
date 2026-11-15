@@ -91,15 +91,15 @@ func _verify() -> void:
         menu._currency_strip.text.contains(str(old_coins-200)),
         "real store button failed to charge actual profile and equip armor")
     var rig: Node3D=menu._preview_avatar
-    var kit: MeshInstance3D=rig.find_child("LilaAuroraSignatureKit",
+    var kit: MeshInstance3D=rig.find_child("Lila_Aurora_Mesh",
         true,false) as MeshInstance3D
-    check(kit!=null and kit.get_surface_override_material(2)!=null,
+    check(kit!=null and kit.get_surface_override_material(0) is ShaderMaterial,
         "Glacial purchase did not repaint actual skinned Lila armor")
     menu._shop_selector.select(0)
     menu._on_shop_skin_selected(0)
     menu._shop_equip_button.emit_signal("pressed")
     check(str(visual_ledger.cosmetic_state()["equipped"])=="aurora_base" and
-        kit.get_surface_override_material(2)==null,
+        kit!=null and kit.get_surface_override_material(0)==null,
         "equipping original skin did not restore source PBR material")
     menu.queue_free()
     await process_frame
