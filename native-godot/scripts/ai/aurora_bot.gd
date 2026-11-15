@@ -38,6 +38,9 @@ const FIELD_MEDKIT_INTERRUPTED_COOLDOWN: float=1.25
 const PROACTIVE_RELOAD_THRESHOLD: int=4
 # 17 separate CPU buckets prevent 49 real agents from replanning together.
 const ROUTE_REPLAN_BUCKETS: int=17
+# Throttle cover sound-investigation probes independently of real firing.
+# No omniscient vision through a wall that happens to be destructible.
+const COVER_PROBE_SECONDS: float=.55
 # Physical death is registered instantly; the existing skinned visual gets
 # a short non-colliding reaction. No persistent bodies/particles on mobile.
 const DEFEAT_PRESENTATION_SECONDS: float=.75
@@ -68,6 +71,7 @@ var _route:=PackedVector3Array()
 var _route_goal:=Vector3(INF,INF,INF)
 var _route_clock: float=0.0
 var _cover_clock: float=0.0
+var _cover_probe_clock: float=0.0
 var _suppression_seconds: float=0.0
 var _last_attacker: Node3D
 var _cover_point:=Vector3(INF,INF,INF)
@@ -301,6 +305,7 @@ func _physics_process(dt: float) -> void:
     _impact_reaction_remaining=maxf(0.0,_impact_reaction_remaining-dt)
     _route_clock-=dt
     _cover_clock-=dt
+    _cover_probe_clock=maxf(0.0,_cover_probe_clock-dt)
     _strafe_clock-=dt
     if _reload_remaining>0.0:
         _reload_remaining=maxf(0.0,_reload_remaining-dt)
@@ -459,6 +464,12 @@ func _physics_process(dt: float) -> void:
                 _attack_clock=BURST_RECOVERY+float(get_instance_id()%4)*.14
             else:
                 _attack_clock=BURST_SHOT_GAP
+    # A previously seen/heard enemy behind destructible cover is no
+    # longer visually locked. Fire at the last ACTUAL contact coordinate
+    # only if a fresh physics ray hits real Aurora cover first.
+    if (sector_battle and not _target_visible and _alert_time>0.0 and
+            _attack_clock<=0.0 and _cover_probe_clock<=0.0):
+        _fire_at_last_known_cover()
     if _animation and _impact_reaction_remaining<=0.0:
         # Preserve the physical AI and weapon cadence while the nearby
         # existing weighted skeleton plays a very short shot reaction.
@@ -485,11 +496,7 @@ static func confirmed_contact_position(last_contact: Vector3,
 ## damage normally. No artificial eliminations or fake distant targets.
 func _insert_sight_candidate(picks: Array[Dictionary],
         foe: CharacterBody3D) -> void:
-    if foe==self or not is_instance_valid(foe):
-        return
-    if foe==operator and operator.royale_eliminated:
-        return
-    if foe!=operator and foe.health<=0.0:
+    if not _is_live_foe(foe):
         return
     var distance_sq: float=global_position.distance_squared_to(
         foe.global_position)
@@ -533,7 +540,7 @@ func _sense_player() -> void:
         var foe: CharacterBody3D=item["foe"] as CharacterBody3D
         vision_rays_last+=1
         vision_rays_total+=1
-        if _has_line_of_fire(foe):
+        if _has_verified_sight(foe):
             found=foe
             found_distance=float(item["distance_sq"])
             break
@@ -548,7 +555,7 @@ func _sense_player() -> void:
                 sqrt(found_distance)+TARGET_STICKINESS_METERS):
             vision_rays_last+=1
             vision_rays_total+=1
-            if _has_line_of_fire(previous):
+            if _has_verified_sight(previous):
                 found=previous
     if found!=null:
         _target_visible=true
@@ -626,6 +633,7 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     # deterministic stagger; no one is disabled or silently culled.
     _route_clock=.08+float(get_instance_id()%13)*.035
     _sense_clock=.04+float(get_instance_id()%17)*.020
+    _cover_probe_clock=.10+float(get_instance_id()%11)*.031
     _route_goal=Vector3(INF,INF,INF)
     _cover_point=Vector3(INF,INF,INF)
     _cover_clock=0.0
@@ -840,20 +848,81 @@ func _interrupt_field_heal() -> void:
         name_plate.text="ENEMIGO IA"
 
 
-func _has_line_of_fire(foe: CharacterBody3D) -> bool:
-    if not is_instance_valid(foe):
+## Exclude real eliminated actors from both physics sight and firearm use.
+## Visual contact and ballistic clearance are different questions.
+func _is_live_foe(foe: CharacterBody3D) -> bool:
+    if foe==self or not is_instance_valid(foe):
         return false
-    var ray:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*1.35,foe.global_position+Vector3.UP*1.0)
+    if foe==operator:
+        return not operator.royale_eliminated
+    return foe.health>0.0
+
+
+func _has_verified_sight(foe: CharacterBody3D) -> bool:
+    if not _is_live_foe(foe):
+        return false
+    var ray:=PhysicsRayQueryParameters3D.create(
+        global_position+Vector3.UP*1.35,
+        foe.global_position+Vector3.UP*1.0)
     ray.exclude=[get_rid()]
-    var obstacle: Object=get_world_3d().direct_space_state.intersect_ray(ray).get("collider")
-    # Bots may suppress and dismantle deployed cover instead of shooting
-    # magically through it. Buildings and permanent terrain still block LOS.
+    var collider: Object=get_world_3d().direct_space_state.intersect_ray(
+        ray).get("collider")
+    # A wall (even destructible Aurora cover) is NOT visual proof of the
+    # person's CURRENT position. Never use its contact as a player lock.
+    return collider==foe
+
+
+func _has_line_of_fire(foe: CharacterBody3D) -> bool:
+    if not _is_live_foe(foe):
+        return false
+    var ray:=PhysicsRayQueryParameters3D.create(
+        global_position+Vector3.UP*1.35,
+        foe.global_position+Vector3.UP*1.0)
+    ray.exclude=[get_rid()]
+    var obstacle: Object=get_world_3d().direct_space_state.intersect_ray(
+        ray).get("collider")
+    # Ballistics can hit a physical destructible wall even though the
+    # target behind it is NOT confirmed visible by the sensing ray.
     return obstacle==foe or (obstacle is StaticBody3D and
         (obstacle as StaticBody3D).is_in_group("aurora_deployable_cover"))
 
 
+func _fire_at_last_known_cover() -> bool:
+    # No live target coordinates are accessed here. A bounded probe
+    # tests a real wall on the route to a *previously verified* location.
+    if (_target_visible or _alert_time<=0.0 or _attack_clock>0.0 or
+            _reload_remaining>0.0 or _magazine<=0 or
+            not _last_seen.is_finite() or health<=0.0):
+        return false
+    if global_position.distance_squared_to(_last_seen)>SHOOT_RANGE*SHOOT_RANGE:
+        return false
+    _cover_probe_clock=COVER_PROBE_SECONDS+float(get_instance_id()%5)*.06
+    var muzzle: Vector3=global_position+Vector3.UP*1.35
+    var destination: Vector3=_last_seen+Vector3.UP*1.0
+    var ray:=PhysicsRayQueryParameters3D.create(muzzle,destination)
+    ray.exclude=[get_rid()]
+    var hit: Dictionary=get_world_3d().direct_space_state.intersect_ray(ray)
+    var body: Object=hit.get("collider")
+    if (not (body is StaticBody3D) or
+            not (body as StaticBody3D).is_in_group(
+                "aurora_deployable_cover") or
+            not body.has_method("is_active") or
+            not bool(body.call("is_active"))):
+        return false
+    shots_fired+=1
+    _magazine-=1
+    weapon_fired.emit(global_position)
+    shot_trace.emit(muzzle,hit.get("position",destination))
+    body.call("take_damage",12.0)
+    _burst_count=0
+    _attack_clock=BURST_RECOVERY
+    if _magazine<=0:
+        _begin_reload()
+    return true
+
+
 func _fire_at_target(foe: CharacterBody3D) -> bool:
-    if not is_instance_valid(foe) or _reload_remaining>0.0 or _magazine<=0:
+    if not _is_live_foe(foe) or _reload_remaining>0.0 or _magazine<=0:
         return false
     shots_fired+=1
     weapon_fired.emit(global_position)
