@@ -1,0 +1,23 @@
+# THEDEMIAN: LAST ZONE — V75.111 · Encuadre 3D real de Lila
+
+Base: PR #115, rama `codex/v75-110-motorola-touch-loading-safe`, commit `1767d0857aadc58f03b1bacb9df966c9bddd1293`. Godot 4.7.2; Android ARM64/Vulkan Mobile. Solo modifica encuadre y verificación del lobby 3D; ninguna alteración en partida, animaciones del BR, Firebase ni firma.
+
+## Defecto confirmado visualmente
+
+Se recuperaron las capturas renderizadas en CI de V75.109: [ejecución 43772969543](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43772969543), artefacto `THEDEMIAN-V75.109-LOBBY-ACCOUNT-PREVIEW`. En `aurora-v75-109-lobby.png` la cabeza de Lila queda tras la franja superior y sus pies invaden la navegación inferior. La cámara vertical de **38 grados** a z=3.07 hacía que un rig de ~1.96 m ocupara casi toda la altura útil.
+
+## Corrección
+
+- Cámara real `PreviewViewport/AuroraCharacterStage/LobbyPortraitCamera`: FOV vertical por defecto de **54°**, misma perspectiva, manteniendo la malla y las animaciones reales de Lila.
+- El botón `VISTA` cambia a retrato con **45°** y lente elevada a y=1.48 (z=2.95), para que la cabeza permanezca visible, y recupera la posición/fov de cuerpo completo al regresar.
+- QA V75.108 conserva la prueba de cambio real de cámara con los nuevos valores; QA V75.111 proyecta los AABB de los meshes visibles del GLB a la cámara del SubViewport y revisa el margen vertical en **964×434 y 1280×720**.
+- El script `run_qa.sh` ejecuta la prueba nueva antes de la batería original. Versión Android `75.111.0-mobile-vulkan`, `versionCode=101`; APK manual solamente.
+
+## Validación antes de fusionar
+
+1. CI Godot aprobado; revisar capturas nuevas, lado a lado con V75.109, para comprobar cabeza, cabello, pies, centinela, tarjetas y accesos táctiles.
+2. Ajustar cámara si la nueva captura muestra encuadre vacío, si el retrato tapa la cara o si cualquier control se solapa; no utilizar una imagen estática como sustituto.
+3. Probar realmente el lobby y la transición a BR en Motorola Edge 60 Fusion, con FPS/VRAM y cierre/reapertura de cuenta.
+4. Mantener borrador hasta esas pruebas. Un CI verde en OpenGL software **no valida** Vulkan Mobile ni equivalencia completa a las imágenes de referencia.
+
+Conservar `main`, `v44-3-2-autosave-guest`, `com.thedemianff.lastzone`, Firebase productivo, firma y perfiles.
