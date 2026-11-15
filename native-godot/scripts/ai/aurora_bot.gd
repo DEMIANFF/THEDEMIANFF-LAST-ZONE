@@ -636,7 +636,7 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
     if health<=0:
         _dead_time=7.0
         if sector_battle:
-            _play_death_presentation()
+            _play_death_presentation(attacker)
         else:
             visible=false
         var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
@@ -676,7 +676,7 @@ func _play_directional_hit(origin: Vector3) -> void:
 ## The real health death and combat signal happen immediately. Only
 ## the visual presentation is deferred: no collisions, shooting, pathfinding,
 ## ragdoll mesh allocations or additional death rewards during this window.
-func _play_death_presentation() -> void:
+func _play_death_presentation(lethal_attacker: Node3D) -> void:
     if _death_tween!=null and _death_tween.is_valid():
         _death_tween.kill()
     var visual: Node3D=_rig if _rig!=null else _lod_body
@@ -688,12 +688,12 @@ func _play_death_presentation() -> void:
         marker.visible=false
     visible=true
     _impact_reaction_remaining=0.0
-    # The real killer determines the authored four-direction skeletal
-    # reaction. Environmental storm damage has no invented shooter.
+    # Only this fatal physical hit determines the original skeleton clip.
+    # Environmental damage cannot reuse a shooter from an earlier injury.
     var reaction: String="AuroraHit"
-    if is_instance_valid(_last_attacker):
+    if is_instance_valid(lethal_attacker):
         reaction=IMPACT.directional_hit_clip(
-            _last_attacker.global_position,global_position,global_basis)
+            lethal_attacker.global_position,global_position,global_basis)
     if _animation!=null and _animation.has_animation(reaction):
         _animation.play(reaction,.08)
         _clip=reaction

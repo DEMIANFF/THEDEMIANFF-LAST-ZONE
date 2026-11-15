@@ -112,6 +112,21 @@ func _verify() -> void:
         victim._animation.current_animation==expected and
         combat.eliminations==credited+1,
         "physical death lost real killer direction or combat credit")
+    # Bot already wounded by player can then die from the real storm.
+    # Its previous attacker MUST NOT influence this fatality's animation,
+    # and must not receive an unearned player elimination.
+    var storm_victim: CharacterBody3D=combat._targets[1]
+    var human_kills: int=combat.eliminations
+    player.global_position=storm_victim.global_position+Vector3(0,0,-6)
+    storm_victim.take_training_damage(8.0,player)
+    check(storm_victim.health>0.0 and
+        storm_victim._last_attacker==player,
+        "cannot establish prior shooter before environmental death")
+    check(storm_victim.take_training_damage(500.0,null) and
+        storm_victim.health==0.0 and
+        storm_victim._animation.current_animation=="AuroraHit" and
+        combat.eliminations==human_kills,
+        "storm fatality reused old attacker or awarded a fake human kill")
     director.start_sector_battle()
     director.set_process(false)
     combat.set_process(false)
@@ -130,5 +145,6 @@ func _verify() -> void:
         print("V7597_DIRECTIONAL_OPPONENT_IMPACT PASS roster=50 "+
             "four_rig_hit_clips=1 real_damage=1 storm_no_fake_shooter=1 "+
             "gait_resume=1 LOD_budget_14=1 physical_death_direction=1 "+
+            "storm_finisher=anonymous "+
             "restart=clean multiplayer_online=false motorola_fps=unmeasured")
     quit(1 if failed else 0)
