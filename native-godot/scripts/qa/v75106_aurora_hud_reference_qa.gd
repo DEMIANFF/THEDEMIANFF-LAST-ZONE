@@ -15,7 +15,8 @@ func check(ok: bool,description: String) -> void:
 func _verify() -> void:
     root.size=Vector2i(964,434)
     var original_slot: int=HUD_LAYOUT.selected_preset()
-    var original: RefCounted=HUD_LAYOUT.new(HUD_LAYOUT.slot_path(1))
+    check(HUD_LAYOUT.choose_preset(1)==OK,"cannot select original HUD slot")
+    var original: RefCounted=HUD_LAYOUT.new()
     check(original.set_item("MovePad",Vector2(.19,.75),1.0,.87)==OK,
         "cannot store separate original HUD")
     check(original.save()==OK,"cannot save original HUD")
@@ -36,7 +37,8 @@ func _verify() -> void:
     var active: RefCounted=HUD_LAYOUT.new(HUD_LAYOUT.slot_path(4))
     check(active.loaded and active.controls.size()==HUD_LAYOUT.IDS.size(),
         "Aurora preset failed to persist all 13 touch actions")
-    var original_after: RefCounted=HUD_LAYOUT.new(HUD_LAYOUT.slot_path(1))
+    check(HUD_LAYOUT.choose_preset(1)==OK,"cannot inspect original HUD slot")
+    var original_after: RefCounted=HUD_LAYOUT.new()
     check(original_after.get_item("MovePad").get("center",Vector2.ZERO)==Vector2(.19,.75),
         "Aurora preset overwrote the user's primary HUD")
     var fire: Dictionary=active.get_item("DirectionalFirePad")
