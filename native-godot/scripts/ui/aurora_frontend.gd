@@ -380,7 +380,8 @@ func _build_loading_overlay() -> void:
     var hero:=CenterContainer.new()
     hero.anchor_right=1
     hero.anchor_top=.055
-    hero.anchor_bottom=.62
+    # Reserve enough vertical space for the load controls on Motorola landscape.
+    hero.anchor_bottom=.50
     _loading_overlay.add_child(hero)
     var branding:=VBoxContainer.new()
     hero.add_child(branding)
@@ -393,10 +394,13 @@ func _build_loading_overlay() -> void:
     _add_entry_wordmark(branding)
 
     var content:=VBoxContainer.new()
+    content.name="AuroraLoadingActions"
     content.anchor_left=.20
     content.anchor_right=.80
-    content.anchor_top=.66
-    content.anchor_bottom=.965
+    # The former 0.305-height region was only 132px on 964x434;
+    # CANCEL or RETRY could extend beyond the touch-safe screen.
+    content.anchor_top=.525
+    content.anchor_bottom=.972
     content.alignment=BoxContainer.ALIGNMENT_CENTER
     content.add_theme_constant_override("separation",8)
     _loading_overlay.add_child(content)
@@ -1240,8 +1244,8 @@ func _ensure_lobby_navigation() -> void:
     navplate.name="LobbySidebarBackplate"
     navplate.anchor_left=.017
     navplate.anchor_right=.208
-    navplate.anchor_top=.272
-    navplate.anchor_bottom=.850
+    navplate.anchor_top=.261
+    navplate.anchor_bottom=.870
     _surface.add_child(navplate)
     _surface.move_child(navplate,_page.get_index())
     _lobby_backplates.append(navplate)
@@ -1289,9 +1293,10 @@ func _ensure_lobby_navigation() -> void:
     _left_shortcuts.name="AuroraCommerceRail"
     _left_shortcuts.anchor_left=.024
     _left_shortcuts.anchor_right=.202
-    _left_shortcuts.anchor_top=.285
-    _left_shortcuts.anchor_bottom=.842
-    _left_shortcuts.add_theme_constant_override("separation",4)
+    # Six 40px minimum tap targets + five 3px gaps fit in 964x434.
+    _left_shortcuts.anchor_top=.265
+    _left_shortcuts.anchor_bottom=.866
+    _left_shortcuts.add_theme_constant_override("separation",3)
     _surface.add_child(_left_shortcuts)
     var quick_items: Array[Array]=[
         ["▣ TIENDA","TIENDA",""],
@@ -1309,7 +1314,7 @@ func _ensure_lobby_navigation() -> void:
             target,objective),160)
         button.name="Quick"+(objective.to_upper() if not objective.is_empty()
             else target)
-        button.custom_minimum_size=Vector2(0,30)
+        button.custom_minimum_size=Vector2(0,40)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         button.add_theme_font_size_override("font_size",12)
         _style_aurora_tab(button,Color(.35,.70,.91))
@@ -1407,8 +1412,8 @@ func _ensure_lobby_navigation() -> void:
     _top_account_button.custom_minimum_size=Vector2.ZERO
     _top_account_button.anchor_left=.790
     _top_account_button.anchor_right=.863
-    _top_account_button.anchor_top=.038
-    _top_account_button.anchor_bottom=.107
+    _top_account_button.anchor_top=.025
+    _top_account_button.anchor_bottom=.131
     _top_account_button.add_theme_font_size_override("font_size",11)
     _style_aurora_tab(_top_account_button,Color(.53,.39,.87))
     _surface.add_child(_top_account_button)
@@ -1418,8 +1423,8 @@ func _ensure_lobby_navigation() -> void:
     _top_settings_button.custom_minimum_size=Vector2.ZERO
     _top_settings_button.anchor_left=.875
     _top_settings_button.anchor_right=.926
-    _top_settings_button.anchor_top=.037
-    _top_settings_button.anchor_bottom=.11
+    _top_settings_button.anchor_top=.025
+    _top_settings_button.anchor_bottom=.131
     _top_settings_button.add_theme_font_size_override("font_size",18)
     _style_aurora_tab(_top_settings_button,Color(.53,.39,.87))
     _surface.add_child(_top_settings_button)
@@ -1429,8 +1434,8 @@ func _ensure_lobby_navigation() -> void:
     _top_social_button.custom_minimum_size=Vector2.ZERO
     _top_social_button.anchor_left=.730
     _top_social_button.anchor_right=.784
-    _top_social_button.anchor_top=.037
-    _top_social_button.anchor_bottom=.11
+    _top_social_button.anchor_top=.025
+    _top_social_button.anchor_bottom=.131
     _top_social_button.add_theme_font_size_override("font_size",17)
     _style_aurora_tab(_top_social_button,Color(.53,.39,.87))
     _surface.add_child(_top_social_button)
