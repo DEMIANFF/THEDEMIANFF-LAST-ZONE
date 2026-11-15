@@ -37,6 +37,8 @@ func _verify() -> void:
         check(button.is_visible_in_tree() and
             safe.grow(2).encloses(button.get_global_rect()),
             "operator control clipped: "+button.name)
+        check(button.get_global_rect().size.y>=40.0,
+            "operator touch target is smaller than 40 px: "+button.name)
     var before_angle: float=avatar.rotation.y
     front._operator_controls[1].pressed.emit()
     await create_timer(.40).timeout
