@@ -45,6 +45,8 @@ var _selected_tab: String = "JUGAR"
 var _preview_container: SubViewportContainer
 var _preview_avatar: Node3D
 var _preview_caption: Label
+var _gesture_button: Button
+var _preview_skin_applied: String=""
 var _offline_records: RefCounted
 var _player_name: RefCounted
 var _name_entry: LineEdit
@@ -714,6 +716,8 @@ func _show_lobby() -> void:
     _preview_container.anchor_bottom=.864
     _preview_container.visible=true
     _preview_caption.visible=true
+    if _gesture_button!=null and is_instance_valid(_gesture_button):
+        _gesture_button.visible=true
     _preview_caption.anchor_left=.216
     _preview_caption.anchor_right=.697
     _preview_caption.anchor_top=.820
@@ -740,7 +744,7 @@ func _show_lobby() -> void:
     _preview_resume_spin=2.0
     if _preview_avatar:
         _preview_avatar.rotation.y=0.0
-        COSMETICS.apply_to_operator(_preview_avatar,str(
+        _apply_preview_skin(str(
             _offline_records.cosmetic_state()["equipped"]))
     _clear_page()
     _lobby_section_title=_label("BATTLE ROYALE · BASE AURORA",17)
@@ -1460,6 +1464,22 @@ func _select_tab(tab: String) -> void:
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()
+    # Real 3D cosmetics are previewed only. Leaving Tienda restores
+    # the equipped outfit; no transaction or permanent entitlement changes.
+    if _offline_records!=null and _preview_avatar!=null and (
+            is_instance_valid(_preview_avatar)):
+        var shown: String=(_shop_selected_skin if tab=="TIENDA" else
+            str(_offline_records.cosmetic_state()["equipped"]))
+        _apply_preview_skin(shown)
+
+func _apply_preview_skin(skin: String) -> void:
+    if stage!="lobby" or _preview_avatar==null or not (
+            is_instance_valid(_preview_avatar)) or (
+            _preview_skin_applied==skin):
+        return
+    if COSMETICS.apply_to_operator(_preview_avatar,skin):
+        _preview_skin_applied=skin
+
 
 func _on_shop_skin_selected(index: int) -> void:
     var ids: Array[String]=["aurora_base","aurora_glacier","aurora_ember"]
@@ -1467,6 +1487,7 @@ func _on_shop_skin_selected(index: int) -> void:
         _shop_selected_skin=ids[index]
     if stage=="lobby" and _selected_tab=="TIENDA":
         _refresh_local_skin_store()
+        _apply_preview_skin(_shop_selected_skin)
 
 
 func _refresh_local_skin_store() -> void:
@@ -1477,7 +1498,7 @@ func _refresh_local_skin_store() -> void:
     var price: int=int(MATCH_RECORDS.LOCAL_SKINS.get(skin,0))
     var owned: bool=(state["owned"] as Array).has(skin)
     var equipped: bool=str(state["equipped"])==skin
-    _info.text="TIENDA AURORA · TRAJES ORIGINALES 3D\n"+(
+    _info.text="TIENDA AURORA · TRAJES REALES 3D\nVISTA PREVIA: "+skin.to_upper()+" (SIN EQUIPAR)\n"+(
         "MONEDAS LOCALES: %d\n"%int(state["coins"]))+(
         "SELECCIONADO: %s\n"%skin.to_upper())+(
         "PRECIO: %d · %s\n"%[price,
@@ -1500,8 +1521,7 @@ func _update_cosmetic_after_transaction() -> void:
     _currency_strip.text="MONEDAS %d\nDIAMANTES —"%int(
         state["coins"])
     if _preview_avatar!=null and is_instance_valid(_preview_avatar):
-        COSMETICS.apply_to_operator(_preview_avatar,
-            str(state["equipped"]))
+        _apply_preview_skin(_shop_selected_skin)
     _refresh_local_skin_store()
 
 
@@ -1735,6 +1755,10 @@ func _release_preview() -> void:
     # skinned rig. Queue-free it on logout AND before 3D match creation.
     if _preview_container!=null and is_instance_valid(_preview_container):
         _preview_container.queue_free()
+    if _gesture_button!=null and is_instance_valid(_gesture_button):
+        _gesture_button.queue_free()
+    _gesture_button=null
+    _preview_skin_applied=""
     if _preview_caption!=null and is_instance_valid(_preview_caption):
         _preview_caption.queue_free()
     _preview_container=null
@@ -1743,6 +1767,20 @@ func _release_preview() -> void:
     _preview_touch=-1
     _preview_mouse_drag=false
     _preview_resume_spin=0.0
+
+
+func _play_lobby_gesture() -> void:
+    if stage!="lobby" or _preview_avatar==null or not is_instance_valid(
+            _preview_avatar):
+        return
+    var animator:=_preview_avatar.find_child(
+        "AnimationPlayer",true,false) as AnimationPlayer
+    if animator==null or not animator.has_animation(LOBBY_MOTION_CLIP):
+        return
+    if animator.current_animation==LOBBY_MOTION_CLIP and animator.is_playing():
+        return
+    _preview_resume_spin=LOBBY_MOTION.length+2.0
+    animator.play(LOBBY_MOTION_CLIP,.26)
 
 
 func _install_lobby_motion(animator: AnimationPlayer) -> void:
@@ -1828,8 +1866,8 @@ func _build_preview() -> void:
     camera.name="LobbyPortraitCamera"
     # Keep the real rig large enough to be visible at phone resolution
     # without cropping feet or hiding the original sentinel companion.
-    camera.position=Vector3(-.10,1.18,3.12)
-    camera.fov=39
+    camera.position=Vector3(-.10,1.18,3.07)
+    camera.fov=38
     camera.current=true
     stage3d.add_child(camera)
     camera.look_at(Vector3(-.08,.91,0),Vector3.UP)
@@ -1857,6 +1895,7 @@ func _build_preview() -> void:
         var source:=load("res://assets/characters/lila_aurora.glb") as PackedScene
         if source!=null:
             _preview_avatar=source.instantiate() as Node3D
+            _preview_skin_applied=""
             _preview_avatar.name="LilaAuroraPreview"
             stage3d.add_child(_preview_avatar)
             _fit_avatar_for_preview(_preview_avatar)
@@ -1886,6 +1925,18 @@ func _build_preview() -> void:
     caption.visible=false
     _surface.add_child(caption)
     _preview_caption=caption
+    _gesture_button=_button("GESTO  ▶",_play_lobby_gesture,0)
+    _gesture_button.name="LilaLobbyGesture"
+    _gesture_button.custom_minimum_size=Vector2.ZERO
+    _gesture_button.anchor_left=.554
+    _gesture_button.anchor_right=.690
+    _gesture_button.anchor_top=.762
+    _gesture_button.anchor_bottom=.809
+    _gesture_button.add_theme_font_size_override("font_size",11)
+    _style_aurora_tab(_gesture_button,Color(.53,.77,.93))
+    _gesture_button.tooltip_text="Reproducir gesto animado de Lila"
+    _gesture_button.visible=false
+    _surface.add_child(_gesture_button)
 
 
 func _fit_avatar_for_preview(visual: Node3D) -> void:
