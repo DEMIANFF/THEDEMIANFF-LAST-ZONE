@@ -374,13 +374,14 @@ func _build_loading_overlay() -> void:
 
 
 func _add_entry_wordmark(container: VBoxContainer) -> void:
-    for entry in [["THEDEMIANFF",54,Color(.93,.95,1.0)],
-            ["LAST ZONE",30,Color(.82,.54,1.0)]]:
+    for entry in [["EntryBrandTitle","THEDEMIAN:",54,Color(.93,.95,1.0)],
+            ["EntryBrandSubtitle","LAST ZONE",30,Color(.82,.54,1.0)]]:
         var label:=Label.new()
-        label.text=entry[0]
+        label.name=entry[0]
+        label.text=entry[1]
         label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-        label.add_theme_font_size_override("font_size",entry[1])
-        label.add_theme_color_override("font_color",entry[2])
+        label.add_theme_font_size_override("font_size",entry[2])
+        label.add_theme_color_override("font_color",entry[3])
         label.add_theme_color_override("font_shadow_color",Color(.18,.02,.30))
         label.add_theme_constant_override("shadow_offset_y",3)
         container.add_child(label)

@@ -89,11 +89,11 @@ func _verify() -> void:
     check(emblem.anchor_left>.65 and emblem.anchor_right<.96 and
         emblem.anchor_top<.20 and emblem.anchor_bottom<.48,
         "welcome logo still overlaps the entrance and flight settings")
-    var title_found: bool=false
-    for node in frontend._page.get_children():
-        if node is Label and node.text=="THEDEMIAN: LAST ZONE":
-            title_found=true
-    check(title_found,"welcome title still contains FF")
+    var title:=frontend._page.get_node_or_null("EntryBrandTitle") as Label
+    var subtitle:=frontend._page.get_node_or_null("EntryBrandSubtitle") as Label
+    check(title!=null and subtitle!=null and
+        title.text+" "+subtitle.text=="THEDEMIAN: LAST ZONE",
+        "welcome wordmark does not match the project title")
     frontend._show_lobby()
     var portrait: Node3D=frontend._preview_avatar
     var anim: AnimationPlayer=portrait.find_child(
