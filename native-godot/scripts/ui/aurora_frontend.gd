@@ -2159,19 +2159,15 @@ func _layout_safe() -> void:
     _surface.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     _surface.position=safe.position
     _surface.size=safe.size
-    # Preserve screen aspect ratio without rendering at full device-pixel
-    # resolution. On Motorola landscape this is ~0.42MP; elsewhere cap
-    # the 3D backdrop to 540px tall to avoid excessive Vulkan VRAM.
+    # SubViewportContainer with stretch=true OWNS its SubViewport.size.
+    # Never write the child's size manually: Godot ignores that write and
+    # warns every frame. Use stretch_shrink to cap the physical pixel count
+    # while keeping the full-bleed stage scaled to the screen aspect.
     if _preview_container!=null and is_instance_valid(_preview_container):
-        var live: SubViewport=_preview_container.get_node_or_null(
-            "PreviewViewport") as SubViewport
-        if live!=null and safe.size.y>1.0:
-            var target_height: int=int(clampf(safe.size.y,320.0,540.0))
-            var target_width: int=maxi(320,roundi(
-                float(target_height)*safe.size.x/safe.size.y))
-            var requested: Vector2i=Vector2i(target_width,target_height)
-            if live.size!=requested:
-                live.size=requested
+        var pixel_count: float=maxf(1.0,safe.size.x*safe.size.y)
+        var shrink: int=clampi(ceili(sqrt(pixel_count/520000.0)),1,4)
+        if _preview_container.stretch_shrink!=shrink:
+            _preview_container.stretch_shrink=shrink
     # Nine tabs must fit a 434px-tall Motorola landscape viewport.
     if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         var compact: bool=safe.size.y<620.0
