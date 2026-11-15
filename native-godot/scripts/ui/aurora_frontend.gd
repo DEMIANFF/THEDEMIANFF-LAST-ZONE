@@ -775,7 +775,7 @@ func _show_lobby() -> void:
     # Logo stays outside the full-width profile strip and never crosses
     # over player statistics or the rotating 3D character.
     _brand_logo.anchor_left=.944
-    _brand_logo.anchor_right=.982
+    _brand_logo.anchor_right=.975
     _brand_logo.anchor_top=.018
     _brand_logo.anchor_bottom=.117
     # Base Aurora: large real 3D operator at centre; separate commerce,
