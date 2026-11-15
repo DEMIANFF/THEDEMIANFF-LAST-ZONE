@@ -59,7 +59,11 @@ func attach_to_operator(player: CharacterBody3D) -> void:
         if inherited_scale>.00001:
             medkit_mount.scale=Vector3.ONE/inherited_scale
             medkit_mount.position=Vector3(.0,-.027,-.02)/inherited_scale
-        medkit_mount.rotation_degrees=Vector3(0.0,0.0,70.0)
+        if hand_socket.bone_name=="LeftHand" and inherited_scale>.00001:
+            medkit_mount.position=Vector3(0,-.082,.012)/inherited_scale
+            medkit_mount.rotation_degrees=Vector3(10,0,0)
+        else:
+            medkit_mount.rotation_degrees=Vector3(0,0,70)
         attachment_uses_hand=true
     else:
         player.add_child(medkit_mount)

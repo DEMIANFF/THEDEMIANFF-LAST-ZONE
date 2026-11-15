@@ -14,6 +14,12 @@ func frames(n: int) -> void:
     for i in range(n):
         await physics_frame
 
+func wait_for_action_evaluation(tree: AnimationTree) -> void:
+    for tick in range(4):
+        await process_frame
+        if tree.get("parameters/UpperBody/request")==AnimationNodeOneShot.ONE_SHOT_REQUEST_NONE:
+            break
+
 func verify() -> void:
     var preferences=PREFERENCES.new("user://v753_camera_test.cfg")
     check(preferences.save(1.55,.75)==OK,"save preferences")
@@ -57,22 +63,24 @@ func verify() -> void:
         var bone:=str(track).to_lower()
         check(not "hips" in bone and not "leg" in bone and not "foot" in bone,"upper layer includes legs")
     var skeleton: Skeleton3D=player._avatar.find_child("Skeleton3D",true,false)
-    var leg: int=skeleton.find_bone("rig_LeftUpLeg")
+    var leg: int=skeleton.find_bone("LeftUpLeg")
     var first: Quaternion=skeleton.get_bone_pose_rotation(leg)
     await frames(10)
     var second: Quaternion=skeleton.get_bone_pose_rotation(leg)
     check(first.angle_to(second)>.015,"legs frozen during reload")
     print("V753_LAYERED_RELOAD clip=",player._current_clip," leg_angle=",first.angle_to(second))
     combat._on_weapon()
-    await frames(2)
+    await wait_for_action_evaluation(controller.tree)
     check(combat.reload_timer==0 and not controller.tree.get("parameters/UpperBody/active"),"weapon change kept old reload action")
     player.set_touch_move_axis(Vector2.ZERO)
     player.set_crouch(true)
     player.play_weapon_action("fire",.24)
+    await wait_for_action_evaluation(controller.tree)
+    var crouch_fire: bool=controller.tree.get("parameters/UpperBody/active")
     await frames(6)
-    check(player._current_clip.begins_with("AuroraCrouch") and controller.tree.get("parameters/UpperBody/active"),"crouch fire lost stance or action")
+    check(player._current_clip.begins_with("AuroraCrouch") and crouch_fire,"crouch fire lost stance or action")
     player.reset_controls()
-    await frames(2)
+    await wait_for_action_evaluation(controller.tree)
     check(not controller.tree.get("parameters/UpperBody/active"),"action survived reset")
     print("V753_ANIMATION_SETTINGS PASS")
     quit(1 if failed else 0)

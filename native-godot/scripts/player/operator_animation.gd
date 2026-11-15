@@ -1,11 +1,15 @@
 extends Node
 ## Skeletal upper-body one-shots keep the locomotion/stance running underneath.
+const UPPER_BODY_CLIPS: Array[String]=[
+    "AuroraFire","AuroraFireAWM","AuroraHit","AuroraHitFront","AuroraHitBack",
+    "AuroraHitLeft","AuroraHitRight","AuroraReloadAR","AuroraReloadAWM","AuroraHeal"]
 var tree: AnimationTree
 var states: AnimationNodeStateMachine
 var playback: AnimationNodeStateMachinePlayback
 var action_clip:=AnimationNodeAnimation.new()
 var animator: AnimationPlayer
 var upper_tracks: Array[NodePath]=[]
+var _requested_gait: StringName=&"AuroraArmedIdle"
 
 func setup(source: AnimationPlayer) -> void:
     animator=source
@@ -15,11 +19,11 @@ func setup(source: AnimationPlayer) -> void:
         if not clip.begins_with("Aurora"):
             continue
         var animation:=source.get_animation(clip)
-        animation.loop_mode=(Animation.LOOP_NONE if clip in [
-            "AuroraFire","AuroraFireAWM","AuroraReloadAR","AuroraReloadAWM",
-            "AuroraHeal","AuroraHit","AuroraHitFront","AuroraHitBack",
-            "AuroraHitLeft","AuroraHitRight","AuroraLand","AuroraJump"]
+        animation.loop_mode=(Animation.LOOP_NONE if clip in UPPER_BODY_CLIPS or
+            clip in ["AuroraLand","AuroraJump"]
             else Animation.LOOP_LINEAR)
+        if clip in UPPER_BODY_CLIPS:
+            continue
         var node:=AnimationNodeAnimation.new()
         node.animation=clip
         states.add_node(clip,node)
@@ -41,7 +45,9 @@ func setup(source: AnimationPlayer) -> void:
             # poses instead of snapping the skinned rig at a stance edge.
             var stance: bool=("Crouch" in from or "Crouch" in to or
                 "Aim" in from or "Aim" in to)
-            var airborne: bool=("Jump" in from or "Land" in to)
+            var airborne: bool=("Jump" in from or "Land" in to or
+                from=="AuroraFreefall" or to=="AuroraFreefall" or
+                from=="AuroraParachute" or to=="AuroraParachute")
             transition.xfade_time=.10 if airborne else .24 if stance else .20 if gait else .14
             if gait:
                 transition.switch_mode=AnimationNodeStateMachineTransition.SWITCH_MODE_SYNC
@@ -56,10 +62,7 @@ func setup(source: AnimationPlayer) -> void:
     # directional injury and future two-handed/medical gestures.
     # This union is constructed once, never in the render/physics loop.
     var selected_paths: Dictionary={}
-    for clip_name in ["AuroraFire","AuroraFireAWM",
-            "AuroraHit","AuroraHitFront","AuroraHitBack",
-            "AuroraHitLeft","AuroraHitRight",
-            "AuroraReloadAR","AuroraReloadAWM","AuroraHeal"]:
+    for clip_name in UPPER_BODY_CLIPS:
         if not source.has_animation(clip_name):
             continue
         var sample: Animation=source.get_animation(clip_name)
@@ -119,8 +122,20 @@ func set_gait_speed(actual_speed: float,reference_speed: float) -> void:
 
 
 func play(clip: String) -> void:
-    if states.has_node(clip) and playback.get_current_node()!=clip:
-        playback.travel(clip)
+    if states.has_node(clip):
+        _requested_gait=StringName(clip)
+        playback.travel(_requested_gait)
+
+
+func _process(_delta: float) -> void:
+    if playback==null or not tree.active or not playback.is_playing():
+        return
+    # Physics can choose another gait before the idle mixer finishes a
+    # previous crossfade. Retry the latest input once the mixer is idle.
+    if (playback.get_current_node()!=_requested_gait and
+            playback.get_fading_from_node().is_empty() and
+            playback.get_travel_path().is_empty()):
+        playback.travel(_requested_gait)
 
 func action(clip: String,duration: float) -> void:
     if not animator.has_animation(clip):
@@ -141,6 +156,7 @@ func reset_ground_pose() -> void:
     if tree==null or playback==null:
         return
     cancel_action()
-    playback.start("AuroraArmedIdle")
+    _requested_gait=&"AuroraArmedIdle"
+    playback.start(_requested_gait)
     tree.set("parameters/GaitSpeed/scale",1.0)
     tree.set("parameters/ActionSpeed/scale",1.0)

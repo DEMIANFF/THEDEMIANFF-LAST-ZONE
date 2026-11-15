@@ -9,6 +9,7 @@ if [ "${AURORA_QA_EXPORTED:-0}" = 1 ]; then
   test -s "$ROOT/project.binary"
 else
   test -s "$ROOT/assets/characters/aurora_operator.glb"
+  test -s "$ROOT/assets/characters/lila_aurora.glb"
   test -s "$ROOT/assets/weapons/aurora_awm.glb"
 fi
 export AURORA_REQUIRE_OPERATOR=1 GODOT_SILENCE_ROOT_WARNING=1

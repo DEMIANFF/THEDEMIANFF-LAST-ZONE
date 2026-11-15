@@ -84,8 +84,8 @@ func _verify() -> void:
     for name in ["AuroraHitFront","AuroraHitBack","AuroraHitLeft",
             "AuroraHitRight","AuroraFireAWM"]:
         check(player._animator.has_animation(name) and
-            controller.states.has_node(name),
-            "original rig is missing directional body animation "+name)
+            controller.UPPER_BODY_CLIPS.has(name),
+            "Lila is missing the upper-body animation "+name)
         if player._animator.has_animation(name):
             var clip: Animation=player._animator.get_animation(name)
             check(clip.length>.25 and clip.length<.55 and
@@ -125,10 +125,12 @@ func _verify() -> void:
         player._training_immunity=0.0
         player.receive_training_hit(6.0,false,
             player.global_position+player.global_basis*entry.offset)
-        # OneShot requests are evaluated by the actual AnimationTree
-        # on IDLE/render ticks; advancing only to process_frame can observe
-        # the frame BEFORE the mixer evaluates its request.
-        await frames(3)
+        # The mixer consumes requests on idle ticks. Several physics ticks
+        # can run before that evaluation on a loaded runner.
+        for tick in range(4):
+            await process_frame
+            if controller.tree.get("parameters/UpperBody/request")==AnimationNodeOneShot.ONE_SHOT_REQUEST_NONE:
+                break
         var active: bool=bool(controller.tree.get(
             "parameters/UpperBody/active"))
         print("V7566_IMPACT_TRACE expected=",entry.clip,

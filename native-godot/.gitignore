@@ -1,8 +1,11 @@
 .godot/
 out/
 assets/characters/*.glb
+!assets/characters/lila_aurora.glb
 *.import
+!assets/characters/lila_aurora.glb.import
 *.gd.uid
 assets/weapons/aurora_awm.glb
 assets/weapons/ak74-tactical_*.png
 assets/characters/aurora_operator_*.jpg
+assets/characters/lila_aurora_*.jpg

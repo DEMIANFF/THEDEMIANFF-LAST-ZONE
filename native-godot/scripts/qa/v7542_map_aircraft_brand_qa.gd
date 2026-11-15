@@ -109,8 +109,8 @@ func _verify() -> void:
         "ADS no longer points real gun mesh along the camera reticle")
     player._ads_active=false
     var skeleton: Skeleton3D=weapons.right_hand_socket.get_parent() as Skeleton3D
-    var left_id: int=skeleton.find_bone("rig_LeftHand")
-    var right_id: int=skeleton.find_bone("rig_RightHand")
+    var left_id: int=skeleton.find_bone("LeftHand")
+    var right_id: int=skeleton.find_bone("RightHand")
     check(left_id>=0 and right_id>=0,
         "operator rig missing articulated left and right hands")
 

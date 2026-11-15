@@ -1238,7 +1238,7 @@ func _select_tab(tab: String) -> void:
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot()
-            _info.text="LILA / TRAJE TÁCTICO AURORA V1\n19 piezas originales sobre esqueleto y modelo base CC0 provisional."
+            _info.text="LILA AURORA\nTraje táctico personalizable."
             _info.text+="\nPARTIDAS %d  •  VICTORIAS %d  •  BAJAS %d"%[int(stats.get("played",0)),int(stats.get("wins",0)),int(stats.get("kills",0))]
             _info.text+="\nRÉCORD %d BAJAS  •  %d S VIVO"%[int(stats.get("best_kills",0)),int(stats.get("longest_survival_seconds",0))]
             var measured: Dictionary=PERFORMANCE.latest()
@@ -1648,11 +1648,11 @@ func _build_preview() -> void:
     podium.material_override=metal
     stage3d.add_child(podium)
 
-    if ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
-        var source:=load("res://assets/characters/aurora_operator.glb") as PackedScene
+    if ResourceLoader.exists("res://assets/characters/lila_aurora.glb"):
+        var source:=load("res://assets/characters/lila_aurora.glb") as PackedScene
         if source!=null:
             _preview_avatar=source.instantiate() as Node3D
-            _preview_avatar.name="ProvisionalRig3D"
+            _preview_avatar.name="LilaAuroraPreview"
             stage3d.add_child(_preview_avatar)
             _fit_avatar_for_preview(_preview_avatar)
             var anim:=_preview_avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
@@ -1661,12 +1661,13 @@ func _build_preview() -> void:
             # Use the real relaxed skeletal idle here; the actual match
             # keeps its weapon-ready and ADS animation states.
             if anim and anim.has_animation("AuroraIdle"):
+                anim.get_animation("AuroraIdle").loop_mode=Animation.LOOP_LINEAR
                 anim.play("AuroraIdle")
                 anim.advance(.1)
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
-    caption.text="LILA AURORA V1 · RIG PROVISIONAL   ↻ GIRAR"
+    caption.text="LILA AURORA   ↻ GIRAR"
     caption.anchor_left=.29
     caption.anchor_right=.65
     caption.anchor_top=.90

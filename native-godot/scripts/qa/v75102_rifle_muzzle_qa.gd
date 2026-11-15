@@ -140,8 +140,8 @@ func _verify() -> void:
     combat.set_process(false)
     player.set_physics_process(false)
     nav.set_physics_process(false)
-    for rival in combat._targets:
-        rival.set_physics_process(false)
+    for opponent in combat._targets:
+        opponent.set_physics_process(false)
     check(combat.active_fighter_count()==50 and
         shooter.health==100.0 and shooter.muzzle_flashes_shown==0 and
         shooter._enemy_muzzle_flash!=null and

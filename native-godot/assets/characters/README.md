@@ -1,22 +1,28 @@
-# Temporary female operator visual asset
+# Lila Aurora and skinned rivals
 
-This project **does not claim** that the developer's finalized Lila 3D model has been created.
+`lila_aurora.glb` is the playable Lila and the lobby preview. It is prepared
+from the developer-supplied `rigged-model(1).glb` (56 bones, 57 source clips).
+The game asset keeps the original skinned mesh and 2048px albedo, and includes
+the clips used by the existing AnimationTree. Fabric colour overrides use a
+clothing mask, preserving the baked base texture and the offline cosmetic IDs.
 
-For Android/Godot test builds we use a female CC0 rig published by the
-contributors to [VideoIntoBlenderModel](https://github.com/s0ck3t/VideoIntoBlenderModel)
-(`assets/rigs/attractor_mechanic_tpose.fbx`). Their
-[`assets/LICENCES.md`](https://github.com/s0ck3t/VideoIntoBlenderModel/blob/c1f1fa8f01524d60197c4d65306349e266d339cb/assets/LICENCES.md)
-registers this asset as `rig_attractor_mechanic`, CC0-1.0.
+Lila's idle, gait, crouch, jump, land and bandage motions come from the source
+rig. The source has no authored rifle/AWM combat, directional impact, freefall
+or canopy clips. The prepared asset adds rig-specific poses for these actions,
+including independent rifle and AWM recoil and reload. Air transitions are
+driven by the existing flight controller. Hand fit, canopy straps and motion
+polish must also be reviewed on a physical Motorola with Vulkan Mobile.
 
-The pinned FBX and texture are downloaded and **validated using Git object hashes**
-before Blender converts them into a texture-downscaled GLB. The result is bundled in
-the preview APK at `res://assets/characters/aurora_operator.glb`.
+To rebuild the playable asset from the original supplied GLB:
+```bash
+python3 native-godot/tools/build_lila.py 'rigged-model(1).glb' \
+  native-godot/assets/characters/lila_aurora.glb
+```
 
-This is a provisional character to measure actual shape/rig/animation in Godot.
-No copyrighted models are extracted from Free Fire or Blood Strike.
-Its short animation clips are authored by our Blender conversion script.
+The near-range AI rivals use a separate budgeted CC0 rig. The pinned FBX and
+texture are validated by Git object hash before conversion. See
+[CC0 source](https://github.com/s0ck3t/VideoIntoBlenderModel/blob/c1f1fa8f01524d60197c4d65306349e266d339cb/assets/LICENCES.md).
 
-To generate locally with Blender installed:
 ```bash
 bash native-godot/tools/fetch_operator.sh /tmp/aurora-operator
 blender --background --python native-godot/tools/convert_operator.py -- \
@@ -24,4 +30,3 @@ blender --background --python native-godot/tools/convert_operator.py -- \
   /tmp/aurora-operator/attractor_mechanic_tpose.png \
   native-godot/assets/characters/aurora_operator.glb
 ```
-The generated GLB is not checked into Git to prevent large binary diffs.

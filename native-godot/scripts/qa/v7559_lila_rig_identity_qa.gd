@@ -1,6 +1,5 @@
 extends SceneTree
-## V75.59: real GLB shared by the operator, lobby and enemies.
-## Tests a skin-weighted original Aurora combat kit, not the final face sculpt.
+## Check the supplied Lila mesh in both actual gameplay scenes.
 var failed: bool=false
 
 
@@ -14,58 +13,37 @@ func check(ok: bool,reason: String) -> void:
         push_error("V7559_LILA_RIG "+reason)
 
 
-func verify_lila_kit(container: Node3D,context: String) -> MeshInstance3D:
-    check(container!=null,context+" missing full 3D humanoid")
+func verify_lila_mesh(container: Node3D,context: String) -> MeshInstance3D:
+    check(container!=null,context+" missing Lila")
     if container==null:
         return null
-    var part: MeshInstance3D=container.find_child(
-        "LilaAuroraSignatureKit",true,false) as MeshInstance3D
-    check(part!=null,context+" lacks the original Aurora gear in rigged GLB")
-    if part==null:
-        return null
-    check(part.mesh!=null and part.mesh.get_surface_count()==3,
-        context+" needs one low-poly mesh with three original shared materials")
-    check(part.skin!=null and not part.skeleton.is_empty(),
-        context+" accessory must be skinned to animated human armature")
-    check(part.visible,context+" Lila signature kit is invisible")
-    var parent_skeleton: Skeleton3D=container.find_child(
-        "Skeleton3D",true,false) as Skeleton3D
-    check(parent_skeleton!=null and parent_skeleton.get_bone_count()>35,
-        context+" original articulated body skeleton was replaced")
-    if part.mesh!=null:
-        # FBX/Godot import can permute Y-up to Z-up and normalize model
-        # metres via parent transforms. Compare to the original body mesh,
-        # not to an assumed raw Y height in centimetres.
-        var aabb: AABB=part.mesh.get_aabb()
-        var source_body: MeshInstance3D=null
-        for candidate in container.find_children(
-                "*","MeshInstance3D",true,false):
-            if candidate!=part and candidate.mesh!=null:
-                source_body=candidate
-                break
-        check(source_body!=null,
-            context+" no original humanoid mesh remains under the skin")
-        if source_body!=null:
-            var base_size: float=source_body.mesh.get_aabb().size.length()
-            var kit_size: float=aabb.size.length()
-            var ratio: float=kit_size/maxf(.001,base_size)
-            check(is_finite(ratio) and ratio>.08 and ratio<1.4,
-                context+" outfit proportions differ from the original body")
-        for i in range(part.mesh.get_surface_count()):
-            var material: Material=part.mesh.surface_get_material(i)
-            check(material!=null and material.resource_name.begins_with(
-                "LilaAurora"),
-                context+" visual gear lost its original Aurora materials")
-    return part
-
+    var body:=container.find_child("Lila_Aurora_Mesh",true,false) as MeshInstance3D
+    var skeleton:=container.find_child("Skeleton3D",true,false) as Skeleton3D
+    check(skeleton!=null and skeleton.get_bone_count()==56,
+        context+" does not have the 56 joints from the supplied GLB")
+    check(body!=null and body.skin!=null and not body.skeleton.is_empty(),
+        context+" supplied Lila mesh is missing or unskinned")
+    var geometry:=body.mesh as ArrayMesh if body!=null else null
+    check(geometry!=null and geometry.get_surface_count()==1,
+        context+" Lila is missing its single skinned surface")
+    if geometry!=null and geometry.get_surface_count()==1:
+        check(geometry.surface_get_array_index_len(0)==287655,
+            context+" mesh differs from the supplied Lila geometry")
+        var material:=geometry.surface_get_material(0) as StandardMaterial3D
+        check(material!=null and material.albedo_texture!=null and
+            material.albedo_texture.get_width()<=2048,
+            context+" Lila texture is absent or above the mobile budget")
+        check((geometry.surface_get_format(0) & Mesh.ARRAY_FORMAT_TEX_UV2)!=0,
+            context+" Lila clothing mask was lost during import")
+    return body
 
 func _verify() -> void:
     check(str(ProjectSettings.get_setting(
         "rendering/renderer/rendering_method.mobile"))=="mobile",
         "Vulkan Mobile is not the only Android renderer")
     var source: PackedScene=load(
-        "res://assets/characters/aurora_operator.glb") as PackedScene
-    check(source!=null,"signed Android build omitted shared character GLB")
+        "res://assets/characters/lila_aurora.glb") as PackedScene
+    check(source!=null,"game omitted the supplied Lila GLB")
     if source==null:
         quit(1)
         return
@@ -78,7 +56,7 @@ func _verify() -> void:
     player.set_physics_process(false)
     await physics_frame
 
-    var body: MeshInstance3D=verify_lila_kit(
+    var body: MeshInstance3D=verify_lila_mesh(
         player._avatar,"TPS operator")
     var capsule: CollisionShape3D=player.get_node("CapsuleCollider")
     check(capsule.shape is CapsuleShape3D and
@@ -99,16 +77,14 @@ func _verify() -> void:
             "AuroraCrouch","AuroraCrouchWalk"]:
             check(player._animator.has_animation(clip),
                 "Lila rig lost required animation clip "+clip)
-    if body!=null:
-        check(body.mesh.get_surface_count()==3 and
-            body.skin!=null,"gameplay uses decorative rather than skinned gear")
     var enemy: CharacterBody3D=combat._targets[0]
     var enemy_rig: Node3D=enemy.get("_rig") as Node3D
     check(enemy_rig!=null,"physical near-range opponent lost skinned body")
     if enemy_rig!=null:
         var enemy_kit: MeshInstance3D=enemy_rig.find_child(
             "LilaAuroraSignatureKit",true,false) as MeshInstance3D
-        check(enemy_kit!=null and not enemy_kit.visible,
+        check(enemy_rig.find_child("Lila_Aurora_Mesh",true,false)==null and
+            enemy_kit!=null and not enemy_kit.visible,
             "enemies must not wear Lila's original signature outfit")
         check(enemy.get_node_or_null("OpponentCollider")!=null,
             "making outfits distinct must not remove physical AI collisions")
@@ -116,23 +92,21 @@ func _verify() -> void:
     root.add_child(frontend)
     frontend._show_lobby()
     var avatar: Node3D=frontend._preview_avatar
-    var lobby_kit: MeshInstance3D=verify_lila_kit(
+    var lobby_body: MeshInstance3D=verify_lila_mesh(
         avatar,"360-degree lobby portrait")
     check(frontend._preview_container!=null and
         frontend._preview_container.visible,
         "Lila cannot be rotated in the original 3D lobby")
     check(frontend._preview_caption!=null and
-        frontend._preview_caption.text.contains("LILA AURORA V1") and
-        frontend._preview_caption.text.contains("PROVISIONAL"),
-        "lobby hides identity or incorrectly claims final Lila original sculpt")
-    if body!=null and lobby_kit!=null:
-        check(body.mesh.get_surface_count()==lobby_kit.mesh.get_surface_count(),
+        frontend._preview_caption.text.contains("LILA AURORA"),
+        "lobby lost the Lila Aurora identity")
+    if body!=null and lobby_body!=null:
+        check(body.mesh.get_surface_count()==lobby_body.mesh.get_surface_count(),
             "the lobby and in-match Lila are different costume assets")
-        check(body.mesh.resource_path==lobby_kit.mesh.resource_path,
+        check(body.mesh.resource_path==lobby_body.mesh.resource_path,
             "the game is loading separate Lila visual mesh resources")
     if not failed:
-        print("V7559_LILA_RIG PASS original_gear=19 lowpoly=1 "+
-            "skinned=1 materials=3 original_skeleton=1 "+
+        print("V7559_LILA_RIG PASS source_mesh=1 surfaces=1 joints=56 "+
             "authored_clips=14 lobby3d=1 game3d=1 exclusive_to_lila=1 "+
             "collision=preserved camera=preserved vulkan=1")
     quit(1 if failed else 0)

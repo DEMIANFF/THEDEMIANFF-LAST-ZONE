@@ -17,6 +17,7 @@ var back_ak: Node3D
 var back_awm: Node3D
 var awm_owned: bool=false
 var medical_busy: bool=false
+var flight_holster: bool=false
 var selected_weapon: int=0
 var equipped_visual_scale: float=1.0
 var attachment_uses_hand: bool=false
@@ -83,10 +84,16 @@ func attach_to_player(player: CharacterBody3D) -> void:
         back_mount.name="BackHolsterMount"
         spine_socket.add_child(back_mount)
         var scale_compensation: float=skeleton.global_transform.basis.get_scale().x
+        var uses_lila_bones: bool=spine_socket.bone_name=="Spine"
         if scale_compensation>.00001:
             back_mount.scale=Vector3.ONE/scale_compensation
-            back_mount.position=Vector3(.075,.035,-.155)/scale_compensation
-        back_mount.rotation_degrees=Vector3(13,-11,53)
+            var offset:=Vector3(.025,.32,-.18) if uses_lila_bones else Vector3(.075,.035,-.155)
+            back_mount.position=offset/scale_compensation
+        if uses_lila_bones:
+            back_mount.quaternion=Basis.looking_at(
+                Vector3(.58,-.81,-.08).normalized(),Vector3.BACK).get_rotation_quaternion()
+        else:
+            back_mount.rotation_degrees=Vector3(13,-11,53)
     elif skeleton:
         push_warning("Aurora spine bone missing; back holster disabled safely")
     else:
@@ -148,6 +155,11 @@ func _load_visual(path: String, display_name: String,
 
 
 func _process(_delta: float) -> void:
+    if is_instance_valid(operator):
+        var stow: bool=operator.get("air_mode") in ["freefall","parachute"]
+        if flight_holster!=stow:
+            flight_holster=stow
+            _sync_equipment_visibility()
     _align_mount_to_sight()
 
 
@@ -183,6 +195,12 @@ func set_medical_busy(active: bool) -> void:
 
 
 func _sync_equipment_visibility() -> void:
+    if flight_holster:
+        if ak: ak.hide()
+        if awm: awm.hide()
+        if back_ak: back_ak.visible=selected_weapon==0
+        if back_awm: back_awm.visible=selected_weapon==1 and awm_owned
+        return
     if ak:
         ak.visible=selected_weapon==0 and not medical_busy
     if awm:

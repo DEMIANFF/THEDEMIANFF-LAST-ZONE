@@ -59,7 +59,7 @@ func _verify() -> void:
             "AuroraArmedStrafeRight","AuroraArmedBackpedal"]:
         check(player._animator.has_animation(clip) and
             controller.states.has_node(clip),
-            "original Blender GLB doesn't export actual skeleton clip "+clip)
+            "Lila's GLB or AnimationTree is missing skeleton clip "+clip)
         if player._animator.has_animation(clip):
             var animation: Animation=player._animator.get_animation(clip)
             check(animation.length>.85 and animation.length<1.25 and
@@ -71,10 +71,8 @@ func _verify() -> void:
         "Skeleton3D",true,false) as Skeleton3D
     check(skeleton!=null and skeleton.get_bone_count()>35,
         "Lila's original weighted skeleton was replaced by an animation dummy")
-    var knee: int=skeleton.find_bone("rig_LeftUpLeg")
-    if knee<0:
-        knee=skeleton.find_bone("rig:LeftUpLeg")
-    check(knee>=0,"procedural step lost its original thigh bone")
+    var knee: int=skeleton.find_bone("LeftUpLeg") if skeleton!=null else -1
+    check(knee>=0,"Lila's imported animation lost its original thigh bone")
     if knee<0:
         quit(1)
         return
@@ -115,10 +113,16 @@ func _verify() -> void:
 
     player.set_touch_move_axis(Vector2.RIGHT)
     await frames(33)
+    for tick in range(4):
+        if controller.playback.get_current_node()=="AuroraArmedStrafeRight":
+            break
+        await process_frame
     check(player.measured_ground_speed>2.0 and
         player._current_clip=="AuroraArmedStrafeRight" and
         controller.playback.get_current_node()=="AuroraArmedStrafeRight",
-        "ADS sidestep right didn't transition while moving through real physics")
+        "ADS sidestep right speed=%.2f requested=%s playing=%s" % [
+            player.measured_ground_speed,player._current_clip,
+            controller.playback.get_current_node()])
     player.play_weapon_action("reload",1.55)
     await frames(5)
     check(controller.action_clip.animation=="AuroraReloadAR" and

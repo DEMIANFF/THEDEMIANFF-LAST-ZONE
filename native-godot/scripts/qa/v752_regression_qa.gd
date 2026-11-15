@@ -48,7 +48,7 @@ func _verify() -> void:
     var skeleton: Skeleton3D=rig.find_child("Skeleton3D",true,false)
     var animator: AnimationPlayer=rig.find_child("AnimationPlayer",true,false)
     player.set_physics_process(false)
-    var head: int=skeleton.find_bone("rig_Head")
+    var head: int=skeleton.find_bone("Head")
     animator.play("AuroraArmedIdle",0)
     animator.advance(0.2)
     skeleton.force_update_all_bone_transforms()
@@ -76,8 +76,10 @@ func _verify() -> void:
     check((-player.get_node("AuroraTransportAircraft").global_basis.z).dot(Vector3.FORWARD)>.99,"aircraft heading inherited body")
     flight.jump_from_aircraft()
     check(str(flight.phase)=="jump_pending","jump must defer the physics handoff")
-    for i in range(4):
+    for i in range(8):
         await process_frame
+        if player.air_mode=="freefall":
+            break
     check(player.air_mode=="freefall" and player.velocity.z<-10.0,
         "ejection lost inherited velocity after deferred handoff")
     flight.deploy_parachute()

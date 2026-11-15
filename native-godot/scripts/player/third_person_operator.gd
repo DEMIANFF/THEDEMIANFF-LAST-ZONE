@@ -166,8 +166,8 @@ func _ready() -> void:
     _camera_pivot.rotation.x = _pitch
 
     var operator_scene: PackedScene = approved_operator_scene
-    if operator_scene == null and ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
-        operator_scene = load("res://assets/characters/aurora_operator.glb") as PackedScene
+    if operator_scene == null and ResourceLoader.exists("res://assets/characters/lila_aurora.glb"):
+        operator_scene = load("res://assets/characters/lila_aurora.glb") as PackedScene
     if operator_scene != null:
         _avatar = operator_scene.instantiate() as Node3D
         _avatar.name = "AuroraFemaleRiggedOperator"
@@ -189,7 +189,7 @@ func _ready() -> void:
             _animation_controller.setup(_animator)
         _play_matching_animation("AuroraArmedIdle")
     else:
-        push_warning("CC0 female operator GLB not yet generated. No cube character substituted.")
+        push_warning("Lila Aurora character asset could not be loaded.")
     # Build the actual canopy meshes and materials once during scene load,
     # *not* in the Android render/physics transition during freefall.
     _create_parachute()
@@ -811,9 +811,15 @@ func _create_parachute() -> void:
     material.roughness=.72
     canopy.material_override=material
     _parachute_visual.add_child(canopy)
+    var lila_rig: bool=_avatar!=null and _avatar.scene_file_path.ends_with("/lila_aurora.glb")
     for angle in [0.0,PI*.5,PI,PI*1.5]:
+        # Two prewarmed cords per hand, ending near the canopy clip's raised wrists.
+        if lila_rig:
+            angle+=PI*.25
         var endpoint:=Vector3(cos(angle)*1.85,4.55,sin(angle)*1.85)
         var start:=Vector3(cos(angle)*.18,1.5,sin(angle)*.18)
+        if lila_rig:
+            start=Vector3(signf(endpoint.x)*.27,1.64,-.13)
         var diff:=endpoint-start
         var cord:=MeshInstance3D.new()
         cord.name="SuspensionLine"
