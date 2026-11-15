@@ -1,4 +1,24 @@
 extends Node3D
+
+## All motion happens in the actual 3D hangar: no image, video, fake scene.
+## The node tree is freed when the player starts a match to release VRAM.
+var _radar_rotor: Node3D
+var _beacon_material: StandardMaterial3D
+var _lobby_time: float=0.0
+
+
+func _process(delta: float) -> void:
+    if delta<=0.0:
+        return
+    var dt: float=minf(delta,.10)
+    _lobby_time+=dt
+    if _radar_rotor!=null and is_instance_valid(_radar_rotor):
+        _radar_rotor.rotation.y=wrapf(
+            _radar_rotor.rotation.y+dt*.27,-PI,PI)
+    if _beacon_material!=null:
+        _beacon_material.emission_energy_multiplier=(
+            .65+.55*(.5+.5*sin(_lobby_time*2.5)))
+
 ## V75.79 original interactive winter military base for the Godot lobby.
 ## No screenshots, trademarked game geometry or external texture downloads.
 ## Desktop/headless and Motorola share these low-poly mobile-safe meshes.
@@ -14,6 +34,7 @@ func _ready() -> void:
     var neon_purple: StandardMaterial3D=_emission(Color(.62,.20,.98),2.1)
     var neon_cyan: StandardMaterial3D=_emission(Color(.12,.81,1.0),1.6)
     var neon_gold: StandardMaterial3D=_emission(Color(1.0,.63,.19),1.1)
+    _beacon_material=_emission(Color(1.0,.37,.16),1.2)
 
     # Large low-poly original snow mountain skyline. The main 3D character
     # remains foregrounded and readable rather than standing in a bare box.
@@ -60,6 +81,17 @@ func _ready() -> void:
         var x: float=(float(i)-1.5)*1.25
         _box("HangarWarningLight",Vector3(x,1.72,-10.95),
             Vector3(.28,.055,.045),neon_gold)
+
+    _box("AuroraLiveBeacon",Vector3(0,2.11,-10.82),
+        Vector3(.22,.11,.16),_beacon_material)
+    var practical:=OmniLight3D.new()
+    practical.name="AuroraHangarPracticalLight"
+    practical.position=Vector3(0,2.04,-10.8)
+    practical.light_color=Color(.41,.79,1.0)
+    practical.light_energy=.42
+    practical.omni_range=5.0
+    practical.shadow_enabled=false
+    add_child(practical)
 
     # Brand identity uses original Aurora panel motifs, no copied logos.
     _box("AuroraBackboard",Vector3(3.45,2.35,-10.15),
@@ -174,6 +206,10 @@ func _pine(x: float,z: float,height: float,
 
 func _radar(origin: Vector3,dark: Material,accent: Material) -> void:
     _beam(origin-Vector3(0,2.7,0),origin,.08,dark)
+    _radar_rotor=Node3D.new()
+    _radar_rotor.name="AuroraRadarRotatingHead"
+    _radar_rotor.position=origin
+    add_child(_radar_rotor)
     var dish:=MeshInstance3D.new()
     dish.name="AuroraRadarDish"
     var mesh:=SphereMesh.new()
@@ -181,13 +217,20 @@ func _radar(origin: Vector3,dark: Material,accent: Material) -> void:
     mesh.rings=6
     dish.mesh=mesh
     dish.scale=Vector3(.85,.10,.62)
-    dish.position=origin+Vector3(0,.35,0)
+    dish.position=Vector3(0,.35,0)
     dish.rotation_degrees=Vector3(-23,12,0)
     dish.material_override=dark
     dish.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    add_child(dish)
-    _box("RadarDishBeacon",origin+Vector3(0,.42,.38),
-        Vector3(.16,.16,.16),accent)
+    _radar_rotor.add_child(dish)
+    var radar_tip:=MeshInstance3D.new()
+    radar_tip.name="RadarDishBeacon"
+    var bulb:=BoxMesh.new()
+    bulb.size=Vector3(.16,.16,.16)
+    radar_tip.mesh=bulb
+    radar_tip.position=Vector3(0,.42,.38)
+    radar_tip.material_override=accent
+    radar_tip.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    _radar_rotor.add_child(radar_tip)
 
 
 func _material(color: Color,metal: float,roughness: float) -> StandardMaterial3D:
