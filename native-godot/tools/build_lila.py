@@ -224,7 +224,7 @@ class LilaAsset:
             count = len(next(iter(tracks.values())))
             poses = [self.overlay(tracks, i, action(i / (count - 1)), ground, deepen)
                      for i in range(count)]
-        time_replacements = {}
+        timelines = {}
         for channel in source["channels"]:
             target = channel["target"]
             node, path = target["node"], target["path"]
@@ -237,14 +237,30 @@ class LilaAsset:
                 continue
             sampler = dict(source["samplers"][channel["sampler"]])
             input_idx = sampler["input"]
-            if seconds is not None:
-                if input_idx not in time_replacements:
-                    keys = self.values(input_idx)
-                    time_replacements[input_idx] = self.add_values(
-                        [(key[0] / keys[-1][0] * seconds,) for key in keys], "SCALAR")
-                sampler["input"] = time_replacements[input_idx]
+            if input_idx not in timelines:
+                times = [key[0] for key in self.values(input_idx)]
+                assert all(math.isfinite(t) and t >= 0. for t in times)
+                # The browser export can contain two keys at the same
+                # timestamp. Keep the last value and give Godot ordered keys.
+                last_frame = {t: i for i, t in enumerate(times)}
+                ordered_times = sorted(last_frame)
+                keep = [last_frame[t] for t in ordered_times]
+                if keep == list(range(len(times))):
+                    keep = None
+                if seconds is not None:
+                    ordered_times = [t / ordered_times[-1] * seconds for t in ordered_times]
+                new_input = (self.add_values([(t,) for t in ordered_times], "SCALAR")
+                             if keep is not None or seconds is not None else input_idx)
+                timelines[input_idx] = (new_input, keep)
+            sampler["input"], keep = timelines[input_idx]
+            values = None
             if action and any((node, path) in pose for pose in poses):
                 values = [pose.get((node, path), tracks[node, path][i]) for i, pose in enumerate(poses)]
+            if keep is not None:
+                if values is None:
+                    values = self.values(sampler["output"])
+                values = [values[i] for i in keep]
+            if values is not None:
                 if path == "rotation":
                     for i in range(1, len(values)):
                         if dot(values[i - 1], values[i]) < 0.:

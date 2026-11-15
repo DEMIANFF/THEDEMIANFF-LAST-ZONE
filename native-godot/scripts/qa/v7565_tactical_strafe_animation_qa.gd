@@ -113,6 +113,10 @@ func _verify() -> void:
 
     player.set_touch_move_axis(Vector2.RIGHT)
     await frames(33)
+    for tick in range(4):
+        if controller.playback.get_current_node()=="AuroraArmedStrafeRight":
+            break
+        await process_frame
     check(player.measured_ground_speed>2.0 and
         player._current_clip=="AuroraArmedStrafeRight" and
         controller.playback.get_current_node()=="AuroraArmedStrafeRight",

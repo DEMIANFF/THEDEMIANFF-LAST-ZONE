@@ -9,6 +9,7 @@ var playback: AnimationNodeStateMachinePlayback
 var action_clip:=AnimationNodeAnimation.new()
 var animator: AnimationPlayer
 var upper_tracks: Array[NodePath]=[]
+var _requested_gait: StringName=&"AuroraArmedIdle"
 
 func setup(source: AnimationPlayer) -> void:
     animator=source
@@ -121,8 +122,20 @@ func set_gait_speed(actual_speed: float,reference_speed: float) -> void:
 
 
 func play(clip: String) -> void:
-    if states.has_node(clip) and playback.get_current_node()!=clip:
-        playback.travel(clip)
+    if states.has_node(clip):
+        _requested_gait=StringName(clip)
+        playback.travel(_requested_gait)
+
+
+func _process(_delta: float) -> void:
+    if playback==null or not tree.active or not playback.is_playing():
+        return
+    # Physics can choose another gait before the idle mixer finishes a
+    # previous crossfade. Retry the latest input once the mixer is idle.
+    if (playback.get_current_node()!=_requested_gait and
+            playback.get_fading_from_node().is_empty() and
+            playback.get_travel_path().is_empty()):
+        playback.travel(_requested_gait)
 
 func action(clip: String,duration: float) -> void:
     if not animator.has_animation(clip):
@@ -143,6 +156,7 @@ func reset_ground_pose() -> void:
     if tree==null or playback==null:
         return
     cancel_action()
-    playback.start("AuroraArmedIdle")
+    _requested_gait=&"AuroraArmedIdle"
+    playback.start(_requested_gait)
     tree.set("parameters/GaitSpeed/scale",1.0)
     tree.set("parameters/ActionSpeed/scale",1.0)

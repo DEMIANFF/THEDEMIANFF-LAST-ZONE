@@ -125,10 +125,12 @@ func _verify() -> void:
         player._training_immunity=0.0
         player.receive_training_hit(6.0,false,
             player.global_position+player.global_basis*entry.offset)
-        # OneShot requests are evaluated by the actual AnimationTree
-        # on IDLE/render ticks; advancing only to process_frame can observe
-        # the frame BEFORE the mixer evaluates its request.
-        await frames(3)
+        # The mixer consumes requests on idle ticks. Several physics ticks
+        # can run before that evaluation on a loaded runner.
+        for tick in range(4):
+            await process_frame
+            if controller.tree.get("parameters/UpperBody/request")==AnimationNodeOneShot.ONE_SHOT_REQUEST_NONE:
+                break
         var active: bool=bool(controller.tree.get(
             "parameters/UpperBody/active"))
         print("V7566_IMPACT_TRACE expected=",entry.clip,
