@@ -5,6 +5,7 @@ extends Node3D
 
 const AK_PATH: String="res://assets/weapons/ak74-tactical.glb"
 const AWM_PATH: String="res://assets/weapons/aurora_awm.glb"
+const USER_ARSENAL=preload("res://scripts/combat/user_arsenal_catalog.gd")
 
 var operator: CharacterBody3D
 var right_hand_socket: BoneAttachment3D
@@ -93,11 +94,11 @@ func attach_to_player(player: CharacterBody3D) -> void:
         # Headless/asset-free source builds still keep working hand weapons.
         back_mount=null
 
-    ak=_load_visual(AK_PATH,"AK74TacticalVisual",mount)
-    awm=_load_visual(AWM_PATH,"AWMPrecisionRifleVisual",mount)
+    ak=_load_visual(USER_ARSENAL.preferred_path(0,AK_PATH),"AK74TacticalVisual",mount)
+    awm=_load_visual(USER_ARSENAL.preferred_path(1,AWM_PATH),"AWMPrecisionRifleVisual",mount)
     if back_mount:
-        back_ak=_load_visual(AK_PATH,"AK74BackHolsterVisual",back_mount)
-        back_awm=_load_visual(AWM_PATH,"AWMBackHolsterVisual",back_mount)
+        back_ak=_load_visual(USER_ARSENAL.preferred_path(0,AK_PATH),"AK74BackHolsterVisual",back_mount)
+        back_awm=_load_visual(USER_ARSENAL.preferred_path(1,AWM_PATH),"AWMBackHolsterVisual",back_mount)
     set_awm_owned(false)
     equip(0)
 
@@ -131,17 +132,26 @@ func _load_visual(path: String, display_name: String,
         return visual
     var desired_length: float=1.06 if display_name.begins_with("AK") else 1.42
     var factor: float=clampf(desired_length/original_length,.00001,100.0)
-    # Canonical forward is -Z; imported AK-74's major axis is X.
-    if extent.x>extent.y and extent.x>extent.z:
-        visual.rotation.y=PI*.5
-    elif extent.y>extent.z:
-        visual.rotation.x=-PI*.5
-    # Pistol grip/trigger should be near the hand socket, not midpoint of rifle.
-    # Barrel runs in -Z and stock is behind the hand.
+    # Uploaded Aurora pack models are already -Z-forward with hand and muzzle
+    # markers. Use their grip rather than normalizing their centre to the palm.
+    # The legacy GLBs retain their original import rotations and dimensions.
+    var user_pack: bool=USER_ARSENAL.is_user_pack(path)
+    var grip: Node3D=null
+    if user_pack:
+        grip=visual.find_child("AuroraGrip",true,false) as Node3D
+        if grip==null:
+            push_warning("Imported user weapon has no grip marker: "+path)
+    else:
+        if extent.x>extent.y and extent.x>extent.z:
+            visual.rotation.y=PI*.5
+        elif extent.y>extent.z:
+            visual.rotation.x=-PI*.5
     var optical_center:=minimum+extent*.5
     var desired_origin:=Vector3(0,.03,-.25 if display_name.begins_with("AK") else -.39)
+    # Measure the marker before applying a second scale to the root scene.
+    var grip_local: Vector3=visual.to_local(grip.global_position) if grip!=null else optical_center
     visual.scale=Vector3.ONE*factor
-    visual.position=desired_origin-(visual.quaternion*optical_center)*factor
+    visual.position=desired_origin-(visual.quaternion*grip_local)*factor
     print("AURORA_WEAPON_VISUAL ",display_name,
         " mesh_length_m=",desired_length," imported_bounds=",extent)
     return visual
@@ -236,4 +246,11 @@ func equipped_global_length() -> float:
 func muzzle_position() -> Vector3:
     # Input may fire between render frames: align before computing the ray.
     _align_mount_to_sight()
+    # Projectiles leave the physical barrel, not a guessed reticle offset.
+    # Keep fallback for both original GLBs and partial game-source installs.
+    var active: Node3D=currently_equipped()
+    if active!=null:
+        var tip: Node3D=active.find_child("AuroraMuzzle",true,false) as Node3D
+        if tip!=null and tip.global_position.is_finite():
+            return tip.global_position
     return mount.to_global(Vector3(0,.03,-1.10 if selected_weapon==1 else -.78))
