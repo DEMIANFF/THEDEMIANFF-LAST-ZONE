@@ -394,6 +394,7 @@ func _build_loading_overlay() -> void:
     _add_entry_wordmark(branding)
 
     var content:=VBoxContainer.new()
+    content.name="AuroraLoadingActions"
     content.anchor_left=.20
     content.anchor_right=.80
     # The former 0.305-height region was only 132px on 964x434;
