@@ -71,14 +71,14 @@ func _verify() -> void:
         attacker._last_seen.distance_to(player.global_position)<.001,
         "physics LOS test acquired a hidden human through physical cover")
 
-    var hp_before: float=ice.health
+    var hp_before: float=float(ice.get("health"))
     var rounds_before: int=attacker._magazine
     var shots_before: int=attacker.shots_fired
     var human_hp: float=player.training_health
     attacker._cover_probe_clock=0.0
     attacker._attack_clock=0.0
     check(attacker._fire_at_last_known_cover() and
-        ice.health==hp_before-12.0 and
+        is_equal_approx(float(ice.get("health")),hp_before-12.0) and
         attacker.shots_fired==shots_before+1 and
         attacker._magazine==rounds_before-1 and
         attacker._cover_probe_clock>=BOT.COVER_PROBE_SECONDS and
@@ -110,7 +110,7 @@ func _verify() -> void:
 
     # A destroyed physical barrier restores vision on the next raycast,
     # not by granting x-ray sight while the barrier still has health.
-    ice.take_damage(COVER.MAX_HEALTH)
+    ice.call("take_damage",COVER.MAX_HEALTH)
     await physics_frame
     await physics_frame
     attacker._sense_player()
