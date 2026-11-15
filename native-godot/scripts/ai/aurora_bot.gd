@@ -311,6 +311,11 @@ func _physics_process(dt: float) -> void:
         return
     _impact_reaction_remaining=maxf(0.0,_impact_reaction_remaining-dt)
     _weapon_action_remaining=maxf(0.0,_weapon_action_remaining-dt)
+    # A one-shot visual is rescaled to the real reload/fire duration;
+    # restore gait speed as soon as the authoritative action ends.
+    if (_weapon_action_remaining<=0.0 and _animation!=null and
+            _clip in ["AuroraFire","AuroraReloadAR"]):
+        _animation.speed_scale=1.0
     _route_clock-=dt
     _cover_clock-=dt
     _cover_probe_clock=maxf(0.0,_cover_probe_clock-dt)
@@ -700,6 +705,8 @@ func _play_directional_hit(origin: Vector3) -> void:
         origin,global_position,global_basis)
     if not _animation.has_animation(clip):
         return
+    # A new real hit takes precedence over interrupted weapon recoil.
+    _animation.speed_scale=1.0
     _animation.play(clip,.06)
     _clip=clip
     _weapon_action_remaining=0.0
@@ -717,10 +724,15 @@ func _play_weapon_action(clip: String,seconds: float) -> bool:
             _impact_reaction_remaining>0.0 or _heal_remaining>0.0 or
             not _animation.has_animation(clip)):
         return false
+    var authored_length: float=_animation.get_animation(clip).length
+    if not is_finite(authored_length) or authored_length<=0.0:
+        return false
+    # ReloadAR is authored for a different time scale; match the actual
+    # 2.25-second physical magazine timer without altering its ballistics.
+    _animation.speed_scale=authored_length/maxf(.05,seconds)
     _animation.play(clip,.06)
     _clip=clip
-    _weapon_action_remaining=maxf(.05,minf(seconds,
-        _animation.get_animation(clip).length))
+    _weapon_action_remaining=maxf(.05,seconds)
     weapon_actions_shown+=1
     if clip=="AuroraReloadAR":
         reload_actions_shown+=1
@@ -750,6 +762,7 @@ func _play_death_presentation(lethal_attacker: Node3D) -> void:
         reaction=IMPACT.directional_hit_clip(
             lethal_attacker.global_position,global_position,global_basis)
     if _animation!=null and _animation.has_animation(reaction):
+        _animation.speed_scale=1.0
         _animation.play(reaction,.08)
         _clip=reaction
     _death_tween=create_tween()
@@ -786,6 +799,7 @@ func _reset_death_presentation() -> void:
     if _rig!=null:
         _rig.transform=_rig_rest_transform
         if _animation!=null and _animation.has_animation("AuroraIdle"):
+            _animation.speed_scale=1.0
             _animation.play("AuroraIdle")
             _clip="AuroraIdle"
     if _lod_body!=null:

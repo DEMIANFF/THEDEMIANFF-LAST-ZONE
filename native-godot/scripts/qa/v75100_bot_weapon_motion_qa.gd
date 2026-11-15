@@ -74,6 +74,9 @@ func _verify() -> void:
         shooter.weapon_actions_shown==1 and
         shooter._animation.current_animation=="AuroraFire" and
         shooter._weapon_action_remaining>0.0 and
+        is_equal_approx(shooter._animation.speed_scale,
+            shooter._animation.get_animation("AuroraFire").length/
+            BOT.FIRE_PRESENTATION_SECONDS) and
         rival.health<hp,
         "real physical raycast bullet did not drive visible rig recoil")
     var shots_after: int=shooter.shots_fired
@@ -97,7 +100,10 @@ func _verify() -> void:
         shooter._magazine==rounds_before and
         shooter.reload_actions_shown==1 and
         shooter._animation.current_animation=="AuroraReloadAR" and
-        shooter._weapon_action_remaining>0.0,
+        shooter._weapon_action_remaining>0.0 and
+        is_equal_approx(shooter._animation.speed_scale,
+            shooter._animation.get_animation("AuroraReloadAR").length/
+            BOT.RELOAD_SECONDS),
         "timed physical reload omitted authored visible skeletal reload")
     # The ordinary physics timer, not a dummy animation callback,
     # refills the real magazine and accounts for one completed reload.
@@ -107,6 +113,7 @@ func _verify() -> void:
         shooter.reloads_completed==reload_before+1 and
         shooter._reload_remaining==0.0 and
         shooter._weapon_action_remaining==0.0 and
+        is_equal_approx(shooter._animation.speed_scale,1.0) and
         shooter._animation.current_animation in ["AuroraIdle","AuroraWalk"],
         "reload visual changed ballistics or left the bot stuck in motion")
 
