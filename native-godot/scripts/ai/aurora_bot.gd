@@ -51,6 +51,9 @@ const IMPACT_REACTION_VIEW_DISTANCE: float=48.0
 # Show actual skinned firearm actions only on already-allocated nearby
 # rigs. The bullet, magazine and physical damage remain authoritative.
 const FIRE_PRESENTATION_SECONDS: float=.26
+# 14 or fewer already-allocated rigs carry one reusable unlit flash each.
+const REAL_MUZZLE_FLASH_SECONDS: float=.09
+const MAX_MUZZLE_TRACER_OFFSET: float=4.5
 
 var navigation: Node3D
 var behavior: String="patrol"
@@ -98,6 +101,7 @@ var _dead_time: float = 0.0
 var _rig: Node3D
 var _enemy_right_hand_socket: BoneAttachment3D
 var _enemy_hand_rifle: Node3D
+var _enemy_muzzle_flash: MeshInstance3D
 var _animation: AnimationPlayer
 var _clip: String = ""
 var safe_center: Vector2=Vector2.ZERO
@@ -120,6 +124,8 @@ var _lod_pending: bool=false
 var _death_tween: Tween
 var _impact_reaction_remaining: float=0.0
 var _weapon_action_remaining: float=0.0
+var _muzzle_flash_remaining: float=0.0
+var muzzle_flashes_shown: int=0
 var weapon_actions_shown: int=0
 var reload_actions_shown: int=0
 var last_hit_reaction: String=""
@@ -268,6 +274,8 @@ func _create_full_rig() -> void:
 func _attach_original_hand_rifle() -> void:
     _enemy_hand_rifle=null
     _enemy_right_hand_socket=null
+    _enemy_muzzle_flash=null
+    _muzzle_flash_remaining=0.0
     if _rig==null or not ResourceLoader.exists(WEAPON_VISUALS.AK_PATH):
         return
     var skeleton: Skeleton3D=_rig.find_child(
@@ -305,6 +313,24 @@ func _attach_original_hand_rifle() -> void:
     if _enemy_hand_rifle==null:
         _enemy_right_hand_socket.queue_free()
         _enemy_right_hand_socket=null
+        return
+    # Use Lila's existing AK mount coordinates; never move the true ray.
+    _enemy_muzzle_flash=MeshInstance3D.new()
+    _enemy_muzzle_flash.name="OpponentPhysicalMuzzleFlash"
+    var flash_mesh:=SphereMesh.new()
+    flash_mesh.radius=.075
+    flash_mesh.height=.18
+    flash_mesh.radial_segments=8
+    flash_mesh.rings=4
+    _enemy_muzzle_flash.mesh=flash_mesh
+    _enemy_muzzle_flash.position=Vector3(0,.03,-.78)
+    var flash_material:=StandardMaterial3D.new()
+    flash_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    flash_material.albedo_color=Color(1.0,.51,.17)
+    _enemy_muzzle_flash.material_override=flash_material
+    _enemy_muzzle_flash.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    _enemy_muzzle_flash.visible=false
+    mount.add_child(_enemy_muzzle_flash)
 
 
 func _set_full_visual(closer: bool) -> void:
@@ -328,6 +354,8 @@ func _set_full_visual(closer: bool) -> void:
         # The 49 physics bodies remain active and use their old low LOD.
         _enemy_hand_rifle=null
         _enemy_right_hand_socket=null
+        _enemy_muzzle_flash=null
+        _muzzle_flash_remaining=0.0
         _animation=null
         _clip=""
         _impact_reaction_remaining=0.0
@@ -366,6 +394,10 @@ func _physics_process(dt: float) -> void:
         return
     _impact_reaction_remaining=maxf(0.0,_impact_reaction_remaining-dt)
     _weapon_action_remaining=maxf(0.0,_weapon_action_remaining-dt)
+    if _muzzle_flash_remaining>0.0:
+        _muzzle_flash_remaining=maxf(0.0,_muzzle_flash_remaining-dt)
+        if _muzzle_flash_remaining<=0.0 and _enemy_muzzle_flash!=null:
+            _enemy_muzzle_flash.visible=false
     # A one-shot visual is rescaled to the real reload/fire duration;
     # restore gait speed as soon as the authoritative action ends.
     if (_weapon_action_remaining<=0.0 and _animation!=null and
@@ -654,6 +686,7 @@ func hear_gunshot(at: Vector3, originator: Node3D) -> void:
 
 func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _reset_death_presentation()
+    muzzle_flashes_shown=0
     weapon_actions_shown=0
     reload_actions_shown=0
     hit_reactions_shown=0
@@ -810,6 +843,9 @@ func _play_death_presentation(lethal_attacker: Node3D) -> void:
     visible=true
     _impact_reaction_remaining=0.0
     _weapon_action_remaining=0.0
+    _muzzle_flash_remaining=0.0
+    if _enemy_muzzle_flash!=null:
+        _enemy_muzzle_flash.visible=false
     # Only this fatal physical hit determines the original skeleton clip.
     # Environmental damage cannot reuse a shooter from an earlier injury.
     var reaction: String="AuroraHit"
@@ -851,6 +887,9 @@ func _reset_death_presentation() -> void:
     _death_tween=null
     _impact_reaction_remaining=0.0
     _weapon_action_remaining=0.0
+    _muzzle_flash_remaining=0.0
+    if _enemy_muzzle_flash!=null:
+        _enemy_muzzle_flash.visible=false
     if _rig!=null:
         _rig.transform=_rig_rest_transform
         if _animation!=null and _animation.has_animation("AuroraIdle"):
@@ -869,6 +908,7 @@ func _respawn() -> void:
     if not respawn_enabled:
         return
     _reset_death_presentation()
+    muzzle_flashes_shown=0
     weapon_actions_shown=0
     reload_actions_shown=0
     hit_reactions_shown=0
@@ -991,6 +1031,28 @@ func _has_line_of_fire(foe: CharacterBody3D) -> bool:
         (obstacle as StaticBody3D).is_in_group("aurora_deployable_cover"))
 
 
+## Only REAL committed shots can illuminate the original gun.
+## The raycast physics/damage origin remains the same gameplay muzzle;
+## only the pooled visual tracer may start at this animated rifle muzzle.
+func _show_real_muzzle_flash() -> void:
+    if health<=0.0 or not is_instance_valid(_enemy_muzzle_flash):
+        return
+    _enemy_muzzle_flash.visible=true
+    _muzzle_flash_remaining=REAL_MUZZLE_FLASH_SECONDS
+    muzzle_flashes_shown+=1
+
+
+func _visible_trace_origin(physics_origin: Vector3) -> Vector3:
+    if health<=0.0 or not is_instance_valid(_enemy_muzzle_flash):
+        return physics_origin
+    var rifle_point: Vector3=_enemy_muzzle_flash.global_position
+    if (not rifle_point.is_finite() or
+            rifle_point.distance_squared_to(physics_origin)>
+            MAX_MUZZLE_TRACER_OFFSET*MAX_MUZZLE_TRACER_OFFSET):
+        return physics_origin
+    return rifle_point
+
+
 func _fire_at_last_known_cover() -> bool:
     # No live target coordinates are accessed here. A bounded probe
     # tests a real wall on the route to a *previously verified* location.
@@ -1016,8 +1078,10 @@ func _fire_at_last_known_cover() -> bool:
     shots_fired+=1
     _magazine-=1
     _play_weapon_action("AuroraFire",FIRE_PRESENTATION_SECONDS)
+    _show_real_muzzle_flash()
     weapon_fired.emit(global_position)
-    shot_trace.emit(muzzle,hit.get("position",destination))
+    shot_trace.emit(_visible_trace_origin(muzzle),
+        hit.get("position",destination))
     body.call("take_damage",12.0)
     _burst_count=0
     _attack_clock=BURST_RECOVERY
@@ -1031,6 +1095,7 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
         return false
     shots_fired+=1
     _play_weapon_action("AuroraFire",FIRE_PRESENTATION_SECONDS)
+    _show_real_muzzle_flash()
     weapon_fired.emit(global_position)
     var distance: float=global_position.distance_to(foe.global_position)
     var spread: float=clampf(distance/SHOOT_RANGE,0.0,1.0)*.52
@@ -1040,7 +1105,8 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
     var ray:=PhysicsRayQueryParameters3D.create(muzzle,endpoint)
     ray.exclude=[get_rid()]
     var hit:=get_world_3d().direct_space_state.intersect_ray(ray)
-    shot_trace.emit(muzzle,hit.get("position",endpoint))
+    shot_trace.emit(_visible_trace_origin(muzzle),
+        hit.get("position",endpoint))
     var actor: Object=hit.get("collider")
     if actor==operator and not operator.royale_eliminated:
         operator.receive_training_hit(5.0,false,global_position)

@@ -30,6 +30,7 @@ on:
       - codex/v75-99-occluded-cover-fire-physical-visibility-vulkan
       - codex/v75-100-physical-bot-weapon-animations-vulkan
       - codex/v75-101-opponent-hand-rifle-attachments-vulkan
+      - codex/v75-102-bot-rifle-muzzle-visuals-vulkan
     paths:
       - 'firebase-godot-bridge/**'
       - '.github/workflows/aurora-firebase-android-plugin.yml'
