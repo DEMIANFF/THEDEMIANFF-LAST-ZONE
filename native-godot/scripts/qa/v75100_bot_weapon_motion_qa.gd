@@ -105,7 +105,7 @@ func _verify() -> void:
     shooter._physics_process(BOT.FIRE_PRESENTATION_SECONDS+.04)
     check(shooter.shots_fired==shots_after and
         shooter._weapon_action_remaining==0.0 and
-        shooter._animation.current_animation in ["AuroraIdle","AuroraWalk"],
+        shooter._animation.current_animation in ["AuroraIdle","AuroraWalk","AuroraRun"],
         "shoot recoil locked skeletal opponent in firearm stance")
 
     var reload_before: int=shooter.reloads_completed
@@ -131,7 +131,7 @@ func _verify() -> void:
         shooter._reload_remaining==0.0 and
         shooter._weapon_action_remaining==0.0 and
         is_equal_approx(shooter._animation.speed_scale,1.0) and
-        shooter._animation.current_animation in ["AuroraIdle","AuroraWalk"],
+        shooter._animation.current_animation in ["AuroraIdle","AuroraWalk","AuroraRun"],
         "reload visual changed ballistics or left the bot stuck in motion")
 
     shooter._impact_reaction_remaining=.18

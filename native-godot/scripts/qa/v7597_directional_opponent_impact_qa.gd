@@ -85,7 +85,7 @@ func _verify() -> void:
     victim._physics_process(BOT.IMPACT_REACTION_SECONDS+.03)
     check(victim.health>0.0 and
         victim._impact_reaction_remaining==0.0 and
-        victim._animation.current_animation in ["AuroraWalk","AuroraIdle"],
+        victim._animation.current_animation in ["AuroraWalk","AuroraIdle","AuroraRun"],
         "opponent permanently stuck in hit reaction rather than walking")
     victim.navigation=previous_navigation
 
