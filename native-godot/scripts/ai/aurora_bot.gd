@@ -1,6 +1,7 @@
 extends CharacterBody3D
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 const IMPACT=preload("res://scripts/player/third_person_operator.gd")
+const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 ## Aurora V73 offline training opponent: rigged glTF visual, bounded ray-LOS,
 ## grounded patrol and actual damage. This is not a networked human player.
 signal eliminated(agent: CharacterBody3D, killer: Node3D)
@@ -95,6 +96,8 @@ var _last_seen: Vector3 = Vector3.ZERO
 var _alert_time: float = 0.0
 var _dead_time: float = 0.0
 var _rig: Node3D
+var _enemy_right_hand_socket: BoneAttachment3D
+var _enemy_hand_rifle: Node3D
 var _animation: AnimationPlayer
 var _clip: String = ""
 var safe_center: Vector2=Vector2.ZERO
@@ -254,6 +257,54 @@ func _create_full_rig() -> void:
     if _animation:
         _animation.play("AuroraIdle")
         _animation.advance(.16)
+    _attach_original_hand_rifle()
+
+
+## Every high-detail rival carries the same existing *original* 3D AR
+## model as Lila, attached to an actual animated right-hand bone. There
+## are no camera/HUD-tracked guns, no copied third-party items, and no
+## rifle objects at all for the 41 low-poly physical rivals. Share the
+## existing AK GLB loader's correct FBX scale/axis normalization.
+func _attach_original_hand_rifle() -> void:
+    _enemy_hand_rifle=null
+    _enemy_right_hand_socket=null
+    if _rig==null or not ResourceLoader.exists(WEAPON_VISUALS.AK_PATH):
+        return
+    var skeleton: Skeleton3D=_rig.find_child(
+        "Skeleton3D",true,false) as Skeleton3D
+    if skeleton==null:
+        return
+    var hand_index: int=-1
+    for i in range(skeleton.get_bone_count()):
+        if skeleton.get_bone_name(i).to_lower().ends_with("righthand"):
+            hand_index=i
+            break
+    if hand_index<0:
+        push_warning("Aurora detailed enemy missing actual right-hand bone")
+        return
+    var imported_scale: float=skeleton.global_transform.basis.get_scale().x
+    if not is_finite(imported_scale) or imported_scale<=.00001:
+        push_warning("Aurora detailed enemy rifle bone scale invalid")
+        return
+    _enemy_right_hand_socket=BoneAttachment3D.new()
+    _enemy_right_hand_socket.name="OpponentRightHandRifleSocket"
+    _enemy_right_hand_socket.bone_name=skeleton.get_bone_name(hand_index)
+    skeleton.add_child(_enemy_right_hand_socket)
+    var mount:=Node3D.new()
+    mount.name="OpponentRightHandRifleMount"
+    _enemy_right_hand_socket.add_child(mount)
+    mount.scale=Vector3.ONE/imported_scale
+    mount.position=Vector3(0,-.012,-.075)/imported_scale
+    mount.rotation_degrees=Vector3(-12,0,90)
+    # One temporary helper owns no scene-processing loop. It reuses Lila's
+    # GLB normalization; the returned mesh becomes a skeleton child.
+    var visual_loader: Node3D=WEAPON_VISUALS.new()
+    _enemy_hand_rifle=visual_loader._load_visual(
+        WEAPON_VISUALS.AK_PATH,"AK74TacticalOpponentVisual",mount)
+    visual_loader.free()
+    if _enemy_hand_rifle==null:
+        _enemy_right_hand_socket.queue_free()
+        _enemy_right_hand_socket=null
 
 
 func _set_full_visual(closer: bool) -> void:
@@ -273,6 +324,10 @@ func _set_full_visual(closer: bool) -> void:
         _rig.remove_from_group(DETAILED_ENEMY_GROUP)
         _rig.queue_free()
         _rig=null
+        # References are released together with the existing detailed rig.
+        # The 49 physics bodies remain active and use their old low LOD.
+        _enemy_hand_rifle=null
+        _enemy_right_hand_socket=null
         _animation=null
         _clip=""
         _impact_reaction_remaining=0.0
