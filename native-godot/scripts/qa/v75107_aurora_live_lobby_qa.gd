@@ -53,7 +53,10 @@ func _verify() -> void:
         "animated winter hangar scene is missing real 3D nodes")
     if rotor!=null:
         var before: float=rotor.rotation.y
-        stage._process(.5)
+        # The real scene caps individual dt at .10 to prevent a sudden
+        # rotation after background/resume. Test motion across 3 frames.
+        for i in range(3):
+            stage._process(.5)
         check(absf(angle_difference(before,rotor.rotation.y))>.05,
             "physical radar is static; simulated preview is not acceptable")
 
