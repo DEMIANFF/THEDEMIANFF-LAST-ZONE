@@ -1,7 +1,6 @@
 extends SceneTree
 ## V75.106 real HUD preset and live lobby navigation acceptance.
 const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
-const SETTINGS=preload("res://scripts/ui/aurora_settings_overlay.gd")
 var failed: bool=false
 
 func _initialize() -> void:
@@ -14,15 +13,20 @@ func check(ok: bool,description: String) -> void:
 
 func _verify() -> void:
     root.size=Vector2i(964,434)
+    # Open the actual lobby first: its scene registers and owns the
+    # music/settings services exactly as in Android, not in isolation.
+    var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
+    root.add_child(front)
+    await front.wait_for_startup()
+    front._enter_local_lobby()
     var original_slot: int=HUD_LAYOUT.selected_preset()
     check(HUD_LAYOUT.choose_preset(1)==OK,"cannot select original HUD slot")
     var original: RefCounted=HUD_LAYOUT.new()
     check(original.set_item("MovePad",Vector2(.19,.75),1.0,.87)==OK,
         "cannot store separate original HUD")
     check(original.save()==OK,"cannot save original HUD")
-    var settings: CanvasLayer=SETTINGS.new()
-    settings.context_origin="lobby"
-    root.add_child(settings)
+    front._open_settings()
+    var settings: CanvasLayer=front._settings_modal
     var action: Button=settings._content.find_child(
         "ApplyAuroraHudReference",true,false) as Button
     check(action!=null and action.visible,
@@ -81,10 +85,6 @@ func _verify() -> void:
 
     hud.queue_free()
     await process_frame
-    var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
-    root.add_child(front)
-    await front.wait_for_startup()
-    front._enter_local_lobby()
     var avatar: Node3D=front._preview_avatar
     front._select_tab("TIENDA")
     check(not front._battle_entry.visible and front._shop_selector.visible,
