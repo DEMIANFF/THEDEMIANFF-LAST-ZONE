@@ -12,6 +12,7 @@ func check(ok: bool,message: String) -> void:
 func verify() -> void:
     var front: Control=load("res://scenes/Boot.tscn").instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     front._show_lobby()
     front._select_tab("AJUSTES")
     for resolution in [Vector2i(1280,720),Vector2i(2712,1220),Vector2i(1024,768)]:

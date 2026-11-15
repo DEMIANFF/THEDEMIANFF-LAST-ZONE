@@ -48,6 +48,7 @@ func verify() -> void:
     var boot:=load("res://scenes/Boot.tscn") as PackedScene
     var front:=boot.instantiate() as Control
     root.add_child(front)
+    await front.wait_for_startup()
     await process_frame
     var music: Node=root.get_node("AuroraLobbyMusic")
     var speaker: AudioStreamPlayer=music.get_node("LobbyBGM")

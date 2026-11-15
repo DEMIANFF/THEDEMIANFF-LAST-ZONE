@@ -73,6 +73,7 @@ func _verify() -> void:
         "visual shop cannot fund actual purchases from saved battles")
     var menu: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(menu)
+    await menu.wait_for_startup()
     await process_frame
     menu._enter_local_lobby()
     await process_frame

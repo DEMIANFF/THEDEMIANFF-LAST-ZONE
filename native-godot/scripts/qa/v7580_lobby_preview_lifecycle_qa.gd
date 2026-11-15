@@ -16,6 +16,7 @@ func require(ok: bool,reason: String) -> void:
 func _verify() -> void:
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     await process_frame
     require(front.stage=="welcome","did not start on the login screen")
     require(front._preview_container==null and front._preview_avatar==null,
@@ -54,8 +55,9 @@ func _verify() -> void:
         require(front._preview_container.get_node_or_null(
             "PreviewViewport/AuroraCharacterStage/AuroraSentinelCompanion")!=null,
             "companion was lost after login/lobby transition")
+    front._welcome()
     front.queue_free()
-    await process_frame
+    await create_timer(.18).timeout
     if not failed:
         print("V7580_PREVIEW_LIFECYCLE PASS welcome=no_3d_alloc "+
             "lobby=real_rig logout=freed reentry=fresh_viewport "+

@@ -16,6 +16,7 @@ func require(ok: bool,message: String) -> void:
 func _verify() -> void:
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     await process_frame
     require(front.stage=="welcome","dedicated Firebase login is not the entry screen")
     require(front._login_google_button.visible and front._login_guest_button.visible,

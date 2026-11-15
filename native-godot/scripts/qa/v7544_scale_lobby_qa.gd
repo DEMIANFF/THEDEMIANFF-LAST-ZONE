@@ -78,6 +78,7 @@ func _verify() -> void:
 
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     front._show_lobby()
     check(front.stage=="lobby" and
         front.get_node_or_null("OfflineEncounterSize")==null and

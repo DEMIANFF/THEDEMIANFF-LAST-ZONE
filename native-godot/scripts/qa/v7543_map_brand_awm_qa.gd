@@ -75,6 +75,7 @@ func _verify() -> void:
 
     var frontend: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(frontend)
+    await frontend.wait_for_startup()
     await process_frame
     check(str(ProjectSettings.get_setting("application/config/name")).begins_with(
         "THEDEMIAN: LAST ZONE"),"old FF game title remains in app metadata")

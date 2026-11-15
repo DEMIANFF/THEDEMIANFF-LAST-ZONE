@@ -24,6 +24,7 @@ func _verify() -> void:
 
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     front._show_lobby()
     front._select_tab("AJUSTES")
     check(front._settings_panel.visible,"settings tab not visible in lobby")

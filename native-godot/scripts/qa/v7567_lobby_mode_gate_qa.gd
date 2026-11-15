@@ -14,6 +14,7 @@ func check(ok: bool, reason: String) -> void:
 func _verify() -> void:
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     front._show_lobby()
     await process_frame
     check(front.stage=="lobby","real lobby not opened")

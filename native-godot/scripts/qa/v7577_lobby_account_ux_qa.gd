@@ -23,6 +23,7 @@ func _verify() -> void:
             "Firebase JNI contract must use Godot 4.7 Java method introspection")
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     front._show_lobby()
     await process_frame
     check(front._selected_tab=="JUGAR","initial tab must be JUGAR")

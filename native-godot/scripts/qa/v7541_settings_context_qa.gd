@@ -24,6 +24,7 @@ func _verify() -> void:
     var prior_slot: int=HUD_LAYOUT.selected_preset()
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     front._show_lobby()
     check(front.stage=="lobby" and front._game==null,
         "lobby did not initialize without an active match")

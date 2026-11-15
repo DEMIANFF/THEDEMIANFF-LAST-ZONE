@@ -44,6 +44,7 @@ func _verify() -> void:
 
     var boot: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(boot)
+    await boot.wait_for_startup()
     boot._show_lobby()
     await process_frame
     boot._player_name=LOCAL_NAME.new(QA_PATH)
