@@ -26,6 +26,7 @@ on:
       - codex/v75-95-safe-parachute-landing-roster-vulkan
       - codex/v75-96-physical-bot-elimination-animation-vulkan
       - codex/v75-97-directional-opponent-impact-reactions-vulkan
+      - codex/v75-98-last-confirmed-target-ai-vulkan
     paths:
       - 'firebase-godot-bridge/**'
       - '.github/workflows/aurora-firebase-android-plugin.yml'

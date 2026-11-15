@@ -339,19 +339,23 @@ func _physics_process(dt: float) -> void:
             _magazine<=PROACTIVE_RELOAD_THRESHOLD and not _target_visible):
         _begin_reload()
 
-    var target: CharacterBody3D = _target_actor if _target_visible and is_instance_valid(_target_actor) else operator
-    var delta_to_player: Vector3=target.global_position-global_position
-    delta_to_player.y=0
-    var distance: float=delta_to_player.length()
+    # Only a CONFIRMED physical line of sight gives exact current actor
+    # position. After gunfire behind a wall, follow the stationary last
+    # audible location; never secretly rotate toward Lila's live position.
+    var contact_position: Vector3=confirmed_contact_position(
+        _last_seen,_target_actor,_target_visible)
+    var delta_to_contact: Vector3=contact_position-global_position
+    delta_to_contact.y=0
+    var distance: float=delta_to_contact.length()
     var destination: Vector3
     var target_speed: float=WALK_SPEED
     if _target_visible and distance < SIGHT_RANGE:
-        _last_seen=target.global_position
+        _last_seen=contact_position
         _alert_time=2.9
     behavior="patrol"
     if _alert_time>0:
         behavior="pursuit"
-        var flank: Vector3=Vector3(-delta_to_player.z,0,delta_to_player.x).normalized()
+        var flank: Vector3=Vector3(-delta_to_contact.z,0,delta_to_contact.x).normalized()
         destination=_last_seen+flank*sin(_idle_phase)*2.2
         target_speed=CHASE_SPEED
         # Reposition to the side of a visible opponent rather than always
@@ -361,7 +365,7 @@ func _physics_process(dt: float) -> void:
             if _strafe_clock<=0.0:
                 _avoid_side*=-1.0
                 _strafe_clock=STRAFE_SWITCH_SECONDS+float(get_instance_id()%3)*.19
-            var maintain_range: Vector3=delta_to_player.normalized()*clampf(distance-12.0,-2.0,2.0)
+            var maintain_range: Vector3=delta_to_contact.normalized()*clampf(distance-12.0,-2.0,2.0)
             destination=global_position+flank*_avoid_side*3.7+maintain_range
             behavior="strafe"
     else:
@@ -462,6 +466,17 @@ func _physics_process(dt: float) -> void:
         if action!=_clip:
             _animation.play(action,.18)
             _clip=action
+
+
+## This function is the AI's sole position source for pursuit/flanking.
+## Visual detection is granted only by the existing real PhysicsServer LOS.
+## If the target is occluded, preserve the last confirmed audio/visual
+## contact as immutable information, even if the real player moves elsewhere.
+static func confirmed_contact_position(last_contact: Vector3,
+        target: CharacterBody3D, has_visual: bool) -> Vector3:
+    if has_visual and is_instance_valid(target):
+        return target.global_position
+    return last_contact
 
 
 ## Build a bounded sorted list of actual nearby CharacterBody3D
