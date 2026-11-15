@@ -86,7 +86,7 @@ func _verify() -> void:
     check(physical_victim.visible and physical_victim.health==100.0 and
         distant.visible and distant.health==100.0 and
         physical_victim._rig.transform==original and
-        not distant._death_tween.is_running() and
+        distant._death_tween==null and
         combat.eliminations==0 and combat.active_fighter_count()==50,
         "new round inherited corpse pose, deferred hide, or past human kills")
     await create_timer(BOT.DEFEAT_PRESENTATION_SECONDS+.12).timeout

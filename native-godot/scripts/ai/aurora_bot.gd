@@ -671,6 +671,9 @@ func _play_death_presentation() -> void:
 func _complete_death_presentation() -> void:
     if health>0.0:
         return
+    # The callback is running INSIDE this Tween; do not attempt to kill
+    # the same Tween while returning a freed distant rig to the LOD pool.
+    _death_tween=null
     visible=false
     # Reclaim a distant visual's high-detail budget after its real death.
     if distance_lod and _rig!=null:
