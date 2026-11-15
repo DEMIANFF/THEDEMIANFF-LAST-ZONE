@@ -178,6 +178,10 @@ func _populate_subcategory() -> void:
             preset.select(HUD_LAYOUT.selected_preset()-1)
             preset.item_selected.connect(_select_hud_preset)
             _content.add_child(preset)
+            var aurora_layout:=_make_button(_content,
+                "APLICAR HUD AURORA / ESPACIO 4",_use_aurora_reference)
+            aurora_layout.name="ApplyAuroraHudReference"
+            aurora_layout.tooltip_text="Distribución táctil Aurora: joystick izquierdo, disparo a la derecha y controles separados. Nunca sustituye los espacios 1-3."
             var edit:=_make_button(_content,"PERSONALIZAR HUD",func(): hud_editor_requested.emit())
             edit.name="EditCurrentHud"
             _info("Al cerrar el editor vuelves exactamente al lobby, entrenamiento o partida desde donde lo abriste.")
@@ -398,6 +402,26 @@ func _apply_live_ui() -> void:
     var hud: CanvasLayer=context_game.get_node_or_null("TrainingHUD")
     if hud!=null:
         hud.call("apply_ui_settings")
+
+
+func _use_aurora_reference() -> void:
+    # Install only in empty slot 4. Existing user edits in that slot survive.
+    var layout: RefCounted=HUD_LAYOUT.new(HUD_LAYOUT.slot_path(4))
+    if layout.controls.is_empty():
+        var created: Error=layout.install_aurora_reference()
+        if created!=OK:
+            _status.text="ERROR al guardar diseño Aurora: "+str(created)
+            return
+    var result: Error=HUD_LAYOUT.choose_preset(4)
+    if result!=OK:
+        _status.text="ERROR al seleccionar espacio HUD 4"
+        return
+    if context_game!=null:
+        var hud: CanvasLayer=context_game.get_node_or_null("TrainingHUD")
+        if hud!=null:
+            hud.call("reload_hud_layout")
+    _show_subcategory("HUD")
+    _status.text="HUD AURORA activado en espacio 4 · diseño editable y persistente"
 
 
 func _select_hud_preset(index: int) -> void:

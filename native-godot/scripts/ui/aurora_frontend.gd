@@ -1223,9 +1223,9 @@ func _ensure_lobby_navigation() -> void:
     _bottom_navigation.add_theme_constant_override("separation",7)
     _surface.add_child(_bottom_navigation)
     for item in [
-        ["INVENTARIO","INVENTARIO"],["ARMAS","ARMAS"],
-        ["PERSONAJES","PERSONAJE"],["PRESET","PRESET"],
-        ["CLAN","SOCIAL"]
+        ["JUGAR","JUGAR"],["INVENTARIO","INVENTARIO"],
+        ["ARMAS","ARMAS"],["PERSONAJES","PERSONAJE"],
+        ["PRESET","PRESET"],["SOCIAL","SOCIAL"]
     ]:
         var target: String=str(item[1])
         var button:=_button(str(item[0]),
@@ -1234,7 +1234,10 @@ func _ensure_lobby_navigation() -> void:
         button.custom_minimum_size=Vector2(0,30)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         button.add_theme_font_size_override("font_size",12)
-        _style_aurora_tab(button,Color(.50,.31,.81))
+        if target=="JUGAR":
+            _style_primary_action(button)
+        else:
+            _style_aurora_tab(button,Color(.50,.31,.81))
         _bottom_navigation.add_child(button)
 
     _social_panel=PanelContainer.new()
