@@ -5,6 +5,11 @@ extends Node3D
 const MIX_RATE: int=22050
 const CONFIG_PATH: String="user://aurora_audio.cfg"
 const VOICES: int=8
+const ADDENDUM = preload("res://scripts/audio/aurora_addendum_audio.gd")
+const SPATIAL_STEPS: int=3
+const SPATIAL_BLASTS: int=3
+const STEP_RANGE: float=26.0
+const BLAST_RANGE: float=105.0
 
 var _samples: Dictionary={}
 var _voices: Array[AudioStreamPlayer]=[]
@@ -19,12 +24,27 @@ var _cursor: int=0
 var _ambience: AudioStreamPlayer
 var _foot_index: int=0
 var _sound_enabled: bool=true
+var _steps: AudioStreamPlayer
+var _flight_transition: AudioStreamPlayer
+var _aircraft_active: bool=false
+var _walking_steps: Array[AudioStream]=[]
+var _running_steps: Array[AudioStream]=[]
+var _spatial_addendum: Array[AudioStreamPlayer]=[]
+var _addendum_buses: Array[int]=[]
+var _addendum_panners: Array[AudioEffectPanner]=[]
+var _addendum_positions: Array[Vector3]=[]
+var _step_cursor: int=0
+var _blast_cursor: int=0
 
 
 func _ready() -> void:
     _ensure_bus("AuroraSFX")
     _ensure_bus("AuroraAmbience")
+    _ensure_bus("AuroraSteps")
+    set_mix("AuroraSteps",.70)
     _load_settings()
+    var transition: AudioStream=ADDENDUM.imported("aircraft.ogg")
+    var blast: AudioStream=ADDENDUM.imported("grenade.ogg")
     var recipes: Dictionary={
         "ar_fire":.25,
         "awm_fire":.62,
@@ -48,6 +68,7 @@ func _ready() -> void:
     }
     for name in recipes:
         _samples[name]=_render(name,float(recipes[name]))
+    _samples["grenade"]=blast if blast!=null else _render("grenade",2.83)
     for i in range(VOICES):
         var voice:=AudioStreamPlayer.new()
         voice.name="SoundVoice"+str(i)
@@ -82,6 +103,34 @@ func _ready() -> void:
     add_child(_ambience)
     if _sound_enabled:
         _ambience.play()
+    _steps=_make_voice("OperatorFootsteps","AuroraSteps",-9.0)
+    for i in range(3):
+        var walk: AudioStream=ADDENDUM.imported("walk_%d.wav"%i)
+        var run: AudioStream=ADDENDUM.imported("run_%d.wav"%i)
+        _walking_steps.append(walk if walk!=null else _samples["foot_stone"])
+        _running_steps.append(run if run!=null else _samples["foot_stone"])
+    _flight_transition=_make_voice("AircraftOverflight","AuroraAmbience",-11.0)
+    _flight_transition.stream=transition if transition!=null else _render("aircraft",3.8)
+    for i in range(SPATIAL_STEPS+SPATIAL_BLASTS):
+        var bus_name: String="AuroraPositionalEffect%d"%i
+        _ensure_bus(bus_name,"AuroraSteps" if i<SPATIAL_STEPS else "AuroraSFX")
+        var bus: int=AudioServer.get_bus_index(bus_name)
+        if AudioServer.get_bus_effect_count(bus)==0:
+            AudioServer.add_bus_effect(bus,AudioEffectPanner.new())
+        _spatial_addendum.append(_make_voice("PositionalEffect%d"%i,bus_name,
+            -15.0 if i<SPATIAL_STEPS else -8.0))
+        _addendum_buses.append(bus)
+        _addendum_panners.append(AudioServer.get_bus_effect(bus,0) as AudioEffectPanner)
+        _addendum_positions.append(Vector3.ZERO)
+
+
+func _make_voice(voice_name: String,bus_name: String,db: float) -> AudioStreamPlayer:
+    var voice:=AudioStreamPlayer.new()
+    voice.name=voice_name
+    voice.bus=bus_name
+    voice.volume_db=db
+    add_child(voice)
+    return voice
 
 
 func _ensure_bus(bus_name: String,send_to: String="Master") -> void:
@@ -102,6 +151,10 @@ func _process(_delta: float) -> void:
         for i in range(_world_voices.size()):
             if _world_voices[i].playing:
                 _update_world_pan(i,listener)
+        for i in range(_spatial_addendum.size()):
+            if _spatial_addendum[i].playing:
+                _pan_from(_addendum_positions[i],listener,_addendum_panners[i],
+                    _addendum_buses[i],STEP_RANGE if i<SPATIAL_STEPS else BLAST_RANGE)
     # Godot 4.7.2 audio-mixer concurrency mitigation: wait for an in-flight
     # mix step at least once per main-loop iteration before retired audio-bus
     # data can be reclaimed. This is a narrow, temporary engine workaround,
@@ -111,18 +164,22 @@ func _process(_delta: float) -> void:
 
 
 func _update_world_pan(index: int,listener: Camera3D) -> void:
-    var source: Vector3=_world_positions[index]
+    _pan_from(_world_positions[index],listener,_world_panners[index],_world_buses[index],150.0)
+
+
+func _pan_from(source: Vector3,listener: Camera3D,panner: AudioEffectPanner,
+        bus: int,range_metres: float) -> void:
     var toward: Vector3=source-listener.global_position
     var distance: float=toward.length()
     toward.y=0.0
     var pan: float=0.0
     if toward.length_squared()>.001:
         pan=clampf(toward.normalized().dot(listener.global_basis.x),-1.0,1.0)
-    _world_panners[index].pan=pan
+    panner.pan=pan
     # 3D-style distance attenuation retained, applied on the audio BUS to
     # avoid per-playback bus-details mutations while a sound is playing.
-    var gain: float=pow(clampf(1.0-distance/150.0,0.001,1.0),2.0)
-    AudioServer.set_bus_volume_db(_world_buses[index],linear_to_db(gain))
+    var gain: float=pow(clampf(1.0-distance/range_metres,0.001,1.0),2.0)
+    AudioServer.set_bus_volume_db(bus,linear_to_db(gain))
 
 
 func _load_settings() -> void:
@@ -132,10 +189,11 @@ func _load_settings() -> void:
     _sound_enabled=bool(cfg.get_value("audio","enabled",true))
     set_mix("AuroraSFX",float(cfg.get_value("audio","effects",.75)))
     set_mix("AuroraAmbience",float(cfg.get_value("audio","ambience",.55)))
+    set_mix("AuroraSteps",float(cfg.get_value("audio","steps",.70)))
 
 
 func set_mix(bus_name: String,level: float) -> void:
-    if bus_name!="AuroraSFX" and bus_name!="AuroraAmbience":
+    if bus_name not in ["AuroraSFX","AuroraAmbience","AuroraSteps"]:
         return
     var index: int=AudioServer.get_bus_index(bus_name)
     if index<0:
@@ -182,6 +240,65 @@ func play_footstep(on_stone: bool) -> void:
     play_event("foot_stone" if on_stone else "foot_snow",variation)
 
 
+func play_operator_contact(on_stone: bool,running: bool) -> void:
+    if not _sound_enabled:
+        return
+    _steps.stop()
+    _steps.stream=_contact_sample(on_stone,running)
+    _steps.pitch_scale=1.04 if running else 1.0
+    _steps.play()
+
+
+func _contact_sample(on_stone: bool,running: bool) -> AudioStream:
+    _foot_index+=1
+    if not on_stone:
+        return _samples["foot_snow"]
+    var samples: Array[AudioStream]=_running_steps if running else _walking_steps
+    return samples[_foot_index%samples.size()]
+
+
+func play_bot_contact(at: Vector3,running: bool,on_stone: bool) -> void:
+    if not _can_hear(at,STEP_RANGE):
+        return
+    var slot: int=_step_cursor
+    _step_cursor=(_step_cursor+1)%SPATIAL_STEPS
+    _play_positional(slot,at,_contact_sample(on_stone,running),STEP_RANGE)
+
+
+func play_grenade_detonation(at: Vector3) -> void:
+    if not _can_hear(at,BLAST_RANGE):
+        return
+    var slot: int=SPATIAL_STEPS+_blast_cursor
+    _blast_cursor=(_blast_cursor+1)%SPATIAL_BLASTS
+    _play_positional(slot,at,_samples["grenade"],BLAST_RANGE)
+
+
+func _can_hear(at: Vector3,max_range: float) -> bool:
+    var listener: Camera3D=get_viewport().get_camera_3d()
+    return _sound_enabled and at.is_finite() and listener!=null and (
+        listener.global_position.distance_squared_to(at)<max_range*max_range)
+
+
+func _play_positional(slot: int,at: Vector3,stream: AudioStream,max_range: float) -> void:
+    var voice: AudioStreamPlayer=_spatial_addendum[slot]
+    voice.stop()
+    _addendum_positions[slot]=at
+    _pan_from(at,get_viewport().get_camera_3d(),_addendum_panners[slot],
+        _addendum_buses[slot],max_range)
+    voice.stream=stream
+    voice.play()
+
+
+func set_aircraft_audio(active: bool) -> void:
+    if active==_aircraft_active:
+        return
+    _aircraft_active=active
+    if active and _sound_enabled:
+        _flight_transition.play()
+    else:
+        _flight_transition.stop()
+
+
 func set_enabled(enabled: bool) -> void:
     _sound_enabled=enabled
     if _ambience:
@@ -194,6 +311,10 @@ func set_enabled(enabled: bool) -> void:
             voice.stop()
         for voice in _world_voices:
             voice.stop()
+        for voice in _spatial_addendum:
+            voice.stop()
+        _flight_transition.stop()
+        _steps.stop()
 
 
 func _render(kind: String,duration: float) -> AudioStreamWAV:
@@ -258,6 +379,11 @@ func _render(kind: String,duration: float) -> AudioStreamWAV:
                 value+=.10*middle*sin(PI*progress)
             "jump":
                 value=.19*low*exp(-t*14.0)+.14*sin(TAU*(160.0-100.0*t)*t)*exp(-t*16.0)
+            "grenade":
+                value=.73*high*exp(-t*44.0)+.7*low*exp(-t*4.0)
+                value+=.40*sin(TAU*(43.0*t+1.8*sin(t*2.0)))*exp(-t*4.1)
+            "aircraft":
+                value=(low*.36+sin(TAU*(49.0*t+2.0*sin(t)))*.10)*sin(PI*progress)
             "ui":
                 value=.14*sin(TAU*650.0*t)*exp(-t*31.0)
                 value+=.08*sin(TAU*970.0*t)*exp(-t*34.0)

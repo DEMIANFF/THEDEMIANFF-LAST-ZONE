@@ -4,6 +4,7 @@ extends Node3D
 ## Owns the real shrinking hazard, alive counter, victory/defeat and sector loot.
 
 signal round_ended(victory: bool)
+signal aircraft_audio_changed(active: bool)
 
 const LOOT = preload("res://scripts/match/aurora_loot.gd")
 const ZONE_VISUAL = preload("res://scripts/match/aurora_zone_visual.gd")
@@ -86,6 +87,7 @@ func _ready() -> void:
     _flight.hud=hud
     add_child(_flight)
     _flight.touchdown.connect(_on_airdrop_landed)
+    _flight.aircraft_audio_changed.connect(aircraft_audio_changed.emit)
     player.landed_from_airdrop.connect(_flight.landed)
     hud.jump_pressed.connect(_flight.request_jump_or_parachute)
     hud.start_battle_requested.connect(begin_aircraft_phase)
@@ -139,6 +141,7 @@ func _on_airdrop_landed() -> void:
 func start_sector_battle(from_airdrop: bool=false) -> void:
     if not retry_result() or not _ready_for_round():
         return
+    aircraft_audio_changed.emit(false)
     # A repeatable elimination round, not an endless training target spawner.
     for old in _loot:
         if is_instance_valid(old):
@@ -474,6 +477,7 @@ func _spawn_loot() -> void:
         _make_pickup(Vector2(12,-13),"weapon_kriss","AuroraKRISSPickup")
         _make_pickup(Vector2(-38,-12),"ammo_smg","AuroraSMGAmmoPickup")
         _make_pickup(Vector2(-24,-31),"syringe","AuroraSyringePickup")
+        _make_pickup(Vector2(16,-13),"grenade","AuroraGrenadePickup")
         var gear: Array[Vector2]=[Vector2(27,25),Vector2(32,25),
             Vector2(-34,30),Vector2(-39,33),Vector2(54,-33),Vector2(59,-33)]
         for i in range(gear.size()):

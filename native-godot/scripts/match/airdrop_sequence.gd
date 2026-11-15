@@ -2,6 +2,7 @@ extends Node3D
 ## Aurora offline deployment sequence: aircraft -> freefall -> parachute -> land.
 ## It is a playable sector prototype, not an 8km aircraft network simulation.
 signal touchdown
+signal aircraft_audio_changed(active: bool)
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 
 const FLIGHT_SECONDS: float=13.0
@@ -43,6 +44,7 @@ func begin() -> void:
     player.begin_aircraft()
     player.global_position=_route_point(0.0)
     _build_craft()
+    aircraft_audio_changed.emit(true)
     hud.set_air_stage("aircraft")
     hud.impact("VUELO AURORA / SALTA O ESPERA EL DESPLIEGUE")
     FLIGHT_DIAGNOSTICS.checkpoint("active","aircraft",player,"start")
@@ -133,6 +135,7 @@ func jump_from_aircraft() -> void:
     # character animation, release 3D meshes and rebuild the HUD inside the
     # active physics step. This is a deferred *real* transition, not a fake fall.
     phase="jump_pending"
+    aircraft_audio_changed.emit(false)
     _drop_requested=false
     set_physics_process(false)
     FLIGHT_DIAGNOSTICS.checkpoint("active","jump_pending",player,"jump_transition_started")

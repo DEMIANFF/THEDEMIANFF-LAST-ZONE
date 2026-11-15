@@ -40,6 +40,7 @@ signal incoming_fire(attacker_world_position: Vector3)
 signal landed_from_airdrop
 signal crouch_state_changed(active: bool)
 signal footstep(on_stone: bool)
+signal foot_contact(on_stone: bool,running: bool)
 signal jumped
 signal grounded_impact(on_stone: bool)
 signal sprint_cancelled
@@ -87,6 +88,7 @@ var _avatar: Node3D
 var _animation_controller: Node
 var _landing_seconds: float=0.0
 var _footstep_distance: float=0.0
+var _foot_contacts=preload("res://scripts/animation/aurora_foot_contacts.gd").new()
 var _ground_locomotion: String="Idle"
 var _animator: AnimationPlayer
 var _current_clip: String = ""
@@ -203,9 +205,11 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
     if air_mode!="ground":
+        _foot_contacts.advance(&"",0.0,0.0,delta)
         _air_step(delta)
         return
     if royale_eliminated or round_finished:
+        _foot_contacts.advance(&"",0.0,0.0,delta)
         velocity=Vector3.ZERO
         return
     _training_immunity=maxf(0.0,_training_immunity-delta)
@@ -296,15 +300,10 @@ func _physics_process(delta: float) -> void:
     var actual_speed: float=measured_motion_speed(
         global_position-before_move,delta) 
     measured_ground_speed=actual_speed
-    if is_on_floor() and actual_speed>1.2 and move_strength>.05:
-        var stride: float=_step_stride(actual_speed,_crouching)
-        if _footstep_distance<=0.0:
-            # Do not wait a complete stride on the initial move input.
-            _footstep_distance=stride*.60
-        _footstep_distance+=actual_speed*delta
-        if _footstep_distance>=stride:
-            footstep.emit(_on_stone_footing())
-            _footstep_distance=fmod(_footstep_distance,stride)
+    var moving_on_ground: bool=is_on_floor() and actual_speed>1.2 and move_strength>.05
+    if moving_on_ground:
+        _footstep_distance=fmod(_footstep_distance+actual_speed*delta,
+            _step_stride(actual_speed,_crouching))
     else:
         _footstep_distance=0.0
     _landing_seconds=maxf(0.0,_landing_seconds-delta)
@@ -383,6 +382,16 @@ func _physics_process(delta: float) -> void:
             clip="AuroraLand"
         if clip!=_current_clip:
             _play_matching_animation(clip)
+    if moving_on_ground and _animation_controller and _animation_controller.playback:
+        var playback: AnimationNodeStateMachinePlayback=_animation_controller.playback
+        var gait: StringName=playback.get_current_node()
+        if _foot_contacts.advance(gait,playback.get_current_play_position(),
+                playback.get_current_length(),delta):
+            var stone: bool=_on_stone_footing()
+            footstep.emit(stone)
+            foot_contact.emit(stone,gait==&"AuroraArmedRun")
+    else:
+        _foot_contacts.advance(&"",0.0,0.0,delta)
 
 
 ## Select animation from physics-resolved displacement in the character's
@@ -425,20 +434,7 @@ func _step_stride(speed: float,crouching: bool=false) -> float:
 
 
 func _on_stone_footing() -> bool:
-    # Actual floor collider has priority for interiors and barricades;
-    # paved streets are visual terrain overlays rather than physics solids.
-    for index in range(get_slide_collision_count()):
-        var collision: KinematicCollision3D=get_slide_collision(index)
-        if collision.get_normal().y<=.6:
-            continue
-        var collider: Object=collision.get_collider()
-        if collider is Node:
-            var surface: String=(collider as Node).name.to_lower()
-            if "floor" in surface or "deck" in surface or "ramp" in surface or \
-                "foundation" in surface or "porch" in surface or "landing" in surface:
-                return true
-    var pos: Vector3=global_position
-    return pos.x>=-28.0 and pos.x<=81.0 and pos.z>=6.0 and pos.z<=74.0
+    return _foot_contacts.stone_footing(self)
 
 
 func _select_locomotion(speed: float) -> String:

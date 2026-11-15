@@ -35,9 +35,15 @@ func _verify() -> void:
     var first:int=sound._cursor
     combat.shot_fired.emit(0,false)
     check(sound._cursor==(first+1)%sound._voices.size(),"gunshot event not connected")
-    first=sound._cursor
-    player.footstep.emit(true)
-    check(sound._cursor==(first+1)%sound._voices.size(),"footsteps not connected")
+    var contact: int=sound._foot_index
+    player.foot_contact.emit(true,false)
+    check(sound._foot_index==contact+1 and sound._steps.playing and
+        sound._steps.stream in sound._walking_steps,"operator contact did not play a walking sample")
+    var nearby: int=sound._step_cursor
+    combat._targets[0].foot_contact.emit(player.global_position+Vector3.RIGHT*5.0,true,true)
+    check(sound._step_cursor==(nearby+1)%sound.SPATIAL_STEPS and
+        sound._spatial_addendum[nearby].stream in sound._running_steps,
+        "nearby rival contact did not use the positional run sample")
     first=sound._cursor
     player.player_damaged.emit(2.0)
     check(sound._cursor==(first+1)%sound._voices.size(),"damage cue not connected")
@@ -89,4 +95,6 @@ func _verify() -> void:
     print("V757_WORLD_AUDIO PASS plateau_error=",highest_deviation,
         " houses=",quarter.buildings_built," audio_samples=",sound.sound_count(),
         " polyphony=",sound._voices.size()," camera_collision=true")
+    sound.set_enabled(false)
+    await create_timer(.12).timeout
     quit(1 if failed else 0)

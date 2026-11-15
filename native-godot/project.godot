@@ -12,6 +12,9 @@ boot_splash/bg_color=Color(0.018, 0.021, 0.067, 1)
 boot_splash/show_image=true
 boot_splash/stretch_mode=4
 
+[autoload]
+AuroraLobbyMusic="*res://scripts/audio/aurora_lobby_music_service.gd"
+
 [rendering]
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="mobile"

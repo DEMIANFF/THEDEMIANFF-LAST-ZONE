@@ -103,7 +103,7 @@ func _ready() -> void:
     sound.name="AuroraSoundStage"
     add_child(sound)
     TRACE.checkpoint("active","scene_load",operator,"audio_build_done")
-    operator.footstep.connect(sound.play_footstep)
+    operator.foot_contact.connect(sound.play_operator_contact)
     operator.jumped.connect(func(): sound.play_event("jump"))
     operator.grounded_impact.connect(func(on_stone: bool): sound.play_footstep(on_stone))
     operator.player_damaged.connect(func(_amount: float): sound.play_event("hit"))
@@ -131,6 +131,8 @@ func _ready() -> void:
         sound.play_event(COMBAT.WEAPONS.ENTRIES[weapon]["sample"],.96+randf()*.08))
     combat.impact_occurred.connect(func(): sound.play_event("impact"))
     combat.bot_shot.connect(sound.play_world_shot)
+    combat.bot_foot_contact.connect(sound.play_bot_contact)
+    combat.grenade_detonated.connect(sound.play_grenade_detonation)
     combat.reload_started.connect(func():
         if combat.weapon_index!=COMBAT.WEAPONS.MP40:
             sound.play_event("reload"))
@@ -147,6 +149,7 @@ func _ready() -> void:
     match_director.terrain=island
     match_director.hud=hud
     add_child(match_director)
+    match_director.aircraft_audio_changed.connect(sound.set_aircraft_audio)
     hud.set_tactical_map_sources(operator,island,match_director)
     TRACE.checkpoint("active","scene_load",operator,"main_scene_ready")
 

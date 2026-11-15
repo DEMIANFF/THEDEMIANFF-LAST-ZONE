@@ -347,6 +347,9 @@ func _volume_slider(title: String,key: String,default_value: float,bus: String) 
 
 
 func _apply_live_audio(bus: String,level: float) -> void:
+    if bus=="Music":
+        AuroraLobbyMusic.set_mix(level)
+        return
     if context_game==null:
         return
     var sound: Node3D=context_game.get_node_or_null("AuroraSoundStage")
@@ -358,7 +361,8 @@ func _sound_page() -> void:
     _heading("AUDIO DEL JUEGO")
     _volume_slider("Sonido de combate","effects",.75,"AuroraSFX")
     _volume_slider("Ambiente","ambience",.55,"AuroraAmbience")
-    _info("Música: no existe aún una pista musical licenciada/original en el cliente nativo. Las voces de personajes y emotes son futuras funciones; no se activan opciones simuladas.")
+    _volume_slider("Pasos","steps",.70,"AuroraSteps")
+    _volume_slider("Música del lobby","music",.55,"Music")
     _heading("CHAT DE VOZ Y MENSAJES")
     _info("Chat de voz requiere multijugador y permisos de micrófono. Esta versión es offline.")
     _make_button(_content,"MENSAJE RÁPIDO LOCAL",_quick_message)
@@ -475,8 +479,9 @@ func _backup_local_settings() -> void:
     for key in PLAYER_SETTINGS.CAMERA_KEYS:
         cfg.set_value("sensibilidad",key,float(_options.sensitivity[key]))
     cfg.set_value("graficos","preset",_options.graphics_preset)
-    for key in ["effects","ambience"]:
-        cfg.set_value("audio",key,float(_audio.get_value("audio",key,.75)))
+    var audio_defaults: Dictionary={"effects":.75,"ambience":.55,"steps":.70,"music":.55}
+    for key in audio_defaults:
+        cfg.set_value("audio",key,float(_audio.get_value("audio",key,audio_defaults[key])))
     for key in ["show_fps","radar_rotation","vibration"]:
         cfg.set_value("ui",key,bool(_ui.get_value("ui",key,key!="vibration")))
     cfg.set_value("hud","preset",HUD_LAYOUT.selected_preset())
@@ -507,9 +512,15 @@ func _restore_local_settings() -> void:
     for key in ["effects","ambience"]:
         var value: float=clampf(float(cfg.get_value("audio",key,.75)),0.0,1.0)
         _audio.set_value("audio",key,value)
+    # Old backups did not carry independent step/music controls.
+    for key in ["steps","music"]:
+        if cfg.has_section_key("audio",key):
+            _audio.set_value("audio",key,clampf(float(cfg.get_value("audio",key)),0.0,1.0))
     _audio.save(AUDIO_PATH)
     _apply_live_audio("AuroraSFX",float(_audio.get_value("audio","effects",.75)))
     _apply_live_audio("AuroraAmbience",float(_audio.get_value("audio","ambience",.55)))
+    _apply_live_audio("AuroraSteps",float(_audio.get_value("audio","steps",.70)))
+    _apply_live_audio("Music",float(_audio.get_value("audio","music",.55)))
     for key in ["show_fps","radar_rotation","vibration"]:
         _ui.set_value("ui",key,bool(cfg.get_value("ui",key,key!="vibration")))
     _ui.save(UI_PATH)

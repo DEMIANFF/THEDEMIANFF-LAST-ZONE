@@ -12,6 +12,8 @@ const COMBAT_ROSTER=preload("res://scripts/combat/training_combat.gd")
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
+const LOBBY_MOTION = preload("res://assets/animations/aurora_lobby_motion.tres")
+const LOBBY_MOTION_CLIP: StringName=&"aurora_lobby/Motion"
 const LOCAL_PLAYER_NAME=preload("res://scripts/persistence/local_player_name.gd")
 const FIREBASE_BRIDGE=preload("res://scripts/persistence/aurora_firebase_bridge.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
@@ -297,6 +299,7 @@ func _welcome() -> void:
     # This screen offers actual Firebase providers and a clearly separate
     # LOCAL offline choice. It never labels an unverified ID as official.
     stage="welcome"
+    AuroraLobbyMusic.leave_lobby()
     visible=true
     _login_pending_provider=""
     _login_waiting_provider=""
@@ -527,6 +530,7 @@ func _show_lobby() -> void:
     if _preview_container==null or not is_instance_valid(_preview_container):
         _build_preview()
     stage="lobby"
+    AuroraLobbyMusic.enter_lobby()
     visible=true
     _brand_logo.visible=true
     # Logo stays outside the full-width profile strip and never crosses
@@ -1451,6 +1455,8 @@ func _launch(battle: bool) -> void:
     # Opening the real HUD editor may temporarily enter Training by design.
     if _selected_match_mode=="ranked" and not _hud_editor_requested:
         return
+    if not _hud_editor_requested:
+        AuroraLobbyMusic.leave_lobby()
     stage="loading"
     FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",null,
         "frontend_launch_requested",
@@ -1548,6 +1554,9 @@ func _return_to_lobby() -> void:
                 "training_returned_to_lobby")
         var old: Node3D=_game
         _game=null
+        var sound: Node3D=old.get_node_or_null("AuroraSoundStage")
+        if sound!=null:
+            sound.set_enabled(false)
         old.get_parent().remove_child(old)
         old.queue_free()
     _hud_editor_requested=false
@@ -1568,6 +1577,36 @@ func _release_preview() -> void:
     _preview_touch=-1
     _preview_mouse_drag=false
     _preview_resume_spin=0.0
+
+
+func _install_lobby_motion(animator: AnimationPlayer) -> void:
+    var motion:=LOBBY_MOTION.duplicate() as Animation
+    var idle:=animator.get_animation("AuroraIdle")
+    # Preserve the neutral leg, pelvis and finger tracks on Lila's podium.
+    for i in range(idle.get_track_count()):
+        var type: Animation.TrackType=idle.track_get_type(i)
+        var path: NodePath=idle.track_get_path(i)
+        if type not in [Animation.TYPE_ROTATION_3D,Animation.TYPE_POSITION_3D] or (
+                motion.find_track(path,type)>=0 or idle.track_get_key_count(i)==0):
+            continue
+        var track: int=motion.add_track(type)
+        motion.track_set_path(track,path)
+        motion.track_insert_key(track,0.0,idle.track_get_key_value(i,0))
+    var library:=AnimationLibrary.new()
+    library.add_animation(&"Motion",motion)
+    animator.add_animation_library(&"aurora_lobby",library)
+    var gesture_timer:=Timer.new()
+    gesture_timer.name="LobbyGestureTimer"
+    animator.add_child(gesture_timer)
+    gesture_timer.timeout.connect(func():
+        gesture_timer.wait_time=26.0
+        if stage=="lobby" and _preview_container and _preview_container.is_visible_in_tree() and (
+                animator.current_animation==&"AuroraIdle"):
+            animator.play(LOBBY_MOTION_CLIP,.28))
+    animator.animation_finished.connect(func(clip: StringName):
+        if clip==LOBBY_MOTION_CLIP:
+            animator.play(&"AuroraIdle",.28))
+    gesture_timer.start(10.0)
 
 
 func _build_preview() -> void:
@@ -1664,6 +1703,7 @@ func _build_preview() -> void:
                 anim.get_animation("AuroraIdle").loop_mode=Animation.LOOP_LINEAR
                 anim.play("AuroraIdle")
                 anim.advance(.1)
+                _install_lobby_motion(anim)
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"

@@ -6,11 +6,13 @@ const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 ## grounded patrol and actual damage. This is not a networked human player.
 signal eliminated(agent: CharacterBody3D, killer: Node3D)
 signal weapon_fired(world_position: Vector3)
+signal foot_contact(world_position: Vector3,running: bool,on_stone: bool)
 ## This line is derived from the actual PhysicsServer hit; never a fake shot.
 signal shot_trace(from: Vector3,to: Vector3)
 
 const WALK_SPEED: float = 1.85
 const CHASE_SPEED: float = 2.45
+var _foot_contacts=preload("res://scripts/animation/aurora_foot_contacts.gd").new()
 const SIGHT_RANGE: float = 31.0
 const SHOOT_RANGE: float = 21.0
 const HEARING_RANGE: float = 42.0
@@ -547,7 +549,11 @@ func _physics_process(dt: float) -> void:
         velocity.x=move_toward(velocity.x,0.0,8.0*dt)
         velocity.z=move_toward(velocity.z,0.0,8.0*dt)
     velocity.y-=GRAVITY*dt
+    var before_move: Vector3=global_position
     move_and_slide()
+    var offset: Vector3=global_position-before_move
+    var moving: bool=is_on_floor() and Vector2(offset.x,offset.z).length()>.8*dt
+    var running: bool=moving and Vector2(offset.x,offset.z).length()>2.15*dt
 
     if (_target_visible and distance<SHOOT_RANGE and
             _attack_clock<=0.0 and _reload_remaining<=0.0 and
@@ -574,10 +580,20 @@ func _physics_process(dt: float) -> void:
             _weapon_action_remaining<=0.0):
         # Keep real gait, AI and bullet cadence live underneath authored
         # firearm/impact visuals. The state returns after a bounded time.
-        var action: String="AuroraWalk" if Vector2(velocity.x,velocity.z).length()>.8 else "AuroraIdle"
+        var action: String="AuroraIdle"
+        if moving:
+            action="AuroraRun" if running and _animation.has_animation("AuroraRun") else "AuroraWalk"
         if action!=_clip:
             _animation.play(action,.18)
             _clip=action
+    if moving and _animation and is_instance_valid(operator) and (
+            global_position.distance_squared_to(operator.global_position)<32.0*32.0):
+        var gait: StringName=_animation.current_animation
+        if _foot_contacts.advance(gait,_animation.current_animation_position,
+                _animation.current_animation_length,dt):
+            foot_contact.emit(global_position,gait==&"AuroraRun",_foot_contacts.stone_footing(self))
+    else:
+        _foot_contacts.advance(&"",0.0,0.0,dt)
 
 
 ## This function is the AI's sole position source for pursuit/flanking.

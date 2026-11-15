@@ -6,6 +6,11 @@ signal reload_started
 signal reload_cue(sample: StringName)
 signal healed
 signal bot_shot(world_position: Vector3)
+signal bot_foot_contact(world_position: Vector3,running: bool,on_stone: bool)
+signal grenade_detonated(world_position: Vector3)
+const GRENADE = preload("res://scripts/combat/aurora_grenade.gd")
+const MAX_GRENADES: int=3
+const BLAST_RADIUS: float=6.5
 ## Actual battle elimination event for physical opponent supply drops.
 signal bot_eliminated(victim: CharacterBody3D, killer: Node3D)
 
@@ -66,6 +71,8 @@ var loot_collected: int=0
 var opponent_caches_collected: int=0
 var medkits_remaining: int = 2
 var syringes_remaining: int=0
+var grenades_remaining: int=0
+var _grenades: Array[Node3D]=[]
 var _heal_remaining: float=0.0
 var _heal_duration: float=HEAL_APPLY_SECONDS
 var _healing_with_syringe: bool=false
@@ -120,6 +127,7 @@ func _ready() -> void:
     hud.reload_pressed.connect(_on_reload)
     hud.weapon_pressed.connect(_on_weapon)
     hud.inventory_equip_requested.connect(_equip_inventory_weapon)
+    hud.grenade_requested.connect(throw_grenade)
     operator.incoming_fire.connect(func(at: Vector3):
         hud.show_incoming_fire(at,operator))
     hud.fire_aim_changed.connect(operator.fire_aim_delta)
@@ -557,6 +565,91 @@ func deploy_aurora_cover() -> bool:
     return true
 
 
+func throw_grenade() -> bool:
+    if not sector_battle_active or not operator.can_act() or not operator.is_on_floor() or (
+            grenades_remaining<=0 or _grenades.size()>=MAX_GRENADES):
+        return false
+    var camera: Camera3D=operator.get_view_camera()
+    if camera==null:
+        return false
+    var aim: Vector3=-camera.global_basis.z
+    var center: Vector3=operator.global_position+Vector3.UP*1.15
+    var query:=PhysicsRayQueryParameters3D.create(center,center+aim*.55,1,[operator.get_rid()])
+    if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
+        hud.impact("LANZAMIENTO BLOQUEADO")
+        return false
+    _cancel_healing()
+    _clear_reload()
+    var grenade: Node3D=GRENADE.new()
+    grenade.excluded=operator.get_rid()
+    grenade.velocity=aim*13.0+Vector3.UP*4.7
+    grenade.position=to_local(center+aim*.55)
+    _grenades.append(grenade)
+    grenade.detonated.connect(_on_grenade_detonated)
+    grenade.tree_exited.connect(func(): _grenades.erase(grenade),CONNECT_ONE_SHOT)
+    add_child(grenade)
+    grenades_remaining-=1
+    _sync_hud()
+    return true
+
+
+func _on_grenade_detonated(at: Vector3) -> void:
+    if not sector_battle_active or not at.is_finite():
+        return
+    _flash_grenade(at)
+    grenade_detonated.emit(at)
+    for rival in _targets:
+        if not is_instance_valid(rival) or rival.health<=0.0:
+            continue
+        var damage: float=_blast_damage_to(at,rival)
+        if damage>0.0:
+            var health_before: float=rival.health
+            rival.take_training_damage(damage,operator)
+            damage_dealt+=health_before-maxf(0.0,rival.health)
+    var self_damage: float=_blast_damage_to(at,operator)
+    if self_damage>0.0:
+        operator.receive_training_hit(self_damage,false,at)
+
+
+func _blast_damage_to(at: Vector3,target: CharacterBody3D) -> float:
+    var center: Vector3=target.global_position+Vector3.UP*.85
+    var distance: float=at.distance_to(center)
+    if distance>=BLAST_RADIUS:
+        return 0.0
+    var query:=PhysicsRayQueryParameters3D.create(at,center,1,[target.get_rid()])
+    if distance>.001 and not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
+        return 0.0
+    return lerpf(90.0,15.0,distance/BLAST_RADIUS)
+
+
+func _flash_grenade(at: Vector3) -> void:
+    var flash:=MeshInstance3D.new()
+    var sphere:=SphereMesh.new()
+    sphere.radial_segments=10
+    sphere.rings=4
+    flash.mesh=sphere
+    flash.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    var light:=StandardMaterial3D.new()
+    light.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    light.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+    light.albedo_color=Color(1.0,.51,.17,.72)
+    flash.material_override=light
+    add_child(flash)
+    flash.global_position=at
+    var fade:=flash.create_tween().set_parallel()
+    fade.tween_property(flash,"scale",Vector3.ONE*5.5,.24)
+    fade.tween_property(light,"albedo_color:a",0.0,.24)
+    fade.chain().tween_callback(flash.queue_free)
+
+
+func _clear_grenades() -> void:
+    for grenade in _grenades:
+        if is_instance_valid(grenade):
+            grenade.cancel()
+    _grenades.clear()
+    grenades_remaining=0
+
+
 func end_sector_battle() -> void:
     _cancel_healing()
     _clear_reload()
@@ -565,6 +658,7 @@ func end_sector_battle() -> void:
         _bot_tracers[i].visible=false
     sector_battle_active=false
     _clear_cover()
+    _clear_grenades()
     cover_charges=0
     cover_cooldown=0.0
     hud.set_aurora_cover_count(0)
@@ -580,6 +674,7 @@ func begin_sector_battle() -> void:
     _cancel_healing()
     _clear_reload()
     _clear_cover()
+    _clear_grenades()
     sector_battle_active=true
     cover_charges=2
     cover_cooldown=0.0
@@ -751,6 +846,7 @@ func _ensure_encounter_capacity() -> void:
         bot.spawn_coordinates=original[i-4] if i<8 else _encounter_spawn(i)
         bot.eliminated.connect(_on_bot_eliminated)
         bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
+        bot.foot_contact.connect(bot_foot_contact.emit)
         bot.weapon_fired.connect(_on_bot_weapon_fired.bind(bot))
         bot.shot_trace.connect(_on_bot_trace)
         if navigation:
@@ -814,6 +910,11 @@ func collect_sector_loot(kind: String,quantity: int=-1,
                 return false
             syringes_remaining+=1
             hud.impact("JERINGA RECOGIDA")
+        "grenade":
+            if grenades_remaining>=MAX_GRENADES:
+                return false
+            grenades_remaining+=1
+            hud.impact("GRANADA RECOGIDA")
         "armor_plate":
             if not operator.equip_armor(75.0):
                 return false
@@ -905,6 +1006,7 @@ func inventory_snapshot() -> Dictionary:
         "awm_capacity":_reserve_limit(1),
         "medkits":medkits_remaining,
         "syringes":syringes_remaining,
+        "grenades":grenades_remaining,
         "covers":cover_charges,
         "backpack":backpack_level,
         "armor":roundi(operator.armor_points),
@@ -1045,6 +1147,7 @@ func _make_targets() -> void:
         bot.spawn_coordinates=points[i]
         bot.eliminated.connect(_on_bot_eliminated)
         bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
+        bot.foot_contact.connect(bot_foot_contact.emit)
         bot.weapon_fired.connect(_on_bot_weapon_fired.bind(bot))
         bot.shot_trace.connect(_on_bot_trace)
         add_child(bot)

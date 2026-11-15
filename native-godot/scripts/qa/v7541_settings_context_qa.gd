@@ -137,6 +137,10 @@ func _verify() -> void:
     front._return_to_lobby()
     await frames(3)
     HUD_LAYOUT.choose_preset(prior_slot)
+    front._welcome()
+    front.queue_free()
+    # Let the mix thread retire the stopped lobby/aircraft streams before quit.
+    await create_timer(.12).timeout
     if not failed:
         print("V7541_SETTINGS PASS lobby_preserved=1 live_match_preserved=1 "+
             "hud_presets=4 round_buttons=9 sound_persist=1 aircraft_menu=1")
