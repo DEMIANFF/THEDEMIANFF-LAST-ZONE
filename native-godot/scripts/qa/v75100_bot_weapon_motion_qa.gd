@@ -48,6 +48,13 @@ func _verify() -> void:
     shooter.global_position=Vector3(105.0,height,17.0)
     rival.global_position=Vector3(105.0,height,23.0)
     player.global_position=Vector3(98.0,height,17.0)
+    # PhysicsServer registers moved capsules at the next physics step,
+    # not at the instant the QA assigns global_position. The existing
+    # V75.50 real-shot regression waits two ticks for this exact reason.
+    shooter.velocity=Vector3.ZERO
+    rival.velocity=Vector3.ZERO
+    await physics_frame
+    await physics_frame
     var initial_rigs: int=get_nodes_in_group(BOT.DETAILED_ENEMY_GROUP).size()
     check(shooter._rig!=null and shooter._animation!=null and
         shooter._animation.has_animation("AuroraFire") and
@@ -66,19 +73,29 @@ func _verify() -> void:
     shooter.safe_radius=INF
     shooter.next_zone_active=false
     shooter._impact_reaction_remaining=0.0
+    check(shooter._has_line_of_fire(rival),
+        "actual muzzle ray could not reach the prepared physical rival")
     var hp: float=rival.health
     var real_shots: int=shooter.shots_fired
     shooter._physics_process(.016)
     check(shooter.shots_fired==real_shots+1 and
-        shooter._magazine==6 and
-        shooter.weapon_actions_shown==1 and
+        shooter._magazine==6,
+        "physical fired shot/magazine mismatch; shots="+
+        str(shooter.shots_fired-real_shots)+" ammo="+str(shooter._magazine))
+    check(shooter.weapon_actions_shown==1 and
         shooter._animation.current_animation=="AuroraFire" and
         shooter._weapon_action_remaining>0.0 and
         is_equal_approx(shooter._animation.speed_scale,
             shooter._animation.get_animation("AuroraFire").length/
-            BOT.FIRE_PRESENTATION_SECONDS) and
-        rival.health<hp,
-        "real physical raycast bullet did not drive visible rig recoil")
+            BOT.FIRE_PRESENTATION_SECONDS),
+        "valid physical shot did not start original GLB recoil: count="+
+        str(shooter.weapon_actions_shown)+" clip="+
+        str(shooter._animation.current_animation)+" timer="+
+        str(shooter._weapon_action_remaining))
+    check(rival.health<hp,
+        "actual physics trace did not reach the rival after collider sync: "+
+        "hp="+str(rival.health)+" starting="+str(hp)+
+        " shots_hit="+str(shooter.shots_hit))
     var shots_after: int=shooter.shots_fired
     shooter._attack_clock=10.0
     shooter._target_visible=false
