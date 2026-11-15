@@ -46,6 +46,10 @@ var _preview_container: SubViewportContainer
 var _preview_avatar: Node3D
 var _preview_caption: Label
 var _gesture_button: Button
+var _operator_controls: Array[Button]=[]
+var _preview_zoomed: bool=false
+var _preview_frame_tween: Tween
+var _preview_turn_tween: Tween
 var _preview_skin_applied: String=""
 var _offline_records: RefCounted
 var _player_name: RefCounted
@@ -718,6 +722,9 @@ func _show_lobby() -> void:
     _preview_caption.visible=true
     if _gesture_button!=null and is_instance_valid(_gesture_button):
         _gesture_button.visible=true
+    for action in _operator_controls:
+        if is_instance_valid(action):
+            action.visible=true
     _preview_caption.anchor_left=.216
     _preview_caption.anchor_right=.697
     _preview_caption.anchor_top=.820
@@ -1085,7 +1092,7 @@ func _sync_lobby_match_mode() -> void:
     _lobby_mode_caption.visible=show_modes and _selected_match_mode=="classic"
     _pass_progress.visible=_selected_tab=="PASE"
     _pass_claim_button.visible=_selected_tab=="PASE"
-    _shop_selector.visible=_selected_tab=="TIENDA"
+    _shop_selector.visible=_selected_tab in ["TIENDA","PERSONAJE"]
     _shop_buy_button.visible=_selected_tab=="TIENDA"
     _shop_equip_button.visible=_selected_tab=="TIENDA"
     _lobby_mode_status.visible=show_modes and _selected_match_mode=="ranked"
@@ -1411,7 +1418,7 @@ func _select_tab(tab: String) -> void:
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot()
-            _info.text="LILA AURORA\nTraje táctico personalizable."
+            _info.text="LILA AURORA\nTraje táctico personalizable.\nCAMBIAR VISTA / GIRAR: controles táctiles bajo Lila.\nPREVISUALIZAR TRAJE: selector sin compra ni equipamiento."
             _info.text+="\nPARTIDAS %d  •  VICTORIAS %d  •  BAJAS %d"%[int(stats.get("played",0)),int(stats.get("wins",0)),int(stats.get("kills",0))]
             _info.text+="\nRÉCORD %d BAJAS  •  %d S VIVO"%[int(stats.get("best_kills",0)),int(stats.get("longest_survival_seconds",0))]
             var measured: Dictionary=PERFORMANCE.latest()
@@ -1464,11 +1471,11 @@ func _select_tab(tab: String) -> void:
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()
-    # Real 3D cosmetics are previewed only. Leaving Tienda restores
-    # the equipped outfit; no transaction or permanent entitlement changes.
+    # Real 3D cosmetics are previewed only in the shop/character screens.
+    # Leaving both restores the equipped outfit; no purchase is performed.
     if _offline_records!=null and _preview_avatar!=null and (
             is_instance_valid(_preview_avatar)):
-        var shown: String=(_shop_selected_skin if tab=="TIENDA" else
+        var shown: String=(_shop_selected_skin if tab in ["TIENDA","PERSONAJE"] else
             str(_offline_records.cosmetic_state()["equipped"]))
         _apply_preview_skin(shown)
 
@@ -1485,8 +1492,11 @@ func _on_shop_skin_selected(index: int) -> void:
     var ids: Array[String]=["aurora_base","aurora_glacier","aurora_ember"]
     if index>=0 and index<ids.size():
         _shop_selected_skin=ids[index]
-    if stage=="lobby" and _selected_tab=="TIENDA":
-        _refresh_local_skin_store()
+    if stage=="lobby" and _selected_tab in ["TIENDA","PERSONAJE"]:
+        if _selected_tab=="TIENDA":
+            _refresh_local_skin_store()
+        else:
+            _select_tab("PERSONAJE")
         _apply_preview_skin(_shop_selected_skin)
 
 
@@ -1755,9 +1765,20 @@ func _release_preview() -> void:
     # skinned rig. Queue-free it on logout AND before 3D match creation.
     if _preview_container!=null and is_instance_valid(_preview_container):
         _preview_container.queue_free()
+    if _preview_frame_tween!=null and _preview_frame_tween.is_valid():
+        _preview_frame_tween.kill()
+    if _preview_turn_tween!=null and _preview_turn_tween.is_valid():
+        _preview_turn_tween.kill()
+    _preview_frame_tween=null
+    _preview_turn_tween=null
+    for action in _operator_controls:
+        if is_instance_valid(action):
+            action.queue_free()
+    _operator_controls.clear()
     if _gesture_button!=null and is_instance_valid(_gesture_button):
         _gesture_button.queue_free()
     _gesture_button=null
+    _preview_zoomed=false
     _preview_skin_applied=""
     if _preview_caption!=null and is_instance_valid(_preview_caption):
         _preview_caption.queue_free()
@@ -1767,6 +1788,46 @@ func _release_preview() -> void:
     _preview_touch=-1
     _preview_mouse_drag=false
     _preview_resume_spin=0.0
+
+
+func _rotate_operator(step: float) -> void:
+    # Turn the same skinned 3D operator with a short actual tween.
+    if stage!="lobby" or _preview_avatar==null or not is_instance_valid(
+            _preview_avatar):
+        return
+    if _preview_turn_tween!=null and _preview_turn_tween.is_valid():
+        _preview_turn_tween.kill()
+    _preview_resume_spin=4.0
+    _preview_turn_tween=create_tween()
+    _preview_turn_tween.set_trans(Tween.TRANS_CUBIC)
+    _preview_turn_tween.set_ease(Tween.EASE_OUT)
+    _preview_turn_tween.tween_property(_preview_avatar,"rotation:y",
+        _preview_avatar.rotation.y+step*.50,.28)
+
+
+func _toggle_operator_frame() -> void:
+    # Real camera changes; no replacement still-image portrait.
+    if stage!="lobby" or _preview_container==null or not is_instance_valid(
+            _preview_container):
+        return
+    var camera: Camera3D=_preview_container.get_node_or_null(
+        "PreviewViewport/AuroraCharacterStage/LobbyPortraitCamera") as Camera3D
+    if camera==null:
+        return
+    if _preview_frame_tween!=null and _preview_frame_tween.is_valid():
+        _preview_frame_tween.kill()
+    _preview_zoomed=not _preview_zoomed
+    _preview_resume_spin=3.0
+    var target_fov: float=35.5 if _preview_zoomed else 38.0
+    var target_position: Vector3=Vector3(-.10,1.18,
+        2.91 if _preview_zoomed else 3.07)
+    _preview_frame_tween=create_tween()
+    _preview_frame_tween.set_parallel(true)
+    _preview_frame_tween.set_trans(Tween.TRANS_CUBIC)
+    _preview_frame_tween.set_ease(Tween.EASE_OUT)
+    _preview_frame_tween.tween_property(camera,"fov",target_fov,.25)
+    _preview_frame_tween.tween_property(
+        camera,"position",target_position,.25)
 
 
 func _play_lobby_gesture() -> void:
@@ -1937,6 +1998,28 @@ func _build_preview() -> void:
     _gesture_button.tooltip_text="Reproducir gesto animado de Lila"
     _gesture_button.visible=false
     _surface.add_child(_gesture_button)
+    # Dedicated accessible controls supplement swipe rotation. Each control
+    # acts on the actual 3D Lila rig/camera, never a background illustration.
+    for item in [
+        ["LilaTurnLeft","◀",Callable(self,"_rotate_operator").bind(-1.0),.222,.282],
+        ["LilaTurnRight","▶",Callable(self,"_rotate_operator").bind(1.0),.289,.349],
+        ["LilaCameraFrame","VISTA",Callable(self,"_toggle_operator_frame"),.361,.460]
+    ]:
+        var action: Button=_button(str(item[1]),item[2],0)
+        action.name=str(item[0])
+        action.custom_minimum_size=Vector2.ZERO
+        action.anchor_left=float(item[3])
+        action.anchor_right=float(item[4])
+        action.anchor_top=.762
+        action.anchor_bottom=.809
+        action.add_theme_font_size_override("font_size",11)
+        action.tooltip_text=(
+            "Girar personaje 3D" if item[0]!="LilaCameraFrame" else
+            "Alternar encuadre de cámara real")
+        _style_aurora_tab(action,Color(.53,.77,.93))
+        action.visible=false
+        _surface.add_child(action)
+        _operator_controls.append(action)
 
 
 func _fit_avatar_for_preview(visual: Node3D) -> void:
