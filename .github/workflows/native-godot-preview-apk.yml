@@ -183,14 +183,14 @@ jobs:
           test -s native-godot/out/aurora-v75-19-welcome.png
           test -s native-godot/out/aurora-v75-19-lobby.png
           test -s native-godot/out/aurora-v75-77-account.png
-          test -s native-godot/out/aurora-v75-105-loading.png
-          test -s native-godot/out/aurora-v75-105-login.png
-          test -s native-godot/out/aurora-v75-105-lobby.png
-          test -s native-godot/out/aurora-v75-105-account.png
-          echo "V75105_FRONTEND_CAPTURE PASS login=lobby=account rendered_on_Godot"
+          test -s native-godot/out/aurora-v75-106-loading.png
+          test -s native-godot/out/aurora-v75-106-login.png
+          test -s native-godot/out/aurora-v75-106-lobby.png
+          test -s native-godot/out/aurora-v75-106-account.png
+          echo "V75106_FRONTEND_CAPTURE PASS login=lobby=account rendered_on_Godot"
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_real_skin_variants.gd
           for outfit in aurora_base aurora_glacier aurora_ember; do
-            test -s "native-godot/out/aurora-v75-105-skin-${outfit}.png"
+            test -s "native-godot/out/aurora-v75-106-skin-${outfit}.png"
           done
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_coastal_preview.gd
           test -s native-godot/out/aurora-v75-19-coastal-quarter.png
@@ -207,13 +207,13 @@ jobs:
             native-godot/out/aurora-v75-19-welcome.png
             native-godot/out/aurora-v75-19-lobby.png
             native-godot/out/aurora-v75-77-account.png
-            native-godot/out/aurora-v75-105-loading.png
-            native-godot/out/aurora-v75-105-login.png
-            native-godot/out/aurora-v75-105-lobby.png
-            native-godot/out/aurora-v75-105-account.png
-            native-godot/out/aurora-v75-105-skin-aurora_base.png
-            native-godot/out/aurora-v75-105-skin-aurora_glacier.png
-            native-godot/out/aurora-v75-105-skin-aurora_ember.png
+            native-godot/out/aurora-v75-106-loading.png
+            native-godot/out/aurora-v75-106-login.png
+            native-godot/out/aurora-v75-106-lobby.png
+            native-godot/out/aurora-v75-106-account.png
+            native-godot/out/aurora-v75-106-skin-aurora_base.png
+            native-godot/out/aurora-v75-106-skin-aurora_glacier.png
+            native-godot/out/aurora-v75-106-skin-aurora_ember.png
           retention-days: 30
       - name: Render expanded Motorola layout and verify absence of side bars
         run: xvfb-run -a -s "-screen 0 2712x1220x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_responsive_preview.gd > native-godot/out/qa/responsive-render.log 2>&1
@@ -352,10 +352,10 @@ jobs:
             native-godot/out/preview-signer-sha256.txt
             native-godot/out/aurora-v75-19-lobby.png
             native-godot/out/aurora-v75-77-account.png
-            native-godot/out/aurora-v75-105-loading.png
-            native-godot/out/aurora-v75-105-login.png
-            native-godot/out/aurora-v75-105-lobby.png
-            native-godot/out/aurora-v75-105-account.png
+            native-godot/out/aurora-v75-106-loading.png
+            native-godot/out/aurora-v75-106-login.png
+            native-godot/out/aurora-v75-106-lobby.png
+            native-godot/out/aurora-v75-106-account.png
           retention-days: 30
       # A second, isolated Godot Gradle build packages the actual Firebase
       # plugin. It is deliberately not the normal signed Vulkan preview.
