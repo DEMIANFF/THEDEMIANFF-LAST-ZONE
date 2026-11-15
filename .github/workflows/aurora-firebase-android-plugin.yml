@@ -24,6 +24,7 @@ on:
       - codex/v75-93-physical-elimination-integrity-vulkan
       - codex/v75-94-storm-ai-threat-and-route-pacing-vulkan
       - codex/v75-95-safe-parachute-landing-roster-vulkan
+      - codex/v75-96-physical-bot-elimination-animation-vulkan
     paths:
       - 'firebase-godot-bridge/**'
       - '.github/workflows/aurora-firebase-android-plugin.yml'
