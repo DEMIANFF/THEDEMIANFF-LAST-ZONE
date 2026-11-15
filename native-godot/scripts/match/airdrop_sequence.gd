@@ -3,6 +3,7 @@ extends Node3D
 ## It is a playable sector prototype, not an 8km aircraft network simulation.
 signal touchdown
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
+const OPTIONAL_C17: String="res://assets/vehicles/user_pack/aurora_c17_mobile.glb"
 
 const FLIGHT_SECONDS: float=13.0
 const FLIGHT_ALTITUDE: float=97.0
@@ -309,7 +310,57 @@ func _build_craft() -> void:
                 center-normal*.055])
             _piece("AuroraPropeller%d_%d"%[sign,blade],blade_mesh,
                 Vector3.ZERO,Vector3.ZERO,stripe)
+    # A reviewed user GLB may override only the decorative fuselage.
+    # All flight dynamics, camera and procedural collision-free fallback stay.
+    _install_optional_transport_model()
     # Physical player and camera remain independent of decorative airplane.
+
+
+func _install_optional_transport_model() -> void:
+    if not ResourceLoader.exists(OPTIONAL_C17):
+        return
+    var scene: PackedScene=load(OPTIONAL_C17) as PackedScene
+    if scene==null:
+        push_warning("AURORA_IMPORTED_TRANSPORT_INVALID "+OPTIONAL_C17)
+        return
+    var hero: Node3D=scene.instantiate() as Node3D
+    if hero==null:
+        return
+    hero.name="AuroraImportedTransport"
+    _craft.add_child(hero)
+    var minimum:=Vector3(INF,INF,INF)
+    var maximum:=Vector3(-INF,-INF,-INF)
+    var mesh_count: int=0
+    for item in hero.find_children("*","MeshInstance3D",true,false):
+        var part:=item as MeshInstance3D
+        if part.mesh==null:
+            continue
+        var bounds: AABB=part.get_aabb()
+        for index in range(8):
+            var local_vertex: Vector3=hero.to_local(part.to_global(
+                bounds.get_endpoint(index)))
+            minimum=minimum.min(local_vertex)
+            maximum=maximum.max(local_vertex)
+        mesh_count+=1
+        part.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    var dimensions: Vector3=maximum-minimum
+    if mesh_count<1 or not dimensions.is_finite() or maxf(
+            dimensions.x,dimensions.z)<.1:
+        push_warning("AURORA_IMPORTED_TRANSPORT_EMPTY "+OPTIONAL_C17)
+        hero.queue_free()
+        return
+    # Uploaded C-17 source faces -X, while Aurora flight is -Z.
+    var factor: float=clampf(11.0/maxf(dimensions.x,dimensions.z),.01,4.0)
+    hero.rotation.y=-PI*.5
+    hero.scale=Vector3.ONE*factor
+    hero.position=-(hero.quaternion*((minimum+maximum)*.5))*factor
+    # Keep original mesh nodes for QA and fallback while rendering only
+    # the new valid aircraft, never doubling aircraft draw calls.
+    for item in _craft.get_children():
+        if item is MeshInstance3D:
+            (item as MeshInstance3D).visible=false
+    print("AURORA_IMPORTED_TRANSPORT_PASS meshes=",mesh_count,
+        " source_bounds=",dimensions," visual_scale=",factor)
 
 
 func _loft_hull(profiles: Array[Vector3],segments: int) -> ArrayMesh:

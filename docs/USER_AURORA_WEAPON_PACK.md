@@ -1,0 +1,49 @@
+# THEDEMIAN: LAST ZONE — paquete Aurora de 13 armas del usuario
+
+**Base de trabajo:** V75.102 (PR #105); esta rama es paralela y no modifica el trabajo de Lila en Work.
+
+## Fuentes auditadas
+- `all weapons.obj`, `all weapons.fbx`, `all weapons1.blend`, `all weapons1.x3d` y MTL: **13 piezas originales**; 20.806 triángulos. El MTL no referencia texturas ni suministra licencia.
+- `fps_character_animation_pack_pistol.glb`: **11 clips** (Equip, Idle, Aim Idle, Walk, Aim Walk, Run, Aim Fire, Fire, Reload, Change, Hold), **dos skins/esqueletos** (13 y 106 joints). El propio archivo indica autor **Cristian David Duque Camacho**, licencia **CC BY 4.0** y URL original de Sketchfab. Conservar atribución al reutilizar.
+
+## Artefacto exportado fuera del repositorio
+
+`AURORA_13_ARMAS_GODOT_OPTIMIZADAS.zip` contiene 13 GLB individuales, una ficha JSON, una pistola con sus mapas 1024 px y las condiciones de uso. Cada GLB individual se ha normalizado a metros, con cañón hacia `-Z` y nodos `AuroraGrip`, `AuroraMuzzle`, `AuroraSight` y `AuroraEjection`.
+
+**Los binarios del paquete aún no forman parte de este PR**. Copiarlos a `native-godot/assets/weapons/user_pack/` después de revisar los derechos de la colección. La compilación usa las armas originales hasta entonces.
+
+## Integración segura preparada
+
+- W04: visual opcional en la ranura real de AR, **sin inventar** una tercera arma jugable.
+- W11: visual opcional en la ranura real de AWM, preservando adquisición de botín, mira 8× y cadencia.
+- Si existe `AuroraMuzzle`, el disparo toma el extremo real del cañón; si no, se conserva el offset verificado del GLB original.
+- Las otras 11 armas **son recursos visuales**, no armas con lógica de inventario, daño, recargas y HUD aún.
+- El rig UE5 del pack de pistola **no es compatible directamente con el esqueleto de Lila**; requiere retargeting, no reasignación ciega de huesos.
+- La lista de skins, acciones médicas, Firebase, firma, cámara y paracaídas permanece intacta.
+
+## Pruebas y aprobación pendientes
+
+1. Importar deliberadamente los 13 GLB y ejecutar `bash native-godot/tools/run_qa.sh`.
+2. Verificar en Godot que los `Node3D` de los marcadores se conserven tras importación.
+3. Probar con Lila nueva la mano derecha, espalda, deslizamientos, disparo y posición del fogonazo.
+4. Medir FPS/memoria en Motorola Edge 60 Fusion Android ARM64 Vulkan Mobile.
+5. Confirmar derechos de redistribución de las 13 armas antes de cualquier APK pública.
+
+La QA se diseñó para no bloquear el juego cuando faltan estos recursos de usuario; indica explícitamente cuántos modelos están importados.
+
+
+## Paquete unificado de avión + animaciones 3D
+
+El ZIP `AURORA_PACK_UNIFICADO_AVION_ARMAS_ANIMACIONES.zip` contiene, además de las 13 mallas y el paquete previo de pistola:
+
+- C-17 `native-godot/assets/vehicles/user_pack/aurora_c17_mobile.glb`: avión estático, 98.568 triángulos, 46 mallas y 33 materiales. Si el recurso está instalado, `airdrop_sequence.gd` activa el nuevo modelo únicamente como elemento **visual**, alineándolo de -X a -Z; la física, trayectoria, salto y fallback procedimental permanecen intactos. Pendiente medir impacto GPU real en Android.
+- `fps_ak47_animations_mobile.glb`: 11 clips UE5 de fusil.
+- `fps_saps12_animations_mobile.glb`: 10 clips UE5 de escopeta.
+- `fps_sig225_reference_mobile.glb`: pistola 3D estática, sin clips.
+- `fps_pistol_animations_mobile.glb`: 11 clips UE5 del paquete anterior.
+
+**Todas estas incorporaciones nuevas declaran CC BY 4.0** en sus metadatos. La atribución y enlaces originales constan dentro de `documentation/ATRIBUCION_CC_BY_4_0.txt` del ZIP. Las insignias del C-17 deben sustituirse por marca original Aurora antes de publicación. Los 13 modelos previos de `all weapons` siguen sin prueba de licencia.
+
+Estos clips contienen rigs de origen UE5 y **todavía no están retargeteados al personaje Lila de Godot**. Tampoco se han conectado a nueva lógica de inventario/daño, por lo que no son armas jugables adicionales. Se incorporó `user_asset_bundle_qa.gd` para verificar referencias y recurso opcional sin bloquear la compilación cuando los binarios no están instalados.
+
+Además se corrigió en la QA heredada de V75.102 una declaración duplicada de variable `rival`, que impedía compilar esa prueba en GitHub Actions.
