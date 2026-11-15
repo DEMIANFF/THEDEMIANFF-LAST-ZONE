@@ -19,6 +19,7 @@ var _audio: ConfigFile
 var _ui: ConfigFile
 var _content: VBoxContainer
 var _status: Label
+var _category_buttons: Dictionary={}
 var _category: String="PARTIDA"
 var _subcategory: String="HUD"
 var _closing: bool=false
@@ -34,7 +35,7 @@ func _ready() -> void:
     _ui.load(UI_PATH)
     var backdrop:=ColorRect.new()
     backdrop.name="SettingsScrim"
-    backdrop.color=Color(.014,.012,.025,.97)
+    backdrop.color=Color(.008,.018,.040,.94)
     backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     backdrop.mouse_filter=Control.MOUSE_FILTER_STOP
     add_child(backdrop)
@@ -45,21 +46,30 @@ func _ready() -> void:
     panel.anchor_top=.04
     panel.anchor_bottom=.965
     var skin:=StyleBoxFlat.new()
-    skin.bg_color=Color(.075,.065,.088,.98)
-    skin.border_color=Color(.80,.53,.16)
+    skin.bg_color=Color(.019,.036,.078,.98)
+    skin.border_color=Color(.30,.73,.92)
     skin.set_border_width_all(2)
-    skin.set_corner_radius_all(9)
+    skin.set_corner_radius_all(12)
+    skin.shadow_color=Color(.0,.0,.0,.46)
+    skin.shadow_size=5
     panel.add_theme_stylebox_override("panel",skin)
     add_child(panel)
+    var padding:=MarginContainer.new()
+    padding.name="AuroraSettingsSafeMargin"
+    padding.add_theme_constant_override("margin_left",12)
+    padding.add_theme_constant_override("margin_right",12)
+    padding.add_theme_constant_override("margin_top",10)
+    padding.add_theme_constant_override("margin_bottom",10)
+    panel.add_child(padding)
     var main:=VBoxContainer.new()
     main.add_theme_constant_override("separation",8)
-    panel.add_child(main)
+    padding.add_child(main)
     var title:=HBoxContainer.new()
     main.add_child(title)
     var heading:=Label.new()
-    heading.text="AURORA  /  AJUSTES       ·       "+context_origin.to_upper()
+    heading.text="THEDEMIAN  /  AJUSTES    ·    "+context_origin.to_upper()
     heading.add_theme_font_size_override("font_size",23)
-    heading.add_theme_color_override("font_color",Color(1,.78,.38))
+    heading.add_theme_color_override("font_color",Color(.98,.82,.42))
     heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     title.add_child(heading)
     _make_button(title,"CERRAR  ×",_close)
@@ -68,12 +78,15 @@ func _ready() -> void:
     columns.add_theme_constant_override("separation",16)
     main.add_child(columns)
     var sidebar:=VBoxContainer.new()
-    sidebar.custom_minimum_size.x=210
+    sidebar.custom_minimum_size.x=181
     sidebar.add_theme_constant_override("separation",6)
     columns.add_child(sidebar)
     for category in ["PARTIDA","PANTALLA","SONIDO","GRABACIÓN","NOTIFICACIÓN","CUENTA"]:
         var current: String=category
-        _make_button(sidebar,category,func(): _show_category(current))
+        var tab:=_make_button(sidebar,category,func(): _show_category(current))
+        tab.name="AuroraCategory"+current
+        tab.tooltip_text="Abrir configuración de "+current.to_lower()
+        _category_buttons[current]=tab
     var scroll:=ScrollContainer.new()
     scroll.name="SettingsScroll"
     scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -99,14 +112,14 @@ func _make_button(parent: Node,text_value: String,pressed: Callable) -> Button:
     button.custom_minimum_size=Vector2(160,42)
     button.add_theme_font_size_override("font_size",15)
     var style:=StyleBoxFlat.new()
-    style.bg_color=Color(.16,.14,.19,.98)
-    style.border_color=Color(.44,.43,.48,.9)
+    style.bg_color=Color(.045,.070,.128,.98)
+    style.border_color=Color(.27,.42,.65,.9)
     style.set_border_width_all(1)
     style.set_corner_radius_all(5)
     button.add_theme_stylebox_override("normal",style)
     button.add_theme_stylebox_override("hover",style)
     var pressed_style:=style.duplicate() as StyleBoxFlat
-    pressed_style.bg_color=Color(.38,.26,.13)
+    pressed_style.bg_color=Color(.16,.23,.34)
     button.add_theme_stylebox_override("pressed",pressed_style)
     parent.add_child(button)
     button.pressed.connect(pressed)
@@ -132,6 +145,14 @@ func _info(value: String) -> void:
 
 func _show_category(category: String) -> void:
     _category=category
+    for key in _category_buttons:
+        var button: Button=_category_buttons[key] as Button
+        if button==null:
+            continue
+        var selected: bool=str(key)==category
+        button.modulate=Color.WHITE if selected else Color(.71,.79,.89)
+        button.add_theme_color_override("font_color",
+            Color(1,.83,.49) if selected else Color(.86,.93,1))
     for previous in _content.get_children():
         _content.remove_child(previous)
         previous.queue_free()
