@@ -71,7 +71,6 @@ func _verify() -> void:
     var main_card: Control=front._play_match_card
     var scene: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage")
-    var env:=scene.get_node("WorldEnvironment") as WorldEnvironment
     # Directional key lighting is still a real scene node, not baked art.
     var bright: bool=false
     for child in scene.get_children():
