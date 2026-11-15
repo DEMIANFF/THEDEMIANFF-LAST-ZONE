@@ -4,6 +4,8 @@ assets/characters/*.glb
 !assets/characters/lila_aurora.glb
 *.import
 !assets/characters/lila_aurora.glb.import
+!assets/weapons/aurora_v3/*.glb.import
+assets/weapons/aurora_v3/*_Image_*.png
 *.gd.uid
 assets/weapons/aurora_awm.glb
 assets/weapons/ak74-tactical_*.png

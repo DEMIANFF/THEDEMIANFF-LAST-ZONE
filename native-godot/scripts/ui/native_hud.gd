@@ -11,6 +11,7 @@ signal aim_pressed
 signal reload_pressed
 signal weapon_pressed
 signal inventory_equip_requested(slot: int)
+signal syringe_pressed
 signal run_pressed
 signal run_released
 signal jump_pressed
@@ -84,6 +85,10 @@ var _inventory_panel: PanelContainer
 var _inventory_label: Label
 var _inventory_ar: Button
 var _inventory_awm: Button
+const EXPANSION_WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+var _inventory_expansion_buttons: Dictionary={}
+var _inventory_expansion_row: HBoxContainer
+var _inventory_syringe: Button
 var air_stage: String="ground"
 var _hud_layout: RefCounted
 var _hud_editor: Control
@@ -328,6 +333,23 @@ func _ready() -> void:
     _inventory_awm.custom_minimum_size=Vector2(125,35)
     _inventory_awm.pressed.connect(func(): inventory_equip_requested.emit(1))
     selectors.add_child(_inventory_awm)
+    _inventory_expansion_row=HBoxContainer.new()
+    _inventory_expansion_row.visible=false
+    contents.add_child(_inventory_expansion_row)
+    for slot in range(EXPANSION_WEAPONS.SCAR,EXPANSION_WEAPONS.ENTRIES.size()):
+        var equip_button:=Button.new()
+        equip_button.name="Equip"+str(EXPANSION_WEAPONS.ENTRIES[slot]["short"])
+        equip_button.custom_minimum_size=Vector2(125,35)
+        equip_button.pressed.connect(func(): inventory_equip_requested.emit(slot))
+        _inventory_expansion_row.add_child(equip_button)
+        _inventory_expansion_buttons[slot]=equip_button
+    _inventory_syringe=Button.new()
+    _inventory_syringe.name="UseSyringe"
+    _inventory_syringe.visible=false
+    _inventory_syringe.pressed.connect(func():
+        _inventory_panel.hide()
+        syringe_pressed.emit())
+    contents.add_child(_inventory_syringe)
     var pad: Control=VIRTUAL_PAD.new()
     pad.name="MovePad"
     pad.anchor_left=.05
@@ -639,6 +661,19 @@ func set_inventory_snapshot(items: Dictionary) -> void:
         _inventory_ar.disabled=not bool(items.get("ar_owned",false))
     if _inventory_awm:
         _inventory_awm.disabled=not bool(items.get("awm_owned",false))
+    var additions: Dictionary=items.get("additions",{})
+    for slot: int in _inventory_expansion_buttons:
+        var equip_button: Button=_inventory_expansion_buttons[slot]
+        equip_button.visible=additions.has(slot)
+        if equip_button.visible:
+            var counts: Dictionary=additions[slot]
+            equip_button.text="%s %d/%d"%[EXPANSION_WEAPONS.ENTRIES[slot]["short"],
+                counts["loaded"],counts["reserve"]]
+            equip_button.disabled=int(items.get("active_weapon",0))==slot
+    _inventory_expansion_row.visible=not additions.is_empty()
+    var syringes: int=int(items.get("syringes",0))
+    _inventory_syringe.visible=syringes>0
+    _inventory_syringe.text="USAR JERINGA ×%d"%syringes
     var ar: String="AR-7 %d/%d (max %d)"%[
         int(items.get("ar_loaded",0)),int(items.get("ar_reserve",0)),
         int(items.get("ar_capacity",0))]
@@ -648,13 +683,18 @@ func set_inventory_snapshot(items: Dictionary) -> void:
     _inventory_label.text=(
         "EQUIPO AURORA / %s\n"%("MOCHILA NIVEL 1" if int(items.get("backpack",0))>0 else "SIN MOCHILA")
         +ar+"\n"+awm+"\n"
-        +"CHALECO %d/75 | BOTIQUINES %d | BARRERAS %d"%[
-            int(items.get("armor",0)),int(items.get("medkits",0)),
+        +"CHALECO %d/%d | BOTIQUINES %d | BARRERAS %d"%[
+            int(items.get("armor",0)),25*int(items.get("vest_level",0)) if int(items.get("vest_level",0))>0 else 75,
+            int(items.get("medkits",0)),
             int(items.get("covers",0))]
         +"\nRECOGIDOS: %d | DAÑO: %d | PRECISIÓN: %d%%"%[
             int(items.get("loot_collected",0)),int(items.get("damage_dealt",0)),
             int(items.get("accuracy",0))]
         +"\nTIROS A LA CABEZA: %d"%int(items.get("headshots",0)))
+    var helmet: int=int(items.get("helmet_level",0))
+    if helmet>0:
+        _inventory_label.text+="\nCASCO N%d %d/%d"%[
+            helmet,int(items.get("helmet",0)),15*helmet]
 
 
 func set_medkit_count(count: int) -> void:
@@ -769,9 +809,12 @@ func set_ammo_warning(loaded: int,reserve: int,capacity: int) -> void:
     _ammo.text=str(loaded)+" / "+str(reserve)+("  SIN BALAS" if depleted else "")
 
 
-func set_armor_status(armor: float) -> void:
+func set_armor_status(armor: float,vest: int=0,helmet: float=0.0,helmet_level: int=0) -> void:
     if _armor_label!=null:
-        _armor_label.text="ESCUDO %d / 75"%clampi(roundi(armor),0,75)
+        var limit: int=25*vest if vest>0 else 75
+        _armor_label.text="ESCUDO %d / %d"%[clampi(roundi(armor),0,limit),limit]
+        if helmet_level>0:
+            _armor_label.text+="  ·  CASCO N%d %d"%[helmet_level,roundi(helmet)]
 
 
 ## This display follows a real kill-confirmed gameplay status; it creates

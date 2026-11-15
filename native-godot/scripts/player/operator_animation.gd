@@ -2,7 +2,8 @@ extends Node
 ## Skeletal upper-body one-shots keep the locomotion/stance running underneath.
 const UPPER_BODY_CLIPS: Array[String]=[
     "AuroraFire","AuroraFireAWM","AuroraHit","AuroraHitFront","AuroraHitBack",
-    "AuroraHitLeft","AuroraHitRight","AuroraReloadAR","AuroraReloadAWM","AuroraHeal"]
+    "AuroraHitLeft","AuroraHitRight","AuroraReloadAR","AuroraReloadAWM",
+    "AuroraReloadMP40","AuroraHeal"]
 var tree: AnimationTree
 var states: AnimationNodeStateMachine
 var playback: AnimationNodeStateMachinePlayback
