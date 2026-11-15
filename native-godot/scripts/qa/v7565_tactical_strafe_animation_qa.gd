@@ -116,7 +116,9 @@ func _verify() -> void:
     check(player.measured_ground_speed>2.0 and
         player._current_clip=="AuroraArmedStrafeRight" and
         controller.playback.get_current_node()=="AuroraArmedStrafeRight",
-        "ADS sidestep right didn't transition while moving through real physics")
+        "ADS sidestep right speed=%.2f requested=%s playing=%s" % [
+            player.measured_ground_speed,player._current_clip,
+            controller.playback.get_current_node()])
     player.play_weapon_action("reload",1.55)
     await frames(5)
     check(controller.action_clip.animation=="AuroraReloadAR" and

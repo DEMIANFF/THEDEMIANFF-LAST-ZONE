@@ -84,8 +84,8 @@ func _verify() -> void:
     for name in ["AuroraHitFront","AuroraHitBack","AuroraHitLeft",
             "AuroraHitRight","AuroraFireAWM"]:
         check(player._animator.has_animation(name) and
-            controller.states.has_node(name),
-            "original rig is missing directional body animation "+name)
+            controller.UPPER_BODY_CLIPS.has(name),
+            "Lila is missing the upper-body animation "+name)
         if player._animator.has_animation(name):
             var clip: Animation=player._animator.get_animation(name)
             check(clip.length>.25 and clip.length<.55 and

@@ -78,6 +78,19 @@ def smooth_window(progress, peak, end, start=0.):
     return f * f * (3. - 2. * f)
 
 
+def solve_hinge(ray, preferred_elbow, upper, lower):
+    upper_len = math.sqrt(dot(upper, upper))
+    lower_len = math.sqrt(dot(lower, lower))
+    direction = unit(ray)
+    distance = max(abs(upper_len - lower_len) + .001,
+                   min(math.sqrt(dot(ray, ray)), upper_len + lower_len - .001))
+    along = (upper_len**2 - lower_len**2 + distance**2) / (2. * distance)
+    side = unit(sub(preferred_elbow, scale(direction, dot(preferred_elbow, direction))))
+    elbow = add(scale(direction, along),
+                scale(side, math.sqrt(max(0., upper_len**2 - along**2))))
+    return elbow, sub(scale(direction, distance), elbow)
+
+
 class LilaAsset:
     def __init__(self, raw):
         magic, version, length, json_size, json_type = struct.unpack_from("<5I", raw)
@@ -120,19 +133,7 @@ class LilaAsset:
         })
         return len(accessors) - 1
 
-    def overlay(self, tracks, frame, profile):
-        pose = {target: values[frame] for target, values in tracks.items()}
-        grip, pitch, roll = profile
-        hips = self.indices["Hips"]
-        spine = self.indices["Spine2"]
-        neck = self.indices["Neck"]
-        pitch_node = hips if abs(pitch) > .35 else spine
-        pose[pitch_node, "rotation"] = mul(
-            pose[pitch_node, "rotation"], mul(axis(pitch, 0), axis(roll, 2)))
-        pose[neck, "rotation"] = mul(
-            pose[neck, "rotation"], mul(axis(-pitch * .28, 0), axis(-roll * .6, 2)))
-        changed = {pitch_node, neck}
-
+    def transforms(self, pose):
         globals_by_node = {self.indices["Root"]: (ZERO, IDENTITY)}
 
         def transform(node):
@@ -144,6 +145,51 @@ class LilaAsset:
                                          mul(orientation, local_rotation))
             return globals_by_node[node]
 
+        return transform
+
+    def ground_stance(self, pose, deepen):
+        at = self.transforms(pose)
+        hips = self.indices["Hips"]
+        # The source clips do not share a planted-foot reference. Use the
+        # standing clip's lowest toe height so stride clips do not float above
+        # the capsule or sink into the floor during a crouch.
+        toe_height = min(at(self.indices[side + "ToeBase"])[0][1] for side in ("Left", "Right"))
+        grounding = (0., -.46 - toe_height, 0.)
+        lowering = (0., -.079 if deepen else 0., 0.)
+        changes = {(hips, "translation"): add(pose[hips, "translation"], add(grounding, lowering))}
+        if deepen:
+            # Lower the crouch at the hips while holding the imported ankle
+            # positions and soles. The collider uses a real crouched height.
+            for side in ("Left", "Right"):
+                thigh, shin, ankle = [self.indices[side + part] for part in ("UpLeg", "Leg", "Foot")]
+                start, thigh_rotation = at(thigh)
+                knee, shin_rotation = at(shin)
+                foot, foot_rotation = at(ankle)
+                upper = self.nodes[shin]["translation"]
+                lower = self.nodes[ankle]["translation"]
+                bend, rest = solve_hinge(sub(foot, add(start, lowering)), sub(knee, start), upper, lower)
+                new_thigh = mul(aim_vector(rotate(thigh_rotation, upper), bend), thigh_rotation)
+                new_shin = mul(aim_vector(rotate(shin_rotation, lower), rest), shin_rotation)
+                changes[thigh, "rotation"] = unit(mul(inverse(at(self.parents[thigh])[1]), new_thigh))
+                changes[shin, "rotation"] = unit(mul(inverse(new_thigh), new_shin))
+                changes[ankle, "rotation"] = unit(mul(inverse(new_shin), foot_rotation))
+        return changes
+
+    def overlay(self, tracks, frame, profile, ground, deepen):
+        pose = {target: values[frame] for target, values in tracks.items()}
+        changes = self.ground_stance(pose, deepen) if ground else {}
+        pose.update(changes)
+        grip, pitch, roll = profile
+        hips = self.indices["Hips"]
+        spine = self.indices["Spine2"]
+        neck = self.indices["Neck"]
+        pitch_node = hips if abs(pitch) > .35 else spine
+        changes[pitch_node, "rotation"] = unit(mul(
+            pose[pitch_node, "rotation"], mul(axis(pitch, 0), axis(roll, 2))))
+        changes[neck, "rotation"] = unit(mul(
+            pose[neck, "rotation"], mul(axis(-pitch * .28, 0), axis(-roll * .6, 2))))
+        pose.update(changes)
+        transform = self.transforms(pose)
         center, _ = transform(spine)
         for side, target_offset in zip(("Right", "Left"), grip):
             arm = self.indices[side + "Arm"]
@@ -153,30 +199,19 @@ class LilaAsset:
             parent_rot = transform(self.parents[arm])[1]
             upper_rest = self.nodes[forearm]["translation"]
             lower_rest = self.nodes[hand]["translation"]
-            upper_len = math.sqrt(dot(upper_rest, upper_rest))
-            lower_len = math.sqrt(dot(lower_rest, lower_rest))
             target = add(center, target_offset)
-            ray = sub(target, shoulder_pos)
-            direction = unit(ray)
-            distance = min(math.sqrt(dot(ray, ray)), upper_len + lower_len - .001)
-            distance = max(distance, abs(upper_len - lower_len) + .001)
-            along = (upper_len**2 - lower_len**2 + distance**2) / (2. * distance)
             pole = (.75 if side == "Right" else -.75, -1., -.32)
-            out = unit(sub(pole, scale(direction, dot(pole, direction))))
-            elbow = add(scale(direction, along),
-                        scale(out, math.sqrt(max(0., upper_len**2 - along**2))))
+            elbow, lower = solve_hinge(sub(target, shoulder_pos), pole, upper_rest, lower_rest)
             arm_rot = mul(aim_vector(rotate(shoulder_rot, upper_rest), elbow), shoulder_rot)
-            lower = sub(scale(direction, distance), elbow)
             lower_base = mul(arm_rot, pose[forearm, "rotation"])
             lower_rot = mul(aim_vector(rotate(lower_base, lower_rest), lower), lower_base)
             # Keep wrists aligned with forearms and reuse the GLB's hand/finger poses.
-            pose[arm, "rotation"] = mul(inverse(parent_rot), arm_rot)
-            pose[forearm, "rotation"] = mul(inverse(arm_rot), lower_rot)
-            changed.update((arm, forearm))
+            changes[arm, "rotation"] = unit(mul(inverse(parent_rot), arm_rot))
+            changes[forearm, "rotation"] = unit(mul(inverse(arm_rot), lower_rot))
 
-        return {i: unit(pose[i, "rotation"]) for i in changed}
+        return changes
 
-    def clip(self, name, source_name, action=None, seconds=None):
+    def clip(self, name, source_name, action=None, seconds=None, ground=False, deepen=False):
         source = self.sources[source_name]
         out = {"name": name, "samplers": [], "channels": []}
         tracks = {}
@@ -187,7 +222,8 @@ class LilaAsset:
                 tracks[target["node"], target["path"]] = self.values(sampler["output"])
             assert len({len(values) for values in tracks.values()}) == 1
             count = len(next(iter(tracks.values())))
-            poses = [self.overlay(tracks, i, action(i / (count - 1))) for i in range(count)]
+            poses = [self.overlay(tracks, i, action(i / (count - 1)), ground, deepen)
+                     for i in range(count)]
         time_replacements = {}
         for channel in source["channels"]:
             target = channel["target"]
@@ -207,12 +243,13 @@ class LilaAsset:
                     time_replacements[input_idx] = self.add_values(
                         [(key[0] / keys[-1][0] * seconds,) for key in keys], "SCALAR")
                 sampler["input"] = time_replacements[input_idx]
-            if action and path == "rotation" and any(node in pose for pose in poses):
-                values = [pose.get(node, tracks[node, path][i]) for i, pose in enumerate(poses)]
-                for i in range(1, len(values)):
-                    if dot(values[i - 1], values[i]) < 0.:
-                        values[i] = scale(values[i], -1.)
-                sampler["output"] = self.add_values(values, "VEC4")
+            if action and any((node, path) in pose for pose in poses):
+                values = [pose.get((node, path), tracks[node, path][i]) for i, pose in enumerate(poses)]
+                if path == "rotation":
+                    for i in range(1, len(values)):
+                        if dot(values[i - 1], values[i]) < 0.:
+                            values[i] = scale(values[i], -1.)
+                sampler["output"] = self.add_values(values, "VEC4" if path == "rotation" else "VEC3")
             out["channels"].append({"sampler": len(out["samplers"]), "target": target})
             out["samplers"].append(sampler)
         self.doc["animations"].append(out)
@@ -287,8 +324,9 @@ def build(source, output):
         ("Jump", "Jump", READY), ("Land", "Jump Land", READY),
     ):
         duration = {"Jump": .86, "Land": .37}.get(name)
-        model.clip("Aurora" + name, source_name, lambda _, grip=pose: (grip, 0., 0.), duration)
-    model.clip("AuroraHeal", "Bandage")
+        model.clip("Aurora" + name, source_name, lambda _, grip=pose: (grip, 0., 0.),
+                   duration, ground=duration is None, deepen=name == "Crouch")
+    model.clip("AuroraHeal", "Bandage", seconds=3.0)
     model.clip("AuroraFreefall", "Jump", lambda p: (
         ((.34, -.08 + .025*math.sin(math.tau*p), .13),
          (-.34, -.08 - .025*math.sin(math.tau*p), .13)), .76, 0.))
