@@ -35,9 +35,10 @@ func _verify() -> void:
     check(front._lobby_section_title.text.contains("BATTLE ROYALE"),
         "lobby lacks Battle Royale mode card heading")
     check(front._left_shortcuts.get_child_count()==6 and
-        front._bottom_navigation.get_child_count()==5 and
+        front._bottom_navigation.get_child_count()==6 and
+        front._bottom_navigation.get_node_or_null("BottomJUGAR")!=null and
         front._social_panel.visible,
-        "reference navigation/menu/social panels not actually built")
+        "reference navigation must provide a visible route back to JUGAR")
     check(front._preview_container.find_child("AuroraSentinelCompanion",true,false)!=null,
         "live Base Aurora sentinel companion missing")
 
