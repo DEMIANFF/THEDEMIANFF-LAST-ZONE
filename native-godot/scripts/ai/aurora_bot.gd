@@ -1,5 +1,6 @@
 extends CharacterBody3D
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
+const IMPACT=preload("res://scripts/player/third_person_operator.gd")
 ## Aurora V73 offline training opponent: rigged glTF visual, bounded ray-LOS,
 ## grounded patrol and actual damage. This is not a networked human player.
 signal eliminated(agent: CharacterBody3D, killer: Node3D)
@@ -40,6 +41,9 @@ const ROUTE_REPLAN_BUCKETS: int=17
 # Physical death is registered instantly; the existing skinned visual gets
 # a short non-colliding reaction. No persistent bodies/particles on mobile.
 const DEFEAT_PRESENTATION_SECONDS: float=.75
+# Keyed incoming-hit clips temporarily replace locomotion visuals ONLY.
+const IMPACT_REACTION_SECONDS: float=.28
+const IMPACT_REACTION_VIEW_DISTANCE: float=48.0
 
 var navigation: Node3D
 var behavior: String="patrol"
@@ -104,6 +108,9 @@ var _lod_body: MeshInstance3D
 var _lod_clock: float=0.0
 var _lod_pending: bool=false
 var _death_tween: Tween
+var _impact_reaction_remaining: float=0.0
+var last_hit_reaction: String=""
+var hit_reactions_shown: int=0
 var _rig_rest_transform: Transform3D=Transform3D.IDENTITY
 var _lod_rest_transform: Transform3D=Transform3D.IDENTITY
 
@@ -258,6 +265,7 @@ func _set_full_visual(closer: bool) -> void:
         _rig=null
         _animation=null
         _clip=""
+        _impact_reaction_remaining=0.0
     if _lod_body!=null:
         _lod_body.visible=_rig==null
 
@@ -290,6 +298,7 @@ func _physics_process(dt: float) -> void:
         if _dead_time<=0:
             _respawn()
         return
+    _impact_reaction_remaining=maxf(0.0,_impact_reaction_remaining-dt)
     _route_clock-=dt
     _cover_clock-=dt
     _strafe_clock-=dt
@@ -446,7 +455,9 @@ func _physics_process(dt: float) -> void:
                 _attack_clock=BURST_RECOVERY+float(get_instance_id()%4)*.14
             else:
                 _attack_clock=BURST_SHOT_GAP
-    if _animation:
+    if _animation and _impact_reaction_remaining<=0.0:
+        # Preserve the physical AI and weapon cadence while the nearby
+        # existing weighted skeleton plays a very short shot reaction.
         var action: String="AuroraWalk" if Vector2(velocity.x,velocity.z).length()>.8 else "AuroraIdle"
         if action!=_clip:
             _animation.play(action,.18)
@@ -552,6 +563,8 @@ func hear_gunshot(at: Vector3, originator: Node3D) -> void:
 
 func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _reset_death_presentation()
+    hit_reactions_shown=0
+    last_hit_reaction=""
     sector_battle=true
     respawn_enabled=false
     _foes=actors.duplicate()
@@ -635,7 +648,29 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
             get_tree().create_timer(_dead_time).timeout.connect(_respawn)
         eliminated.emit(self,attacker)
         return true
+    if sector_battle and is_instance_valid(attacker):
+        _play_directional_hit(attacker.global_position)
     return false
+
+
+## Hit origin uses the SAME body-local directional classification as Lila.
+## Never allocate new skeletons for 41 LOD enemies; their real health, cover
+## and collisions continue unmodified when no detailed rig is present.
+func _play_directional_hit(origin: Vector3) -> void:
+    if (_rig==null or _animation==null or not origin.is_finite() or
+            not is_instance_valid(operator) or
+            global_position.distance_squared_to(operator.global_position)>
+            IMPACT_REACTION_VIEW_DISTANCE*IMPACT_REACTION_VIEW_DISTANCE):
+        return
+    var clip: String=IMPACT.directional_hit_clip(
+        origin,global_position,global_basis)
+    if not _animation.has_animation(clip):
+        return
+    _animation.play(clip,.06)
+    _clip=clip
+    _impact_reaction_remaining=IMPACT_REACTION_SECONDS
+    last_hit_reaction=clip
+    hit_reactions_shown+=1
 
 
 ## The real health death and combat signal happen immediately. Only
@@ -652,9 +687,16 @@ func _play_death_presentation() -> void:
     if marker!=null:
         marker.visible=false
     visible=true
-    if _animation!=null and _animation.has_animation("AuroraHitFront"):
-        # Reuse the EXISTING keyed humanoid upper-body hit reaction.
-        _animation.play("AuroraHitFront",.08)
+    _impact_reaction_remaining=0.0
+    # The real killer determines the authored four-direction skeletal
+    # reaction. Environmental storm damage has no invented shooter.
+    var reaction: String="AuroraHit"
+    if is_instance_valid(_last_attacker):
+        reaction=IMPACT.directional_hit_clip(
+            _last_attacker.global_position,global_position,global_basis)
+    if _animation!=null and _animation.has_animation(reaction):
+        _animation.play(reaction,.08)
+        _clip=reaction
     _death_tween=create_tween()
     _death_tween.set_parallel(true)
     _death_tween.tween_property(visual,"rotation:z",
@@ -684,6 +726,7 @@ func _reset_death_presentation() -> void:
     if _death_tween!=null and _death_tween.is_valid():
         _death_tween.kill()
     _death_tween=null
+    _impact_reaction_remaining=0.0
     if _rig!=null:
         _rig.transform=_rig_rest_transform
         if _animation!=null and _animation.has_animation("AuroraIdle"):
@@ -700,6 +743,9 @@ func _reset_death_presentation() -> void:
 func _respawn() -> void:
     if not respawn_enabled:
         return
+    _reset_death_presentation()
+    hit_reactions_shown=0
+    last_hit_reaction=""
     health=100
     _field_medkits=FIELD_MEDKIT_CAPACITY
     _heal_remaining=0.0
