@@ -1418,7 +1418,7 @@ func _select_tab(tab: String) -> void:
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot()
-            _info.text="LILA AURORA\nTraje táctico personalizable.\nCAMBIAR VISTA / GIRAR: controles táctiles bajo Lila.\nPREVISUALIZAR TRAJE: selector sin compra ni equipamiento."
+            _info.text="LILA AURORA\nTraje táctico personalizable.\nCAMBIAR VISTA / GIRAR: controles táctiles bajo Lila.\nVISTA 3D: %s · sin compra ni equipamiento."%_shop_selected_skin.to_upper()
             _info.text+="\nPARTIDAS %d  •  VICTORIAS %d  •  BAJAS %d"%[int(stats.get("played",0)),int(stats.get("wins",0)),int(stats.get("kills",0))]
             _info.text+="\nRÉCORD %d BAJAS  •  %d S VIVO"%[int(stats.get("best_kills",0)),int(stats.get("longest_survival_seconds",0))]
             var measured: Dictionary=PERFORMANCE.latest()
