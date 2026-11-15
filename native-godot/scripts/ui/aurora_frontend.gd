@@ -785,10 +785,13 @@ func _show_lobby() -> void:
     _page.anchor_top=.517
     _page.anchor_bottom=.851
     _page.add_theme_constant_override("separation",2)
-    _preview_container.anchor_left=.206
-    _preview_container.anchor_right=.730
-    _preview_container.anchor_top=.127
-    _preview_container.anchor_bottom=.856
+    # The same live SubViewport is now the whole winter hangar
+    # behind the menus. Side bars are native UI placed ABOVE it; never
+    # use a still image to fake a usable lobby.
+    _preview_container.anchor_left=0.0
+    _preview_container.anchor_right=1.0
+    _preview_container.anchor_top=0.0
+    _preview_container.anchor_bottom=1.0
     _preview_container.visible=true
     _preview_caption.visible=true
     if _gesture_button!=null and is_instance_valid(_gesture_button):
@@ -1970,15 +1973,19 @@ func _build_preview() -> void:
     # provisional; no unsupported claim of final custom face sculpt.
     _preview_container=SubViewportContainer.new()
     _preview_container.name="AvatarPreview"
-    _preview_container.anchor_left=.206
-    _preview_container.anchor_right=.730
-    _preview_container.anchor_top=.127
-    _preview_container.anchor_bottom=.856
+    _preview_container.anchor_left=0.0
+    _preview_container.anchor_right=1.0
+    _preview_container.anchor_top=0.0
+    _preview_container.anchor_bottom=1.0
     _preview_container.stretch=true
-    _preview_container.mouse_filter=Control.MOUSE_FILTER_STOP
+    _preview_container.mouse_filter=Control.MOUSE_FILTER_PASS
     _preview_container.gui_input.connect(_preview_input)
     _preview_container.visible=false
     _surface.add_child(_preview_container)
+    # The live 3D scene must render over the artwork but UNDER
+    # the real battle card, commerce/social rails and touch buttons.
+    var winter_art: Control=_surface.get_node("AuroraWinterBaseArtwork") as Control
+    _surface.move_child(_preview_container,winter_art.get_index()+1)
 
     var viewport:=SubViewport.new()
     viewport.name="PreviewViewport"
@@ -1987,6 +1994,7 @@ func _build_preview() -> void:
     viewport.transparent_bg=true
     viewport.render_target_update_mode=SubViewport.UPDATE_WHEN_PARENT_VISIBLE
     _preview_container.add_child(viewport)
+    _layout_safe.call_deferred()
     var stage3d:=Node3D.new()
     stage3d.name="AuroraCharacterStage"
     viewport.add_child(stage3d)
@@ -2151,6 +2159,19 @@ func _layout_safe() -> void:
     _surface.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     _surface.position=safe.position
     _surface.size=safe.size
+    # Preserve screen aspect ratio without rendering at full device-pixel
+    # resolution. On Motorola landscape this is ~0.42MP; elsewhere cap
+    # the 3D backdrop to 540px tall to avoid excessive Vulkan VRAM.
+    if _preview_container!=null and is_instance_valid(_preview_container):
+        var live: SubViewport=_preview_container.get_node_or_null(
+            "PreviewViewport") as SubViewport
+        if live!=null and safe.size.y>1.0:
+            var target_height: int=int(clampf(safe.size.y,320.0,540.0))
+            var target_width: int=maxi(320,roundi(
+                float(target_height)*safe.size.x/safe.size.y))
+            var requested: Vector2i=Vector2i(target_width,target_height)
+            if live.size!=requested:
+                live.size=requested
     # Nine tabs must fit a 434px-tall Motorola landscape viewport.
     if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         var compact: bool=safe.size.y<620.0
