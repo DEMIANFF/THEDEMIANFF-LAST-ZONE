@@ -37,6 +37,9 @@ const FIELD_MEDKIT_INTERRUPTED_COOLDOWN: float=1.25
 const PROACTIVE_RELOAD_THRESHOLD: int=4
 # 17 separate CPU buckets prevent 49 real agents from replanning together.
 const ROUTE_REPLAN_BUCKETS: int=17
+# Physical death is registered instantly; the existing skinned visual gets
+# a short non-colliding reaction. No persistent bodies/particles on mobile.
+const DEFEAT_PRESENTATION_SECONDS: float=.75
 
 var navigation: Node3D
 var behavior: String="patrol"
@@ -100,6 +103,9 @@ var distance_lod: bool=false
 var _lod_body: MeshInstance3D
 var _lod_clock: float=0.0
 var _lod_pending: bool=false
+var _death_tween: Tween
+var _rig_rest_transform: Transform3D=Transform3D.IDENTITY
+var _lod_rest_transform: Transform3D=Transform3D.IDENTITY
 
 
 func _ready() -> void:
@@ -165,6 +171,7 @@ func _create_lod_visual() -> void:
     _lod_body.material_override=material
     _lod_body.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(_lod_body)
+    _lod_rest_transform=_lod_body.transform
 
 
 func _reserve_detailed_rig_slot() -> bool:
@@ -225,6 +232,7 @@ func _create_full_rig() -> void:
         protagonist_hair.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     if operator.has_method("fit_operator_visual"):
         operator.fit_operator_visual(_rig)
+    _rig_rest_transform=_rig.transform
     _animation=_rig.find_child("AnimationPlayer",true,false) as AnimationPlayer
     if _animation:
         _animation.play("AuroraIdle")
@@ -238,6 +246,11 @@ func _set_full_visual(closer: bool) -> void:
     if closer:
         _create_full_rig()
     elif _rig!=null:
+        # If a detailed corpse must yield its GPU slot before the brief
+        # visual reaction ends, cancel the tween before freeing its node.
+        if health<=0.0 and _death_tween!=null and _death_tween.is_valid():
+            _death_tween.kill()
+            visible=false
         # The group lease is freed immediately, not after the next
         # render frame, to allow another nearby opponent to use the slot.
         _rig.remove_from_group(DETAILED_ENEMY_GROUP)
@@ -538,6 +551,7 @@ func hear_gunshot(at: Vector3, originator: Node3D) -> void:
 
 
 func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
+    _reset_death_presentation()
     sector_battle=true
     respawn_enabled=false
     _foes=actors.duplicate()
@@ -608,7 +622,10 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
     # or refresh pursuit against an unrelated player.
     if health<=0:
         _dead_time=7.0
-        visible=false
+        if sector_battle:
+            _play_death_presentation()
+        else:
+            visible=false
         var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
         if collider:
             collider.set_deferred("disabled",true)
@@ -619,6 +636,65 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
         eliminated.emit(self,attacker)
         return true
     return false
+
+
+## The real health death and combat signal happen immediately. Only
+## the visual presentation is deferred: no collisions, shooting, pathfinding,
+## ragdoll mesh allocations or additional death rewards during this window.
+func _play_death_presentation() -> void:
+    if _death_tween!=null and _death_tween.is_valid():
+        _death_tween.kill()
+    var visual: Node3D=_rig if _rig!=null else _lod_body
+    if not is_instance_valid(visual):
+        visible=false
+        return
+    var marker:=get_node_or_null("TrainingTargetMarker") as Label3D
+    if marker!=null:
+        marker.visible=false
+    visible=true
+    if _animation!=null and _animation.has_animation("AuroraHitFront"):
+        # Reuse the EXISTING keyed humanoid upper-body hit reaction.
+        _animation.play("AuroraHitFront",.08)
+    _death_tween=create_tween()
+    _death_tween.set_parallel(true)
+    _death_tween.tween_property(visual,"rotation:z",
+        visual.rotation.z+1.10,.43).set_trans(Tween.TRANS_SINE).set_ease(
+            Tween.EASE_OUT)
+    _death_tween.tween_property(visual,"position:y",
+        visual.position.y-.28,.43).set_trans(Tween.TRANS_SINE).set_ease(
+            Tween.EASE_OUT)
+    _death_tween.set_parallel(false)
+    _death_tween.tween_interval(DEFEAT_PRESENTATION_SECONDS-.43)
+    _death_tween.tween_callback(_complete_death_presentation)
+
+
+func _complete_death_presentation() -> void:
+    if health>0.0:
+        return
+    # The callback is running INSIDE this Tween; do not attempt to kill
+    # the same Tween while returning a freed distant rig to the LOD pool.
+    _death_tween=null
+    visible=false
+    # Reclaim a distant visual's high-detail budget after its real death.
+    if distance_lod and _rig!=null:
+        _set_full_visual(false)
+
+
+func _reset_death_presentation() -> void:
+    if _death_tween!=null and _death_tween.is_valid():
+        _death_tween.kill()
+    _death_tween=null
+    if _rig!=null:
+        _rig.transform=_rig_rest_transform
+        if _animation!=null and _animation.has_animation("AuroraIdle"):
+            _animation.play("AuroraIdle")
+            _clip="AuroraIdle"
+    if _lod_body!=null:
+        _lod_body.transform=_lod_rest_transform
+        _lod_body.visible=_rig==null
+    var marker:=get_node_or_null("TrainingTargetMarker") as Label3D
+    if marker!=null:
+        marker.visible=true
 
 
 func _respawn() -> void:
