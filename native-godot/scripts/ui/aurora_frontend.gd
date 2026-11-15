@@ -38,6 +38,9 @@ var _save_timer: Timer
 var stage: String = "startup"
 var _surface: Control
 var _page: VBoxContainer
+var _entry_glass: Panel
+var _entry_mission_caption: Label
+var _header_glass: Panel
 var _info: Label
 var _game: Node3D
 var _primary: Button
@@ -179,6 +182,9 @@ func _ready() -> void:
     _surface.add_child(arctic_art)
     _surface.move_child(arctic_art,1)
     painted.visible=false
+    # Native Godot panels remain interactive components, never a screenshot
+    # pretending to be the entry or Battle Royale interface.
+    _build_entry_shell()
     _page=VBoxContainer.new()
     _page.name="Page"
     _page.anchor_left=.07
@@ -321,16 +327,59 @@ func _button(value: String, callback: Callable, width: float=260.0) -> Button:
     return button
 
 
+func _make_glass_panel(bg: Color,border: Color,rounding: int=12) -> Panel:
+    var panel:=Panel.new()
+    var style:=StyleBoxFlat.new()
+    style.bg_color=bg
+    style.border_color=border
+    style.set_border_width_all(1)
+    style.set_corner_radius_all(rounding)
+    style.shadow_color=Color(0,.015,.04,.45)
+    style.shadow_size=6
+    panel.add_theme_stylebox_override("panel",style)
+    panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    return panel
+
+
+func _build_entry_shell() -> void:
+    _entry_glass=_make_glass_panel(
+        Color(.012,.026,.058,.95),Color(.28,.70,.87,.8),14)
+    _entry_glass.name="AuroraEntryGlassPanel"
+    _entry_glass.anchor_left=.55
+    _entry_glass.anchor_right=.958
+    _entry_glass.anchor_top=.115
+    _entry_glass.anchor_bottom=.926
+    _entry_glass.visible=false
+    _surface.add_child(_entry_glass)
+    _entry_mission_caption=Label.new()
+    _entry_mission_caption.name="AuroraEntryMissionCaption"
+    _entry_mission_caption.text="BASE AURORA  /  OPERACIÓN INVIERNO\n\nENTRA EN LA ÚLTIMA ZONA\nY PREPARA TU DESPLIEGUE"
+    _entry_mission_caption.anchor_left=.06
+    _entry_mission_caption.anchor_right=.53
+    _entry_mission_caption.anchor_top=.57
+    _entry_mission_caption.anchor_bottom=.86
+    _entry_mission_caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    _entry_mission_caption.add_theme_font_size_override("font_size",21)
+    _entry_mission_caption.add_theme_color_override(
+        "font_color",Color(.92,.96,1.0))
+    _entry_mission_caption.add_theme_color_override(
+        "font_shadow_color",Color(.0,.02,.05,.90))
+    _entry_mission_caption.add_theme_constant_override("shadow_offset_y",2)
+    _entry_mission_caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _entry_mission_caption.visible=false
+    _surface.add_child(_entry_mission_caption)
+
+
 func _build_loading_overlay() -> void:
     _loading_overlay=ColorRect.new()
     _loading_overlay.name="AuroraLoadingOverlay"
-    _loading_overlay.color=Color(.026,.016,.085,.68)
+    _loading_overlay.color=Color(.007,.024,.052,.83)
     _loading_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _surface.add_child(_loading_overlay)
     var hero:=CenterContainer.new()
     hero.anchor_right=1
-    hero.anchor_top=.10
-    hero.anchor_bottom=.61
+    hero.anchor_top=.055
+    hero.anchor_bottom=.62
     _loading_overlay.add_child(hero)
     var branding:=VBoxContainer.new()
     hero.add_child(branding)
@@ -345,11 +394,18 @@ func _build_loading_overlay() -> void:
     var content:=VBoxContainer.new()
     content.anchor_left=.20
     content.anchor_right=.80
-    content.anchor_top=.71
-    content.anchor_bottom=.97
+    content.anchor_top=.66
+    content.anchor_bottom=.965
     content.alignment=BoxContainer.ALIGNMENT_CENTER
     content.add_theme_constant_override("separation",8)
     _loading_overlay.add_child(content)
+    var phase:=Label.new()
+    phase.name="AuroraLoadPhase"
+    phase.text="AURORA  /  SINCRONIZANDO RECURSOS LOCALES"
+    phase.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    phase.add_theme_font_size_override("font_size",12)
+    phase.add_theme_color_override("font_color",Color(.40,.84,.94))
+    content.add_child(phase)
     _loading_title=Label.new()
     _loading_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _loading_title.add_theme_font_size_override("font_size",18)
@@ -363,13 +419,13 @@ func _build_loading_overlay() -> void:
     _loading_meter.name="WorldLoadProgress"
     _loading_meter.custom_minimum_size=Vector2(275,24)
     var track:=StyleBoxFlat.new()
-    track.bg_color=Color(.052,.025,.14)
-    track.border_color=Color(.65,.46,.91)
+    track.bg_color=Color(.020,.052,.091)
+    track.border_color=Color(.38,.80,.92)
     track.set_border_width_all(2)
     track.set_corner_radius_all(4)
     _loading_meter.add_theme_stylebox_override("background",track)
     var fill:=StyleBoxFlat.new()
-    fill.bg_color=Color(.58,.24,1.0)
+    fill.bg_color=Color(.93,.67,.22)
     fill.set_corner_radius_all(4)
     _loading_meter.add_theme_stylebox_override("fill",fill)
     content.add_child(_loading_meter)
@@ -380,8 +436,8 @@ func _build_loading_overlay() -> void:
 
 
 func _add_entry_wordmark(container: VBoxContainer) -> void:
-    for entry in [["EntryBrandTitle","THEDEMIAN:",54,Color(.93,.95,1.0)],
-            ["EntryBrandSubtitle","LAST ZONE",30,Color(.82,.54,1.0)]]:
+    for entry in [["EntryBrandTitle","THEDEMIAN:",36,Color(.95,.97,1.0)],
+            ["EntryBrandSubtitle","LAST ZONE",24,Color(.98,.76,.36)]]:
         var label:=Label.new()
         label.name=entry[0]
         label.text=entry[1]
@@ -462,6 +518,8 @@ func _welcome() -> void:
     # LOCAL offline choice. It never labels an unverified ID as official.
     stage="welcome"
     _loading_overlay.hide()
+    _entry_glass.visible=true
+    _entry_mission_caption.visible=true
     AuroraLobbyMusic.leave_lobby()
     visible=true
     _login_pending_provider=""
@@ -486,55 +544,60 @@ func _welcome() -> void:
     for item in [_profile_strip,_stats_strip,_currency_strip]:
         if item!=null and is_instance_valid(item):
             item.visible=false
-    _page.anchor_left=.10
-    _page.anchor_right=.90
-    _page.anchor_top=.22
-    _page.anchor_bottom=.95
-    _page.add_theme_constant_override("separation",9)
+    _page.anchor_left=.586
+    _page.anchor_right=.923
+    _page.anchor_top=.153
+    _page.anchor_bottom=.890
+    _page.add_theme_constant_override("separation",6)
     _brand_logo.visible=true
-    _brand_logo.anchor_left=.76
-    _brand_logo.anchor_right=.91
-    _brand_logo.anchor_top=.08
-    _brand_logo.anchor_bottom=.25
+    _brand_logo.anchor_left=.911
+    _brand_logo.anchor_right=.958
+    _brand_logo.anchor_top=.03
+    _brand_logo.anchor_bottom=.116
     _clear_page()
     _add_entry_wordmark(_page)
     var space:=Control.new()
     space.mouse_filter=Control.MOUSE_FILTER_IGNORE
     space.size_flags_vertical=Control.SIZE_EXPAND_FILL
     _page.add_child(space)
-    _login_status_label=_label("COMPROBANDO ACCESO…",14)
+    _login_status_label=_label("COMPROBANDO ACCESO…",12)
     _login_status_label.name="LoginTransportStatus"
+    _login_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     _login_status_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _login_status_label.add_theme_color_override("font_color",Color(.95,.81,.49))
-    var providers:=HBoxContainer.new()
+    var providers:=VBoxContainer.new()
     providers.name="AccountProviders"
-    providers.add_theme_constant_override("separation",10)
+    providers.add_theme_constant_override("separation",6)
     _page.add_child(providers)
-    _login_google_button=_button("ENTRAR CON GOOGLE",
-        Callable(self,"_begin_welcome_auth").bind("google"),140)
+    _login_google_button=_button("CONTINUAR CON GOOGLE",
+        Callable(self,"_begin_welcome_auth").bind("google"),0)
     _login_google_button.name="WelcomeGoogleSignIn"
     _login_google_button.custom_minimum_size.y=42
     _login_google_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _style_primary_action(_login_google_button)
     _login_guest_button=_button("ENTRAR COMO INVITADO",
-        Callable(self,"_begin_welcome_auth").bind("guest"),140)
+        Callable(self,"_begin_welcome_auth").bind("guest"),0)
     _login_guest_button.name="WelcomeGuestSignIn"
     _login_guest_button.custom_minimum_size.y=40
     _login_guest_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    providers.add_child(_login_guest_button)
     providers.add_child(_login_google_button)
-    _login_local_button=_button("JUGAR SIN CONEXIÓN",_enter_local_lobby,140)
+    providers.add_child(_login_guest_button)
+    _login_local_button=_button("JUGAR SIN CONEXIÓN",_enter_local_lobby,0)
     _login_local_button.name="EnterButton"
     _login_local_button.custom_minimum_size.y=44
     _login_local_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     providers.add_child(_login_local_button)
-    var disclosure:=_label("Sin conexión, tu progreso se guarda en este dispositivo.",12)
+    var disclosure:=_label(
+        "SIN CONEXIÓN: progreso guardado en este dispositivo.",11)
+    disclosure.name="WelcomeLocalStorageDisclosure"
     disclosure.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    disclosure.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     var diag:=_button("DIAGNÓSTICOS DE DESARROLLO",
         Callable(self,"_show_startup_diagnostics"),320)
     diag.name="StartupDiagnosticEntry"
-    diag.custom_minimum_size.y=27
-    diag.add_theme_font_size_override("font_size",11)
+    diag.custom_minimum_size.y=22
+    diag.add_theme_font_size_override("font_size",10)
+    diag.modulate=Color(.72,.80,.90)
     diag.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _page.add_child(diag)
     _poll_login_state()
@@ -692,6 +755,8 @@ func _cycle_flight_diagnostic() -> void:
 
 func _show_lobby() -> void:
     # Actual on-device results. No invented premium currency, fake friends or fake cloud ID.
+    _entry_glass.visible=false
+    _entry_mission_caption.visible=false
     _offline_records=MATCH_RECORDS.new()
     var stats: Dictionary=_offline_records.snapshot()
     if _preview_container==null or not is_instance_valid(_preview_container):
@@ -704,20 +769,20 @@ func _show_lobby() -> void:
     # Logo stays outside the full-width profile strip and never crosses
     # over player statistics or the rotating 3D character.
     _brand_logo.anchor_left=.944
-    _brand_logo.anchor_right=.975
-    _brand_logo.anchor_top=.019
+    _brand_logo.anchor_right=.982
+    _brand_logo.anchor_top=.018
     _brand_logo.anchor_bottom=.117
     # Base Aurora: large real 3D operator at centre; separate commerce,
     # social/match card, full-width top and bottom navigation layers.
-    _page.anchor_left=.702
-    _page.anchor_right=.977
-    _page.anchor_top=.495
-    _page.anchor_bottom=.87
+    _page.anchor_left=.728
+    _page.anchor_right=.963
+    _page.anchor_top=.517
+    _page.anchor_bottom=.851
     _page.add_theme_constant_override("separation",2)
-    _preview_container.anchor_left=.216
-    _preview_container.anchor_right=.697
-    _preview_container.anchor_top=.13
-    _preview_container.anchor_bottom=.864
+    _preview_container.anchor_left=.206
+    _preview_container.anchor_right=.730
+    _preview_container.anchor_top=.127
+    _preview_container.anchor_bottom=.856
     _preview_container.visible=true
     _preview_caption.visible=true
     if _gesture_button!=null and is_instance_valid(_gesture_button):
@@ -725,8 +790,8 @@ func _show_lobby() -> void:
     for action in _operator_controls:
         if is_instance_valid(action):
             action.visible=true
-    _preview_caption.anchor_left=.216
-    _preview_caption.anchor_right=.697
+    _preview_caption.anchor_left=.206
+    _preview_caption.anchor_right=.730
     _preview_caption.anchor_top=.820
     _preview_caption.anchor_bottom=.820
     _ensure_lobby_navigation()
@@ -754,10 +819,10 @@ func _show_lobby() -> void:
         _apply_preview_skin(str(
             _offline_records.cosmetic_state()["equipped"]))
     _clear_page()
-    _lobby_section_title=_label("BATTLE ROYALE · BASE AURORA",17)
+    _lobby_section_title=_label("BATTLE ROYALE",18)
     _lobby_section_title.name="LobbySectionTitle"
     _lobby_section_title.add_theme_color_override("font_color",Color(.96,.96,.88))
-    _lobby_section_hint=_label("BR CLÁSICO · 50 PARTICIPANTES",10)
+    _lobby_section_hint=_label("BASE AURORA  ·  50 PARTICIPANTES",11)
     _lobby_section_hint.name="LobbySectionHint"
     _lobby_section_hint.add_theme_color_override("font_color",Color(.57,.84,.94))
     _lobby_mode_heading=_label("MODALIDAD DE PARTIDA",13)
@@ -777,13 +842,13 @@ func _show_lobby() -> void:
     _page.add_child(_lobby_play_modes)
     _battle_entry=_button("INICIAR",Callable(self,"_launch").bind(true),240)
     _battle_entry.name="BattleButton"
-    _battle_entry.custom_minimum_size.y=46
+    _battle_entry.custom_minimum_size.y=56
     _battle_entry.add_theme_font_size_override("font_size",23)
     _style_primary_action(_battle_entry)
     _lobby_play_modes.add_child(_battle_entry)
     _training_entry=_button("INICIAR ENTRENAMIENTO",Callable(self,"_launch").bind(false),240)
     _training_entry.name="TrainingButton"
-    _training_entry.custom_minimum_size.y=48
+    _training_entry.custom_minimum_size.y=49
     _style_primary_action(_training_entry)
     _lobby_play_modes.add_child(_training_entry)
     _lobby_mode_caption=_label("50 PARTICIPANTES · 1 OPERADOR + 49 IA",11)
