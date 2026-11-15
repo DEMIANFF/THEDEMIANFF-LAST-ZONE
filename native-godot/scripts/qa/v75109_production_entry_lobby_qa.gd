@@ -68,7 +68,21 @@ func _verify() -> void:
     check(front._preview_container.visible and
         front._preview_avatar.find_child("AnimationPlayer",true,false)!=null,
         "Lila is not an actual animated model")
+    check(front._preview_container.anchor_left==0.0 and
+        front._preview_container.anchor_right==1.0 and
+        front._preview_container.anchor_top==0.0 and
+        front._preview_container.anchor_bottom==1.0,
+        "3D Base Aurora is still a disconnected portrait window")
+    var active_viewport: SubViewport=front._preview_container.get_node(
+        "PreviewViewport") as SubViewport
+    check(active_viewport!=null and
+        active_viewport.size.x*active_viewport.size.y<=550000,
+        "3D backdrop rendered above mobile safe VRAM resolution")
     var main_card: Control=front._play_match_card
+    check(main_card.get_index()>front._preview_container.get_index() and
+        front._social_panel.get_index()>front._preview_container.get_index() and
+        front._left_shortcuts.get_index()>front._preview_container.get_index(),
+        "real 3D scene obscures actual navigation controls")
     var scene: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage")
     # Directional key lighting is still a real scene node, not baked art.
