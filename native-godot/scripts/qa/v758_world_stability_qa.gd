@@ -75,7 +75,10 @@ func _verify() -> void:
         check(absf(y-7.0)<.08,"coastal home not on walkable plateau")
         if absf(y-7.0)<.08:
             new_homes+=1
-    check(audio.sound_count()==11,"real audio event catalog missing")
+    for cue in ["ar_fire","awm_fire","impact","hit","reload","foot_stone",
+            "foot_snow","heal","jump","ui","wind"]:
+        check(audio._samples.get(cue) is AudioStreamWAV,
+            "real PCM audio event missing: "+cue)
     check(audio._world_voices.size()==5,"positional opponent sound voices missing")
     print("V758_WORLD_STABILITY PASS accessible_legacy_approaches=",preserved,
         " clean_old_interiors=",clean_rooms," coastal_homes=",new_homes,

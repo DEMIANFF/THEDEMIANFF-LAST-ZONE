@@ -837,11 +837,11 @@ func collect_sector_loot(kind: String,quantity: int=-1,
             if _weapon_visuals:
                 _weapon_visuals.set_awm_owned(true)
             hud.impact("AWM RECOGIDA / VISIBLE EN ESPALDA")
-        "weapon_scar", "weapon_mp40":
+        "weapon_scar", "weapon_mp40", "weapon_kriss":
             if not _collect_expansion_weapon(WEAPONS.pickup_slot(kind)):
                 return false
         "ammo_smg":
-            if weapon_owned.size()<=WEAPONS.MP40 or not weapon_owned[WEAPONS.MP40]:
+            if not _owns_smg():
                 return false
             var gained: int=mini(30 if quantity<0 else clampi(quantity,0,30),
                 _reserve_limit(WEAPONS.MP40)-reserve[WEAPONS.MP40])
@@ -863,16 +863,22 @@ func _collect_expansion_weapon(slot: int) -> bool:
         return false
     if (slot<weapon_owned.size() and weapon_owned[slot]) or not _weapon_visuals.add_expansion(slot):
         return false
+    var first_smg: bool=WEAPONS.reserve_slot(slot)==WEAPONS.MP40 and not _owns_smg()
     while weapon_owned.size()<=slot:
         weapon_owned.append(false)
         ammo.append(0)
         reserve.append(0)
     weapon_owned[slot]=true
     ammo[slot]=WEAPONS.ENTRIES[slot]["capacity"]
-    if slot==WEAPONS.MP40:
-        reserve[slot]=30
+    if first_smg:
+        reserve[WEAPONS.MP40]=30
     hud.impact("%s RECOGIDA"%WEAPONS.ENTRIES[slot]["short"])
     return true
+
+
+func _owns_smg() -> bool:
+    return ((weapon_owned.size()>WEAPONS.MP40 and weapon_owned[WEAPONS.MP40]) or
+        (weapon_owned.size()>WEAPONS.KRISS and weapon_owned[WEAPONS.KRISS]))
 
 
 func _reserve_limit(index: int) -> int:

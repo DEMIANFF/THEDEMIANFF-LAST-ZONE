@@ -139,6 +139,32 @@ def build(originals, output, slot):
     stamp(target,metadata,source,changes)
 
 
-raw, result = [Path(v).resolve() for v in sys.argv[sys.argv.index("--") + 1:]]
+def build_kriss(source, output):
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    metadata=source_metadata(source)
+    assert metadata["license"].startswith("CC-BY-4.0")
+    bpy.ops.import_scene.gltf(filepath=str(source))
+    parts=[obj for obj in bpy.context.scene.objects if obj.type=="MESH"]
+    root=bpy.data.objects.new("KrissVector",None)
+    bpy.context.collection.objects.link(root)
+    aim=[root]
+    mapping=(Matrix.Scale(.76,4) @ Matrix.Rotation(-1.57079632679,4,"Z") @
+             Matrix.Translation(Vector((-.108,-.014,.063))))
+    surface=plain("Aurora charcoal",(.076,.085,.093),.35)
+    merge([copy_part(root,part,mapping,surface) for part in parts],"Receiver",2900,aim)
+    marker(root,"Muzzle",mapping @ Vector((-.5239,.014,.0355)),aim)
+    marker(root,"Grip",Vector((0,0,0)),aim)
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in aim:
+        obj.select_set(True)
+    target=output/"aurora_kriss.glb"
+    bpy.ops.export_scene.gltf(filepath=str(target),export_format="GLB",use_selection=True,
+                             export_animations=False,export_skins=False,export_extras=True)
+    stamp(target,metadata,source,"Joined meshes, simplified geometry, removed the texture atlas and normalized hand and muzzle anchors.")
+
+
+raw, result, *v2 = [Path(v).resolve() for v in sys.argv[sys.argv.index("--") + 1:]]
 for weapon in ("mp40","scar"):
     build(raw,result,weapon)
+if v2:
+    build_kriss(v2[0],result)

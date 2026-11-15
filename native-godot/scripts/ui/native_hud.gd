@@ -87,7 +87,7 @@ var _inventory_ar: Button
 var _inventory_awm: Button
 const EXPANSION_WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 var _inventory_expansion_buttons: Dictionary={}
-var _inventory_expansion_row: HBoxContainer
+var _inventory_expansion_row: HFlowContainer
 var _inventory_syringe: Button
 var air_stage: String="ground"
 var _hud_layout: RefCounted
@@ -333,7 +333,7 @@ func _ready() -> void:
     _inventory_awm.custom_minimum_size=Vector2(125,35)
     _inventory_awm.pressed.connect(func(): inventory_equip_requested.emit(1))
     selectors.add_child(_inventory_awm)
-    _inventory_expansion_row=HBoxContainer.new()
+    _inventory_expansion_row=HFlowContainer.new()
     _inventory_expansion_row.visible=false
     contents.add_child(_inventory_expansion_row)
     for slot in range(EXPANSION_WEAPONS.SCAR,EXPANSION_WEAPONS.ENTRIES.size()):

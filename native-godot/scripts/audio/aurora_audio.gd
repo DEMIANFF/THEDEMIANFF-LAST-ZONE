@@ -30,6 +30,7 @@ func _ready() -> void:
         "awm_fire":.62,
         "scar_fire":.32,
         "mp40_fire":.17,
+        "kriss_fire":.13,
         "distant_fire":.36,
         "mp40_extract":.16,
         "mp40_seat":.20,
@@ -227,6 +228,8 @@ func _render(kind: String,duration: float) -> AudioStreamWAV:
                 value=(.77*middle+.46*pulse)*exp(-t*18.0)+.30*high*exp(-t*42.0)
             "mp40_fire":
                 value=(.86*high+.34*pulse)*exp(-t*37.0)+.35*middle*exp(-t*16.0)
+            "kriss_fire":
+                value=(.68*high+.53*middle+.24*pulse)*exp(-t*45.0)
             "distant_fire":
                 value=(.9*low+.17*middle+.16*pulse)*exp(-t*11.0)
                 if t>.12:

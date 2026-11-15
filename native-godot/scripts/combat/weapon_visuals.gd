@@ -279,7 +279,8 @@ func _sync_equipment_visibility() -> void:
         # The default AR always belongs to Lila; holster it even before
         # she has found the AWM, rather than making it vanish while healing.
         back_ak.visible=(selected_weapon==1 and awm_owned) or (
-            selected_weapon==0 and medical_busy)
+            selected_weapon==0 and medical_busy) or (
+            selected_weapon>=WEAPONS.SCAR and not awm_owned and not medical_busy)
     if back_awm:
         back_awm.visible=awm_owned and (selected_weapon==0 or
             (selected_weapon>=WEAPONS.SCAR and not medical_busy) or

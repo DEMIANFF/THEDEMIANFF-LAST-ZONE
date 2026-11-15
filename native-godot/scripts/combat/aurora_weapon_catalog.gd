@@ -4,6 +4,7 @@ const AR: int=0
 const AWM: int=1
 const SCAR: int=2
 const MP40: int=3
+const KRISS: int=4
 
 const MP40_RELOAD_MARKS: Array[float]=[.23,.64,.85]
 const MP40_RELOAD_CUES: Array[StringName]=[&"mp40_extract",&"mp40_seat",&"mp40_bolt"]
@@ -19,6 +20,9 @@ const ENTRIES: Array[Dictionary]=[
     {"short":"MP40","label":"MP40 / SUBFUSIL","capacity":15,"reload":1.85,
         "cadence":.095,"damage":18.0,"critical":1.55,"recoil":.004,"sample":"mp40_fire",
         "asset":"res://assets/weapons/aurora_v3/aurora_mp40.glb","pickup":"weapon_mp40"},
+    {"short":"KRISS","label":"KRISS VECTOR / SUBFUSIL","capacity":15,"reload":1.6,
+        "cadence":.083,"damage":15.0,"critical":1.55,"recoil":.003,"sample":"kriss_fire",
+        "asset":"res://assets/weapons/aurora_v3/aurora_kriss.glb","pickup":"weapon_kriss"},
 ]
 
 
@@ -30,4 +34,6 @@ static func pickup_slot(kind: String) -> int:
 
 
 static func reserve_slot(slot: int) -> int:
+    if slot==KRISS:
+        return MP40
     return AR if slot==SCAR else slot

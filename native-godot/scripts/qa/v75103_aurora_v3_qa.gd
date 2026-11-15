@@ -45,7 +45,7 @@ func _verify() -> void:
     await physics_frame
 
     expect(combat.active_fighter_count()==50,"50-fighter roster or player spawn changed")
-    expect(director.get_loot_remaining()==35,"classic BR did not spawn its original and V3 supplies")
+    expect(director.get_loot_remaining()==36,"classic BR did not spawn its original and added supplies")
     expect(not combat.inventory_snapshot()["additions"].has(CATALOG.MP40),"MP40 was granted before pickup")
     var got_mp40: bool=collect(director,player,"AuroraMP40Pickup")
     var got_scar: bool=collect(director,player,"AuroraSCARPickup")
@@ -54,8 +54,14 @@ func _verify() -> void:
         quit(1)
         return
     expect(not combat.collect_sector_loot("weapon_mp40") and not combat.collect_sector_loot("weapon_scar"),
-        "duplicate purchase/grant duplicated magazines")
+        "duplicate weapon collection duplicated magazines")
     expect(collect(director,player,"AuroraSMGAmmoPickup"),"9 mm pickup did not reach SMG reserve")
+    var shared_smg_reserve: int=combat.reserve[CATALOG.MP40]
+    var got_kriss: bool=collect(director,player,"AuroraKRISSPickup")
+    expect(got_kriss and combat.ammo[CATALOG.KRISS]==15 and
+        combat.reserve[CATALOG.MP40]==shared_smg_reserve and
+        combat.inventory_snapshot()["additions"].get(CATALOG.KRISS,{}).get("reserve")==shared_smg_reserve,
+        "the V2 SMG did not share reserve without duplicating supplies")
     hud._inventory_expansion_buttons[CATALOG.MP40].pressed.emit()
     expect(combat.weapon_index==CATALOG.MP40 and combat.ammo[CATALOG.MP40]==15,
         "inventory control or level-one SMG magazine failed")
@@ -114,6 +120,13 @@ func _verify() -> void:
     combat._shoot()
     expect(combat.ammo[CATALOG.SCAR]==29 and target.health<old_health,
         "SCAR did not fire a real round through the same combat path")
+    if got_kriss:
+        combat._equip_inventory_weapon(CATALOG.KRISS)
+        combat.cooldown=0.0
+        old_health=target.health
+        combat._shoot()
+        expect(combat.ammo[CATALOG.KRISS]==14 and target.health<old_health,
+            "the V2 SMG did not fire against a physical opponent")
 
     expect(collect(director,player,"AuroraProtection1") and
         collect(director,player,"AuroraProtection2"),"level-one protection was blocked")
@@ -145,6 +158,22 @@ func _verify() -> void:
     combat._process(1.0)
     expect(player.training_health==80.0 and combat.syringes_remaining==0 and combat.medkits_remaining==2,
         "syringe did not heal once from its own inventory")
+    var sound: Node3D=game.get_node("AuroraSoundStage")
+    sound.set_enabled(true)
+    var shooter: CharacterBody3D=combat._targets[1]
+    shooter.global_position=player.global_position+Vector3.FORWARD*80.0
+    await physics_frame
+    var outdoor_voice: int=sound._world_cursor
+    expect(shooter._fire_at_target(player) and
+        sound._world_voices[outdoor_voice].stream==sound._samples["distant_fire"],
+        "a real distant shot did not select the positional distant sound")
+    player.receive_training_hit(300.0,true)
+    var previous_voice: int=posmod(sound._cursor-1,sound.VOICES)
+    expect(player.royale_eliminated and sound._voices[previous_voice].stream==sound._samples["eliminated"],
+        "final elimination did not select its unique sound")
+    var next_voice: int=sound._cursor
+    player.receive_training_hit(300.0,true)
+    expect(sound._cursor==next_voice,"repeated damage repeated the elimination sound")
     director.start_sector_battle()
     expect(combat.inventory_snapshot()["additions"].is_empty() and
         combat.weapon_index==CATALOG.AR and player.helmet_points==0 and
@@ -152,5 +181,5 @@ func _verify() -> void:
     game.queue_free()
     await process_frame
     if not failed:
-        print("V75103_AURORA_V3 PASS two_world_weapons=1 real_rays=1 smg15=1 synchronized_reload=1 armor_tiers=1 roster50=1")
+        print("V75103_AURORA_V3 PASS three_world_weapons=1 real_rays=1 smg15=1 synchronized_reload=1 armor_tiers=1 syringe=1 event_audio=1 roster50=1")
     quit(1 if failed else 0)

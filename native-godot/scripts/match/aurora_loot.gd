@@ -99,7 +99,7 @@ func _ready() -> void:
         "backpack": floating_name.text="MOCHILA TACTICA"
         "weapon_awm": floating_name.text="RECOGER AWM"
         "ammo_smg": floating_name.text="MUNICIÓN SMG"
-        "weapon_scar", "weapon_mp40": floating_name.text="RECOGER "+str(WEAPONS.ENTRIES[slot]["short"])
+        "weapon_scar", "weapon_mp40", "weapon_kriss": floating_name.text="RECOGER "+str(WEAPONS.ENTRIES[slot]["short"])
         "vest_1", "vest_2", "vest_3": floating_name.text="CHALECO NV. "+pickup_type.get_slice("_",1)
         "helmet_1", "helmet_2", "helmet_3": floating_name.text="CASCO NV. "+pickup_type.get_slice("_",1)
         _: floating_name.text="MUNICION AWM"

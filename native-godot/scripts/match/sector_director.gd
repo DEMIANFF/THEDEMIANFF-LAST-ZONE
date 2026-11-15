@@ -471,6 +471,7 @@ func _spawn_loot() -> void:
     if combat.encounter_size==50:
         _make_pickup(Vector2(42,-20),"weapon_scar","AuroraSCARPickup")
         _make_pickup(Vector2(30,9),"weapon_mp40","AuroraMP40Pickup")
+        _make_pickup(Vector2(12,-13),"weapon_kriss","AuroraKRISSPickup")
         _make_pickup(Vector2(-38,-12),"ammo_smg","AuroraSMGAmmoPickup")
         _make_pickup(Vector2(-24,-31),"syringe","AuroraSyringePickup")
         var gear: Array[Vector2]=[Vector2(27,25),Vector2(32,25),
