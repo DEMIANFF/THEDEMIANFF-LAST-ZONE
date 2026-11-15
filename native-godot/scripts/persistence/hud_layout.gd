@@ -72,6 +72,37 @@ func set_item(id: String, center: Vector2, scale: float, alpha: float) -> Error:
     }
     return OK
 
+# Preset 4 is an opt-in placement for the supplied Aurora touch reference.
+# Presets 1-3, weapon logic, camera sensitivities and Firebase are untouched.
+# The caller must not overwrite an existing non-empty slot without a separate
+# explicit user action. Coordinates are centers within the safe-screen rect.
+func install_aurora_reference() -> Error:
+    var reference: Dictionary={
+        "MovePad":Vector2(.16,.73),
+        "DirectionalFirePad":Vector2(.87,.58),
+        "CORRER":Vector2(.35,.60),
+        "MIRA":Vector2(.72,.72),
+        "RECARGA":Vector2(.64,.87),
+        "ARMA":Vector2(.84,.89),
+        "SALTAR":Vector2(.955,.84),
+        "AGACHAR":Vector2(.55,.78),
+        "CURAR 2":Vector2(.46,.91),
+        "BARRERA 0":Vector2(.53,.53),
+        "MOCHILA":Vector2(.80,.24),
+        "AJUSTES":Vector2(.94,.095),
+        "MAPA":Vector2(.28,.31)
+    }
+    var next: Dictionary={}
+    for id in IDS:
+        if not reference.has(id):
+            return ERR_INVALID_DATA
+        next[id]={
+            "center":reference[id],
+            "scale":1.0,
+            "alpha":.92 if id in ["CORRER","MIRA","ARMA","MAPA"] else 1.0
+        }
+    return _persist(next)
+
 
 func restore_defaults() -> Error:
     return _persist({})
