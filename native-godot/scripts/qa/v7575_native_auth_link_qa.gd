@@ -34,6 +34,7 @@ func _verify() -> void:
 
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     front._show_lobby()
     await process_frame
     front._select_tab("CUENTA")
@@ -74,7 +75,7 @@ func _verify() -> void:
     front._welcome()
     await process_frame
     check(front._login_google_button.visible and front._login_guest_button.visible and
-        front._page.get_node_or_null("EnterButton")!=null,
+        front._login_local_button.is_visible_in_tree(),
         "dedicated Google/Guest and local offline entry buttons missing")
     front._begin_welcome_auth("google")
     check(front._login_status_label.text.contains("PENDIENTE") and

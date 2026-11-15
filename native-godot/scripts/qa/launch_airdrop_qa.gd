@@ -14,8 +14,9 @@ func _verify() -> void:
         return
     var front:=boot_scene.instantiate() as Control
     root.add_child(front)
+    await front.wait_for_startup()
     await process_frame
-    if front.stage!="welcome" or front.get_node_or_null("AuroraMenuSurface/Page/EnterButton")==null:
+    if front.stage!="welcome" or front._login_local_button==null:
         push_error("Original title screen did not boot with enter action")
         quit(132)
         return

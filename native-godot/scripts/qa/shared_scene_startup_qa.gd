@@ -56,6 +56,7 @@ func _verify() -> void:
     check(STARTUP.save(0)==OK,"could not restore normal scene mode")
     var frontend: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(frontend)
+    await frontend.wait_for_startup()
     frontend._show_lobby()
     frontend._launch(false)
     for i in range(8):

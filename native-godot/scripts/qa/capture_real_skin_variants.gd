@@ -13,6 +13,7 @@ func _capture() -> void:
         return
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     await process_frame
     front._enter_local_lobby()
     for i in range(10):

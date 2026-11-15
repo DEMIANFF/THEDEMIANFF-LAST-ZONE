@@ -7,8 +7,7 @@ const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const LOBBY_STAGE=preload("res://scripts/ui/aurora_lobby_stage_3d.gd")
 const LOBBY_COMPANION=preload("res://scripts/ui/aurora_robot_companion.gd")
-const GAME = preload("res://scenes/Main.tscn")
-const COMBAT_ROSTER=preload("res://scripts/combat/training_combat.gd")
+const GAME_PATH: String="res://scenes/Main.tscn"
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
@@ -20,6 +19,9 @@ const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.g
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.gd")
+
+signal startup_finished
+@export_file("*.tscn") var game_scene_path: String=GAME_PATH
 
 var _settings_panel: VBoxContainer
 var _settings_content: VBoxContainer
@@ -33,7 +35,7 @@ var _ambience_slider: HSlider
 var _graphics_selector: OptionButton
 var _preferences: RefCounted
 var _save_timer: Timer
-var stage: String = "welcome"
+var stage: String = "startup"
 var _surface: Control
 var _page: VBoxContainer
 var _info: Label
@@ -79,6 +81,7 @@ var _training_entry: Button
 var _login_status_label: Label
 var _login_google_button: Button
 var _login_guest_button: Button
+var _login_local_button: Button
 var _login_pending_provider: String=""
 var _login_waiting_provider: String=""
 var _login_timer: Timer
@@ -98,6 +101,16 @@ var _shop_buy_button: Button
 var _shop_equip_button: Button
 var _shop_selected_skin: String="aurora_glacier"
 var _banner: Label
+var _game_scene: PackedScene
+var _loading_overlay: ColorRect
+var _loading_title: Label
+var _loading_detail: Label
+var _loading_meter: ProgressBar
+var _loading_retry: Button
+var _loading_cancel: Button
+var _loading_fade: Tween
+var _startup_frame_seen: bool=false
+var _launch_serial: int=0
 
 
 func _ready() -> void:
@@ -179,10 +192,14 @@ func _ready() -> void:
     # Welcome/login no longer owns an unnecessary 3D render target or rig.
     get_viewport().size_changed.connect(_layout_safe)
     _layout_safe.call_deferred()
-    _welcome()
+    _build_loading_overlay()
+    _start_bootstrap()
 
 
 func _process(delta: float) -> void:
+    if stage=="startup":
+        _poll_bootstrap()
+        return
     # Keep the real CC0 rig animated and turnable, without any extra 3D
     # viewport allocations. The full preview is freed before match creation.
     if stage!="lobby" or _preview_avatar==null or not             is_instance_valid(_preview_avatar):
@@ -191,6 +208,10 @@ func _process(delta: float) -> void:
     if _preview_resume_spin<=0.0 and _preview_touch<0 and not _preview_mouse_drag:
         _preview_avatar.rotation.y=wrapf(
             _preview_avatar.rotation.y+delta*.18,-PI,PI)
+
+
+func _exit_tree() -> void:
+    AuroraLobbyMusic.leave_lobby()
 
 
 func _preview_input(event: InputEvent) -> void:
@@ -294,11 +315,147 @@ func _button(value: String, callback: Callable, width: float=260.0) -> Button:
     return button
 
 
+func _build_loading_overlay() -> void:
+    _loading_overlay=ColorRect.new()
+    _loading_overlay.name="AuroraLoadingOverlay"
+    _loading_overlay.color=Color(.026,.016,.085,.68)
+    _loading_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    _surface.add_child(_loading_overlay)
+    var hero:=CenterContainer.new()
+    hero.anchor_right=1
+    hero.anchor_top=.10
+    hero.anchor_bottom=.61
+    _loading_overlay.add_child(hero)
+    var branding:=VBoxContainer.new()
+    hero.add_child(branding)
+    var emblem:=TextureRect.new()
+    emblem.texture=_brand_logo.texture
+    emblem.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+    emblem.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    emblem.custom_minimum_size=Vector2(0,82)
+    branding.add_child(emblem)
+    _add_entry_wordmark(branding)
+
+    var content:=VBoxContainer.new()
+    content.anchor_left=.20
+    content.anchor_right=.80
+    content.anchor_top=.71
+    content.anchor_bottom=.97
+    content.alignment=BoxContainer.ALIGNMENT_CENTER
+    content.add_theme_constant_override("separation",8)
+    _loading_overlay.add_child(content)
+    _loading_title=Label.new()
+    _loading_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _loading_title.add_theme_font_size_override("font_size",18)
+    content.add_child(_loading_title)
+    _loading_detail=Label.new()
+    _loading_detail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _loading_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    _loading_detail.add_theme_font_size_override("font_size",16)
+    content.add_child(_loading_detail)
+    _loading_meter=ProgressBar.new()
+    _loading_meter.name="WorldLoadProgress"
+    _loading_meter.custom_minimum_size=Vector2(275,24)
+    var track:=StyleBoxFlat.new()
+    track.bg_color=Color(.052,.025,.14)
+    track.border_color=Color(.65,.46,.91)
+    track.set_border_width_all(2)
+    track.set_corner_radius_all(4)
+    _loading_meter.add_theme_stylebox_override("background",track)
+    var fill:=StyleBoxFlat.new()
+    fill.bg_color=Color(.58,.24,1.0)
+    fill.set_corner_radius_all(4)
+    _loading_meter.add_theme_stylebox_override("fill",fill)
+    content.add_child(_loading_meter)
+    _loading_retry=_button("REINTENTAR",_start_bootstrap,190)
+    content.add_child(_loading_retry)
+    _loading_cancel=_button("VOLVER AL LOBBY",_return_to_lobby,190)
+    content.add_child(_loading_cancel)
+
+
+func _add_entry_wordmark(container: VBoxContainer) -> void:
+    for entry in [["EntryBrandTitle","THEDEMIAN:",54,Color(.93,.95,1.0)],
+            ["EntryBrandSubtitle","LAST ZONE",30,Color(.82,.54,1.0)]]:
+        var label:=Label.new()
+        label.name=entry[0]
+        label.text=entry[1]
+        label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+        label.add_theme_font_size_override("font_size",entry[2])
+        label.add_theme_color_override("font_color",entry[3])
+        label.add_theme_color_override("font_shadow_color",Color(.18,.02,.30))
+        label.add_theme_constant_override("shadow_offset_y",3)
+        container.add_child(label)
+
+
+func _show_loading(title: String,detail: String,pending: bool=false) -> void:
+    _surface.move_child(_loading_overlay,-1)
+    _loading_title.text=title
+    _loading_detail.text=detail
+    _loading_retry.hide()
+    _loading_cancel.hide()
+    _loading_meter.show()
+    _loading_meter.indeterminate=pending
+    _loading_meter.show_percentage=not pending
+    _loading_meter.value=0
+    if _loading_fade and _loading_fade.is_valid():
+        _loading_fade.kill()
+    _loading_overlay.show()
+    _loading_overlay.modulate.a=.68
+    _loading_fade=create_tween()
+    _loading_fade.tween_property(_loading_overlay,"modulate:a",1.0,.16)
+
+
+func _start_bootstrap() -> void:
+    stage="startup"
+    _startup_frame_seen=false
+    _show_loading("CARGANDO RECURSOS","Preparando Base Aurora…")
+    if not ResourceLoader.exists(game_scene_path,"PackedScene") or (
+            ResourceLoader.load_threaded_request(game_scene_path,"PackedScene")!=OK):
+        _startup_failed()
+
+
+func _poll_bootstrap() -> void:
+    # Give the native loading surface a frame even when the scene is cached.
+    if not _startup_frame_seen:
+        _startup_frame_seen=true
+        return
+    var progress: Array=[]
+    var status:=ResourceLoader.load_threaded_get_status(game_scene_path,progress)
+    match status:
+        ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+            if not progress.is_empty():
+                _loading_meter.value=maxf(_loading_meter.value,float(progress[0])*100.0)
+        ResourceLoader.THREAD_LOAD_LOADED:
+            _game_scene=ResourceLoader.load_threaded_get(game_scene_path) as PackedScene
+            if _game_scene==null or not _game_scene.can_instantiate():
+                _startup_failed()
+                return
+            _loading_meter.value=100
+            _welcome()
+            startup_finished.emit()
+        _:
+            _startup_failed()
+
+
+func _startup_failed() -> void:
+    stage="startup_failed"
+    _loading_detail.text="No se pudo cargar Base Aurora."
+    _loading_meter.hide()
+    _loading_retry.show()
+    startup_finished.emit()
+
+
+func wait_for_startup() -> void:
+    if stage=="startup":
+        await startup_finished
+
+
 func _welcome() -> void:
     # Authentication is an ENTRY flow, never a row of permanent lobby badges.
     # This screen offers actual Firebase providers and a clearly separate
     # LOCAL offline choice. It never labels an unverified ID as official.
     stage="welcome"
+    _loading_overlay.hide()
     AuroraLobbyMusic.leave_lobby()
     visible=true
     _login_pending_provider=""
@@ -323,47 +480,49 @@ func _welcome() -> void:
     for item in [_profile_strip,_stats_strip,_currency_strip]:
         if item!=null and is_instance_valid(item):
             item.visible=false
-    _page.anchor_left=.28
-    _page.anchor_right=.73
-    _page.anchor_top=.095
-    _page.anchor_bottom=.975
-    _page.add_theme_constant_override("separation",6)
+    _page.anchor_left=.10
+    _page.anchor_right=.90
+    _page.anchor_top=.22
+    _page.anchor_bottom=.95
+    _page.add_theme_constant_override("separation",9)
     _brand_logo.visible=true
     _brand_logo.anchor_left=.76
     _brand_logo.anchor_right=.91
     _brand_logo.anchor_top=.08
     _brand_logo.anchor_bottom=.25
     _clear_page()
-    var head:=_label("THEDEMIAN: LAST ZONE",28)
-    head.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-    var tagline:=_label("BASE AURORA  ·  IDENTIDAD DE JUGADOR",13)
-    tagline.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-    _login_status_label=_label("COMPROBANDO APP CHECK...",12)
+    _add_entry_wordmark(_page)
+    var space:=Control.new()
+    space.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    space.size_flags_vertical=Control.SIZE_EXPAND_FILL
+    _page.add_child(space)
+    _login_status_label=_label("COMPROBANDO ACCESO…",14)
     _login_status_label.name="LoginTransportStatus"
     _login_status_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _login_status_label.add_theme_color_override("font_color",Color(.95,.81,.49))
-    _login_google_button=_button("CONTINUAR CON GOOGLE",
-        Callable(self,"_begin_welcome_auth").bind("google"),320)
+    var providers:=HBoxContainer.new()
+    providers.name="AccountProviders"
+    providers.add_theme_constant_override("separation",10)
+    _page.add_child(providers)
+    _login_google_button=_button("ENTRAR CON GOOGLE",
+        Callable(self,"_begin_welcome_auth").bind("google"),140)
     _login_google_button.name="WelcomeGoogleSignIn"
     _login_google_button.custom_minimum_size.y=42
     _login_google_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _style_primary_action(_login_google_button)
-    _page.add_child(_login_google_button)
     _login_guest_button=_button("ENTRAR COMO INVITADO",
-        Callable(self,"_begin_welcome_auth").bind("guest"),320)
+        Callable(self,"_begin_welcome_auth").bind("guest"),140)
     _login_guest_button.name="WelcomeGuestSignIn"
     _login_guest_button.custom_minimum_size.y=40
     _login_guest_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    _page.add_child(_login_guest_button)
-    var enter:=_button("JUGAR SIN CONEXIÓN",
-        Callable(self,"_enter_local_lobby"),320)
-    enter.name="EnterButton"
-    enter.custom_minimum_size.y=39
-    enter.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    _page.add_child(enter)
-    var disclosure:=_label(
-        "Google e Invitado: acceso Firebase real. Sin conexión: partidas locales. "+
-        "El ID y el respaldo cloud solo aparecen tras confirmación del servidor.",11)
+    providers.add_child(_login_guest_button)
+    providers.add_child(_login_google_button)
+    _login_local_button=_button("JUGAR SIN CONEXIÓN",_enter_local_lobby,140)
+    _login_local_button.name="EnterButton"
+    _login_local_button.custom_minimum_size.y=44
+    _login_local_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    providers.add_child(_login_local_button)
+    var disclosure:=_label("Sin conexión, tu progreso se guarda en este dispositivo.",12)
     disclosure.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     var diag:=_button("DIAGNÓSTICOS DE DESARROLLO",
         Callable(self,"_show_startup_diagnostics"),320)
@@ -376,13 +535,15 @@ func _welcome() -> void:
 
 
 func _enter_local_lobby() -> void:
+    if stage!="welcome":
+        return
     _login_pending_provider=""
     _login_waiting_provider=""
     _show_lobby()
 
 
 func _begin_welcome_auth(provider: String) -> void:
-    if stage!="welcome" or provider not in ["google","guest"]:
+    if stage!="welcome" or provider not in ["google","guest"] or not _login_waiting_provider.is_empty():
         return
     _login_pending_provider=provider
     _poll_login_state()
@@ -411,7 +572,7 @@ func _poll_login_state() -> void:
                 str(attempt.get("reason","desconocido")))
         return
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
-    var enter: Button=_page.get_node_or_null("EnterButton") as Button
+    var enter: Button=_login_local_button
     if bool(session.get("authenticated",false)):
         _login_waiting_provider=""
         if bool(session.get("identity_confirmed",false)):
@@ -530,6 +691,7 @@ func _show_lobby() -> void:
     if _preview_container==null or not is_instance_valid(_preview_container):
         _build_preview()
     stage="lobby"
+    _loading_overlay.hide()
     AuroraLobbyMusic.enter_lobby()
     visible=true
     _brand_logo.visible=true
@@ -1467,24 +1629,26 @@ func _launch(battle: bool) -> void:
     # Hiding it only stopped drawing but retained VRAM/mesh allocations.
     _release_preview()
     _clear_page()
-    _label("PREPARANDO PUERTO AURORA",27)
-    _label("Cargando terreno, colisiones, personaje, armas y patrullas...",18)
-    call_deferred("_activate_game",battle)
+    _show_loading("PREPARANDO PUERTO AURORA","Montando terreno, operador y controles…",true)
+    _loading_cancel.show()
+    _launch_serial+=1
+    call_deferred("_activate_game",battle,_launch_serial)
 
 
-func _activate_game(battle: bool) -> void:
-    if stage!="loading":
+func _activate_game(battle: bool,serial: int) -> void:
+    if stage!="loading" or serial!=_launch_serial:
         return
     # The queued SubViewport is actually freed at the end of the frame,
     # AFTER deferred calls. One frame boundary avoids overlapping both
     # render targets and both animated player rigs during match creation.
     await get_tree().process_frame
-    if stage!="loading":
+    if stage!="loading" or serial!=_launch_serial:
         return
     FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",null,
         "frontend_scene_instantiate_before",
         "mode="+("battle" if battle else "training"))
-    _game=GAME.instantiate() as Node3D
+    _loading_cancel.hide()
+    _game=_game_scene.instantiate() as Node3D
     _game.name="ActiveAuroraGame"
     FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",null,
         "frontend_scene_enter_tree_before")
@@ -1501,8 +1665,6 @@ func _activate_game(battle: bool) -> void:
     visible=false
     stage="battle" if battle else "training"
     if battle:
-        var combat: Node3D=_game.get_node("CombatRange")
-        combat.call("set_encounter_size",COMBAT_ROSTER.CLASSIC_BR_PARTICIPANTS)
         var match_director: Node3D=_game.get_node("AuroraSectorMatch")
         FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",player,
             "battle_aircraft_begin_before")
@@ -1542,6 +1704,7 @@ func _record_first_world_frame() -> void:
 
 
 func _return_to_lobby() -> void:
+    _launch_serial+=1
     if _game!=null and is_instance_valid(_game):
         var director: Node3D=_game.get_node("AuroraSectorMatch")
         if not director.retry_result():

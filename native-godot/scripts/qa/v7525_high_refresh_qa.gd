@@ -47,6 +47,7 @@ func _verify() -> void:
         "could not explicitly enable 120 FPS for the Boot integration test")
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     check(Engine.max_fps==120,
         "real front-end did not activate the default 120 FPS ceiling")
     front.queue_free()

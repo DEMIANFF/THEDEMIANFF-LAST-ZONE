@@ -26,6 +26,7 @@ func _capture() -> void:
     root.size=Vector2i(2712,1220)
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     await capture("v7519-motorola-welcome")
     front._show_lobby()
     await capture("v7519-motorola-lobby")

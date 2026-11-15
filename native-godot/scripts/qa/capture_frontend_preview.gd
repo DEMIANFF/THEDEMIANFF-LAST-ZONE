@@ -13,6 +13,13 @@ func _capture() -> void:
     var boot: PackedScene=load("res://scenes/Boot.tscn")
     var front: Control=boot.instantiate()
     root.add_child(front)
+    await RenderingServer.frame_post_draw
+    var loading: Image=root.get_texture().get_image()
+    if loading.save_png("res://out/aurora-"+tag+"-loading.png")!=OK:
+        push_error("Aurora loading screenshot failed")
+        quit(8)
+        return
+    await front.wait_for_startup()
     for i in range(6):
         await process_frame
     var welcome: Image=root.get_texture().get_image()
@@ -41,6 +48,7 @@ func _capture() -> void:
         return
     print("AURORA_FRONTEND_RENDER",welcome.get_width(),"x",welcome.get_height(),
         " login is separated from playable lobby; 3D assets and buttons render in Godot")
+    front._welcome()
     front.queue_free()
-    await process_frame
+    await create_timer(.18).timeout
     quit(0)

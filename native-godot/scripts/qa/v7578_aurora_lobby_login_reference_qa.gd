@@ -15,11 +15,12 @@ func check(ok: bool,reason: String) -> void:
 func _verify() -> void:
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
+    await front.wait_for_startup()
     await process_frame
     check(front.stage=="welcome","startup entry screen not first")
     check(front._login_google_button.is_visible_in_tree() and
         front._login_guest_button.is_visible_in_tree() and
-        front._page.get_node_or_null("EnterButton")!=null,
+        front._login_local_button.is_visible_in_tree(),
         "real Google, Guest and explicit local entry options unavailable")
     check(not bool(BRIDGE.status().get("ready",true)) and
         front._login_status_label.text.contains("PENDIENTE"),

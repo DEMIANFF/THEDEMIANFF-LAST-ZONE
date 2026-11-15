@@ -21,7 +21,7 @@ ADDON = ROOT / "addons" / "AuroraFirebase"
 PRESET = ROOT / "export_presets.cfg"
 PROJECT = ROOT / "project.godot"
 PACKAGE = "com.thedemianff.lastzone.nativepreview"
-TEST_APK = "out/THEDEMIAN-V75.104-MOTOROLA-FIREBASE-GRADLE.apk"
+TEST_APK = "out/THEDEMIAN-V75.105-MOTOROLA-FIREBASE-GRADLE.apk"
 
 
 def one_edit(path: Path, original: str, replacement: str) -> None:
@@ -50,7 +50,7 @@ def stage_addon() -> None:
                        '"res://addons/AuroraFirebase/plugin.cfg")\n', encoding="utf-8")
     one_edit(PRESET, "gradle_build/use_gradle_build=false",
              "gradle_build/use_gradle_build=true")
-    one_edit(PRESET, 'export_path="out/THEDEMIAN-V75.104-MOTOROLA-VULKAN.apk"',
+    one_edit(PRESET, 'export_path="out/THEDEMIAN-V75.105-MOTOROLA-VULKAN.apk"',
              f'export_path="{TEST_APK}"')
     print("AURORA_FIREBASE_GRADLE_ADDON_STAGE_PASS sdk=compiled package=" + PACKAGE)
 

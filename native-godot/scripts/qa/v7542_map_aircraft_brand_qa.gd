@@ -116,6 +116,7 @@ func _verify() -> void:
 
     var boot: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(boot)
+    await boot.wait_for_startup()
     await process_frame
     check(ResourceLoader.exists("res://icon.svg") and
         ProjectSettings.get_setting("application/boot_splash/image")=="res://assets/ui/aurora_splash.png",

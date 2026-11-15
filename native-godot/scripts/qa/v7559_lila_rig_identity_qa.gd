@@ -90,6 +90,7 @@ func _verify() -> void:
             "making outfits distinct must not remove physical AI collisions")
     var frontend: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(frontend)
+    await frontend.wait_for_startup()
     frontend._show_lobby()
     var avatar: Node3D=frontend._preview_avatar
     var lobby_body: MeshInstance3D=verify_lila_mesh(
@@ -105,6 +106,10 @@ func _verify() -> void:
             "the lobby and in-match Lila are different costume assets")
         check(body.mesh.resource_path==lobby_body.mesh.resource_path,
             "the game is loading separate Lila visual mesh resources")
+    frontend._welcome()
+    frontend.queue_free()
+    real_game.queue_free()
+    await create_timer(.18).timeout
     if not failed:
         print("V7559_LILA_RIG PASS source_mesh=1 surfaces=1 joints=56 "+
             "authored_clips=14 lobby3d=1 game3d=1 exclusive_to_lila=1 "+
