@@ -53,9 +53,13 @@ func _verify() -> void:
     var guest: Button=front._login_guest_button
     var google: Button=front._login_google_button
     var offline: Button=front._login_local_button
-    check(guest.get_parent()==google.get_parent() and google.get_parent()==offline.get_parent() and
-        guest.global_position.x<google.global_position.x and google.global_position.x<offline.global_position.x,
-        "login providers are no longer grouped in order")
+    # The refined entry flow uses an accessible right-hand VERTICAL card.
+    # Preserve logical Google → Guest → Offline order and actual taps.
+    check(guest.get_parent()==google.get_parent() and
+        google.get_parent()==offline.get_parent() and
+        google.global_position.y<guest.global_position.y and
+        guest.global_position.y<offline.global_position.y,
+        "login providers must remain grouped and vertically ordered")
     var safe: Rect2=root.get_visible_rect()
     for button in [guest,google,offline]:
         check(button.is_visible_in_tree() and safe.encloses(button.get_global_rect()),
