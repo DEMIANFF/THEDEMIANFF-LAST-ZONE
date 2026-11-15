@@ -1917,7 +1917,7 @@ func _toggle_operator_frame() -> void:
     _preview_resume_spin=3.0
     # Full-body mode fits between the top profile strip and bottom controls.
     # Close-up lifts the lens so Lila's face does not disappear under the header.
-    var target_fov: float=43.0 if _preview_zoomed else 50.0
+    var target_fov: float=45.0 if _preview_zoomed else 54.0
     var target_position: Vector3=(Vector3(-.10,1.48,2.95)
         if _preview_zoomed else Vector3(-.10,1.18,3.07))
     _preview_frame_tween=create_tween()
@@ -2030,10 +2030,10 @@ func _build_preview() -> void:
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
     # V75.109 CI screenshot showed the operator's head hidden behind the
-    # top UI and feet over the bottom rail. A 50-degree vertical FOV fits
+    # top UI and feet over the bottom rail. A 54-degree vertical FOV fits
     # the 1.96m preview rig inside the usable mobile lobby band.
     camera.position=Vector3(-.10,1.18,3.07)
-    camera.fov=50.0
+    camera.fov=54.0
     camera.current=true
     stage3d.add_child(camera)
     camera.look_at(Vector3(-.08,.91,0),Vector3.UP)
