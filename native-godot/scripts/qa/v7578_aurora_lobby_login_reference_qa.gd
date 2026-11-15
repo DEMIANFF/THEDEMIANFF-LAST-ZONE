@@ -30,8 +30,9 @@ func _verify() -> void:
     check(front.stage=="lobby" and front._selected_tab=="JUGAR",
         "offline entry did not open native Battle Royale lobby")
     check(front._left_shortcuts.get_child_count()==6 and
-        front._bottom_navigation.get_child_count()==5,
-        "commerce rail or inventory/arsenal/preset/clan bar incomplete")
+        front._bottom_navigation.get_child_count()==6 and
+        front._bottom_navigation.has_node("BottomJUGAR"),
+        "commerce rail and JUGAR return route must exist with full navigation")
     check(front._left_shortcuts.has_node("QuickTIENDA") and
         front._left_shortcuts.has_node("QuickLUCK") and
         front._left_shortcuts.has_node("QuickEVENTS") and
@@ -96,6 +97,6 @@ func _verify() -> void:
     await process_frame
     if not failed:
         print("V7578_AURORA_LOBBY PASS login=entry_only local=playable "+
-            "left_rail=6 bottom_navigation=5 social=truthful companion=3d "+
+            "left_rail=6 bottom_navigation=6 social=truthful companion=3d "+
             "missions=journal hud=real account=no_fake_id motorola=964x434")
     quit(1 if failed else 0)
