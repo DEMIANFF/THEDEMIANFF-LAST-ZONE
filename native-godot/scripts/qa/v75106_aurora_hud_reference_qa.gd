@@ -22,9 +22,10 @@ func _verify() -> void:
     var original_slot: int=HUD_LAYOUT.selected_preset()
     check(HUD_LAYOUT.choose_preset(1)==OK,"cannot select original HUD slot")
     var original: RefCounted=HUD_LAYOUT.new()
-    check(original.set_item("MovePad",Vector2(.19,.75),1.0,.87)==OK,
-        "cannot store separate original HUD")
-    check(original.save()==OK,"cannot save original HUD")
+    # Read-only snapshot: QA must NOT write a synthetic joystick into HUD 1,
+    # because other suites reuse this isolated test profile and test multiple
+    # aspect ratios. The factory/user layout is sacrosanct.
+    var original_snapshot: Dictionary=original.controls.duplicate(true)
     front._open_settings()
     var settings: CanvasLayer=front._settings_modal
     var action: Button=settings._content.find_child(
@@ -43,8 +44,8 @@ func _verify() -> void:
         "Aurora preset failed to persist all 13 touch actions")
     check(HUD_LAYOUT.choose_preset(1)==OK,"cannot inspect original HUD slot")
     var original_after: RefCounted=HUD_LAYOUT.new()
-    check(original_after.get_item("MovePad").get("center",Vector2.ZERO)==Vector2(.19,.75),
-        "Aurora preset overwrote the user's primary HUD")
+    check(original_after.controls==original_snapshot,
+        "Aurora preset altered any persisted HUD 1 control")
     var fire: Dictionary=active.get_item("DirectionalFirePad")
     var stick: Dictionary=active.get_item("MovePad")
     check(fire.get("center",Vector2.ZERO).x>.7 and
