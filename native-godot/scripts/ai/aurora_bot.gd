@@ -47,6 +47,9 @@ const DEFEAT_PRESENTATION_SECONDS: float=.75
 # Keyed incoming-hit clips temporarily replace locomotion visuals ONLY.
 const IMPACT_REACTION_SECONDS: float=.28
 const IMPACT_REACTION_VIEW_DISTANCE: float=48.0
+# Show actual skinned firearm actions only on already-allocated nearby
+# rigs. The bullet, magazine and physical damage remain authoritative.
+const FIRE_PRESENTATION_SECONDS: float=.26
 
 var navigation: Node3D
 var behavior: String="patrol"
@@ -113,6 +116,9 @@ var _lod_clock: float=0.0
 var _lod_pending: bool=false
 var _death_tween: Tween
 var _impact_reaction_remaining: float=0.0
+var _weapon_action_remaining: float=0.0
+var weapon_actions_shown: int=0
+var reload_actions_shown: int=0
 var last_hit_reaction: String=""
 var hit_reactions_shown: int=0
 var _rig_rest_transform: Transform3D=Transform3D.IDENTITY
@@ -270,6 +276,7 @@ func _set_full_visual(closer: bool) -> void:
         _animation=null
         _clip=""
         _impact_reaction_remaining=0.0
+        _weapon_action_remaining=0.0
     if _lod_body!=null:
         _lod_body.visible=_rig==null
 
@@ -303,6 +310,12 @@ func _physics_process(dt: float) -> void:
             _respawn()
         return
     _impact_reaction_remaining=maxf(0.0,_impact_reaction_remaining-dt)
+    _weapon_action_remaining=maxf(0.0,_weapon_action_remaining-dt)
+    # A one-shot visual is rescaled to the real reload/fire duration;
+    # restore gait speed as soon as the authoritative action ends.
+    if (_weapon_action_remaining<=0.0 and _animation!=null and
+            _clip in ["AuroraFire","AuroraReloadAR"]):
+        _animation.speed_scale=1.0
     _route_clock-=dt
     _cover_clock-=dt
     _cover_probe_clock=maxf(0.0,_cover_probe_clock-dt)
@@ -470,9 +483,10 @@ func _physics_process(dt: float) -> void:
     if (sector_battle and not _target_visible and _alert_time>0.0 and
             _attack_clock<=0.0 and _cover_probe_clock<=0.0):
         _fire_at_last_known_cover()
-    if _animation and _impact_reaction_remaining<=0.0:
-        # Preserve the physical AI and weapon cadence while the nearby
-        # existing weighted skeleton plays a very short shot reaction.
+    if (_animation and _impact_reaction_remaining<=0.0 and
+            _weapon_action_remaining<=0.0):
+        # Keep real gait, AI and bullet cadence live underneath authored
+        # firearm/impact visuals. The state returns after a bounded time.
         var action: String="AuroraWalk" if Vector2(velocity.x,velocity.z).length()>.8 else "AuroraIdle"
         if action!=_clip:
             _animation.play(action,.18)
@@ -585,6 +599,8 @@ func hear_gunshot(at: Vector3, originator: Node3D) -> void:
 
 func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _reset_death_presentation()
+    weapon_actions_shown=0
+    reload_actions_shown=0
     hit_reactions_shown=0
     last_hit_reaction=""
     sector_battle=true
@@ -689,11 +705,38 @@ func _play_directional_hit(origin: Vector3) -> void:
         origin,global_position,global_basis)
     if not _animation.has_animation(clip):
         return
+    # A new real hit takes precedence over interrupted weapon recoil.
+    _animation.speed_scale=1.0
     _animation.play(clip,.06)
     _clip=clip
+    _weapon_action_remaining=0.0
     _impact_reaction_remaining=IMPACT_REACTION_SECONDS
     last_hit_reaction=clip
     hit_reactions_shown+=1
+
+
+## Play actual existing GLB upper-body weapon clips only after a
+## legitimate physics shot/reload. This never consumes ammunition itself,
+## creates a missing skeleton, nor changes the attacker or target hitbox.
+## Incoming damage takes precedence over visual recoil on the same rig.
+func _play_weapon_action(clip: String,seconds: float) -> bool:
+    if (_rig==null or _animation==null or health<=0.0 or
+            _impact_reaction_remaining>0.0 or _heal_remaining>0.0 or
+            not _animation.has_animation(clip)):
+        return false
+    var authored_length: float=_animation.get_animation(clip).length
+    if not is_finite(authored_length) or authored_length<=0.0:
+        return false
+    # ReloadAR is authored for a different time scale; match the actual
+    # 2.25-second physical magazine timer without altering its ballistics.
+    _animation.speed_scale=authored_length/maxf(.05,seconds)
+    _animation.play(clip,.06)
+    _clip=clip
+    _weapon_action_remaining=maxf(.05,seconds)
+    weapon_actions_shown+=1
+    if clip=="AuroraReloadAR":
+        reload_actions_shown+=1
+    return true
 
 
 ## The real health death and combat signal happen immediately. Only
@@ -711,6 +754,7 @@ func _play_death_presentation(lethal_attacker: Node3D) -> void:
         marker.visible=false
     visible=true
     _impact_reaction_remaining=0.0
+    _weapon_action_remaining=0.0
     # Only this fatal physical hit determines the original skeleton clip.
     # Environmental damage cannot reuse a shooter from an earlier injury.
     var reaction: String="AuroraHit"
@@ -718,6 +762,7 @@ func _play_death_presentation(lethal_attacker: Node3D) -> void:
         reaction=IMPACT.directional_hit_clip(
             lethal_attacker.global_position,global_position,global_basis)
     if _animation!=null and _animation.has_animation(reaction):
+        _animation.speed_scale=1.0
         _animation.play(reaction,.08)
         _clip=reaction
     _death_tween=create_tween()
@@ -750,9 +795,11 @@ func _reset_death_presentation() -> void:
         _death_tween.kill()
     _death_tween=null
     _impact_reaction_remaining=0.0
+    _weapon_action_remaining=0.0
     if _rig!=null:
         _rig.transform=_rig_rest_transform
         if _animation!=null and _animation.has_animation("AuroraIdle"):
+            _animation.speed_scale=1.0
             _animation.play("AuroraIdle")
             _clip="AuroraIdle"
     if _lod_body!=null:
@@ -767,6 +814,8 @@ func _respawn() -> void:
     if not respawn_enabled:
         return
     _reset_death_presentation()
+    weapon_actions_shown=0
+    reload_actions_shown=0
     hit_reactions_shown=0
     last_hit_reaction=""
     health=100
@@ -911,6 +960,7 @@ func _fire_at_last_known_cover() -> bool:
         return false
     shots_fired+=1
     _magazine-=1
+    _play_weapon_action("AuroraFire",FIRE_PRESENTATION_SECONDS)
     weapon_fired.emit(global_position)
     shot_trace.emit(muzzle,hit.get("position",destination))
     body.call("take_damage",12.0)
@@ -925,6 +975,7 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
     if not _is_live_foe(foe) or _reload_remaining>0.0 or _magazine<=0:
         return false
     shots_fired+=1
+    _play_weapon_action("AuroraFire",FIRE_PRESENTATION_SECONDS)
     weapon_fired.emit(global_position)
     var distance: float=global_position.distance_to(foe.global_position)
     var spread: float=clampf(distance/SHOOT_RANGE,0.0,1.0)*.52
@@ -954,6 +1005,7 @@ func _begin_reload() -> void:
     _reload_remaining=RELOAD_SECONDS
     _burst_count=0
     _attack_clock=RELOAD_SECONDS
+    _play_weapon_action("AuroraReloadAR",RELOAD_SECONDS)
 
 
 ## Move inside the next safe circle without stacking all rivals at center.
