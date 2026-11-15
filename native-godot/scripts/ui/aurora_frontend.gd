@@ -41,6 +41,7 @@ var _page: VBoxContainer
 var _entry_glass: Panel
 var _entry_mission_caption: Label
 var _header_glass: Panel
+var _lobby_backplates: Array[Control]=[]
 var _info: Label
 var _game: Node3D
 var _primary: Button
@@ -527,6 +528,11 @@ func _welcome() -> void:
     _release_preview()
     if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         _lobby_nav.visible=false
+    if _left_shortcuts!=null and is_instance_valid(_left_shortcuts):
+        _left_shortcuts.visible=false
+    for plate in _lobby_backplates:
+        if is_instance_valid(plate):
+            plate.visible=false
     if _bottom_navigation!=null and is_instance_valid(_bottom_navigation):
         _bottom_navigation.visible=false
     if _social_panel!=null and is_instance_valid(_social_panel):
@@ -795,6 +801,9 @@ func _show_lobby() -> void:
     _preview_caption.anchor_top=.820
     _preview_caption.anchor_bottom=.820
     _ensure_lobby_navigation()
+    for plate in _lobby_backplates:
+        if is_instance_valid(plate):
+            plate.visible=true
     _lobby_nav.visible=false
     _left_shortcuts.visible=true
     _bottom_navigation.visible=true
@@ -1206,6 +1215,7 @@ func _ensure_lobby_navigation() -> void:
     _header_glass.anchor_bottom=.133
     _surface.add_child(_header_glass)
     _surface.move_child(_header_glass,_page.get_index())
+    _lobby_backplates.append(_header_glass)
     _profile_strip=_make_header_label(
         "LocalProfileStrip",.035,.303,14)
     _stats_strip=_make_header_label(
@@ -1221,6 +1231,7 @@ func _ensure_lobby_navigation() -> void:
     backplate.anchor_bottom=.858
     _surface.add_child(backplate)
     _surface.move_child(backplate,_page.get_index())
+    _lobby_backplates.append(backplate)
     var navplate:=_make_glass_panel(
         Color(.012,.029,.068,.93),Color(.31,.67,.86,.75),10)
     navplate.name="LobbySidebarBackplate"
@@ -1230,6 +1241,7 @@ func _ensure_lobby_navigation() -> void:
     navplate.anchor_bottom=.850
     _surface.add_child(navplate)
     _surface.move_child(navplate,_page.get_index())
+    _lobby_backplates.append(navplate)
     _lobby_nav=VBoxContainer.new()
     _lobby_nav.name="LobbyNavigation"
     _lobby_nav.anchor_left=.038
