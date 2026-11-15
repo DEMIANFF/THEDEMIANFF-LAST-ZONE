@@ -41,7 +41,7 @@ func _verify() -> void:
     check(combat._targets.size()==49 and combat.active_fighter_count()==50,
         "50 genuine collision-driven fighters disappeared")
     var shooter: CharacterBody3D=combat._targets[0]
-    var rival: CharacterBody3D=combat._targets[1]
+    var target_bot: CharacterBody3D=combat._targets[1]
     var flash: MeshInstance3D=shooter._enemy_muzzle_flash
     check(shooter._rig!=null and shooter._enemy_hand_rifle!=null and
         flash!=null and flash.get_parent()==
@@ -70,7 +70,7 @@ func _verify() -> void:
         traces.append(origin))
     var initial_rounds: int=shooter._magazine
     var shots: int=shooter.shots_fired
-    check(shooter._fire_at_target(rival) and
+    check(shooter._fire_at_target(target_bot) and
         shooter.shots_fired==shots+1 and
         shooter._magazine==initial_rounds and
         traces.size()==1 and

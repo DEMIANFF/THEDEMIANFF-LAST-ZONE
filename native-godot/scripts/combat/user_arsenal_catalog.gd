@@ -6,6 +6,12 @@ extends RefCounted
 const ROOT: String="res://assets/weapons/user_pack/"
 const AR_MODEL: String=ROOT+"aurora_w04.glb"
 const AWM_MODEL: String=ROOT+"aurora_w11.glb"
+# UE5 FPS packs are reference rigs only; Lila requires explicit retargeting.
+const PISTOL_ANIM_MODEL: String=ROOT+"fps_pistol_animations_mobile.glb"
+const AK_ANIM_MODEL: String=ROOT+"fps_ak47_animations_mobile.glb"
+const SAPS_ANIM_MODEL: String=ROOT+"fps_saps12_animations_mobile.glb"
+const SIG225_STATIC_MODEL: String=ROOT+"fps_sig225_reference_mobile.glb"
+const C17_TRANSPORT_MODEL: String="res://assets/vehicles/user_pack/aurora_c17_mobile.glb"
 
 static func model_path(one_based_index: int) -> String:
     if one_based_index<1 or one_based_index>13:
@@ -18,6 +24,11 @@ static func all_paths() -> Array[String]:
     for index in range(1,14):
         files.append(model_path(index))
     return files
+
+
+static func supplemental_paths() -> Array[String]:
+    return [PISTOL_ANIM_MODEL,AK_ANIM_MODEL,SAPS_ANIM_MODEL,
+        SIG225_STATIC_MODEL,C17_TRANSPORT_MODEL]
 
 
 static func is_user_pack(path: String) -> bool:

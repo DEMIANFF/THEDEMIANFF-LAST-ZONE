@@ -30,3 +30,20 @@
 5. Confirmar derechos de redistribución de las 13 armas antes de cualquier APK pública.
 
 La QA se diseñó para no bloquear el juego cuando faltan estos recursos de usuario; indica explícitamente cuántos modelos están importados.
+
+
+## Paquete unificado de avión + animaciones 3D
+
+El ZIP `AURORA_PACK_UNIFICADO_AVION_ARMAS_ANIMACIONES.zip` contiene, además de las 13 mallas y el paquete previo de pistola:
+
+- C-17 `native-godot/assets/vehicles/user_pack/aurora_c17_mobile.glb`: avión estático, 98.568 triángulos, 46 mallas y 33 materiales. Si el recurso está instalado, `airdrop_sequence.gd` activa el nuevo modelo únicamente como elemento **visual**, alineándolo de -X a -Z; la física, trayectoria, salto y fallback procedimental permanecen intactos. Pendiente medir impacto GPU real en Android.
+- `fps_ak47_animations_mobile.glb`: 11 clips UE5 de fusil.
+- `fps_saps12_animations_mobile.glb`: 10 clips UE5 de escopeta.
+- `fps_sig225_reference_mobile.glb`: pistola 3D estática, sin clips.
+- `fps_pistol_animations_mobile.glb`: 11 clips UE5 del paquete anterior.
+
+**Todas estas incorporaciones nuevas declaran CC BY 4.0** en sus metadatos. La atribución y enlaces originales constan dentro de `documentation/ATRIBUCION_CC_BY_4_0.txt` del ZIP. Las insignias del C-17 deben sustituirse por marca original Aurora antes de publicación. Los 13 modelos previos de `all weapons` siguen sin prueba de licencia.
+
+Estos clips contienen rigs de origen UE5 y **todavía no están retargeteados al personaje Lila de Godot**. Tampoco se han conectado a nueva lógica de inventario/daño, por lo que no son armas jugables adicionales. Se incorporó `user_asset_bundle_qa.gd` para verificar referencias y recurso opcional sin bloquear la compilación cuando los binarios no están instalados.
+
+Además se corrigió en la QA heredada de V75.102 una declaración duplicada de variable `rival`, que impedía compilar esa prueba en GitHub Actions.
