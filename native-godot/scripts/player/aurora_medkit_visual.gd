@@ -1,11 +1,14 @@
 extends Node3D
 ## Original Aurora medical device, built from a few low-cost primitive meshes.
 ## The single object is attached to the existing rig's LeftHand bone.
-## Only visible during the real 3-second medkit channel; it never changes HP.
+## Shows the current consumable only during its real healing channel.
+
+const SYRINGE = preload("res://assets/gear/aurora_v3/AuroraSyringe.glb")
 
 var hand_socket: BoneAttachment3D
 var medkit_mount: Node3D
 var medical_case: Node3D
+var syringe: Node3D
 var attachment_uses_hand: bool=false
 var healing: bool=false
 
@@ -82,14 +85,22 @@ func attach_to_operator(player: CharacterBody3D) -> void:
     _solid("AuroraCrossVertical",Vector3(0,0,.039),Vector3(.027,.074,.007),cross)
     _solid("AuroraCrossHorizontal",Vector3(0,0,.041),Vector3(.075,.027,.007),cross)
     _solid("BlueSafetyLatch",Vector3(.095,-.01,0),Vector3(.013,.048,.042),blue)
+    syringe=SYRINGE.instantiate() as Node3D
+    medkit_mount.add_child(syringe)
+    syringe.position=Vector3(0,0,.026)
+    syringe.rotation_degrees=Vector3(0,0,68)
+    var injector_mesh:=syringe.find_child("*Mesh",true,false) as MeshInstance3D
+    injector_mesh.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     # Never display a kit before a valid healing action is accepted.
     set_healing(false)
 
 
-func set_healing(active: bool) -> void:
+func set_healing(active: bool,with_syringe: bool=false) -> void:
     healing=active
     if medical_case!=null:
-        medical_case.visible=active
+        medical_case.visible=active and not with_syringe
+    if syringe!=null:
+        syringe.visible=active and with_syringe
 
 
 func get_piece_count() -> int:

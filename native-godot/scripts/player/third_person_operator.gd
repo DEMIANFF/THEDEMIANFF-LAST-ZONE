@@ -117,6 +117,7 @@ var _fire_held: bool = false
 var _crouching: bool = false
 var _normal_visual_scale: Vector3 = Vector3.ONE
 var _normal_visual_y: float = 0.0
+var _protection_visual: Node3D
 
 
 func _ready() -> void:
@@ -912,6 +913,7 @@ func equip_armor(points: float=75.0) -> bool:
         return false
     armor_points=minf(MAX_ARMOR,armor_points+points)
     vest_level=3
+    _sync_protection_visual()
     armor_changed.emit(armor_points)
     return true
 
@@ -930,8 +932,18 @@ func equip_protection(is_helmet: bool,level: int) -> bool:
     else:
         vest_level=level
         armor_points=capacity
+    _sync_protection_visual()
     armor_changed.emit(armor_points)
     return true
+
+
+func _sync_protection_visual() -> void:
+    if _protection_visual==null and _avatar!=null and (helmet_level>0 or vest_level>0):
+        _protection_visual=preload("res://scripts/player/aurora_protection_visual.gd").new()
+        add_child(_protection_visual)
+        _protection_visual.attach(_avatar)
+    if _protection_visual!=null:
+        _protection_visual.apply_levels(helmet_level,vest_level)
 
 
 func end_sector_battle() -> void:
@@ -952,6 +964,7 @@ func begin_sector_battle(from_airdrop: bool=false) -> void:
     vest_level=0
     helmet_level=0
     helmet_points=0.0
+    _sync_protection_visual()
     armor_changed.emit(armor_points)
     velocity=Vector3.ZERO
     if from_airdrop:

@@ -134,6 +134,14 @@ func _verify() -> void:
     expect(collect(director,player,"AuroraProtection4"),"level-two helmet was blocked")
     var got_helmet: bool=collect(director,player,"AuroraProtection6")
     expect(got_vest and got_helmet,"world did not grant vest 2 and helmet 3")
+    var gear: Node3D=player._protection_visual
+    var helmet_socket:=player.find_child("LilaHelmetSocket",true,false) as BoneAttachment3D
+    var vest_socket:=player.find_child("LilaVestSocket",true,false) as BoneAttachment3D
+    expect(gear!=null and gear._helmet.is_visible_in_tree() and
+        gear._plate_carrier.is_visible_in_tree() and not gear._heavy_vest.visible and
+        helmet_socket!=null and helmet_socket.bone_name=="Head" and helmet_socket.is_ancestor_of(gear._helmet) and
+        vest_socket!=null and vest_socket.bone_name=="Spine2" and vest_socket.is_ancestor_of(gear._plate_carrier),
+        "equipped protection did not follow the intended bones")
     expect(not player.equip_protection(false,1),"a downgrade replaced intact protection")
     player._training_immunity=0.0
     var started_hp: float=player.training_health
@@ -147,17 +155,23 @@ func _verify() -> void:
         "storm damage consumed protective equipment")
     expect(collect(director,player,"AuroraProtection5") and player.armor_points==75.0,
         "level-three vest did not upgrade the world equipment")
+    expect(gear!=null and not gear._plate_carrier.visible and gear._heavy_vest.is_visible_in_tree(),
+        "upgrading the vest kept two pieces visible")
     expect(collect(director,player,"AuroraSyringePickup"),"medical pickup did not enter inventory")
     player.training_health=60.0
     player.velocity=Vector3.ZERO
     player.set_touch_move_axis(Vector2.ZERO)
     hud._inventory_syringe.pressed.emit()
+    var medical: Node3D=combat._medical_visual
+    expect(medical.syringe.is_visible_in_tree() and not medical.medical_case.visible and
+        medical.hand_socket.bone_name=="LeftHand","curing did not display the held syringe")
     combat._process(.6)
     expect(player.training_health==60.0 and combat.syringes_remaining==1,
         "syringe applied before the healing channel completed")
     combat._process(1.0)
     expect(player.training_health==80.0 and combat.syringes_remaining==0 and combat.medkits_remaining==2,
         "syringe did not heal once from its own inventory")
+    expect(not medical.syringe.visible,"completed syringe was still held")
     var sound: Node3D=game.get_node("AuroraSoundStage")
     sound.set_enabled(true)
     var shooter: CharacterBody3D=combat._targets[1]
@@ -178,8 +192,10 @@ func _verify() -> void:
     expect(combat.inventory_snapshot()["additions"].is_empty() and
         combat.weapon_index==CATALOG.AR and player.helmet_points==0 and
         combat.active_fighter_count()==50,"new round retained equipment or lost fighters")
+    expect(gear!=null and not gear._helmet.visible and not gear._heavy_vest.visible,
+        "new round retained visible protection")
     game.queue_free()
     await process_frame
     if not failed:
-        print("V75103_AURORA_V3 PASS three_world_weapons=1 real_rays=1 smg15=1 synchronized_reload=1 armor_tiers=1 syringe=1 event_audio=1 roster50=1")
+        print("V75103_AURORA_V3 PASS three_world_weapons=1 real_rays=1 smg15=1 synchronized_reload=1 armor_tiers=1 equipment_sockets=1 syringe=1 event_audio=1 roster50=1")
     quit(1 if failed else 0)

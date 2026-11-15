@@ -163,8 +163,9 @@ def build_kriss(source, output):
     stamp(target,metadata,source,"Joined meshes, simplified geometry, removed the texture atlas and normalized hand and muzzle anchors.")
 
 
-raw, result, *v2 = [Path(v).resolve() for v in sys.argv[sys.argv.index("--") + 1:]]
-for weapon in ("mp40","scar"):
-    build(raw,result,weapon)
-if v2:
-    build_kriss(v2[0],result)
+if __name__ == "__main__":
+    raw, result, *v2 = [Path(v).resolve() for v in sys.argv[sys.argv.index("--") + 1:]]
+    for weapon in ("mp40","scar"):
+        build(raw,result,weapon)
+    if v2:
+        build_kriss(v2[0],result)

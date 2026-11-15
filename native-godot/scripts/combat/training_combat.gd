@@ -1108,7 +1108,7 @@ func _draw_medical_rig() -> void:
 
 func _set_medical_presentation(active: bool) -> void:
     if _medical_visual:
-        _medical_visual.set_healing(active and not _healing_with_syringe)
+        _medical_visual.set_healing(active,_healing_with_syringe)
     if _weapon_visuals:
         _weapon_visuals.set_medical_busy(active)
     if active:
