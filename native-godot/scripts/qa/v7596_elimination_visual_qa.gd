@@ -46,6 +46,9 @@ func _verify() -> void:
     check(physical_victim._rig!=null and physical_victim._animation!=null,
         "the baseline physical enemy lost its humanoid animation rig")
     var original: Transform3D=physical_victim._rig.transform
+    var expected_impact: String=BOT.IMPACT.directional_hit_clip(
+        player.global_position,physical_victim.global_position,
+        physical_victim.global_basis)
     check(physical_victim.take_training_damage(500.0,player) and
         physical_victim.health==0.0 and
         not physical_victim.is_physics_processing() and
@@ -53,7 +56,7 @@ func _verify() -> void:
         not marker.visible and
         physical_victim._death_tween!=null and
         physical_victim._death_tween.is_running() and
-        physical_victim._animation.current_animation=="AuroraHitFront" and
+        physical_victim._animation.current_animation==expected_impact and
         combat.eliminations==1 and combat.active_fighter_count()==49,
         "actual death did not immediately disable hitbox/AI and play real rig")
     check(not physical_victim.take_training_damage(500.0,player) and
