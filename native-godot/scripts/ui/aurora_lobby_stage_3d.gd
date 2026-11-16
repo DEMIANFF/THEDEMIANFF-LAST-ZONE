@@ -76,8 +76,11 @@ func _ready() -> void:
         _peak(Vector3(f*3.1,-.13,-21.0-absf(f)*.23),
             3.7,4.3+absf(sin(f*.8))*2.6,ridge_far,ridge_frost)
     for i in range(-4,5):
+        # A positive 0..2 height tier is required: negative GDScript
+        # remainder previously produced undersized near-range peaks.
+        var height_tier: int=(i+12)%3
         _peak(Vector3(float(i)*4.15,-.11,-17.0-absf(float(i))*.19),
-            2.25,2.25+float(i%3)*.45,ridge_near,snow)
+            2.25,2.15+float(height_tier)*.34,ridge_near,snow)
     # Base Aurora has a layered winter command station rather than two
     # featureless cubes: entrances, frames, windows, sloped roofing and
     # original illuminated signal/billboard elements.
