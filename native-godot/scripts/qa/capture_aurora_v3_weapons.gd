@@ -27,6 +27,7 @@ func advance_pose(seconds: float) -> void:
 func save_pose(slot: int, pose: String) -> void:
     combat._weapon_visuals._process(0.0)
     await process_frame
+    await process_frame
     await RenderingServer.frame_post_draw
     var path: String="res://out/aurora-v3-weapons/%02d-%s.png"%[slot,pose]
     if root.get_texture().get_image().save_png(path)!=OK:
@@ -36,6 +37,8 @@ func save_pose(slot: int, pose: String) -> void:
     records.append({"slot":slot,"weapon":CATALOG.ENTRIES[slot]["short"],
         "pose":pose,"image":path,"length_m":visual.equipped_global_length(),
         "action":player._combat_action,"reload_remaining":combat.reload_timer,
+        "visual_position":str(visual.currently_equipped().global_position),
+        "muzzle_world":str(visual.muzzle_position()),
         "right_hand_world":str(visual.right_hand_socket.global_position),
         "left_hand_world":str(visual.support_socket.global_position) if visual.support_socket else "",
         "renderer":RenderingServer.get_current_rendering_method(),
@@ -61,9 +64,9 @@ func _capture() -> void:
     controller.tree.callback_mode_process=AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
     var review_camera:=Camera3D.new()
     game.add_child(review_camera)
-    review_camera.global_position=player.global_position+Vector3(1.8,1.55,-2.8)
-    review_camera.look_at(player.global_position+Vector3(0,1.0,-.25))
-    review_camera.fov=48.0
+    review_camera.global_position=player.global_position+Vector3(1.6,1.45,-2.2)
+    review_camera.look_at(player.global_position+Vector3(0,1.12,-.25))
+    review_camera.fov=40.0
     review_camera.current=true
     combat.open_training_armory()
     for kind in ["weapon_scar","weapon_mp40","weapon_kriss"]:
@@ -101,6 +104,7 @@ func _capture() -> void:
         quit(1)
         return
     file.store_string(JSON.stringify(records,"  "))
+    print("AURORA_POSES_JSON ",JSON.stringify(records))
     file.close()
     print("AURORA_V3_WEAPON_CAPTURE PASS weapons=5 poses=",records.size(),
         " renderer=",RenderingServer.get_current_rendering_method(),

@@ -24,3 +24,19 @@ print("AURORA_CONTACT_SHEET_BEGIN")
 for start in range(0, len(encoded), 1000):
     print(encoded[start:start + 1000])
 print("AURORA_CONTACT_SHEET_END")
+
+detail = Image.new("RGB", (960, 5 * 344), "#17202b")
+detail_draw = ImageDraw.Draw(detail)
+for slot, weapon in enumerate(("AR", "AWM", "SCAR", "MP40", "KRISS")):
+    for index, pose in enumerate(("idle", "reload_38")):
+        with Image.open(root / f"{slot:02d}-{pose}.png") as frame:
+            frame.thumbnail((480, 320))
+            detail.paste(frame, (index * 480, slot * 344 + 24))
+        detail_draw.text((index * 480 + 5, slot * 344 + 5), f"{weapon} / {pose}", fill="white")
+detail_path = root / "detail-sheet.jpg"
+detail.save(detail_path, quality=92)
+encoded = base64.b64encode(detail_path.read_bytes()).decode("ascii")
+print("AURORA_DETAIL_SHEET_BEGIN")
+for start in range(0, len(encoded), 1000):
+    print(encoded[start:start + 1000])
+print("AURORA_DETAIL_SHEET_END")

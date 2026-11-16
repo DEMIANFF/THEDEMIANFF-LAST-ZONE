@@ -163,6 +163,11 @@ func _load_visual(path: String, display_name: String,
     var desired_origin:=Vector3(0,.03,-.25 if display_name.begins_with("AK") else -.39)
     visual.scale=Vector3.ONE*factor
     visual.position=desired_origin-(visual.quaternion*optical_center)*factor
+    # Authored anchors take precedence over an estimated optical center.
+    # The AWM now exports its real pistol grip in canonical game axes.
+    var grip:=visual.find_child("Grip",true,false) as Node3D
+    if grip:
+        visual.position-=holder.to_local(grip.global_position)
     print("AURORA_WEAPON_VISUAL ",display_name,
         " mesh_length_m=",desired_length," imported_bounds=",extent)
     return visual
@@ -219,10 +224,12 @@ func add_expansion(slot: int) -> bool:
         return false
     var carried:=scene.instantiate() as Node3D
     mount.add_child(carried)
+    _calibrate_expansion(carried,slot)
     _expansion[slot]=carried
     if back_mount:
         var holstered:=scene.instantiate() as Node3D
         back_mount.add_child(holstered)
+        _calibrate_expansion(holstered,slot)
         _expansion_holsters[slot]=holstered
     if slot==WEAPONS.MP40:
         _mp40_magazine=carried.find_child("Magazine",true,false) as Node3D
@@ -233,6 +240,27 @@ func add_expansion(slot: int) -> bool:
             _charging_rest=_mp40_charging_handle.position
     _sync_equipment_visibility()
     return true
+
+
+func _calibrate_expansion(visual: Node3D,slot: int) -> void:
+    if slot!=WEAPONS.SCAR:
+        return
+    # Measured from the existing V3 GLB POSITION accessors. Its rifle is
+    # along +Y at Z=1.63..1.89, while the old empty markers described an
+    # unrelated origin. Normalize the EXISTING derivative, without changing
+    # source bytes or pretending its discarded FPS clips were retargeted.
+    visual.rotation_degrees.x=-90.0
+    visual.position=Vector3(0,-1.72,-1.49)
+    var grip:=visual.find_child("Grip",true,false) as Node3D
+    var muzzle:=visual.find_child("Muzzle",true,false) as Node3D
+    if grip:
+        grip.position=Vector3(0,-1.49,1.72)
+    if muzzle:
+        muzzle.position=Vector3(.0014,-.7864,1.7956)
+    var support:=Node3D.new()
+    support.name="SupportGrip"
+    visual.add_child(support)
+    support.position=Vector3(0,-1.19,1.77)
 
 
 func clear_expansion() -> void:
@@ -328,8 +356,9 @@ func equipped_global_length() -> float:
 func muzzle_position() -> Vector3:
     # Input may fire between render frames: align before computing the ray.
     _align_mount_to_sight()
-    if selected_weapon>=WEAPONS.SCAR:
-        var tip:=currently_equipped().find_child("Muzzle",true,false) as Node3D
+    var equipped: Node3D=currently_equipped()
+    if equipped:
+        var tip:=equipped.find_child("Muzzle",true,false) as Node3D
         if tip:
             return tip.global_position
     return mount.to_global(Vector3(0,.03,-1.10 if selected_weapon==1 else -.78))
