@@ -36,7 +36,7 @@ func _verify() -> void:
         var vertices: PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
         check(vertices.size()==81,
             "natural ridge must consist of 9 sectors and 27 facets")
-        min_triangles=mini(min_triangles,vertices.size()/3)
+        min_triangles=mini(min_triangles,int(vertices.size()/3))
         var highest: float=-INF
         for vertex in vertices:
             highest=maxf(highest,vertex.y)
@@ -58,9 +58,9 @@ func _verify() -> void:
         stage.find_child("AuroraHangarRear",true,false)!=null and
         stage.find_child("PolarAuroraCurtain",true,false)!=null,
         "production stage lost its runway, hangar or polar atmosphere")
-    var rotor: Node3D=stage._radar_rotor
+    var rotor: Node3D=stage.get("_radar_rotor") as Node3D
     var angle_before: float=rotor.rotation.y
-    stage._process(1.0/30.0)
+    stage.call("_process",1.0/30.0)
     check(rotor.rotation.y!=angle_before,
         "actual 3D radar animation stopped")
     stage.queue_free()
