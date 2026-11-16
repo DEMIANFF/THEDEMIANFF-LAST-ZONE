@@ -21,3 +21,12 @@ Se recuperaron las capturas renderizadas en CI de V75.109: [ejecución 437729695
 4. Mantener borrador hasta esas pruebas. Un CI verde en OpenGL software **no valida** Vulkan Mobile ni equivalencia completa a las imágenes de referencia.
 
 Conservar `main`, `v44-3-2-autosave-guest`, `com.thedemianff.lastzone`, Firebase productivo, firma y perfiles.
+
+
+## Corrección de regresión del QA histórico V75.79
+
+GitHub Actions run `43775997906` detuvo la batería en `v7579_premium_lobby_stage_qa.gd`: el test exigía `camera.fov <= 40.0`, un valor anterior a la corrección de V75.111. Las QA V75.111, V75.110, V75.109, V75.108 y anteriores inmediatas habían pasado antes de esta condición obsoleta.
+
+El QA V75.79 ahora conserva sus comprobaciones del escenario invernal, cuenta, botón INICIAR, social, monedas y límites de pantalla, pero reemplaza el umbral de FOV por una comprobación **geométrica del modelo real** a 964×434: proyecta los ocho vértices AABB de cada mesh visible de Lila mediante `Camera3D.unproject_position`, exige al menos 42% de ocupación vertical y mantiene cabeza y pies fuera de las bandas superior/inferior. No se ha cambiado el gameplay, la cámara de V75.111 ni el sistema de animación para satisfacer un número obsoleto.
+
+**Verificación del parche:** nueva ejecución integral de CI y revisión de la captura V75.111 antes de declarar la regresión resuelta; prueba física Motorola aún pendiente.
