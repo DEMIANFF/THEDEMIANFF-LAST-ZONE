@@ -135,11 +135,21 @@ func _verify() -> void:
     check(camera.fov>=53.0,"full-body Lila framing regressed")
     var stage_root: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage")
-    var world_environment: WorldEnvironment=stage_root.find_child(
-        "WorldEnvironment",true,false) as WorldEnvironment
-    check(world_environment!=null and
-        world_environment.environment.ambient_light_energy<=.65,
-        "skinned operator outfit is washed out by excessive ambient light")
+    # Godot can assign generated names to new WorldEnvironment nodes;
+    # discover the concrete environment by type, not by its display name.
+    var world_environment: WorldEnvironment=null
+    for candidate in stage_root.get_children():
+        if candidate is WorldEnvironment:
+            world_environment=candidate as WorldEnvironment
+            break
+    var actual_energy: float=INF
+    if world_environment!=null and world_environment.environment!=null:
+        actual_energy=world_environment.environment.ambient_light_energy
+    print("V75113_LOBBY_AMBIENT energy=",actual_energy,
+        " environment_found=",world_environment!=null)
+    check(world_environment!=null and actual_energy<=.65,
+        "skinned operator outfit has unexpected ambient energy: "+
+        str(actual_energy))
     var hangar: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage/AuroraReal3DLobbyEnvironment")
     check(hangar.find_child("AuroraRunwayCentralSpine",true,false)!=null and
