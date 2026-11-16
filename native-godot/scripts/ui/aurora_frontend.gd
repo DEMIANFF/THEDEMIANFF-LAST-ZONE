@@ -609,7 +609,7 @@ func _welcome() -> void:
         information.add_child(line)
     # Hide the optional briefing on Motorola's 434px landscape height,
     # preserving all three actionable providers and their touch targets.
-    _entry_info_panel.visible=minf(_surface.size.y,float(get_viewport().size.y))>=620.0
+    _entry_info_panel.visible=_entry_should_show_briefing()
     _login_status_label=_label("COMPROBANDO ACCESO…",12)
     _login_status_label.name="LoginTransportStatus"
     _login_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -2202,6 +2202,19 @@ func _fit_avatar_for_preview(visual: Node3D) -> void:
 func _game_active() -> bool:
     return _game!=null and is_instance_valid(_game)
 
+func _entry_should_show_briefing() -> bool:
+    # Landscape handsets (including the Edge 60 Fusion) are much wider
+    # than 16:9. Godot canvas_items stretching can preserve a 720px
+    # logical viewport on a physically 434px-tall window: logical height
+    # alone is not a reliable indication of available touch space.
+    var physical: Vector2=Vector2(get_window().size)
+    var safe: Rect2=SAFE_SCREEN.rect(get_viewport())
+    if physical.y<=0.0:
+        return false
+    var wide_phone: bool=physical.x/maxf(1.0,physical.y)>=2.0
+    return not wide_phone and minf(safe.size.y,physical.y)>=620.0
+
+
 func _layout_safe() -> void:
     var safe: Rect2=SAFE_SCREEN.rect(get_viewport())
     _surface.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
@@ -2209,11 +2222,7 @@ func _layout_safe() -> void:
     _surface.size=safe.size
     if stage=="welcome" and _entry_info_panel!=null and is_instance_valid(
             _entry_info_panel):
-        # Root Window.size and safe rect may update on different frames
-        # during resize or device rotation. Use the smaller height so the
-        # optional panel never covers login actions while the two resync.
-        _entry_info_panel.visible=minf(safe.size.y,
-            float(get_viewport().size.y))>=620.0
+        _entry_info_panel.visible=_entry_should_show_briefing()
     # SubViewportContainer with stretch=true OWNS its SubViewport.size.
     # Never write the child's size manually: Godot ignores that write and
     # warns every frame. Use stretch_shrink to cap the physical pixel count
