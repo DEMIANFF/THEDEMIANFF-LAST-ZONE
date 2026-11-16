@@ -44,6 +44,7 @@ var _entry_hero_plate: Panel
 var _entry_hero_kicker: Label
 var _entry_panel_accent: ColorRect
 var _loading_chapter: Label
+var _loading_emblem: TextureRect
 var _loading_surface_plate: Panel
 var _entry_info_panel: PanelContainer
 var _header_glass: Panel
@@ -450,12 +451,13 @@ func _build_loading_overlay() -> void:
     _loading_chapter.add_theme_color_override(
         "font_color",Color(.53,.79,.91))
     branding.add_child(_loading_chapter)
-    var emblem:=TextureRect.new()
-    emblem.texture=_brand_logo.texture
-    emblem.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
-    emblem.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-    emblem.custom_minimum_size=Vector2(0,87)
-    branding.add_child(emblem)
+    _loading_emblem=TextureRect.new()
+    _loading_emblem.name="AuroraLoadingIdentityEmblem"
+    _loading_emblem.texture=_brand_logo.texture
+    _loading_emblem.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+    _loading_emblem.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    _loading_emblem.custom_minimum_size=Vector2(0,87)
+    branding.add_child(_loading_emblem)
     _add_entry_wordmark(branding)
 
     var content:=VBoxContainer.new()
@@ -2362,6 +2364,11 @@ func _layout_safe() -> void:
     _surface.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     _surface.position=safe.position
     _surface.size=safe.size
+    # Adapt original LZ emblem to usable screen height: large desktop hero
+    # but never clip the live progress/actions in 434px Motorola landscape.
+    if _loading_emblem!=null and is_instance_valid(_loading_emblem):
+        _loading_emblem.custom_minimum_size.y=clampf(
+            safe.size.y*.16,69.0,122.0)
     if stage=="welcome" and _entry_info_panel!=null and is_instance_valid(
             _entry_info_panel):
         _entry_info_panel.visible=_entry_should_show_briefing()
