@@ -69,6 +69,13 @@ func _ready() -> void:
     }
     for name in recipes:
         _samples[name]=_render(name,float(recipes[name]))
+    # Prefer rights-cleared, short one-shot Aurora V3 audio only when staged.
+    # No user-supplied recording is embedded in this public repository.
+    # Existing original procedural samples remain authoritative fallbacks.
+    for name in recipes:
+        var external: AudioStream=ADDENDUM.imported("weapons/"+str(name)+".ogg")
+        if external!=null:
+            _samples[name]=external
     _samples["grenade"]=blast if blast!=null else _render("grenade",2.83)
     for i in range(VOICES):
         var voice:=AudioStreamPlayer.new()
