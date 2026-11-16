@@ -1,6 +1,8 @@
 name: Aurora V75.113 Godot QA (Android release manual only)
 concurrency:
-  group: aurora-android-${{ github.ref }}
+  # Separate renamed frontend pipelines from superseded jobs while still
+  # cancelling repeated commits of the SAME workflow on the same branch.
+  group: aurora-android-${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 on:
   push:
