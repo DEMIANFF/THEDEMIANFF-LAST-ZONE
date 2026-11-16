@@ -137,6 +137,7 @@ func _ready() -> void:
         if combat.weapon_index!=COMBAT.WEAPONS.MP40:
             sound.play_event("reload"))
     combat.reload_cue.connect(func(sample: StringName): sound.play_event(str(sample)))
+    combat.awm_bolt_cycled.connect(func(): sound.play_event("awm_bolt"))
     operator.player_eliminated.connect(func(): sound.play_event("eliminated"))
     combat.healed.connect(func(): sound.play_event("heal"))
     for bot in combat._targets:
