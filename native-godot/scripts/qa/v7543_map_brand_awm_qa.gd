@@ -86,9 +86,15 @@ func _verify() -> void:
         "renamed original PNG splash missing or too small")
     var emblem: TextureRect=frontend.get_node(
         "AuroraMenuSurface/LastZoneAuroraEmblem") as TextureRect
-    check(emblem.anchor_left>.65 and emblem.anchor_right<.96 and
-        emblem.anchor_top<.20 and emblem.anchor_bottom<.48,
-        "welcome logo still overlaps the entrance and flight settings")
+    # The V75.43 x>.65 assertion was a layout prescription, not a
+    # visibility guarantee. Check actual geometry: the new brand may be
+    # bigger but must not cross the access panel or leave the viewport.
+    var welcome_logo: Rect2=emblem.get_global_rect()
+    check(emblem.is_visible_in_tree() and
+        root.get_visible_rect().grow(1).encloses(welcome_logo) and
+        not welcome_logo.intersects(
+            frontend._entry_glass.get_global_rect()),
+        "welcome emblem overlaps the functional access panel or screen")
     var title:=frontend._page.get_node_or_null("EntryBrandTitle") as Label
     var subtitle:=frontend._page.get_node_or_null("EntryBrandSubtitle") as Label
     check(title!=null and subtitle!=null and
@@ -100,9 +106,19 @@ func _verify() -> void:
         "AnimationPlayer",true,false) as AnimationPlayer
     check(anim!=null and anim.current_animation=="AuroraIdle",
         "lobby still uses empty-handed armed pose without a visible rifle")
-    check(emblem.anchor_left>.89 and emblem.anchor_right<.98 and
-        emblem.anchor_bottom<.15,
-        "lobby logo still overlaps stats or face of Lila")
+    # V75.113 places the identity emblem at the upper LEFT next to the
+    # game title. Geometric non-overlap is more relevant than insisting on
+    # the old tiny upper-right thumbnail used by V75.43.
+    await process_frame
+    var lobby_logo: Rect2=emblem.get_global_rect()
+    check(emblem.is_visible_in_tree() and
+        root.get_visible_rect().grow(1).encloses(lobby_logo) and
+        not lobby_logo.intersects(
+            frontend._profile_strip.get_global_rect()) and
+        not lobby_logo.intersects(
+            frontend._stats_strip.get_global_rect()) and
+        emblem.anchor_right<.20 and emblem.anchor_bottom<.15,
+        "lobby emblem overlaps player statistics, operator or screen")
     check(frontend._profile_strip.text.contains("THEDEMIAN: LAST ZONE")
         and not frontend._profile_strip.text.contains("THEDEMIANFF"),
         "lobby player profile has old brand")
