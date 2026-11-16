@@ -36,6 +36,9 @@ func _verify() -> void:
     check(front._entry_mission_caption.text.contains("ÚLTIMA ZONA") and
         front._entry_mission_caption.anchor_top<.43,
         "Aurora introduction is not an intentional hero composition")
+    check(front._page.get_node("StartupDiagnosticEntry").visible and
+        front._page.get_node("AuroraEntryAccessOverline").visible,
+        "large entry lacks development access and hierarchy")
     for button in [front._login_google_button,front._login_guest_button,
             front._login_local_button]:
         _within_screen(button,"large-screen login")
@@ -69,6 +72,11 @@ func _verify() -> void:
         var login: Rect2=front._entry_glass.get_global_rect()
         check(hero.end.x<=login.position.x,
             "left artwork intro overlaps native account actions")
+        if dimensions.y<560:
+            check(not front._page.get_node("StartupDiagnosticEntry").visible
+                and not front._page.get_node(
+                    "AuroraEntryAccessOverline").visible,
+                "compact Motorola sign-in retained optional overflowing rows")
         check(not front._entry_info_panel.visible if
             dimensions.x/dimensions.y>=2 else
             front._entry_info_panel.visible,
