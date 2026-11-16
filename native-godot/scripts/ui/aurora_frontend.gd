@@ -412,63 +412,92 @@ func _build_entry_shell() -> void:
 func _build_loading_overlay() -> void:
     _loading_overlay=ColorRect.new()
     _loading_overlay.name="AuroraLoadingOverlay"
-    _loading_overlay.color=Color(.007,.024,.052,.83)
+    _loading_overlay.color=Color(.005,.015,.032,.90)
     _loading_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _surface.add_child(_loading_overlay)
+    _loading_surface_plate=_make_glass_panel(
+        Color(.006,.019,.041,.86),Color(.34,.61,.76,.58),12)
+    _loading_surface_plate.name="AuroraLoadingConsolePlate"
+    _loading_surface_plate.anchor_left=.18
+    _loading_surface_plate.anchor_right=.82
+    _loading_surface_plate.anchor_top=.51
+    _loading_surface_plate.anchor_bottom=.967
+    _loading_overlay.add_child(_loading_surface_plate)
+    var stripe:=ColorRect.new()
+    stripe.name="AuroraLoadingGoldStripe"
+    stripe.color=Color(.95,.66,.22,.90)
+    stripe.anchor_left=.22
+    stripe.anchor_right=.78
+    stripe.anchor_top=.513
+    stripe.anchor_bottom=.518
+    stripe.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _loading_overlay.add_child(stripe)
     var hero:=CenterContainer.new()
     hero.anchor_right=1
-    hero.anchor_top=.055
-    # Reserve enough vertical space for the load controls on Motorola landscape.
-    hero.anchor_bottom=.50
+    hero.anchor_top=.047
+    # Keep brand and real resource progress in different layers.
+    hero.anchor_bottom=.483
     _loading_overlay.add_child(hero)
     var branding:=VBoxContainer.new()
     hero.add_child(branding)
+    _loading_chapter=Label.new()
+    _loading_chapter.name="AuroraLoadingChapter"
+    _loading_chapter.text="A U R O R A   /   P R O T O C O L O   D E   D E S P L I E G U E"
+    _loading_chapter.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _loading_chapter.add_theme_font_size_override("font_size",11)
+    _loading_chapter.add_theme_color_override(
+        "font_color",Color(.53,.79,.91))
+    branding.add_child(_loading_chapter)
     var emblem:=TextureRect.new()
     emblem.texture=_brand_logo.texture
     emblem.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
     emblem.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-    emblem.custom_minimum_size=Vector2(0,82)
+    emblem.custom_minimum_size=Vector2(0,87)
     branding.add_child(emblem)
     _add_entry_wordmark(branding)
 
     var content:=VBoxContainer.new()
     content.name="AuroraLoadingActions"
-    content.anchor_left=.20
-    content.anchor_right=.80
+    content.anchor_left=.23
+    content.anchor_right=.77
     # The former 0.305-height region was only 132px on 964x434;
     # CANCEL or RETRY could extend beyond the touch-safe screen.
-    content.anchor_top=.525
-    content.anchor_bottom=.972
+    content.anchor_top=.544
+    content.anchor_bottom=.960
     content.alignment=BoxContainer.ALIGNMENT_CENTER
     content.add_theme_constant_override("separation",8)
     _loading_overlay.add_child(content)
     var phase:=Label.new()
     phase.name="AuroraLoadPhase"
-    phase.text="AURORA  /  SINCRONIZANDO RECURSOS LOCALES"
+    phase.text="SECUENCIA  01 /  VERIFICACIÓN DE RECURSOS"
     phase.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     phase.add_theme_font_size_override("font_size",12)
     phase.add_theme_color_override("font_color",Color(.40,.84,.94))
     content.add_child(phase)
     _loading_title=Label.new()
     _loading_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-    _loading_title.add_theme_font_size_override("font_size",18)
+    _loading_title.add_theme_font_size_override("font_size",21)
+    _loading_title.add_theme_color_override(
+        "font_color",Color(.98,.95,.86))
     content.add_child(_loading_title)
     _loading_detail=Label.new()
     _loading_detail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _loading_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _loading_detail.add_theme_font_size_override("font_size",16)
+    _loading_detail.add_theme_font_size_override("font_size",14)
+    _loading_detail.add_theme_color_override(
+        "font_color",Color(.75,.86,.93))
     content.add_child(_loading_detail)
     _loading_meter=ProgressBar.new()
     _loading_meter.name="WorldLoadProgress"
-    _loading_meter.custom_minimum_size=Vector2(275,24)
+    _loading_meter.custom_minimum_size=Vector2(275,21)
     var track:=StyleBoxFlat.new()
-    track.bg_color=Color(.020,.052,.091)
-    track.border_color=Color(.38,.80,.92)
+    track.bg_color=Color(.017,.030,.059)
+    track.border_color=Color(.33,.68,.83)
     track.set_border_width_all(2)
     track.set_corner_radius_all(4)
     _loading_meter.add_theme_stylebox_override("background",track)
     var fill:=StyleBoxFlat.new()
-    fill.bg_color=Color(.93,.67,.22)
+    fill.bg_color=Color(1.0,.72,.23)
     fill.set_corner_radius_all(4)
     _loading_meter.add_theme_stylebox_override("fill",fill)
     content.add_child(_loading_meter)
@@ -479,8 +508,8 @@ func _build_loading_overlay() -> void:
 
 
 func _add_entry_wordmark(container: VBoxContainer) -> void:
-    for entry in [["EntryBrandTitle","THEDEMIAN:",36,Color(.95,.97,1.0)],
-            ["EntryBrandSubtitle","LAST ZONE",24,Color(.98,.76,.36)]]:
+    for entry in [["EntryBrandTitle","THEDEMIAN:",37,Color(.97,.98,1.0)],
+            ["EntryBrandSubtitle","LAST ZONE",22,Color(1.0,.73,.31)]]:
         var label:=Label.new()
         label.name=entry[0]
         label.text=entry[1]
