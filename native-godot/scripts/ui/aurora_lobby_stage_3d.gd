@@ -105,7 +105,7 @@ func _build_hangar(at: Vector3) -> void:
         var slope:=Basis(Vector3.FORWARD,side*atan2(rise,width*.5))
         var roof_span:=Vector3(Vector2(width*.5,rise).length()+.24,.16,length+.55)
         _solid("HangarRoofSlope"+("L" if side<0.0 else "R"),
-            at+Vector3(side*width*.25,eave+rise*.5,0),roof_span,fascia,slope,true)
+            at+Vector3(side*width*.25,eave+rise*.5,0),roof_span,fascia,slope)
         _solid("HangarRoofDrift"+("L" if side<0.0 else "R"),
             at+Vector3(side*width*.25,eave+rise*.5+.12,-.16),
             Vector3(roof_span.x*.95,.085,roof_span.z*.90),_snow,slope)
@@ -407,21 +407,20 @@ func _light(title: String,at: Vector3,tint: Color,energy: float,radius: float) -
 
 
 func _mesh(title: String,geometry: Mesh,material: Material,at:=Vector3.ZERO,
-        parent: Node3D=null,shadow:=false) -> MeshInstance3D:
+        parent: Node3D=null) -> MeshInstance3D:
     var instance:=MeshInstance3D.new()
     instance.name=title
     instance.mesh=geometry
     instance.material_override=material
     instance.position=at
-    if not shadow:
-        instance.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    instance.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     (self if parent==null else parent).add_child(instance)
     return instance
 
 
 func _solid(title: String,at: Vector3,size_3d: Vector3,material: Material,
-        orientation:=Basis.IDENTITY,shadow:=false) -> void:
-    var instance:=_mesh(title,_cube,material,at,null,shadow)
+        orientation:=Basis.IDENTITY) -> void:
+    var instance:=_mesh(title,_cube,material,at)
     instance.basis=orientation*Basis.from_scale(size_3d)
 
 

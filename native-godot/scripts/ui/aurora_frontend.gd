@@ -22,6 +22,7 @@ const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.g
 const DISPLAY_FONT=preload("res://assets/ui/fonts/BarlowCondensed-Bold.ttf")
 const AIRFIELD_SKY=preload("res://assets/ui/aurora_night_sky.gdshader")
 const LOBBY_OPERATOR_SURFACE=preload("res://assets/characters/lila_lobby_surface.gdshader")
+const PORTRAIT_LIGHT_LAYER: int=2
 
 signal startup_finished
 @export_file("*.tscn") var game_scene_path: String=GAME_PATH
@@ -2352,6 +2353,8 @@ func _build_preview() -> void:
     viewport.own_world_3d=true
     viewport.transparent_bg=false
     viewport.msaa_3d=Viewport.MSAA_2X
+    viewport.positional_shadow_atlas_size=512
+    viewport.positional_shadow_atlas_quad_0=Viewport.SHADOW_ATLAS_QUADRANT_SUBDIV_1
     viewport.render_target_update_mode=SubViewport.UPDATE_WHEN_PARENT_VISIBLE
     _preview_container.add_child(viewport)
     _layout_safe.call_deferred()
@@ -2389,9 +2392,6 @@ func _build_preview() -> void:
     key.rotation_degrees=Vector3(-40,31,0)
     key.light_color=Color(1.0,.94,.89)
     key.light_energy=1.04
-    key.shadow_enabled=true
-    key.directional_shadow_mode=DirectionalLight3D.SHADOW_ORTHOGONAL
-    key.directional_shadow_max_distance=11.0
     stage3d.add_child(key)
     var rim:=DirectionalLight3D.new()
     rim.name="AuroraPortraitRim"
@@ -2399,6 +2399,19 @@ func _build_preview() -> void:
     rim.light_color=Color(.51,.69,1.0)
     rim.light_energy=.71
     stage3d.add_child(rim)
+    # Keep the operator's contact shadow in the lobby's small positional atlas.
+    var portrait_spot:=SpotLight3D.new()
+    portrait_spot.name="AuroraPortraitSpot"
+    portrait_spot.position=Vector3(-1.04,2.68,1.45)
+    portrait_spot.light_color=Color(1.0,.89,.78)
+    portrait_spot.light_energy=.41
+    portrait_spot.spot_range=4.25
+    portrait_spot.spot_angle=37.0
+    portrait_spot.light_cull_mask=PORTRAIT_LIGHT_LAYER
+    portrait_spot.shadow_caster_mask=PORTRAIT_LIGHT_LAYER
+    portrait_spot.shadow_enabled=true
+    stage3d.add_child(portrait_spot)
+    portrait_spot.look_at(Vector3(0,.62,-.15),Vector3.UP)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
     # V75.109 CI screenshot showed the operator's head hidden behind the
@@ -2422,6 +2435,8 @@ func _build_preview() -> void:
     disk.height=.048
     podium.mesh=disk
     podium.position.y=-.037
+    podium.layers|=PORTRAIT_LIGHT_LAYER
+    podium.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     var metal:=StandardMaterial3D.new()
     metal.albedo_color=Color(.14,.185,.238)
     metal.metallic=.43
@@ -2437,6 +2452,8 @@ func _build_preview() -> void:
             _preview_avatar.name="LilaAuroraPreview"
             stage3d.add_child(_preview_avatar)
             _fit_avatar_for_preview(_preview_avatar)
+            for node in _preview_avatar.find_children("*","MeshInstance3D",true,false):
+                (node as MeshInstance3D).layers|=PORTRAIT_LIGHT_LAYER
             var anim:=_preview_avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
             # Lobby has no equipped hand-held rifle. Playing the armed grip
             # without a model made Lila's empty palms look glued together.

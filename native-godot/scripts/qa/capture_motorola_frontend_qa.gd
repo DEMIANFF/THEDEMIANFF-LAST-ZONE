@@ -49,7 +49,9 @@ func _capture() -> void:
         return
     front._welcome()
     front.queue_free()
-    await process_frame
+    # Retire the 3D render target and its sky before asking the driver to exit.
+    for frame in range(12):
+        await RenderingServer.frame_post_draw
     print("V75113_MOTOROLA_CAPTURE PASS real_godot=1 "+
         "screens=loading,login,lobby native_vulkan_phone=not_tested")
     quit(0)

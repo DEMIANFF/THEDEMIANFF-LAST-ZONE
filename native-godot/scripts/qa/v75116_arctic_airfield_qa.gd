@@ -49,8 +49,11 @@ func _verify() -> void:
         and atmosphere.environment.fog_enabled and atmosphere.environment.sky!=null,
         "live sky and depth fog are missing")
     var portrait_key:=scene.get_node("AuroraPortraitKey") as DirectionalLight3D
-    _check(portrait_key.shadow_enabled and portrait_key.directional_shadow_max_distance<=12.0,
-        "portrait shadow casting must be present and bounded")
+    var portrait_spot:=scene.get_node_or_null("AuroraPortraitSpot") as SpotLight3D
+    _check(not portrait_key.shadow_enabled and portrait_spot!=null and
+        portrait_spot.shadow_enabled and portrait_spot.spot_range<5.0 and
+        viewport.positional_shadow_atlas_size==512,
+        "portrait shadow must stay inside the lobby's positional atlas")
 
     var batches:=airfield.find_children("*","MultiMeshInstance3D",true,false)
     var instances:=0
