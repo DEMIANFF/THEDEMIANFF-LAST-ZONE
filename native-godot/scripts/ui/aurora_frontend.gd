@@ -647,6 +647,11 @@ func _welcome() -> void:
     entry_overline.name="AuroraEntryAccessOverline"
     entry_overline.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     entry_overline.add_theme_color_override("font_color",Color(.49,.78,.90))
+    # Compact 434px login must reserve its height for the three real
+    # providers. Decorative overline and diagnostics are optional.
+    var compact_entry: bool=minf(_surface.size.y,
+        float(get_window().size.y))<560.0
+    entry_overline.visible=not compact_entry
     var space:=Control.new()
     space.mouse_filter=Control.MOUSE_FILTER_IGNORE
     space.size_flags_vertical=Control.SIZE_EXPAND_FILL
@@ -729,6 +734,7 @@ func _welcome() -> void:
     diag.modulate=Color(.72,.80,.90)
     diag.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _page.add_child(diag)
+    diag.visible=not compact_entry
     _poll_login_state()
 
 
@@ -2372,6 +2378,16 @@ func _layout_safe() -> void:
     if stage=="welcome" and _entry_info_panel!=null and is_instance_valid(
             _entry_info_panel):
         _entry_info_panel.visible=_entry_should_show_briefing()
+        var compact_entry: bool=minf(safe.size.y,
+            float(get_window().size.y))<560.0
+        var overline: Control=_page.get_node_or_null(
+            "AuroraEntryAccessOverline") as Control
+        var diagnostics: Control=_page.get_node_or_null(
+            "StartupDiagnosticEntry") as Control
+        if overline!=null:
+            overline.visible=not compact_entry
+        if diagnostics!=null:
+            diagnostics.visible=not compact_entry
     # SubViewportContainer with stretch=true OWNS its SubViewport.size.
     # Never write the child's size manually: Godot ignores that write and
     # warns every frame. Use stretch_shrink to cap the physical pixel count
