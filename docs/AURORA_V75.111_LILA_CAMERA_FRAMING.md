@@ -30,3 +30,9 @@ GitHub Actions run `43775997906` detuvo la batería en `v7579_premium_lobby_stag
 El QA V75.79 ahora conserva sus comprobaciones del escenario invernal, cuenta, botón INICIAR, social, monedas y límites de pantalla, pero reemplaza el umbral de FOV por una comprobación **geométrica del modelo real** a 964×434: proyecta los ocho vértices AABB de cada mesh visible de Lila mediante `Camera3D.unproject_position`, exige al menos 42% de ocupación vertical y mantiene cabeza y pies fuera de las bandas superior/inferior. No se ha cambiado el gameplay, la cámara de V75.111 ni el sistema de animación para satisfacer un número obsoleto.
 
 **Verificación del parche:** nueva ejecución integral de CI y revisión de la captura V75.111 antes de declarar la regresión resuelta; prueba física Motorola aún pendiente.
+
+## Fallo de captura de CI: rutas de imágenes obsoletas
+
+En la ejecución [43805595358](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43805595358), la batería nativa llegó al paso de captura de Godot. `capture_frontend_preview.gd` y `capture_real_skin_variants.gd` obtienen el tag de `export_presets.cfg` mediante `aurora_capture_version.gd`, por lo que V75.111 produce archivos `aurora-v75-111-*.png`. El workflow seguía exigiendo nombres `aurora-v75-109-*.png`: `test -s` devolvía 1 aun después del marcador `AURORA_FRONTEND_RENDER`. El warning de V-Sync con Mesa llvmpipe y la advertencia ObjectDB no demostraron ser la causa.
+
+Corregido en `.github/workflows/native-godot-preview-apk.yml`: resuelve `AURORA_CAPTURE_TAG` del preset y utiliza ese valor tanto en los `test -s` como en las rutas de ambos artefactos, incluido el flujo de exportación manual. No modifica rig, gameplay ni renderizado Vulkan. Una nueva ejecución debe confirmar que las imágenes reales existen antes de llamar a esto resuelto.
