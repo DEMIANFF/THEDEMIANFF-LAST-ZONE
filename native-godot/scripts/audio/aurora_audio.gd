@@ -48,6 +48,7 @@ func _ready() -> void:
     var recipes: Dictionary={
         "ar_fire":.25,
         "awm_fire":.62,
+        "awm_bolt":.19,
         "scar_fire":.32,
         "mp40_fire":.17,
         "kriss_fire":.13,
@@ -345,6 +346,14 @@ func _render(kind: String,duration: float) -> AudioStreamWAV:
             "awm_fire":
                 value=.96*high*exp(-t*18.0)+.66*sin(TAU*(72.0*t+38.0*t*t))*exp(-t*7.0)
                 value+=.25*middle*exp(-t*5.0)
+            "awm_bolt":
+                # Two short steel contact transients, intentionally distinct
+                # from fire and clip replacement. Original procedural audio.
+                var pull: float=exp(-pow((t-.018)/.010,2))
+                var lock: float=exp(-pow((t-.105)/.014,2))
+                value=(.52*middle+.16*sin(TAU*790.0*t))*pull
+                value+=(.65*high+.32*sin(TAU*525.0*t))*lock
+                value+=.08*low*exp(-t*22.0)
             "scar_fire":
                 value=(.77*middle+.46*pulse)*exp(-t*18.0)+.30*high*exp(-t*42.0)
             "mp40_fire":
