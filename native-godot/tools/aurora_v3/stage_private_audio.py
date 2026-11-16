@@ -5,6 +5,7 @@ Audio licenses are not established by an intact SHA-256. Output stays outside
 Godot's resource directory until permissions and on-device QA are approved.
 """
 import argparse
+from array import array
 import hashlib
 import json
 from pathlib import Path
@@ -51,6 +52,43 @@ def ffmpeg(source: Path, target: Path, start: float, duration: float, wav=False)
                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
 
+def normalize_ogg(path: Path, max_peak: float = .82) -> None:
+    # Vorbis decoded peaks may exceed encoded PCM peaks: iterate safely.
+    for iteration in range(4):
+        decoded = subprocess.run(['ffmpeg', '-v', 'error', '-i', str(path),
+                                  '-ac', '1', '-ar', '22050', '-f', 'f32le', '-'],
+                                 check=True, stdout=subprocess.PIPE).stdout
+        floats = array('f')
+        floats.frombytes(decoded)
+        peak = max((abs(v) for v in floats), default=0.)
+        if peak <= max_peak:
+            return
+        temp = path.with_name(path.stem + '.normalized.ogg')
+        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(path),
+                        '-af', 'volume=%.8f' % (max_peak / peak * .86),
+                        '-c:a', 'libvorbis', '-q:a', '4', str(temp)], check=True)
+        temp.replace(path)
+    raise ValueError('Audio remains above safe decoded peak: ' + path.name)
+
+
+def normalize_wav(path: Path, target_peak: float = .47) -> None:
+    import wave
+    with wave.open(str(path), 'rb') as stream:
+        params = stream.getparams()
+        if params.nchannels != 1 or params.sampwidth != 2:
+            raise ValueError('Expected mono 16-bit step clip')
+        samples = array('h')
+        samples.frombytes(stream.readframes(params.nframes))
+    peak = max((abs(v) for v in samples), default=0)
+    if peak:
+        factor = target_peak * 32767. / peak
+        scaled = array('h', (max(-32767, min(32767, round(v * factor)))
+                             for v in samples))
+        with wave.open(str(path), 'wb') as stream:
+            stream.setparams(params)
+            stream.writeframes(scaled.tobytes())
+
+
 def stage(originals: Path, inventory: Path, extra: Path, destination: Path) -> dict:
     if destination.exists():
         raise FileExistsError('Refusing to overwrite staged audio: ' + str(destination))
@@ -68,6 +106,7 @@ def stage(originals: Path, inventory: Path, extra: Path, destination: Path) -> d
             raise ValueError('Unverified audio source: ' + name)
         target = weapons / (event + '.ogg')
         ffmpeg(source, target, start, duration)
+        normalize_ogg(target)
         records.append({'event': event, 'source': name, 'source_sha256': sources[name]['sha256'],
                         'cut_start_seconds': start, 'cut_length_seconds': duration,
                         'output_sha256': digest(target), 'license_approved': False})
@@ -78,6 +117,7 @@ def stage(originals: Path, inventory: Path, extra: Path, destination: Path) -> d
         for index, peak in enumerate(peaks):
             output = base / (event + '_' + str(index) + '.wav')
             ffmpeg(source, output, peak - .045, .185, wav=True)
+            normalize_wav(output)
             records.append({'event': event+'_'+str(index), 'source': name,
                             'output_sha256': digest(output), 'license_approved': False})
     for name, (output, expected) in ADENDA.items():
