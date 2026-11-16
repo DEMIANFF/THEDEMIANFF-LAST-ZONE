@@ -106,8 +106,8 @@ func _verify() -> void:
     check(front._lobby_compact_intel.is_visible_in_tree() and
         not front._lobby_match_facts.visible,
         "compact match facts should fill the lower phone card only")
-    check(front._lobby_compact_intel.get_node(
-        "CompactBattleInformation").text.contains("PUERTO AURORA"),
+    check((front._lobby_compact_intel.get_node(
+        "CompactBattleInformation") as Label).text.contains("PUERTO AURORA"),
         "compact briefing is not grounded in actual local map")
     _within_screen(front._lobby_compact_intel,"compact match information")
     check(not front._lobby_compact_intel.get_global_rect().intersects(
