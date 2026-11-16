@@ -35,9 +35,9 @@
           "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
         },
         "godot": {
-          "status": "PENDIENTE",
+          "status": "HECHO",
           "runtime_path": "native-godot/assets/weapons/aurora_v3/aurora_scar.glb",
-          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+          "note": "Importación Godot 4.7.2 del derivado ya presente y procedencia grabada verificadas. El original privado sigue sin recuperar/recalcular."
         },
         "scene": "Main/CombatRange; botín AuroraSCARPickup; nueva recogida en Entrenamiento",
         "animation": {
@@ -48,7 +48,7 @@
             "Akito Rig|Shoot",
             "Akito Rig|Take"
           ],
-          "note": "Derivado estático sin los 4 clips originales; usa acciones de Lila AuroraFire/AuroraReloadAR. Retarget original y masculino pendientes."
+          "note": "Derivado estático sin los 4 clips originales; usa acciones de Lila AuroraFire/AuroraReloadAR. Retarget original y masculino pendientes. El incremento corrige el apoyo de ambos brazos en las poses actuales; libera las manos durante recarga/curación/vuelo. No recupera clips FPS originales."
         },
         "audio": {
           "status": "PENDIENTE",
@@ -56,15 +56,27 @@
         },
         "functionality": {
           "status": "PENDIENTE",
-          "existing": "Disparo físico, recarga, cargador independiente de 30, reserva AR compartida, inventario, botín. IA no usa este modelo."
+          "existing": "Disparo físico, recarga, cargador independiente de 30, reserva AR compartida, inventario, botín. IA no usa este modelo.",
+          "verified_increment": {
+            "status": "HECHO",
+            "scope": "Escritorio Godot: recogida física en Entrenamiento, disparo contra oponente, munición/recarga e inventario; agarres sobre malla actual.",
+            "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24"
+          }
         },
         "tests": {
           "status": "PENDIENTE",
           "automated": [
-            "v75103_aurora_v3_qa"
+            "v75103_aurora_v3_qa",
+            "v75118_weapon_anchor_qa",
+            "v75118_training_armory_qa",
+            "weapon_visual_qa"
           ],
-          "visual": "PENDIENTE",
-          "motorola": "NO PROBADO EN ESTA SESION"
+          "visual": "HECHO para 9 poses muestreadas del derivado actual en Lila; continuidad completa, clips fuente y masculino PENDIENTES.",
+          "motorola": "NO PROBADO EN ESTA SESION",
+          "automated_status": "HECHO",
+          "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24",
+          "ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485404",
+          "visual_ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485523"
         }
       }
     },
@@ -719,9 +731,9 @@
           "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
         },
         "godot": {
-          "status": "PENDIENTE",
+          "status": "HECHO",
           "runtime_path": "native-godot/assets/weapons/aurora_v3/aurora_scar.glb",
-          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+          "note": "Importación Godot 4.7.2 del derivado ya presente y procedencia grabada verificadas. El original privado sigue sin recuperar/recalcular."
         },
         "scene": "Main/CombatRange; botín AuroraSCARPickup; nueva recogida en Entrenamiento",
         "animation": {
@@ -732,7 +744,7 @@
             "Akito Rig|Shoot",
             "Akito Rig|Take"
           ],
-          "note": "Derivado estático sin los 4 clips originales; usa acciones de Lila AuroraFire/AuroraReloadAR. Retarget original y masculino pendientes."
+          "note": "Derivado estático sin los 4 clips originales; usa acciones de Lila AuroraFire/AuroraReloadAR. Retarget original y masculino pendientes. El incremento corrige el apoyo de ambos brazos en las poses actuales; libera las manos durante recarga/curación/vuelo. No recupera clips FPS originales."
         },
         "audio": {
           "status": "PENDIENTE",
@@ -740,15 +752,27 @@
         },
         "functionality": {
           "status": "PENDIENTE",
-          "existing": "Disparo físico, recarga, cargador independiente de 30, reserva AR compartida, inventario, botín. IA no usa este modelo."
+          "existing": "Disparo físico, recarga, cargador independiente de 30, reserva AR compartida, inventario, botín. IA no usa este modelo.",
+          "verified_increment": {
+            "status": "HECHO",
+            "scope": "Escritorio Godot: recogida física en Entrenamiento, disparo contra oponente, munición/recarga e inventario; agarres sobre malla actual.",
+            "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24"
+          }
         },
         "tests": {
           "status": "PENDIENTE",
           "automated": [
-            "v75103_aurora_v3_qa"
+            "v75103_aurora_v3_qa",
+            "v75118_weapon_anchor_qa",
+            "v75118_training_armory_qa",
+            "weapon_visual_qa"
           ],
-          "visual": "PENDIENTE",
-          "motorola": "NO PROBADO EN ESTA SESION"
+          "visual": "HECHO para 9 poses muestreadas del derivado actual en Lila; continuidad completa, clips fuente y masculino PENDIENTES.",
+          "motorola": "NO PROBADO EN ESTA SESION",
+          "automated_status": "HECHO",
+          "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24",
+          "ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485404",
+          "visual_ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485523"
         }
       }
     },
@@ -1307,9 +1331,9 @@
           "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
         },
         "godot": {
-          "status": "PENDIENTE",
+          "status": "HECHO",
           "runtime_path": "native-godot/assets/gear/aurora_v3/AuroraHeavyVest.glb",
-          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+          "note": "Importación Godot 4.7.2 del derivado ya presente y procedencia grabada verificadas. El original privado sigue sin recuperar/recalcular."
         },
         "scene": "Main/Operator/LilaVestSocket; protección nivel 3",
         "animation": {
@@ -1331,7 +1355,10 @@
             "v75103_aurora_v3_qa"
           ],
           "visual": "PENDIENTE",
-          "motorola": "NO PROBADO EN ESTA SESION"
+          "motorola": "NO PROBADO EN ESTA SESION",
+          "automated_status": "HECHO",
+          "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24",
+          "ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485404"
         }
       }
     },
@@ -1361,9 +1388,9 @@
           "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
         },
         "godot": {
-          "status": "PENDIENTE",
+          "status": "HECHO",
           "runtime_path": "native-godot/assets/gear/aurora_v3/AuroraHelmet.glb",
-          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+          "note": "Importación Godot 4.7.2 del derivado ya presente y procedencia grabada verificadas. El original privado sigue sin recuperar/recalcular."
         },
         "scene": "Main/Operator/LilaHelmetSocket; casco niveles 1–3",
         "animation": {
@@ -1385,7 +1412,10 @@
             "v75103_aurora_v3_qa"
           ],
           "visual": "PENDIENTE",
-          "motorola": "NO PROBADO EN ESTA SESION"
+          "motorola": "NO PROBADO EN ESTA SESION",
+          "automated_status": "HECHO",
+          "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24",
+          "ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485404"
         }
       }
     },
@@ -1415,9 +1445,9 @@
           "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
         },
         "godot": {
-          "status": "PENDIENTE",
+          "status": "HECHO",
           "runtime_path": "native-godot/assets/gear/aurora_v3/AuroraPlateCarrier.glb",
-          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+          "note": "Importación Godot 4.7.2 del derivado ya presente y procedencia grabada verificadas. El original privado sigue sin recuperar/recalcular."
         },
         "scene": "Main/Operator/LilaVestSocket; chaleco niveles 1–2",
         "animation": {
@@ -1439,7 +1469,10 @@
             "v75103_aurora_v3_qa"
           ],
           "visual": "PENDIENTE",
-          "motorola": "NO PROBADO EN ESTA SESION"
+          "motorola": "NO PROBADO EN ESTA SESION",
+          "automated_status": "HECHO",
+          "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24",
+          "ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485404"
         }
       }
     },
@@ -1469,9 +1502,9 @@
           "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
         },
         "godot": {
-          "status": "PENDIENTE",
+          "status": "HECHO",
           "runtime_path": "native-godot/assets/gear/aurora_v3/AuroraHeavyVest.glb",
-          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+          "note": "Importación Godot 4.7.2 del derivado ya presente y procedencia grabada verificadas. El original privado sigue sin recuperar/recalcular."
         },
         "scene": "Main/Operator/LilaVestSocket; protección nivel 3",
         "animation": {
@@ -1493,7 +1526,10 @@
             "v75103_aurora_v3_qa"
           ],
           "visual": "PENDIENTE",
-          "motorola": "NO PROBADO EN ESTA SESION"
+          "motorola": "NO PROBADO EN ESTA SESION",
+          "automated_status": "HECHO",
+          "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24",
+          "ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485404"
         }
       }
     },
@@ -1984,9 +2020,9 @@
           "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
         },
         "godot": {
-          "status": "PENDIENTE",
+          "status": "HECHO",
           "runtime_path": "native-godot/assets/gear/aurora_v3/AuroraSyringe.glb",
-          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+          "note": "Importación Godot 4.7.2 del derivado ya presente y procedencia grabada verificadas. El original privado sigue sin recuperar/recalcular."
         },
         "scene": "Main/CombatRange/AuroraMedicalVisual; LeftHand",
         "animation": {
@@ -2008,7 +2044,10 @@
             "v75103_aurora_v3_qa"
           ],
           "visual": "PENDIENTE",
-          "motorola": "NO PROBADO EN ESTA SESION"
+          "motorola": "NO PROBADO EN ESTA SESION",
+          "automated_status": "HECHO",
+          "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24",
+          "ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485404"
         }
       }
     },
@@ -4064,15 +4103,15 @@
           "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
         },
         "godot": {
-          "status": "PENDIENTE",
+          "status": "HECHO",
           "runtime_path": "native-godot/assets/weapons/aurora_v3/aurora_mp40.glb",
-          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+          "note": "Importación Godot 4.7.2 del derivado ya presente y procedencia grabada verificadas. El original privado sigue sin recuperar/recalcular."
         },
         "scene": "Main/CombatRange; botín AuroraMP40Pickup; nueva recogida en Entrenamiento",
         "animation": {
           "status": "PENDIENTE",
           "original_clips": [],
-          "note": "Original sin clips; acción AuroraReloadMP40 sobre Lila y piezas Magazine/ChargingHandle movidas por tiempo de recarga. Masculino y revisión visual pendientes."
+          "note": "Original sin clips; acción AuroraReloadMP40 sobre Lila y piezas Magazine/ChargingHandle movidas por tiempo de recarga. Masculino y revisión visual pendientes. El incremento corrige el apoyo de ambos brazos en las poses actuales; libera las manos durante recarga/curación/vuelo. No recupera clips FPS originales."
         },
         "audio": {
           "status": "PENDIENTE",
@@ -4080,15 +4119,27 @@
         },
         "functionality": {
           "status": "PENDIENTE",
-          "existing": "Disparo físico, cargador 15, recarga interrumpible, reserva SMG compartida, inventario, botín. IA no usa este modelo."
+          "existing": "Disparo físico, cargador 15, recarga interrumpible, reserva SMG compartida, inventario, botín. IA no usa este modelo.",
+          "verified_increment": {
+            "status": "HECHO",
+            "scope": "Escritorio Godot: recogida física en Entrenamiento, disparo contra oponente, munición/recarga e inventario; agarres sobre malla actual.",
+            "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24"
+          }
         },
         "tests": {
           "status": "PENDIENTE",
           "automated": [
-            "v75103_aurora_v3_qa"
+            "v75103_aurora_v3_qa",
+            "v75118_weapon_anchor_qa",
+            "v75118_training_armory_qa",
+            "weapon_visual_qa"
           ],
-          "visual": "PENDIENTE",
-          "motorola": "NO PROBADO EN ESTA SESION"
+          "visual": "HECHO para 9 poses muestreadas del derivado actual en Lila; continuidad completa, clips fuente y masculino PENDIENTES.",
+          "motorola": "NO PROBADO EN ESTA SESION",
+          "automated_status": "HECHO",
+          "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24",
+          "ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485404",
+          "visual_ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485523"
         }
       }
     },
@@ -4240,5 +4291,13 @@
         }
       }
     }
-  ]
+  ],
+  "validation_update": {
+    "code_commit": "c8ba54da24c9fe104672c0fbef9ca9fa2a320a24",
+    "full_ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485404",
+    "visual_ci": "https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43976485523",
+    "report": "../AURORA_V3_VALIDATED_INCREMENT.md",
+    "originals_rehashed_in_this_session": 0,
+    "scope": "Derivados existentes y funciones actuales; no equivale a recuperar ni importar de nuevo los 80 originales."
+  }
 }

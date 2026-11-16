@@ -16,13 +16,19 @@ El árbol V75.117 contiene seis derivados de originales V3: SCAR, MP40, casco, c
 
 El constructor de SCAR extrae mallas y exporta sin skins ni animaciones. Sus cuatro clips originales no están retargeteados: el arma usa acciones actuales de Lila. MP40 no tiene clips originales; su recarga actual usa la acción de Lila y movimientos programados de cargador/cerrojo. Ninguno de estos hechos prueba agarre correcto de dos manos en todas las poses.
 
+## Resultado actual
+
+[Incremento verificado, ejecuciones y capturas reales](../AURORA_V3_VALIDATED_INCREMENT.md). El código validado se identifica por su SHA exacto; una actualización posterior de documentación no equivale a otra compilación. La recuperación de los 80 originales sigue bloqueada.
+
 ## Cambios de juego de este incremento
 
 Al entrar a Entrenamiento real, aparecen cinco recogidas físicas al oeste del punto inicial: SCAR, MP40, KRISS, munición AR y SMG. Usan las mismas mallas, prueba de obstrucción, inventario, rayos de disparo y recarga que BR. No se regalan armas antes de recogerlas. El cargador SMG blanco sigue en 15 y la reserva MP40/KRISS es compartida.
 
 La mesa no se crea al abrir el editor HUD desde el lobby ni durante BR. Comenzar BR la elimina y restaura el inventario inicial del modo. No se modifica el lobby, el avión, el paracaídas ni el número de participantes. La nueva regresión comprueba recogida automática, daño a un oponente físico, recarga y ausencia de filtración de suministros entre modos.
 
-Esto facilita probar las armas ya integradas; **no incorpora las restantes familias del inventario**.
+También se corrigen la orientación y los anclajes de SCAR/AWM, la posición de la SCAR en el botín y el apoyo de las cinco armas actuales sobre los brazos de Lila. Se mantiene el tamaño de los huesos; el arma debe quedar delante del torso. La corrección se libera para las acciones actuales de recarga/curación/vuelo. Las 45 poses muestreadas se revisaron en escritorio.
+
+Esto facilita y mejora las armas ya integradas; **no incorpora las restantes familias del inventario ni recupera los clips originales descartados**. Las transiciones continuas, los dedos, todos los ángulos de cámara y el operador masculino necesitan aceptación adicional.
 
 ## Matriz y procedencia por recurso
 
@@ -88,8 +94,9 @@ Los logs, hashes de derivados, manifiesto de poses y capturas se publican como a
 |---|---|---|
 | Base y documentación de recursos | HECHO | Conservar trazabilidad y revisar cualquier nuevo avance antes de integrar. |
 | 80 SHA originales y adendas | BLOQUEADO | Entorno que pueda recuperar, descomprimir y leer los bytes. |
-| Entrenamiento con armas actuales | PENDIENTE | CI del último commit y revisión visual. |
-| Todas las armas y agarres de dos manos | PENDIENTE | Recuperación, selección, sockets y evaluación de todas las poses. |
+| Entrenamiento con armas actuales | HECHO | Recogida, disparo, recarga y aislamiento de BR verificados en Godot; evidencia en el informe del incremento. |
+| Cinco armas actuales: orientación, anclajes y apoyo en poses revisadas | HECHO | Alcance de escritorio documentado; no certifica todas las animaciones ni Android. |
+| Todas las familias y agarres en el bloque integral | PENDIENTE | Recuperación, selección, sockets, dedos y evaluación completa de poses/transiciones. |
 | Clips originales y retarget Lila/masculino | PENDIENTE | Analizar canales/huesos y validar visualmente cada clip compatible. |
 | Audios suministrados | BLOQUEADO | Recuperar archivos y comprobar permisos para distribución. |
 | Vehículos/mapas/cosméticos/emotes restantes | PENDIENTE | Recuperar V2/V3, optimizar, implementar lógica y validar. |
