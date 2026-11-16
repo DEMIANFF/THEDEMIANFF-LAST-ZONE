@@ -36,7 +36,9 @@ jobs:
           mkdir -p native-godot/out/qa
           export XDG_DATA_HOME="$(mktemp -d)"
           for test in v75118_weapon_anchor_qa weapon_visual_qa v75103_aurora_v3_qa; do
-            godot --headless --path native-godot --script "res://scripts/qa/$test.gd" > "native-godot/out/qa/$test.log" 2>&1
+            status=0
+            godot --headless --path native-godot --script "res://scripts/qa/$test.gd" > "native-godot/out/qa/$test.log" 2>&1 || status=$?
+            if [ "$status" -ne 0 ]; then cat "native-godot/out/qa/$test.log"; exit "$status"; fi
             if grep -E 'SCRIPT ERROR:|ERROR:' "native-godot/out/qa/$test.log"; then exit 1; fi
             grep -E 'PASS|AURORA_ANCHOR_MEASURE|AURORA_SUPPORT_MEASURE' "native-godot/out/qa/$test.log"
           done

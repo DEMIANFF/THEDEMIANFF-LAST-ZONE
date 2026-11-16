@@ -128,6 +128,9 @@ func attach_to_player(player: CharacterBody3D) -> void:
         back_awm=_load_visual(AWM_PATH,"AWMBackHolsterVisual",back_mount)
     set_awm_owned(false)
     equip(0)
+    # The mount follows the solved wrist in world space; a later bone update
+    # must not apply its transform a second time to the already aligned gun.
+    mount.top_level=true
     if skeleton and support_socket:
         _support_ik=SUPPORT_IK.new()
         _support_ik.name="WeaponSupportArm"
@@ -200,7 +203,7 @@ func _process(_delta: float) -> void:
     _align_mount_to_sight()
 
 
-func _align_mount_to_sight() -> void:
+func _align_mount_to_sight(from_modifier: bool=false) -> void:
     if not attachment_uses_hand or not is_instance_valid(operator) or right_hand_socket==null:
         return
     # Keep the rifle physically aligned with Lila's torso/hands during
@@ -216,7 +219,7 @@ func _align_mount_to_sight() -> void:
     var basis: Basis=Basis.looking_at(forward.normalized(),Vector3.UP)
     var grip_world: Vector3=(_skeleton.to_global(
         _skeleton.get_bone_global_pose(_right_hand_id).origin)
-        if _skeleton and _right_hand_id>=0 else right_hand_socket.global_position)
+        if from_modifier and _skeleton and _right_hand_id>=0 else right_hand_socket.global_position)
     mount.global_transform=Transform3D(basis,
         grip_world+basis*Vector3(.015,-.027,-.02))
 

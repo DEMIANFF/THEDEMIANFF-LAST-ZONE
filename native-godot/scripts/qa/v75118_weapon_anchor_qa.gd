@@ -96,7 +96,9 @@ func _verify() -> void:
             check(world_bounds(visuals.currently_equipped()).grow(.045).has_point(
                 support.global_position),"support anchor outside weapon geometry")
             print("AURORA_SUPPORT_MEASURE weapon=",CATALOG.ENTRIES[slot]["short"],
-                " actual_hand_gap_m=",gap," solver_error_m=",visuals._support_ik.last_error_m)
+                " actual_hand_gap_m=",gap," solver_error_m=",visuals._support_ik.last_error_m,
+                " grip_adjustment_m=",visuals._support_ik.grip_adjustment_m,
+                " right_solver_error_m=",visuals._support_ik.right_error_m)
         player.play_weapon_action("reload",CATALOG.ENTRIES[slot]["reload"])
         for frame in range(3):
             await process_frame
