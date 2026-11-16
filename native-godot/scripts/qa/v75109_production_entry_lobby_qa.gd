@@ -85,12 +85,12 @@ func _verify() -> void:
         "real 3D scene obscures actual navigation controls")
     var scene: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage")
-    # Directional key lighting is still a real scene node, not baked art.
-    var bright: bool=false
-    for child in scene.get_children():
-        if child is DirectionalLight3D and child.light_energy>=1.5:
-            bright=true
-    check(bright,"live 3D operator lighting was not upgraded")
+    var key:=scene.get_node_or_null("AuroraPortraitKey") as DirectionalLight3D
+    var rim:=scene.get_node_or_null("AuroraPortraitRim") as DirectionalLight3D
+    check(key!=null and rim!=null and key.light_energy>=1.0 and
+        key.light_energy<=1.35 and rim.light_energy>=.45 and
+        key.light_color.r>key.light_color.b and rim.light_color.b>rim.light_color.r,
+        "live portrait lighting lost its warm key or cool rim")
     check(main_card.visible and main_card.get_index()>art.get_index(),
         "BR mode card is hidden behind artwork")
 

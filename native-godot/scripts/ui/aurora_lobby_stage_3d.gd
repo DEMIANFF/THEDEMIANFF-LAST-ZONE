@@ -1,4 +1,5 @@
 extends Node3D
+const RUNWAY_SURFACE=preload("res://assets/ui/aurora_apron.gdshader")
 
 ## All motion happens in the actual 3D hangar: no image, video, fake scene.
 ## The node tree is freed when the player starts a match to release VRAM.
@@ -26,9 +27,10 @@ func _process(delta: float) -> void:
 ## The stage is owned by a SubViewport and disposed before gameplay.
 
 func _ready() -> void:
-    var asphalt: StandardMaterial3D=_material(Color(.039,.054,.094),.31,.70)
-    var metal: StandardMaterial3D=_material(Color(.073,.11,.19),.55,.42)
-    var steel: StandardMaterial3D=_material(Color(.052,.078,.13),.68,.34)
+    var asphalt:=ShaderMaterial.new()
+    asphalt.shader=RUNWAY_SURFACE
+    var metal: StandardMaterial3D=_material(Color(.18,.24,.32),.32,.62)
+    var steel: StandardMaterial3D=_material(Color(.09,.14,.22),.42,.56)
     var ice: StandardMaterial3D=_material(Color(.095,.17,.26),.26,.36)
     # Mountains use muted blue-grey ice rather than flat white pyramid caps.
     # Hangar/foreground materials remain separate from the mountain palette.
@@ -37,8 +39,8 @@ func _ready() -> void:
     var ridge_near: StandardMaterial3D=_material(Color(.11,.18,.27),.09,.85)
     var ridge_frost: StandardMaterial3D=_material(Color(.37,.47,.57),.02,.90)
     var dark: StandardMaterial3D=_material(Color(.024,.030,.063),.44,.62)
-    var neon_purple: StandardMaterial3D=_emission(Color(.48,.24,.82),1.15)
-    var neon_cyan: StandardMaterial3D=_emission(Color(.18,.68,.88),1.25)
+    var neon_purple: StandardMaterial3D=_emission(Color(.43,.30,.68),.52)
+    var neon_cyan: StandardMaterial3D=_emission(Color(.23,.56,.68),.68)
     var neon_gold: StandardMaterial3D=_emission(Color(1.0,.63,.19),1.1)
     _beacon_material=_emission(Color(1.0,.37,.16),1.2)
 
@@ -47,7 +49,7 @@ func _ready() -> void:
     _box("PolarPlatform",Vector3(0,-.27,-3.5),
         Vector3(25,.20,26),asphalt)
     _box("FrozenRunway",Vector3(0,-.17,-3.5),
-        Vector3(17,.05,15),ice)
+        Vector3(17,.05,15),asphalt)
     # Layered steel runway with original illuminated approach chevrons.
     # World-space lights and geometry remain native meshes, NOT UI images.
     _box("AuroraRunwayCentralSpine",Vector3(0,-.132,-3.5),
@@ -109,6 +111,14 @@ func _ready() -> void:
         Vector3(6.0,.20,3.3),metal)
     _box("AuroraHangarDoor",Vector3(0,.66,-10.97),
         Vector3(2.5,1.28,.11),dark)
+    _box("AuroraHangarDoorHeader",Vector3(0,1.36,-10.82),
+        Vector3(2.75,.13,.22),metal)
+    _box("AuroraHangarDoorThreshold",Vector3(0,.025,-10.80),
+        Vector3(2.68,.052,.36),metal)
+    var shutters: Array[Vector3]=[]
+    for i in range(9):
+        shutters.append(Vector3(0,.14+float(i)*.124,-10.90))
+    _repeat_boxes("AuroraHangarShutters",shutters,Vector3(2.42,.035,.045),steel)
     for i in range(4):
         var x: float=(float(i)-1.5)*1.25
         _box("HangarWarningLight",Vector3(x,1.72,-10.95),
@@ -119,8 +129,8 @@ func _ready() -> void:
     var practical:=OmniLight3D.new()
     practical.name="AuroraHangarPracticalLight"
     practical.position=Vector3(0,2.04,-10.8)
-    practical.light_color=Color(.41,.79,1.0)
-    practical.light_energy=.42
+    practical.light_color=Color(1.0,.74,.48)
+    practical.light_energy=.91
     practical.omni_range=5.0
     practical.shadow_enabled=false
     add_child(practical)
@@ -168,7 +178,7 @@ func _ready() -> void:
     for col in range(-5,6):
         _box("RunwayLightReflection",Vector3(float(col)*1.5,
             -.118,-5.7),Vector3(.15,.004,.36),
-            neon_purple if col%2==0 else neon_cyan)
+            ice)
 
 
 func _building(x: float,z: float,side: float,
@@ -182,6 +192,10 @@ func _building(x: float,z: float,side: float,
         Vector3(4.05,.16,3.4),steel)
     _box("StationSnowCap",Vector3(x,2.02,z),
         Vector3(4.03,.085,3.36),snow)
+    var ribs: Array[Vector3]=[]
+    for i in range(11):
+        ribs.append(Vector3(x+(float(i)-5.0)*.31,.75,z+1.504))
+    _repeat_boxes("StationFacadeSeams",ribs,Vector3(.027,1.38,.03),steel)
     _box("StationFacadeTrim",Vector3(x,1.64,z+1.53),
         Vector3(3.70,.07,.06),violet)
     _box("Entrance",Vector3(x-side*.75,.56,z+1.535),
@@ -190,10 +204,12 @@ func _building(x: float,z: float,side: float,
         Vector3(.91,.055,.07),cyan)
     for j in range(4):
         var nx: float=x+(float(j)-1.5)*.76
-        _box("ResearchWindow",Vector3(nx,1.19,z+1.53),
-            Vector3(.39,.40,.045),cyan)
-        _box("ResearchWindowFrame",Vector3(nx,1.43,z+1.58),
-            Vector3(.48,.04,.05),steel)
+        _box("ResearchWindowFrame",Vector3(nx,1.30,z+1.532),
+            Vector3(.59,.37,.064),steel)
+        _box("ResearchWindow",Vector3(nx,1.30,z+1.571),
+            Vector3(.49,.24,.014),cyan)
+        _box("ResearchWindowMullion",Vector3(nx,1.30,z+1.587),
+            Vector3(.025,.24,.02),steel)
     _box("SignalBanner",Vector3(x+side*1.34,1.05,z+1.59),
         Vector3(.27,.82,.06),violet)
     for j in range(3):
@@ -309,6 +325,24 @@ func _box(title: String,at: Vector3,extents: Vector3,mat: Material) -> void:
     add_child(instance)
 
 
+func _repeat_boxes(title: String,points: Array[Vector3],size_3d: Vector3,
+        material: Material) -> void:
+    var box:=BoxMesh.new()
+    box.size=size_3d
+    var batch:=MultiMesh.new()
+    batch.transform_format=MultiMesh.TRANSFORM_3D
+    batch.mesh=box
+    batch.instance_count=points.size()
+    for index in range(points.size()):
+        batch.set_instance_transform(index,Transform3D(Basis.IDENTITY,points[index]))
+    var fittings:=MultiMeshInstance3D.new()
+    fittings.name=title
+    fittings.multimesh=batch
+    fittings.material_override=material
+    fittings.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    add_child(fittings)
+
+
 func _beam(a: Vector3,b: Vector3,r: float,mat: Material) -> void:
     var pipe:=MeshInstance3D.new()
     pipe.name="AuroraIndustrialBeam"
@@ -388,23 +422,27 @@ func _ribbon(tint: Color,alt: float,depth: float,phase: float) -> void:
         var nx: float=-17.0+float(i+1)*34.0/32.0
         var y: float=alt+sin(x*.31+phase)*.75
         var ny: float=alt+sin(nx*.31+phase)*.75
-        for v in [
-            Vector3(x,y,depth),Vector3(nx,ny,depth),
-            Vector3(x,y+.92,depth),Vector3(nx,ny,depth),
-            Vector3(nx,ny+.92,depth),Vector3(x,y+.92,depth)]:
-            paint.add_vertex(v)
+        for band in range(2):
+            var lower: float=float(band)*.46
+            var upper: float=lower+.46
+            var low_alpha: float=tint.a*.46 if band==1 else 0.0
+            var high_alpha: float=tint.a*.46 if band==0 else 0.0
+            for vertex in [
+                Vector4(x,y+lower,depth,low_alpha),Vector4(nx,ny+lower,depth,low_alpha),
+                Vector4(x,y+upper,depth,high_alpha),Vector4(nx,ny+lower,depth,low_alpha),
+                Vector4(nx,ny+upper,depth,high_alpha),Vector4(x,y+upper,depth,high_alpha)
+            ]:
+                paint.set_color(Color(tint.r,tint.g,tint.b,vertex.w))
+                paint.add_vertex(Vector3(vertex.x,vertex.y,vertex.z))
     paint.generate_normals()
     var item:=MeshInstance3D.new()
     item.name="PolarAuroraCurtain"
     item.mesh=paint.commit()
     var mat:=StandardMaterial3D.new()
-    mat.albedo_color=tint
+    mat.vertex_color_use_as_albedo=true
     mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
     mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
     mat.cull_mode=BaseMaterial3D.CULL_DISABLED
-    mat.emission_enabled=true
-    mat.emission=Color(tint.r,tint.g,tint.b)
-    mat.emission_energy_multiplier=1.5
     item.material_override=mat
     item.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(item)

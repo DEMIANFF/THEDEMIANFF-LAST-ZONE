@@ -52,7 +52,7 @@ func _verify() -> void:
     await process_frame
     check(front._loading_overlay.visible and
         front._loading_surface_plate.name=="AuroraLoadingConsolePlate" and
-        front._loading_chapter.text.contains("A U R O R A") and
+        front._loading_chapter.text=="BASE AURORA" and
         front._loading_meter.visible and front._loading_meter.max_value>=100.0,
         "splash screen is missing the live progress console")
     _within_screen(front._loading_surface_plate,"loading console")
@@ -67,7 +67,8 @@ func _verify() -> void:
         for action in [front._login_google_button,front._login_guest_button,
                 front._login_local_button]:
             _within_screen(action,"responsive login "+str(dimensions))
-            check(action.get_global_rect().size.y>=40.0,
+            var physical_rect: Rect2=root.get_stretch_transform()*action.get_global_rect()
+            check(physical_rect.size.y>=43.0 and action.focus_mode==Control.FOCUS_ALL,
                 "small sign-in hit area "+str(dimensions))
         var hero: Rect2=front._entry_hero_plate.get_global_rect()
         var login: Rect2=front._entry_glass.get_global_rect()
@@ -171,6 +172,18 @@ func _verify() -> void:
     check(front._lobby_match_facts.visible and
         not front._lobby_compact_intel.visible,
         "spacious lobby did not swap to its three factual match tiles")
+    for mode in range(front._match_mode_selector.item_count):
+        front._match_mode_selector.select(mode)
+        front._match_mode_selector.item_selected.emit(mode)
+        await process_frame
+        var card: Rect2=front._play_match_card.get_global_rect()
+        for control in [front._match_mode_selector,front._battle_entry,
+                front._training_entry,front._lobby_match_facts]:
+            if control.is_visible_in_tree():
+                check(card.encloses(control.get_global_rect()),
+                    "%s escaped the match card for mode %d"%[control.name,mode])
+    front._match_mode_selector.select(0)
+    front._match_mode_selector.item_selected.emit(0)
     root.size=Vector2i(964,434)
     await process_frame
     front._layout_safe()
