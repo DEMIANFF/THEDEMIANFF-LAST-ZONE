@@ -26,13 +26,13 @@ func _process(delta: float) -> void:
 
 func _ready() -> void:
     var asphalt: StandardMaterial3D=_material(Color(.039,.054,.094),.31,.70)
-    var metal: StandardMaterial3D=_material(Color(.11,.16,.27),.55,.42)
-    var steel: StandardMaterial3D=_material(Color(.065,.090,.16),.68,.34)
-    var ice: StandardMaterial3D=_material(Color(.43,.66,.82),.12,.46)
-    var snow: StandardMaterial3D=_material(Color(.79,.86,.96),.06,.91)
+    var metal: StandardMaterial3D=_material(Color(.073,.11,.19),.55,.42)
+    var steel: StandardMaterial3D=_material(Color(.052,.078,.13),.68,.34)
+    var ice: StandardMaterial3D=_material(Color(.095,.17,.26),.26,.36)
+    var snow: StandardMaterial3D=_material(Color(.53,.65,.79),.06,.86)
     var dark: StandardMaterial3D=_material(Color(.024,.030,.063),.44,.62)
-    var neon_purple: StandardMaterial3D=_emission(Color(.62,.20,.98),2.1)
-    var neon_cyan: StandardMaterial3D=_emission(Color(.12,.81,1.0),1.6)
+    var neon_purple: StandardMaterial3D=_emission(Color(.48,.24,.82),1.15)
+    var neon_cyan: StandardMaterial3D=_emission(Color(.18,.68,.88),1.25)
     var neon_gold: StandardMaterial3D=_emission(Color(1.0,.63,.19),1.1)
     _beacon_material=_emission(Color(1.0,.37,.16),1.2)
 
@@ -42,6 +42,25 @@ func _ready() -> void:
         Vector3(25,.20,26),asphalt)
     _box("FrozenRunway",Vector3(0,-.17,-3.5),
         Vector3(17,.05,15),ice)
+    # Layered steel runway with original illuminated approach chevrons.
+    # World-space lights and geometry remain native meshes, NOT UI images.
+    _box("AuroraRunwayCentralSpine",Vector3(0,-.132,-3.5),
+        Vector3(2.85,.012,15.0),asphalt)
+    for p in range(7):
+        var z: float=1.4-float(p)*1.62
+        for side in [-1.0,1.0]:
+            _box("AuroraApproachChevron",Vector3(side*.91,-.121,z),
+                Vector3(.46,.011,.075),neon_cyan)
+        _box("AuroraCenterIndicator",Vector3(0,-.119,z-.32),
+            Vector3(.072,.009,.25),neon_gold)
+    for side in [-1.0,1.0]:
+        _box("AuroraRunwayGuardrail",Vector3(side*6.90,.19,-4.8),
+            Vector3(.08,.18,10.8),steel)
+        for p in range(7):
+            var position_z: float=.4-float(p)*1.45
+            _box("AuroraRunwayReflector",
+                Vector3(side*6.88,.31,position_z),
+                Vector3(.19,.055,.16),neon_cyan)
     for i in range(-6,7):
         var f: float=float(i)
         _peak(Vector3(f*3.1,-.13,-21.0-absf(f)*.23),
@@ -107,6 +126,21 @@ func _ready() -> void:
             2.25+float(i)*.17,-10.03),
             Vector3(1.7-float(i)*.26,.055,.04),
             neon_purple if i%2==0 else neon_cyan)
+
+    # Station signage uses visible native 3D geometry. Warm task lights
+    # contrast with the cold base, without adding shadowed draw calls.
+    for side in [-1.0,1.0]:
+        _box("AuroraHangarLandingStripe",
+            Vector3(side*1.48,.09,-10.82),
+            Vector3(.13,.16,.06),neon_gold)
+        _box("AuroraHangarAccessFrame",
+            Vector3(side*1.27,.71,-10.84),
+            Vector3(.065,1.32,.06),neon_cyan)
+    for level in range(3):
+        _box("AuroraSignalMatrix",
+            Vector3(0,1.12+float(level)*.17,-10.81),
+            Vector3(.96-float(level)*.17,.035,.022),
+            neon_cyan if level!=1 else neon_gold)
 
     # Original aurora ribbons stay in the distant sky and retain QA name.
     _ribbon(Color(.15,.95,.87,.22),6.9,-25.0,.4)

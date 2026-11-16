@@ -40,9 +40,19 @@ var _surface: Control
 var _page: VBoxContainer
 var _entry_glass: Panel
 var _entry_mission_caption: Label
+var _entry_hero_plate: Panel
+var _entry_hero_kicker: Label
+var _entry_panel_accent: ColorRect
+var _loading_chapter: Label
+var _loading_emblem: TextureRect
+var _loading_surface_plate: Panel
 var _entry_info_panel: PanelContainer
 var _header_glass: Panel
 var _lobby_backplates: Array[Control]=[]
+var _lobby_status_ribbon: PanelContainer
+var _lobby_status_caption: Label
+var _lobby_match_facts: HBoxContainer
+var _lobby_compact_intel: PanelContainer
 var _info: Label
 var _game: Node3D
 var _primary: Button
@@ -345,26 +355,57 @@ func _make_glass_panel(bg: Color,border: Color,rounding: int=12) -> Panel:
 
 func _build_entry_shell() -> void:
     _entry_glass=_make_glass_panel(
-        Color(.012,.026,.058,.95),Color(.28,.70,.87,.8),14)
+        Color(.008,.018,.035,.97),Color(.37,.49,.65,.76),13)
     _entry_glass.name="AuroraEntryGlassPanel"
     _entry_glass.anchor_left=.55
-    _entry_glass.anchor_right=.958
-    _entry_glass.anchor_top=.115
-    _entry_glass.anchor_bottom=.926
+    _entry_glass.anchor_right=.966
+    _entry_glass.anchor_top=.109
+    _entry_glass.anchor_bottom=.932
     _entry_glass.visible=false
     _surface.add_child(_entry_glass)
+    _entry_panel_accent=ColorRect.new()
+    _entry_panel_accent.name="AuroraAccessGoldAccent"
+    _entry_panel_accent.color=Color(.99,.69,.23,.91)
+    _entry_panel_accent.anchor_left=.55
+    _entry_panel_accent.anchor_right=.553
+    _entry_panel_accent.anchor_top=.18
+    _entry_panel_accent.anchor_bottom=.86
+    _entry_panel_accent.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _entry_panel_accent.visible=false
+    _surface.add_child(_entry_panel_accent)
+    _entry_hero_plate=_make_glass_panel(
+        Color(.011,.028,.055,.76),Color(.28,.61,.79,.46),10)
+    _entry_hero_plate.name="AuroraEntryHeroPanel"
+    _entry_hero_plate.anchor_left=.047
+    _entry_hero_plate.anchor_right=.510
+    _entry_hero_plate.anchor_top=.255
+    _entry_hero_plate.anchor_bottom=.775
+    _entry_hero_plate.visible=false
+    _surface.add_child(_entry_hero_plate)
+    _entry_hero_kicker=Label.new()
+    _entry_hero_kicker.name="AuroraEntryHeroKicker"
+    _entry_hero_kicker.text="01  /  CENTRO DE OPERACIONES   ·   BASE AURORA"
+    _entry_hero_kicker.anchor_left=.067
+    _entry_hero_kicker.anchor_right=.490
+    _entry_hero_kicker.anchor_top=.295
+    _entry_hero_kicker.anchor_bottom=.34
+    _entry_hero_kicker.add_theme_font_size_override("font_size",12)
+    _entry_hero_kicker.add_theme_color_override(
+        "font_color",Color(.47,.85,.95))
+    _entry_hero_kicker.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _entry_hero_kicker.visible=false
+    _surface.add_child(_entry_hero_kicker)
     _entry_mission_caption=Label.new()
     _entry_mission_caption.name="AuroraEntryMissionCaption"
-    _entry_mission_caption.text="BASE AURORA  /  OPERACIÓN INVIERNO\n\nENTRA EN LA ÚLTIMA ZONA\nY PREPARA TU DESPLIEGUE"
-    _entry_mission_caption.anchor_left=.06
-    _entry_mission_caption.anchor_right=.53
-    # The old caption crossed the hangar horizon on 16:9 and compact screens.
-    _entry_mission_caption.anchor_top=.42
-    _entry_mission_caption.anchor_bottom=.76
+    _entry_mission_caption.text="ÚLTIMA ZONA\nEL DESPLIEGUE EMPIEZA AQUÍ\n\nOPERACIÓN AURORA  /  INVIERNO"
+    _entry_mission_caption.anchor_left=.067
+    _entry_mission_caption.anchor_right=.494
+    _entry_mission_caption.anchor_top=.390
+    _entry_mission_caption.anchor_bottom=.717
     _entry_mission_caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _entry_mission_caption.add_theme_font_size_override("font_size",21)
+    _entry_mission_caption.add_theme_font_size_override("font_size",23)
     _entry_mission_caption.add_theme_color_override(
-        "font_color",Color(.92,.96,1.0))
+        "font_color",Color(.97,.98,1.0))
     _entry_mission_caption.add_theme_color_override(
         "font_shadow_color",Color(.0,.02,.05,.90))
     _entry_mission_caption.add_theme_constant_override("shadow_offset_y",2)
@@ -376,63 +417,93 @@ func _build_entry_shell() -> void:
 func _build_loading_overlay() -> void:
     _loading_overlay=ColorRect.new()
     _loading_overlay.name="AuroraLoadingOverlay"
-    _loading_overlay.color=Color(.007,.024,.052,.83)
+    _loading_overlay.color=Color(.005,.015,.032,.90)
     _loading_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _surface.add_child(_loading_overlay)
+    _loading_surface_plate=_make_glass_panel(
+        Color(.006,.019,.041,.86),Color(.34,.61,.76,.58),12)
+    _loading_surface_plate.name="AuroraLoadingConsolePlate"
+    _loading_surface_plate.anchor_left=.18
+    _loading_surface_plate.anchor_right=.82
+    _loading_surface_plate.anchor_top=.51
+    _loading_surface_plate.anchor_bottom=.967
+    _loading_overlay.add_child(_loading_surface_plate)
+    var stripe:=ColorRect.new()
+    stripe.name="AuroraLoadingGoldStripe"
+    stripe.color=Color(.95,.66,.22,.90)
+    stripe.anchor_left=.22
+    stripe.anchor_right=.78
+    stripe.anchor_top=.513
+    stripe.anchor_bottom=.518
+    stripe.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _loading_overlay.add_child(stripe)
     var hero:=CenterContainer.new()
     hero.anchor_right=1
-    hero.anchor_top=.055
-    # Reserve enough vertical space for the load controls on Motorola landscape.
-    hero.anchor_bottom=.50
+    hero.anchor_top=.047
+    # Keep brand and real resource progress in different layers.
+    hero.anchor_bottom=.483
     _loading_overlay.add_child(hero)
     var branding:=VBoxContainer.new()
     hero.add_child(branding)
-    var emblem:=TextureRect.new()
-    emblem.texture=_brand_logo.texture
-    emblem.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
-    emblem.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-    emblem.custom_minimum_size=Vector2(0,82)
-    branding.add_child(emblem)
+    _loading_chapter=Label.new()
+    _loading_chapter.name="AuroraLoadingChapter"
+    _loading_chapter.text="A U R O R A   /   P R O T O C O L O   D E   D E S P L I E G U E"
+    _loading_chapter.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _loading_chapter.add_theme_font_size_override("font_size",11)
+    _loading_chapter.add_theme_color_override(
+        "font_color",Color(.53,.79,.91))
+    branding.add_child(_loading_chapter)
+    _loading_emblem=TextureRect.new()
+    _loading_emblem.name="AuroraLoadingIdentityEmblem"
+    _loading_emblem.texture=_brand_logo.texture
+    _loading_emblem.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+    _loading_emblem.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    _loading_emblem.custom_minimum_size=Vector2(0,87)
+    branding.add_child(_loading_emblem)
     _add_entry_wordmark(branding)
 
     var content:=VBoxContainer.new()
     content.name="AuroraLoadingActions"
-    content.anchor_left=.20
-    content.anchor_right=.80
+    content.anchor_left=.23
+    content.anchor_right=.77
     # The former 0.305-height region was only 132px on 964x434;
     # CANCEL or RETRY could extend beyond the touch-safe screen.
-    content.anchor_top=.525
-    content.anchor_bottom=.972
+    content.anchor_top=.544
+    content.anchor_bottom=.960
     content.alignment=BoxContainer.ALIGNMENT_CENTER
     content.add_theme_constant_override("separation",8)
     _loading_overlay.add_child(content)
     var phase:=Label.new()
     phase.name="AuroraLoadPhase"
-    phase.text="AURORA  /  SINCRONIZANDO RECURSOS LOCALES"
+    phase.text="SECUENCIA  01 /  VERIFICACIÓN DE RECURSOS"
     phase.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     phase.add_theme_font_size_override("font_size",12)
     phase.add_theme_color_override("font_color",Color(.40,.84,.94))
     content.add_child(phase)
     _loading_title=Label.new()
     _loading_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-    _loading_title.add_theme_font_size_override("font_size",18)
+    _loading_title.add_theme_font_size_override("font_size",23)
+    _loading_title.add_theme_color_override(
+        "font_color",Color(.98,.95,.86))
     content.add_child(_loading_title)
     _loading_detail=Label.new()
     _loading_detail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _loading_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _loading_detail.add_theme_font_size_override("font_size",16)
+    _loading_detail.add_theme_font_size_override("font_size",14)
+    _loading_detail.add_theme_color_override(
+        "font_color",Color(.75,.86,.93))
     content.add_child(_loading_detail)
     _loading_meter=ProgressBar.new()
     _loading_meter.name="WorldLoadProgress"
-    _loading_meter.custom_minimum_size=Vector2(275,24)
+    _loading_meter.custom_minimum_size=Vector2(275,21)
     var track:=StyleBoxFlat.new()
-    track.bg_color=Color(.020,.052,.091)
-    track.border_color=Color(.38,.80,.92)
+    track.bg_color=Color(.017,.030,.059)
+    track.border_color=Color(.33,.68,.83)
     track.set_border_width_all(2)
     track.set_corner_radius_all(4)
     _loading_meter.add_theme_stylebox_override("background",track)
     var fill:=StyleBoxFlat.new()
-    fill.bg_color=Color(.93,.67,.22)
+    fill.bg_color=Color(1.0,.72,.23)
     fill.set_corner_radius_all(4)
     _loading_meter.add_theme_stylebox_override("fill",fill)
     content.add_child(_loading_meter)
@@ -443,8 +514,8 @@ func _build_loading_overlay() -> void:
 
 
 func _add_entry_wordmark(container: VBoxContainer) -> void:
-    for entry in [["EntryBrandTitle","THEDEMIAN:",36,Color(.95,.97,1.0)],
-            ["EntryBrandSubtitle","LAST ZONE",24,Color(.98,.76,.36)]]:
+    for entry in [["EntryBrandTitle","THEDEMIAN:",37,Color(.97,.98,1.0)],
+            ["EntryBrandSubtitle","LAST ZONE",22,Color(1.0,.73,.31)]]:
         var label:=Label.new()
         label.name=entry[0]
         label.text=entry[1]
@@ -527,6 +598,9 @@ func _welcome() -> void:
     _loading_overlay.hide()
     _entry_glass.visible=true
     _entry_mission_caption.visible=true
+    _entry_hero_plate.visible=true
+    _entry_hero_kicker.visible=true
+    _entry_panel_accent.visible=true
     AuroraLobbyMusic.leave_lobby()
     visible=true
     _login_pending_provider=""
@@ -551,23 +625,37 @@ func _welcome() -> void:
         _top_social_button.visible=false
     if _play_match_card!=null and is_instance_valid(_play_match_card):
         _play_match_card.visible=false
+    if _lobby_compact_intel!=null and is_instance_valid(_lobby_compact_intel):
+        _lobby_compact_intel.visible=false
     if _banner!=null and is_instance_valid(_banner):
         _banner.visible=false
+    if _lobby_status_ribbon!=null and is_instance_valid(
+            _lobby_status_ribbon):
+        _lobby_status_ribbon.visible=false
     for item in [_profile_strip,_stats_strip,_currency_strip]:
         if item!=null and is_instance_valid(item):
             item.visible=false
-    _page.anchor_left=.586
-    _page.anchor_right=.923
-    _page.anchor_top=.153
-    _page.anchor_bottom=.890
+    _page.anchor_left=.585
+    _page.anchor_right=.933
+    _page.anchor_top=.155
+    _page.anchor_bottom=.900
     _page.add_theme_constant_override("separation",6)
     _brand_logo.visible=true
-    _brand_logo.anchor_left=.911
-    _brand_logo.anchor_right=.958
-    _brand_logo.anchor_top=.03
-    _brand_logo.anchor_bottom=.116
+    _brand_logo.anchor_left=.916
+    _brand_logo.anchor_right=.963
+    _brand_logo.anchor_top=.028
+    _brand_logo.anchor_bottom=.109
     _clear_page()
     _add_entry_wordmark(_page)
+    var entry_overline:=_label("CENTRO DE ACCESO  /  AUTENTICACIÓN",11)
+    entry_overline.name="AuroraEntryAccessOverline"
+    entry_overline.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    entry_overline.add_theme_color_override("font_color",Color(.49,.78,.90))
+    # Compact 434px login must reserve its height for the three real
+    # providers. Decorative overline and diagnostics are optional.
+    var compact_entry: bool=minf(_surface.size.y,
+        float(get_window().size.y))<560.0
+    entry_overline.visible=not compact_entry
     var space:=Control.new()
     space.mouse_filter=Control.MOUSE_FILTER_IGNORE
     space.size_flags_vertical=Control.SIZE_EXPAND_FILL
@@ -579,7 +667,7 @@ func _welcome() -> void:
     _entry_info_panel.custom_minimum_size=Vector2(0,112)
     _entry_info_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     var briefing_style:=StyleBoxFlat.new()
-    briefing_style.bg_color=Color(.035,.115,.18,.87)
+    briefing_style.bg_color=Color(.036,.070,.102,.93)
     briefing_style.border_color=Color(.25,.66,.80,.72)
     briefing_style.set_border_width_all(1)
     briefing_style.set_corner_radius_all(9)
@@ -622,13 +710,13 @@ func _welcome() -> void:
     _login_google_button=_button("CONTINUAR CON GOOGLE",
         Callable(self,"_begin_welcome_auth").bind("google"),0)
     _login_google_button.name="WelcomeGoogleSignIn"
-    _login_google_button.custom_minimum_size.y=42
+    _login_google_button.custom_minimum_size.y=46
     _login_google_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _style_primary_action(_login_google_button)
     _login_guest_button=_button("ENTRAR COMO INVITADO",
         Callable(self,"_begin_welcome_auth").bind("guest"),0)
     _login_guest_button.name="WelcomeGuestSignIn"
-    _login_guest_button.custom_minimum_size.y=40
+    _login_guest_button.custom_minimum_size.y=44
     _login_guest_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     providers.add_child(_login_google_button)
     providers.add_child(_login_guest_button)
@@ -643,13 +731,21 @@ func _welcome() -> void:
     disclosure.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     disclosure.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     var diag:=_button("DIAGNÓSTICOS DE DESARROLLO",
-        Callable(self,"_show_startup_diagnostics"),320)
+        Callable(self,"_show_startup_diagnostics"),0)
     diag.name="StartupDiagnosticEntry"
     diag.custom_minimum_size.y=22
     diag.add_theme_font_size_override("font_size",10)
     diag.modulate=Color(.72,.80,.90)
     diag.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _page.add_child(diag)
+    diag.visible=not compact_entry
+    # Balance the large vertical region above sign-in on landscape phones.
+    # Without this flex item, every spare pixel was above the providers.
+    var bottom_space:=Control.new()
+    bottom_space.name="AuroraEntryBottomBreathingRoom"
+    bottom_space.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    bottom_space.size_flags_vertical=Control.SIZE_EXPAND_FILL
+    _page.add_child(bottom_space)
     _poll_login_state()
 
 
@@ -807,6 +903,9 @@ func _show_lobby() -> void:
     # Actual on-device results. No invented premium currency, fake friends or fake cloud ID.
     _entry_glass.visible=false
     _entry_mission_caption.visible=false
+    _entry_hero_plate.visible=false
+    _entry_hero_kicker.visible=false
+    _entry_panel_accent.visible=false
     _offline_records=MATCH_RECORDS.new()
     var stats: Dictionary=_offline_records.snapshot()
     if _preview_container==null or not is_instance_valid(_preview_container):
@@ -818,16 +917,18 @@ func _show_lobby() -> void:
     _brand_logo.visible=true
     # Logo stays outside the full-width profile strip and never crosses
     # over player statistics or the rotating 3D character.
-    _brand_logo.anchor_left=.944
-    _brand_logo.anchor_right=.975
-    _brand_logo.anchor_top=.018
+    # Prominent original emblem integrated into the left profile header.
+    # The V75.112 tiny icon at the far right was almost invisible on phone.
+    _brand_logo.anchor_left=.031
+    _brand_logo.anchor_right=.094
+    _brand_logo.anchor_top=.024
     _brand_logo.anchor_bottom=.117
     # Base Aurora: large real 3D operator at centre; separate commerce,
     # social/match card, full-width top and bottom navigation layers.
     _page.anchor_left=.728
-    _page.anchor_right=.963
-    _page.anchor_top=.517
-    _page.anchor_bottom=.851
+    _page.anchor_right=.965
+    _page.anchor_top=.487
+    _page.anchor_bottom=.854
     _page.add_theme_constant_override("separation",2)
     # The same live SubViewport is now the whole winter hangar
     # behind the menus. Side bars are native UI placed ABOVE it; never
@@ -845,8 +946,8 @@ func _show_lobby() -> void:
             action.visible=true
     _preview_caption.anchor_left=.206
     _preview_caption.anchor_right=.730
-    _preview_caption.anchor_top=.820
-    _preview_caption.anchor_bottom=.820
+    _preview_caption.anchor_top=.819
+    _preview_caption.anchor_bottom=.819
     _ensure_lobby_navigation()
     for plate in _lobby_backplates:
         if is_instance_valid(plate):
@@ -858,6 +959,7 @@ func _show_lobby() -> void:
     _top_settings_button.visible=true
     _top_social_button.visible=true
     _banner.visible=true
+    _lobby_status_ribbon.visible=true
     # Three independently clipped headers keep the original brand legible
     # without the coin balance covering Lila, the player record or the emblem.
     _profile_strip.visible=true
@@ -875,7 +977,7 @@ func _show_lobby() -> void:
         _apply_preview_skin(str(
             _offline_records.cosmetic_state()["equipped"]))
     _clear_page()
-    _lobby_section_title=_label("BATTLE ROYALE",18)
+    _lobby_section_title=_label("BATTLE ROYALE",20)
     _lobby_section_title.name="LobbySectionTitle"
     _lobby_section_title.add_theme_color_override("font_color",Color(.96,.96,.88))
     _lobby_section_hint=_label("BASE AURORA  ·  50 PARTICIPANTES",11)
@@ -887,6 +989,7 @@ func _show_lobby() -> void:
     _match_mode_selector.name="MatchModeSelector"
     _match_mode_selector.custom_minimum_size=Vector2(245,32)
     _match_mode_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+    _match_mode_selector.add_theme_font_size_override("font_size",14)
     _match_mode_selector.add_item("CLÁSICO · IA LOCAL",0)
     _match_mode_selector.add_item("CLASIFICATORIA · ONLINE PENDIENTE",1)
     _match_mode_selector.add_item("ENTRENAMIENTO · LOCAL",2)
@@ -898,7 +1001,7 @@ func _show_lobby() -> void:
     _page.add_child(_lobby_play_modes)
     _battle_entry=_button("INICIAR",Callable(self,"_launch").bind(true),240)
     _battle_entry.name="BattleButton"
-    _battle_entry.custom_minimum_size.y=56
+    _battle_entry.custom_minimum_size.y=58
     _battle_entry.add_theme_font_size_override("font_size",23)
     _style_primary_action(_battle_entry)
     _lobby_play_modes.add_child(_battle_entry)
@@ -907,8 +1010,49 @@ func _show_lobby() -> void:
     _training_entry.custom_minimum_size.y=49
     _style_primary_action(_training_entry)
     _lobby_play_modes.add_child(_training_entry)
-    _lobby_mode_caption=_label("50 PARTICIPANTES · 1 OPERADOR + 49 IA",11)
+    _lobby_mode_caption=_label("50 PARTICIPANTES · 1 OPERADOR + 49 IA",12)
     _lobby_mode_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
+    # Three real match facts occupy the previously empty desktop card, while
+    # staying hidden on the Edge 60 Fusion's compact landscape viewport.
+    _lobby_match_facts=HBoxContainer.new()
+    _lobby_match_facts.name="AuroraMatchOperationalFacts"
+    _lobby_match_facts.add_theme_constant_override("separation",4)
+    _page.add_child(_lobby_match_facts)
+    for entry in [
+        ["50","PARTICIPANTES"],
+        ["04","FASES ZONA"],
+        ["IA","LOCAL"]
+    ]:
+        var fact:=PanelContainer.new()
+        fact.name="Fact"+str(_lobby_match_facts.get_child_count()+1)
+        fact.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        fact.custom_minimum_size.y=38
+        var fact_style:=StyleBoxFlat.new()
+        fact_style.bg_color=Color(.037,.065,.087,.96)
+        fact_style.border_color=Color(.26,.53,.61,.72)
+        fact_style.set_border_width_all(1)
+        fact_style.set_corner_radius_all(5)
+        fact_style.content_margin_left=4
+        fact_style.content_margin_right=4
+        fact.add_theme_stylebox_override("panel",fact_style)
+        var column:=VBoxContainer.new()
+        column.add_theme_constant_override("separation",1)
+        fact.add_child(column)
+        var value:=Label.new()
+        value.text=str(entry[0])
+        value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+        value.add_theme_font_size_override("font_size",14)
+        value.add_theme_color_override(
+            "font_color",Color(.98,.79,.43))
+        column.add_child(value)
+        var title:=Label.new()
+        title.text=str(entry[1])
+        title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+        title.add_theme_font_size_override("font_size",8)
+        title.add_theme_color_override(
+            "font_color",Color(.74,.85,.91))
+        column.add_child(title)
+        _lobby_match_facts.add_child(fact)
     _lobby_mode_status=_label("",12)
     _lobby_mode_status.name="ModeAvailability"
     # Account actions are now ABOVE the editable local name. Both providers
@@ -1211,6 +1355,12 @@ func _sync_lobby_match_mode() -> void:
     _battle_entry.visible=show_modes and _selected_match_mode=="classic"
     _training_entry.visible=show_modes and _selected_match_mode=="training"
     _lobby_mode_caption.visible=show_modes and _selected_match_mode=="classic"
+    _lobby_match_facts.visible=(show_modes and
+        _selected_match_mode=="classic" and _entry_should_show_briefing())
+    if _lobby_compact_intel!=null:
+        _lobby_compact_intel.visible=(show_modes and
+            _selected_match_mode=="classic" and
+            not _entry_should_show_briefing())
     _pass_progress.visible=_selected_tab=="PASE"
     _pass_claim_button.visible=_selected_tab=="PASE"
     _shop_selector.visible=_selected_tab in ["TIENDA","PERSONAJE"]
@@ -1254,7 +1404,7 @@ func _ensure_lobby_navigation() -> void:
     # the artwork. Previous backplates were inserted BEHIND the SVG,
     # which made UI illegible despite having valid gameplay actions.
     _header_glass=_make_glass_panel(
-        Color(.010,.032,.069,.94),Color(.31,.62,.80,.72),10)
+        Color(.009,.019,.039,.96),Color(.31,.56,.69,.66),9)
     _header_glass.name="AuroraOperationalHeader"
     _header_glass.anchor_left=.018
     _header_glass.anchor_right=.982
@@ -1264,18 +1414,18 @@ func _ensure_lobby_navigation() -> void:
     _surface.move_child(_header_glass,_page.get_index())
     _lobby_backplates.append(_header_glass)
     _profile_strip=_make_header_label(
-        "LocalProfileStrip",.035,.303,14)
+        "LocalProfileStrip",.107,.313,14)
     _stats_strip=_make_header_label(
-        "LocalStatisticsStrip",.312,.558,12)
+        "LocalStatisticsStrip",.322,.558,12)
     _currency_strip=_make_header_label(
         "LocalCurrencyStrip",.569,.729,11)
     var backplate:=_make_glass_panel(
         Color(.012,.028,.067,.96),Color(.29,.66,.86,.78),10)
     backplate.name="LobbyMenuBackplate"
-    backplate.anchor_left=.711
+    backplate.anchor_left=.712
     backplate.anchor_right=.981
     backplate.anchor_top=.154
-    backplate.anchor_bottom=.858
+    backplate.anchor_bottom=.867
     _surface.add_child(backplate)
     _surface.move_child(backplate,_page.get_index())
     _lobby_backplates.append(backplate)
@@ -1318,7 +1468,7 @@ func _ensure_lobby_navigation() -> void:
     _lobby_nav.visible=false
     _banner=Label.new()
     _banner.name="AuroraOperationBanner"
-    _banner.text="BASE AURORA  ◈\nELIGE TU DESTINO"
+    _banner.text="BASE AURORA  ◆\nCENTRO DE DESPLIEGUE"
     _banner.anchor_left=.028
     _banner.anchor_right=.211
     _banner.anchor_top=.163
@@ -1328,6 +1478,34 @@ func _ensure_lobby_navigation() -> void:
     _banner.add_theme_color_override("font_color",Color(.98,.79,.40))
     _banner.add_theme_color_override("font_shadow_color",Color(.02,.06,.10,.95))
     _surface.add_child(_banner)
+
+    _lobby_status_ribbon=PanelContainer.new()
+    _lobby_status_ribbon.name="AuroraLiveOperationRibbon"
+    # Keep the status plaque to Lila's left; never obscure her face.
+    _lobby_status_ribbon.anchor_left=.219
+    _lobby_status_ribbon.anchor_right=.446
+    _lobby_status_ribbon.anchor_top=.171
+    _lobby_status_ribbon.anchor_bottom=.228
+    _lobby_status_ribbon.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    var operation_style:=StyleBoxFlat.new()
+    operation_style.bg_color=Color(.009,.024,.046,.84)
+    operation_style.border_color=Color(.20,.62,.76,.66)
+    operation_style.border_width_bottom=2
+    operation_style.set_corner_radius_all(5)
+    operation_style.content_margin_left=13
+    operation_style.content_margin_right=11
+    _lobby_status_ribbon.add_theme_stylebox_override("panel",operation_style)
+    _lobby_status_caption=Label.new()
+    _lobby_status_caption.name="AuroraOperationStatus"
+    _lobby_status_caption.text="◆  BASE AURORA   /   LOCAL"
+    _lobby_status_caption.clip_text=true
+    _lobby_status_caption.add_theme_font_size_override("font_size",12)
+    _lobby_status_caption.add_theme_color_override(
+        "font_color",Color(.76,.91,.98))
+    _lobby_status_caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _lobby_status_ribbon.add_child(_lobby_status_caption)
+    _lobby_status_ribbon.visible=false
+    _surface.add_child(_lobby_status_ribbon)
 
     _left_shortcuts=VBoxContainer.new()
     _left_shortcuts.name="AuroraCommerceRail"
@@ -1356,8 +1534,9 @@ func _ensure_lobby_navigation() -> void:
             else target)
         button.custom_minimum_size=Vector2(0,40)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-        button.add_theme_font_size_override("font_size",12)
+        button.add_theme_font_size_override("font_size",14)
         _style_aurora_tab(button,Color(.35,.70,.91))
+        button.size_flags_vertical=Control.SIZE_EXPAND_FILL
         _left_shortcuts.add_child(button)
 
     _bottom_navigation=HBoxContainer.new()
@@ -1379,7 +1558,7 @@ func _ensure_lobby_navigation() -> void:
         button.name="Bottom"+target
         button.custom_minimum_size=Vector2(0,30)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-        button.add_theme_font_size_override("font_size",12)
+        button.add_theme_font_size_override("font_size",14)
         if target=="JUGAR":
             _style_primary_action(button)
         else:
@@ -1389,12 +1568,12 @@ func _ensure_lobby_navigation() -> void:
     _social_panel=PanelContainer.new()
     _social_panel.name="AuroraRealSocialPanel"
     _social_panel.anchor_left=.720
-    _social_panel.anchor_right=.972
-    _social_panel.anchor_top=.175
-    _social_panel.anchor_bottom=.474
+    _social_panel.anchor_right=.974
+    _social_panel.anchor_top=.172
+    _social_panel.anchor_bottom=.459
     var social_style:=StyleBoxFlat.new()
-    social_style.bg_color=Color(.023,.048,.093,.96)
-    social_style.border_color=Color(.31,.72,.88)
+    social_style.bg_color=Color(.014,.028,.050,.98)
+    social_style.border_color=Color(.29,.60,.74)
     social_style.set_border_width_all(1)
     social_style.set_corner_radius_all(9)
     social_style.shadow_color=Color(.01,.02,.04,.40)
@@ -1403,12 +1582,12 @@ func _ensure_lobby_navigation() -> void:
     _surface.add_child(_social_panel)
     var social_content:=VBoxContainer.new()
     social_content.name="SocialContent"
-    social_content.add_theme_constant_override("separation",4)
+    social_content.add_theme_constant_override("separation",2)
     _social_panel.add_child(social_content)
     var social_title:=Label.new()
-    social_title.text="ESCUADRA  ·  SOCIAL"
+    social_title.text="ESCUADRA   /   LOCAL"
     social_title.name="FriendsHeading"
-    social_title.add_theme_font_size_override("font_size",15)
+    social_title.add_theme_font_size_override("font_size",13)
     social_title.add_theme_color_override("font_color",Color(.9,.85,1))
     social_content.add_child(social_title)
     _social_status_label=Label.new()
@@ -1416,13 +1595,44 @@ func _ensure_lobby_navigation() -> void:
     _social_status_label.text="01  ●  Operador local\nSin amigos conectados · Online pendiente"
     _social_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     _social_status_label.add_theme_font_size_override("font_size",11)
-    _social_status_label.custom_minimum_size.y=40
+    _social_status_label.custom_minimum_size.y=29
     _social_status_label.add_theme_color_override("font_color",Color(.75,.8,.85))
     social_content.add_child(_social_status_label)
+    var squad_slots:=HBoxContainer.new()
+    squad_slots.name="AuroraFourMemberSquad"
+    squad_slots.add_theme_constant_override("separation",3)
+    squad_slots.size_flags_vertical=Control.SIZE_EXPAND_FILL
+    social_content.add_child(squad_slots)
+    # Slot 01 represents the local profile; 02–04 are clearly empty.
+    # Do not fabricate online friends or send non-functional invitations.
+    for i in range(4):
+        var slot:=PanelContainer.new()
+        slot.name="SquadSlot"+str(i+1)
+        slot.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        slot.custom_minimum_size.y=23
+        var slot_style:=StyleBoxFlat.new()
+        slot_style.bg_color=(Color(.11,.20,.26,.94) if i==0 else
+            Color(.023,.041,.063,.96))
+        slot_style.border_color=(Color(.65,.80,.89,.76) if i==0 else
+            Color(.23,.35,.45,.62))
+        slot_style.set_border_width_all(1)
+        slot_style.set_corner_radius_all(4)
+        slot.add_theme_stylebox_override("panel",slot_style)
+        var number:=Label.new()
+        number.text="%02d %s"%[i+1,"LOCAL" if i==0 else "—"]
+        number.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+        number.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+        number.add_theme_font_size_override("font_size",10)
+        number.add_theme_color_override(
+            "font_color",Color(.92,.95,1) if i==0 else
+            Color(.54,.64,.74))
+        number.mouse_filter=Control.MOUSE_FILTER_IGNORE
+        slot.add_child(number)
+        squad_slots.add_child(slot)
     var social_open:=_button("GESTIONAR SOCIAL / CLAN",
         Callable(self,"_select_tab").bind("SOCIAL"),0)
     social_open.name="RealSocialEntry"
-    social_open.custom_minimum_size=Vector2(0,29)
+    social_open.custom_minimum_size=Vector2(0,27)
     social_open.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     social_open.add_theme_font_size_override("font_size",12)
     _style_aurora_tab(social_open,Color(.40,.65,.86))
@@ -1432,12 +1642,12 @@ func _ensure_lobby_navigation() -> void:
     _play_match_card.name="BattleRoyaleModeCard"
     _play_match_card.anchor_left=.718
     _play_match_card.anchor_right=.977
-    _play_match_card.anchor_top=.482
-    _play_match_card.anchor_bottom=.862
+    _play_match_card.anchor_top=.466
+    _play_match_card.anchor_bottom=.867
     _play_match_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
     var match_card_style:=StyleBoxFlat.new()
-    match_card_style.bg_color=Color(.018,.037,.076,.97)
-    match_card_style.border_color=Color(.96,.66,.24)
+    match_card_style.bg_color=Color(.013,.023,.039,.98)
+    match_card_style.border_color=Color(.93,.64,.22)
     match_card_style.set_border_width_all(2)
     match_card_style.set_corner_radius_all(11)
     match_card_style.shadow_color=Color(.75,.43,.11,.37)
@@ -1445,6 +1655,41 @@ func _ensure_lobby_navigation() -> void:
     _play_match_card.add_theme_stylebox_override("panel",match_card_style)
     _surface.add_child(_play_match_card)
     _surface.move_child(_play_match_card,_page.get_index())
+    # Compact phone: fill the lower blank half of the match card with
+    # truthful local battle information, without moving the START button.
+    # Desktop uses the three native match fact tiles in the detail column.
+    _lobby_compact_intel=PanelContainer.new()
+    _lobby_compact_intel.name="AuroraCompactMatchBrief"
+    _lobby_compact_intel.anchor_left=.727
+    _lobby_compact_intel.anchor_right=.970
+    # Keep this 28px strip BELOW the original INICIAR bounds at
+    # ~304-341 px on 964x434. The previous .744 anchor would overlap
+    # the button and interfere with touch.
+    _lobby_compact_intel.anchor_top=.795
+    _lobby_compact_intel.anchor_bottom=.863
+    _lobby_compact_intel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    var intel_style:=StyleBoxFlat.new()
+    intel_style.bg_color=Color(.026,.052,.076,.94)
+    intel_style.border_color=Color(.28,.56,.65,.65)
+    intel_style.set_border_width_all(1)
+    intel_style.set_corner_radius_all(5)
+    intel_style.content_margin_left=6
+    intel_style.content_margin_right=5
+    intel_style.content_margin_top=3
+    intel_style.content_margin_bottom=2
+    _lobby_compact_intel.add_theme_stylebox_override("panel",intel_style)
+    var intel_text:=Label.new()
+    intel_text.name="CompactBattleInformation"
+    intel_text.text="PUERTO AURORA  /  SOLO LOCAL\n50 PARTICIPANTES  ·  ZONA: 4 FASES"
+    intel_text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    intel_text.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+    intel_text.add_theme_font_size_override("font_size",11)
+    intel_text.add_theme_color_override(
+        "font_color",Color(.82,.91,.94))
+    intel_text.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _lobby_compact_intel.add_child(intel_text)
+    _lobby_compact_intel.visible=false
+    _surface.add_child(_lobby_compact_intel)
 
     _top_account_button=_button("CUENTA",
         Callable(self,"_select_tab").bind("CUENTA"),0)
@@ -1483,12 +1728,13 @@ func _ensure_lobby_navigation() -> void:
 
 func _style_aurora_tab(button: Button,tint: Color) -> void:
     var normal:=StyleBoxFlat.new()
-    normal.bg_color=Color(.020,.047,.090,.95)
-    normal.border_color=tint
+    normal.bg_color=Color(.012,.026,.049,.95)
+    normal.border_color=tint.darkened(.28)
     normal.set_border_width_all(1)
-    normal.set_corner_radius_all(5)
+    normal.border_width_left=3
+    normal.set_corner_radius_all(6)
     var hover:=normal.duplicate() as StyleBoxFlat
-    hover.bg_color=Color(.13,.085,.25,.98)
+    hover.bg_color=Color(.072,.12,.19,.98)
     var pressed:=hover.duplicate() as StyleBoxFlat
     pressed.border_color=Color(.98,.77,.31)
     button.add_theme_stylebox_override("normal",normal)
@@ -1528,10 +1774,14 @@ func _select_tab(tab: String) -> void:
         _social_panel.visible=tab=="JUGAR"
     if _play_match_card!=null:
         _play_match_card.visible=tab=="JUGAR"
-    _page.anchor_left=.735
-    _page.anchor_right=.961
-    _page.anchor_top=.517 if tab=="JUGAR" else .183
-    _page.anchor_bottom=.848
+    if _lobby_compact_intel!=null:
+        _lobby_compact_intel.visible=(tab=="JUGAR" and
+            _selected_match_mode=="classic" and
+            not _entry_should_show_briefing())
+    _page.anchor_left=.733
+    _page.anchor_right=.962
+    _page.anchor_top=.487 if tab=="JUGAR" else .183
+    _page.anchor_bottom=.854
     for button in _lobby_nav.get_children():
         if button is Button:
             var selected: bool=button.name=="Tab"+tab
@@ -2054,18 +2304,21 @@ func _build_preview() -> void:
     env.background_mode=Environment.BG_CLEAR_COLOR
     env.background_color=Color(.016,.021,.048,0.0)
     env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
-    env.ambient_light_color=Color(.78,.85,.98)
-    env.ambient_light_energy=1.13
+    # Preserve real skinned-material color instead of bleaching Lila's face
+    # and outfit under a combined 3.8x energy budget.
+    env.ambient_light_color=Color(.67,.77,.90)
+    env.ambient_light_energy=.46
     ambient.environment=env
     stage3d.add_child(ambient)
     var key:=DirectionalLight3D.new()
     key.rotation_degrees=Vector3(-36,35,0)
-    key.light_energy=1.55
+    key.light_color=Color(1.0,.93,.87)
+    key.light_energy=1.52
     stage3d.add_child(key)
     var rim:=DirectionalLight3D.new()
     rim.rotation_degrees=Vector3(26,-135,0)
-    rim.light_color=Color(.49,.75,1.0)
-    rim.light_energy=1.13
+    rim.light_color=Color(.40,.67,.86)
+    rim.light_energy=.47
     stage3d.add_child(rim)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
@@ -2118,7 +2371,7 @@ func _build_preview() -> void:
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
-    caption.text="LILA AURORA   ↻ GIRAR"
+    caption.text="LILA AURORA  /  OPERADOR 01    ↻ GIRAR"
     caption.anchor_left=.29
     caption.anchor_right=.65
     caption.anchor_top=.90
@@ -2220,9 +2473,33 @@ func _layout_safe() -> void:
     _surface.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     _surface.position=safe.position
     _surface.size=safe.size
+    # Adapt original LZ emblem to usable screen height: large desktop hero
+    # but never clip the live progress/actions in 434px Motorola landscape.
+    if _loading_emblem!=null and is_instance_valid(_loading_emblem):
+        _loading_emblem.custom_minimum_size.y=clampf(
+            safe.size.y*.16,69.0,122.0)
+    if stage=="lobby" and _lobby_match_facts!=null and is_instance_valid(
+            _lobby_match_facts):
+        _lobby_match_facts.visible=(_selected_tab=="JUGAR" and
+            _selected_match_mode=="classic" and _entry_should_show_briefing())
+    if stage=="lobby" and _lobby_compact_intel!=null and is_instance_valid(
+            _lobby_compact_intel):
+        _lobby_compact_intel.visible=(_selected_tab=="JUGAR" and
+            _selected_match_mode=="classic" and
+            not _entry_should_show_briefing())
     if stage=="welcome" and _entry_info_panel!=null and is_instance_valid(
             _entry_info_panel):
         _entry_info_panel.visible=_entry_should_show_briefing()
+        var compact_entry: bool=minf(safe.size.y,
+            float(get_window().size.y))<560.0
+        var overline: Control=_page.get_node_or_null(
+            "AuroraEntryAccessOverline") as Control
+        var diagnostics: Control=_page.get_node_or_null(
+            "StartupDiagnosticEntry") as Control
+        if overline!=null:
+            overline.visible=not compact_entry
+        if diagnostics!=null:
+            diagnostics.visible=not compact_entry
     # SubViewportContainer with stretch=true OWNS its SubViewport.size.
     # Never write the child's size manually: Godot ignores that write and
     # warns every frame. Use stretch_shrink to cap the physical pixel count
