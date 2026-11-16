@@ -19,7 +19,7 @@ func _verify() -> void:
     root.add_child(stage)
     await process_frame
     var peaks: Array[Node]=stage.find_children(
-        "AuroraSnowPeak","MeshInstance3D",true,false)
+        "AuroraSnowPeak*","MeshInstance3D",true,false)
     check(peaks.size()==44,
         "22 distinct ridges need exactly 44 stone/frost meshes")
     var min_triangles: int=999999
