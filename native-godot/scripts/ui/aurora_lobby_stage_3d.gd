@@ -29,7 +29,12 @@ func _ready() -> void:
     var metal: StandardMaterial3D=_material(Color(.073,.11,.19),.55,.42)
     var steel: StandardMaterial3D=_material(Color(.052,.078,.13),.68,.34)
     var ice: StandardMaterial3D=_material(Color(.095,.17,.26),.26,.36)
-    var snow: StandardMaterial3D=_material(Color(.53,.65,.79),.06,.86)
+    # Mountains use muted blue-grey ice rather than flat white pyramid caps.
+    # Hangar/foreground materials remain separate from the mountain palette.
+    var snow: StandardMaterial3D=_material(Color(.41,.53,.65),.04,.88)
+    var ridge_far: StandardMaterial3D=_material(Color(.15,.22,.32),.05,.91)
+    var ridge_near: StandardMaterial3D=_material(Color(.11,.18,.27),.09,.85)
+    var ridge_frost: StandardMaterial3D=_material(Color(.37,.47,.57),.02,.90)
     var dark: StandardMaterial3D=_material(Color(.024,.030,.063),.44,.62)
     var neon_purple: StandardMaterial3D=_emission(Color(.48,.24,.82),1.15)
     var neon_cyan: StandardMaterial3D=_emission(Color(.18,.68,.88),1.25)
@@ -61,13 +66,17 @@ func _ready() -> void:
             _box("AuroraRunwayReflector",
                 Vector3(side*6.88,.31,position_z),
                 Vector3(.19,.055,.16),neon_cyan)
+    # The former 4-triangle pyramid skyline produced repeated bright
+    # white triangles behind Lila. Irregular layered rock geometry makes
+    # the silhouette less repetitive without resorting to textures or
+    # expensive static mesh imports (mobile GPU budget stays bounded).
     for i in range(-6,7):
         var f: float=float(i)
         _peak(Vector3(f*3.1,-.13,-21.0-absf(f)*.23),
-            3.7,4.3+absf(sin(f*.8))*2.6,steel,snow)
+            3.7,4.3+absf(sin(f*.8))*2.6,ridge_far,ridge_frost)
     for i in range(-4,5):
         _peak(Vector3(float(i)*4.15,-.11,-17.0-absf(float(i))*.19),
-            2.25,2.25+float(i%3)*.45,metal,snow)
+            2.25,2.25+float(i%3)*.45,ridge_near,snow)
     # Base Aurora has a layered winter command station rather than two
     # featureless cubes: entrances, frames, windows, sloped roofing and
     # original illuminated signal/billboard elements.
@@ -313,21 +322,46 @@ func _beam(a: Vector3,b: Vector3,r: float,mat: Material) -> void:
 
 
 func _peak(at: Vector3,width: float,height: float,
-        stone: Material,white: Material) -> void:
+        stone: Material,frost: Material) -> void:
     _pyramid(at,width,height,stone)
-    _pyramid(at+Vector3.UP*height*.70,width*.30,height*.30,white)
+    # Asymmetrical 24%-high frost crown rather than the repeated 30%
+    # white cap which read as a jagged poster of white triangles.
+    var crown_offset: float=sin(at.x*.37+at.z*.13)*width*.09
+    _pyramid(at+Vector3(crown_offset,height*.76,0),
+        width*.245,height*.24,frost)
 
 
 func _pyramid(at: Vector3,width: float,height: float,mat: Material) -> void:
     var builder:=SurfaceTool.new()
     builder.begin(Mesh.PRIMITIVE_TRIANGLES)
-    var corners: Array[Vector3]=[
-        Vector3(-width,0,-width),Vector3(width,0,-width),
-        Vector3(width,0,width),Vector3(-width,0,width)]
-    for i in range(4):
-        builder.add_vertex(corners[i])
-        builder.add_vertex(corners[(i+1)%4])
-        builder.add_vertex(Vector3(0,height,0))
+    var ring: Array[Vector3]=[]
+    var ridge: Array[Vector3]=[]
+    const SECTORS: int=9
+    # Fixed trigonometric offsets keep all machines deterministic, while
+    # avoiding perfectly symmetric four-sided mountains.
+    for i in range(SECTORS):
+        var theta: float=TAU*float(i)/float(SECTORS)-PI*.75
+        var noise: float=sin(float(i)*2.31+at.x*.27+at.z*.07)
+        var radial: float=width*(.82+.15*noise)
+        var perimeter:=Vector3(
+            cos(theta)*radial,0,sin(theta)*radial*.87)
+        ring.append(perimeter)
+        var shoulder_height: float=height*(.40+.07*sin(
+            float(i)*1.77+at.x*.13))
+        ridge.append(Vector3(
+            perimeter.x*.49,shoulder_height,perimeter.z*.48))
+    var summit:=Vector3(
+        sin(at.x*.29)*width*.13,
+        height,
+        cos(at.z*.34)*width*.12)
+    for i in range(SECTORS):
+        var next: int=(i+1)%SECTORS
+        for point in [
+            ring[i],ring[next],ridge[i],
+            ring[next],ridge[next],ridge[i],
+            ridge[i],ridge[next],summit
+        ]:
+            builder.add_vertex(point)
     builder.generate_normals()
     var shape:=MeshInstance3D.new()
     shape.name="AuroraSnowPeak"
