@@ -14,6 +14,8 @@ func require(ok: bool,message: String) -> void:
 
 
 func _verify() -> void:
+    # Match the actual Motorola landscape target before measuring composition.
+    root.size=Vector2i(964,434)
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
     await front.wait_for_startup()
@@ -34,8 +36,36 @@ func _verify() -> void:
         require(station.find_child(element,true,false)!=null,
             "Missing original winter stage feature: "+element)
     var camera: Camera3D=scene.get_node("LobbyPortraitCamera") as Camera3D
-    require(camera.fov<=40.0 and camera.position.z<=3.2,
-        "Lila must fill the middle stage at Motorola resolution")
+    # V75.79 expected FOV <=40, but this cropped Lila behind the upper
+    # header and bottom rail in the actual V75.109 screenshot. V75.111
+    # uses a wider lens. Test the real on-screen rig, not an obsolete
+    # numeric camera setting.
+    var avatar: Node3D=front._preview_avatar
+    require(avatar!=null and camera.current and camera.position.z<=3.2,
+        "Real Lila and the active lobby camera must remain available")
+    var top: float=INF
+    var bottom: float=-INF
+    var projected_corners: int=0
+    for item in avatar.find_children("*","MeshInstance3D",true,false):
+        var mesh:=item as MeshInstance3D
+        if not mesh.visible:
+            continue
+        var bounds: AABB=mesh.get_aabb()
+        for corner in range(8):
+            var position: Vector3=mesh.to_global(bounds.get_endpoint(corner))
+            if camera.is_position_behind(position):
+                continue
+            var pixel: Vector2=camera.unproject_position(position)
+            top=minf(top,pixel.y)
+            bottom=maxf(bottom,pixel.y)
+            projected_corners+=1
+    var screen_height: float=maxf(float(viewport.size.y),1.0)
+    var coverage: float=(bottom-top)/screen_height
+    require(projected_corners>=8 and is_finite(coverage) and
+        coverage>=.42 and coverage<=.785 and
+        top>=screen_height*.105 and bottom<=screen_height*.89,
+        "Lila must fill the middle stage without clipping her head or feet: "+
+        "coverage="+str(coverage)+" bounds="+str(Vector2(top,bottom)))
     require(front._preview_container.visible and
         scene.get_node_or_null("AuroraSentinelCompanion")!=null,
         "original sentinel and rotating Lila are not both visible")

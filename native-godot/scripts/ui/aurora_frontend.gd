@@ -1915,9 +1915,11 @@ func _toggle_operator_frame() -> void:
         _preview_frame_tween.kill()
     _preview_zoomed=not _preview_zoomed
     _preview_resume_spin=3.0
-    var target_fov: float=35.5 if _preview_zoomed else 38.0
-    var target_position: Vector3=Vector3(-.10,1.18,
-        2.91 if _preview_zoomed else 3.07)
+    # Full-body mode fits between the top profile strip and bottom controls.
+    # Close-up lifts the lens so Lila's face does not disappear under the header.
+    var target_fov: float=45.0 if _preview_zoomed else 54.0
+    var target_position: Vector3=(Vector3(-.10,1.48,2.95)
+        if _preview_zoomed else Vector3(-.10,1.18,3.07))
     _preview_frame_tween=create_tween()
     _preview_frame_tween.set_parallel(true)
     _preview_frame_tween.set_trans(Tween.TRANS_CUBIC)
@@ -2027,10 +2029,11 @@ func _build_preview() -> void:
     stage3d.add_child(rim)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
-    # Keep the real rig large enough to be visible at phone resolution
-    # without cropping feet or hiding the original sentinel companion.
+    # V75.109 CI screenshot showed the operator's head hidden behind the
+    # top UI and feet over the bottom rail. A 54-degree vertical FOV fits
+    # the 1.96m preview rig inside the usable mobile lobby band.
     camera.position=Vector3(-.10,1.18,3.07)
-    camera.fov=38
+    camera.fov=54.0
     camera.current=true
     stage3d.add_child(camera)
     camera.look_at(Vector3(-.08,.91,0),Vector3.UP)
