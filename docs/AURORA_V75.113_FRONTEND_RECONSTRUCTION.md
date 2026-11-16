@@ -47,3 +47,7 @@ El rig Lila sigue siendo un activo de base CC0 adaptado; el escenario de acceso 
 ## Protección contra «listo por cumplir»
 
 Antes de afirmar que esta interfaz cumple la referencia del usuario, el PR debe aportar las capturas reales de `loading`, `login`, `lobby` en Godot y comparar legibilidad, personaje completo, composición y contención en 964×434 y 1280×720. **Un test CI en verde no sustituye la evaluación estética ni la prueba física del Motorola**. Ninguna APK se genera automáticamente durante las iteraciones visuales. El PR es borrador hasta que los criterios se cumplan.
+
+## Capturas objetivas del teléfono
+
+El workflow usa además `capture_motorola_frontend_qa.gd` con Xvfb **964×434**, exportando `aurora-v75-113-motorola-loading.png`, `-login.png` y `-lobby.png` al mismo artifact de imágenes. El script verifica dimensiones del píxel real, renderiza botones/GLB nativos y anota que **no es** una prueba física de Vulkan. En 434 px la pantalla de acceso prioriza Google, Invitado y Sin conexión; se ocultan solo el overline decorativo y el botón de diagnósticos para mantener áreas táctiles. El diagnóstico sigue accesible en la interfaz amplia.
