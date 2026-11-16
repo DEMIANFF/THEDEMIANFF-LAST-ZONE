@@ -40,6 +40,11 @@ var _surface: Control
 var _page: VBoxContainer
 var _entry_glass: Panel
 var _entry_mission_caption: Label
+var _entry_hero_plate: Panel
+var _entry_hero_kicker: Label
+var _entry_panel_accent: ColorRect
+var _loading_chapter: Label
+var _loading_surface_plate: Panel
 var _entry_info_panel: PanelContainer
 var _header_glass: Panel
 var _lobby_backplates: Array[Control]=[]
@@ -345,26 +350,57 @@ func _make_glass_panel(bg: Color,border: Color,rounding: int=12) -> Panel:
 
 func _build_entry_shell() -> void:
     _entry_glass=_make_glass_panel(
-        Color(.012,.026,.058,.95),Color(.28,.70,.87,.8),14)
+        Color(.008,.018,.035,.97),Color(.37,.49,.65,.76),13)
     _entry_glass.name="AuroraEntryGlassPanel"
     _entry_glass.anchor_left=.55
-    _entry_glass.anchor_right=.958
-    _entry_glass.anchor_top=.115
-    _entry_glass.anchor_bottom=.926
+    _entry_glass.anchor_right=.966
+    _entry_glass.anchor_top=.109
+    _entry_glass.anchor_bottom=.932
     _entry_glass.visible=false
     _surface.add_child(_entry_glass)
+    _entry_panel_accent=ColorRect.new()
+    _entry_panel_accent.name="AuroraAccessGoldAccent"
+    _entry_panel_accent.color=Color(.99,.69,.23,.91)
+    _entry_panel_accent.anchor_left=.55
+    _entry_panel_accent.anchor_right=.553
+    _entry_panel_accent.anchor_top=.18
+    _entry_panel_accent.anchor_bottom=.86
+    _entry_panel_accent.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _entry_panel_accent.visible=false
+    _surface.add_child(_entry_panel_accent)
+    _entry_hero_plate=_make_glass_panel(
+        Color(.011,.028,.055,.76),Color(.28,.61,.79,.46),10)
+    _entry_hero_plate.name="AuroraEntryHeroPanel"
+    _entry_hero_plate.anchor_left=.047
+    _entry_hero_plate.anchor_right=.510
+    _entry_hero_plate.anchor_top=.255
+    _entry_hero_plate.anchor_bottom=.775
+    _entry_hero_plate.visible=false
+    _surface.add_child(_entry_hero_plate)
+    _entry_hero_kicker=Label.new()
+    _entry_hero_kicker.name="AuroraEntryHeroKicker"
+    _entry_hero_kicker.text="01  /  CENTRO DE OPERACIONES   ·   BASE AURORA"
+    _entry_hero_kicker.anchor_left=.067
+    _entry_hero_kicker.anchor_right=.490
+    _entry_hero_kicker.anchor_top=.295
+    _entry_hero_kicker.anchor_bottom=.34
+    _entry_hero_kicker.add_theme_font_size_override("font_size",12)
+    _entry_hero_kicker.add_theme_color_override(
+        "font_color",Color(.47,.85,.95))
+    _entry_hero_kicker.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _entry_hero_kicker.visible=false
+    _surface.add_child(_entry_hero_kicker)
     _entry_mission_caption=Label.new()
     _entry_mission_caption.name="AuroraEntryMissionCaption"
-    _entry_mission_caption.text="BASE AURORA  /  OPERACIÓN INVIERNO\n\nENTRA EN LA ÚLTIMA ZONA\nY PREPARA TU DESPLIEGUE"
-    _entry_mission_caption.anchor_left=.06
-    _entry_mission_caption.anchor_right=.53
-    # The old caption crossed the hangar horizon on 16:9 and compact screens.
-    _entry_mission_caption.anchor_top=.42
-    _entry_mission_caption.anchor_bottom=.76
+    _entry_mission_caption.text="ÚLTIMA ZONA\nEL DESPLIEGUE EMPIEZA AQUÍ\n\nOPERACIÓN AURORA  /  INVIERNO"
+    _entry_mission_caption.anchor_left=.067
+    _entry_mission_caption.anchor_right=.494
+    _entry_mission_caption.anchor_top=.390
+    _entry_mission_caption.anchor_bottom=.717
     _entry_mission_caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _entry_mission_caption.add_theme_font_size_override("font_size",21)
+    _entry_mission_caption.add_theme_font_size_override("font_size",23)
     _entry_mission_caption.add_theme_color_override(
-        "font_color",Color(.92,.96,1.0))
+        "font_color",Color(.97,.98,1.0))
     _entry_mission_caption.add_theme_color_override(
         "font_shadow_color",Color(.0,.02,.05,.90))
     _entry_mission_caption.add_theme_constant_override("shadow_offset_y",2)
@@ -527,6 +563,9 @@ func _welcome() -> void:
     _loading_overlay.hide()
     _entry_glass.visible=true
     _entry_mission_caption.visible=true
+    _entry_hero_plate.visible=true
+    _entry_hero_kicker.visible=true
+    _entry_panel_accent.visible=true
     AuroraLobbyMusic.leave_lobby()
     visible=true
     _login_pending_provider=""
@@ -556,18 +595,22 @@ func _welcome() -> void:
     for item in [_profile_strip,_stats_strip,_currency_strip]:
         if item!=null and is_instance_valid(item):
             item.visible=false
-    _page.anchor_left=.586
-    _page.anchor_right=.923
-    _page.anchor_top=.153
-    _page.anchor_bottom=.890
+    _page.anchor_left=.585
+    _page.anchor_right=.933
+    _page.anchor_top=.155
+    _page.anchor_bottom=.900
     _page.add_theme_constant_override("separation",6)
     _brand_logo.visible=true
-    _brand_logo.anchor_left=.911
-    _brand_logo.anchor_right=.958
-    _brand_logo.anchor_top=.03
-    _brand_logo.anchor_bottom=.116
+    _brand_logo.anchor_left=.916
+    _brand_logo.anchor_right=.963
+    _brand_logo.anchor_top=.028
+    _brand_logo.anchor_bottom=.109
     _clear_page()
     _add_entry_wordmark(_page)
+    var entry_overline:=_label("CENTRO DE ACCESO  /  AUTENTICACIÓN",11)
+    entry_overline.name="AuroraEntryAccessOverline"
+    entry_overline.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    entry_overline.add_theme_color_override("font_color",Color(.49,.78,.90))
     var space:=Control.new()
     space.mouse_filter=Control.MOUSE_FILTER_IGNORE
     space.size_flags_vertical=Control.SIZE_EXPAND_FILL
@@ -579,7 +622,7 @@ func _welcome() -> void:
     _entry_info_panel.custom_minimum_size=Vector2(0,112)
     _entry_info_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     var briefing_style:=StyleBoxFlat.new()
-    briefing_style.bg_color=Color(.035,.115,.18,.87)
+    briefing_style.bg_color=Color(.036,.070,.102,.93)
     briefing_style.border_color=Color(.25,.66,.80,.72)
     briefing_style.set_border_width_all(1)
     briefing_style.set_corner_radius_all(9)
@@ -622,13 +665,13 @@ func _welcome() -> void:
     _login_google_button=_button("CONTINUAR CON GOOGLE",
         Callable(self,"_begin_welcome_auth").bind("google"),0)
     _login_google_button.name="WelcomeGoogleSignIn"
-    _login_google_button.custom_minimum_size.y=42
+    _login_google_button.custom_minimum_size.y=46
     _login_google_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _style_primary_action(_login_google_button)
     _login_guest_button=_button("ENTRAR COMO INVITADO",
         Callable(self,"_begin_welcome_auth").bind("guest"),0)
     _login_guest_button.name="WelcomeGuestSignIn"
-    _login_guest_button.custom_minimum_size.y=40
+    _login_guest_button.custom_minimum_size.y=44
     _login_guest_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     providers.add_child(_login_google_button)
     providers.add_child(_login_guest_button)
@@ -643,7 +686,7 @@ func _welcome() -> void:
     disclosure.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     disclosure.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     var diag:=_button("DIAGNÓSTICOS DE DESARROLLO",
-        Callable(self,"_show_startup_diagnostics"),320)
+        Callable(self,"_show_startup_diagnostics"),0)
     diag.name="StartupDiagnosticEntry"
     diag.custom_minimum_size.y=22
     diag.add_theme_font_size_override("font_size",10)
@@ -807,6 +850,9 @@ func _show_lobby() -> void:
     # Actual on-device results. No invented premium currency, fake friends or fake cloud ID.
     _entry_glass.visible=false
     _entry_mission_caption.visible=false
+    _entry_hero_plate.visible=false
+    _entry_hero_kicker.visible=false
+    _entry_panel_accent.visible=false
     _offline_records=MATCH_RECORDS.new()
     var stats: Dictionary=_offline_records.snapshot()
     if _preview_container==null or not is_instance_valid(_preview_container):
