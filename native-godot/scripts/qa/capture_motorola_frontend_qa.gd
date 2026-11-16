@@ -14,8 +14,8 @@ func _save(stage_label: String) -> bool:
         push_error("V75113_MOTOROLA_CAPTURE wrong resolution "+
             str(image.get_size())+" for "+stage_label)
         return false
-    var path: String="res://out/aurora-"+CAPTURE_VERSION.tag()+
-        "-motorola-"+stage_label+".png"
+    var path: String=("res://out/aurora-"+CAPTURE_VERSION.tag()+
+        "-motorola-"+stage_label+".png")
     if image.save_png(path)!=OK:
         push_error("V75113_MOTOROLA_CAPTURE failed "+path)
         return false
