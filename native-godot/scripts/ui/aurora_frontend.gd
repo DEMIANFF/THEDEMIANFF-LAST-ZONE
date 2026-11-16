@@ -898,9 +898,11 @@ func _show_lobby() -> void:
     _brand_logo.visible=true
     # Logo stays outside the full-width profile strip and never crosses
     # over player statistics or the rotating 3D character.
-    _brand_logo.anchor_left=.944
-    _brand_logo.anchor_right=.975
-    _brand_logo.anchor_top=.018
+    # Prominent original emblem integrated into the left profile header.
+    # The V75.112 tiny icon at the far right was almost invisible on phone.
+    _brand_logo.anchor_left=.031
+    _brand_logo.anchor_right=.094
+    _brand_logo.anchor_top=.024
     _brand_logo.anchor_bottom=.117
     # Base Aurora: large real 3D operator at centre; separate commerce,
     # social/match card, full-width top and bottom navigation layers.
@@ -1345,9 +1347,9 @@ func _ensure_lobby_navigation() -> void:
     _surface.move_child(_header_glass,_page.get_index())
     _lobby_backplates.append(_header_glass)
     _profile_strip=_make_header_label(
-        "LocalProfileStrip",.035,.303,14)
+        "LocalProfileStrip",.107,.313,14)
     _stats_strip=_make_header_label(
-        "LocalStatisticsStrip",.312,.558,12)
+        "LocalStatisticsStrip",.322,.558,12)
     _currency_strip=_make_header_label(
         "LocalCurrencyStrip",.569,.729,11)
     var backplate:=_make_glass_panel(
