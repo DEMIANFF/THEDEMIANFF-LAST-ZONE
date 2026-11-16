@@ -57,9 +57,14 @@ func _verify() -> void:
                 frost+=1
             else:
                 rock+=1
+    print("V75114_POLAR_DIAGNOSTIC triangles_min=",min_triangles,
+        " highest_min=",min_peak_y,
+        " rock=",rock," frost=",frost)
     check(min_triangles>=27 and min_peak_y>.4 and
         rock==22 and frost==22,
-        "frost and rock are not paired into irregular peaks")
+        "mesh quality or rock/frost pairing failed: triangles="+
+        str(min_triangles)+" min_y="+str(min_peak_y)+
+        " rock="+str(rock)+" frost="+str(frost))
     check(stage.find_child("AuroraRunwayCentralSpine",true,false)!=null and
         stage.find_child("AuroraHangarRear",true,false)!=null and
         stage.find_child("PolarAuroraCurtain",true,false)!=null,
