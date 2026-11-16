@@ -40,9 +40,13 @@ func _verify() -> void:
     for item in ["weapon_scar","weapon_mp40","weapon_kriss","ammo_smg"]:
         var pickup: Area3D=armory.get_node("Training_"+item)
         player.global_position=pickup.global_position-Vector3.UP*.5
-        await physics_frame
-        pickup._collect(player)
-        check(pickup.collected,"physical training pickup blocked: "+item)
+        # Area3D/proximity collection may queue_free the pickup during the
+        # frame. Observe the result; never call a freed object a second time.
+        for frame in range(24):
+            await physics_frame
+            await process_frame
+        check(not is_instance_valid(pickup) or pickup.collected,
+            "automatic physical training pickup blocked: "+item)
     check(combat.weapon_owned.size()==5 and combat.weapon_owned.all(
         func(owned: bool) -> bool: return owned),"missing inventory weapon")
     check(combat.reserve[CATALOG.MP40]==60,"SMG shared reserve duplicated or lost")

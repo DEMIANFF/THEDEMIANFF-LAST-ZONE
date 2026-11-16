@@ -1,0 +1,4244 @@
+{
+  "schema_version": 1,
+  "project": "THEDEMIAN: LAST ZONE",
+  "base_commit": "89408684f423ac698c45ddd39fc2b25c0ac1b4fb",
+  "created_date": "2026-11-16",
+  "scope": "80 originales Aurora V3; las adendas y V2 se documentan por separado.",
+  "original_count": 80,
+  "unique_sha256_count": 75,
+  "total_original_bytes": 1801117939,
+  "integral_complete": false,
+  "records": [
+    {
+      "id": 1,
+      "file": "animated_scar.glb",
+      "target": "SCAR",
+      "size_bytes": 16067460,
+      "sha256_expected": "d32f15d810ce1e0639ff6a833dd03299cc01cc3f4eb55e660293e04b0dc15267",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "d32f15d810ce1e0639ff6a833dd03299cc01cc3f4eb55e660293e04b0dc15267",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/animated-scar-5e64d6245bba4a819b9fef578c34b3fe"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": "native-godot/assets/weapons/aurora_v3/aurora_scar.glb",
+          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+        },
+        "scene": "Main/CombatRange; botín AuroraSCARPickup; nueva recogida en Entrenamiento",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Akito Rig|Idle",
+            "Akito Rig|Reload",
+            "Akito Rig|Shoot",
+            "Akito Rig|Take"
+          ],
+          "note": "Derivado estático sin los 4 clips originales; usa acciones de Lila AuroraFire/AuroraReloadAR. Retarget original y masculino pendientes."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "scar_fire sintetizado del proyecto; audio original de la entrega pendiente."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Disparo físico, recarga, cargador independiente de 30, reserva AR compartida, inventario, botín. IA no usa este modelo."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [
+            "v75103_aurora_v3_qa"
+          ],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "file": "animated_rifle.glb",
+      "target": "Fusil animado",
+      "size_bytes": 9148128,
+      "sha256_expected": "f6228632f98cb7b7bd28e2fa5bb7d42f4fb236e3ee4fc25b370ed16e0e3ca5d8",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "f6228632f98cb7b7bd28e2fa5bb7d42f4fb236e3ee4fc25b370ed16e0e3ca5d8",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/animated-rifle-fabbdb28933b4209a49405a6d7842490"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Armature|Take",
+            "Armature|Shoot",
+            "Armature|Reload",
+            "Armature|Watch",
+            "Armature|Hide"
+          ],
+          "note": "5 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "file": "animated_assault_rifle.glb",
+      "target": "Fusil animado (NC)",
+      "size_bytes": 49421116,
+      "sha256_expected": "af3e15b9efa22eca391598633211c521e56bd907c1fdbc241a7689d9bd5f7692",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "af3e15b9efa22eca391598633211c521e56bd907c1fdbc241a7689d9bd5f7692",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)",
+            "source": "https://sketchfab.com/3d-models/animated-assault-rifle-46a12c6d46fe488191d4b08db97d2d2e"
+          },
+          "reason": "No habilitar en distribución comercial bajo la licencia NC declarada."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Armature|Take",
+            "Armature|Shoot",
+            "Armature|Reload",
+            "Armature|Watch",
+            "Armature|Hide"
+          ],
+          "note": "5 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "file": "hand_with_gloves.glb",
+      "target": "Manos/guantes",
+      "size_bytes": 8555272,
+      "sha256_expected": "77042c5112bbbbabbc365aaa93b3b6a09a07af93b4544608bf70cd3cfc202d1a",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "77042c5112bbbbabbc365aaa93b3b6a09a07af93b4544608bf70cd3cfc202d1a",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/hand-with-gloves-5a6a434b8ec943ffacc581358781eecb"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "file": "animated_fps_m4a4.glb",
+      "target": "M4A4",
+      "size_bytes": 90787736,
+      "sha256_expected": "f639eda6362168fb536781b0d445267e67f6099e932ff984ec5b1e802e34408d",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "f639eda6362168fb536781b0d445267e67f6099e932ff984ec5b1e802e34408d",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/animated-fps-m4a4-a82fbbb731724390bc88d38940b8b01c"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Armature|Hide",
+            "Armature|Reload",
+            "Armature|Shoot",
+            "Armature|Take"
+          ],
+          "note": "4 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "file": "animated_magnum.glb",
+      "target": "Magnum",
+      "size_bytes": 25850684,
+      "sha256_expected": "6769d99c9a8337d4c8e338105174dc9e98cd0a36c5a94b14b217af32c08e53c3",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "6769d99c9a8337d4c8e338105174dc9e98cd0a36c5a94b14b217af32c08e53c3",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/animated-magnum-643b9d61ff49407b84ead78eaf815252"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Armature|Take",
+            "Armature|Shoot",
+            "Armature|Reload",
+            "Armature|Watch",
+            "Armature|Hide"
+          ],
+          "note": "5 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "file": "animated_mp5.glb",
+      "target": "MP5",
+      "size_bytes": 12848616,
+      "sha256_expected": "93576c6ff389e48de783d22000208f1b8d78e59b523a9e5fec7a359aca551738",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "93576c6ff389e48de783d22000208f1b8d78e59b523a9e5fec7a359aca551738",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/animated-mp5-19278d5f4a334f4abf320bc303ff9be1"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Armature|Reload",
+            "Armature|Shoot",
+            "Armature|Take"
+          ],
+          "note": "3 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "file": "scar.glb",
+      "target": "SCAR alternativa",
+      "size_bytes": 18631432,
+      "sha256_expected": "bf5f0ff086fa391ea70dad5ded9b9e4b64a857d6e7120ed43c69b51bd00c1f5a",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "bf5f0ff086fa391ea70dad5ded9b9e4b64a857d6e7120ed43c69b51bd00c1f5a",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/scar-afd0c02ccc1847e2a787917dad5ba260"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Armature|Take",
+            "Armature|Idle",
+            "Armature|Shoot",
+            "Armature|Reload",
+            "Armature|Walk",
+            "Armature|Run",
+            "Armature|Hide"
+          ],
+          "note": "7 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "file": "scar_l.glb",
+      "target": "SCAR alternativa",
+      "size_bytes": 8364244,
+      "sha256_expected": "b3185dbb33c0c1f57df50e11f80be66e1a7629e4b2a5d86870d1381bf73192f9",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "b3185dbb33c0c1f57df50e11f80be66e1a7629e4b2a5d86870d1381bf73192f9",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "DelthorGames (https://sketchfab.com/DelthorGames)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/scar-l-48141819356643559761da09dd9e7841"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "file": "animated_knife.glb",
+      "target": "Cuchillo",
+      "size_bytes": 59109248,
+      "sha256_expected": "40ceb2ec81e7878f3b66f1fd7917b625f063810bcdad0b875d89d31bd08ea7e1",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "40ceb2ec81e7878f3b66f1fd7917b625f063810bcdad0b875d89d31bd08ea7e1",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/animated-knife-7bee900b43f24ed9b3d48304362d5599"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Armature|Take",
+            "Armature|Idle",
+            "Armature|Fire1",
+            "Armature|Fire2"
+          ],
+          "note": "4 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "file": "animated_shotgun.glb",
+      "target": "Escopeta",
+      "size_bytes": 22294064,
+      "sha256_expected": "01064d5468e762ef321df85bf02718c41f950d29608498a8d1d0691efe13f3c0",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "01064d5468e762ef321df85bf02718c41f950d29608498a8d1d0691efe13f3c0",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/animated-shotgun-e048ba220f9e49c29a3e808cddc22a0a"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Armature|Take",
+            "Armature|Watch",
+            "Armature|Shoot",
+            "Armature|ReloadStart",
+            "Armature|Reload",
+            "Armature|ReloadEnd",
+            "Armature|Hide"
+          ],
+          "note": "7 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "file": "animated_pp-19-01.glb",
+      "target": "PP-19",
+      "size_bytes": 16327768,
+      "sha256_expected": "ad06ec7a6f378ced753f9997c33fcf2b25bcf92205db176800fe4ccba6a30440",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "ad06ec7a6f378ced753f9997c33fcf2b25bcf92205db176800fe4ccba6a30440",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/animated-pp-19-01-15c8e4a315da4683976ad67b35f7e965"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Akito Rig|Idle",
+            "Akito Rig|Reload",
+            "Akito Rig|Take",
+            "Akito Rig|Shoot"
+          ],
+          "note": "4 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "file": "animated_scar (1).glb",
+      "target": "SCAR duplicada",
+      "size_bytes": 16067460,
+      "sha256_expected": "d32f15d810ce1e0639ff6a833dd03299cc01cc3f4eb55e660293e04b0dc15267",
+      "duplicate_of": "animated_scar.glb",
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "d32f15d810ce1e0639ff6a833dd03299cc01cc3f4eb55e660293e04b0dc15267",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "JUST (https://sketchfab.com/teenjust500)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/animated-scar-5e64d6245bba4a819b9fef578c34b3fe"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": "native-godot/assets/weapons/aurora_v3/aurora_scar.glb",
+          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+        },
+        "scene": "Main/CombatRange; botín AuroraSCARPickup; nueva recogida en Entrenamiento",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Akito Rig|Idle",
+            "Akito Rig|Reload",
+            "Akito Rig|Shoot",
+            "Akito Rig|Take"
+          ],
+          "note": "Derivado estático sin los 4 clips originales; usa acciones de Lila AuroraFire/AuroraReloadAR. Retarget original y masculino pendientes."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "scar_fire sintetizado del proyecto; audio original de la entrega pendiente."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Disparo físico, recarga, cargador independiente de 30, reserva AR compartida, inventario, botín. IA no usa este modelo."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [
+            "v75103_aurora_v3_qa"
+          ],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "file": "hand_with_gloves.zip",
+      "target": "Manos/guantes ZIP",
+      "size_bytes": 6033096,
+      "sha256_expected": "a12c951bfe4859419e8f8fc6ba112ce5a77f04c40145eb253f9bfcacb10dd30f",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "a12c951bfe4859419e8f8fc6ba112ce5a77f04c40145eb253f9bfcacb10dd30f",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Contenido/licencia interna del ZIP sin revalidar en esta sesión."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "file": "low_poly_usp_shooting_up.glb",
+      "target": "USP disparo",
+      "size_bytes": 166180,
+      "sha256_expected": "68f4c50ea7a8c7376a5cd4c4fd8ffd4ab81033e0d942fb0221c148a90e348f91",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "68f4c50ea7a8c7376a5cd4c4fd8ffd4ab81033e0d942fb0221c148a90e348f91",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "The_Nuke_Remolacha (https://sketchfab.com/The_Nuke_Remolacha)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/low-poly-usp-shooting-up-fa059adf40334e23beef2f49d05cd46f"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Take 01"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "file": "low_poly_usp_reloading.glb",
+      "target": "USP recarga",
+      "size_bytes": 162724,
+      "sha256_expected": "4f698e626d9b6ce87afde19e0b9a8612a703ebf7d560bf11bfbc4ecc4ebdf9ff",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "4f698e626d9b6ce87afde19e0b9a8612a703ebf7d560bf11bfbc4ecc4ebdf9ff",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "The_Nuke_Remolacha (https://sketchfab.com/The_Nuke_Remolacha)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/low-poly-usp-reloading-417fd314b2b74e9d8cc198c9c615d140"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Take 01"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "file": "awm.glb",
+      "target": "AWM de la entrega",
+      "size_bytes": 40730556,
+      "sha256_expected": "6b4167dcde0496c6cbaaed1d3d05998370e8f6e2d3806b5933ce020c58cfb87d",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "6b4167dcde0496c6cbaaed1d3d05998370e8f6e2d3806b5933ce020c58cfb87d",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "974390566xy (https://sketchfab.com/974390566xy)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/awm-fe5e18991b1045a59dcb9374e87c8de0"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "El juego tiene una AWM original generada por build_awm.py; NO es este awm.glb del inventario."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "file": "ak-47_with_red_dot_scope.glb",
+      "target": "AK-47 con óptica",
+      "size_bytes": 26537792,
+      "sha256_expected": "2aac73f3d758cd8c7a1d11fe7f0909cd5cb7634ac964ab9141d44012bf27d403",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "2aac73f3d758cd8c7a1d11fe7f0909cd5cb7634ac964ab9141d44012bf27d403",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Ranger_08 (https://sketchfab.com/AnilkumarG)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/ak-47-with-red-dot-scope-0e2c5e7486ef4b6c8c7af0304f616576"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "file": "fps_arms_saiga_animations_remake.glb",
+      "target": "Saiga",
+      "size_bytes": 99629788,
+      "sha256_expected": "d767b094defc83a375a911d0655c09b959d8aa67107911d22bf065e74bf3f09e",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "d767b094defc83a375a911d0655c09b959d8aa67107911d22bf065e74bf3f09e",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Cransh (https://sketchfab.com/ccransh)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/fps-arms-saiga-animations-remake-74e30b71e4a049b2a82b9d18f58e623c"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Rig|Saiga_Idle",
+            "Rig|Saiga_Fire",
+            "Rig|Saiga_Reload_Fast",
+            "Rig|Saiga_Reload_Full",
+            "Rig|Saiga_Run",
+            "Rig|Saiga_Walk"
+          ],
+          "note": "6 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "file": "9mm_bullet.glb",
+      "target": "Munición 9 mm",
+      "size_bytes": 9724580,
+      "sha256_expected": "9a0b4600dc6e8a9d641669356393fa69f4ffe7173900633464e7268c77264f9d",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "9a0b4600dc6e8a9d641669356393fa69f4ffe7173900633464e7268c77264f9d",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "lluismartinezborrell (https://sketchfab.com/lluismartinezborrell)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/9mm-bullet-dac549f6a99d4856b12cc814828637de"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "file": "fps-_arms.glb",
+      "target": "Brazos FPS (NC)",
+      "size_bytes": 11137968,
+      "sha256_expected": "fc0060e5aa4ef06bbd18bb9374641035c8bd43a93e46a626b92eec649692360c",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "fc0060e5aa4ef06bbd18bb9374641035c8bd43a93e46a626b92eec649692360c",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)",
+          "evidence": {
+            "author": "3DHaupt (https://sketchfab.com/dennish2010)",
+            "license": "CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)",
+            "source": "https://sketchfab.com/3d-models/fps-arms-22274e479c794377b58671f1652f61fc"
+          },
+          "reason": "No habilitar en distribución comercial bajo la licencia NC declarada."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "file": "fps_animated_carbine.glb",
+      "target": "Carabina",
+      "size_bytes": 23373804,
+      "sha256_expected": "c2c946ad48f65bedb8a6c2a055b658788c492d6dd238ccdae990ef83a4b7e61c",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "c2c946ad48f65bedb8a6c2a055b658788c492d6dd238ccdae990ef83a4b7e61c",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "DJMaesen (https://sketchfab.com/bumstrum)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/fps-animated-carbine-62977bb4c53047a185b9f3a0cdf56b87"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "allanims"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión. El clip global necesita segmentación comprobada, no acciones deducidas por el nombre."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "file": "remington_870_with_magpul_furniture.glb",
+      "target": "Remington 870",
+      "size_bytes": 65968420,
+      "sha256_expected": "8a5d3e517bb4f130a03f3166cca1f9ef1c1c39f2a0999dd03dc84e901a68c676",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "8a5d3e517bb4f130a03f3166cca1f9ef1c1c39f2a0999dd03dc84e901a68c676",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Medji (https://sketchfab.com/Medji)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/remington-870-with-magpul-furniture-07d1fce010ef4127931e8ddd516713f8"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "file": "military_armor_3d_model.glb",
+      "target": "Chaleco pesado",
+      "size_bytes": 9014024,
+      "sha256_expected": "d3e6e1ab92d442eb71683217f81207f0b3ae47a875a1c87d71c370625594bdd2",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "d3e6e1ab92d442eb71683217f81207f0b3ae47a875a1c87d71c370625594bdd2",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Exactly (https://sketchfab.com/txyrm70)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/military-armor-3d-model-7cab57de2b844a60a43af4fd8b61a4a4"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": "native-godot/assets/gear/aurora_v3/AuroraHeavyVest.glb",
+          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+        },
+        "scene": "Main/Operator/LilaVestSocket; protección nivel 3",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sigue Spine2; original sin clips. Masculino pendiente."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "No hay audio original asociado."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Protección de torso, integridad y recogida; sin ventaja cosmética."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [
+            "v75103_aurora_v3_qa"
+          ],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 25,
+      "file": "tactical_helmet_with_headset_game-ready.glb",
+      "target": "Casco",
+      "size_bytes": 7308040,
+      "sha256_expected": "3d7e6646acf85923054c4ef9b0e5188cbdc30c34e2015620d2afb1eb0d7f028b",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "3d7e6646acf85923054c4ef9b0e5188cbdc30c34e2015620d2afb1eb0d7f028b",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Exactly (https://sketchfab.com/txyrm70)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/tactical-helmet-with-headset-game-ready-82adf376164f4d99a4e0b2949930e2ad"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": "native-godot/assets/gear/aurora_v3/AuroraHelmet.glb",
+          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+        },
+        "scene": "Main/Operator/LilaHelmetSocket; casco niveles 1–3",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sigue Head; original sin clips. Masculino pendiente."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "No hay audio original asociado."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Integridad de casco y protección solo ante contacto de cabeza confirmado."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [
+            "v75103_aurora_v3_qa"
+          ],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 26,
+      "file": "tactical_plate_carrier_vest_-_game_ready.glb",
+      "target": "Chaleco táctico",
+      "size_bytes": 8247172,
+      "sha256_expected": "1aae4e8a02276ddb35de899457dae1546a0cdbffb633c3efc0ddce0a99bd441e",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "1aae4e8a02276ddb35de899457dae1546a0cdbffb633c3efc0ddce0a99bd441e",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Exactly (https://sketchfab.com/txyrm70)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/tactical-plate-carrier-vest-game-ready-3b51e6329dbb4b0aa14e43f12eb6c42a"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": "native-godot/assets/gear/aurora_v3/AuroraPlateCarrier.glb",
+          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+        },
+        "scene": "Main/Operator/LilaVestSocket; chaleco niveles 1–2",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sigue Spine2; original sin clips. Masculino pendiente."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "No hay audio original asociado."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Protección de torso, mejora de nivel y reposición de integridad."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [
+            "v75103_aurora_v3_qa"
+          ],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 27,
+      "file": "military_armor_3d_model (1).glb",
+      "target": "Chaleco pesado duplicado",
+      "size_bytes": 9014024,
+      "sha256_expected": "d3e6e1ab92d442eb71683217f81207f0b3ae47a875a1c87d71c370625594bdd2",
+      "duplicate_of": "military_armor_3d_model.glb",
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "d3e6e1ab92d442eb71683217f81207f0b3ae47a875a1c87d71c370625594bdd2",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Exactly (https://sketchfab.com/txyrm70)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/military-armor-3d-model-7cab57de2b844a60a43af4fd8b61a4a4"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": "native-godot/assets/gear/aurora_v3/AuroraHeavyVest.glb",
+          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+        },
+        "scene": "Main/Operator/LilaVestSocket; protección nivel 3",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sigue Spine2; original sin clips. Masculino pendiente."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "No hay audio original asociado."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Protección de torso, integridad y recogida; sin ventaja cosmética."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [
+            "v75103_aurora_v3_qa"
+          ],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 28,
+      "file": "pistol_43_tactical__fps_animations.glb",
+      "target": "Pistola táctica 43",
+      "size_bytes": 27472544,
+      "sha256_expected": "20ee113c084d5ca179ce8ab77fc9c60d4093fd5205aed4d5a53186917a98c9a3",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "20ee113c084d5ca179ce8ab77fc9c60d4093fd5205aed4d5a53186917a98c9a3",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Vlasov Daniil (https://sketchfab.com/dan741vlasov)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/pistol-43-tactical-fps-animations-1a4c9d15818a4522aedbeb70919a17da"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Hands|Inspect",
+            "Hands|Reloat_t",
+            "Hands|Shot",
+            "Hands|Reloat_f",
+            "Hands|Run",
+            "Hands|Walk"
+          ],
+          "note": "6 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 29,
+      "file": "makarov_pm_fps_animations.glb",
+      "target": "Makarov",
+      "size_bytes": 55047564,
+      "sha256_expected": "90d54a6c622ce982489aa2e5d2dcc4063ab11a8bc7533e2c6479941d4dfc7e1d",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "90d54a6c622ce982489aa2e5d2dcc4063ab11a8bc7533e2c6479941d4dfc7e1d",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Cransh (https://sketchfab.com/ccransh)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/makarov-pm-fps-animations-d02ebd58e3cf44acb7af73e3f156be28"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Rig|MK_Idle",
+            "Rig|MK_walk",
+            "Rig|MK_Shot",
+            "Rig|MK_ReloadFast",
+            "Rig|MK_ReloadFull"
+          ],
+          "note": "5 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 30,
+      "file": "fps_animations_sniper_rifle.glb",
+      "target": "Francotirador animado",
+      "size_bytes": 110071600,
+      "sha256_expected": "e40814ed74b08f76ac82ad4456205da27b9c0d8738a7d93945df151b56f4e36e",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "e40814ed74b08f76ac82ad4456205da27b9c0d8738a7d93945df151b56f4e36e",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Cransh (https://sketchfab.com/ccransh)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/fps-animations-sniper-rifle-c15ae8393d824f5b929e3f69691cdd31"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Rig|SRifle_Shot_nosight",
+            "Rig|SRifle_Shot_sight",
+            "Rig|SRifle_Walk",
+            "Rig|SRifle_Idle",
+            "Rig|SRifle_Reload",
+            "Rig|SRifle_Reload_Full"
+          ],
+          "note": "6 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 31,
+      "file": "fps_benelli_m4_animations.glb",
+      "target": "Benelli M4",
+      "size_bytes": 66278260,
+      "sha256_expected": "afbcdf52a5c6ad4c23fa4410b9b6eebc5177b0f65a9cb5546ad134290891b6a4",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "afbcdf52a5c6ad4c23fa4410b9b6eebc5177b0f65a9cb5546ad134290891b6a4",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Cransh (https://sketchfab.com/ccransh)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/fps-benelli-m4-animations-225a62190f6043ca975eaa2798ab7e2c"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Rig|M4_Idle",
+            "Rig|M4_Walk",
+            "Rig|M4_Run",
+            "Rig|M4_Fire",
+            "Rig|M4_Fire_LastRoundCheck",
+            "Rig|M4_ReloadOne_type1",
+            "Rig|M4_ReloadFull_type1",
+            "Rig|M4_ReloadOne_type2"
+          ],
+          "note": "8 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 32,
+      "file": "fps_animations_lowpoly_mp5.glb",
+      "target": "MP5 alternativa",
+      "size_bytes": 7174724,
+      "sha256_expected": "f35ca925e4be773f80b0f1755e847656963630c939d9b354a5efb60a666d0ec0",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "f35ca925e4be773f80b0f1755e847656963630c939d9b354a5efb60a666d0ec0",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Cransh (https://sketchfab.com/ccransh)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/fps-animations-lowpoly-mp5-568f00dd76944baaa5eae1a1cc871423"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Arms_Draw",
+            "Arms_Inspect",
+            "Arms_Idle",
+            "Arms_Walk",
+            "Arms_Run",
+            "Arms_Sprint",
+            "Arms_Fire",
+            "Arms_notfullreload",
+            "Arms_fullreload"
+          ],
+          "note": "9 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 33,
+      "file": "fps_ak_animated.glb",
+      "target": "AK animada",
+      "size_bytes": 25989096,
+      "sha256_expected": "5af436fad552193719681760466b5df29582c1a638687862c733e3e745e5712f",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "5af436fad552193719681760466b5df29582c1a638687862c733e3e745e5712f",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "DJMaesen (https://sketchfab.com/bumstrum)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/fps-ak-animated-b0b1bae40337449189483f6187cf7af7"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "allanims"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión. El clip global necesita segmentación comprobada, no acciones deducidas por el nombre."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 34,
+      "file": "akm_fps_animation.glb",
+      "target": "AKM",
+      "size_bytes": 92937920,
+      "sha256_expected": "924414a9091856852c0e1cf82a24027ad2a7c0a911c3b904f8c9d50fb2b43515",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "924414a9091856852c0e1cf82a24027ad2a7c0a911c3b904f8c9d50fb2b43515",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "BURNER (https://sketchfab.com/Alexander_Ovelar)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/akm-fps-animation-a0e1e52051294bebb8a716df9e69434d"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Scene"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión. El clip global necesita segmentación comprobada, no acciones deducidas por el nombre."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 35,
+      "file": "fps_arms_throwing.glb",
+      "target": "Lanzamiento de granada",
+      "size_bytes": 15387288,
+      "sha256_expected": "5e8ffadefc722d23c345b27283f01fb10ec95c6110441296ddb476bdb1af349a",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "5e8ffadefc722d23c345b27283f01fb10ec95c6110441296ddb476bdb1af349a",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "DJMaesen (https://sketchfab.com/bumstrum)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/fps-arms-throwing-99ff0b0e5b144cbfbf67cb34f8ce83bb"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "trhow"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 36,
+      "file": "medical_syringe_-_jeringa_medica_videogame_free.glb",
+      "target": "Jeringa",
+      "size_bytes": 4559280,
+      "sha256_expected": "9d6244fd37a1a93af400e1bd513d3580870fbf6daff0e7fccd038a8f9fee9712",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "9d6244fd37a1a93af400e1bd513d3580870fbf6daff0e7fccd038a8f9fee9712",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "ArnoldE (https://sketchfab.com/arnoldescorcia906)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/medical-syringe-jeringa-medica-videogame-free-abed2cf76965446ba7e1ccbd79665801"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": "native-godot/assets/gear/aurora_v3/AuroraSyringe.glb",
+          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+        },
+        "scene": "Main/CombatRange/AuroraMedicalVisual; LeftHand",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Original estático; se muestra con AuroraHeal de Lila. Retarget FPS del archivo 37 pendiente."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Curación sintetizada del proyecto; no se afirma audio de jeringa de la entrega."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Recogida, inventario, canal de 1.35 s, +20 salud, consumo al completar e interrupción."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [
+            "v75103_aurora_v3_qa"
+          ],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 37,
+      "file": "medical_syringe_healing_fps_animation.glb",
+      "target": "Curación FPS",
+      "size_bytes": 44428476,
+      "sha256_expected": "804bf03740a4b19da4f6e0ac8ee052ca4986ef073e0013b0e78e64a0366cf6c5",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "804bf03740a4b19da4f6e0ac8ee052ca4986ef073e0013b0e78e64a0366cf6c5",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "BURNER (https://sketchfab.com/Alexander_Ovelar)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/medical-syringe-healing-fps-animation-8de32be8633a4c87ba7ed1d125b45ec9"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Scene"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión. El clip global necesita segmentación comprobada, no acciones deducidas por el nombre."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 38,
+      "file": "metallic_box_ammo.glb",
+      "target": "Caja de munición",
+      "size_bytes": 7439976,
+      "sha256_expected": "2eca94953e3801196a7ba6f7cf4f5c7ee4df6ebc3c305d46cc45d7316313af44",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "2eca94953e3801196a7ba6f7cf4f5c7ee4df6ebc3c305d46cc45d7316313af44",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "vicente betoret ferrero (https://sketchfab.com/deathcow)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/metallic-box-ammo-ed8979c0aad540b396d6f3856cdbf618"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 39,
+      "file": "simple_botiquin.glb",
+      "target": "Botiquín",
+      "size_bytes": 9415936,
+      "sha256_expected": "8151168049112367c5fa790a7bd2bf33fe95171d4426f4b6f9fda9e216fedd9a",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "8151168049112367c5fa790a7bd2bf33fe95171d4426f4b6f9fda9e216fedd9a",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "TonyG159 (https://sketchfab.com/TonyG159)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/simple-botiquin-634157ea11854c99817da388d568aa30"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "El botiquín actual usa un modelo original; NO demuestra integración de simple_botiquin.glb."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 40,
+      "file": "inspection_of_hands_animation.glb",
+      "target": "Inspección de manos",
+      "size_bytes": 10165604,
+      "sha256_expected": "b0891bb64a93762250b58dd7ce0392d85208eaf66dea95445c0578e7adbdc707",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "b0891bb64a93762250b58dd7ce0392d85208eaf66dea95445c0578e7adbdc707",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Alexander_Ovelar (https://sketchfab.com/Alexander_Ovelar)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/inspection-of-hands-animation-2e0fec09181c4ffc9393bcf6dd4c0820"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "BRAZO_BONEAction"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 41,
+      "file": "fps_guns_4k_-_frag_granade.glb",
+      "target": "Granada ND",
+      "size_bytes": 57739868,
+      "sha256_expected": "505dfcf95cdb5c2c2339a6bd0ac19c3ad06c5e6693287b2eee900b14b9ed10f4",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "505dfcf95cdb5c2c2339a6bd0ac19c3ad06c5e6693287b2eee900b14b9ed10f4",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "CC-BY-ND-4.0 (http://creativecommons.org/licenses/by-nd/4.0/)",
+          "evidence": {
+            "author": "Heart State Games® (https://sketchfab.com/heartstategames)",
+            "license": "CC-BY-ND-4.0 (http://creativecommons.org/licenses/by-nd/4.0/)",
+            "source": "https://sketchfab.com/3d-models/fps-guns-4k-frag-granade-5344d03d1fd44aefb317e858f71570e0"
+          },
+          "reason": "Adaptación/retarget redistribuible retenido; requiere autorización compatible con los cambios."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 42,
+      "file": "ice_wall_bunker_narut_x_free_fire.glb",
+      "target": "Barrera de referencia con marcas",
+      "size_bytes": 445312,
+      "sha256_expected": "b3e0d4eb4601554e7cd077fdc63a68358b695db25faffa5e5368c68654815554",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "b3e0d4eb4601554e7cd077fdc63a68358b695db25faffa5e5368c68654815554",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "rocklee.ff123 (https://sketchfab.com/rocklee.ff123)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/ice-wall-bunker-narut-x-free-fire-0518e5b5299a4583804d301b195b28ec"
+          },
+          "reason": "Procedencia y elementos de terceros pendientes de revisión; la etiqueta CC BY no verifica esos derechos."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Existe Barrera Aurora original en BR; NO utiliza este modelo de referencia."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 43,
+      "file": "new_skin_cityhero_free_fire.glb",
+      "target": "Skin masculina de referencia",
+      "size_bytes": 1241308,
+      "sha256_expected": "716b623e257296cf19dd9ac4558cb7631810b4a24037597580de0aec559bcccf",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "716b623e257296cf19dd9ac4558cb7631810b4a24037597580de0aec559bcccf",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "rocklee.ff123 (https://sketchfab.com/rocklee.ff123)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/new-skin-cityhero-free-fire-f3b7ee4e5ead42ad910e0c4bd2cfd9bb"
+          },
+          "reason": "Procedencia y elementos de terceros pendientes de revisión; la etiqueta CC BY no verifica esos derechos."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 44,
+      "file": "mochila_militar.glb",
+      "target": "Mochila militar",
+      "size_bytes": 4008804,
+      "sha256_expected": "77abd99c93fe48a4871cc6ee09084b0c0db957008a6c134439073f7c7fd4615d",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "77abd99c93fe48a4871cc6ee09084b0c0db957008a6c134439073f7c7fd4615d",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "rato biônico games (https://sketchfab.com/felip32pppp)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/mochila-militar-30339cde8a874cfaab42c0a0f13250d5"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 45,
+      "file": "mochila_luivi.glb",
+      "target": "Mochila con marca",
+      "size_bytes": 67556160,
+      "sha256_expected": "42c57a4cc375862362aa1556f2c55bf577613886859d7bb5486d2968a9c84467",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "42c57a4cc375862362aa1556f2c55bf577613886859d7bb5486d2968a9c84467",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Roberto Domínguez (https://sketchfab.com/vmmaniac)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/mochila-luivi-da0282ec1b504c3c8327ed088e244da1"
+          },
+          "reason": "Procedencia y elementos de terceros pendientes de revisión; la etiqueta CC BY no verifica esos derechos."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "956938 triángulos declarados: pendiente versión móvil y derechos; no activo."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 46,
+      "file": "jumping_jack_looping_female_ue4_character_rig.glb",
+      "target": "Emote jumping jack",
+      "size_bytes": 1792548,
+      "sha256_expected": "f00f25781b16596b784d425e77b0effadf7b5bd2c22768f086d8ce559274ade2",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "f00f25781b16596b784d425e77b0effadf7b5bd2c22768f086d8ce559274ade2",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "B._.render (https://sketchfab.com/Brendan_489)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/jumping-jack-looping-female-ue4-character-rig-88e9ba917ff344728ffcbd12e0af6588"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "JumpingJack_loop"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 47,
+      "file": "fps_character_animation_pack_ak-47 (1).glb",
+      "target": "Pack AK-47 UE5",
+      "size_bytes": 121548924,
+      "sha256_expected": "18d33fed671b243cfcd6d0c43c4193c81c94d84135708eab71d85fb2d9e1edc3",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "18d33fed671b243cfcd6d0c43c4193c81c94d84135708eab71d85fb2d9e1edc3",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "Cristian David Duque Camacho (https://sketchfab.com/DuqueCD7)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/fps-character-animation-pack-ak-47-b95778a564094fc3a49d1d6a3b6a30ab"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "RIG_UE5_Comando_AK_Equip",
+            "RIG_UE5_Comando_AK_Aim_Fire",
+            "RIG_UE5_Comando_AK_Fire",
+            "RIG_UE5_Comando_AK_Hold",
+            "RIG_UE5_Comando_AK_Idle",
+            "RIG_UE5_Comando_AK_Idle_Aim",
+            "RIG_UE5_Comando_AK_Reload",
+            "RIG_UE5_Comando_AK_Walk",
+            "RIG_UE5_Comando_AK_Walk_Aim",
+            "RIG_UE5_Comando_AK__Run",
+            "RIG_UE5_Comando_Natural_pose"
+          ],
+          "note": "11 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 48,
+      "file": "tying_shoes_animation_ue4_female_rig.glb",
+      "target": "Emote atarse zapatos",
+      "size_bytes": 2363576,
+      "sha256_expected": "b52e64fa9bed67081247b92a42ad3f77a87527ea272b9056d90803066d1b53ad",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "b52e64fa9bed67081247b92a42ad3f77a87527ea272b9056d90803066d1b53ad",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "B._.render (https://sketchfab.com/Brendan_489)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/tying-shoes-animation-ue4-female-rig-c9cc9368ae6f4883a5b43ac58a82be75"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "TieShoe"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 49,
+      "file": "dancing_female_npc_character_ue4_maniquin.glb",
+      "target": "Emote baile",
+      "size_bytes": 2236264,
+      "sha256_expected": "3e3ebccdef211944eb3938654d2eded3d6313f0e36c53b7c73caf6bcf791785b",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "3e3ebccdef211944eb3938654d2eded3d6313f0e36c53b7c73caf6bcf791785b",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "B._.render (https://sketchfab.com/Brendan_489)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/dancing-female-npc-character-ue4-maniquin-78c8722677c44377a6b20aecf82b6c3d"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Female_Dance"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 50,
+      "file": "greeting_waving_110_frames_loop.glb",
+      "target": "Emote saludo",
+      "size_bytes": 435796,
+      "sha256_expected": "2b2bf88cb9e78be173f47c49cfe22c23db2f1173531c862c9e4087524d38015b",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "2b2bf88cb9e78be173f47c49cfe22c23db2f1173531c862c9e4087524d38015b",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+          "evidence": {
+            "author": "Denys Almaral (https://sketchfab.com/denysalmaral)",
+            "license": "SKETCHFAB Standard (https://sketchfab.com/licenses)",
+            "source": "https://sketchfab.com/3d-models/greeting-waving-110-frames-loop-dd18f016797e484ca2e1e3faddab61be"
+          },
+          "reason": "Falta comprobar condiciones y derecho adquirido para esta distribución."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "Take 001"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 51,
+      "file": "scorpion.glb",
+      "target": "Scorpion",
+      "size_bytes": 105642732,
+      "sha256_expected": "e38d614d8a8effa4453501d62401178277316786059aa2467c812fea58890096",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "e38d614d8a8effa4453501d62401178277316786059aa2467c812fea58890096",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "patromes (https://sketchfab.com/patromes)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/scorpion-f299687969a743eda624faeab0bebbbf"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "1238936997216_TempMotion"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 52,
+      "file": "guard.glb",
+      "target": "Guardia NPC",
+      "size_bytes": 32713144,
+      "sha256_expected": "a89c358d2e29f0c4cd26df2a9f7e276ae8dfbde7eb21a298cdbf8b8568c2f817",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "a89c358d2e29f0c4cd26df2a9f7e276ae8dfbde7eb21a298cdbf8b8568c2f817",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "DJMaesen (https://sketchfab.com/bumstrum)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/guard-9f146fae6af1482ab6bff56ed5677c28"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "allAnims"
+          ],
+          "note": "1 clips declarados; sin importación/retarget comprobados en esta sesión. El clip global necesita segmentación comprobada, no acciones deducidas por el nombre."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 53,
+      "file": "universfield-game-over-deep-male-voice-clip-352695.mp3",
+      "target": "Eliminación definitiva",
+      "size_bytes": 67584,
+      "sha256_expected": "ecc55585c679ec406e949557a1fb7cf9cc8f3dfc6711122c7a682cb058d5f870",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "ecc55585c679ec406e949557a1fb7cf9cc8f3dfc6711122c7a682cb058d5f870",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 54,
+      "file": "scorpion__first_person_animations_2026_remake.glb",
+      "target": "Scorpion alternativa",
+      "size_bytes": 210781112,
+      "sha256_expected": "78a8be6772f65784e9852dfdab9cc4b5984d3c84dae68ec151d42738cbbffd38",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "78a8be6772f65784e9852dfdab9cc4b5984d3c84dae68ec151d42738cbbffd38",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "1Matzh (https://sketchfab.com/1Matzh)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/scorpion-first-person-animations-2026-remake-f2bdfac775344004ad38d0318f0664a4"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [
+            "rig|Equip",
+            "rig|Idle",
+            "rig|Walk",
+            "rig|Run",
+            "rig|Fire",
+            "rig|Reload",
+            "rig|Reload_Empty",
+            "rig|Inspect",
+            "rig|Unequip"
+          ],
+          "note": "9 clips declarados; sin importación/retarget comprobados en esta sesión."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 55,
+      "file": "freesound_gamestudio-get-item-394523.mp3",
+      "target": "Compra confirmada",
+      "size_bytes": 81084,
+      "sha256_expected": "eac99cdd32d17b2b60b929bec66f77ae37da94c1de6e1ebe7741754ab7a32d8e",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "eac99cdd32d17b2b60b929bec66f77ae37da94c1de6e1ebe7741754ab7a32d8e",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 56,
+      "file": "universfield-gunshot-352466.mp3",
+      "target": "Disparo pistola 43",
+      "size_bytes": 33792,
+      "sha256_expected": "abda9887fffce4decfc754aedc8b23481edf69ba5dea4cbdb6c8d03ed623e73f",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "abda9887fffce4decfc754aedc8b23481edf69ba5dea4cbdb6c8d03ed623e73f",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 57,
+      "file": "dragon-studio-distant-gunshots-631485.mp3",
+      "target": "Disparo Magnum",
+      "size_bytes": 129567,
+      "sha256_expected": "346c1b13dad2888314ec169987050b902aed19a0514d5557d05cfd1c13ecda43",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "346c1b13dad2888314ec169987050b902aed19a0514d5557d05cfd1c13ecda43",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 58,
+      "file": "maxhammarback-glock19-18535.mp3",
+      "target": "Disparo P225",
+      "size_bytes": 72724,
+      "sha256_expected": "e36ca17ff05fc8d6c2eec963cf15db45d73874e702434b139e12296b7338de45",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "e36ca17ff05fc8d6c2eec963cf15db45d73874e702434b139e12296b7338de45",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 59,
+      "file": "freesound_community-realistic-shotgun-cocking-sound-38640.mp3",
+      "target": "Mecánica de recarga",
+      "size_bytes": 27648,
+      "sha256_expected": "abe242da09281387448948079f5aaa1c0ac5646a9dbdffc0237d32715f6c54fd",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "abe242da09281387448948079f5aaa1c0ac5646a9dbdffc0237d32715f6c54fd",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 60,
+      "file": "dragon-studio-gunshot-372470.mp3",
+      "target": "Disparo Remington 870",
+      "size_bytes": 98638,
+      "sha256_expected": "909d039d9d73b6113b7d4b2f7ea429ca7787fea33e1fa1ac868305a266f5cbaf",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "909d039d9d73b6113b7d4b2f7ea429ca7787fea33e1fa1ac868305a266f5cbaf",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 61,
+      "file": "freesound_community-gunfire-single-shot-colt-peacemaker-94951.mp3",
+      "target": "Disparo USP",
+      "size_bytes": 113664,
+      "sha256_expected": "caa2e474fdd115167ccea901599a6a3f0d2a1b596f85bd1df849e707f91dd565",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "caa2e474fdd115167ccea901599a6a3f0d2a1b596f85bd1df849e707f91dd565",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 62,
+      "file": "kalsstockmedia-gun-shot-sound-3-274676.mp3",
+      "target": "Disparo Makarov",
+      "size_bytes": 242416,
+      "sha256_expected": "e588c2732b8781788df8b4dacef3f6d316d959f4cafdff4e3d34a36b14aa7963",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "e588c2732b8781788df8b4dacef3f6d316d959f4cafdff4e3d34a36b14aa7963",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 63,
+      "file": "u_68csiaifb5-bulletimpact2-442718.mp3",
+      "target": "Impacto físico",
+      "size_bytes": 23405,
+      "sha256_expected": "f2349df1726bfbef0db116ffac343f8a6b32fbcca7c0b271b01bf39e32302441",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "f2349df1726bfbef0db116ffac343f8a6b32fbcca7c0b271b01bf39e32302441",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 64,
+      "file": "universfield-shotgun-blast-352038.mp3",
+      "target": "Disparo escopeta",
+      "size_bytes": 95232,
+      "sha256_expected": "7de52422a631c7cc5bf123bdab1c29cedb1af078f8293e9ab23fb67310380a5a",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "7de52422a631c7cc5bf123bdab1c29cedb1af078f8293e9ab23fb67310380a5a",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 65,
+      "file": "freesound_community-039259_sniper-shots-dod-56706-amp-dod-146324flac-75998.mp3",
+      "target": "Disparo francotirador",
+      "size_bytes": 459840,
+      "sha256_expected": "e176a87033c5a94c957699512c6eb973912edd8c3df3bd5957c995f1971a39b2",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "e176a87033c5a94c957699512c6eb973912edd8c3df3bd5957c995f1971a39b2",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 66,
+      "file": "freesound_community-distant-gunshot-2-mono-80285.mp3",
+      "target": "Disparo lejano",
+      "size_bytes": 112849,
+      "sha256_expected": "162878b68011eafe29b0ba86cefad650ae7da8f7a0f6a423c4cdf5a8217cdb6c",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "162878b68011eafe29b0ba86cefad650ae7da8f7a0f6a423c4cdf5a8217cdb6c",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 67,
+      "file": "ribhavagrawal-gun-shots-230534.mp3",
+      "target": "Disparo KRISS",
+      "size_bytes": 68545,
+      "sha256_expected": "adf5e71838e4d7cdb13ed86f636ac397496333899371914634548336578364fb",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "adf5e71838e4d7cdb13ed86f636ac397496333899371914634548336578364fb",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 68,
+      "file": "freesound_community-realistic-shotgun-cocking-sound-38640 (1).mp3",
+      "target": "Mecánica recarga duplicada",
+      "size_bytes": 27648,
+      "sha256_expected": "abe242da09281387448948079f5aaa1c0ac5646a9dbdffc0237d32715f6c54fd",
+      "duplicate_of": "freesound_community-realistic-shotgun-cocking-sound-38640.mp3",
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "abe242da09281387448948079f5aaa1c0ac5646a9dbdffc0237d32715f6c54fd",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 69,
+      "file": "universfield-shotgun-blast-352038 (1).mp3",
+      "target": "Disparo escopeta duplicado",
+      "size_bytes": 95232,
+      "sha256_expected": "7de52422a631c7cc5bf123bdab1c29cedb1af078f8293e9ab23fb67310380a5a",
+      "duplicate_of": "universfield-shotgun-blast-352038.mp3",
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "7de52422a631c7cc5bf123bdab1c29cedb1af078f8293e9ab23fb67310380a5a",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 70,
+      "file": "kalsstockmedia-gun-shot-sound-4-274686.mp3",
+      "target": "Disparo pistola genérica",
+      "size_bytes": 347742,
+      "sha256_expected": "78fdbd93fc61ddd2a4e7038a180f0186c4bb89158eae904d8a0702c090e8f0c7",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "78fdbd93fc61ddd2a4e7038a180f0186c4bb89158eae904d8a0702c090e8f0c7",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 71,
+      "file": "moniker_subriquet-gunshot_smg_shot_5-203475.mp3",
+      "target": "Disparo MP5",
+      "size_bytes": 16718,
+      "sha256_expected": "d15b7384531f687491cce85543b99ac85ea2d3e4d5d1d5f10c7e3919a61c0695",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "d15b7384531f687491cce85543b99ac85ea2d3e4d5d1d5f10c7e3919a61c0695",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 72,
+      "file": "freesound_community-ak47-sfx-102801.mp3",
+      "target": "Disparo/acciones AK-47",
+      "size_bytes": 257760,
+      "sha256_expected": "b6bd3d36b46e9764e389873b3f8baa4ee704b7e7cbb4fcb73341bbbbcd81e3af",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "b6bd3d36b46e9764e389873b3f8baa4ee704b7e7cbb4fcb73341bbbbcd81e3af",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 73,
+      "file": "freesound_community-realistic-shotgun-cocking-sound-38640 (2).mp3",
+      "target": "Mecánica recarga duplicada",
+      "size_bytes": 27648,
+      "sha256_expected": "abe242da09281387448948079f5aaa1c0ac5646a9dbdffc0237d32715f6c54fd",
+      "duplicate_of": "freesound_community-realistic-shotgun-cocking-sound-38640.mp3",
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "abe242da09281387448948079f5aaa1c0ac5646a9dbdffc0237d32715f6c54fd",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 74,
+      "file": "dragon-studio-gun-reload-511309.mp3",
+      "target": "Recarga HK416",
+      "size_bytes": 48384,
+      "sha256_expected": "dff87d8ed3e14b79718ea8bbed5519682657e7facc944b7dcfef353638b39bf2",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "dff87d8ed3e14b79718ea8bbed5519682657e7facc944b7dcfef353638b39bf2",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 75,
+      "file": "dragon-studio-gun-reload-2-511308.mp3",
+      "target": "Recarga M4A4",
+      "size_bytes": 48384,
+      "sha256_expected": "c1acdf3043f54f3d828674f071ae23031c7d837e64cfdde3e5beda41f46e3943",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "c1acdf3043f54f3d828674f071ae23031c7d837e64cfdde3e5beda41f46e3943",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 76,
+      "file": "dennish18-machine-gun-129928.mp3",
+      "target": "Disparo P90",
+      "size_bytes": 132096,
+      "sha256_expected": "7d194ef27bcecfb733fbcb8727881100b6967740eaaaeb84449a997716ed7d38",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "7d194ef27bcecfb733fbcb8727881100b6967740eaaaeb84449a997716ed7d38",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 77,
+      "file": "mp40.glb",
+      "target": "MP40",
+      "size_bytes": 34909852,
+      "sha256_expected": "41a58580c2df8023a5818c9eeb9578dcb3f3ae083a73a0648051bea950d5e60c",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "41a58580c2df8023a5818c9eeb9578dcb3f3ae083a73a0648051bea950d5e60c",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "barking_dogo (https://sketchfab.com/barking_dogo)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/mp40-2bb4ae9ba1fe4cd0a7b09a15612e00bc"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": "native-godot/assets/weapons/aurora_v3/aurora_mp40.glb",
+          "note": "Derivado presente en la base V75.117; requiere revalidación del incremento y aceptación visual."
+        },
+        "scene": "Main/CombatRange; botín AuroraMP40Pickup; nueva recogida en Entrenamiento",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Original sin clips; acción AuroraReloadMP40 sobre Lila y piezas Magazine/ChargingHandle movidas por tiempo de recarga. Masculino y revisión visual pendientes."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "mp40_fire y 3 cues originales sintetizados; candidato MP40 OGG de la entrega no distribuido."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Disparo físico, cargador 15, recarga interrumpible, reserva SMG compartida, inventario, botín. IA no usa este modelo."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [
+            "v75103_aurora_v3_qa"
+          ],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 78,
+      "file": "fps_mp40.glb",
+      "target": "MP40 alternativa",
+      "size_bytes": 7998644,
+      "sha256_expected": "de3e2f5438494dc31ea21957bbe172b218fb58bf4dbf5682ed46d47f436d038a",
+      "duplicate_of": null,
+      "status": "PENDIENTE",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "de3e2f5438494dc31ea21957bbe172b218fb58bf4dbf5682ed46d47f436d038a",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "PENDIENTE",
+          "declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "evidence": {
+            "author": "SDKBOX_PTBR (https://sketchfab.com/SDKBOX.PTBR)",
+            "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+            "source": "https://sketchfab.com/3d-models/fps-mp40-d06061e1650d4f73bc075a367a742548"
+          },
+          "reason": "Declaración en inventario leído; revisión de fuente/atribución pendiente, no autorización verificada de nuevo."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "PENDIENTE",
+          "note": "Asignación por familia pendiente; no se ha incorporado el audio de este recurso."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 79,
+      "file": "dennish18-machine-gun-129929.mp3",
+      "target": "Disparo MP40",
+      "size_bytes": 56064,
+      "sha256_expected": "cc7742c998a83bfc0918e0403d52ddc39c29f0386a23825f4dd12fb8c4abddbf",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "cc7742c998a83bfc0918e0403d52ddc39c29f0386a23825f4dd12fb8c4abddbf",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    },
+    {
+      "id": 80,
+      "file": "dragon-studio-machine-gun-sfx-631486.mp3",
+      "target": "Disparo PP-19",
+      "size_bytes": 129567,
+      "sha256_expected": "353e9571ae185dcf078ccb8ffbc0df5842742e83b93eb0c8fd1b30682979bee8",
+      "duplicate_of": null,
+      "status": "BLOQUEADO",
+      "stages": {
+        "original_sha256": {
+          "status": "BLOQUEADO",
+          "expected": "353e9571ae185dcf078ccb8ffbc0df5842742e83b93eb0c8fd1b30682979bee8",
+          "actual": null,
+          "reason": "Sin entorno local de ejecución para recuperar/reconstruir los 24 ZIP; el informe histórico de 80 OK no es una repetición actual."
+        },
+        "license": {
+          "status": "BLOQUEADO",
+          "declared": "NO DECLARADA EN INVENTARIO",
+          "evidence": null,
+          "reason": "Falta evidencia individual de licencia/fuente y permiso para la distribución prevista."
+        },
+        "godot": {
+          "status": "PENDIENTE",
+          "runtime_path": null,
+          "note": "No hay una integración de este original identificada en la base revisada."
+        },
+        "scene": "PENDIENTE",
+        "animation": {
+          "status": "PENDIENTE",
+          "original_clips": [],
+          "note": "Sin clips declarados; no equivale a una animación implementada."
+        },
+        "audio": {
+          "status": "BLOQUEADO",
+          "note": "Asignación leída en AURORA_V3_ASIGNACIONES_AUDIO.md; sin archivo de audio activo en el repositorio público."
+        },
+        "functionality": {
+          "status": "PENDIENTE",
+          "existing": "Sin función integrada de este original comprobada."
+        },
+        "tests": {
+          "status": "PENDIENTE",
+          "automated": [],
+          "visual": "PENDIENTE",
+          "motorola": "NO PROBADO EN ESTA SESION"
+        }
+      }
+    }
+  ]
+}

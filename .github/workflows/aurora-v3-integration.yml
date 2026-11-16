@@ -22,6 +22,10 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq blender python3-numpy python3-pil xvfb libgl1-mesa-dri > /tmp/aurora-tools.log
+      - name: Verify recovery safety and existing derivative provenance
+        run: |
+          python3 -m unittest discover -s native-godot/tools -p 'test_recover_aurora_v3.py' -v
+          python3 native-godot/tools/audit_aurora_v3_runtime.py
       - name: Prepare existing licensed runtime assets
         run: bash native-godot/tools/prepare_assets.sh /tmp/aurora-operator
       - name: Install the same Godot version as the tested base

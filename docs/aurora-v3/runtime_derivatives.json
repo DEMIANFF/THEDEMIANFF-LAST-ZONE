@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "base_commit": "89408684f423ac698c45ddd39fc2b25c0ac1b4fb",
+  "originals": [
+    {
+      "original": "animated_scar.glb",
+      "path": "native-godot/assets/weapons/aurora_v3/aurora_scar.glb",
+      "source_license_prefix": "CC-BY-4.0"
+    },
+    {
+      "original": "mp40.glb",
+      "path": "native-godot/assets/weapons/aurora_v3/aurora_mp40.glb",
+      "source_license_prefix": "CC-BY-4.0"
+    },
+    {
+      "original": "military_armor_3d_model.glb",
+      "path": "native-godot/assets/gear/aurora_v3/AuroraHeavyVest.glb",
+      "source_license_prefix": "CC-BY-4.0"
+    },
+    {
+      "original": "tactical_helmet_with_headset_game-ready.glb",
+      "path": "native-godot/assets/gear/aurora_v3/AuroraHelmet.glb",
+      "source_license_prefix": "CC-BY-4.0"
+    },
+    {
+      "original": "tactical_plate_carrier_vest_-_game_ready.glb",
+      "path": "native-godot/assets/gear/aurora_v3/AuroraPlateCarrier.glb",
+      "source_license_prefix": "CC-BY-4.0"
+    },
+    {
+      "original": "medical_syringe_-_jeringa_medica_videogame_free.glb",
+      "path": "native-godot/assets/gear/aurora_v3/AuroraSyringe.glb",
+      "source_license_prefix": "CC-BY-4.0"
+    }
+  ]
+}
