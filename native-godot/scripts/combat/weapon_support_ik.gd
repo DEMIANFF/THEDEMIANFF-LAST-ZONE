@@ -9,6 +9,7 @@ var solved: bool=false
 var last_error_m: float=INF
 var right_error_m: float=INF
 var grip_adjustment_m: float=0.0
+var diagnostics: Dictionary={}
 
 
 func bind_chain() -> void:
@@ -58,9 +59,18 @@ func _process_modification_with_delta(_delta: float) -> void:
     # Find a grip position reachable by BOTH arms instead of stretching bones
     # or moving the support marker away from the actual foregrip.
     var requested: Vector3=hand_world
-    for iteration in range(6):
+    var forward: Vector3=-weapons.operator.global_basis.z.normalized()
+    for iteration in range(24):
         requested=_inside_sphere(requested,left_root-support_offset,left_reach)
         requested=_inside_sphere(requested,right_root,right_reach)
+        # Keep the grip in front of the torso as well as within arm reach.
+        var ahead: float=(requested-weapons.operator.global_position).dot(forward)
+        if ahead<.08:
+            requested+=forward*(.08-ahead)
+    diagnostics={"left_shoulder":str(left_root),"right_shoulder":str(right_root),
+        "left_reach_m":left_reach,"right_reach_m":right_reach,
+        "initial_grip":str(hand_world),"requested_grip":str(requested),
+        "support_offset":str(support_offset)}
     grip_adjustment_m=requested.distance_to(hand_world)
     right_error_m=_solve(skeleton,right,requested,left[0])
     weapons._align_mount_to_sight(true)

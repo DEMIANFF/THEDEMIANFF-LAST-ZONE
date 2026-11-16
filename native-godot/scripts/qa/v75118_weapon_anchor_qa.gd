@@ -99,6 +99,8 @@ func _verify() -> void:
                 " actual_hand_gap_m=",gap," solver_error_m=",visuals._support_ik.last_error_m,
                 " grip_adjustment_m=",visuals._support_ik.grip_adjustment_m,
                 " right_solver_error_m=",visuals._support_ik.right_error_m)
+        print("AURORA_SUPPORT_GEOMETRY weapon=",CATALOG.ENTRIES[slot]["short"],
+            " ",JSON.stringify(visuals._support_ik.diagnostics))
         player.play_weapon_action("reload",CATALOG.ENTRIES[slot]["reload"])
         for frame in range(3):
             await process_frame

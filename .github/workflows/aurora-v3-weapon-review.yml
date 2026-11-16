@@ -23,6 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Prepare desktop tools and existing project assets
+        id: prepare
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq blender python3-numpy python3-pil xvfb libgl1-mesa-dri > /tmp/aurora-tools.log
@@ -40,9 +41,10 @@ jobs:
             godot --headless --path native-godot --script "res://scripts/qa/$test.gd" > "native-godot/out/qa/$test.log" 2>&1 || status=$?
             if [ "$status" -ne 0 ]; then cat "native-godot/out/qa/$test.log"; exit "$status"; fi
             if grep -E 'SCRIPT ERROR:|ERROR:' "native-godot/out/qa/$test.log"; then exit 1; fi
-            grep -E 'PASS|AURORA_ANCHOR_MEASURE|AURORA_SUPPORT_MEASURE' "native-godot/out/qa/$test.log"
+            grep -E 'PASS|AURORA_ANCHOR_MEASURE|AURORA_SUPPORT_MEASURE|AURORA_SUPPORT_GEOMETRY' "native-godot/out/qa/$test.log"
           done
       - name: Render real gameplay poses for visual acceptance
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
         run: |
           export XDG_DATA_HOME="$(mktemp -d)"
           xvfb-run -a -s "-screen 0 960x640x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --resolution 960x640 --script res://scripts/qa/capture_aurora_v3_weapons.gd > native-godot/out/qa/capture.log 2>&1
