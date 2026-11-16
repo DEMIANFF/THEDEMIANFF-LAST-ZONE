@@ -1662,8 +1662,11 @@ func _ensure_lobby_navigation() -> void:
     _lobby_compact_intel.name="AuroraCompactMatchBrief"
     _lobby_compact_intel.anchor_left=.727
     _lobby_compact_intel.anchor_right=.970
-    _lobby_compact_intel.anchor_top=.744
-    _lobby_compact_intel.anchor_bottom=.851
+    # Keep this 28px strip BELOW the original INICIAR bounds at
+    # ~304-341 px on 964x434. The previous .744 anchor would overlap
+    # the button and interfere with touch.
+    _lobby_compact_intel.anchor_top=.795
+    _lobby_compact_intel.anchor_bottom=.863
     _lobby_compact_intel.mouse_filter=Control.MOUSE_FILTER_IGNORE
     var intel_style:=StyleBoxFlat.new()
     intel_style.bg_color=Color(.026,.052,.076,.94)
