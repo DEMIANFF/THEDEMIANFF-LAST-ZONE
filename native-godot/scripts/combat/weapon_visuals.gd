@@ -130,7 +130,7 @@ func attach_to_player(player: CharacterBody3D) -> void:
     equip(0)
     # The mount follows the solved wrist in world space; a later bone update
     # must not apply its transform a second time to the already aligned gun.
-    mount.top_level=true
+    mount.top_level=attachment_uses_hand
     if skeleton and support_socket:
         _support_ik=SUPPORT_IK.new()
         _support_ik.name="WeaponSupportArm"
