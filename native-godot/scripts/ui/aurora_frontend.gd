@@ -52,6 +52,7 @@ var _lobby_backplates: Array[Control]=[]
 var _lobby_status_ribbon: PanelContainer
 var _lobby_status_caption: Label
 var _lobby_match_facts: HBoxContainer
+var _lobby_compact_intel: PanelContainer
 var _info: Label
 var _game: Node3D
 var _primary: Button
@@ -481,7 +482,7 @@ func _build_loading_overlay() -> void:
     content.add_child(phase)
     _loading_title=Label.new()
     _loading_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-    _loading_title.add_theme_font_size_override("font_size",21)
+    _loading_title.add_theme_font_size_override("font_size",23)
     _loading_title.add_theme_color_override(
         "font_color",Color(.98,.95,.86))
     content.add_child(_loading_title)
@@ -624,6 +625,8 @@ func _welcome() -> void:
         _top_social_button.visible=false
     if _play_match_card!=null and is_instance_valid(_play_match_card):
         _play_match_card.visible=false
+    if _lobby_compact_intel!=null and is_instance_valid(_lobby_compact_intel):
+        _lobby_compact_intel.visible=false
     if _banner!=null and is_instance_valid(_banner):
         _banner.visible=false
     if _lobby_status_ribbon!=null and is_instance_valid(
@@ -986,6 +989,7 @@ func _show_lobby() -> void:
     _match_mode_selector.name="MatchModeSelector"
     _match_mode_selector.custom_minimum_size=Vector2(245,32)
     _match_mode_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+    _match_mode_selector.add_theme_font_size_override("font_size",14)
     _match_mode_selector.add_item("CLÁSICO · IA LOCAL",0)
     _match_mode_selector.add_item("CLASIFICATORIA · ONLINE PENDIENTE",1)
     _match_mode_selector.add_item("ENTRENAMIENTO · LOCAL",2)
@@ -1006,7 +1010,7 @@ func _show_lobby() -> void:
     _training_entry.custom_minimum_size.y=49
     _style_primary_action(_training_entry)
     _lobby_play_modes.add_child(_training_entry)
-    _lobby_mode_caption=_label("50 PARTICIPANTES · 1 OPERADOR + 49 IA",11)
+    _lobby_mode_caption=_label("50 PARTICIPANTES · 1 OPERADOR + 49 IA",12)
     _lobby_mode_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
     # Three real match facts occupy the previously empty desktop card, while
     # staying hidden on the Edge 60 Fusion's compact landscape viewport.
@@ -1353,6 +1357,10 @@ func _sync_lobby_match_mode() -> void:
     _lobby_mode_caption.visible=show_modes and _selected_match_mode=="classic"
     _lobby_match_facts.visible=(show_modes and
         _selected_match_mode=="classic" and _entry_should_show_briefing())
+    if _lobby_compact_intel!=null:
+        _lobby_compact_intel.visible=(show_modes and
+            _selected_match_mode=="classic" and
+            not _entry_should_show_briefing())
     _pass_progress.visible=_selected_tab=="PASE"
     _pass_claim_button.visible=_selected_tab=="PASE"
     _shop_selector.visible=_selected_tab in ["TIENDA","PERSONAJE"]
@@ -1526,7 +1534,7 @@ func _ensure_lobby_navigation() -> void:
             else target)
         button.custom_minimum_size=Vector2(0,40)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-        button.add_theme_font_size_override("font_size",12)
+        button.add_theme_font_size_override("font_size",14)
         _style_aurora_tab(button,Color(.35,.70,.91))
         button.size_flags_vertical=Control.SIZE_EXPAND_FILL
         _left_shortcuts.add_child(button)
@@ -1550,7 +1558,7 @@ func _ensure_lobby_navigation() -> void:
         button.name="Bottom"+target
         button.custom_minimum_size=Vector2(0,30)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-        button.add_theme_font_size_override("font_size",12)
+        button.add_theme_font_size_override("font_size",14)
         if target=="JUGAR":
             _style_primary_action(button)
         else:
@@ -1586,7 +1594,7 @@ func _ensure_lobby_navigation() -> void:
     _social_status_label.name="ActualFriendsStatus"
     _social_status_label.text="01  ●  Operador local\nSin amigos conectados · Online pendiente"
     _social_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _social_status_label.add_theme_font_size_override("font_size",10)
+    _social_status_label.add_theme_font_size_override("font_size",11)
     _social_status_label.custom_minimum_size.y=29
     _social_status_label.add_theme_color_override("font_color",Color(.75,.8,.85))
     social_content.add_child(_social_status_label)
@@ -1614,7 +1622,7 @@ func _ensure_lobby_navigation() -> void:
         number.text="%02d %s"%[i+1,"LOCAL" if i==0 else "—"]
         number.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
         number.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
-        number.add_theme_font_size_override("font_size",9)
+        number.add_theme_font_size_override("font_size",10)
         number.add_theme_color_override(
             "font_color",Color(.92,.95,1) if i==0 else
             Color(.54,.64,.74))
@@ -1647,6 +1655,38 @@ func _ensure_lobby_navigation() -> void:
     _play_match_card.add_theme_stylebox_override("panel",match_card_style)
     _surface.add_child(_play_match_card)
     _surface.move_child(_play_match_card,_page.get_index())
+    # Compact phone: fill the lower blank half of the match card with
+    # truthful local battle information, without moving the START button.
+    # Desktop uses the three native match fact tiles in the detail column.
+    _lobby_compact_intel=PanelContainer.new()
+    _lobby_compact_intel.name="AuroraCompactMatchBrief"
+    _lobby_compact_intel.anchor_left=.727
+    _lobby_compact_intel.anchor_right=.970
+    _lobby_compact_intel.anchor_top=.744
+    _lobby_compact_intel.anchor_bottom=.851
+    _lobby_compact_intel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    var intel_style:=StyleBoxFlat.new()
+    intel_style.bg_color=Color(.026,.052,.076,.94)
+    intel_style.border_color=Color(.28,.56,.65,.65)
+    intel_style.set_border_width_all(1)
+    intel_style.set_corner_radius_all(5)
+    intel_style.content_margin_left=6
+    intel_style.content_margin_right=5
+    intel_style.content_margin_top=3
+    intel_style.content_margin_bottom=2
+    _lobby_compact_intel.add_theme_stylebox_override("panel",intel_style)
+    var intel_text:=Label.new()
+    intel_text.name="CompactBattleInformation"
+    intel_text.text="PUERTO AURORA  /  SOLO LOCAL\n50 PARTICIPANTES  ·  ZONA: 4 FASES"
+    intel_text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    intel_text.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+    intel_text.add_theme_font_size_override("font_size",11)
+    intel_text.add_theme_color_override(
+        "font_color",Color(.82,.91,.94))
+    intel_text.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _lobby_compact_intel.add_child(intel_text)
+    _lobby_compact_intel.visible=false
+    _surface.add_child(_lobby_compact_intel)
 
     _top_account_button=_button("CUENTA",
         Callable(self,"_select_tab").bind("CUENTA"),0)
@@ -1731,6 +1771,10 @@ func _select_tab(tab: String) -> void:
         _social_panel.visible=tab=="JUGAR"
     if _play_match_card!=null:
         _play_match_card.visible=tab=="JUGAR"
+    if _lobby_compact_intel!=null:
+        _lobby_compact_intel.visible=(tab=="JUGAR" and
+            _selected_match_mode=="classic" and
+            not _entry_should_show_briefing())
     _page.anchor_left=.733
     _page.anchor_right=.962
     _page.anchor_top=.487 if tab=="JUGAR" else .183
@@ -2257,18 +2301,21 @@ func _build_preview() -> void:
     env.background_mode=Environment.BG_CLEAR_COLOR
     env.background_color=Color(.016,.021,.048,0.0)
     env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
-    env.ambient_light_color=Color(.78,.85,.98)
-    env.ambient_light_energy=1.13
+    # Preserve real skinned-material color instead of bleaching Lila's face
+    # and outfit under a combined 3.8x energy budget.
+    env.ambient_light_color=Color(.67,.77,.90)
+    env.ambient_light_energy=.46
     ambient.environment=env
     stage3d.add_child(ambient)
     var key:=DirectionalLight3D.new()
     key.rotation_degrees=Vector3(-36,35,0)
-    key.light_energy=1.55
+    key.light_color=Color(1.0,.93,.87)
+    key.light_energy=1.52
     stage3d.add_child(key)
     var rim:=DirectionalLight3D.new()
     rim.rotation_degrees=Vector3(26,-135,0)
-    rim.light_color=Color(.49,.75,1.0)
-    rim.light_energy=1.13
+    rim.light_color=Color(.40,.67,.86)
+    rim.light_energy=.47
     stage3d.add_child(rim)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
@@ -2432,6 +2479,11 @@ func _layout_safe() -> void:
             _lobby_match_facts):
         _lobby_match_facts.visible=(_selected_tab=="JUGAR" and
             _selected_match_mode=="classic" and _entry_should_show_briefing())
+    if stage=="lobby" and _lobby_compact_intel!=null and is_instance_valid(
+            _lobby_compact_intel):
+        _lobby_compact_intel.visible=(_selected_tab=="JUGAR" and
+            _selected_match_mode=="classic" and
+            not _entry_should_show_briefing())
     if stage=="welcome" and _entry_info_panel!=null and is_instance_valid(
             _entry_info_panel):
         _entry_info_panel.visible=_entry_should_show_briefing()
