@@ -11,8 +11,8 @@ func _ready() -> void:
     var alloy:=_mat(Color(.075,.093,.16),.57)
     var armor:=_mat(Color(.15,.13,.27),.46)
     var soft:=_mat(Color(.25,.25,.33),.76)
-    var light:=_mat(Color(.65,.16,.95),.13,true)
-    var cyan:=_mat(Color(.28,.86,1),.12,true)
+    var light:=_mat(Color(.46,.31,.82),.31,true)
+    var cyan:=_mat(Color(.38,.76,1),.29,true)
     _box("BodyArmor",Vector3(0,.59,-.07),Vector3(.48,.38,.88),alloy)
     _box("BackPlating",Vector3(0,.82,-.10),Vector3(.44,.13,.68),armor)
     _box("Chest",Vector3(0,.64,.36),Vector3(.40,.46,.28),armor)
@@ -65,7 +65,7 @@ func _mat(tint: Color,roughness: float,emissive: bool=false) -> StandardMaterial
     if emissive:
         material.emission_enabled=true
         material.emission=tint
-        material.emission_energy_multiplier=1.8
+        material.emission_energy_multiplier=1.18
     return material
 
 

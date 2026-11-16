@@ -1,448 +1,471 @@
 extends Node3D
+## Airfield meshes are constructed once for the lobby viewport.
 const RUNWAY_SURFACE=preload("res://assets/ui/aurora_apron.gdshader")
+const TERRAIN_SURFACE=preload("res://assets/ui/aurora_polar_terrain.gdshader")
+const PANEL_SURFACE=preload("res://assets/ui/aurora_cladding.gdshader")
+const CURTAIN_SURFACE=preload("res://assets/ui/aurora_curtain.gdshader")
 
-## All motion happens in the actual 3D hangar: no image, video, fake scene.
-## The node tree is freed when the player starts a match to release VRAM.
 var _radar_rotor: Node3D
-var _beacon_material: StandardMaterial3D
-var _lobby_time: float=0.0
-var _mountain_mesh_count: int=0
+var _beacon: StandardMaterial3D
+var _time: float=0.0
+var _cube:=BoxMesh.new()
+var _fittings: Dictionary[Material,Array]={}
+var _rock_noise:=FastNoiseLite.new()
+var _steel: StandardMaterial3D
+var _concrete: StandardMaterial3D
+var _amber: StandardMaterial3D
+var _glass: StandardMaterial3D
+var _panel: ShaderMaterial
+var _snow: ShaderMaterial
+
+
+func _ready() -> void:
+    _rock_noise.seed=24116
+    _rock_noise.noise_type=FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+    _rock_noise.frequency=.36
+    _rock_noise.fractal_octaves=4
+    _steel=_metal(Color(.21,.26,.34),.57,.56)
+    _concrete=_metal(Color(.185,.221,.275),.02,.92)
+    _amber=_lamp(Color(1.0,.63,.28),.94)
+    _glass=_lamp(Color(.88,.54,.24),.70)
+    _beacon=_lamp(Color(1.0,.27,.10),1.0)
+    _panel=ShaderMaterial.new()
+    _panel.shader=PANEL_SURFACE
+    _snow=ShaderMaterial.new()
+    _snow.shader=TERRAIN_SURFACE
+
+    _mountain_range("AuroraSnowPeak", -28.0, 10.0, 56.0, 104, 24, 0.0)
+    _mountain_range("AuroraSnowPeakMiddle", -44.0, 16.0, 84.0, 106, 19, 2.9)
+    _mountain_range("AuroraSnowPeakHorizon", -65.0, 24.0, 118.0, 86, 16, 7.3)
+    _curtain(0)
+    _curtain(1)
+    _build_apron()
+    _build_hangar(Vector3(2.65,-.08,-12.8))
+    _build_station(Vector3(-5.28,-.08,-9.0))
+    _build_radar(Vector3(-4.65,-.08,-11.65))
+    _watchtower(Vector3(7.15,-.08,-15.2))
+    _crate(Vector3(-2.75,-.12,-5.5))
+    _crate(Vector3(-3.28,-.12,-5.95))
+    _crate(Vector3(5.0,-.12,-8.55))
+    _fir_line()
+    _batch_fittings()
 
 
 func _process(delta: float) -> void:
-    if delta<=0.0:
-        return
-    var dt: float=minf(delta,.10)
-    _lobby_time+=dt
-    if _radar_rotor!=null and is_instance_valid(_radar_rotor):
-        _radar_rotor.rotation.y=wrapf(
-            _radar_rotor.rotation.y+dt*.27,-PI,PI)
-    if _beacon_material!=null:
-        _beacon_material.emission_energy_multiplier=(
-            .65+.55*(.5+.5*sin(_lobby_time*2.5)))
+    var dt:=minf(delta,.1)
+    _time+=dt
+    _radar_rotor.rotation.y=wrapf(_radar_rotor.rotation.y+dt*.27,-PI,PI)
+    _beacon.emission_energy_multiplier=.65+.55*smoothstep(.25,1.0,
+        .5+.5*sin(_time*2.5))
 
-## V75.79 original interactive winter military base for the Godot lobby.
-## No screenshots, trademarked game geometry or external texture downloads.
-## Desktop/headless and Motorola share these low-poly mobile-safe meshes.
-## The stage is owned by a SubViewport and disposed before gameplay.
 
-func _ready() -> void:
-    var asphalt:=ShaderMaterial.new()
-    asphalt.shader=RUNWAY_SURFACE
-    var metal: StandardMaterial3D=_material(Color(.18,.24,.32),.32,.62)
-    var steel: StandardMaterial3D=_material(Color(.09,.14,.22),.42,.56)
-    var ice: StandardMaterial3D=_material(Color(.095,.17,.26),.26,.36)
-    # Mountains use muted blue-grey ice rather than flat white pyramid caps.
-    # Hangar/foreground materials remain separate from the mountain palette.
-    var snow: StandardMaterial3D=_material(Color(.41,.53,.65),.04,.88)
-    var ridge_far: StandardMaterial3D=_material(Color(.15,.22,.32),.05,.91)
-    var ridge_near: StandardMaterial3D=_material(Color(.11,.18,.27),.09,.85)
-    var ridge_frost: StandardMaterial3D=_material(Color(.37,.47,.57),.02,.90)
-    var dark: StandardMaterial3D=_material(Color(.024,.030,.063),.44,.62)
-    var neon_purple: StandardMaterial3D=_emission(Color(.43,.30,.68),.52)
-    var neon_cyan: StandardMaterial3D=_emission(Color(.23,.56,.68),.68)
-    var neon_gold: StandardMaterial3D=_emission(Color(1.0,.63,.19),1.1)
-    _beacon_material=_emission(Color(1.0,.37,.16),1.2)
-
-    # Large low-poly original snow mountain skyline. The main 3D character
-    # remains foregrounded and readable rather than standing in a bare box.
-    _box("PolarPlatform",Vector3(0,-.27,-3.5),
-        Vector3(25,.20,26),asphalt)
-    _box("FrozenRunway",Vector3(0,-.17,-3.5),
-        Vector3(17,.05,15),asphalt)
-    # Layered steel runway with original illuminated approach chevrons.
-    # World-space lights and geometry remain native meshes, NOT UI images.
-    _box("AuroraRunwayCentralSpine",Vector3(0,-.132,-3.5),
-        Vector3(2.85,.012,15.0),asphalt)
-    for p in range(7):
-        var z: float=1.4-float(p)*1.62
-        for side in [-1.0,1.0]:
-            _box("AuroraApproachChevron",Vector3(side*.91,-.121,z),
-                Vector3(.46,.011,.075),neon_cyan)
-        _box("AuroraCenterIndicator",Vector3(0,-.119,z-.32),
-            Vector3(.072,.009,.25),neon_gold)
+func _build_apron() -> void:
+    var pavement:=ShaderMaterial.new()
+    pavement.shader=RUNWAY_SURFACE
+    _solid("AuroraRunwayCentralSpine",Vector3(0,-.18,-9.0),
+        Vector3(34.0,.12,37.0),pavement)
     for side in [-1.0,1.0]:
-        _box("AuroraRunwayGuardrail",Vector3(side*6.90,.19,-4.8),
-            Vector3(.08,.18,10.8),steel)
-        for p in range(7):
-            var position_z: float=.4-float(p)*1.45
-            _box("AuroraRunwayReflector",
-                Vector3(side*6.88,.31,position_z),
-                Vector3(.19,.055,.16),neon_cyan)
-    # The former 4-triangle pyramid skyline produced repeated bright
-    # white triangles behind Lila. Irregular layered rock geometry makes
-    # the silhouette less repetitive without resorting to textures or
-    # expensive static mesh imports (mobile GPU budget stays bounded).
-    for i in range(-6,7):
-        var f: float=float(i)
-        _peak(Vector3(f*3.1,-.13,-21.0-absf(f)*.23),
-            3.7,4.3+absf(sin(f*.8))*2.6,ridge_far,ridge_frost)
-    for i in range(-4,5):
-        # A positive 0..2 height tier is required: negative GDScript
-        # remainder previously produced undersized near-range peaks.
-        var height_tier: int=(i+12)%3
-        _peak(Vector3(float(i)*4.15,-.11,-17.0-absf(float(i))*.19),
-            2.25,2.15+float(height_tier)*.34,ridge_near,snow)
-    # Base Aurora has a layered winter command station rather than two
-    # featureless cubes: entrances, frames, windows, sloped roofing and
-    # original illuminated signal/billboard elements.
-    for side in [-1.0,1.0]:
-        var x: float=side*5.15
-        _building(x,-8.4,side,metal,steel,dark,
-            neon_purple,neon_cyan,snow)
-        _watchtower(side*9.0,-10.8,steel,metal,
-            neon_cyan,neon_gold)
-        for step in range(6):
-            var z: float=2.4-float(step)*1.22
-            _box("RunwayGuidance",Vector3(side*3.8,-.11,z),
-                Vector3(.065,.018,.46),neon_cyan)
-        for crate in range(3):
-            _crate(Vector3(x+side*float(crate%2)*.75,-.02,
-                -3.5-float(crate)*.74),metal,steel,neon_gold)
-        _pine(side*10.5,-6.0,2.7,steel,snow)
-        _pine(side*12.0,-12.5,3.5,steel,snow)
+        _snowbank(side)
+        for i in range(11):
+            var z:=2.5-float(i)*1.85
+            var lamp_pos:=Vector3(side*2.21,-.105,z)
+            _fitting(lamp_pos+Vector3(0,.025,0),Vector3(.16,.05,.16),_steel)
+            if i==2 and side<0.0:
+                _solid("AuroraRunwayReflector",lamp_pos+Vector3(0,.068,0),
+                    Vector3(.090,.041,.093),_amber)
+            else:
+                _fitting(lamp_pos+Vector3(0,.068,0),Vector3(.090,.041,.093),_amber)
+        _light("ApronGuideLight",Vector3(side*2.21,.045,-2.94),
+            Color(1.0,.63,.36),.44,1.90)
+        for i in range(10):
+            var rail_post:=Vector3(side*6.65,.31,-4.4-float(i)*1.14)
+            _fitting(rail_post,Vector3(.066,.81,.069),_steel)
+        for rail_y in [.37,.69]:
+            _fitting(Vector3(side*6.65,rail_y,-9.55),Vector3(.058,.050,10.45),_steel)
 
-    # Radar array and small structures give depth to the original Base
-    # Aurora scene. No physical collision work runs in the lobby.
-    _radar(Vector3(-7.1,2.75,-8.3),steel,neon_cyan)
-    _box("AuroraHangarRear",Vector3(0,.86,-12.5),
-        Vector3(5.6,1.72,2.9),steel)
-    _box("AuroraHangarRoof",Vector3(0,1.79,-12.5),
-        Vector3(6.0,.20,3.3),metal)
-    _box("AuroraHangarDoor",Vector3(0,.66,-10.97),
-        Vector3(2.5,1.28,.11),dark)
-    _box("AuroraHangarDoorHeader",Vector3(0,1.36,-10.82),
-        Vector3(2.75,.13,.22),metal)
-    _box("AuroraHangarDoorThreshold",Vector3(0,.025,-10.80),
-        Vector3(2.68,.052,.36),metal)
-    var shutters: Array[Vector3]=[]
-    for i in range(9):
-        shutters.append(Vector3(0,.14+float(i)*.124,-10.90))
-    _repeat_boxes("AuroraHangarShutters",shutters,Vector3(2.42,.035,.045),steel)
+
+func _build_hangar(at: Vector3) -> void:
+    var fascia:=_metal(Color(.127,.164,.22),.63,.60)
+    var shutter:=_metal(Color(.145,.166,.206),.62,.52)
+    var width:=6.5
+    var length:=5.65
+    var eave:=2.24
+    var rise:=.95
+    var front:=length*.5
+    _solid("AuroraHangarRear",at+Vector3(0,eave*.5,-front),
+        Vector3(width,eave,.18),_panel)
+    for side in [-1.0,1.0]:
+        _fitting(at+Vector3(side*width*.5,eave*.5,0),
+            Vector3(.14,eave,length),_panel)
+        _fitting(at+Vector3(side*2.81,eave*.5,front),
+            Vector3(.90,eave,.18),_panel)
+        _fitting(at+Vector3(side*2.31,.98,front+.13),
+            Vector3(.17,1.96,.20),_steel)
+        _fitting(at+Vector3(side*3.22,.17,0),Vector3(.31,.34,length+.36),_concrete)
+        var slope:=Basis(Vector3.FORWARD,side*atan2(rise,width*.5))
+        var roof_span:=Vector3(Vector2(width*.5,rise).length()+.24,.16,length+.55)
+        _solid("HangarRoofSlope"+("L" if side<0.0 else "R"),
+            at+Vector3(side*width*.25,eave+rise*.5,0),roof_span,fascia,slope,true)
+        _solid("HangarRoofDrift"+("L" if side<0.0 else "R"),
+            at+Vector3(side*width*.25,eave+rise*.5+.12,-.16),
+            Vector3(roof_span.x*.95,.085,roof_span.z*.90),_snow,slope)
+        for seam in range(17):
+            _fitting(at+Vector3(side*width*.25,eave+rise*.5+.102,
+                (float(seam)-8.0)*.35),Vector3(roof_span.x,.035,.025),_steel,slope)
+        _fitting(at+Vector3(side*3.34,2.20,0),Vector3(.11,.10,length+.60),_steel)
+
+    var gable:=SurfaceTool.new()
+    gable.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for z in [front+.028,-front-.096]:
+        var face: Array[Vector3]=[
+            Vector3(-width*.5,eave,z),Vector3(0,eave+rise,z),
+            Vector3(width*.5,eave,z)]
+        if z<0.0:
+            face.reverse()
+        for vertex in face:
+            gable.add_vertex(vertex)
+    gable.generate_normals()
+    _mesh("HangarGable",gable.commit(),_panel,at)
+    _solid("HangarRecessedDoors",at+Vector3(0,.72,front-.018),
+        Vector3(4.45,1.44,.12),shutter)
+    for i in range(25):
+        var x: float=(float(i)-12.0)*.177
+        _fitting(at+Vector3(x,.72,front+.068),Vector3(.019,1.39,.032),_steel)
+    _fitting(at+Vector3(0,1.48,front+.07),Vector3(4.72,.15,.27),fascia)
+    _fitting(at+Vector3(0,.055,front+.129),Vector3(4.62,.11,.37),_concrete)
+    _fitting(at+Vector3(0,1.79,front+.054),Vector3(4.79,.43,.106),fascia)
+    for i in range(8):
+        var x: float=(float(i)-3.5)*.578
+        _fitting(at+Vector3(x,1.79,front+.12),Vector3(.534,.31,.031),_glass)
+        _fitting(at+Vector3(x,1.73,front+.144),Vector3(.535,.024,.029),_steel)
+    _solid("AuroraBackboard",at+Vector3(0,2.37,front+.044),
+        Vector3(2.69,.29,.075),fascia)
+    var signpost:=Label3D.new()
+    signpost.text="BASE AURORA"
+    signpost.font=preload("res://assets/ui/fonts/BarlowCondensed-Bold.ttf")
+    signpost.font_size=88
+    signpost.outline_size=0
+    signpost.pixel_size=.0032
+    signpost.modulate=Color(.81,.89,.96)
+    signpost.position=at+Vector3(0,2.37,front+.092)
+    add_child(signpost)
+    for side in [-1.0,1.0]:
+        var sconce:=at+Vector3(side*2.81,1.55,front+.18)
+        _fitting(sconce,Vector3(.21,.23,.21),fascia)
+        _fitting(sconce+Vector3(0,-.11,.015),Vector3(.16,.036,.13),_amber)
+        _light("AuroraHangarPracticalLight" if side<0.0 else "HangarEastLight",
+            sconce+Vector3(0,-.17,.26),Color(1.0,.64,.34),2.5,3.5)
+        _fitting(at+Vector3(side*2.60,.41,front+.25),Vector3(.09,.82,.09),_amber)
+    _solid("AuroraLiveBeacon",at+Vector3(0,3.27,.42),Vector3(.11,.16,.11),_beacon)
+
+
+func _build_station(at: Vector3) -> void:
+    _solid("AuroraResearchStation",at+Vector3(0,.66,0),Vector3(3.42,1.32,3.2),_panel)
+    _fitting(at+Vector3(0,.15,0),Vector3(3.64,.30,3.40),_concrete)
+    var lean:=Basis(Vector3.RIGHT,.13)
+    _solid("StationRoof",at+Vector3(0,1.44,0),Vector3(3.79,.19,3.56),_steel,lean)
+    _solid("StationSnowCap",at+Vector3(0,1.57,-.10),Vector3(3.65,.08,3.21),_snow,lean)
+    _fitting(at+Vector3(.93,.59,1.63),Vector3(.62,1.18,.13),_steel)
+    _fitting(at+Vector3(.93,.55,1.72),Vector3(.48,1.05,.08),_panel)
     for i in range(4):
-        var x: float=(float(i)-1.5)*1.25
-        _box("HangarWarningLight",Vector3(x,1.72,-10.95),
-            Vector3(.28,.055,.045),neon_gold)
-
-    _box("AuroraLiveBeacon",Vector3(0,2.11,-10.82),
-        Vector3(.22,.11,.16),_beacon_material)
-    var practical:=OmniLight3D.new()
-    practical.name="AuroraHangarPracticalLight"
-    practical.position=Vector3(0,2.04,-10.8)
-    practical.light_color=Color(1.0,.74,.48)
-    practical.light_energy=.91
-    practical.omni_range=5.0
-    practical.shadow_enabled=false
-    add_child(practical)
-
-    # Brand identity uses original Aurora panel motifs, no copied logos.
-    _box("AuroraBackboard",Vector3(3.45,2.35,-10.15),
-        Vector3(3.1,1.45,.11),dark)
-    _box("AuroraBackboardTop",Vector3(3.45,3.11,-10.06),
-        Vector3(3.25,.065,.14),neon_purple)
-    _box("AuroraBackboardLeft",Vector3(1.83,2.35,-10.06),
-        Vector3(.055,1.55,.14),neon_cyan)
-    _box("AuroraBackboardRight",Vector3(5.07,2.35,-10.06),
-        Vector3(.055,1.55,.14),neon_cyan)
-    for i in range(4):
-        _box("AuroraEmblemBar",Vector3(3.45,
-            2.25+float(i)*.17,-10.03),
-            Vector3(1.7-float(i)*.26,.055,.04),
-            neon_purple if i%2==0 else neon_cyan)
-
-    # Station signage uses visible native 3D geometry. Warm task lights
-    # contrast with the cold base, without adding shadowed draw calls.
-    for side in [-1.0,1.0]:
-        _box("AuroraHangarLandingStripe",
-            Vector3(side*1.48,.09,-10.82),
-            Vector3(.13,.16,.06),neon_gold)
-        _box("AuroraHangarAccessFrame",
-            Vector3(side*1.27,.71,-10.84),
-            Vector3(.065,1.32,.06),neon_cyan)
-    for level in range(3):
-        _box("AuroraSignalMatrix",
-            Vector3(0,1.12+float(level)*.17,-10.81),
-            Vector3(.96-float(level)*.17,.035,.022),
-            neon_cyan if level!=1 else neon_gold)
-
-    # Original aurora ribbons stay in the distant sky and retain QA name.
-    _ribbon(Color(.15,.95,.87,.22),6.9,-25.0,.4)
-    _ribbon(Color(.70,.27,1.0,.25),7.7,-26.0,2.4)
-    _ribbon(Color(.27,.47,1.0,.18),8.4,-27.0,4.6)
-
-    # Industrial panel seams and reflected runway lights.
-    for row in range(5):
-        var z: float=1.3-float(row)*2.8
-        _box("RunwaySeam",Vector3(0,-.125,z),
-            Vector3(10,.007,.018),metal)
-    for col in range(-5,6):
-        _box("RunwayLightReflection",Vector3(float(col)*1.5,
-            -.118,-5.7),Vector3(.15,.004,.36),
-            ice)
+        var window_pos:=at+Vector3(-1.35+float(i)*.49,.94,1.63)
+        _fitting(window_pos,Vector3(.47,.39,.12),_steel)
+        _fitting(window_pos+Vector3(0,0,.073),Vector3(.40,.29,.032),_glass)
+        _fitting(window_pos+Vector3(0,0,.105),Vector3(.025,.28,.025),_steel)
+    var lamp:=at+Vector3(.94,1.22,1.84)
+    _fitting(lamp,Vector3(.22,.077,.13),_amber)
+    _light("StationEntryLight",lamp+Vector3(0,-.18,.12),Color(1.0,.68,.39),1.55,2.8)
 
 
-func _building(x: float,z: float,side: float,
-        wall: Material,steel: Material,dark: Material,
-        violet: Material,cyan: Material,snow: Material) -> void:
-    _box("AuroraResearchStation",Vector3(x,.90,z),
-        Vector3(3.65,1.84,3.0),wall)
-    _box("StationBasement",Vector3(x,-.01,z),
-        Vector3(3.90,.32,3.25),steel)
-    _box("StationRoof",Vector3(x,1.90,z),
-        Vector3(4.05,.16,3.4),steel)
-    _box("StationSnowCap",Vector3(x,2.02,z),
-        Vector3(4.03,.085,3.36),snow)
-    var ribs: Array[Vector3]=[]
-    for i in range(11):
-        ribs.append(Vector3(x+(float(i)-5.0)*.31,.75,z+1.504))
-    _repeat_boxes("StationFacadeSeams",ribs,Vector3(.027,1.38,.03),steel)
-    _box("StationFacadeTrim",Vector3(x,1.64,z+1.53),
-        Vector3(3.70,.07,.06),violet)
-    _box("Entrance",Vector3(x-side*.75,.56,z+1.535),
-        Vector3(.76,1.11,.08),dark)
-    _box("EntranceFrame",Vector3(x-side*.75,1.15,z+1.575),
-        Vector3(.91,.055,.07),cyan)
-    for j in range(4):
-        var nx: float=x+(float(j)-1.5)*.76
-        _box("ResearchWindowFrame",Vector3(nx,1.30,z+1.532),
-            Vector3(.59,.37,.064),steel)
-        _box("ResearchWindow",Vector3(nx,1.30,z+1.571),
-            Vector3(.49,.24,.014),cyan)
-        _box("ResearchWindowMullion",Vector3(nx,1.30,z+1.587),
-            Vector3(.025,.24,.02),steel)
-    _box("SignalBanner",Vector3(x+side*1.34,1.05,z+1.59),
-        Vector3(.27,.82,.06),violet)
-    for j in range(3):
-        _box("RoofVent",Vector3(x+(float(j)-1.0)*.9,
-            2.25,z-.6),Vector3(.30,.46,.34),steel)
-
-
-func _watchtower(x: float,z: float,
-        dark: Material,steel: Material,
-        light: Material,amber: Material) -> void:
-    for dx in [-.42,.42]:
-        for dz in [-.38,.38]:
-            _beam(Vector3(x+dx,0,z+dz),
-                Vector3(x+dx,3.55,z+dz),.060,dark)
-    for y in [.62,1.32,2.03,2.72,3.50]:
-        _box("WatchtowerBeam",Vector3(x,y,z),
-            Vector3(1.18,.07,1.15),steel)
-    _box("WatchtowerCabin",Vector3(x,3.58,z),
-        Vector3(1.35,.74,1.35),dark)
-    for side in [-1.0,1.0]:
-        _box("WatchtowerWindow",Vector3(x+side*.69,
-            3.66,z),Vector3(.035,.36,.8),light)
-    _box("WatchtowerRoof",Vector3(x,4.01,z),
-        Vector3(1.48,.15,1.49),steel)
-    _box("WatchtowerBeacon",Vector3(x,4.17,z),
-        Vector3(.20,.18,.20),amber)
-
-
-func _crate(pos: Vector3,
-        material: Material,trim: Material,beacon: Material) -> void:
-    _box("AuroraSupplyCrate",pos+Vector3(0,.35,0),
-        Vector3(.72,.69,.72),material)
-    for i in [-.26,.26]:
-        _box("CrateBrace",pos+Vector3(i,.36,.37),
-            Vector3(.075,.66,.04),trim)
-    _box("CrateLatch",pos+Vector3(0,.48,.386),
-        Vector3(.17,.07,.025),beacon)
-
-
-func _pine(x: float,z: float,height: float,
-        bark: Material,snow: Material) -> void:
-    _beam(Vector3(x,0,z),Vector3(x,height*.85,z),.12,bark)
-    for j in range(3):
-        var cone:=CylinderMesh.new()
-        cone.top_radius=0
-        cone.bottom_radius=.72-float(j)*.16
-        cone.height=height*(.50-float(j)*.065)
-        cone.radial_segments=7
-        var pine:=MeshInstance3D.new()
-        pine.name="BaseAuroraSnowFir"
-        pine.mesh=cone
-        pine.material_override=snow
-        pine.position=Vector3(x,height*(.35+float(j)*.20),z)
-        pine.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-        add_child(pine)
-
-
-func _radar(origin: Vector3,dark: Material,accent: Material) -> void:
-    _beam(origin-Vector3(0,2.7,0),origin,.08,dark)
+func _build_radar(at: Vector3) -> void:
+    var base:=CylinderMesh.new()
+    base.top_radius=.68
+    base.bottom_radius=.84
+    base.height=2.39
+    base.radial_segments=18
+    _mesh("RadarControlTower",base,_panel,at+Vector3(0,1.18,0))
+    for y in [1.75,2.43]:
+        var platform:=CylinderMesh.new()
+        platform.top_radius=.92
+        platform.bottom_radius=.92
+        platform.height=.12
+        platform.radial_segments=18
+        _mesh("RadarServiceDeck",platform,_steel,at+Vector3(0,y,0))
+        for i in range(12):
+            var a:=TAU*float(i)/12.0
+            var b:=TAU*float(i+1)/12.0
+            var start:=Vector3(cos(a),0,sin(a))*.90
+            var end:=Vector3(cos(b),0,sin(b))*.90
+            _fitting(at+start+Vector3(0,y+.26,0),Vector3(.035,.42,.035),_steel)
+            _bar(at+start+Vector3(0,y+.46,0),at+end+Vector3(0,y+.46,0),.034,_steel)
     _radar_rotor=Node3D.new()
     _radar_rotor.name="AuroraRadarRotatingHead"
-    _radar_rotor.position=origin
+    _radar_rotor.position=at+Vector3(0,2.60,0)
+    _radar_rotor.rotation.y=-.52
     add_child(_radar_rotor)
-    var dish:=MeshInstance3D.new()
-    dish.name="AuroraRadarDish"
-    var mesh:=SphereMesh.new()
-    mesh.radial_segments=12
-    mesh.rings=6
-    dish.mesh=mesh
-    dish.scale=Vector3(.85,.10,.62)
-    dish.position=Vector3(0,.35,0)
-    dish.rotation_degrees=Vector3(-23,12,0)
-    dish.material_override=dark
-    dish.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    _radar_rotor.add_child(dish)
-    var radar_tip:=MeshInstance3D.new()
-    radar_tip.name="RadarDishBeacon"
-    var bulb:=BoxMesh.new()
-    bulb.size=Vector3(.16,.16,.16)
-    radar_tip.mesh=bulb
-    radar_tip.position=Vector3(0,.42,.38)
-    radar_tip.material_override=accent
-    radar_tip.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    _radar_rotor.add_child(radar_tip)
+    var elevation:=Node3D.new()
+    elevation.position.y=.68
+    elevation.rotation.x=-.57
+    _radar_rotor.add_child(elevation)
+    var dish_material:=_metal(Color(.32,.38,.46),.61,.36)
+    dish_material.cull_mode=BaseMaterial3D.CULL_DISABLED
+    var dish:=SurfaceTool.new()
+    dish.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for ring in range(6):
+        for i in range(36):
+            var a:=TAU*float(i)/36.0
+            var b:=TAU*float(i+1)/36.0
+            var inner:=float(ring)/6.0
+            var outer:=float(ring+1)/6.0
+            dish.add_vertex(_dish_point(inner,a))
+            dish.add_vertex(_dish_point(outer,b))
+            dish.add_vertex(_dish_point(outer,a))
+            if ring>0:
+                dish.add_vertex(_dish_point(inner,a))
+                dish.add_vertex(_dish_point(inner,b))
+                dish.add_vertex(_dish_point(outer,b))
+    dish.generate_normals()
+    _mesh("AuroraRadarDish",dish.commit(),dish_material,Vector3.ZERO,elevation)
+    var tube:=CylinderMesh.new()
+    tube.top_radius=.5
+    tube.bottom_radius=.5
+    tube.height=1.0
+    tube.radial_segments=7
+    var rim: Array[Transform3D]=[]
+    for i in range(12):
+        var a:=TAU*float(i)/12.0
+        var b:=TAU*float(i+1)/12.0
+        rim.append(_rod_transform(_dish_point(1.0,a),_dish_point(1.0,b),.072))
+    _instances("RadarRim",tube,dish_material,rim,elevation)
+    var bracing: Array[Transform3D]=[]
+    for index in range(8):
+        var angle:=TAU*float(index)/8.0
+        bracing.append(_rod_transform(_dish_point(.32,angle)-Vector3(0,0,.029),
+            _dish_point(1.0,angle)-Vector3(0,0,.036),.056))
+    var feed:=Vector3(0,0,1.16)
+    for i in range(3):
+        bracing.append(_rod_transform(_dish_point(.78,TAU*float(i)/3.0),feed,.086))
+    bracing.append(_rod_transform(Vector3(0,0,1.00),Vector3(0,0,1.28),.204))
+    _instances("RadarFeedSupports",tube,_steel,bracing,elevation)
+    var pivot:=_mesh("RadarPivot",tube,_steel,Vector3(0,.34,0),_radar_rotor)
+    pivot.scale=Vector3(.48,.74,.48)
 
 
-func _material(color: Color,metal: float,roughness: float) -> StandardMaterial3D:
-    var m:=StandardMaterial3D.new()
-    m.albedo_color=color
-    m.metallic=metal
-    m.roughness=roughness
-    return m
+func _dish_point(radius: float,angle: float) -> Vector3:
+    return Vector3(cos(angle)*radius*1.33,sin(angle)*radius*1.14,
+        radius*radius*.48)
 
 
-func _emission(color: Color,energy: float) -> StandardMaterial3D:
-    var m:=_material(color,.23,.28)
-    m.emission_enabled=true
-    m.emission=color
-    m.emission_energy_multiplier=energy
-    m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
-    return m
+func _watchtower(at: Vector3) -> void:
+    for x in [-.49,.49]:
+        for z in [-.49,.49]:
+            _bar(at+Vector3(x,0,z),at+Vector3(x*.70,3.38,z*.70),.07,_steel)
+    for i in range(3):
+        var y:=float(i)*1.01
+        for z in [-.45,.45]:
+            _bar(at+Vector3(-.45,y,z),at+Vector3(.40,y+.99,z),.041,_steel)
+            _bar(at+Vector3(.45,y,z),at+Vector3(-.40,y+.99,z),.041,_steel)
+    _solid("WatchtowerCabin",at+Vector3(0,3.63,0),Vector3(1.18,.68,1.17),_panel)
+    _fitting(at+Vector3(0,3.69,.60),Vector3(.90,.28,.035),_glass)
+    _fitting(at+Vector3(0,4.04,0),Vector3(1.41,.12,1.42),_steel)
+    _fitting(at+Vector3(0,4.21,0),Vector3(.12,.15,.12),_beacon)
 
 
-func _box(title: String,at: Vector3,extents: Vector3,mat: Material) -> void:
+func _crate(at: Vector3) -> void:
+    _solid("AuroraSupplyCrate",at+Vector3(0,.23,0),Vector3(.65,.46,.58),_panel)
+    for x in [-.225,.225]:
+        _fitting(at+Vector3(x,.24,.298),Vector3(.069,.46,.04),_steel)
+    _fitting(at+Vector3(0,.30,.325),Vector3(.16,.042,.032),_amber)
+
+
+func _fir_line() -> void:
+    var foliage:=_metal(Color(.105,.162,.205),.0,.93)
+    var cone:=CylinderMesh.new()
+    cone.top_radius=.045
+    cone.bottom_radius=.37
+    cone.height=.88
+    cone.radial_segments=7
+    var transforms: Array[Transform3D]=[]
+    for side in [-1.0,1.0]:
+        for i in range(9):
+            var x: float=side*(4.5+float(i)*1.65)
+            var z: float=-18.8-absf(sin(float(i)*.81+side))*3.1
+            var scale_3d: float=.70+absf(sin(float(i)*1.83+side))*.7
+            for crown in range(3):
+                var part:=scale_3d*(1.0-float(crown)*.19)
+                var basis:=Basis.from_scale(Vector3(part,scale_3d,part))
+                transforms.append(Transform3D(basis,Vector3(x,
+                    (.54+float(crown)*.40)*scale_3d,z)))
+    _instances("BaseAuroraSnowFir",cone,foliage,transforms)
+
+
+func _snowbank(side: float) -> void:
+    var shape:=SurfaceTool.new()
+    shape.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for row in range(35):
+        for column in range(7):
+            var a:=_bank_point(side,row,column)
+            var b:=_bank_point(side,row,column+1)
+            var c:=_bank_point(side,row+1,column)
+            var d:=_bank_point(side,row+1,column+1)
+            var face: Array=[a,c,b,b,c,d] if side>0.0 else [a,b,c,b,d,c]
+            for vertex in face:
+                shape.set_color(Color(.92,.92,.92))
+                shape.add_vertex(vertex)
+    shape.generate_normals()
+    shape.index()
+    _mesh("PlowedSnowbank",shape.commit(),_snow)
+
+
+func _bank_point(side: float,row: int,column: int) -> Vector3:
+    var z:=4.4-float(row)*.68
+    var across:=float(column)/7.0
+    var x: float=side*(2.57+across*6.5+.26*sin(z*.85+side))
+    var shoulder:=pow(sin(across*PI),.76)
+    var noise:=_rock_noise.get_noise_2d(x*1.8,z*2.2)
+    return Vector3(x,-.119+shoulder*(.33+noise*.26),z)
+
+
+func _mountain_range(title: String,z: float,amplitude: float,width: float,
+        columns: int,rows: int,phase: float) -> void:
+    var shape:=SurfaceTool.new()
+    shape.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for row in range(rows):
+        for column in range(columns):
+            var a:=_ridge_point(z,amplitude,width,columns,rows,phase,column,row)
+            var b:=_ridge_point(z,amplitude,width,columns,rows,phase,column+1,row)
+            var c:=_ridge_point(z,amplitude,width,columns,rows,phase,column,row+1)
+            var d:=_ridge_point(z,amplitude,width,columns,rows,phase,column+1,row+1)
+            for vertex in [a,c,b,b,c,d]:
+                var snowline:=smoothstep(amplitude*.17,amplitude*.68,vertex.y)
+                shape.set_color(Color(snowline,snowline,snowline))
+                shape.add_vertex(vertex)
+    shape.generate_normals()
+    shape.index()
+    _mesh(title,shape.commit(),_snow)
+
+
+func _ridge_point(z: float,amplitude: float,width: float,columns: int,
+        rows: int,phase: float,column: int,row: int) -> Vector3:
+    var x: float=(float(column)/float(columns)-.5)*width
+    var depth:=float(row)/float(rows)
+    var ridge_center:=.53+.14*sin(x*.16+phase)+.04*sin(x*.52)
+    var ridge_height:=exp(-pow((depth-ridge_center)*3.25,2.0))
+    var macro:=.49+.20*sin(x*.24+phase)+.09*sin(x*.51-phase)+.13*cos(x*.14+phase)
+    var profile:=sin(depth*PI)
+    var world_z:=z-depth*amplitude*1.25
+    var crags:=_rock_noise.get_noise_2d(x*.72+phase,world_z*.82)
+    var gullies:=absf(_rock_noise.get_noise_2d(x*1.3+depth*1.8,phase+2.2*depth))
+    var height:=amplitude*profile*(ridge_height*(macro+crags*.15)-gullies*.17)
+    return Vector3(x,height-.49,world_z)
+
+
+func _curtain(layer: int) -> void:
+    var sheet:=SurfaceTool.new()
+    sheet.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for i in range(80):
+        for corner in [Vector2(0,0),Vector2(1,0),Vector2(0,1),
+                Vector2(1,0),Vector2(1,1),Vector2(0,1)]:
+            var u: float=(float(i)+corner.x)/80.0
+            var x: float=lerpf(-54.0,54.0,u)
+            var ridge: float=sin(u*9.3+float(layer)*1.9)*3.6+sin(u*22.0)*.65
+            sheet.set_uv(Vector2(u,corner.y))
+            sheet.add_vertex(Vector3(x,12.0+float(layer)*4.8+ridge+corner.y*14.0,
+                -51.0-float(layer)*10.0+cos(u*11.0+float(layer))*4.5))
+    var material:=ShaderMaterial.new()
+    material.shader=CURTAIN_SURFACE
+    material.set_shader_parameter("strength",.78 if layer==0 else .44)
+    material.set_shader_parameter("fold_offset",float(layer)*2.8)
+    _mesh("PolarAuroraCurtain" if layer==0 else "DistantAuroraCurtain",
+        sheet.commit(),material)
+
+
+func _metal(tint: Color,metalness: float,roughness: float) -> StandardMaterial3D:
+    var material:=StandardMaterial3D.new()
+    material.albedo_color=tint
+    material.metallic=metalness
+    material.roughness=roughness
+    return material
+
+
+func _lamp(tint: Color,energy: float) -> StandardMaterial3D:
+    var material:=_metal(tint,.05,.33)
+    material.emission_enabled=true
+    material.emission=tint
+    material.emission_energy_multiplier=energy
+    return material
+
+
+func _light(title: String,at: Vector3,tint: Color,energy: float,radius: float) -> void:
+    var lamp:=OmniLight3D.new()
+    lamp.name=title
+    lamp.position=at
+    lamp.light_color=tint
+    lamp.light_energy=energy
+    lamp.omni_range=radius
+    add_child(lamp)
+
+
+func _mesh(title: String,geometry: Mesh,material: Material,at:=Vector3.ZERO,
+        parent: Node3D=null,shadow:=false) -> MeshInstance3D:
     var instance:=MeshInstance3D.new()
     instance.name=title
-    var mesh:=BoxMesh.new()
-    mesh.size=extents
-    instance.mesh=mesh
+    instance.mesh=geometry
+    instance.material_override=material
     instance.position=at
-    instance.material_override=mat
-    instance.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    add_child(instance)
+    if not shadow:
+        instance.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    (self if parent==null else parent).add_child(instance)
+    return instance
 
 
-func _repeat_boxes(title: String,points: Array[Vector3],size_3d: Vector3,
-        material: Material) -> void:
-    var box:=BoxMesh.new()
-    box.size=size_3d
-    var batch:=MultiMesh.new()
-    batch.transform_format=MultiMesh.TRANSFORM_3D
-    batch.mesh=box
-    batch.instance_count=points.size()
-    for index in range(points.size()):
-        batch.set_instance_transform(index,Transform3D(Basis.IDENTITY,points[index]))
-    var fittings:=MultiMeshInstance3D.new()
-    fittings.name=title
-    fittings.multimesh=batch
-    fittings.material_override=material
-    fittings.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    add_child(fittings)
+func _solid(title: String,at: Vector3,size_3d: Vector3,material: Material,
+        orientation:=Basis.IDENTITY,shadow:=false) -> void:
+    var instance:=_mesh(title,_cube,material,at,null,shadow)
+    instance.basis=orientation*Basis.from_scale(size_3d)
 
 
-func _beam(a: Vector3,b: Vector3,r: float,mat: Material) -> void:
-    var pipe:=MeshInstance3D.new()
-    pipe.name="AuroraIndustrialBeam"
-    var mesh:=CylinderMesh.new()
-    mesh.radial_segments=7
-    mesh.height=a.distance_to(b)
-    mesh.top_radius=r
-    mesh.bottom_radius=r
-    pipe.mesh=mesh
-    pipe.position=(a+b)*.5
-    pipe.quaternion=Quaternion(Vector3.UP,(b-a).normalized())
-    pipe.material_override=mat
-    pipe.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    add_child(pipe)
+func _fitting(at: Vector3,size_3d: Vector3,material: Material,
+        orientation:=Basis.IDENTITY) -> void:
+    if not _fittings.has(material):
+        _fittings[material]=[]
+    _fittings[material].append(Transform3D(orientation*Basis.from_scale(size_3d),at))
 
 
-func _peak(at: Vector3,width: float,height: float,
-        stone: Material,frost: Material) -> void:
-    _pyramid(at,width,height,stone)
-    # Asymmetrical 24%-high frost crown rather than the repeated 30%
-    # white cap which read as a jagged poster of white triangles.
-    var crown_offset: float=sin(at.x*.37+at.z*.13)*width*.09
-    _pyramid(at+Vector3(crown_offset,height*.76,0),
-        width*.245,height*.24,frost)
+func _bar(a: Vector3,b: Vector3,thickness: float,material: Material) -> void:
+    var direction:=b-a
+    var axis:=direction.normalized()
+    var side:=axis.cross(Vector3.FORWARD if absf(axis.z)<.91 else Vector3.RIGHT).normalized()
+    _fitting((a+b)*.5,Vector3(thickness,direction.length(),thickness),
+        material,Basis(side,axis,side.cross(axis)))
 
 
-func _pyramid(at: Vector3,width: float,height: float,mat: Material) -> void:
-    var builder:=SurfaceTool.new()
-    builder.begin(Mesh.PRIMITIVE_TRIANGLES)
-    var ring: Array[Vector3]=[]
-    var ridge: Array[Vector3]=[]
-    const SECTORS: int=9
-    # Fixed trigonometric offsets keep all machines deterministic, while
-    # avoiding perfectly symmetric four-sided mountains.
-    for i in range(SECTORS):
-        var theta: float=TAU*float(i)/float(SECTORS)-PI*.75
-        var noise: float=sin(float(i)*2.31+at.x*.27+at.z*.07)
-        var radial: float=width*(.82+.15*noise)
-        var perimeter:=Vector3(
-            cos(theta)*radial,0,sin(theta)*radial*.87)
-        ring.append(perimeter)
-        var shoulder_height: float=height*(.40+.07*sin(
-            float(i)*1.77+at.x*.13))
-        ridge.append(Vector3(
-            perimeter.x*.49,shoulder_height,perimeter.z*.48))
-    var summit:=Vector3(
-        sin(at.x*.29)*width*.13,
-        height,
-        cos(at.z*.34)*width*.12)
-    for i in range(SECTORS):
-        var next: int=(i+1)%SECTORS
-        for point in [
-            ring[i],ring[next],ridge[i],
-            ring[next],ridge[next],ridge[i],
-            ridge[i],ridge[next],summit
-        ]:
-            builder.add_vertex(point)
-    builder.generate_normals()
-    var shape:=MeshInstance3D.new()
-    # Stable names avoid Godot's automatic Node renaming and allow
-    # per-facet performance audits without relying on generated IDs.
-    shape.name=("AuroraSnowPeak" if _mountain_mesh_count==0 else
-        "AuroraSnowPeak%02d"%_mountain_mesh_count)
-    _mountain_mesh_count+=1
-    shape.mesh=builder.commit()
-    shape.position=at
-    shape.material_override=mat
-    shape.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    add_child(shape)
+func _rod_transform(a: Vector3,b: Vector3,width: float) -> Transform3D:
+    var direction:=b-a
+    var rotation:=Basis(Quaternion(Vector3.UP,direction.normalized()))
+    return Transform3D(rotation*Basis.from_scale(Vector3(width,direction.length(),width)),
+        (a+b)*.5)
 
 
-func _ribbon(tint: Color,alt: float,depth: float,phase: float) -> void:
-    var paint:=SurfaceTool.new()
-    paint.begin(Mesh.PRIMITIVE_TRIANGLES)
-    for i in range(32):
-        var x: float=-17.0+float(i)*34.0/32.0
-        var nx: float=-17.0+float(i+1)*34.0/32.0
-        var y: float=alt+sin(x*.31+phase)*.75
-        var ny: float=alt+sin(nx*.31+phase)*.75
-        for band in range(2):
-            var lower: float=float(band)*.46
-            var upper: float=lower+.46
-            var low_alpha: float=tint.a*.46 if band==1 else 0.0
-            var high_alpha: float=tint.a*.46 if band==0 else 0.0
-            for vertex in [
-                Vector4(x,y+lower,depth,low_alpha),Vector4(nx,ny+lower,depth,low_alpha),
-                Vector4(x,y+upper,depth,high_alpha),Vector4(nx,ny+lower,depth,low_alpha),
-                Vector4(nx,ny+upper,depth,high_alpha),Vector4(x,y+upper,depth,high_alpha)
-            ]:
-                paint.set_color(Color(tint.r,tint.g,tint.b,vertex.w))
-                paint.add_vertex(Vector3(vertex.x,vertex.y,vertex.z))
-    paint.generate_normals()
-    var item:=MeshInstance3D.new()
-    item.name="PolarAuroraCurtain"
-    item.mesh=paint.commit()
-    var mat:=StandardMaterial3D.new()
-    mat.vertex_color_use_as_albedo=true
-    mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
-    mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
-    mat.cull_mode=BaseMaterial3D.CULL_DISABLED
-    item.material_override=mat
-    item.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    add_child(item)
+func _batch_fittings() -> void:
+    var index:=0
+    for material in _fittings:
+        _instances("AirfieldFittings%02d"%index,_cube,material,_fittings[material])
+        index+=1
+    _fittings.clear()
+
+
+func _instances(title: String,mesh: Mesh,material: Material,transforms: Array,
+        parent: Node3D=null) -> void:
+    var group:=MultiMesh.new()
+    group.transform_format=MultiMesh.TRANSFORM_3D
+    group.mesh=mesh
+    group.instance_count=transforms.size()
+    for i in range(transforms.size()):
+        group.set_instance_transform(i,transforms[i])
+    var batch:=MultiMeshInstance3D.new()
+    batch.name=title
+    batch.multimesh=group
+    batch.material_override=material
+    batch.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    (self if parent==null else parent).add_child(batch)

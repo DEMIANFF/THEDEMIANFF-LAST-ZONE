@@ -89,8 +89,9 @@ func _verify() -> void:
         "lobby does not present one fixed 50-fighter Battle Royale")
     var preview: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage/AuroraReal3DLobbyEnvironment")
-    check(preview!=null and preview.find_children("*","MeshInstance3D",true,false).size()>40,
-        "lobby still renders only flat 2D scenery instead of real 3D hangar")
+    check(preview!=null and preview.find_children("*","MeshInstance3D",true,false).size()>22
+        and preview.find_children("*","MultiMeshInstance3D",true,false).size()>=6,
+        "lobby lost structural meshes or its instanced 3D scenery")
     check(preview.find_child("PolarAuroraCurtain",true,false)!=null,
         "lobby has no visible original aurora 3D curtain")
     var nav: VBoxContainer=front._lobby_nav
