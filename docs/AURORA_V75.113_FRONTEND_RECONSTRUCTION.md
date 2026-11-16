@@ -18,7 +18,7 @@ La UI de V75.112 superaba CI, pero las capturas reales demostraron defectos de c
 
 - Nueva consola `AuroraLoadingConsolePlate`, franja dorada, leyenda `AuroraLoadingChapter`, marcadores de fase y jerarquía de título/progreso para que el flujo tenga presencia propia.
 - Barra vinculada a `ResourceLoader.load_threaded_get_status` (progreso verdadero), sin contadores ni tiempos inventados; conserva reintentar y cancelar según fase. Paneles Godot nativos, no captura insertada como UI.
-- Sigue usando `aurora_winter_base.svg` existente y el logo real; no hay descargas de arte externo ni reutilización de propiedad de terceros.
+- El archivo `aurora_winter_base.svg` ha sido **reilustrado dentro del repositorio**: cielo polar nocturno, auroras y bruma, tres distancias de montañas, hangares con marco iluminado, pista perspectiva, pasarelas, antenas, radar y 125 estrellas originales. Esta ilustración vectorial se rasteriza como un recurso Godot. El logo y los estados de carga siguen siendo componentes reales por encima de ella. No hay descargas de arte externo ni reutilización de propiedad de terceros.
 
 ### 3. Acceso Google / Invitado / Sin conexión
 
@@ -42,4 +42,8 @@ La UI de V75.112 superaba CI, pero las capturas reales demostraron defectos de c
 
 ## Pendientes transparentes
 
-El rig Lila sigue siendo un activo de base CC0 adaptado; el escenario de acceso conserva arte SVG original de estilo estilizado. El conjunto necesita revisión estética con las referencias del usuario y pruebas físicas; ni QA verde ni esta rama demuestran que el frontend esté al nivel artístico final de un título comercial. Los modos online, cuentas Firebase productivas y nuevo operador masculino tampoco se consideran terminados.
+El rig Lila sigue siendo un activo de base CC0 adaptado; el escenario de acceso utiliza un **nuevo arte SVG original estilizado**, que aún requiere una evaluación visual a las resoluciones del teléfono. El conjunto necesita revisión estética con las referencias del usuario y pruebas físicas; ni QA verde ni esta rama demuestran que el frontend esté al nivel artístico final de un título comercial. Los modos online, cuentas Firebase productivas y nuevo operador masculino tampoco se consideran terminados.
+
+## Protección contra «listo por cumplir»
+
+Antes de afirmar que esta interfaz cumple la referencia del usuario, el PR debe aportar las capturas reales de `loading`, `login`, `lobby` en Godot y comparar legibilidad, personaje completo, composición y contención en 964×434 y 1280×720. **Un test CI en verde no sustituye la evaluación estética ni la prueba física del Motorola**. Ninguna APK se genera automáticamente durante las iteraciones visuales. El PR es borrador hasta que los criterios se cumplan.
