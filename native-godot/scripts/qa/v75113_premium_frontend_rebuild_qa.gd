@@ -37,8 +37,9 @@ func _verify() -> void:
         front._entry_mission_caption.anchor_top<.43,
         "Aurora introduction is not an intentional hero composition")
     check(front._page.get_node("StartupDiagnosticEntry").visible and
-        front._page.get_node("AuroraEntryAccessOverline").visible,
-        "large entry lacks development access and hierarchy")
+        front._page.get_node("AuroraEntryAccessOverline").visible and
+        front._page.has_node("AuroraEntryBottomBreathingRoom"),
+        "large entry lacks intentional spacing, access or hierarchy")
     for button in [front._login_google_button,front._login_guest_button,
             front._login_local_button]:
         _within_screen(button,"large-screen login")
@@ -102,6 +103,23 @@ func _verify() -> void:
     _within_screen(front._lobby_status_ribbon,"operation ribbon")
     _within_screen(front._play_match_card,"battle card")
     _within_screen(front._social_panel,"local squad")
+    check(front._lobby_compact_intel.is_visible_in_tree() and
+        not front._lobby_match_facts.visible,
+        "compact match facts should fill the lower phone card only")
+    check(front._lobby_compact_intel.get_node(
+        "CompactBattleInformation").text.contains("PUERTO AURORA"),
+        "compact briefing is not grounded in actual local map")
+    _within_screen(front._lobby_compact_intel,"compact match information")
+    check(not front._lobby_compact_intel.get_global_rect().intersects(
+        front._battle_entry.get_global_rect()),
+        "compact match intel obscures the functional INICIAR button")
+    for action in front._left_shortcuts.get_children():
+        check((action as Button).get_theme_font_size("font_size")>=14,
+            "left premium menu labels are unreadably small")
+    for action in front._bottom_navigation.get_children():
+        check((action as Button).get_theme_font_size("font_size")>=14,
+            "bottom navigation typography regressed")
+
     var slots: HBoxContainer=front._social_panel.get_node(
         "SocialContent/AuroraFourMemberSquad")
     check(slots.get_child_count()==4,"the squad does not have four distinct slots")
@@ -115,6 +133,13 @@ func _verify() -> void:
     var camera: Camera3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage/LobbyPortraitCamera")
     check(camera.fov>=53.0,"full-body Lila framing regressed")
+    var stage_root: Node3D=front._preview_container.get_node(
+        "PreviewViewport/AuroraCharacterStage")
+    var world_environment: WorldEnvironment=stage_root.find_child(
+        "WorldEnvironment",true,false) as WorldEnvironment
+    check(world_environment!=null and
+        world_environment.environment.ambient_light_energy<=.65,
+        "skinned operator outfit is washed out by excessive ambient light")
     var hangar: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage/AuroraReal3DLobbyEnvironment")
     check(hangar.find_child("AuroraRunwayCentralSpine",true,false)!=null and
@@ -124,10 +149,25 @@ func _verify() -> void:
 
     front._select_tab("TIENDA")
     await process_frame
-    check(not front._battle_entry.visible and front._shop_selector.visible,
-        "shop access broke while rebuilding lobby")
+    check(not front._battle_entry.visible and front._shop_selector.visible and
+        not front._lobby_compact_intel.visible,
+        "shop access broke or compact battle card remained visible")
     front._select_tab("JUGAR")
     check(front._battle_entry.visible,"INICIAR did not return after navigation")
+    root.size=Vector2i(1280,720)
+    await process_frame
+    front._layout_safe()
+    await process_frame
+    check(front._lobby_match_facts.visible and
+        not front._lobby_compact_intel.visible,
+        "spacious lobby did not swap to its three factual match tiles")
+    root.size=Vector2i(964,434)
+    await process_frame
+    front._layout_safe()
+    await process_frame
+    check(front._lobby_compact_intel.visible and
+        not front._lobby_match_facts.visible,
+        "compact phone did not restore its truthful battle briefing")
     front._welcome()
     await process_frame
     check(front.stage=="welcome" and
