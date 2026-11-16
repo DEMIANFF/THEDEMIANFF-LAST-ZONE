@@ -172,7 +172,15 @@ jobs:
         run: godot --headless --path native-godot --editor --quit
       - name: Run complete native QA and Motorola regressions
         run: bash native-godot/tools/run_qa.sh
-      - name: Capture actual Godot scene with software OpenGL
+      # Reuse export_presets.cfg tag, as done by capture_frontend_preview.gd.
+      - name: Resolve screenshot version from Android export preset
+        run: |
+          set -euo pipefail
+          tag="$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          preset=Path('native-godot/export_presets.cfg').read_text()
+          match=re.search(r'^version/name="(\d+)\.(\d+)\.[^"]+"
         continue-on-error: false
         run: |
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-xvfb.log
@@ -183,14 +191,14 @@ jobs:
           test -s native-godot/out/aurora-v75-19-welcome.png
           test -s native-godot/out/aurora-v75-19-lobby.png
           test -s native-godot/out/aurora-v75-77-account.png
-          test -s native-godot/out/aurora-v75-109-loading.png
-          test -s native-godot/out/aurora-v75-109-login.png
-          test -s native-godot/out/aurora-v75-109-lobby.png
-          test -s native-godot/out/aurora-v75-109-account.png
-          echo "V75109_FRONTEND_CAPTURE PASS login=lobby=account rendered_on_Godot"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-loading.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-login.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-lobby.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-account.png"
+          echo "AURORA_FRONTEND_CAPTURE PASS version=${AURORA_CAPTURE_TAG} login=lobby=account rendered_on_Godot"
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_real_skin_variants.gd
           for outfit in aurora_base aurora_glacier aurora_ember; do
-            test -s "native-godot/out/aurora-v75-109-skin-${outfit}.png"
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-skin-${outfit}.png"
           done
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_coastal_preview.gd
           test -s native-godot/out/aurora-v75-19-coastal-quarter.png
@@ -207,13 +215,13 @@ jobs:
             native-godot/out/aurora-v75-19-welcome.png
             native-godot/out/aurora-v75-19-lobby.png
             native-godot/out/aurora-v75-77-account.png
-            native-godot/out/aurora-v75-109-loading.png
-            native-godot/out/aurora-v75-109-login.png
-            native-godot/out/aurora-v75-109-lobby.png
-            native-godot/out/aurora-v75-109-account.png
-            native-godot/out/aurora-v75-109-skin-aurora_base.png
-            native-godot/out/aurora-v75-109-skin-aurora_glacier.png
-            native-godot/out/aurora-v75-109-skin-aurora_ember.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-loading.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-login.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-lobby.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-account.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_base.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_glacier.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_ember.png
           retention-days: 30
       - name: Render expanded Motorola layout and verify absence of side bars
         run: xvfb-run -a -s "-screen 0 2712x1220x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_responsive_preview.gd > native-godot/out/qa/responsive-render.log 2>&1
@@ -352,10 +360,349 @@ jobs:
             native-godot/out/preview-signer-sha256.txt
             native-godot/out/aurora-v75-19-lobby.png
             native-godot/out/aurora-v75-77-account.png
-            native-godot/out/aurora-v75-109-loading.png
-            native-godot/out/aurora-v75-109-login.png
-            native-godot/out/aurora-v75-109-lobby.png
-            native-godot/out/aurora-v75-109-account.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-loading.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-login.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-lobby.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-account.png
+          retention-days: 30
+      # A second, isolated Godot Gradle build packages the actual Firebase
+      # plugin. It is deliberately not the normal signed Vulkan preview.
+      # Without an EXACT Godot Android registration it is diagnostics-only.
+      - uses: gradle/actions/setup-gradle@v4
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        with:
+          gradle-version: '8.13'
+      - name: Compile matching Godot 4.7.2 Firebase SDK bridge AARs
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: gradle -p firebase-godot-bridge :plugin:assembleDebug :plugin:assembleRelease --no-daemon
+      - name: Install separate Firebase Android Gradle template and addon
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          set -euo pipefail
+          python3 native-godot/tools/prepare_firebase_gradle_trial.py stage
+          # Godot's editor template-installer UI needs Android device discovery,
+          # which is unavailable in headless CI; directly install the pinned
+          # android_source.zip shipped with the SAME Godot 4.7.2 template.
+          TEMPLATE="$HOME/.local/share/godot/export_templates/4.7.2.stable/android_source.zip"
+          test -s "$TEMPLATE"
+          mkdir -p native-godot/android/build
+          unzip -q "$TEMPLATE" -d native-godot/android/build
+          test -s native-godot/android/build/build.gradle
+          test -s native-godot/android/build/gradlew
+          # Godot 4.7.2's official template installer also writes these two
+          # metadata files in res://android; merely unzipping is insufficient.
+          echo 4.7.2.stable > native-godot/android/.build_version
+          touch native-godot/android/build/.gdignore
+          grep -Fx '4.7.2.stable' native-godot/android/.build_version
+          echo AURORA_GODOT_472_GRADLE_TEMPLATE_PASS
+      - name: Configure isolated Firebase test host (no production writes)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          AURORA_NATIVE_GOOGLE_SERVICES_B64: ${{ secrets.AURORA_NATIVE_GOOGLE_SERVICES_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "${AURORA_NATIVE_GOOGLE_SERVICES_B64:-}" ]; then
+            printf '%s' "$AURORA_NATIVE_GOOGLE_SERVICES_B64" | base64 --decode > /tmp/aurora-native-gs.json
+            python3 native-godot/tools/prepare_firebase_gradle_trial.py configure --firebase-json /tmp/aurora-native-gs.json
+            rm -f /tmp/aurora-native-gs.json
+          else
+            python3 native-godot/tools/prepare_firebase_gradle_trial.py configure
+          fi
+          godot --headless --path native-godot --editor --quit
+      - name: Export dedicated Motorola Firebase Gradle diagnostic APK
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          set -euo pipefail
+          APK="native-godot/out/THEDEMIAN-V75.111-MOTOROLA-FIREBASE-GRADLE.apk"
+          LOG="native-godot/out/firebase-gradle-export.log"
+          # Headless Godot 4.7.2 may emit an ADB daemon error at shutdown.
+          # Preserve its exit code and export diagnostics; do not assume either
+          # a completed progress bar or this ADB message means success.
+          set +e
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.111-MOTOROLA-FIREBASE-GRADLE.apk > "$LOG" 2>&1
+          GODOT_EXIT=$?
+          set -e
+          tail -n 65 "$LOG"
+          if [ ! -s "$APK" ]; then
+            echo "::error::Godot exit $GODOT_EXIT and no Gradle APK exists. Inspect the captured Gradle export log."
+            exit 1
+          fi
+          # An output file alone is not enough: the archive must be complete,
+          # contain the Godot engine and exported project, and pass every
+          # signature, ABI, plugin and alignment validation below.
+          python3 - "$APK" <<'PY'
+          import sys,zipfile
+          from pathlib import Path
+          apk=Path(sys.argv[1])
+          with zipfile.ZipFile(apk) as z:
+              names=set(z.namelist())
+              assert "AndroidManifest.xml" in names, "Missing Android manifest"
+              assert "assets/project.binary" in names, "Missing Godot game assets"
+              assert any(s.startswith("lib/arm64-v8a/") and s.endswith(".so") for s in names), "Missing 64-bit game engine"
+              assert z.testzip() is None, "APK archive failed CRC"
+          print("AURORA_GRADLE_ARCHIVE_COMPLETE",apk.stat().st_size)
+          PY
+          if [ "$GODOT_EXIT" -ne 0 ]; then
+            echo "::warning::Godot returned $GODOT_EXIT despite producing an intact APK; requiring all independent Android verification gates."
+          fi
+          # Godot/Gradle debug signing may omit APK signature scheme v3 even
+          # with the correct certificate. Re-sign the already aligned Gradle
+          # output using the PINNED existing preview certificate (no new key).
+          # apksigner defaulted to APK v3 ONLY because Gradle selected an
+          # Android 9+ min SDK. Force signature coverage from API 24 when
+          # signing, which includes both v2 and v3 without changing the
+          # manifest's actual Android minSdkVersion. Require both gates.
+          SIGNER="$ANDROID_HOME/build-tools/35.0.1/apksigner"
+          "$SIGNER" sign \
+            --ks "$HOME/.android/debug.keystore" \
+            --ks-key-alias androiddebugkey \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --min-sdk-version 24 \
+            --v1-signing-enabled false \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --out "${APK%.apk}.resigned.apk" "$APK"
+          mv "${APK%.apk}.resigned.apk" "$APK"
+          # Verify with the manifest's real minSdk AND with API24 to
+          # actively exercise both the v2 (API24-27) and v3 (API28+)
+          # cryptographic signing blocks. Neither check is skipped.
+          "$SIGNER" verify --verbose --print-certs "$APK" > native-godot/out/firebase-gradle-signer-manifest.txt
+          grep -F 'Verified using v3 scheme (APK Signature Scheme v3): true' native-godot/out/firebase-gradle-signer-manifest.txt
+          "$SIGNER" verify --min-sdk-version 24 --verbose --print-certs "$APK" > native-godot/out/firebase-gradle-signer-check.txt
+          grep -F 'Verified using v2 scheme (APK Signature Scheme v2): true' native-godot/out/firebase-gradle-signer-check.txt
+          grep -F 'Verified using v3 scheme (APK Signature Scheme v3): true' native-godot/out/firebase-gradle-signer-check.txt
+          python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/firebase-gradle-verification --verify-min-sdk 24
+          expected="$(cat native-godot/out/preview-signer-sha256.txt)"
+          grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/firebase-gradle-verification/signature.txt
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          apk=Path('native-godot/out/THEDEMIAN-V75.111-MOTOROLA-FIREBASE-GRADLE.apk')
+          with zipfile.ZipFile(apk) as archive:
+              dex=[z for z in archive.namelist() if z.startswith('classes') and z.endswith('.dex')]
+              assert dex, 'No Android DEX compiled'
+              assert any(b'AuroraFirebasePlugin' in archive.read(z) for z in dex), 'The native Firebase plugin is NOT installed in the APK'
+          print('AURORA_FIREBASE_INSTALLED_APK_PASS package=preview plugin=classes.dex')
+          PY
+          sha256sum "$APK" > native-godot/out/FIREBASE-GRADLE-SHA256SUMS.txt
+          { echo 'V75.105 Motorola Firebase Gradle integration; login requires matching Firebase app + App Check'; git rev-parse HEAD; } > native-godot/out/FIREBASE-GRADLE-BUILD.txt
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        with:
+          name: THEDEMIAN-V75.111-MOTOROLA-FIREBASE-GRADLE-DIAGNOSTIC
+          path: |
+            native-godot/out/THEDEMIAN-V75.111-MOTOROLA-FIREBASE-GRADLE.apk
+            native-godot/out/FIREBASE-GRADLE-SHA256SUMS.txt
+            native-godot/out/FIREBASE-GRADLE-BUILD.txt
+            native-godot/out/firebase-gradle-verification/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: V75109-FAILED-VALIDATION-LOGS
+          path: |
+            native-godot/out/qa/
+            native-godot/out/qa-exported-vulkan/
+            native-godot/out/vulkan-verification/
+            native-godot/out/firebase-gradle-export.log
+            native-godot/out/firebase-gradle-signer-check.txt
+            native-godot/out/firebase-gradle-signer-manifest.txt
+            native-godot/out/firebase-gradle-verification/
+          retention-days: 14
+, preset, re.M)
+          if not match:
+              raise SystemExit('Invalid or missing Android version/name')
+          print('v'+match.group(1)+'-'+match.group(2))
+          PY
+          )"
+          test -n "$tag"
+          printf 'AURORA_CAPTURE_TAG=%s\n' "$tag" >> "$GITHUB_ENV"
+          echo "AURORA_CAPTURE_TAG=$tag"
+      - name: Capture actual Godot scene with software OpenGL
+        continue-on-error: false
+        run: |
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-xvfb.log
+          mkdir -p native-godot/out
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_preview.gd
+          test -s native-godot/out/aurora-native-v75-19-preview.png
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_frontend_preview.gd
+          test -s native-godot/out/aurora-v75-19-welcome.png
+          test -s native-godot/out/aurora-v75-19-lobby.png
+          test -s native-godot/out/aurora-v75-77-account.png
+          test -s native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-loading.png
+          test -s native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-login.png
+          test -s native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-lobby.png
+          test -s native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-account.png
+          echo "V75109_FRONTEND_CAPTURE PASS login=lobby=account rendered_on_Godot"
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_real_skin_variants.gd
+          for outfit in aurora_base aurora_glacier aurora_ember; do
+            test -s "native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-${outfit}.png"
+          done
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_coastal_preview.gd
+          test -s native-godot/out/aurora-v75-19-coastal-quarter.png
+          test -s native-godot/out/aurora-v75-19-coastal-street.png
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_weapon_preview.gd
+          test -s native-godot/out/aurora-v74-1-ak74.png
+          test -s native-godot/out/aurora-v74-1-awm.png
+      # Preserve real in-engine screenshots even if a later APK gate fails.
+      # This lets the Motorola UI redesign be reviewed before installation.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: THEDEMIAN-V75.111-LOBBY-ACCOUNT-PREVIEW
+          path: |
+            native-godot/out/aurora-v75-19-welcome.png
+            native-godot/out/aurora-v75-19-lobby.png
+            native-godot/out/aurora-v75-77-account.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-loading.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-login.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-lobby.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-account.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_base.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_glacier.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_ember.png
+          retention-days: 30
+      - name: Render expanded Motorola layout and verify absence of side bars
+        run: xvfb-run -a -s "-screen 0 2712x1220x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_responsive_preview.gd > native-godot/out/qa/responsive-render.log 2>&1
+      - name: Render real first animated canopy in desktop OpenGL compatibility
+        run: |
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_canopy_render_qa.gd > native-godot/out/qa/canopy-render.log 2>&1
+          if grep -E 'SCRIPT ERROR:|ERROR:' native-godot/out/qa/canopy-render.log; then exit 1; fi
+          grep -F 'CANOPY_OPENGL_RENDER PASS' native-godot/out/qa/canopy-render.log
+          test -s native-godot/out/audit-first-canopy-opengl.png
+      - name: Configure permanent signed preview identity
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          PREVIEW_KEYSTORE_B64: ${{ secrets.AURORA_PREVIEW_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PREVIEW_KEYSTORE_B64:-}" ]; then
+            echo "::error::Missing AURORA_PREVIEW_KEYSTORE_B64. Configure this GitHub Actions repository secret. Never regenerate a signing key for the same preview package."
+            exit 1
+          fi
+          # The private key is NEVER committed to the public repository.
+          printf '%s' "$PREVIEW_KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
+          chmod 600 "$HOME/.android/debug.keystore"
+          keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey >/dev/null
+          expected="60390683c689ea7376dba5392450929e30044589189c9a200d4db54806f4a653"
+          actual="$(keytool -exportcert -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sha256sum | awk '{print $1}')"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::The keystore certificate differs from pinned V75.102 preview identity. Refusing to produce APKs that cannot update."
+            exit 1
+          fi
+          # Godot otherwise falls back to its own transient Android debug key.
+          python3 - <<'PY'
+          from pathlib import Path
+          preset=Path("native-godot/export_presets.cfg")
+          raw=preset.read_text()
+          for needle in ['keystore/debug=""','keystore/debug_user=""','keystore/debug_password=""']:
+              assert raw.count(needle)==1, f'Export setting absent: {needle}'
+          raw=raw.replace('keystore/debug=""',
+              'keystore/debug="'+str(Path.home()/'.android/debug.keystore')+'"')
+          raw=raw.replace('keystore/debug_user=""',
+              'keystore/debug_user="androiddebugkey"')
+          raw=raw.replace('keystore/debug_password=""',
+              'keystore/debug_password="android"')
+          preset.write_text(raw)
+          PY
+          printf '%s\n' "$actual" > native-godot/out/preview-signer-sha256.txt
+          echo "Pinned non-production preview certificate: $actual"
+
+      # APK builds are manual workflow_dispatch ONLY during game development.
+      # Push builds verify game mechanics, real rendering and mobile layouts.
+      # One production-directed Android preview: Mobile/Vulkan ONLY.
+      # Desktop headless QA may use OpenGL to run on CI; no OpenGL APK built.
+      - name: Export signed Vulkan Mobile APK (single release)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          set -euo pipefail
+          if grep -E "SCRIPT ERROR:|ERROR:" native-godot/out/qa/responsive-render.log; then exit 1; fi
+          mkdir -p native-godot/out/vulkan-verification
+          python3 native-godot/tools/configure_android_renderer.py --variant mobile
+          grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
+          grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
+          grep -Fx 'version/code=101' native-godot/export_presets.cfg
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.111-MOTOROLA-VULKAN.apk
+          test -s native-godot/out/THEDEMIAN-V75.111-MOTOROLA-VULKAN.apk
+      - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          set -euo pipefail
+          APK=native-godot/out/THEDEMIAN-V75.111-MOTOROLA-VULKAN.apk
+          python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/vulkan-verification
+          expected="$(cat native-godot/out/preview-signer-sha256.txt)"
+          grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/vulkan-verification/signature.txt
+          AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported-vulkan" bash native-godot/tools/run_exported_qa.sh "$APK"
+          grep -F 'V7546_RENDER_AB PASS requested_mobile=mobile' native-godot/out/qa-exported-vulkan/v7546_renderer_variants_qa.log
+          grep -F 'V7548_BATTLE_LOOT PASS' native-godot/out/qa-exported-vulkan/v7548_battle_loot_qa.log
+          grep -F 'V7549_FIRST_AID PASS' native-godot/out/qa-exported-vulkan/v7549_tactical_first_aid_qa.log
+          grep -F 'V7550_TACTICAL_AI PASS' native-godot/out/qa-exported-vulkan/v7550_tactical_ai_combat_qa.log
+          grep -F 'V7555_UNIFIED PASS' native-godot/out/qa-exported-vulkan/v7555_unified_battle_royale_qa.log
+          grep -F 'V7556_COMBAT_FEEDBACK PASS' native-godot/out/qa-exported-vulkan/v7556_combat_feedback_qa.log
+          grep -F 'V7557_MATCH_LEDGER PASS' native-godot/out/qa-exported-vulkan/v7557_ten_minute_ledger_qa.log
+          grep -F 'V7558_HEADSHOTS PASS' native-godot/out/qa-exported-vulkan/v7558_physical_headshot_qa.log
+          grep -F 'V7559_LILA_RIG PASS' native-godot/out/qa-exported-vulkan/v7559_lila_rig_identity_qa.log
+          grep -F 'V7560_LILA_HOLSTERS PASS' native-godot/out/qa-exported-vulkan/v7560_lila_hair_holster_qa.log
+          grep -F 'V7560_LILA_ABILITY PASS' native-godot/out/qa-exported-vulkan/v7560_lila_tactical_ability_qa.log
+          grep -F 'V7561_LILA_MOTION PASS' native-godot/out/qa-exported-vulkan/v7561_lila_motion_precision_qa.log
+          grep -F 'V7562_BOT_MEDICINE PASS' native-godot/out/qa-exported-vulkan/v7562_bot_medicine_tactics_qa.log
+          grep -F 'V7563_LILA_MEDKIT PASS' native-godot/out/qa-exported-vulkan/v7563_lila_medkit_visual_qa.log
+          grep -F 'V7564_REAL_OPPONENT_LOOT PASS' native-godot/out/qa-exported-vulkan/v7564_opponent_inventory_loot_qa.log
+          grep -F 'V7565_LILA_TACTICAL_GAIT PASS' native-godot/out/qa-exported-vulkan/v7565_tactical_strafe_animation_qa.log
+          grep -F 'V7566_LILA_IMPACT_RECOIL PASS' native-godot/out/qa-exported-vulkan/v7566_directional_hit_awm_recoil_qa.log
+          grep -F 'V7567_LOBBY_MODE PASS' native-godot/out/qa-exported-vulkan/v7567_lobby_mode_gate_qa.log
+          grep -F 'V7568_LOCAL_COINS PASS' native-godot/out/qa-exported-vulkan/v7568_local_coins_ledger_qa.log
+          grep -F 'V7569_OBJECTIVES PASS' native-godot/out/qa-exported-vulkan/v7569_unified_objectives_qa.log
+          grep -F 'V7570_AUTOBACKUP PASS' native-godot/out/qa-exported-vulkan/v7570_local_autobackup_recovery_qa.log
+          grep -F 'V7571_PROFILE_EXPORT PASS' native-godot/out/qa-exported-vulkan/v7571_local_profile_export_qa.log
+          grep -F 'V7573_PLAYER_NAME PASS' native-godot/out/qa-exported-vulkan/v7573_local_name_identity_qa.log
+          grep -F 'V7574_FIREBASE_PREFLIGHT PASS' native-godot/out/qa-exported-vulkan/v7574_firebase_bridge_preflight_qa.log
+          grep -F 'V7575_AUTH_LINK PASS' native-godot/out/qa-exported-vulkan/v7575_native_auth_link_qa.log
+          grep -F 'V7577_LOBBY_ACCOUNT PASS' native-godot/out/qa-exported-vulkan/v7577_lobby_account_ux_qa.log
+          grep -F 'V7578_AURORA_LOBBY PASS' native-godot/out/qa-exported-vulkan/v7578_aurora_lobby_login_reference_qa.log
+          grep -F 'V7579_PREMIUM_LOBBY PASS' native-godot/out/qa-exported-vulkan/v7579_premium_lobby_stage_qa.log
+          grep -F 'V7581_50_AI_FINAL_ZONE PASS' native-godot/out/qa-exported-vulkan/v7581_fifty_ai_final_zone_qa.log
+          grep -F 'V7582_FREE_PASS PASS' native-godot/out/qa-exported-vulkan/v7582_free_pass_claim_qa.log
+          grep -F 'V7583_AI_RIG_BUDGET PASS' native-godot/out/qa-exported-vulkan/v7583_mobile_ai_rig_budget_qa.log
+          grep -F 'V7584_AI_RIG_PRIORITY PASS' native-godot/out/qa-exported-vulkan/v7584_near_enemy_rig_priority_qa.log
+          grep -F 'V7585_REAL_SKIN_SHOP PASS' native-godot/out/qa-exported-vulkan/v7585_real_local_skin_shop_qa.log
+          grep -F 'V7587_SINGLE_BR50 PASS' native-godot/out/qa-exported-vulkan/v7587_single_fifty_roster_qa.log
+          grep -F 'V7588_MOVING_ZONE PASS' native-godot/out/qa-exported-vulkan/v7588_moving_zone_qa.log
+          grep -F 'V7589_BOT_AI_BUDGET PASS' native-godot/out/qa-exported-vulkan/v7589_fifty_bot_ai_budget_qa.log
+          grep -F 'V7590_ZONE_ROTATION PASS' native-godot/out/qa-exported-vulkan/v7590_proactive_zone_rotation_qa.log
+          grep -F 'V7590_FIFTY_RESULTS PASS' native-godot/out/qa-exported-vulkan/v7590_fifty_survivor_results_qa.log
+          grep -F 'V7591_FINAL_RING_AI PASS' native-godot/out/qa-exported-vulkan/v7591_final_ring_ai_qa.log
+          grep -F 'V7592_ACOUSTIC_RADAR PASS' native-godot/out/qa-exported-vulkan/v7592_acoustic_radar_qa.log
+          grep -F 'V7593_ELIMINATION_INTEGRITY PASS' native-godot/out/qa-exported-vulkan/v7593_elimination_integrity_qa.log
+          grep -F 'V7594_STORM_AI_THREAT PASS' native-godot/out/qa-exported-vulkan/v7594_storm_ai_threat_qa.log
+          grep -F 'V7595_SAFE_LANDING PASS' native-godot/out/qa-exported-vulkan/v7595_safe_parachute_landing_qa.log
+          grep -F 'V7596_ELIMINATION_VISUAL PASS' native-godot/out/qa-exported-vulkan/v7596_elimination_visual_qa.log
+          grep -F 'V7597_DIRECTIONAL_OPPONENT_IMPACT PASS' native-godot/out/qa-exported-vulkan/v7597_directional_opponent_impact_qa.log
+          grep -F 'V7598_KNOWN_CONTACT_AI PASS' native-godot/out/qa-exported-vulkan/v7598_known_contact_pursuit_qa.log
+          grep -F 'V7599_COVER_VISIBILITY PASS' native-godot/out/qa-exported-vulkan/v7599_cover_visibility_qa.log
+          grep -F 'V75100_BOT_WEAPON_MOTION PASS' native-godot/out/qa-exported-vulkan/v75100_bot_weapon_motion_qa.log
+          grep -F 'V75101_BOT_HAND_RIFLE PASS' native-godot/out/qa-exported-vulkan/v75101_bot_hand_rifle_qa.log
+          grep -F 'V75102_RIFLE_MUZZLE PASS' native-godot/out/qa-exported-vulkan/v75102_rifle_muzzle_qa.log
+          sha256sum "$APK" > native-godot/out/SHA256SUMS.txt
+          { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        with:
+          name: THEDEMIAN-V75.111-MOTOROLA-VULKAN
+          path: |
+            native-godot/out/THEDEMIAN-V75.111-MOTOROLA-VULKAN.apk
+            native-godot/out/vulkan-verification/
+            native-godot/out/qa/
+            native-godot/out/qa-exported-vulkan/
+            native-godot/out/SHA256SUMS.txt
+            native-godot/out/BUILD.txt
+            native-godot/out/preview-signer-sha256.txt
+            native-godot/out/aurora-v75-19-lobby.png
+            native-godot/out/aurora-v75-77-account.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-loading.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-login.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-lobby.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-account.png
           retention-days: 30
       # A second, isolated Godot Gradle build packages the actual Firebase
       # plugin. It is deliberately not the normal signed Vulkan preview.
