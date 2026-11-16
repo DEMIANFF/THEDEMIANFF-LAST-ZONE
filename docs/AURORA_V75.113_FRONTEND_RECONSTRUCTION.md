@@ -51,3 +51,16 @@ Antes de afirmar que esta interfaz cumple la referencia del usuario, el PR debe 
 ## Capturas objetivas del teléfono
 
 El workflow usa además `capture_motorola_frontend_qa.gd` con Xvfb **964×434**, exportando `aurora-v75-113-motorola-loading.png`, `-login.png` y `-lobby.png` al mismo artifact de imágenes. El script verifica dimensiones del píxel real, renderiza botones/GLB nativos y anota que **no es** una prueba física de Vulkan. En 434 px la pantalla de acceso prioriza Google, Invitado y Sin conexión; se ocultan solo el overline decorativo y el botón de diagnósticos para mantener áreas táctiles. El diagnóstico sigue accesible en la interfaz amplia.
+
+## Revisión visual posterior a CI y corrección de legibilidad
+
+**Evidencia:** [GitHub Actions #43890239243](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/43890239243), resultado `success`. Artifact `THEDEMIAN-V75.113-LOBBY-ACCOUNT-PREVIEW`, ID `14237087884`; incluye capturas nativas de Godot 1280×720 y Xvfb 964×434 de carga, inicio y lobby. No son capturas del Motorola físico.
+
+**Defectos visibles que se corrigieron mediante código real:**
+- Los botones del acceso quedaban demasiado bajos tras un bloque vacío vertical; se redistribuyó el espacio con un segundo `Control.SIZE_EXPAND_FILL` al pie del formulario, sin cambiar proveedores ni estado de Firebase.
+- Menú izquierdo y barras inferiores tenían tipografía muy pequeña; se subieron a 14 puntos de diseño. El panel de escuadra usa números y estado local más legibles.
+- El panel derecho de modo BR mostraba un amplio vacío debajo de INICIAR: nuevo `AuroraCompactMatchBrief` solo en pantalla ultrapanorámica, con contenido local real y sin intersección con INICIAR. En pantallas más amplias permanecen las tres casillas `AuroraMatchOperationalFacts`, ahora mutuamente excluyentes.
+- La Lila 3D de las capturas tenía grandes zonas blancas quemadas; se redujo la energía ambiental de 1.13 a 0.46 y la luz de contorno de 1.13 a 0.47; se preserva la luz direccional principal >=1.5 y se añadió una temperatura cálida moderada. No se cambiaron mallas, texturas ni materiales originales del GLB.
+- El título de carga y el selector de modalidad aumentaron su tamaño. Todas las comprobaciones continúan ejecutándose junto al paquete histórico de regresiones.
+
+**Aceptación nueva**: `v75113_premium_frontend_rebuild_qa.gd` exige que la consola de carga y acceso sean nativos, la luz ambiente esté controlada, el panel compacto no tape el botón INICIAR y las variantes de información local respondan a 964×434 y 1280×720. Se requieren **nuevas capturas del último commit** y QA verde. No se declara visualmente finalizado hasta inspeccionarlas y compararlas con las referencias completas del usuario. El último workflow manual Android no se ha ejecutado, de acuerdo con el requerimiento de no generar APK intermedia.
