@@ -1412,8 +1412,9 @@ func _ensure_lobby_navigation() -> void:
 
     _lobby_status_ribbon=PanelContainer.new()
     _lobby_status_ribbon.name="AuroraLiveOperationRibbon"
-    _lobby_status_ribbon.anchor_left=.225
-    _lobby_status_ribbon.anchor_right=.694
+    # Keep the status plaque to Lila's left; never obscure her face.
+    _lobby_status_ribbon.anchor_left=.219
+    _lobby_status_ribbon.anchor_right=.446
     _lobby_status_ribbon.anchor_top=.171
     _lobby_status_ribbon.anchor_bottom=.228
     _lobby_status_ribbon.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -1427,7 +1428,7 @@ func _ensure_lobby_navigation() -> void:
     _lobby_status_ribbon.add_theme_stylebox_override("panel",operation_style)
     _lobby_status_caption=Label.new()
     _lobby_status_caption.name="AuroraOperationStatus"
-    _lobby_status_caption.text="◆  OPERACIÓN AURORA    /    BASE NORTE    ·    SESIÓN LOCAL"
+    _lobby_status_caption.text="◆  BASE AURORA   /   LOCAL"
     _lobby_status_caption.clip_text=true
     _lobby_status_caption.add_theme_font_size_override("font_size",12)
     _lobby_status_caption.add_theme_color_override(
