@@ -40,6 +40,8 @@ const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
 const MEDKIT_VISUAL = preload("res://scripts/player/aurora_medkit_visual.gd")
 const COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const TRAINING_ARMORY=preload("res://scripts/match/training_armory.gd")
+var _training_armory: Node3D
 
 var operator: CharacterBody3D
 var hud: CanvasLayer
@@ -685,6 +687,7 @@ func _clear_grenades() -> void:
 
 
 func end_sector_battle() -> void:
+    _close_training_armory()
     _cancel_healing()
     _cancel_awm_bolt()
     _clear_reload()
@@ -706,6 +709,7 @@ func end_sector_battle() -> void:
 
 
 func begin_sector_battle() -> void:
+    _close_training_armory()
     _cancel_healing()
     _cancel_awm_bolt()
     _clear_reload()
@@ -906,10 +910,31 @@ func active_fighter_count() -> int:
     return count
 
 
+func open_training_armory() -> void:
+    if sector_battle_active or is_instance_valid(_training_armory):
+        return
+    _training_armory=TRAINING_ARMORY.new()
+    _training_armory.name="AuroraTrainingArmory"
+    _training_armory.player=operator
+    _training_armory.combat=self
+    _training_armory.terrain=terrain
+    add_child(_training_armory)
+
+
+func _close_training_armory() -> void:
+    if is_instance_valid(_training_armory):
+        _training_armory.close()
+    _training_armory=null
+
+
 func collect_sector_loot(kind: String,quantity: int=-1,
         from_opponent: bool=false) -> bool:
-    if not sector_battle_active or operator.royale_eliminated:
+    if operator.royale_eliminated:
         return false
+    if not sector_battle_active:
+        if (not is_instance_valid(_training_armory) or from_opponent or
+                not kind in TRAINING_ARMORY.ITEMS):
+            return false
     match kind:
         "medkit":
             var gained: int=1 if quantity<0 else clampi(quantity,0,1)

@@ -2162,6 +2162,8 @@ func _activate_game(battle: bool,serial: int) -> void:
             # The editor acts on the REAL TrainingHUD. It opens after
             # Main._ready and the old 3D lobby viewport have been released.
             hud.call_deferred("open_hud_editor")
+        else:
+            _game.get_node("CombatRange").open_training_armory()
     # This confirmation is written after a visible 3D frame, not after
     # merely enqueuing the world. A missing confirmation is not a GPU proof.
     # Headless QA never submits drawable frames; a stale one-shot callback
