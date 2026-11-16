@@ -215,6 +215,12 @@ jobs:
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_weapon_preview.gd
           test -s native-godot/out/aurora-v74-1-ak74.png
           test -s native-godot/out/aurora-v74-1-awm.png
+          # Separate actual 964x434 Xvfb capture to evaluate touch-safe composition.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_frontend_qa.gd
+          for screen in loading login lobby; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_MOTOROLA_FRONTEND_CAPTURE PASS 964x434"
       # Preserve real in-engine screenshots even if a later APK gate fails.
       # This lets the Motorola UI redesign be reviewed before installation.
       - uses: actions/upload-artifact@v4
@@ -231,6 +237,9 @@ jobs:
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_base.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_glacier.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_ember.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-loading.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-login.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-lobby.png
           retention-days: 30
       - name: Render expanded Motorola layout and verify absence of side bars
         run: xvfb-run -a -s "-screen 0 2712x1220x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_responsive_preview.gd > native-godot/out/qa/responsive-render.log 2>&1
