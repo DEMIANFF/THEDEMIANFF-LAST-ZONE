@@ -18,8 +18,14 @@ func _verify() -> void:
         "res://scripts/ui/aurora_lobby_stage_3d.gd") as GDScript).new()
     root.add_child(stage)
     await process_frame
-    var peaks: Array[Node]=stage.find_children(
-        "AuroraSnowPeak*","MeshInstance3D",true,false)
+    # Generated mountains are direct scene children with explicit names.
+    # Do not rely on find_children wildcard rules for auto-numbered Nodes.
+    var peaks: Array[MeshInstance3D]=[]
+    for candidate in stage.get_children():
+        if candidate is MeshInstance3D and str(candidate.name).begins_with(
+                "AuroraSnowPeak"):
+            peaks.append(candidate as MeshInstance3D)
+    print("V75114_POLAR_DEBUG mountain_mesh_count=",peaks.size())
     check(peaks.size()==44,
         "22 distinct ridges need exactly 44 stone/frost meshes")
     var min_triangles: int=999999
