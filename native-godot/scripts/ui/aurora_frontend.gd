@@ -51,6 +51,7 @@ var _header_glass: Panel
 var _lobby_backplates: Array[Control]=[]
 var _lobby_status_ribbon: PanelContainer
 var _lobby_status_caption: Label
+var _lobby_match_facts: HBoxContainer
 var _info: Label
 var _game: Node3D
 var _primary: Button
@@ -735,6 +736,13 @@ func _welcome() -> void:
     diag.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _page.add_child(diag)
     diag.visible=not compact_entry
+    # Balance the large vertical region above sign-in on landscape phones.
+    # Without this flex item, every spare pixel was above the providers.
+    var bottom_space:=Control.new()
+    bottom_space.name="AuroraEntryBottomBreathingRoom"
+    bottom_space.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    bottom_space.size_flags_vertical=Control.SIZE_EXPAND_FILL
+    _page.add_child(bottom_space)
     _poll_login_state()
 
 
@@ -1000,6 +1008,47 @@ func _show_lobby() -> void:
     _lobby_play_modes.add_child(_training_entry)
     _lobby_mode_caption=_label("50 PARTICIPANTES · 1 OPERADOR + 49 IA",11)
     _lobby_mode_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
+    # Three real match facts occupy the previously empty desktop card, while
+    # staying hidden on the Edge 60 Fusion's compact landscape viewport.
+    _lobby_match_facts=HBoxContainer.new()
+    _lobby_match_facts.name="AuroraMatchOperationalFacts"
+    _lobby_match_facts.add_theme_constant_override("separation",4)
+    _page.add_child(_lobby_match_facts)
+    for entry in [
+        ["50","PARTICIPANTES"],
+        ["04","FASES ZONA"],
+        ["IA","LOCAL"]
+    ]:
+        var fact:=PanelContainer.new()
+        fact.name="Fact"+str(_lobby_match_facts.get_child_count()+1)
+        fact.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        fact.custom_minimum_size.y=38
+        var fact_style:=StyleBoxFlat.new()
+        fact_style.bg_color=Color(.037,.065,.087,.96)
+        fact_style.border_color=Color(.26,.53,.61,.72)
+        fact_style.set_border_width_all(1)
+        fact_style.set_corner_radius_all(5)
+        fact_style.content_margin_left=4
+        fact_style.content_margin_right=4
+        fact.add_theme_stylebox_override("panel",fact_style)
+        var column:=VBoxContainer.new()
+        column.add_theme_constant_override("separation",1)
+        fact.add_child(column)
+        var value:=Label.new()
+        value.text=str(entry[0])
+        value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+        value.add_theme_font_size_override("font_size",14)
+        value.add_theme_color_override(
+            "font_color",Color(.98,.79,.43))
+        column.add_child(value)
+        var title:=Label.new()
+        title.text=str(entry[1])
+        title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+        title.add_theme_font_size_override("font_size",8)
+        title.add_theme_color_override(
+            "font_color",Color(.74,.85,.91))
+        column.add_child(title)
+        _lobby_match_facts.add_child(fact)
     _lobby_mode_status=_label("",12)
     _lobby_mode_status.name="ModeAvailability"
     # Account actions are now ABOVE the editable local name. Both providers
@@ -1302,6 +1351,8 @@ func _sync_lobby_match_mode() -> void:
     _battle_entry.visible=show_modes and _selected_match_mode=="classic"
     _training_entry.visible=show_modes and _selected_match_mode=="training"
     _lobby_mode_caption.visible=show_modes and _selected_match_mode=="classic"
+    _lobby_match_facts.visible=(show_modes and
+        _selected_match_mode=="classic" and _entry_should_show_briefing())
     _pass_progress.visible=_selected_tab=="PASE"
     _pass_claim_button.visible=_selected_tab=="PASE"
     _shop_selector.visible=_selected_tab in ["TIENDA","PERSONAJE"]
@@ -1477,6 +1528,7 @@ func _ensure_lobby_navigation() -> void:
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         button.add_theme_font_size_override("font_size",12)
         _style_aurora_tab(button,Color(.35,.70,.91))
+        button.size_flags_vertical=Control.SIZE_EXPAND_FILL
         _left_shortcuts.add_child(button)
 
     _bottom_navigation=HBoxContainer.new()
@@ -1541,6 +1593,7 @@ func _ensure_lobby_navigation() -> void:
     var squad_slots:=HBoxContainer.new()
     squad_slots.name="AuroraFourMemberSquad"
     squad_slots.add_theme_constant_override("separation",3)
+    squad_slots.size_flags_vertical=Control.SIZE_EXPAND_FILL
     social_content.add_child(squad_slots)
     # Slot 01 represents the local profile; 02–04 are clearly empty.
     # Do not fabricate online friends or send non-functional invitations.
@@ -2375,6 +2428,10 @@ func _layout_safe() -> void:
     if _loading_emblem!=null and is_instance_valid(_loading_emblem):
         _loading_emblem.custom_minimum_size.y=clampf(
             safe.size.y*.16,69.0,122.0)
+    if stage=="lobby" and _lobby_match_facts!=null and is_instance_valid(
+            _lobby_match_facts):
+        _lobby_match_facts.visible=(_selected_tab=="JUGAR" and
+            _selected_match_mode=="classic" and _entry_should_show_briefing())
     if stage=="welcome" and _entry_info_panel!=null and is_instance_valid(
             _entry_info_panel):
         _entry_info_panel.visible=_entry_should_show_briefing()
