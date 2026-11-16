@@ -224,12 +224,12 @@ func add_expansion(slot: int) -> bool:
         return false
     var carried:=scene.instantiate() as Node3D
     mount.add_child(carried)
-    _calibrate_expansion(carried,slot)
+    calibrate_expansion(carried,slot)
     _expansion[slot]=carried
     if back_mount:
         var holstered:=scene.instantiate() as Node3D
         back_mount.add_child(holstered)
-        _calibrate_expansion(holstered,slot)
+        calibrate_expansion(holstered,slot)
         _expansion_holsters[slot]=holstered
     if slot==WEAPONS.MP40:
         _mp40_magazine=carried.find_child("Magazine",true,false) as Node3D
@@ -242,7 +242,7 @@ func add_expansion(slot: int) -> bool:
     return true
 
 
-func _calibrate_expansion(visual: Node3D,slot: int) -> void:
+static func calibrate_expansion(visual: Node3D,slot: int) -> void:
     if slot!=WEAPONS.SCAR:
         return
     # Measured from the existing V3 GLB POSITION accessors. Its rifle is

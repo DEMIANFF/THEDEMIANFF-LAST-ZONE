@@ -35,6 +35,15 @@ func _verify() -> void:
     for bot: CharacterBody3D in combat._targets:
         bot.set_physics_process(false)
     combat.open_training_armory()
+    var pickup: Area3D=combat._training_armory.get_node("Training_weapon_scar")
+    var ground_grip:=pickup.find_child("Grip",true,false) as Node3D
+    check(ground_grip!=null,"world pickup lacks its model grip")
+    if ground_grip:
+        var model:=ground_grip.get_parent() as Node3D
+        check(world_bounds(model).grow(.04).has_point(ground_grip.global_position),
+            "world SCAR geometry is detached from its pickup anchor")
+        check(ground_grip.global_position.distance_to(pickup.global_position)<.3,
+            "world SCAR lies outside its collectible beacon")
     check(combat.collect_sector_loot("weapon_scar"),"SCAR not collectible")
     for frame in range(12):
         await process_frame

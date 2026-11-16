@@ -1,6 +1,7 @@
 extends Area3D
 ## Touchable actual 3D ammo/medkit cache. Triggered by CharacterBody3D proximity.
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 
 var pickup_type: String = "ammo_ar"
 var player: CharacterBody3D
@@ -75,8 +76,9 @@ func _ready() -> void:
             var scene:=load(path) as PackedScene
             if scene:
                 var weapon:=scene.instantiate() as Node3D
-                weapon.position.y=.12
                 _visual.add_child(weapon)
+                WEAPON_VISUALS.calibrate_expansion(weapon,slot)
+                weapon.position.y+=.12
                 item.hide()
     var ring:=MeshInstance3D.new()
     ring.name="SupplyBeacon"
