@@ -60,6 +60,7 @@ func _verify() -> void:
     await process_frame
     print("V75112_LAYOUT_DIAGNOSTIC root=",root.size,
         " viewport=",front.get_viewport().size,
+        " window=",front.get_window().size,
         " surface=",front._surface.size," info_visible=",briefing.visible)
     check(not briefing.visible,
         "optional briefing blocked compact Motorola login")
