@@ -186,9 +186,11 @@ func _load_visual(path: String, display_name: String,
         visual.position-=holder.to_local(grip.global_position)
     if display_name.begins_with("AK"):
         var support:=Node3D.new()
+        # Rear part of the handguard, ahead of the magazine: this is a
+        # usable close support hold for Lila\'s measured 46 cm arm reach.
         support.name="SupportGrip"
         visual.add_child(support)
-        support.global_position=holder.to_global(Vector3(0,.025,-.36))
+        support.global_position=holder.to_global(Vector3(0,.025,-.25))
     print("AURORA_WEAPON_VISUAL ",display_name,
         " mesh_length_m=",desired_length," imported_bounds=",extent)
     return visual
@@ -288,7 +290,7 @@ static func calibrate_expansion(visual: Node3D,slot: int) -> void:
     var support:=Node3D.new()
     support.name="SupportGrip"
     visual.add_child(support)
-    support.position=Vector3(0,-1.19,1.77)
+    support.position=Vector3(0,-1.26,1.77)
 
 
 func clear_expansion() -> void:

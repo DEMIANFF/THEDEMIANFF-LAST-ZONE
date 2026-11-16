@@ -151,7 +151,7 @@ for obj in objects:
     obj.matrix_world=game_to_blender @ obj.matrix_world
 for name, point in {
     "Grip": (0,-.17,.034),
-    "SupportGrip": (0,-.04,-.43),
+    "SupportGrip": (0,-.04,-.29),
     "Muzzle": (0,.018,-1.32),
     "Sight": (0,.195,-.03),
 }.items():
