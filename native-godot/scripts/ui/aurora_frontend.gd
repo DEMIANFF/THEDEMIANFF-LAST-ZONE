@@ -44,6 +44,8 @@ var _entry_hero_plate: Panel
 var _entry_hero_kicker: Label
 var _entry_panel_accent: ColorRect
 var _loading_chapter: Label
+var _loading_accent_stripe: ColorRect
+var _loading_heartbeat: Tween
 var _loading_emblem: TextureRect
 var _loading_surface_plate: Panel
 var _entry_info_panel: PanelContainer
@@ -428,15 +430,15 @@ func _build_loading_overlay() -> void:
     _loading_surface_plate.anchor_top=.51
     _loading_surface_plate.anchor_bottom=.967
     _loading_overlay.add_child(_loading_surface_plate)
-    var stripe:=ColorRect.new()
-    stripe.name="AuroraLoadingGoldStripe"
-    stripe.color=Color(.95,.66,.22,.90)
-    stripe.anchor_left=.22
-    stripe.anchor_right=.78
-    stripe.anchor_top=.513
-    stripe.anchor_bottom=.518
-    stripe.mouse_filter=Control.MOUSE_FILTER_IGNORE
-    _loading_overlay.add_child(stripe)
+    _loading_accent_stripe=ColorRect.new()
+    _loading_accent_stripe.name="AuroraLoadingGoldStripe"
+    _loading_accent_stripe.color=Color(.95,.66,.22,.90)
+    _loading_accent_stripe.anchor_left=.22
+    _loading_accent_stripe.anchor_right=.78
+    _loading_accent_stripe.anchor_top=.513
+    _loading_accent_stripe.anchor_bottom=.518
+    _loading_accent_stripe.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _loading_overlay.add_child(_loading_accent_stripe)
     var hero:=CenterContainer.new()
     hero.anchor_right=1
     hero.anchor_top=.047
@@ -543,6 +545,30 @@ func _show_loading(title: String,detail: String,pending: bool=false) -> void:
     _loading_overlay.modulate.a=.68
     _loading_fade=create_tween()
     _loading_fade.tween_property(_loading_overlay,"modulate:a",1.0,.16)
+    # A restrained real-time UI pulse, not simulated load progress.
+    # The progress bar still follows ResourceLoader's actual thread state.
+    _stop_loading_heartbeat()
+    _loading_heartbeat=create_tween().set_loops()
+    _loading_heartbeat.tween_property(
+        _loading_accent_stripe,"modulate:a",.46,1.3).set_trans(
+        Tween.TRANS_SINE)
+    _loading_heartbeat.parallel().tween_property(
+        _loading_chapter,"modulate:a",.58,1.3)
+    _loading_heartbeat.tween_property(
+        _loading_accent_stripe,"modulate:a",1.0,1.3).set_trans(
+        Tween.TRANS_SINE)
+    _loading_heartbeat.parallel().tween_property(
+        _loading_chapter,"modulate:a",1.0,1.3)
+
+
+func _stop_loading_heartbeat() -> void:
+    if _loading_heartbeat!=null and _loading_heartbeat.is_valid():
+        _loading_heartbeat.kill()
+    _loading_heartbeat=null
+    if _loading_accent_stripe!=null:
+        _loading_accent_stripe.modulate.a=1.0
+    if _loading_chapter!=null:
+        _loading_chapter.modulate.a=1.0
 
 
 func _start_bootstrap() -> void:
@@ -595,6 +621,7 @@ func _welcome() -> void:
     # This screen offers actual Firebase providers and a clearly separate
     # LOCAL offline choice. It never labels an unverified ID as official.
     stage="welcome"
+    _stop_loading_heartbeat()
     _loading_overlay.hide()
     _entry_glass.visible=true
     _entry_mission_caption.visible=true
@@ -911,6 +938,7 @@ func _show_lobby() -> void:
     if _preview_container==null or not is_instance_valid(_preview_container):
         _build_preview()
     stage="lobby"
+    _stop_loading_heartbeat()
     _loading_overlay.hide()
     AuroraLobbyMusic.enter_lobby()
     visible=true
