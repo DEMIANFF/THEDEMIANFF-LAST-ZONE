@@ -48,6 +48,8 @@ var _loading_surface_plate: Panel
 var _entry_info_panel: PanelContainer
 var _header_glass: Panel
 var _lobby_backplates: Array[Control]=[]
+var _lobby_status_ribbon: PanelContainer
+var _lobby_status_caption: Label
 var _info: Label
 var _game: Node3D
 var _primary: Button
@@ -621,6 +623,9 @@ func _welcome() -> void:
         _play_match_card.visible=false
     if _banner!=null and is_instance_valid(_banner):
         _banner.visible=false
+    if _lobby_status_ribbon!=null and is_instance_valid(
+            _lobby_status_ribbon):
+        _lobby_status_ribbon.visible=false
     for item in [_profile_strip,_stats_strip,_currency_strip]:
         if item!=null and is_instance_valid(item):
             item.visible=false
@@ -900,9 +905,9 @@ func _show_lobby() -> void:
     # Base Aurora: large real 3D operator at centre; separate commerce,
     # social/match card, full-width top and bottom navigation layers.
     _page.anchor_left=.728
-    _page.anchor_right=.963
-    _page.anchor_top=.517
-    _page.anchor_bottom=.851
+    _page.anchor_right=.965
+    _page.anchor_top=.487
+    _page.anchor_bottom=.854
     _page.add_theme_constant_override("separation",2)
     # The same live SubViewport is now the whole winter hangar
     # behind the menus. Side bars are native UI placed ABOVE it; never
@@ -920,8 +925,8 @@ func _show_lobby() -> void:
             action.visible=true
     _preview_caption.anchor_left=.206
     _preview_caption.anchor_right=.730
-    _preview_caption.anchor_top=.820
-    _preview_caption.anchor_bottom=.820
+    _preview_caption.anchor_top=.819
+    _preview_caption.anchor_bottom=.819
     _ensure_lobby_navigation()
     for plate in _lobby_backplates:
         if is_instance_valid(plate):
@@ -933,6 +938,7 @@ func _show_lobby() -> void:
     _top_settings_button.visible=true
     _top_social_button.visible=true
     _banner.visible=true
+    _lobby_status_ribbon.visible=true
     # Three independently clipped headers keep the original brand legible
     # without the coin balance covering Lila, the player record or the emblem.
     _profile_strip.visible=true
@@ -950,7 +956,7 @@ func _show_lobby() -> void:
         _apply_preview_skin(str(
             _offline_records.cosmetic_state()["equipped"]))
     _clear_page()
-    _lobby_section_title=_label("BATTLE ROYALE",18)
+    _lobby_section_title=_label("BATTLE ROYALE",20)
     _lobby_section_title.name="LobbySectionTitle"
     _lobby_section_title.add_theme_color_override("font_color",Color(.96,.96,.88))
     _lobby_section_hint=_label("BASE AURORA  ·  50 PARTICIPANTES",11)
@@ -973,7 +979,7 @@ func _show_lobby() -> void:
     _page.add_child(_lobby_play_modes)
     _battle_entry=_button("INICIAR",Callable(self,"_launch").bind(true),240)
     _battle_entry.name="BattleButton"
-    _battle_entry.custom_minimum_size.y=56
+    _battle_entry.custom_minimum_size.y=58
     _battle_entry.add_theme_font_size_override("font_size",23)
     _style_primary_action(_battle_entry)
     _lobby_play_modes.add_child(_battle_entry)
@@ -1329,7 +1335,7 @@ func _ensure_lobby_navigation() -> void:
     # the artwork. Previous backplates were inserted BEHIND the SVG,
     # which made UI illegible despite having valid gameplay actions.
     _header_glass=_make_glass_panel(
-        Color(.010,.032,.069,.94),Color(.31,.62,.80,.72),10)
+        Color(.009,.019,.039,.96),Color(.31,.56,.69,.66),9)
     _header_glass.name="AuroraOperationalHeader"
     _header_glass.anchor_left=.018
     _header_glass.anchor_right=.982
@@ -1347,10 +1353,10 @@ func _ensure_lobby_navigation() -> void:
     var backplate:=_make_glass_panel(
         Color(.012,.028,.067,.96),Color(.29,.66,.86,.78),10)
     backplate.name="LobbyMenuBackplate"
-    backplate.anchor_left=.711
+    backplate.anchor_left=.712
     backplate.anchor_right=.981
     backplate.anchor_top=.154
-    backplate.anchor_bottom=.858
+    backplate.anchor_bottom=.867
     _surface.add_child(backplate)
     _surface.move_child(backplate,_page.get_index())
     _lobby_backplates.append(backplate)
@@ -1393,7 +1399,7 @@ func _ensure_lobby_navigation() -> void:
     _lobby_nav.visible=false
     _banner=Label.new()
     _banner.name="AuroraOperationBanner"
-    _banner.text="BASE AURORA  ◈\nELIGE TU DESTINO"
+    _banner.text="BASE AURORA  ◆\nCENTRO DE DESPLIEGUE"
     _banner.anchor_left=.028
     _banner.anchor_right=.211
     _banner.anchor_top=.163
@@ -1403,6 +1409,33 @@ func _ensure_lobby_navigation() -> void:
     _banner.add_theme_color_override("font_color",Color(.98,.79,.40))
     _banner.add_theme_color_override("font_shadow_color",Color(.02,.06,.10,.95))
     _surface.add_child(_banner)
+
+    _lobby_status_ribbon=PanelContainer.new()
+    _lobby_status_ribbon.name="AuroraLiveOperationRibbon"
+    _lobby_status_ribbon.anchor_left=.225
+    _lobby_status_ribbon.anchor_right=.694
+    _lobby_status_ribbon.anchor_top=.171
+    _lobby_status_ribbon.anchor_bottom=.228
+    _lobby_status_ribbon.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    var operation_style:=StyleBoxFlat.new()
+    operation_style.bg_color=Color(.009,.024,.046,.84)
+    operation_style.border_color=Color(.20,.62,.76,.66)
+    operation_style.border_width_bottom=2
+    operation_style.set_corner_radius_all(5)
+    operation_style.content_margin_left=13
+    operation_style.content_margin_right=11
+    _lobby_status_ribbon.add_theme_stylebox_override("panel",operation_style)
+    _lobby_status_caption=Label.new()
+    _lobby_status_caption.name="AuroraOperationStatus"
+    _lobby_status_caption.text="◆  OPERACIÓN AURORA    /    BASE NORTE    ·    SESIÓN LOCAL"
+    _lobby_status_caption.clip_text=true
+    _lobby_status_caption.add_theme_font_size_override("font_size",12)
+    _lobby_status_caption.add_theme_color_override(
+        "font_color",Color(.76,.91,.98))
+    _lobby_status_caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _lobby_status_ribbon.add_child(_lobby_status_caption)
+    _lobby_status_ribbon.visible=false
+    _surface.add_child(_lobby_status_ribbon)
 
     _left_shortcuts=VBoxContainer.new()
     _left_shortcuts.name="AuroraCommerceRail"
@@ -1464,12 +1497,12 @@ func _ensure_lobby_navigation() -> void:
     _social_panel=PanelContainer.new()
     _social_panel.name="AuroraRealSocialPanel"
     _social_panel.anchor_left=.720
-    _social_panel.anchor_right=.972
-    _social_panel.anchor_top=.175
-    _social_panel.anchor_bottom=.474
+    _social_panel.anchor_right=.974
+    _social_panel.anchor_top=.172
+    _social_panel.anchor_bottom=.459
     var social_style:=StyleBoxFlat.new()
-    social_style.bg_color=Color(.023,.048,.093,.96)
-    social_style.border_color=Color(.31,.72,.88)
+    social_style.bg_color=Color(.014,.028,.050,.98)
+    social_style.border_color=Color(.29,.60,.74)
     social_style.set_border_width_all(1)
     social_style.set_corner_radius_all(9)
     social_style.shadow_color=Color(.01,.02,.04,.40)
@@ -1478,26 +1511,56 @@ func _ensure_lobby_navigation() -> void:
     _surface.add_child(_social_panel)
     var social_content:=VBoxContainer.new()
     social_content.name="SocialContent"
-    social_content.add_theme_constant_override("separation",4)
+    social_content.add_theme_constant_override("separation",2)
     _social_panel.add_child(social_content)
     var social_title:=Label.new()
-    social_title.text="ESCUADRA  ·  SOCIAL"
+    social_title.text="ESCUADRA   /   LOCAL"
     social_title.name="FriendsHeading"
-    social_title.add_theme_font_size_override("font_size",15)
+    social_title.add_theme_font_size_override("font_size",13)
     social_title.add_theme_color_override("font_color",Color(.9,.85,1))
     social_content.add_child(social_title)
     _social_status_label=Label.new()
     _social_status_label.name="ActualFriendsStatus"
     _social_status_label.text="01  ●  Operador local\nSin amigos conectados · Online pendiente"
     _social_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _social_status_label.add_theme_font_size_override("font_size",11)
-    _social_status_label.custom_minimum_size.y=40
+    _social_status_label.add_theme_font_size_override("font_size",10)
+    _social_status_label.custom_minimum_size.y=29
     _social_status_label.add_theme_color_override("font_color",Color(.75,.8,.85))
     social_content.add_child(_social_status_label)
+    var squad_slots:=HBoxContainer.new()
+    squad_slots.name="AuroraFourMemberSquad"
+    squad_slots.add_theme_constant_override("separation",3)
+    social_content.add_child(squad_slots)
+    # Slot 01 represents the local profile; 02–04 are clearly empty.
+    # Do not fabricate online friends or send non-functional invitations.
+    for i in range(4):
+        var slot:=PanelContainer.new()
+        slot.name="SquadSlot"+str(i+1)
+        slot.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        slot.custom_minimum_size.y=23
+        var slot_style:=StyleBoxFlat.new()
+        slot_style.bg_color=(Color(.11,.20,.26,.94) if i==0 else
+            Color(.023,.041,.063,.96))
+        slot_style.border_color=(Color(.65,.80,.89,.76) if i==0 else
+            Color(.23,.35,.45,.62))
+        slot_style.set_border_width_all(1)
+        slot_style.set_corner_radius_all(4)
+        slot.add_theme_stylebox_override("panel",slot_style)
+        var number:=Label.new()
+        number.text="%02d %s"%[i+1,"LOCAL" if i==0 else "—"]
+        number.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+        number.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+        number.add_theme_font_size_override("font_size",9)
+        number.add_theme_color_override(
+            "font_color",Color(.92,.95,1) if i==0 else
+            Color(.54,.64,.74))
+        number.mouse_filter=Control.MOUSE_FILTER_IGNORE
+        slot.add_child(number)
+        squad_slots.add_child(slot)
     var social_open:=_button("GESTIONAR SOCIAL / CLAN",
         Callable(self,"_select_tab").bind("SOCIAL"),0)
     social_open.name="RealSocialEntry"
-    social_open.custom_minimum_size=Vector2(0,29)
+    social_open.custom_minimum_size=Vector2(0,27)
     social_open.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     social_open.add_theme_font_size_override("font_size",12)
     _style_aurora_tab(social_open,Color(.40,.65,.86))
@@ -1507,12 +1570,12 @@ func _ensure_lobby_navigation() -> void:
     _play_match_card.name="BattleRoyaleModeCard"
     _play_match_card.anchor_left=.718
     _play_match_card.anchor_right=.977
-    _play_match_card.anchor_top=.482
-    _play_match_card.anchor_bottom=.862
+    _play_match_card.anchor_top=.466
+    _play_match_card.anchor_bottom=.867
     _play_match_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
     var match_card_style:=StyleBoxFlat.new()
-    match_card_style.bg_color=Color(.018,.037,.076,.97)
-    match_card_style.border_color=Color(.96,.66,.24)
+    match_card_style.bg_color=Color(.013,.023,.039,.98)
+    match_card_style.border_color=Color(.93,.64,.22)
     match_card_style.set_border_width_all(2)
     match_card_style.set_corner_radius_all(11)
     match_card_style.shadow_color=Color(.75,.43,.11,.37)
@@ -1558,12 +1621,13 @@ func _ensure_lobby_navigation() -> void:
 
 func _style_aurora_tab(button: Button,tint: Color) -> void:
     var normal:=StyleBoxFlat.new()
-    normal.bg_color=Color(.020,.047,.090,.95)
-    normal.border_color=tint
+    normal.bg_color=Color(.012,.026,.049,.95)
+    normal.border_color=tint.darkened(.28)
     normal.set_border_width_all(1)
-    normal.set_corner_radius_all(5)
+    normal.border_width_left=3
+    normal.set_corner_radius_all(6)
     var hover:=normal.duplicate() as StyleBoxFlat
-    hover.bg_color=Color(.13,.085,.25,.98)
+    hover.bg_color=Color(.072,.12,.19,.98)
     var pressed:=hover.duplicate() as StyleBoxFlat
     pressed.border_color=Color(.98,.77,.31)
     button.add_theme_stylebox_override("normal",normal)
@@ -1603,10 +1667,10 @@ func _select_tab(tab: String) -> void:
         _social_panel.visible=tab=="JUGAR"
     if _play_match_card!=null:
         _play_match_card.visible=tab=="JUGAR"
-    _page.anchor_left=.735
-    _page.anchor_right=.961
-    _page.anchor_top=.517 if tab=="JUGAR" else .183
-    _page.anchor_bottom=.848
+    _page.anchor_left=.733
+    _page.anchor_right=.962
+    _page.anchor_top=.487 if tab=="JUGAR" else .183
+    _page.anchor_bottom=.854
     for button in _lobby_nav.get_children():
         if button is Button:
             var selected: bool=button.name=="Tab"+tab
@@ -2193,7 +2257,7 @@ func _build_preview() -> void:
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
-    caption.text="LILA AURORA   ↻ GIRAR"
+    caption.text="LILA AURORA  /  OPERADOR 01    ↻ GIRAR"
     caption.anchor_left=.29
     caption.anchor_right=.65
     caption.anchor_top=.90
