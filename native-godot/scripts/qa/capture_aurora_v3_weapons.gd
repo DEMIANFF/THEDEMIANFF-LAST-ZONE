@@ -41,6 +41,10 @@ func save_pose(slot: int, pose: String) -> void:
         "muzzle_world":str(visual.muzzle_position()),
         "right_hand_world":str(visual.right_hand_socket.global_position),
         "left_hand_world":str(visual.support_socket.global_position) if visual.support_socket else "",
+        "support_ik_active":visual.support_grip_enabled(),
+        "support_grip_world":str(visual.support_grip_anchor().global_position),
+        "support_hand_gap_m":visual.support_grip_anchor().global_position.distance_to(
+            visual.support_socket.global_position),
         "renderer":RenderingServer.get_current_rendering_method(),
         "physical_motorola_test":false})
 

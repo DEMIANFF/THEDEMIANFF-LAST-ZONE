@@ -5,6 +5,7 @@ extends Node3D
 
 const AK_PATH: String="res://assets/weapons/ak74-tactical.glb"
 const AWM_PATH: String="res://assets/weapons/aurora_awm.glb"
+const SUPPORT_IK=preload("res://scripts/combat/weapon_support_ik.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 
 var operator: CharacterBody3D
@@ -29,6 +30,10 @@ var _mp40_magazine: Node3D
 var _mp40_charging_handle: Node3D
 var _magazine_rest: Transform3D
 var _charging_rest: Vector3
+var _skeleton: Skeleton3D
+var _right_hand_id: int=-1
+var _support_ik: SkeletonModifier3D
+var _support_anchors: Dictionary={}
 
 
 func attach_to_player(player: CharacterBody3D) -> void:
@@ -48,6 +53,8 @@ func attach_to_player(player: CharacterBody3D) -> void:
     mount=Node3D.new()
     mount.name="WeaponMount"
     if skeleton and right_hand_id>=0:
+        _skeleton=skeleton
+        _right_hand_id=right_hand_id
         right_hand_socket=BoneAttachment3D.new()
         right_hand_socket.name="RightHandWeaponSocket"
         right_hand_socket.bone_name=skeleton.get_bone_name(right_hand_id)
@@ -121,6 +128,12 @@ func attach_to_player(player: CharacterBody3D) -> void:
         back_awm=_load_visual(AWM_PATH,"AWMBackHolsterVisual",back_mount)
     set_awm_owned(false)
     equip(0)
+    if skeleton and support_socket:
+        _support_ik=SUPPORT_IK.new()
+        _support_ik.name="WeaponSupportArm"
+        _support_ik.weapons=self
+        skeleton.add_child(_support_ik)
+        _support_ik.bind_chain()
 
 
 func _load_visual(path: String, display_name: String,
@@ -168,6 +181,11 @@ func _load_visual(path: String, display_name: String,
     var grip:=visual.find_child("Grip",true,false) as Node3D
     if grip:
         visual.position-=holder.to_local(grip.global_position)
+    if display_name.begins_with("AK"):
+        var support:=Node3D.new()
+        support.name="SupportGrip"
+        visual.add_child(support)
+        support.global_position=holder.to_global(Vector3(0,.025,-.36))
     print("AURORA_WEAPON_VISUAL ",display_name,
         " mesh_length_m=",desired_length," imported_bounds=",extent)
     return visual
@@ -196,7 +214,9 @@ func _align_mount_to_sight() -> void:
     if not forward.is_finite() or forward.length_squared()<0.9:
         return
     var basis: Basis=Basis.looking_at(forward.normalized(),Vector3.UP)
-    var grip_world: Vector3=right_hand_socket.global_position
+    var grip_world: Vector3=(_skeleton.to_global(
+        _skeleton.get_bone_global_pose(_right_hand_id).origin)
+        if _skeleton and _right_hand_id>=0 else right_hand_socket.global_position)
     mount.global_transform=Transform3D(basis,
         grip_world+basis*Vector3(.015,-.027,-.02))
 
@@ -244,6 +264,11 @@ func add_expansion(slot: int) -> bool:
 
 static func calibrate_expansion(visual: Node3D,slot: int) -> void:
     if slot!=WEAPONS.SCAR:
+        var front:=Node3D.new()
+        front.name="SupportGrip"
+        visual.add_child(front)
+        front.position=(Vector3(0,.025,-.22) if slot==WEAPONS.MP40 else
+            Vector3(0,.015,-.18))
         return
     # Measured from the existing V3 GLB POSITION accessors. Its rifle is
     # along +Y at Z=1.63..1.89, while the old empty markers described an
@@ -268,6 +293,7 @@ func clear_expansion() -> void:
         visual.hide()
         visual.queue_free()
     _expansion.clear()
+    _support_anchors.clear()
     _expansion_holsters.clear()
     _mp40_magazine=null
     _mp40_charging_handle=null
@@ -362,3 +388,29 @@ func muzzle_position() -> Vector3:
         if tip:
             return tip.global_position
     return mount.to_global(Vector3(0,.03,-1.10 if selected_weapon==1 else -.78))
+
+
+
+func support_grip_anchor() -> Node3D:
+    if not _support_anchors.has(selected_weapon):
+        var weapon: Node3D=currently_equipped()
+        if weapon==null:
+            return null
+        _support_anchors[selected_weapon]=weapon.find_child("SupportGrip",true,false)
+    return _support_anchors[selected_weapon] as Node3D
+
+
+func support_grip_enabled() -> bool:
+    if not is_instance_valid(operator) or medical_busy or flight_holster:
+        return false
+    if operator.get("air_mode") in ["freefall","parachute"]:
+        return false
+    # Let the original hand tracks perform reloads and medical actions.
+    # The AnimationTree is authoritative even during a manual visual capture.
+    var controller: Node=operator.get("_animation_controller")
+    if controller and controller.tree and bool(
+            controller.tree.get("parameters/UpperBody/active")):
+        var action_name: String=str(controller.action_clip.animation)
+        if action_name.begins_with("AuroraReload") or action_name=="AuroraHeal":
+            return false
+    return currently_equipped()!=null

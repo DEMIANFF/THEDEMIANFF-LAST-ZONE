@@ -44,7 +44,8 @@ func _verify() -> void:
             "world SCAR geometry is detached from its pickup anchor")
         check(ground_grip.global_position.distance_to(pickup.global_position)<.3,
             "world SCAR lies outside its collectible beacon")
-    check(combat.collect_sector_loot("weapon_scar"),"SCAR not collectible")
+    for kind in ["weapon_scar","weapon_mp40","weapon_kriss"]:
+        check(combat.collect_sector_loot(kind),"weapon not collectible: "+kind)
     for frame in range(12):
         await process_frame
     var visuals: Node3D=combat._weapon_visuals
@@ -79,6 +80,38 @@ func _verify() -> void:
             " right_hand_gap_m=",hand_gap," barrel_forward_m=",barrel_forward,
             " support_hand_gap_m=",support.global_position.distance_to(
                 visuals.support_socket.global_position))
+    # Check the rendered bone attachment, not just an IK target or flag.
+    for slot in range(CATALOG.ENTRIES.size()):
+        combat._equip_inventory_weapon(slot)
+        player.set_equipped_weapon(slot)
+        player._animation_controller.reset_ground_pose()
+        for frame in range(20):
+            await process_frame
+        var support: Node3D=visuals.support_grip_anchor()
+        check(support!=null,"missing support anchor for slot "+str(slot))
+        if support:
+            var gap: float=support.global_position.distance_to(
+                visuals.support_socket.global_position)
+            check(gap<.045,"support hand detached for slot "+str(slot)+": "+str(gap))
+            check(world_bounds(visuals.currently_equipped()).grow(.045).has_point(
+                support.global_position),"support anchor outside weapon geometry")
+            print("AURORA_SUPPORT_MEASURE weapon=",CATALOG.ENTRIES[slot]["short"],
+                " actual_hand_gap_m=",gap," solver_error_m=",visuals._support_ik.last_error_m)
+        player.play_weapon_action("reload",CATALOG.ENTRIES[slot]["reload"])
+        for frame in range(3):
+            await process_frame
+        check(not visuals.support_grip_enabled(),"reload hand locked to foregrip")
+        check(not visuals._support_ik.solved,"IK overrides reload animation")
+        player._animation_controller.cancel_action()
+        for frame in range(15):
+            await process_frame
+        check(visuals.support_grip_enabled(),"support grip did not return after reload")
+    visuals.set_medical_busy(true)
+    check(not visuals.support_grip_enabled(),"medical hand cannot release rifle")
+    visuals.set_medical_busy(false)
+    player.air_mode="parachute"
+    check(not visuals.support_grip_enabled(),"support IK active while parachuting")
+    player.air_mode="ground"
     game.queue_free()
     await process_frame
     if not failed:

@@ -4,6 +4,7 @@ on:
     branches: [codex/v75-118-aurora-v3-resource-integration]
     paths:
       - 'native-godot/scripts/combat/weapon_visuals.gd'
+      - 'native-godot/scripts/combat/weapon_support_ik.gd'
       - 'native-godot/scripts/match/aurora_loot.gd'
       - 'native-godot/scripts/qa/capture_aurora_v3_weapons.gd'
       - 'native-godot/scripts/qa/v75118_weapon_anchor_qa.gd'
@@ -37,7 +38,7 @@ jobs:
           for test in v75118_weapon_anchor_qa weapon_visual_qa v75103_aurora_v3_qa; do
             godot --headless --path native-godot --script "res://scripts/qa/$test.gd" > "native-godot/out/qa/$test.log" 2>&1
             if grep -E 'SCRIPT ERROR:|ERROR:' "native-godot/out/qa/$test.log"; then exit 1; fi
-            grep -E 'PASS|AURORA_ANCHOR_MEASURE' "native-godot/out/qa/$test.log"
+            grep -E 'PASS|AURORA_ANCHOR_MEASURE|AURORA_SUPPORT_MEASURE' "native-godot/out/qa/$test.log"
           done
       - name: Render real gameplay poses for visual acceptance
         run: |
