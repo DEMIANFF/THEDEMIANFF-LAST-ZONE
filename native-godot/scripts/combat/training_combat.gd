@@ -4,6 +4,7 @@ signal shot_fired(weapon: int,hit: bool)
 signal impact_occurred
 signal reload_started
 signal reload_cue(sample: StringName)
+signal awm_bolt_cycled
 signal healed
 signal bot_shot(world_position: Vector3)
 signal bot_foot_contact(world_position: Vector3,running: bool,on_stone: bool)
@@ -24,6 +25,9 @@ const HEADSHOT_TOP_HEIGHT: float=1.78
 const AR_HEADSHOT_MULTIPLIER: float=1.85
 const AWM_HEADSHOT_MULTIPLIER: float=1.65
 const AWM_BOLT_SECONDS: float=.50
+# Time of the mechanical bolt cue AFTER a confirmed AWM round. The lock
+# remains 0.50 s. This event is original, not copied from 2019 assets.
+const AWM_BOLT_CUE_SECONDS: float=.28
 # Field first aid uses a real time window. Interruptions never waste a kit.
 const HEAL_APPLY_SECONDS: float=3.0
 const SYRINGE_APPLY_SECONDS: float=1.35
@@ -52,6 +56,8 @@ var reload_timer: float=0.0
 var _reload_duration: float=0.0
 var _reload_ui_clock: float=0.0
 var _mp40_reload_cue: int=0
+var _awm_bolt_remaining: float=0.0
+var _awm_bolt_pending: bool=false
 var shots_fired_total: int=0
 var shots_hit_total: int=0
 var headshots_total: int=0
@@ -175,9 +181,11 @@ func _process(dt: float) -> void:
     if not operator.can_act():
         _cancel_healing()
         trigger_held=false
+        _cancel_awm_bolt()
         _clear_reload()
         return
     cooldown=maxf(0,cooldown-dt)
+    _advance_awm_bolt(dt)
     if reload_timer>0:
         reload_timer=maxf(0,reload_timer-dt)
         _reload_ui_clock-=dt
@@ -245,6 +253,7 @@ func _equip_inventory_weapon(index: int) -> void:
     if index==weapon_index:
         return
     _cancel_healing("CURACION CANCELADA / ARMA")
+    _cancel_awm_bolt()
     weapon_index=index
     trigger_held=false
     operator.set_firing(false)
@@ -355,6 +364,8 @@ func _on_reload() -> void:
     if ammo[weapon_index]>=cap or reserve[WEAPONS.reserve_slot(weapon_index)]<=0:
         hud.impact("SIN NECESIDAD DE RECARGA")
         return
+    # Swapping magazines supersedes any remaining sniper bolt sound.
+    _cancel_awm_bolt()
     reload_timer=WEAPONS.ENTRIES[weapon_index]["reload"]
     _reload_duration=reload_timer
     _reload_ui_clock=0.0
@@ -384,6 +395,26 @@ func _advance_mp40_reload(progress: float) -> void:
         _mp40_reload_cue+=1
 
 
+## One cue for one consumed AWM round; release does not cancel the
+## mechanical cycle, but a swap/reload/death or new match must cancel it.
+## The actual shot cooldown is authoritative and unchanged.
+func _advance_awm_bolt(delta: float) -> void:
+    if not _awm_bolt_pending:
+        return
+    if weapon_index!=WEAPONS.AWM or reload_timer>0.0 or not operator.can_act():
+        _cancel_awm_bolt()
+        return
+    _awm_bolt_remaining=maxf(0.0,_awm_bolt_remaining-maxf(0.0,delta))
+    if _awm_bolt_remaining<=0.0:
+        _awm_bolt_pending=false
+        awm_bolt_cycled.emit()
+
+
+func _cancel_awm_bolt() -> void:
+    _awm_bolt_pending=false
+    _awm_bolt_remaining=0.0
+
+
 func _shoot() -> void:
     if not operator.can_act():
         return
@@ -401,6 +432,9 @@ func _shoot() -> void:
     ammo[weapon_index]-=1
     shots_fired_total+=1
     cooldown=WEAPONS.ENTRIES[weapon_index]["cadence"]
+    if weapon_index==WEAPONS.AWM:
+        _awm_bolt_remaining=AWM_BOLT_CUE_SECONDS
+        _awm_bolt_pending=true
     _sync_hud()
     operator.apply_recoil(WEAPONS.ENTRIES[weapon_index]["recoil"])
     operator.play_weapon_action("fire",.24 if weapon_index==1 else .13)
@@ -652,6 +686,7 @@ func _clear_grenades() -> void:
 
 func end_sector_battle() -> void:
     _cancel_healing()
+    _cancel_awm_bolt()
     _clear_reload()
     for i in range(_bot_tracers.size()):
         _bot_tracer_lifetimes[i]=0.0
@@ -672,6 +707,7 @@ func end_sector_battle() -> void:
 
 func begin_sector_battle() -> void:
     _cancel_healing()
+    _cancel_awm_bolt()
     _clear_reload()
     _clear_cover()
     _clear_grenades()
