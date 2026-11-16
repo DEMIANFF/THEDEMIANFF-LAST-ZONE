@@ -1,0 +1,416 @@
+{
+  "source": "Aurora V2 8 ZIP archives recovered in isolated local working container",
+  "count": 44,
+  "sha256_calculated_not_compared_with_independent_upstream": true,
+  "integrated_in_game": false,
+  "records": [
+    {
+      "path": "documentation/ATRIBUCIONES_GLBS_AURORA_V2.md",
+      "bytes": 8062,
+      "sha256": "75233548208d5783910a9bd252ff5beaed4cb3a4d758685b9a0eeb6b758eeeb3"
+    },
+    {
+      "path": "documentation/AURORA_AUDITORIA_33_ASSETS.csv",
+      "bytes": 3115,
+      "sha256": "a5925b87cd44eaee5bb4dc5fd88cda70aef86365f46c0f27e877cd3cd95a6ca6"
+    },
+    {
+      "path": "documentation/AURORA_AUDITORIA_33_ASSETS.json",
+      "bytes": 28498,
+      "sha256": "34afbbbb8ed4d5cccd0c404c607fc58d19e64ed8a550b058ea77f79cccd481c8"
+    },
+    {
+      "path": "documentation/CONTENIDO_Y_PENDIENTES.json",
+      "bytes": 1360,
+      "sha256": "3638257218f118ff64dd5f10d2730858f33ae551aee1cab15ee38dc7d40a998b"
+    },
+    {
+      "path": "documentation/LEEME_AURORA_UNIFICADO_V2.txt",
+      "bytes": 1376,
+      "sha256": "b077993ec8661393a392711b7c1c9a9faf2df934b1dc492a1a8c6264dd1ab8e4"
+    },
+    {
+      "path": "documentation/MENSAJE_MAESTRO_WORK_AURORA_V2.md",
+      "bytes": 12586,
+      "sha256": "b8e6d48d0c4ce373efba24ce6134959306d14d204480162e768a721831e1c8af"
+    },
+    {
+      "path": "new_assets/import_candidates/adidas_jacket.glb",
+      "bytes": 8198328,
+      "sha256": "2be914adc1e34f77bb13a1343b40d4adf1ba9e6a1322d6b62cb32a4f258a0106",
+      "valid_glb": true,
+      "meshes": 3,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 8,
+      "extensions_used": []
+    },
+    {
+      "path": "new_assets/import_candidates/animatedpistol.glb",
+      "bytes": 14930372,
+      "sha256": "7bf118c6197df71f552cbf33dc92ef3168bfdb70430f5eff0b896c7d58c083f4",
+      "valid_glb": true,
+      "meshes": 12,
+      "skins": 1,
+      "animations": 4,
+      "nodes": 150,
+      "extensions_used": []
+    },
+    {
+      "path": "new_assets/import_candidates/cloud.glb",
+      "bytes": 5178008,
+      "sha256": "c84b02dbf200dfebbeed471618c0b9c82eaedc866c08a852ac308935a2f52bbb",
+      "valid_glb": true,
+      "meshes": 2,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 6,
+      "extensions_used": []
+    },
+    {
+      "path": "new_assets/import_candidates/custom_9mm_ak.glb",
+      "bytes": 3313600,
+      "sha256": "880bf5572b79dc7076e07906eda19ca619369a246904e7608579966c740682de",
+      "valid_glb": true,
+      "meshes": 3,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 5,
+      "extensions_used": [
+        "KHR_materials_specular"
+      ]
+    },
+    {
+      "path": "new_assets/import_candidates/kriss_vector_smg.glb",
+      "bytes": 10047380,
+      "sha256": "e8e5d75243a36936250b400593484bc4bbd550ae4925218fc83d6cb0e6aa2287",
+      "valid_glb": true,
+      "meshes": 51,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 112,
+      "extensions_used": [
+        "KHR_materials_specular"
+      ]
+    },
+    {
+      "path": "new_assets/import_candidates/modular_containers_and_barrells_pack_game_ready.glb",
+      "bytes": 16027312,
+      "sha256": "65b6af840d38043a746967fa9a3c20e737f28c3620a95565af78d0e5b9cbb3e4",
+      "valid_glb": true,
+      "meshes": 16,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 35,
+      "extensions_used": []
+    },
+    {
+      "path": "new_assets/import_candidates/oak_trees.glb",
+      "bytes": 9347356,
+      "sha256": "6db83156173bdadf79a1f4275ed9a607dc9bc23ceffb6ce609a80f6db909be67",
+      "valid_glb": true,
+      "meshes": 198,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 400,
+      "extensions_used": []
+    },
+    {
+      "path": "new_assets/import_candidates/pistol.glb",
+      "bytes": 10256788,
+      "sha256": "033a365cfa373b3618c298f832388293b8d72f0a124103886d5b295c5f3fe4aa",
+      "valid_glb": true,
+      "meshes": 6,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 16,
+      "extensions_used": []
+    },
+    {
+      "path": "new_assets/import_candidates/tree_animate.glb",
+      "bytes": 8912220,
+      "sha256": "ee7d04f2884abc72e3fddcebeb12105d0ae164c503c178b61f4a59f7c4db36a2",
+      "valid_glb": true,
+      "meshes": 3,
+      "skins": 0,
+      "animations": 1,
+      "nodes": 8,
+      "extensions_used": [
+        "KHR_materials_pbrSpecularGlossiness"
+      ]
+    },
+    {
+      "path": "new_assets/import_candidates/ump__freefire.glb",
+      "bytes": 455112,
+      "sha256": "9d545b71e732637b38fe9a4a53c770be747aab931782c135daf221d97c065338",
+      "valid_glb": true,
+      "meshes": 1,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 5,
+      "extensions_used": []
+    },
+    {
+      "path": "new_assets/maps/base01full_reupload.glb",
+      "bytes": 9291756,
+      "sha256": "9e9f6f877b7e53c9711b57026d8eb35759c0db23d114f9ddddedf64aac5334f3",
+      "valid_glb": true,
+      "meshes": 1536,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 3075,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/LEEME_PRIMERO.txt",
+      "bytes": 1704,
+      "sha256": "0976f49630a291c19c1b9891d1cd0ca1187819509043c46cfe2ddf152a7b614c"
+    },
+    {
+      "path": "previous/documentation/ANIMATION_RETARGET_PLAN.json",
+      "bytes": 1749,
+      "sha256": "36e77f17f44d6572f8dc6e6bbe0db3d6a0789ae69c6fd05d4b6b0314b9d5c0cf"
+    },
+    {
+      "path": "previous/documentation/ATRIBUCION_CC_BY_4_0.txt",
+      "bytes": 1785,
+      "sha256": "3491943391dfd0d931b839ecc1923ab8d629f16ff554692898a2f3f919ed5e7d"
+    },
+    {
+      "path": "previous/documentation/INTEGRACION_EN_WORK.md",
+      "bytes": 2322,
+      "sha256": "f394c1b688fe2699c50794fccb40d8bfb634597e2db9c6d743aee4cbe11f7c73"
+    },
+    {
+      "path": "previous/documentation/MANIFEST_V1.json",
+      "bytes": 5196,
+      "sha256": "f0c1e8adaea0e8bd27b9d8942a953c5ed19ec23b443a4fc213f30b638fc36fe4"
+    },
+    {
+      "path": "previous/documentation/anteriores/CATALOGO_ARMAS.json",
+      "bytes": 5545,
+      "sha256": "a8186cdc3a8be1d0b51adb9cb4134f40d761af8b3269c798bafb67a50c3621db"
+    },
+    {
+      "path": "previous/documentation/anteriores/LEEME_INTEGRACION_GODOT.txt",
+      "bytes": 1462,
+      "sha256": "8f3c8184b2cbae5542584d5ae824a8abf3d6d6016b042741ac87263c853dca22"
+    },
+    {
+      "path": "previous/documentation/anteriores/LICENSE_PISTOL_CC_BY_4_0.txt",
+      "bytes": 521,
+      "sha256": "e832f608c5545e35f7e97d0a7f04174d5e7dd3927e5df808243bd33afa99528f"
+    },
+    {
+      "path": "previous/documentation/anteriores/PISTOL_TEXTURE_OPTIMIZATION.json",
+      "bytes": 3035,
+      "sha256": "2201febecf080d542851577ec729a22c05d32427b0fd8c65f1315bc04d23110d"
+    },
+    {
+      "path": "previous/native-godot/assets/vehicles/user_pack/aurora_c17_mobile.glb",
+      "bytes": 10586620,
+      "sha256": "083a95c8e717beb8135e7337c13da8add95090f41a628dc283ba2ac818ecd4cd",
+      "valid_glb": true,
+      "meshes": 46,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 48,
+      "extensions_used": [
+        "KHR_materials_emissive_strength"
+      ]
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w01.glb",
+      "bytes": 48360,
+      "sha256": "d9ae076074bfcd0eddd91d8feaa88936819b6a3b69898baf9088fa5585de9e00",
+      "valid_glb": true,
+      "meshes": 4,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 10,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w02.glb",
+      "bytes": 19580,
+      "sha256": "1fb8a0bca494d8eaacd9cd4948b87ba71c6ac7f60a9026f6e321d905a1c1b492",
+      "valid_glb": true,
+      "meshes": 5,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 11,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w03.glb",
+      "bytes": 30380,
+      "sha256": "46464ce9c1d798c9828c91aeab69db93922f67190d920184722469e9700863db",
+      "valid_glb": true,
+      "meshes": 5,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 11,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w04.glb",
+      "bytes": 36544,
+      "sha256": "aead6fc637f137c4c82e424ae13172d88a8eb32db4caf72369c90455bd8141cf",
+      "valid_glb": true,
+      "meshes": 4,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 10,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w05.glb",
+      "bytes": 55588,
+      "sha256": "76b792b1fe198a4b3e74cee728e223efb733098d94b98ddf3865037a8378cea0",
+      "valid_glb": true,
+      "meshes": 5,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 11,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w06.glb",
+      "bytes": 36540,
+      "sha256": "3aaa5d8fa1d182b3eb44613f8b392ca109b95a84dc876ec18f6dc73056a62818",
+      "valid_glb": true,
+      "meshes": 4,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 10,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w07.glb",
+      "bytes": 60424,
+      "sha256": "cdcd95e9bec1f2c8374209bc0fd6d6520fb3914f9e18c8c5007367f178f70655",
+      "valid_glb": true,
+      "meshes": 5,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 11,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w08.glb",
+      "bytes": 57188,
+      "sha256": "95ea1015b841e0488ceac402bedf97fb77e615833bba36ca2a5fcd85cb68a1f7",
+      "valid_glb": true,
+      "meshes": 5,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 11,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w09.glb",
+      "bytes": 31384,
+      "sha256": "53753b78bffa36aa57bfd496e6c40382826f15a21ae0b9833d42326f8dda7559",
+      "valid_glb": true,
+      "meshes": 4,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 10,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w10.glb",
+      "bytes": 116404,
+      "sha256": "0f551e2e55fe29b6254fe30fd35930a7b7f1a5df05800cd85358dfb82b68cbee",
+      "valid_glb": true,
+      "meshes": 5,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 11,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w11.glb",
+      "bytes": 42560,
+      "sha256": "caa886b758a53e0c4d30a51d7229139175e1051e48f26dd6b30115f96010a1e9",
+      "valid_glb": true,
+      "meshes": 5,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 11,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w12.glb",
+      "bytes": 67580,
+      "sha256": "40a2497147cd69562b175e5631c7250ac723a14a82ff8b1cc68d49bb13c3d410",
+      "valid_glb": true,
+      "meshes": 5,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 11,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/aurora_w13.glb",
+      "bytes": 58428,
+      "sha256": "3833e8f4303afeb6569225aa8aabdfb9b5cfe2e5452161ed59d0e97bcbd3b7cb",
+      "valid_glb": true,
+      "meshes": 5,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 11,
+      "extensions_used": []
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/fps_ak47_animations_mobile.glb",
+      "bytes": 19378132,
+      "sha256": "0e950d6eb361e6ce587fa80f0277479da7e0ac011a5cf8de5f5d38aa9ce5064d",
+      "valid_glb": true,
+      "meshes": 6,
+      "skins": 2,
+      "animations": 11,
+      "nodes": 133,
+      "extensions_used": [
+        "KHR_materials_specular"
+      ]
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/fps_pistol_animations_mobile.glb",
+      "bytes": 10467824,
+      "sha256": "b76192778fdf5950a233c2e81ea517c113becff0c8920c3d64fb082e634e8898",
+      "valid_glb": true,
+      "meshes": 3,
+      "skins": 2,
+      "animations": 11,
+      "nodes": 134,
+      "extensions_used": [
+        "KHR_materials_specular"
+      ]
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/fps_saps12_animations_mobile.glb",
+      "bytes": 18909288,
+      "sha256": "aa0e723d3a296bc48d70b325e8895343be4f5c9885c20d316ceaa0dbc5ee0401",
+      "valid_glb": true,
+      "meshes": 4,
+      "skins": 2,
+      "animations": 10,
+      "nodes": 137,
+      "extensions_used": [
+        "KHR_materials_specular"
+      ]
+    },
+    {
+      "path": "previous/native-godot/assets/weapons/user_pack/fps_sig225_reference_mobile.glb",
+      "bytes": 7647972,
+      "sha256": "e1993cf12173703dabaf90f1c6f70b8c7505bb313af26b24c50230d9711061f1",
+      "valid_glb": true,
+      "meshes": 2,
+      "skins": 0,
+      "animations": 0,
+      "nodes": 7,
+      "extensions_used": []
+    }
+  ]
+}
