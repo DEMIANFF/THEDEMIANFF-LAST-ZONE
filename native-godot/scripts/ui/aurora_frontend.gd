@@ -40,6 +40,7 @@ var _surface: Control
 var _page: VBoxContainer
 var _entry_glass: Panel
 var _entry_mission_caption: Label
+var _entry_info_panel: PanelContainer
 var _header_glass: Panel
 var _lobby_backplates: Array[Control]=[]
 var _info: Label
@@ -357,8 +358,9 @@ func _build_entry_shell() -> void:
     _entry_mission_caption.text="BASE AURORA  /  OPERACIÓN INVIERNO\n\nENTRA EN LA ÚLTIMA ZONA\nY PREPARA TU DESPLIEGUE"
     _entry_mission_caption.anchor_left=.06
     _entry_mission_caption.anchor_right=.53
-    _entry_mission_caption.anchor_top=.57
-    _entry_mission_caption.anchor_bottom=.86
+    # The old caption crossed the hangar horizon on 16:9 and compact screens.
+    _entry_mission_caption.anchor_top=.42
+    _entry_mission_caption.anchor_bottom=.76
     _entry_mission_caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     _entry_mission_caption.add_theme_font_size_override("font_size",21)
     _entry_mission_caption.add_theme_color_override(
@@ -570,6 +572,44 @@ func _welcome() -> void:
     space.mouse_filter=Control.MOUSE_FILTER_IGNORE
     space.size_flags_vertical=Control.SIZE_EXPAND_FILL
     _page.add_child(space)
+    # This is live UI and truthful match information, not a static login
+    # screenshot or a claim that online play is operational.
+    _entry_info_panel=PanelContainer.new()
+    _entry_info_panel.name="AuroraMissionBriefing"
+    _entry_info_panel.custom_minimum_size=Vector2(0,112)
+    _entry_info_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    var briefing_style:=StyleBoxFlat.new()
+    briefing_style.bg_color=Color(.035,.115,.18,.87)
+    briefing_style.border_color=Color(.25,.66,.80,.72)
+    briefing_style.set_border_width_all(1)
+    briefing_style.set_corner_radius_all(9)
+    briefing_style.content_margin_left=14
+    briefing_style.content_margin_right=14
+    briefing_style.content_margin_top=11
+    briefing_style.content_margin_bottom=10
+    _entry_info_panel.add_theme_stylebox_override("panel",briefing_style)
+    _page.add_child(_entry_info_panel)
+    var information:=VBoxContainer.new()
+    information.name="MissionBriefingContent"
+    information.add_theme_constant_override("separation",4)
+    _entry_info_panel.add_child(information)
+    for item in [
+        ["PUESTO DE MANDO / AURORA",12,Color(.43,.88,.96)],
+        ["BATTLE ROYALE · 50 PARTICIPANTES",17,Color(.98,.81,.48)],
+        ["1 operador y 49 rivales IA en la partida local.",13,
+            Color(.87,.94,1.0)]
+    ]:
+        var line:=Label.new()
+        line.text=str(item[0])
+        line.name="Briefing"+str(information.get_child_count())
+        line.add_theme_font_size_override("font_size",int(item[1]))
+        line.add_theme_color_override("font_color",item[2])
+        line.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+        line.mouse_filter=Control.MOUSE_FILTER_IGNORE
+        information.add_child(line)
+    # Hide the optional briefing on Motorola's 434px landscape height,
+    # preserving all three actionable providers and their touch targets.
+    _entry_info_panel.visible=_surface.size.y>=620.0
     _login_status_label=_label("COMPROBANDO ACCESO…",12)
     _login_status_label.name="LoginTransportStatus"
     _login_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -2167,6 +2207,9 @@ func _layout_safe() -> void:
     _surface.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     _surface.position=safe.position
     _surface.size=safe.size
+    if stage=="welcome" and _entry_info_panel!=null and is_instance_valid(
+            _entry_info_panel):
+        _entry_info_panel.visible=safe.size.y>=620.0
     # SubViewportContainer with stretch=true OWNS its SubViewport.size.
     # Never write the child's size manually: Godot ignores that write and
     # warns every frame. Use stretch_shrink to cap the physical pixel count
