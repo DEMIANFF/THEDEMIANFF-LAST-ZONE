@@ -609,7 +609,7 @@ func _welcome() -> void:
         information.add_child(line)
     # Hide the optional briefing on Motorola's 434px landscape height,
     # preserving all three actionable providers and their touch targets.
-    _entry_info_panel.visible=_surface.size.y>=620.0
+    _entry_info_panel.visible=minf(_surface.size.y,float(get_viewport().size.y))>=620.0
     _login_status_label=_label("COMPROBANDO ACCESO…",12)
     _login_status_label.name="LoginTransportStatus"
     _login_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -2209,7 +2209,11 @@ func _layout_safe() -> void:
     _surface.size=safe.size
     if stage=="welcome" and _entry_info_panel!=null and is_instance_valid(
             _entry_info_panel):
-        _entry_info_panel.visible=safe.size.y>=620.0
+        # Root Window.size and safe rect may update on different frames
+        # during resize or device rotation. Use the smaller height so the
+        # optional panel never covers login actions while the two resync.
+        _entry_info_panel.visible=minf(safe.size.y,
+            float(get_viewport().size.y))>=620.0
     # SubViewportContainer with stretch=true OWNS its SubViewport.size.
     # Never write the child's size manually: Godot ignores that write and
     # warns every frame. Use stretch_shrink to cap the physical pixel count
