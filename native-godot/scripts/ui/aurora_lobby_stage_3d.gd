@@ -5,6 +5,7 @@ extends Node3D
 var _radar_rotor: Node3D
 var _beacon_material: StandardMaterial3D
 var _lobby_time: float=0.0
+var _mountain_mesh_count: int=0
 
 
 func _process(delta: float) -> void:
@@ -364,7 +365,11 @@ func _pyramid(at: Vector3,width: float,height: float,mat: Material) -> void:
             builder.add_vertex(point)
     builder.generate_normals()
     var shape:=MeshInstance3D.new()
-    shape.name="AuroraSnowPeak"
+    # Stable names avoid Godot's automatic Node renaming and allow
+    # per-facet performance audits without relying on generated IDs.
+    shape.name=("AuroraSnowPeak" if _mountain_mesh_count==0 else
+        "AuroraSnowPeak%02d"%_mountain_mesh_count)
+    _mountain_mesh_count+=1
     shape.mesh=builder.commit()
     shape.position=at
     shape.material_override=mat
