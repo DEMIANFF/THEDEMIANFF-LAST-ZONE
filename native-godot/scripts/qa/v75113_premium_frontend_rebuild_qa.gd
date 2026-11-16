@@ -34,7 +34,8 @@ func _verify() -> void:
         front._entry_panel_accent.visible,
         "the custom command center entry hierarchy is not real UI")
     check(front._entry_mission_caption.text.contains("ÚLTIMA ZONA") and
-        front._entry_mission_caption.anchor_top<.43,
+        front._entry_hero_plate.get_global_rect().encloses(
+            front._entry_mission_caption.get_global_rect()),
         "Aurora introduction is not an intentional hero composition")
     check(front._page.get_node("StartupDiagnosticEntry").visible and
         front._page.get_node("AuroraEntryAccessOverline").visible and

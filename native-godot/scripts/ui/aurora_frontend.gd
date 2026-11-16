@@ -20,6 +20,9 @@ const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.gd")
 const DISPLAY_FONT=preload("res://assets/ui/fonts/BarlowCondensed-Bold.ttf")
+const AIRFIELD_SKY=preload("res://assets/ui/aurora_night_sky.gdshader")
+const LOBBY_OPERATOR_SURFACE=preload("res://assets/characters/lila_lobby_surface.gdshader")
+const PORTRAIT_LIGHT_LAYER: int=2
 
 signal startup_finished
 @export_file("*.tscn") var game_scene_path: String=GAME_PATH
@@ -50,6 +53,7 @@ var _loading_accent_stripe: ColorRect
 var _loading_heartbeat: Tween
 var _loading_emblem: TextureRect
 var _loading_surface_plate: Panel
+var _loading_actions: VBoxContainer
 var _entry_info_panel: PanelContainer
 var _header_glass: Panel
 var _lobby_backplates: Array[Control]=[]
@@ -176,8 +180,7 @@ func _ready() -> void:
     painted.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _surface.add_child(painted)
     _surface.move_child(painted,0)
-    # One compressed backdrop serves the entry screens and the distant sky
-    # behind the live lobby. It does not contain any UI.
+    # The loading and sign-in illustration stays outside the lobby world.
     _arctic_art=TextureRect.new()
     _arctic_art.name="AuroraWinterBaseArtwork"
     _arctic_art.texture=load("res://assets/ui/aurora_polar_airfield.jpg")
@@ -355,7 +358,7 @@ func _make_glass_panel(bg: Color,border: Color,rounding: int=12) -> Panel:
 
 func _build_entry_shell() -> void:
     _entry_glass=_make_glass_panel(
-        Color(.035,.064,.104,.97),Color(.45,.58,.69,.64),13)
+        Color(.027,.045,.074,.94),Color(.45,.58,.69,.60),10)
     _entry_glass.name="AuroraEntryGlassPanel"
     _entry_glass.anchor_left=.55
     _entry_glass.anchor_right=.966
@@ -374,21 +377,21 @@ func _build_entry_shell() -> void:
     _entry_panel_accent.visible=false
     _surface.add_child(_entry_panel_accent)
     _entry_hero_plate=_make_glass_panel(
-        Color(.014,.030,.054,.82),Color(.31,.45,.56,.48),10)
+        Color(.009,.019,.032,.76),Color(.35,.52,.68,.40),7)
     _entry_hero_plate.name="AuroraEntryHeroPanel"
     _entry_hero_plate.anchor_left=.047
-    _entry_hero_plate.anchor_right=.510
-    _entry_hero_plate.anchor_top=.325
-    _entry_hero_plate.anchor_bottom=.619
+    _entry_hero_plate.anchor_right=.450
+    _entry_hero_plate.anchor_top=.706
+    _entry_hero_plate.anchor_bottom=.912
     _entry_hero_plate.visible=false
     _surface.add_child(_entry_hero_plate)
     _entry_hero_kicker=Label.new()
     _entry_hero_kicker.name="AuroraEntryHeroKicker"
     _entry_hero_kicker.text="BASE AURORA"
     _entry_hero_kicker.anchor_left=.067
-    _entry_hero_kicker.anchor_right=.490
-    _entry_hero_kicker.anchor_top=.348
-    _entry_hero_kicker.anchor_bottom=.394
+    _entry_hero_kicker.anchor_right=.431
+    _entry_hero_kicker.anchor_top=.732
+    _entry_hero_kicker.anchor_bottom=.781
     _entry_hero_kicker.add_theme_font_size_override("font_size",18)
     _entry_hero_kicker.add_theme_color_override(
         "font_color",Color(.47,.85,.95))
@@ -399,12 +402,12 @@ func _build_entry_shell() -> void:
     _entry_mission_caption.name="AuroraEntryMissionCaption"
     _entry_mission_caption.text="ÚLTIMA ZONA"
     _entry_mission_caption.anchor_left=.067
-    _entry_mission_caption.anchor_right=.494
-    _entry_mission_caption.anchor_top=.411
-    _entry_mission_caption.anchor_bottom=.588
+    _entry_mission_caption.anchor_right=.431
+    _entry_mission_caption.anchor_top=.778
+    _entry_mission_caption.anchor_bottom=.895
     _entry_mission_caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     _entry_mission_caption.add_theme_font_override("font",DISPLAY_FONT)
-    _entry_mission_caption.add_theme_font_size_override("font_size",68)
+    _entry_mission_caption.add_theme_font_size_override("font_size",54)
     _entry_mission_caption.add_theme_color_override(
         "font_color",Color(.97,.98,1.0))
     _entry_mission_caption.add_theme_color_override(
@@ -418,31 +421,28 @@ func _build_entry_shell() -> void:
 func _build_loading_overlay() -> void:
     _loading_overlay=ColorRect.new()
     _loading_overlay.name="AuroraLoadingOverlay"
-    _loading_overlay.color=Color(.006,.015,.033,.36)
+    _loading_overlay.color=Color(.006,.015,.033,.24)
     _loading_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _surface.add_child(_loading_overlay)
     _loading_surface_plate=_make_glass_panel(
-        Color(.015,.034,.061,.96),Color(.39,.58,.72,.70),12)
+        Color(.012,.023,.045,.93),Color(.39,.58,.72,.63),9)
     _loading_surface_plate.name="AuroraLoadingConsolePlate"
     _loading_surface_plate.anchor_left=.18
     _loading_surface_plate.anchor_right=.82
-    _loading_surface_plate.anchor_top=.565
-    _loading_surface_plate.anchor_bottom=.948
+    _loading_surface_plate.anchor_bottom=.958
     _loading_overlay.add_child(_loading_surface_plate)
     _loading_accent_stripe=ColorRect.new()
     _loading_accent_stripe.name="AuroraLoadingGoldStripe"
     _loading_accent_stripe.color=Color(.95,.66,.22,.90)
     _loading_accent_stripe.anchor_left=.22
     _loading_accent_stripe.anchor_right=.78
-    _loading_accent_stripe.anchor_top=.565
-    _loading_accent_stripe.anchor_bottom=.570
     _loading_accent_stripe.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _loading_overlay.add_child(_loading_accent_stripe)
     var hero:=CenterContainer.new()
     hero.anchor_right=1
-    hero.anchor_top=.060
+    hero.anchor_top=.115
     # Keep brand and real resource progress in different layers.
-    hero.anchor_bottom=.483
+    hero.anchor_bottom=.607
     _loading_overlay.add_child(hero)
     var branding:=VBoxContainer.new()
     hero.add_child(branding)
@@ -461,23 +461,21 @@ func _build_loading_overlay() -> void:
     _loading_emblem.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     _loading_emblem.custom_minimum_size=Vector2(0,87)
     branding.add_child(_loading_emblem)
-    _add_entry_wordmark(branding)
+    _add_entry_wordmark(branding,78,41)
 
     var content:=VBoxContainer.new()
+    _loading_actions=content
     content.name="AuroraLoadingActions"
     content.anchor_left=.23
     content.anchor_right=.77
-    # The former 0.305-height region was only 132px on 964x434;
-    # CANCEL or RETRY could extend beyond the touch-safe screen.
-    content.anchor_top=.581
-    content.anchor_bottom=.930
+    content.anchor_bottom=.944
     content.alignment=BoxContainer.ALIGNMENT_CENTER
-    content.add_theme_constant_override("separation",8)
+    content.add_theme_constant_override("separation",5)
     _loading_overlay.add_child(content)
     _loading_title=Label.new()
     _loading_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _loading_title.add_theme_font_override("font",DISPLAY_FONT)
-    _loading_title.add_theme_font_size_override("font_size",34)
+    _loading_title.add_theme_font_size_override("font_size",30)
     _loading_title.add_theme_color_override(
         "font_color",Color(.98,.95,.86))
     content.add_child(_loading_title)
@@ -490,7 +488,7 @@ func _build_loading_overlay() -> void:
     content.add_child(_loading_detail)
     _loading_meter=ProgressBar.new()
     _loading_meter.name="WorldLoadProgress"
-    _loading_meter.custom_minimum_size=Vector2(275,29)
+    _loading_meter.custom_minimum_size=Vector2(275,25)
     _loading_meter.add_theme_font_size_override("font_size",18)
     var track:=StyleBoxFlat.new()
     track.bg_color=Color(.017,.030,.059)
@@ -511,11 +509,22 @@ func _build_loading_overlay() -> void:
     _loading_cancel.custom_minimum_size.y=68
     _loading_cancel.size_flags_horizontal=Control.SIZE_SHRINK_CENTER
     content.add_child(_loading_cancel)
+    _loading_retry.visibility_changed.connect(_layout_loading_actions)
+    _loading_cancel.visibility_changed.connect(_layout_loading_actions)
+    _layout_loading_actions()
 
 
-func _add_entry_wordmark(container: VBoxContainer) -> void:
-    for entry in [["EntryBrandTitle","THEDEMIAN:",54,Color(.97,.98,1.0)],
-            ["EntryBrandSubtitle","LAST ZONE",32,Color(1.0,.79,.41)]]:
+func _layout_loading_actions() -> void:
+    var top: float=.656 if _loading_retry.visible or _loading_cancel.visible else .743
+    _loading_surface_plate.anchor_top=top
+    _loading_accent_stripe.anchor_top=top
+    _loading_accent_stripe.anchor_bottom=top+.004
+    _loading_actions.anchor_top=top+.014
+
+
+func _add_entry_wordmark(container: VBoxContainer,title_size:=54,subtitle_size:=32) -> void:
+    for entry in [["EntryBrandTitle","THEDEMIAN:",title_size,Color(.97,.98,1.0)],
+            ["EntryBrandSubtitle","LAST ZONE",subtitle_size,Color(1.0,.79,.41)]]:
         var label:=Label.new()
         label.name=entry[0]
         label.text=entry[1]
@@ -531,6 +540,7 @@ func _add_entry_wordmark(container: VBoxContainer) -> void:
 
 
 func _show_loading(title: String,detail: String,pending: bool=false) -> void:
+    _arctic_art.show()
     _surface.move_child(_loading_overlay,-1)
     _loading_title.text=title
     _loading_detail.text=detail
@@ -622,7 +632,7 @@ func _welcome() -> void:
     # This screen offers actual Firebase providers and a clearly separate
     # LOCAL offline choice. It never labels an unverified ID as official.
     stage="welcome"
-    _arctic_art.self_modulate=Color.WHITE
+    _arctic_art.show()
     _stop_loading_heartbeat()
     _loading_overlay.hide()
     _entry_glass.visible=true
@@ -943,7 +953,7 @@ func _show_lobby() -> void:
     if _preview_container==null or not is_instance_valid(_preview_container):
         _build_preview()
     stage="lobby"
-    _arctic_art.self_modulate=Color(.56,.68,.81)
+    _arctic_art.hide()
     _stop_loading_heartbeat()
     _loading_overlay.hide()
     AuroraLobbyMusic.enter_lobby()
@@ -978,8 +988,8 @@ func _show_lobby() -> void:
     for action in _operator_controls:
         if is_instance_valid(action):
             action.visible=true
-    _preview_caption.anchor_left=.206
-    _preview_caption.anchor_right=.730
+    _preview_caption.anchor_left=.362
+    _preview_caption.anchor_right=.668
     _preview_caption.anchor_top=.819
     _preview_caption.anchor_bottom=.819
     _ensure_lobby_navigation()
@@ -1211,11 +1221,11 @@ func _update_identity_strip(stats: Dictionary) -> void:
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
     if bool(session.get("identity_confirmed",false)):
         var server_name: String=str(session.get("display_name",""))
-        _stats_strip.text="%s · ID %s · CUENTA"%[
+        _stats_strip.text="%s\nID %s · CUENTA"%[
             server_name if not server_name.is_empty() else "NOMBRE PENDIENTE",
             str(session.get("official_id",""))]
     else:
-        _stats_strip.text="%s · %d P · %d V · LOCAL"%[
+        _stats_strip.text="%s\nLOCAL · %d P · %d V"%[
             _player_name.display_name,int(stats.get("played",0)),
             int(stats.get("wins",0))]
 
@@ -1454,11 +1464,12 @@ func _ensure_lobby_navigation() -> void:
     _surface.move_child(_header_glass,_page.get_index())
     _lobby_backplates.append(_header_glass)
     _profile_strip=_make_header_label(
-        "LocalProfileStrip",.107,.313,18)
+        "LocalProfileStrip",.107,.313,23)
+    _profile_strip.add_theme_font_override("font",DISPLAY_FONT)
     _stats_strip=_make_header_label(
-        "LocalStatisticsStrip",.322,.558,16)
+        "LocalStatisticsStrip",.322,.558,18)
     _currency_strip=_make_header_label(
-        "LocalCurrencyStrip",.569,.729,15)
+        "LocalCurrencyStrip",.569,.729,18)
     var backplate:=_make_glass_panel(
         Color(.012,.028,.067,.96),Color(.29,.66,.86,.78),10)
     backplate.name="LobbyMenuBackplate"
@@ -1521,11 +1532,11 @@ func _ensure_lobby_navigation() -> void:
 
     _lobby_status_ribbon=PanelContainer.new()
     _lobby_status_ribbon.name="AuroraLiveOperationRibbon"
-    # Keep the status plaque to Lila's left; never obscure her face.
+    # Group the local mode status with the operator controls.
     _lobby_status_ribbon.anchor_left=.219
-    _lobby_status_ribbon.anchor_right=.446
-    _lobby_status_ribbon.anchor_top=.171
-    _lobby_status_ribbon.anchor_bottom=.228
+    _lobby_status_ribbon.anchor_right=.354
+    _lobby_status_ribbon.anchor_top=.817
+    _lobby_status_ribbon.anchor_bottom=.866
     _lobby_status_ribbon.mouse_filter=Control.MOUSE_FILTER_IGNORE
     var operation_style:=StyleBoxFlat.new()
     operation_style.bg_color=Color(.009,.024,.046,.84)
@@ -1537,9 +1548,9 @@ func _ensure_lobby_navigation() -> void:
     _lobby_status_ribbon.add_theme_stylebox_override("panel",operation_style)
     _lobby_status_caption=Label.new()
     _lobby_status_caption.name="AuroraOperationStatus"
-    _lobby_status_caption.text="◆  BASE AURORA   /   LOCAL"
+    _lobby_status_caption.text="PARTIDA LOCAL"
     _lobby_status_caption.clip_text=true
-    _lobby_status_caption.add_theme_font_size_override("font_size",12)
+    _lobby_status_caption.add_theme_font_size_override("font_size",14)
     _lobby_status_caption.add_theme_color_override(
         "font_color",Color(.76,.91,.98))
     _lobby_status_caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -1772,11 +1783,11 @@ func _ensure_lobby_navigation() -> void:
 
 func _style_aurora_tab(button: Button,tint: Color) -> void:
     var normal:=StyleBoxFlat.new()
-    normal.bg_color=Color(.012,.026,.049,.95)
+    normal.bg_color=Color(.016,.029,.051,.87)
     normal.border_color=tint.darkened(.28)
     normal.set_border_width_all(1)
     normal.border_width_left=3
-    normal.set_corner_radius_all(6)
+    normal.set_corner_radius_all(4)
     var hover:=normal.duplicate() as StyleBoxFlat
     hover.bg_color=Color(.072,.12,.19,.98)
     var pressed:=hover.duplicate() as StyleBoxFlat
@@ -1917,6 +1928,15 @@ func _apply_preview_skin(skin: String) -> void:
         return
     if COSMETICS.apply_to_operator(_preview_avatar,skin):
         _preview_skin_applied=skin
+        var body:=_preview_avatar.find_child("Lila_Aurora_Mesh",true,false) as MeshInstance3D
+        body.material_override=null
+        if skin==COSMETICS.ORIGINAL_SKIN:
+            var material:=body.mesh.surface_get_material(0) as StandardMaterial3D
+            if material!=null and material.albedo_texture!=null:
+                var portrait:=ShaderMaterial.new()
+                portrait.shader=LOBBY_OPERATOR_SURFACE
+                portrait.set_shader_parameter("source_albedo",material.albedo_texture)
+                body.material_override=portrait
 
 
 func _on_shop_skin_selected(index: int) -> void:
@@ -2331,8 +2351,10 @@ func _build_preview() -> void:
     viewport.name="PreviewViewport"
     viewport.size=Vector2i(832,584)
     viewport.own_world_3d=true
-    viewport.transparent_bg=true
+    viewport.transparent_bg=false
     viewport.msaa_3d=Viewport.MSAA_2X
+    viewport.positional_shadow_atlas_size=512
+    viewport.positional_shadow_atlas_quad_0=Viewport.SHADOW_ATLAS_QUADRANT_SUBDIV_1
     viewport.render_target_update_mode=SubViewport.UPDATE_WHEN_PARENT_VISIBLE
     _preview_container.add_child(viewport)
     _layout_safe.call_deferred()
@@ -2343,29 +2365,53 @@ func _build_preview() -> void:
     hangar.name="AuroraReal3DLobbyEnvironment"
     stage3d.add_child(hangar)
     var ambient:=WorldEnvironment.new()
+    ambient.name="AuroraAirfieldAtmosphere"
     var env:=Environment.new()
-    # Let the 3D operator and companion stand against the winter art.
-    env.background_mode=Environment.BG_CLEAR_COLOR
-    env.background_color=Color(.016,.021,.048,0.0)
+    var sky_material:=ShaderMaterial.new()
+    sky_material.shader=AIRFIELD_SKY
+    var sky:=Sky.new()
+    sky.sky_material=sky_material
+    sky.radiance_size=Sky.RADIANCE_SIZE_64
+    env.background_mode=Environment.BG_SKY
+    env.sky=sky
+    env.reflected_light_source=Environment.REFLECTION_SOURCE_SKY
     env.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
     # Soft sky fill keeps the lilac hair and cool fabric readable under
     # the warm portrait key and blue edge light.
-    env.ambient_light_color=Color(.67,.77,.90)
-    env.ambient_light_energy=.52
+    env.ambient_light_color=Color(.63,.74,.93)
+    env.ambient_light_energy=.48
+    env.ambient_light_sky_contribution=0.0
+    env.fog_enabled=true
+    env.fog_light_color=Color(.27,.39,.54)
+    env.fog_density=.015
+    env.fog_sky_affect=0.0
     ambient.environment=env
     stage3d.add_child(ambient)
     var key:=DirectionalLight3D.new()
     key.name="AuroraPortraitKey"
-    key.rotation_degrees=Vector3(-31,27,0)
+    key.rotation_degrees=Vector3(-40,31,0)
     key.light_color=Color(1.0,.94,.89)
-    key.light_energy=1.12
+    key.light_energy=1.04
     stage3d.add_child(key)
     var rim:=DirectionalLight3D.new()
     rim.name="AuroraPortraitRim"
     rim.rotation_degrees=Vector3(-22,-138,0)
     rim.light_color=Color(.51,.69,1.0)
-    rim.light_energy=.64
+    rim.light_energy=.71
     stage3d.add_child(rim)
+    # Keep the operator's contact shadow in the lobby's small positional atlas.
+    var portrait_spot:=SpotLight3D.new()
+    portrait_spot.name="AuroraPortraitSpot"
+    portrait_spot.position=Vector3(-1.04,2.68,1.45)
+    portrait_spot.light_color=Color(1.0,.89,.78)
+    portrait_spot.light_energy=.41
+    portrait_spot.spot_range=4.25
+    portrait_spot.spot_angle=37.0
+    portrait_spot.light_cull_mask=PORTRAIT_LIGHT_LAYER
+    portrait_spot.shadow_caster_mask=PORTRAIT_LIGHT_LAYER
+    portrait_spot.shadow_enabled=true
+    stage3d.add_child(portrait_spot)
+    portrait_spot.look_at(Vector3(0,.62,-.15),Vector3.UP)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
     # V75.109 CI screenshot showed the operator's head hidden behind the
@@ -2378,21 +2424,23 @@ func _build_preview() -> void:
     camera.look_at(Vector3(-.08,.91,0),Vector3.UP)
     var sentinel: Node3D=LOBBY_COMPANION.new()
     sentinel.name="AuroraSentinelCompanion"
-    sentinel.position=Vector3(1.06,-.03,.19)
-    sentinel.scale=Vector3.ONE*.69
+    sentinel.position=Vector3(.83,-.09,-.68)
+    sentinel.scale=Vector3.ONE*.65
     stage3d.add_child(sentinel)
     var podium:=MeshInstance3D.new()
     podium.name="PortraitPlatform"
     var disk:=CylinderMesh.new()
-    disk.top_radius=1.0
-    disk.bottom_radius=1.08
-    disk.height=.09
+    disk.top_radius=.77
+    disk.bottom_radius=.82
+    disk.height=.048
     podium.mesh=disk
-    podium.position.y=-.055
+    podium.position.y=-.037
+    podium.layers|=PORTRAIT_LIGHT_LAYER
+    podium.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     var metal:=StandardMaterial3D.new()
-    metal.albedo_color=Color(.045,.22,.32)
-    metal.metallic=.65
-    metal.roughness=.25
+    metal.albedo_color=Color(.14,.185,.238)
+    metal.metallic=.43
+    metal.roughness=.58
     podium.material_override=metal
     stage3d.add_child(podium)
 
@@ -2404,6 +2452,8 @@ func _build_preview() -> void:
             _preview_avatar.name="LilaAuroraPreview"
             stage3d.add_child(_preview_avatar)
             _fit_avatar_for_preview(_preview_avatar)
+            for node in _preview_avatar.find_children("*","MeshInstance3D",true,false):
+                (node as MeshInstance3D).layers|=PORTRAIT_LIGHT_LAYER
             var anim:=_preview_avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
             # Lobby has no equipped hand-held rifle. Playing the armed grip
             # without a model made Lila's empty palms look glued together.
@@ -2412,12 +2462,12 @@ func _build_preview() -> void:
             if anim and anim.has_animation("AuroraIdle"):
                 anim.get_animation("AuroraIdle").loop_mode=Animation.LOOP_LINEAR
                 anim.play("AuroraIdle")
-                anim.advance(.1)
+                anim.advance(.36)
                 _install_lobby_motion(anim)
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
-    caption.text="LILA AURORA  /  OPERADOR 01    ↻ GIRAR"
+    caption.text="LILA AURORA  /  OPERADORA"
     caption.anchor_left=.29
     caption.anchor_right=.65
     caption.anchor_top=.90

@@ -50,8 +50,11 @@ func _verify() -> void:
     check((content.get_child(1) as Label).text.contains("50 PARTICIPANTES") and
         (content.get_child(2) as Label).text.contains("49 rivales IA"),
         "briefing falsely claims server matchmaking instead of local BR")
-    check(front._entry_mission_caption.anchor_top<=.43,
-        "mission copy still starts over the distant hangar horizon")
+    var hero: Rect2=front._entry_hero_plate.get_global_rect()
+    check(hero.position.y>=front._surface.size.y*.65 and
+        hero.encloses(front._entry_mission_caption.get_global_rect()) and
+        not hero.intersects(front._entry_glass.get_global_rect()),
+        "mission copy must stay below the hangar horizon and outside login controls")
     _test_login_actions(front)
 
     root.size=Vector2i(964,434)

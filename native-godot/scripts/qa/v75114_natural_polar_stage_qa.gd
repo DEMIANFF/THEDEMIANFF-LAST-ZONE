@@ -25,13 +25,9 @@ func _verify() -> void:
         if candidate is MeshInstance3D and str(candidate.name).begins_with(
                 "AuroraSnowPeak"):
             peaks.append(candidate as MeshInstance3D)
-    print("V75114_POLAR_DEBUG mountain_mesh_count=",peaks.size())
-    check(peaks.size()==44,
-        "22 distinct ridges need exactly 44 stone/frost meshes")
-    var min_triangles: int=999999
-    var min_peak_y: float=INF
-    var frost: int=0
-    var rock: int=0
+    check(peaks.size()==3,"the range must use near, middle and far terrain layers")
+    var triangles: int=0
+    var previous_near_edge: float=INF
     for node in peaks:
         var item: MeshInstance3D=node as MeshInstance3D
         check(item.mesh!=null and item.mesh.get_surface_count()==1,
@@ -40,31 +36,27 @@ func _verify() -> void:
             continue
         var arrays: Array=item.mesh.surface_get_arrays(0)
         var vertices: PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
-        check(vertices.size()==81,
-            "natural ridge must consist of 9 sectors and 27 facets")
-        min_triangles=mini(min_triangles,int(vertices.size()/3))
-        var highest: float=-INF
-        for vertex in vertices:
-            highest=maxf(highest,vertex.y)
-        min_peak_y=minf(min_peak_y,highest)
-        var surface: StandardMaterial3D=item.material_override as StandardMaterial3D
-        check(surface!=null and surface.roughness>=.84,
-            "polar rock/ice remains physically rough")
-        if surface!=null:
-            check(surface.albedo_color.get_luminance()<.65,
-                "oversaturated bright-white mountain crown returned")
-            if surface.albedo_color.r>=.3:
-                frost+=1
-            else:
-                rock+=1
-    print("V75114_POLAR_DIAGNOSTIC triangles_min=",min_triangles,
-        " highest_min=",min_peak_y,
-        " rock=",rock," frost=",frost)
-    check(min_triangles>=27 and min_peak_y>.4 and
-        rock==22 and frost==22,
-        "mesh quality or rock/frost pairing failed: triangles="+
-        str(min_triangles)+" min_y="+str(min_peak_y)+
-        " rock="+str(rock)+" frost="+str(frost))
+        var indices: PackedInt32Array=arrays[Mesh.ARRAY_INDEX]
+        var coverage: PackedColorArray=arrays[Mesh.ARRAY_COLOR]
+        var bounds:=item.mesh.get_aabb()
+        triangles+=floori(indices.size()/3.0)
+        check(vertices.size()>1000 and indices.size()>vertices.size()
+            and bounds.size.y>4.0 and bounds.size.z>10.0,
+            "missing indexed ridges or terrain depth")
+        var has_rock:=false
+        var has_snow:=false
+        for color in coverage:
+            has_rock=has_rock or color.r<.10
+            has_snow=has_snow or color.r>.68
+        var surface:=item.material_override as ShaderMaterial
+        check(has_rock and has_snow and surface!=null and
+            surface.shader.resource_path.ends_with("aurora_polar_terrain.gdshader"),
+            "terrain must blend the exposed rock and snowy slope material")
+        check(bounds.end.z<previous_near_edge,
+            "mountains are not arranged in successive depth layers")
+        previous_near_edge=bounds.end.z
+    check(triangles<=12000 and triangles>=8000,
+        "polar terrain triangle budget exceeded or mesh detail is missing")
     check(stage.find_child("AuroraRunwayCentralSpine",true,false)!=null and
         stage.find_child("AuroraHangarRear",true,false)!=null and
         stage.find_child("PolarAuroraCurtain",true,false)!=null,
@@ -77,6 +69,6 @@ func _verify() -> void:
     stage.queue_free()
     await process_frame
     if not failed:
-        print("V75114_NATURAL_POLAR_STAGE PASS peaks=44 "+
-            "facets_per_mesh=27 rocks=22 frost=22 animated_radar=1")
+        print("V75114_NATURAL_POLAR_STAGE PASS layers=3 triangles=%d animated_radar=1"
+            %triangles)
     quit(1 if failed else 0)

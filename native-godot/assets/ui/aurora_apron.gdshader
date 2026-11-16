@@ -1,6 +1,9 @@
 shader_type spatial;
 
 varying vec2 ground_position;
+uniform vec4 asphalt : source_color = vec4(0.15, 0.19, 0.25, 1.0);
+uniform vec4 aggregate : source_color = vec4(0.30, 0.35, 0.43, 1.0);
+uniform vec4 paint : source_color = vec4(0.70, 0.53, 0.28, 1.0);
 
 float hash_cell(vec2 cell) {
     return fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
@@ -20,11 +23,23 @@ void vertex() {
 }
 
 void fragment() {
-    float dampness = surface_noise(ground_position * vec2(0.91, 0.48));
-    float grain = surface_noise(ground_position * 15.0);
-    float grain_weight = 1.0 - smoothstep(0.018, 0.08, length(fwidth(ground_position)));
-    float variation = dampness * 0.22 + (grain - 0.5) * grain_weight * 0.14;
-    ALBEDO = mix(vec3(0.062, 0.087, 0.128), vec3(0.22, 0.28, 0.36), variation);
-    ROUGHNESS = mix(0.91, 0.58, dampness);
-    METALLIC = 0.06;
+    vec2 p = ground_position;
+    float water = smoothstep(0.38, 0.70, surface_noise(p * vec2(0.68, 0.27)));
+    float grain = surface_noise(p * 24.0);
+    float blur = length(fwidth(p));
+    float grit = (grain - 0.5) * (1.0 - smoothstep(0.025, 0.13, blur));
+    float salted = smoothstep(0.53, 0.78, surface_noise(p * vec2(2.9, 1.05)));
+    float joint = 1.0 - smoothstep(0.008, 0.028 + blur, abs(fract((p.y + 0.8) * 0.43) - 0.5));
+    vec3 base = mix(asphalt.rgb, aggregate.rgb,
+        clamp(0.24 + grit * 0.22 - water * 0.19 - joint * 0.13 + salted * 0.26, 0.0, 1.0));
+    float line = 1.0 - smoothstep(0.025, 0.059 + blur * 0.6, abs(p.x));
+    line *= smoothstep(0.23, 0.27, fract((p.y + 1.8) * 0.71));
+    line *= (1.0 - smoothstep(0.67, 0.72, fract((p.y + 1.8) * 0.71))) * smoothstep(-18.0, -16.9, p.y);
+    float shoulder = 1.0 - smoothstep(0.011, 0.035 + blur * 0.6, abs(abs(p.x) - 1.94));
+    ALBEDO = mix(base, paint.rgb, max(line, shoulder * 0.44) * (0.68 + grit * 0.21));
+    ROUGHNESS = mix(0.83, 0.24, water) + grit * 0.045;
+    METALLIC = 0.035;
+    SPECULAR = mix(0.33, 0.66, water);
+    NORMAL_MAP = vec3(0.5 + grit * 0.13, 0.5 + (salted - water) * 0.044, 1.0);
+    NORMAL_MAP_DEPTH = 0.38;
 }
