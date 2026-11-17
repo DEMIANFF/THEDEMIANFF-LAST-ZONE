@@ -277,9 +277,18 @@ func add_expansion(slot: int) -> bool:
             push_warning("SCAR original GLB has no imported AnimationPlayer")
     if back_mount:
         var holstered:=scene.instantiate() as Node3D
-        back_mount.add_child(holstered)
-        calibrate_expansion(holstered,slot)
-        _expansion_holsters[slot]=holstered
+        if holstered:
+            # Apply exactly the same source-unit normalization to the spine
+            # attachment. Otherwise the privately staged animated SCAR can
+            # appear 10x larger on the back than in Lila's right hand.
+            holstered.name="AuroraAnimatedScar" if animated_scar else "AuroraBackWeapon_"+str(slot)
+            back_mount.add_child(holstered)
+            calibrate_expansion(holstered,slot)
+            var passive: AnimationPlayer=holstered.find_child(
+                "*AnimationPlayer*",true,false) as AnimationPlayer
+            if passive:
+                passive.stop()
+            _expansion_holsters[slot]=holstered
     if slot==WEAPONS.MP40:
         _mp40_magazine=carried.find_child("Magazine",true,false) as Node3D
         _mp40_charging_handle=carried.find_child("ChargingHandle",true,false) as Node3D
