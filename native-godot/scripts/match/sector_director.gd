@@ -478,9 +478,14 @@ func _spawn_loot() -> void:
         _make_pickup(Vector2(12,-13),"weapon_kriss","AuroraKRISSPickup")
         # Optional V2 pickups have physical weapons, inventory and ballistics.
         # Skip them until their CC-BY assets have actually been staged locally.
-        var optional_weapons: Array[String]=["weapon_hk416","weapon_p90","weapon_vss"]
+        var optional_weapons: Array[String]=[
+            "weapon_hk416","weapon_p90","weapon_vss",
+            "weapon_mp5","weapon_shotgun","weapon_magnum","weapon_knife","weapon_sniper"
+        ]
         var optional_spots: Array[Vector2]=[
-            Vector2(-18,34),Vector2(38,30),Vector2(-44,-42)]
+            Vector2(-18,34),Vector2(38,30),Vector2(-44,-42),
+            Vector2(5,-42),Vector2(23,43),Vector2(-52,20),
+            Vector2(39,-51),Vector2(-25,15)]
         for i in range(optional_weapons.size()):
             var slot: int=WEAPONS.pickup_slot(optional_weapons[i])
             if slot>=0 and ResourceLoader.exists(str(WEAPONS.ENTRIES[slot]["asset"])):
