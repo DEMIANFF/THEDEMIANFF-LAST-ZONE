@@ -850,6 +850,7 @@ func begin_sector_battle() -> void:
     reserve=[90,12]
     weapon_owned=[true,false]
     backpack_level=0
+    operator.set_backpack_visual_level(0)
     medkits_remaining=2
     syringes_remaining=0
     eliminations=0
@@ -1105,6 +1106,7 @@ func collect_sector_loot(kind: String,quantity: int=-1,
             if backpack_level>=1:
                 return false
             backpack_level=1
+            operator.set_backpack_visual_level(backpack_level)
             hud.impact("MOCHILA EQUIPADA / MAYOR CAPACIDAD")
         "weapon_awm":
             if weapon_owned[1]:
