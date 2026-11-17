@@ -432,6 +432,9 @@ func _shoot() -> void:
         return
     if operator.royale_eliminated or cooldown>0 or reload_timer>0:
         return
+    if weapon_index==WEAPONS.KNIFE:
+        _perform_physical_knife_strike()
+        return
     if ammo[weapon_index]<=0:
         if reserve[WEAPONS.reserve_slot(weapon_index)]>0:
             _on_reload()
@@ -461,6 +464,9 @@ func _shoot() -> void:
     var from: Vector3=camera.project_ray_origin(screen_center)
     var direction: Vector3=camera.project_ray_normal(screen_center)
     var muzzle: Vector3=_weapon_visuals.muzzle_position()
+    if weapon_index==WEAPONS.SHOTGUN:
+        _fire_real_pellets(camera,from,direction,muzzle)
+        return
     var hit: Dictionary=resolve_shot(from,direction,muzzle)
     shot_fired.emit(weapon_index,not hit.is_empty())
     _alert_nearby_bots(muzzle,operator)
@@ -478,6 +484,98 @@ func _shoot() -> void:
     elif body is StaticBody3D and body.is_in_group("aurora_deployable_cover"):
         body.call("take_damage",physical_hit_damage(weapon_index,false))
         hud.impact("BARRERA AURORA / IMPACTO")
+
+
+## The melee weapon uses a short PhysicsServer ray against actual bodies.
+## No bullets, ammo use, hitscan across the island or phantom melee damage.
+func _perform_physical_knife_strike() -> void:
+    cooldown=float(WEAPONS.ENTRIES[WEAPONS.KNIFE]["cadence"])
+    trigger_held=false
+    operator.set_firing(false)
+    if _weapon_visuals:
+        _weapon_visuals.play_source_action(WEAPONS.KNIFE,"fire")
+    var camera: Camera3D=operator.get_view_camera()
+    if camera==null:
+        return
+    var start: Vector3=operator.global_position+Vector3.UP*(
+        .92 if operator._crouching else 1.35)
+    var direction: Vector3=-camera.global_basis.z
+    var reach: float=float(WEAPONS.ENTRIES[WEAPONS.KNIFE]["range"])
+    var probe:=PhysicsRayQueryParameters3D.create(start,start+direction*reach)
+    probe.exclude=[operator.get_rid()]
+    var hit: Dictionary=operator.get_world_3d().direct_space_state.intersect_ray(probe)
+    var body=hit.get("collider")
+    var damaged: bool=false
+    if body is CharacterBody3D and body.is_in_group("training_target") and body.health>0.0:
+        var prior: float=float(body.health)
+        var eliminated: bool=body.take_training_damage(
+            physical_hit_damage(WEAPONS.KNIFE,false),operator)
+        var loss: float=maxf(0.0,prior-float(body.health))
+        if loss>0.0:
+            damaged=true
+            damage_dealt+=loss
+            hud.show_confirmed_hit(loss,eliminated,false)
+            hud.impact("CUCHILLO / GOLPE CONFIRMADO")
+            impact_occurred.emit()
+    # One touch action, no bullet counters. Physical obstacles block strikes.
+    shot_fired.emit(WEAPONS.KNIFE,damaged)
+    _sync_hud()
+
+
+## Eight individual occlusion-tested pellets. The damage comes from the
+## actual hit capsule, not a decorative wide ray or a crosshair hit bonus.
+func _fire_real_pellets(camera: Camera3D,from: Vector3,
+        direction: Vector3,muzzle: Vector3) -> void:
+    var spec: Dictionary=WEAPONS.ENTRIES[WEAPONS.SHOTGUN]
+    var offsets: Array[Vector2]=[
+        Vector2.ZERO,Vector2(-.88,0),Vector2(.88,0),
+        Vector2(0,.88),Vector2(0,-.88),Vector2(-.63,-.63),
+        Vector2(.63,.63),Vector2(-.63,.63)]
+    var max_range: float=float(spec["range"])
+    var spread: float=float(spec["spread"])
+    var impact_total: float=0.0
+    var critical_any: bool=false
+    var kill_any: bool=false
+    var contact_any: bool=false
+    var contact_point: Vector3=from+direction*max_range
+    for off in offsets:
+        var pellet_direction: Vector3=(
+            direction+camera.global_basis.x*off.x*spread+
+            camera.global_basis.y*off.y*spread).normalized()
+        var hit: Dictionary=resolve_shot(from,pellet_direction,muzzle,max_range)
+        if hit.is_empty():
+            continue
+        contact_any=true
+        contact_point=hit.get("position",contact_point)
+        var collider=hit.get("collider")
+        if collider is CharacterBody3D and collider.is_in_group(
+                "training_target") and collider.health>0.0:
+            var critical: bool=is_critical_contact(
+                hit.get("position",Vector3(INF,INF,INF)),
+                collider.global_position)
+            var previous: float=float(collider.health)
+            var eliminated: bool=collider.take_training_damage(
+                physical_hit_damage(WEAPONS.SHOTGUN,critical),operator)
+            var delta_health: float=maxf(0.0,previous-float(collider.health))
+            impact_total+=delta_health
+            critical_any=critical_any or (critical and delta_health>0.0)
+            kill_any=kill_any or (eliminated and delta_health>0.0)
+        elif collider is StaticBody3D and collider.is_in_group(
+                "aurora_deployable_cover"):
+            collider.call("take_damage",physical_hit_damage(WEAPONS.SHOTGUN,false))
+    shot_fired.emit(WEAPONS.SHOTGUN,contact_any)
+    _alert_nearby_bots(muzzle,operator)
+    last_shot={"muzzle":muzzle,"endpoint":contact_point,"collider":null}
+    _spawn_tracer(muzzle,contact_point)
+    if impact_total>0.0:
+        shots_hit_total+=1  # one discharge, not eight phantom accurate shots
+        if critical_any:
+            headshots_total+=1
+        damage_dealt+=impact_total
+        hud.show_confirmed_hit(impact_total,kill_any,critical_any)
+        hud.impact("PERDIGONES / IMPACTO REAL")
+        impact_occurred.emit()
+        _sync_hud()
 
 
 ## Safe classification for the actual 1.74m OpponentCollider. Must be
@@ -1135,12 +1233,14 @@ func shot_accuracy_percent() -> int:
         float(shots_fired_total)),0,100)
 
 
-func resolve_shot(from: Vector3, direction: Vector3, muzzle: Vector3) -> Dictionary:
+func resolve_shot(from: Vector3, direction: Vector3, muzzle: Vector3,
+        max_range: float=250.0) -> Dictionary:
+    var span: float=clampf(max_range,.1,250.0)
     var space:=operator.get_world_3d().direct_space_state
-    var query:=PhysicsRayQueryParameters3D.create(from,from+direction*250.0)
+    var query:=PhysicsRayQueryParameters3D.create(from,from+direction*span)
     query.exclude=[operator.get_rid()]
     var sight: Dictionary=space.intersect_ray(query)
-    var target: Vector3=sight.get("position",from+direction*250.0)
+    var target: Vector3=sight.get("position",from+direction*span)
     # Check chest-to-muzzle too: a barrel poking through a thin wall must not
     # put the damage ray on the other side of the obstacle.
     var chest: Vector3=operator.global_position+Vector3.UP*(.92 if operator._crouching else 1.35)
@@ -1229,8 +1329,11 @@ func _on_bot_trace(from: Vector3,to: Vector3) -> void:
 func _sync_hud() -> void:
     var supply: int=reserve[WEAPONS.reserve_slot(weapon_index)]
     var definition: Dictionary=WEAPONS.ENTRIES[weapon_index]
-    hud.set_weapon(definition["label"],ammo[weapon_index],supply)
-    hud.set_ammo_warning(ammo[weapon_index],supply,definition["capacity"])
+    if weapon_index==WEAPONS.KNIFE:
+        hud.set_melee_weapon(str(definition["label"]))
+    else:
+        hud.set_weapon(definition["label"],ammo[weapon_index],supply)
+        hud.set_ammo_warning(ammo[weapon_index],supply,definition["capacity"])
     hud.set_armor_status(operator.armor_points,operator.vest_level,
         operator.helmet_points,operator.helmet_level)
     hud.set_inventory_snapshot(inventory_snapshot())
