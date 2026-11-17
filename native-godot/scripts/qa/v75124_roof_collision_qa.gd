@@ -27,6 +27,13 @@ func _verify() -> void:
         var roof: StaticBody3D=house.get_node("WalkableRoofCollision")
         var visual: MeshInstance3D=house.get_node("TerracottaGableRoof")
         check(visual.mesh!=null,"villa "+str(i)+" lost its roof visual")
+        var tiles: MultiMeshInstance3D=house.get_node("InstancedCurvedTerracottaTiles")
+        check(tiles.multimesh!=null and tiles.multimesh.instance_count>0,
+            "villa "+str(i)+" lost its instanced terracotta tiles")
+        if tiles.multimesh!=null and tiles.multimesh.mesh is ArrayMesh:
+            var tile_mesh: ArrayMesh=tiles.multimesh.mesh
+            check(tile_mesh.surface_get_array_len(0)==36,
+                "villa "+str(i)+" tile mesh exceeded six arc segments")
         var gable: MeshInstance3D=house.get_node("SealedVillaGableWalls")
         check(gable.mesh!=null and gable.mesh.get_surface_count()==1,
             "villa "+str(i)+" has an open front/rear gable")
