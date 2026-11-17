@@ -17,8 +17,10 @@ func check(valid: bool, description: String) -> void:
 func _verify() -> void:
     check(CATALOG.AR==0 and CATALOG.AWM==1 and CATALOG.SCAR==2 and
         CATALOG.MP40==3 and CATALOG.KRISS==4,"historical save slots changed")
-    check(CATALOG.ENTRIES.size()==8,"optional catalog count mismatch")
-    check(CATALOG.HK416==5 and CATALOG.P90==6 and CATALOG.VSS==7,
+    check(CATALOG.ENTRIES.size()==13,"optional catalog count mismatch")
+    check(CATALOG.HK416==5 and CATALOG.P90==6 and CATALOG.VSS==7 and
+        CATALOG.MP5==8 and CATALOG.SHOTGUN==9 and CATALOG.MAGNUM==10 and
+        CATALOG.KNIFE==11 and CATALOG.SNIPER==12,
         "optional slots are not append-only")
     var names: Array[String]=[]
     for index in range(CATALOG.ENTRIES.size()):
@@ -32,7 +34,12 @@ func _verify() -> void:
     for info in [
         {"slot":CATALOG.HK416,"pickup":"weapon_hk416","pool":CATALOG.AR},
         {"slot":CATALOG.P90,"pickup":"weapon_p90","pool":CATALOG.MP40},
-        {"slot":CATALOG.VSS,"pickup":"weapon_vss","pool":CATALOG.AR}
+        {"slot":CATALOG.VSS,"pickup":"weapon_vss","pool":CATALOG.AR},
+        {"slot":CATALOG.MP5,"pickup":"weapon_mp5","pool":CATALOG.MP40},
+        {"slot":CATALOG.SHOTGUN,"pickup":"weapon_shotgun","pool":CATALOG.SHOTGUN},
+        {"slot":CATALOG.MAGNUM,"pickup":"weapon_magnum","pool":CATALOG.MAGNUM},
+        {"slot":CATALOG.KNIFE,"pickup":"weapon_knife","pool":CATALOG.KNIFE},
+        {"slot":CATALOG.SNIPER,"pickup":"weapon_sniper","pool":CATALOG.AWM}
     ]:
         var slot: int=info["slot"]
         var pickup: String=info["pickup"]
@@ -40,7 +47,8 @@ func _verify() -> void:
         check(CATALOG.reserve_slot(slot)==int(info["pool"]),
             "reserve slot not shared correctly: "+pickup)
         var path: String=str(CATALOG.ENTRIES[slot]["asset"])
-        check(path.begins_with("res://assets/weapons/aurora_v2_optional/"),
+        check(path.begins_with("res://assets/weapons/aurora_v2_optional/") or
+            path.begins_with("res://assets/weapons/aurora_v3_extended/"),
             "optional path escaped asset staging: "+pickup)
         if ResourceLoader.exists(path):
             check(load(path) is PackedScene,
@@ -48,9 +56,13 @@ func _verify() -> void:
     check(CATALOG.reserve_slot(CATALOG.SCAR)==CATALOG.AR and
         CATALOG.reserve_slot(CATALOG.KRISS)==CATALOG.MP40,
         "historic ammunition pools changed")
+    check(bool(CATALOG.ENTRIES[CATALOG.KNIFE].get("melee",false)) and
+        int(CATALOG.ENTRIES[CATALOG.SHOTGUN]["pellets"])==8 and
+        float(CATALOG.ENTRIES[CATALOG.SHOTGUN]["range"])<=24.0,
+        "knife melee or real short-range shotgun mechanics not configured")
     check(CATALOG.pickup_slot("weapon_invalid")==-1,
         "unknown items become collectible weapons")
     if not failed:
-        print("AURORA_V2_OPTIONAL_ARMORY PASS catalog=8 old_slots_unchanged=5 "+
-            "pickup_and_reserves=3 optional_import_gate=1")
+        print("AURORA_V2_OPTIONAL_ARMORY PASS catalog=13 old_slots_unchanged=5 "+
+            "pickup_and_reserves=8 optional_import_gate=1 archetypes=5")
     quit(1 if failed else 0)
