@@ -26,18 +26,28 @@ func _verify() -> void:
     check(not combat.collect_sector_loot("weapon_scar"),
         "training equipment was granted before opening the armory")
     combat.open_training_armory()
+    var optional: Array[String]=[]
+    for kind in ["weapon_hk416","weapon_p90","weapon_vss"]:
+        var slot: int=CATALOG.pickup_slot(kind)
+        if ResourceLoader.exists(str(CATALOG.ENTRIES[slot]["asset"])):
+            optional.append(kind)
+    var expected_pickups: int=5+optional.size()
     var armory: Node3D=combat._training_armory
-    check(armory!=null and armory.get_child_count()==5,"missing training pickups")
+    check(armory!=null and armory.get_child_count()==expected_pickups,
+        "training armory did not match the actually imported weapon GLBs")
     if armory==null:
         quit(1)
         return
     combat.open_training_armory()
-    check(combat._training_armory==armory and armory.get_child_count()==5,
+    check(combat._training_armory==armory and
+        armory.get_child_count()==expected_pickups,
         "opening twice duplicated supplies")
     check(not combat.collect_sector_loot("helmet_3") and
         not combat.collect_sector_loot("ammo_ar",1,true),
         "training enabled unrelated BR or opponent rewards")
-    for item in ["weapon_scar","weapon_mp40","weapon_kriss","ammo_smg"]:
+    var world_pickups: Array[String]=["weapon_scar","weapon_mp40","weapon_kriss","ammo_smg"]
+    world_pickups.append_array(optional)
+    for item in world_pickups:
         var pickup: Area3D=armory.get_node("Training_"+item)
         player.global_position=pickup.global_position-Vector3.UP*.5
         # Area3D/proximity collection may queue_free the pickup during the
@@ -47,8 +57,13 @@ func _verify() -> void:
             await process_frame
         check(not is_instance_valid(pickup) or pickup.collected,
             "automatic physical training pickup blocked: "+item)
-    check(combat.weapon_owned.size()==5 and combat.weapon_owned.all(
-        func(owned: bool) -> bool: return owned),"missing inventory weapon")
+    for slot in [CATALOG.SCAR,CATALOG.MP40,CATALOG.KRISS]:
+        check(combat.weapon_owned.size()>slot and combat.weapon_owned[slot],
+            "missing historical inventory weapon: "+str(slot))
+    for kind in optional:
+        var slot: int=CATALOG.pickup_slot(kind)
+        check(combat.weapon_owned.size()>slot and combat.weapon_owned[slot],
+            "missing optional inventory weapon: "+kind)
     check(combat.reserve[CATALOG.MP40]==60,"SMG shared reserve duplicated or lost")
     check(combat.encounter_size==9 and not combat.sector_battle_active,
         "armory changed the training encounter into BR")
@@ -58,9 +73,15 @@ func _verify() -> void:
     player.get_view_camera().position=Vector3(0,0,4.6)
     var target: CharacterBody3D=combat._targets[0]
     target.global_position=player.global_position+Vector3(0,0,-12)
+    # Additional candidates must be tested without killing the shared
+    # physical target before the final weapon reaches its first shot.
+    target.health=1000.0
     await physics_frame
     await physics_frame
-    for slot in [CATALOG.SCAR,CATALOG.MP40,CATALOG.KRISS]:
+    var firing_slots: Array[int]=[CATALOG.SCAR,CATALOG.MP40,CATALOG.KRISS]
+    for kind in optional:
+        firing_slots.append(CATALOG.pickup_slot(kind))
+    for slot in firing_slots:
         combat._equip_inventory_weapon(slot)
         var visual: Node3D=combat._weapon_visuals.currently_equipped()
         combat._weapon_visuals._process(.016)
@@ -86,5 +107,5 @@ func _verify() -> void:
     game.queue_free()
     await process_frame
     if not failed:
-        print("V75118_TRAINING_ARMORY PASS physical_pickups=1 inventory=1 real_damage=1 reload=1 shared_reserve=1 no_BR_leak=1")
+        print("V75118_TRAINING_ARMORY PASS physical_pickups=1 inventory=1 real_damage=1 reload=1 shared_reserve=1 no_BR_leak=1 optional_imports=",optional.size())
     quit(1 if failed else 0)
