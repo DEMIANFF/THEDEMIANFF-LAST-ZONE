@@ -492,6 +492,10 @@ func _spawn_loot() -> void:
                 _make_pickup(optional_spots[i],optional_weapons[i],
                     "AuroraV2Optional_"+str(WEAPONS.ENTRIES[slot]["short"]))
         _make_pickup(Vector2(-38,-12),"ammo_smg","AuroraSMGAmmoPickup")
+        # Terrain-supported upgrade tiers; existing interior level-1 pack
+        # stays exactly where it was for V75.117 player progression.
+        _make_pickup(Vector2(30,25),"backpack_2","AuroraTacticalPackLevel2")
+        _make_pickup(Vector2(-37,33),"backpack_3","AuroraTacticalPackLevel3")
         # Caliber-specific reload supplies for private optional models, with
         # no false pickup when the authored weapon resource is absent.
         if ResourceLoader.exists(str(WEAPONS.ENTRIES[WEAPONS.SHOTGUN]["asset"])):
