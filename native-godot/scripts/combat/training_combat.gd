@@ -265,6 +265,7 @@ func _equip_inventory_weapon(index: int) -> void:
     current_zoom=1.0
     if _weapon_visuals:
         _weapon_visuals.equip(weapon_index)
+        _weapon_visuals.play_source_action(weapon_index,"idle")
     operator.set_equipped_weapon(weapon_index)
     operator.set_ads(false,1.0)
     hud.set_aim(false,"MIRA LIBRE",1.0)
@@ -374,6 +375,8 @@ func _on_reload() -> void:
     _mp40_reload_cue=0
     hud.set_reload_state(true,reload_timer,_reload_duration)
     operator.play_weapon_action("reload",reload_timer)
+    if _weapon_visuals:
+        _weapon_visuals.play_source_action(weapon_index,"reload")
     reload_started.emit()
     hud.impact("RECARGANDO")
 
@@ -440,6 +443,8 @@ func _shoot() -> void:
     _sync_hud()
     operator.apply_recoil(WEAPONS.ENTRIES[weapon_index]["recoil"])
     operator.play_weapon_action("fire",.24 if weapon_index==1 else .13)
+    if _weapon_visuals:
+        _weapon_visuals.play_source_action(weapon_index,"fire")
     var camera:=operator.get_view_camera() as Camera3D
     if camera==null:
         return
