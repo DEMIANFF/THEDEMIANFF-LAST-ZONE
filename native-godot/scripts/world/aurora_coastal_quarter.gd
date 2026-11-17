@@ -256,9 +256,11 @@ func _roof_mesh(root: Node3D,w: float,d: float,ridge_height: float) -> void:
     var tube:=SurfaceTool.new()
     tube.begin(Mesh.PRIMITIVE_TRIANGLES)
     var tile_len: float=.52
-    for t in range(9):
-        var first: float=PI*float(t)/9.0
-        var next: float=PI*float(t+1)/9.0
+    # Six arc segments preserve the curved silhouette while removing
+    # one third of tile triangles from the 6,692-instance roof batch.
+    for t in range(6):
+        var first: float=PI*float(t)/6.0
+        var next: float=PI*float(t+1)/6.0
         var v0:=Vector3(cos(first)*.19,sin(first)*.13,-tile_len*.5)
         var v1:=Vector3(cos(next)*.19,sin(next)*.13,-tile_len*.5)
         var v2:=Vector3(cos(first)*.19,sin(first)*.13,tile_len*.5)
