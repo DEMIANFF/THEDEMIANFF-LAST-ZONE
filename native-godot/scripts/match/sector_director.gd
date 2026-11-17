@@ -57,7 +57,7 @@ var zone_seconds_remaining: int=0
 var _damage_clock: float = 0.0
 var _ui_clock: float = 0.0
 var _loot: Array[Area3D] = []
-var _driveable_cars: Array[VehicleBody3D]=[]
+var _driveable_cars: Array[AuroraDriveableVehicle]=[]
 var _vehicle_ui_clock: float=0.0
 var _zone_visual: Node3D
 var _flight: Node3D
@@ -223,7 +223,7 @@ func _process(delta: float) -> void:
     _vehicle_ui_clock-=delta
     if _vehicle_ui_clock<=0.0:
         _vehicle_ui_clock=.25
-        var ride: VehicleBody3D=player._vehicle_ride
+        var ride: AuroraDriveableVehicle=player._vehicle_ride
         if ride!=null and is_instance_valid(ride):
             hud.set_vehicle_context(false,true,ride.speed_kmh())
         else:
@@ -483,7 +483,7 @@ func _spawn_authentic_vehicles() -> void:
         var height: float=float(terrain.height_at(position2d.x,position2d.y))
         if not is_finite(height):
             continue
-        var car: VehicleBody3D=DRIVEABLE_VEHICLE.new()
+        var car: AuroraDriveableVehicle=DRIVEABLE_VEHICLE.new()
         car.variant=kind
         car.terrain=terrain
         car.name="AuroraAuthentic"+kind+"Vehicle"
@@ -506,8 +506,8 @@ func _remove_driveable_vehicles() -> void:
         hud.set_vehicle_context(false,false,0.0)
 
 
-func _nearest_enterable_car() -> VehicleBody3D:
-    var closest: VehicleBody3D=null
+func _nearest_enterable_car() -> AuroraDriveableVehicle:
+    var closest: AuroraDriveableVehicle=null
     var distance: float=INF
     if player==null or not player.can_act():
         return null
@@ -525,7 +525,7 @@ func _on_real_vehicle_action() -> void:
     if mode!="sector_battle" or match_ended:
         return
     if player.vehicle_ride_active():
-        var car: VehicleBody3D=player._vehicle_ride
+        var car: AuroraDriveableVehicle=player._vehicle_ride
         if car==null or not is_instance_valid(car):
             player.force_vehicle_exit()
             return
@@ -540,7 +540,7 @@ func _on_real_vehicle_action() -> void:
         hud.set_vehicle_context(true,false,0.0)
         hud.impact("VEHÍCULO ESTACIONADO")
         return
-    var nearby: VehicleBody3D=_nearest_enterable_car()
+    var nearby: AuroraDriveableVehicle=_nearest_enterable_car()
     if nearby!=null and player.begin_vehicle_ride(nearby):
         hud.set_vehicle_context(false,true,nearby.speed_kmh())
         hud.impact("CONDUCCIÓN REAL / JOYSTICK: AVANZAR, GIRAR, RETROCEDER")
