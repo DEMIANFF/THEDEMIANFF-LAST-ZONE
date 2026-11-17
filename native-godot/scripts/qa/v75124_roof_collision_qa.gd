@@ -27,6 +27,9 @@ func _verify() -> void:
         var roof: StaticBody3D=house.get_node("WalkableRoofCollision")
         var visual: MeshInstance3D=house.get_node("TerracottaGableRoof")
         check(visual.mesh!=null,"villa "+str(i)+" lost its roof visual")
+        var gable: MeshInstance3D=house.get_node("SealedVillaGableWalls")
+        check(gable.mesh!=null and gable.mesh.get_surface_count()==1,
+            "villa "+str(i)+" has an open front/rear gable")
         check(roof.get_child_count()==2,"villa "+str(i)+" must have two roof slabs")
         for slab in roof.get_children():
             check(slab is CollisionShape3D and slab.shape is ConvexPolygonShape3D,
