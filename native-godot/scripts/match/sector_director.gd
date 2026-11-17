@@ -492,6 +492,12 @@ func _spawn_loot() -> void:
                 _make_pickup(optional_spots[i],optional_weapons[i],
                     "AuroraV2Optional_"+str(WEAPONS.ENTRIES[slot]["short"]))
         _make_pickup(Vector2(-38,-12),"ammo_smg","AuroraSMGAmmoPickup")
+        # Caliber-specific reload supplies for private optional models, with
+        # no false pickup when the authored weapon resource is absent.
+        if ResourceLoader.exists(str(WEAPONS.ENTRIES[WEAPONS.SHOTGUN]["asset"])):
+            _make_pickup(Vector2(14,-55),"ammo_shells","AuroraShotgunShells")
+        if ResourceLoader.exists(str(WEAPONS.ENTRIES[WEAPONS.MAGNUM]["asset"])):
+            _make_pickup(Vector2(-50,-9),"ammo_pistol","AuroraMagnumRounds")
         _make_pickup(Vector2(-24,-31),"syringe","AuroraSyringePickup")
         _make_pickup(Vector2(16,-13),"grenade","AuroraGrenadePickup")
         var gear: Array[Vector2]=[Vector2(27,25),Vector2(32,25),
