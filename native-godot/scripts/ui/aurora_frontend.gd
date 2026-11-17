@@ -2252,6 +2252,69 @@ func _release_preview() -> void:
     _preview_resume_spin=0.0
 
 
+## An actual optional FBX-derived GLB in the existing live 3D viewport.
+## Lila remains the combat operator until the male receives authored gun
+## firing, reload and medical animations; never silently enable a T-pose BR.
+func _toggle_mixamo_preview() -> void:
+    if stage!="lobby" or _preview_container==null:
+        return
+    var scene3d: Node3D=_preview_container.get_node_or_null(
+        "PreviewViewport/AuroraCharacterStage") as Node3D
+    if scene3d==null:
+        return
+    var next_male: bool=not _preview_male_active
+    var incoming: Node3D=null
+    if next_male:
+        incoming=MALE_PREVIEW.instantiate_valid_preview()
+        if incoming==null:
+            if _info:
+                _info.text="Modelo Ch02 no importado o clips de locomoción incompletos."
+            return
+        incoming.name="AuroraMaleMixamoPreview"
+    else:
+        var path: String="res://assets/characters/lila_aurora.glb"
+        if ResourceLoader.exists(path,"PackedScene"):
+            var scene: PackedScene=load(path) as PackedScene
+            if scene:
+                incoming=scene.instantiate() as Node3D
+        if incoming==null:
+            return
+        incoming.name="LilaAuroraPreview"
+    if _preview_avatar!=null and is_instance_valid(_preview_avatar):
+        _preview_avatar.visible=false
+        _preview_avatar.queue_free()
+    scene3d.add_child(incoming)
+    _preview_avatar=incoming
+    _preview_male_active=next_male
+    _preview_male_motion_index=0
+    _preview_resume_spin=2.0
+    _preview_skin_applied=""
+    _fit_avatar_for_preview(incoming)
+    for node in incoming.find_children("*","MeshInstance3D",true,false):
+        (node as MeshInstance3D).layers|=PORTRAIT_LIGHT_LAYER
+    if next_male:
+        MALE_PREVIEW.play_original_motion(incoming,"AuroraArmedWalk")
+    else:
+        var player: AnimationPlayer=incoming.find_child(
+            "*AnimationPlayer*",true,false) as AnimationPlayer
+        if player and player.has_animation("AuroraIdle"):
+            player.play("AuroraIdle")
+            _install_lobby_motion(player)
+        if _offline_records:
+            _apply_preview_skin(str(
+                _offline_records.cosmetic_state()["equipped"]))
+    if _preview_caption:
+        _preview_caption.text=("CH02 MIXAMO / VISTA PREVIA"
+            if next_male else "LILA AURORA / OPERADORA")
+    if _gesture_button:
+        _gesture_button.text=("MOVIMIENTO ▶" if next_male else "GESTO ▶")
+    for button in _operator_controls:
+        if is_instance_valid(button) and button.name=="AuroraMalePreviewSelector":
+            button.text=("LILA" if next_male else "CH02")
+    if _selected_tab=="PERSONAJE":
+        _select_tab("PERSONAJE")
+
+
 func _rotate_operator(step: float) -> void:
     # Turn the same skinned 3D operator with a short actual tween.
     if stage!="lobby" or _preview_avatar==null or not is_instance_valid(
@@ -2529,6 +2592,23 @@ func _build_preview() -> void:
         action.visible=false
         _surface.add_child(action)
         _operator_controls.append(action)
+    if MALE_PREVIEW.source_available():
+        # Private-source male selector occupies the gap between rotate/frame
+        # and gesture. It is absent from APKs without a checked male GLB.
+        var male_button: Button=_button("CH02",
+            Callable(self,"_toggle_mixamo_preview"),0)
+        male_button.name="AuroraMalePreviewSelector"
+        male_button.anchor_left=.465
+        male_button.anchor_right=.551
+        male_button.anchor_top=.700
+        male_button.anchor_bottom=.804
+        male_button.add_theme_font_size_override("font_size",16)
+        male_button.tooltip_text="Vista previa del operador masculino. No habilita combate."
+        male_button.accessibility_name=male_button.tooltip_text
+        _style_aurora_tab(male_button,Color(.53,.77,.93))
+        male_button.visible=false
+        _surface.add_child(male_button)
+        _operator_controls.append(male_button)
 
 
 func _fit_avatar_for_preview(visual: Node3D) -> void:
