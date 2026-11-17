@@ -28,23 +28,34 @@ El ZIP privado `THEDEMIAN_AURORA_V3_TWOCARS_PRIVATE.zip` conserva ambos GLB sin 
 - `scripts/ui/native_hud.gd`: botón `CONDUCIR/BAJAR` al estar junto a un coche, indicación de velocidad real en km/h, controles táctiles y preservación explícita del salto desde avión/paracaídas.
 - `scripts/qa/v75122_real_vehicles_qa.gd`: en CI pública solo garantiza que no existen coches inventados cuando faltan modelos y que los controles móviles no quedan activos indebidamente. **En una copia privada con modelos staged** comprueba que existan las mallas y los cuatro objetos `VehicleWheel3D`, colisiones y estado de entrada/salida.
 
-## Instalación local privada sin sobrescritura
+## Derivados para pruebas móviles: originales intactos
 
-Con `THEDEMIAN_AURORA_V3_TWOCARS_PRIVATE.zip` y una copia local del repositorio:
+El ZIP original se conserva como evidencia. El código de conducción **no carga directamente los 2K GLB originales**: requiere el paquete privado `THEDEMIAN_AURORA_V3_TWOCARS_MOBILE_PRIVATE.zip`.
+
+El script reproducible `native-godot/tools/aurora_v3/optimize_vehicle_glb_textures.py` redujo texturas PNG incrustadas a un máximo de 1024 px, sin alterar mallas, nodos, índices, materiales ni ningún buffer geométrico. La inspección independiente con trimesh verificó exactamente **795.864 triángulos Toyota y 534.107 BMW** antes/después; límites espaciales idénticos.
+
+| Derivado | Tamaño GLB | SHA-256 |
+|---|---:|---|
+| `AuroraToyotaMobile.glb` | 43.053.328 B | `c584fc79fe3aab9c048b88020f969f2ade0f9b731cf6bc74dac311d6068888de` |
+| `AuroraBMWMobile.glb` | 21.926.008 B | `2bd4e0232b608bf20d7ad34e32a2615803fc4209edb566d7c3264c06a1c6c769` |
+
+Esto reduce bytes de imagen; **NO es un LOD geométrico ni una certificación 60/120 FPS**.
+
+### Instalación de los dos derivados en copia local de Godot
 
 ```bash
-python3 native-godot/tools/aurora_v3/stage_private_vehicles.py \
-  --pack /ruta/THEDEMIAN_AURORA_V3_TWOCARS_PRIVATE.zip \
+python3 native-godot/tools/aurora_v3/stage_mobile_vehicles.py \
+  --pack /ruta/THEDEMIAN_AURORA_V3_TWOCARS_MOBILE_PRIVATE.zip \
   --project native-godot
-# Instala solo después de revisar derechos y límites del hardware:
-python3 native-godot/tools/aurora_v3/stage_private_vehicles.py \
-  --pack /ruta/THEDEMIAN_AURORA_V3_TWOCARS_PRIVATE.zip \
+# Solo tras verificar los dos hashes y revisar los permisos:
+python3 native-godot/tools/aurora_v3/stage_mobile_vehicles.py \
+  --pack /ruta/THEDEMIAN_AURORA_V3_TWOCARS_MOBILE_PRIVATE.zip \
   --project native-godot --install
 godot --headless --editor --path native-godot --quit
 bash native-godot/tools/run_qa.sh
 ```
 
-El instalador validó en una carpeta temporal: 2/2 originales, 2 instalados en la primera llamada y 0 en la siguiente, sin reemplazar archivos distintos. Los modelos originales quedan excluidos de Git en `.gitignore`.
+En un proyecto temporal se validaron 2/2 SHA y copia 2/2; un segundo intento instaló 0 archivos (sin sobrescrituras). El ZIP, los originales y los manifiestos están separados en Biblioteca. `.gitignore` excluye tanto fuentes como derivados privados.
 
 ## Riesgos conocidos — NO declarar terminada esta función
 
