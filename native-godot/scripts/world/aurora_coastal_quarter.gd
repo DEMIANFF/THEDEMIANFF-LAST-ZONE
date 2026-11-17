@@ -230,9 +230,26 @@ func _roof_mesh(root: Node3D,w: float,d: float,ridge_height: float) -> void:
     var collider:=StaticBody3D.new()
     collider.name="WalkableRoofCollision"
     collider.collision_layer=3
-    var shape:=CollisionShape3D.new()
-    shape.shape=surface.create_trimesh_shape()
-    collider.add_child(shape)
+    # Two closed convex roof slabs replace a thin triangle-mesh collider.
+    # A single-sided trimesh can snag the operator at the ridge and eaves.
+    # The visual terracotta tiles remain decoration, never physics geometry.
+    for side in [-1.0,1.0]:
+        var half_width: float=w*.56
+        var half_depth: float=d*.55
+        var thickness: float=.22
+        var roof_points:=PackedVector3Array()
+        for z in [-half_depth,half_depth]:
+            for x in [0.0,half_width]:
+                var roof_x: float=side*x
+                var roof_y: float=mid-(x/half_width)*.95
+                roof_points.append(Vector3(roof_x,roof_y,z))
+                roof_points.append(Vector3(roof_x,roof_y-thickness,z))
+        var slab:=ConvexPolygonShape3D.new()
+        slab.points=roof_points
+        var shape:=CollisionShape3D.new()
+        shape.name="RoofSlopeSolid"+("Left" if side<0.0 else "Right")
+        shape.shape=slab
+        collider.add_child(shape)
     root.add_child(collider)
     collision_bodies+=1
     # Actual curved half-cylinder barrel tiles, GPU-instanced; not box roofs.
