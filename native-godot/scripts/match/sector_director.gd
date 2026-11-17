@@ -10,6 +10,7 @@ const LOOT = preload("res://scripts/match/aurora_loot.gd")
 const ZONE_VISUAL = preload("res://scripts/match/aurora_zone_visual.gd")
 const DROP_SEQUENCE = preload("res://scripts/match/airdrop_sequence.gd")
 const COMBAT_ROSTER=preload("res://scripts/combat/training_combat.gd")
+const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const INITIAL_RADIUS: float = 112.0
@@ -475,6 +476,16 @@ func _spawn_loot() -> void:
         _make_pickup(Vector2(42,-20),"weapon_scar","AuroraSCARPickup")
         _make_pickup(Vector2(30,9),"weapon_mp40","AuroraMP40Pickup")
         _make_pickup(Vector2(12,-13),"weapon_kriss","AuroraKRISSPickup")
+        # Optional V2 pickups have physical weapons, inventory and ballistics.
+        # Skip them until their CC-BY assets have actually been staged locally.
+        var optional_weapons: Array[String]=["weapon_hk416","weapon_p90","weapon_vss"]
+        var optional_spots: Array[Vector2]=[
+            Vector2(-18,34),Vector2(38,30),Vector2(-44,-42)]
+        for i in range(optional_weapons.size()):
+            var slot: int=WEAPONS.pickup_slot(optional_weapons[i])
+            if slot>=0 and ResourceLoader.exists(str(WEAPONS.ENTRIES[slot]["asset"])):
+                _make_pickup(optional_spots[i],optional_weapons[i],
+                    "AuroraV2Optional_"+str(WEAPONS.ENTRIES[slot]["short"]))
         _make_pickup(Vector2(-38,-12),"ammo_smg","AuroraSMGAmmoPickup")
         _make_pickup(Vector2(-24,-31),"syringe","AuroraSyringePickup")
         _make_pickup(Vector2(16,-13),"grenade","AuroraGrenadePickup")
