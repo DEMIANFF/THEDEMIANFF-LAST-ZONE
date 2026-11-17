@@ -1102,12 +1102,16 @@ func collect_sector_loot(kind: String,quantity: int=-1,
                 return false
             hud.impact(("%s NIVEL %d EQUIPADO")%[
                 "CASCO" if is_helmet else "CHALECO",level])
-        "backpack":
-            if backpack_level>=1:
+        "backpack", "backpack_2", "backpack_3":
+            # Historical "backpack" always means level 1. Higher levels
+            # upgrade, never downgrade or delete the existing ammo reserve.
+            var level: int=clampi(int(kind.get_slice("_",1))
+                if kind!="backpack" else 1,1,3)
+            if level<=backpack_level:
                 return false
-            backpack_level=1
+            backpack_level=level
             operator.set_backpack_visual_level(backpack_level)
-            hud.impact("MOCHILA EQUIPADA / MAYOR CAPACIDAD")
+            hud.impact("MOCHILA NIVEL %d EQUIPADA / MÁS MUNICIÓN"%level)
         "weapon_awm":
             if weapon_owned[1]:
                 return false
@@ -1179,16 +1183,28 @@ func _owns_smg() -> bool:
     return false
 
 
+## Inventories keep one reserve per caliber, not separate phantom
+## stockpiles for every matching gun. This pure helper is QA-testable.
+static func reserve_capacity_by_level(index: int,level: int) -> int:
+    var tier: int=clampi(level,0,3)
+    match WEAPONS.reserve_slot(index):
+        WEAPONS.AR:
+            return [AR_RESERVE_BASE,AR_RESERVE_BACKPACK,480,600][tier]
+        WEAPONS.AWM:
+            return [AWM_RESERVE_BASE,AWM_RESERVE_BACKPACK,75,90][tier]
+        WEAPONS.MP40:
+            return [90,180,240,300][tier]
+        WEAPONS.SHOTGUN:
+            return [48,72,96,120][tier]
+        WEAPONS.MAGNUM:
+            return [72,120,150,180][tier]
+        WEAPONS.KNIFE:
+            return 0
+    return 0
+
+
 func _reserve_limit(index: int) -> int:
-    if index==WEAPONS.MP40:
-        return 180 if backpack_level>0 else 90
-    if index==WEAPONS.SHOTGUN:
-        return 72 if backpack_level>0 else 48
-    if index==WEAPONS.MAGNUM:
-        return 120 if backpack_level>0 else 72
-    if index==WEAPONS.KNIFE:
-        return 0
-    return (AWM_RESERVE_BACKPACK if backpack_level>0 else AWM_RESERVE_BASE) if index==1 else (AR_RESERVE_BACKPACK if backpack_level>0 else AR_RESERVE_BASE)
+    return reserve_capacity_by_level(index,backpack_level)
 
 
 func inventory_snapshot() -> Dictionary:
