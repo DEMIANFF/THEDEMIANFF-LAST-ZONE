@@ -426,6 +426,25 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
     gable_visual.mesh=gables.commit()
     gable_visual.material_override=_plaster
     building.add_child(gable_visual)
+    # Close the same gaps in physics as well as in rendering. Without
+    # solid gables a falling character can pass through the visible wall.
+    var gable_body:=StaticBody3D.new()
+    gable_body.name="SealedVillaGableCollision"
+    gable_body.collision_layer=3
+    for z_side in [-1.0,1.0]:
+        var end_z: float=z_side*d*.5
+        var solid_points:=PackedVector3Array()
+        for z_offset in [-.18,.18]:
+            solid_points.append(Vector3(-w*.5,height,end_z+z_offset))
+            solid_points.append(Vector3(w*.5,height,end_z+z_offset))
+            solid_points.append(Vector3(0,height+.95,end_z+z_offset))
+        var solid:=ConvexPolygonShape3D.new()
+        solid.points=solid_points
+        var solid_node:=CollisionShape3D.new()
+        solid_node.name="FrontGableSolid" if z_side>0.0 else "RearGableSolid"
+        solid_node.shape=solid
+        gable_body.add_child(solid_node)
+    building.add_child(gable_body)
     # Continuous interior ceiling: do not depend on winding/culling of
     # sloped roof triangles to close the room when the camera looks up.
     _panel(building,"SealedVillaCeiling",Vector3(0,height-.12,0),
