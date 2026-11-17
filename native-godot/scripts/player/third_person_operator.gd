@@ -1172,7 +1172,9 @@ func begin_vehicle_ride(car: AuroraDriveableVehicle) -> bool:
     reset_controls()
     _vehicle_ride=car
     _vehicle_saved_collision_mask=collision_mask
-    collision_mask=0  # avoid capsule vs the car's own rigid chassis
+    collision_mask=0  # operator no longer moves by kinematic collisions
+    add_collision_exception_with(car)
+    car.add_collision_exception_with(self)
     velocity=Vector3.ZERO
     _yaw=car.rotation.y
     _desired_yaw=_yaw
@@ -1186,6 +1188,11 @@ func _advance_vehicle_rider(delta: float) -> void:
     if _vehicle_ride==null or not is_instance_valid(_vehicle_ride):
         return
     var car: AuroraDriveableVehicle=_vehicle_ride
+    # Ride simulation must not pause damage immunity, buffs or recoil timers.
+    _training_immunity=maxf(0.0,_training_immunity-delta)
+    tactical_acceleration_remaining=maxf(0.0,
+        tactical_acceleration_remaining-delta)
+    _recoil_pitch=move_toward(_recoil_pitch,0.0,delta*.32)
     global_position=car.to_global(Vector3(0,-.06,.18))
     rotation.y=car.global_rotation.y
     velocity=Vector3.ZERO
@@ -1201,7 +1208,7 @@ func _advance_vehicle_rider(delta: float) -> void:
         _camera.fov=lerpf(_camera.fov,77.0,1.0-exp(-delta*10.0))
         var distance: float=_collision_safe_camera_distance(6.0,.20)
         _camera.position.x=.20
-        _camera.position.z=maxf(1.1,distance)
+        _camera.position.z=clampf(distance,.18,6.0)
     # A source driving animation is still needed before a seated operator
     # can be rendered faithfully. Do not pose Lila as a standing gunner.
 
@@ -1217,6 +1224,8 @@ func force_vehicle_exit(at: Vector3=Vector3(INF,INF,INF)) -> void:
     _vehicle_ride=null
     collision_mask=_vehicle_saved_collision_mask
     if is_instance_valid(old):
+        remove_collision_exception_with(old)
+        old.remove_collision_exception_with(self)
         old.leave()
     if at.is_finite():
         global_position=at
