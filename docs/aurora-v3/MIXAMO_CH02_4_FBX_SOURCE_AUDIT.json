@@ -1,0 +1,55 @@
+{
+  "source_count": 4,
+  "matching_bone_names": 65,
+  "source_sha256_verified": true,
+  "installed": false,
+  "model_available_in_game": false,
+  "godot_animation_import_validated": false,
+  "files": [
+    {
+      "name": "Ch02_nonPBR.fbx",
+      "bytes": 50037840,
+      "sha256": "6a390659d923ebd1e80b6275490334d23cca593ec928db55669beeab81310e85",
+      "fbx_version": 7700,
+      "bone_count": 65,
+      "model_count": 71,
+      "curve_count": 315,
+      "animation_stacks": 2,
+      "animation_curve_nodes": 197
+    },
+    {
+      "name": "Jump.fbx",
+      "bytes": 50409472,
+      "sha256": "54ba333c8946d401bcfeba1c610522cc38e233f869012e1aa83d1ac5adf452c7",
+      "fbx_version": 7700,
+      "bone_count": 65,
+      "model_count": 71,
+      "curve_count": 315,
+      "animation_stacks": 2,
+      "animation_curve_nodes": 184
+    },
+    {
+      "name": "Start Walking.fbx",
+      "bytes": 50492992,
+      "sha256": "805643560b696a1929202a04a78d126dbc34b735e3296807104178f82b550ad0",
+      "fbx_version": 7700,
+      "bone_count": 65,
+      "model_count": 71,
+      "curve_count": 315,
+      "animation_stacks": 2,
+      "animation_curve_nodes": 184
+    },
+    {
+      "name": "Jogging.fbx",
+      "bytes": 50466080,
+      "sha256": "1f572e771f605c6cb14b2f8079403029dd0572c0eecdefba711f81134e224663",
+      "fbx_version": 7700,
+      "bone_count": 65,
+      "model_count": 71,
+      "curve_count": 315,
+      "animation_stacks": 2,
+      "animation_curve_nodes": 184
+    }
+  ],
+  "destination_if_installed": "/mnt/data/aurora_mixamo_work/native-godot/out/private_mixamo_sources"
+}
