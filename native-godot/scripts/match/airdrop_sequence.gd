@@ -4,6 +4,8 @@ extends Node3D
 signal touchdown
 signal aircraft_audio_changed(active: bool)
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
+# Optional original-source model. Never replace the working flight physics with GLB geometry.
+const C17_ASSET: String="res://assets/vehicles/user_pack/aurora_c17_mobile.glb"
 
 const FLIGHT_SECONDS: float=13.0
 const FLIGHT_ALTITUDE: float=97.0
@@ -312,7 +314,62 @@ func _build_craft() -> void:
                 center-normal*.055])
             _piece("AuroraPropeller%d_%d"%[sign,blade],blade_mesh,
                 Vector3.ZERO,Vector3.ZERO,stripe)
+    # The user-supplied C-17 is decorative only. If the verified, optimized
+    # GLB is not staged or has invalid geometry, retain the tested Aurora mesh.
+    _install_optional_aurora_c17()
     # Physical player and camera remain independent of decorative airplane.
+
+
+func _install_optional_aurora_c17() -> void:
+    if not ResourceLoader.exists(C17_ASSET, "PackedScene"):
+        return
+    var scene: PackedScene=load(C17_ASSET) as PackedScene
+    if scene==null:
+        push_warning("Aurora C17 import is not a valid PackedScene")
+        return
+    var visual: Node3D=scene.instantiate() as Node3D
+    if visual==null:
+        push_warning("Aurora C17 source has no usable Node3D root")
+        return
+    visual.name="AuroraC17UserVisual"
+    _craft.add_child(visual)
+    var minimum:=Vector3(INF,INF,INF)
+    var maximum:=Vector3(-INF,-INF,-INF)
+    var mesh_count: int=0
+    for item in visual.find_children("*","MeshInstance3D",true,false):
+        var part: MeshInstance3D=item as MeshInstance3D
+        if part.mesh==null:
+            continue
+        mesh_count+=1
+        var bounds: AABB=part.get_aabb()
+        for vertex in range(8):
+            var local_point: Vector3=visual.to_local(
+                part.to_global(bounds.get_endpoint(vertex)))
+            minimum=minimum.min(local_point)
+            maximum=maximum.max(local_point)
+    var extent: Vector3=maximum-minimum
+    if mesh_count==0 or not extent.is_finite() or (
+            maxf(extent.x,maxf(extent.y,extent.z))<.1):
+        visual.queue_free()
+        push_warning("Aurora C17 lacks finite visible geometry; fallback aircraft retained")
+        return
+    # The source C17's long fuselage is X; wing span is along Z.
+    # Render a ~12.5m aircraft without adopting the model's physics or root motion.
+    var fuselage_length: float=maxf(extent.x,extent.z)
+    var factor: float=clampf(12.5/fuselage_length,.05,1.0)
+    if extent.x>=extent.z:
+        visual.rotation.y=-PI*.5
+    visual.scale=Vector3.ONE*factor
+    var center: Vector3=(minimum+maximum)*.5
+    visual.position=-(visual.quaternion*center)*factor
+    # Keep old mesh nodes instantiated for compatibility with existing QA,
+    # but do not render two superimposed aircraft.
+    for item in _craft.get_children():
+        if item is MeshInstance3D:
+            (item as MeshInstance3D).visible=false
+    print("AURORA_C17_SOURCE_ACTIVE meshes=",mesh_count,
+        " normalized_length_m=",fuselage_length*factor,
+        " flight_physics_unchanged=1")
 
 
 func _loft_hull(profiles: Array[Vector3],segments: int) -> ArrayMesh:

@@ -1,0 +1,30 @@
+{
+  "package": "THEDEMIAN_AURORA_GEAR_FOUR_PRIVATE",
+  "distribution_approved": false,
+  "models": [
+    {
+      "name": "AuroraFirstAidPrivate.glb",
+      "staged_path": "native-godot/assets/gear/aurora_v3_private/AuroraFirstAidPrivate.glb",
+      "sha256": "6fc81a69f24bc43aa4c40e443fb7dd67c920b3292377b1a0720f68f7dca4420b",
+      "bytes": 563100
+    },
+    {
+      "name": "AuroraHelmetHeadsetPrivate.glb",
+      "staged_path": "native-godot/assets/gear/aurora_v3_private/AuroraHelmetHeadsetPrivate.glb",
+      "sha256": "9bea49e42fae3eff8cb445753db5571da1ff6f32f4fbca466309e996e9add4a4",
+      "bytes": 1456736
+    },
+    {
+      "name": "AuroraMilitaryBackpackPrivate.glb",
+      "staged_path": "native-godot/assets/gear/aurora_v3_private/AuroraMilitaryBackpackPrivate.glb",
+      "sha256": "e454e59766e480c7c0321ff92c1c675f3709fc3ebc0da610a17eee285cd923bb",
+      "bytes": 4008824
+    },
+    {
+      "name": "AuroraTacticalCarrierPrivate.glb",
+      "staged_path": "native-godot/assets/gear/aurora_v3_private/AuroraTacticalCarrierPrivate.glb",
+      "sha256": "e86ebdf7afe038289b7c10a84e3bf5fe26f6ad1636ea286208025806ce1d5b98",
+      "bytes": 390604
+    }
+  ]
+}

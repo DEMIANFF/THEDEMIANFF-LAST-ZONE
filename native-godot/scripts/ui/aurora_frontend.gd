@@ -13,6 +13,7 @@ const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.g
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
 const LOBBY_MOTION = preload("res://assets/animations/aurora_lobby_motion.tres")
 const LOBBY_MOTION_CLIP: StringName=&"aurora_lobby/Motion"
+const MALE_PREVIEW=preload("res://scripts/player/aurora_mixamo_male_preview.gd")
 const LOCAL_PLAYER_NAME=preload("res://scripts/persistence/local_player_name.gd")
 const FIREBASE_BRIDGE=preload("res://scripts/persistence/aurora_firebase_bridge.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
@@ -74,6 +75,8 @@ var _preview_zoomed: bool=false
 var _preview_frame_tween: Tween
 var _preview_turn_tween: Tween
 var _preview_skin_applied: String=""
+var _preview_male_active: bool=false
+var _preview_male_motion_index: int=0
 var _offline_records: RefCounted
 var _player_name: RefCounted
 var _name_entry: LineEdit
@@ -1018,8 +1021,9 @@ func _show_lobby() -> void:
     _preview_resume_spin=2.0
     if _preview_avatar:
         _preview_avatar.rotation.y=0.0
-        _apply_preview_skin(str(
-            _offline_records.cosmetic_state()["equipped"]))
+        if not _preview_male_active:
+            _apply_preview_skin(str(
+                _offline_records.cosmetic_state()["equipped"]))
     _clear_page()
     _lobby_section_title=_label("BATTLE ROYALE",30)
     _lobby_section_title.add_theme_font_override("font",DISPLAY_FONT)
@@ -1860,7 +1864,10 @@ func _select_tab(tab: String) -> void:
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot()
-            _info.text="LILA AURORA\nTraje táctico personalizable.\nCAMBIAR VISTA / GIRAR: controles táctiles bajo Lila.\nVISTA 3D: %s · sin compra ni equipamiento."%_shop_selected_skin.to_upper()
+            _info.text=(
+                "OPERADOR MASCULINO / VISTA 3D\nModelo Ch02 original con CAMINAR, TROTAR y SALTAR.\nCombate masculino pendiente de clips de disparo/recarga."
+                if _preview_male_active else
+                "LILA AURORA\nTraje táctico personalizable.\nCAMBIAR VISTA / GIRAR: controles táctiles bajo Lila.\nVISTA 3D: %s · sin compra ni equipamiento."%_shop_selected_skin.to_upper())
             _info.text+="\nPARTIDAS %d  •  VICTORIAS %d  •  BAJAS %d"%[int(stats.get("played",0)),int(stats.get("wins",0)),int(stats.get("kills",0))]
             _info.text+="\nRÉCORD %d BAJAS  •  %d S VIVO"%[int(stats.get("best_kills",0)),int(stats.get("longest_survival_seconds",0))]
             var measured: Dictionary=PERFORMANCE.latest()
@@ -1923,7 +1930,7 @@ func _select_tab(tab: String) -> void:
 
 func _apply_preview_skin(skin: String) -> void:
     if stage!="lobby" or _preview_avatar==null or not (
-            is_instance_valid(_preview_avatar)) or (
+            is_instance_valid(_preview_avatar)) or _preview_male_active or (
             _preview_skin_applied==skin):
         return
     if COSMETICS.apply_to_operator(_preview_avatar,skin):
@@ -2162,6 +2169,8 @@ func _activate_game(battle: bool,serial: int) -> void:
             # The editor acts on the REAL TrainingHUD. It opens after
             # Main._ready and the old 3D lobby viewport have been released.
             hud.call_deferred("open_hud_editor")
+        else:
+            _game.get_node("CombatRange").open_training_armory()
     # This confirmation is written after a visible 3D frame, not after
     # merely enqueuing the world. A missing confirmation is not a GPU proof.
     # Headless QA never submits drawable frames; a stale one-shot callback
@@ -2231,6 +2240,8 @@ func _release_preview() -> void:
     _gesture_button=null
     _preview_zoomed=false
     _preview_skin_applied=""
+    _preview_male_active=false
+    _preview_male_motion_index=0
     if _preview_caption!=null and is_instance_valid(_preview_caption):
         _preview_caption.queue_free()
     _preview_container=null
@@ -2239,6 +2250,69 @@ func _release_preview() -> void:
     _preview_touch=-1
     _preview_mouse_drag=false
     _preview_resume_spin=0.0
+
+
+## An actual optional FBX-derived GLB in the existing live 3D viewport.
+## Lila remains the combat operator until the male receives authored gun
+## firing, reload and medical animations; never silently enable a T-pose BR.
+func _toggle_mixamo_preview() -> void:
+    if stage!="lobby" or _preview_container==null:
+        return
+    var scene3d: Node3D=_preview_container.get_node_or_null(
+        "PreviewViewport/AuroraCharacterStage") as Node3D
+    if scene3d==null:
+        return
+    var next_male: bool=not _preview_male_active
+    var incoming: Node3D=null
+    if next_male:
+        incoming=MALE_PREVIEW.instantiate_valid_preview()
+        if incoming==null:
+            if _info:
+                _info.text="Modelo Ch02 no importado o clips de locomoción incompletos."
+            return
+        incoming.name="AuroraMaleMixamoPreview"
+    else:
+        var path: String="res://assets/characters/lila_aurora.glb"
+        if ResourceLoader.exists(path,"PackedScene"):
+            var scene: PackedScene=load(path) as PackedScene
+            if scene:
+                incoming=scene.instantiate() as Node3D
+        if incoming==null:
+            return
+        incoming.name="LilaAuroraPreview"
+    if _preview_avatar!=null and is_instance_valid(_preview_avatar):
+        _preview_avatar.visible=false
+        _preview_avatar.queue_free()
+    scene3d.add_child(incoming)
+    _preview_avatar=incoming
+    _preview_male_active=next_male
+    _preview_male_motion_index=0
+    _preview_resume_spin=2.0
+    _preview_skin_applied=""
+    _fit_avatar_for_preview(incoming)
+    for node in incoming.find_children("*","MeshInstance3D",true,false):
+        (node as MeshInstance3D).layers|=PORTRAIT_LIGHT_LAYER
+    if next_male:
+        MALE_PREVIEW.play_original_motion(incoming,"AuroraArmedWalk")
+    else:
+        var player: AnimationPlayer=incoming.find_child(
+            "*AnimationPlayer*",true,false) as AnimationPlayer
+        if player and player.has_animation("AuroraIdle"):
+            player.play("AuroraIdle")
+            _install_lobby_motion(player)
+        if _offline_records:
+            _apply_preview_skin(str(
+                _offline_records.cosmetic_state()["equipped"]))
+    if _preview_caption:
+        _preview_caption.text=("CH02 MIXAMO / VISTA PREVIA"
+            if next_male else "LILA AURORA / OPERADORA")
+    if _gesture_button:
+        _gesture_button.text=("MOVIMIENTO ▶" if next_male else "GESTO ▶")
+    for button in _operator_controls:
+        if is_instance_valid(button) and button.name=="AuroraMalePreviewSelector":
+            button.text=("LILA" if next_male else "CH02")
+    if _selected_tab=="PERSONAJE":
+        _select_tab("PERSONAJE")
 
 
 func _rotate_operator(step: float) -> void:
@@ -2283,9 +2357,31 @@ func _toggle_operator_frame() -> void:
         camera,"position",target_position,.25)
 
 
+func _on_mixamo_preview_motion_finished(_clip: StringName) -> void:
+    if _preview_male_active and _preview_avatar!=null and (
+            is_instance_valid(_preview_avatar)):
+        MALE_PREVIEW.play_original_motion(_preview_avatar,"AuroraArmedWalk")
+
+
 func _play_lobby_gesture() -> void:
     if stage!="lobby" or _preview_avatar==null or not is_instance_valid(
             _preview_avatar):
+        return
+    if _preview_male_active:
+        _preview_male_motion_index=(_preview_male_motion_index+1)%3
+        var clip: String=[
+            "AuroraArmedWalk","AuroraArmedRun","AuroraJump"
+        ][_preview_male_motion_index]
+        var subject: Node3D=_preview_avatar
+        if MALE_PREVIEW.play_original_motion(subject,clip):
+            _preview_resume_spin=3.0
+            if clip=="AuroraJump":
+                var source_player: AnimationPlayer=subject.find_child(
+                    "*AnimationPlayer*",true,false) as AnimationPlayer
+                if source_player:
+                    source_player.animation_finished.connect(
+                        Callable(self,"_on_mixamo_preview_motion_finished"),
+                        CONNECT_ONE_SHOT)
         return
     var animator:=_preview_avatar.find_child(
         "AnimationPlayer",true,false) as AnimationPlayer
@@ -2518,6 +2614,23 @@ func _build_preview() -> void:
         action.visible=false
         _surface.add_child(action)
         _operator_controls.append(action)
+    if MALE_PREVIEW.source_available():
+        # Private-source male selector occupies the gap between rotate/frame
+        # and gesture. It is absent from APKs without a checked male GLB.
+        var male_button: Button=_button("CH02",
+            Callable(self,"_toggle_mixamo_preview"),0)
+        male_button.name="AuroraMalePreviewSelector"
+        male_button.anchor_left=.465
+        male_button.anchor_right=.551
+        male_button.anchor_top=.700
+        male_button.anchor_bottom=.804
+        male_button.add_theme_font_size_override("font_size",16)
+        male_button.tooltip_text="Vista previa del operador masculino. No habilita combate."
+        male_button.accessibility_name=male_button.tooltip_text
+        _style_aurora_tab(male_button,Color(.53,.77,.93))
+        male_button.visible=false
+        _surface.add_child(male_button)
+        _operator_controls.append(male_button)
 
 
 func _fit_avatar_for_preview(visual: Node3D) -> void:

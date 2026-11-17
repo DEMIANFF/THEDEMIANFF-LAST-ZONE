@@ -45,7 +45,23 @@ func _verify() -> void:
     await physics_frame
 
     expect(combat.active_fighter_count()==50,"50-fighter roster or player spawn changed")
-    expect(director.get_loot_remaining()==37,"classic BR did not spawn its original and added supplies")
+    # 37 original public-sector/indoor pickups + two real level-2/3
+    # backpack upgrades. Additional privately staged V2/V3 models add
+    # physical loot only when their actual imported GLBs exist.
+    var expected_loot: int=39
+    for index in range(CATALOG.HK416,CATALOG.ENTRIES.size()):
+        var source: String=str(CATALOG.ENTRIES[index]["asset"])
+        if ResourceLoader.exists(source,"PackedScene"):
+            expected_loot+=1
+    if ResourceLoader.exists(str(CATALOG.ENTRIES[CATALOG.SHOTGUN]["asset"]),"PackedScene"):
+        expected_loot+=1  # real shells near the shotgun
+    if ResourceLoader.exists(str(CATALOG.ENTRIES[CATALOG.MAGNUM]["asset"]),"PackedScene"):
+        expected_loot+=1  # real pistol rounds near the Magnum
+    expect(director.get_loot_remaining()==expected_loot,
+        "classic BR world loot does not match the actual staged arsenal and 3 backpack tiers")
+    expect(director.get_node_or_null("AuroraTacticalPackLevel2") is Area3D and
+        director.get_node_or_null("AuroraTacticalPackLevel3") is Area3D,
+        "real world backpack upgrade items are absent")
     expect(not combat.inventory_snapshot()["additions"].has(CATALOG.MP40),"MP40 was granted before pickup")
     var got_mp40: bool=collect(director,player,"AuroraMP40Pickup")
     var got_scar: bool=collect(director,player,"AuroraSCARPickup")

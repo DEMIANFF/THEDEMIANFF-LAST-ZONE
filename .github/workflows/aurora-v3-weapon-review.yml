@@ -1,0 +1,61 @@
+name: Aurora V3 weapon anchors and close visual review
+on:
+  push:
+    branches: [codex/v75-118-aurora-v3-resource-integration]
+    paths:
+      - 'native-godot/scripts/combat/weapon_visuals.gd'
+      - 'native-godot/scripts/combat/weapon_support_ik.gd'
+      - 'native-godot/scripts/match/aurora_loot.gd'
+      - 'native-godot/scripts/qa/capture_aurora_v3_weapons.gd'
+      - 'native-godot/scripts/qa/v75118_weapon_anchor_qa.gd'
+      - 'native-godot/tools/build_awm.py'
+      - 'native-godot/tools/weapon_contact_sheet.py'
+      - '.github/workflows/aurora-v3-weapon-review.yml'
+permissions:
+  contents: read
+concurrency:
+  group: aurora-v3-weapons-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  weapon-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare desktop tools and existing project assets
+        id: prepare
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq blender python3-numpy python3-pil xvfb libgl1-mesa-dri > /tmp/aurora-tools.log
+          bash native-godot/tools/prepare_assets.sh /tmp/aurora-operator
+          curl -fL --retry 3 https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/aurora-godot.zip
+          unzip -q /tmp/aurora-godot.zip -d /tmp
+          sudo install -m 0755 /tmp/Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot
+          godot --headless --path native-godot --editor --quit
+      - name: Check physical geometry and weapon anchors
+        run: |
+          mkdir -p native-godot/out/qa
+          export XDG_DATA_HOME="$(mktemp -d)"
+          for test in v75118_weapon_anchor_qa weapon_visual_qa v75103_aurora_v3_qa; do
+            status=0
+            godot --headless --path native-godot --script "res://scripts/qa/$test.gd" > "native-godot/out/qa/$test.log" 2>&1 || status=$?
+            if [ "$status" -ne 0 ]; then cat "native-godot/out/qa/$test.log"; exit "$status"; fi
+            if grep -E 'SCRIPT ERROR:|ERROR:' "native-godot/out/qa/$test.log"; then exit 1; fi
+            grep -E 'PASS|AURORA_ANCHOR_MEASURE|AURORA_SUPPORT_MEASURE|AURORA_SUPPORT_GEOMETRY' "native-godot/out/qa/$test.log"
+          done
+      - name: Render real gameplay poses for visual acceptance
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+        run: |
+          export XDG_DATA_HOME="$(mktemp -d)"
+          xvfb-run -a -s "-screen 0 960x640x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --resolution 960x640 --script res://scripts/qa/capture_aurora_v3_weapons.gd > native-godot/out/qa/capture.log 2>&1
+          if grep -E 'SCRIPT ERROR:|ERROR:' native-godot/out/qa/capture.log; then exit 1; fi
+          grep -E 'PASS|AURORA_POSES_JSON' native-godot/out/qa/capture.log
+          python3 native-godot/tools/weapon_contact_sheet.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: AURORA-V3-WEAPON-REVIEW-${{ github.sha }}
+          path: |
+            native-godot/out/qa/
+            native-godot/out/aurora-v3-weapons/
+          retention-days: 30

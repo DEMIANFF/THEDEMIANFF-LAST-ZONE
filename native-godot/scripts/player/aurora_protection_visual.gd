@@ -1,5 +1,6 @@
 extends Node3D
 
+const PRIVATE_GEAR=preload("res://scripts/player/aurora_private_equipment.gd")
 const HELMET = preload("res://assets/gear/aurora_v3/AuroraHelmet.glb")
 const PLATE_CARRIER = preload("res://assets/gear/aurora_v3/AuroraPlateCarrier.glb")
 const HEAVY_VEST = preload("res://assets/gear/aurora_v3/AuroraHeavyVest.glb")
@@ -8,6 +9,8 @@ const LEVEL_COLORS: Array[Color]=[Color("738178"),Color("4d666c"),Color("414b60"
 var _helmet: MeshInstance3D
 var _plate_carrier: MeshInstance3D
 var _heavy_vest: MeshInstance3D
+var _original_helmet: Node3D
+var _original_vest: Node3D
 
 
 func attach(rig: Node3D) -> void:
@@ -23,6 +26,16 @@ func attach(rig: Node3D) -> void:
     _helmet=_piece(helmet_mount,HELMET)
     _plate_carrier=_piece(vest_mount,PLATE_CARRIER,90)
     _heavy_vest=_piece(vest_mount,HEAVY_VEST)
+    # User-supplied equipment appears only in locally staged/rights-cleared
+    # test scenes. All original Aurora fallback models remain operational.
+    _original_helmet=PRIVATE_GEAR.mount_optional(helmet_mount,
+        PRIVATE_GEAR.HELMET,.34,Vector3(0,.11,0),Vector3(0,PI*.5,0))
+    _original_vest=PRIVATE_GEAR.mount_optional(vest_mount,
+        PRIVATE_GEAR.VEST,.65,Vector3(0,-.06,.08),Vector3(0,PI,0))
+    if _original_helmet:
+        _original_helmet.hide()
+    if _original_vest:
+        _original_vest.hide()
 
 
 func _mount(skeleton: Skeleton3D,bone: String,socket_name: String,offset: Vector3) -> Node3D:
@@ -60,6 +73,13 @@ func apply_levels(helmet: int,vest: int) -> void:
     _show_level(_helmet,helmet)
     _show_level(_plate_carrier,vest if vest<3 else 0)
     _show_level(_heavy_vest,vest if vest==3 else 0)
+    if _original_helmet:
+        _helmet.hide()
+        _original_helmet.visible=helmet>0
+    if _original_vest:
+        _plate_carrier.hide()
+        _heavy_vest.hide()
+        _original_vest.visible=vest>0
 
 
 func _show_level(piece: MeshInstance3D,level: int) -> void:

@@ -1,0 +1,23 @@
+{
+  "name": "aurora_scar_animated_private.glb",
+  "sha256": "799289d31fd6d55f64425f28367465e155aed36a0f2f2aae1fa4e22fd99b29e6",
+  "bytes": 16067644,
+  "source_sha256": "d32f15d810ce1e0639ff6a833dd03299cc01cc3f4eb55e660293e04b0dc15267",
+  "license_declared": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+  "source": "https://sketchfab.com/3d-models/animated-scar-5e64d6245bba4a819b9fef578c34b3fe",
+  "author": "JUST (https://sketchfab.com/teenjust500)",
+  "source_clips": [
+    "Akito Rig|Idle",
+    "Akito Rig|Reload",
+    "Akito Rig|Shoot",
+    "Akito Rig|Take"
+  ],
+  "source_skins": 1,
+  "fps_hand_nodes_detached": [
+    129,
+    131
+  ],
+  "rig_preserved": true,
+  "qa_android": false,
+  "distribution_clearance_final": false
+}

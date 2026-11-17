@@ -8,7 +8,7 @@ import bpy
 import math
 import sys
 from pathlib import Path
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 out=Path(sys.argv[sys.argv.index("--")+1])
 out.parent.mkdir(parents=True,exist_ok=True)
@@ -142,6 +142,23 @@ for o in objects:
     if o.data.polygons:
         for p in o.data.polygons:
             p.use_smooth=o.name.startswith(("Fluted","Variable sniper","Muzzle","Objective"))
+# Geometry above is authored in game coordinates (+Y up, -Z barrel).
+# Convert that frame to Blender's +Z-up BEFORE the glTF exporter's own
+# axis conversion. The previous export produced a -Y barrel and the
+# runtime guessed the opposite sign, flipping the rifle upside down.
+game_to_blender=Matrix.Rotation(math.pi*.5,4,"X")
+for obj in objects:
+    obj.matrix_world=game_to_blender @ obj.matrix_world
+for name, point in {
+    "Grip": (0,-.17,.034),
+    "SupportGrip": (0,-.04,-.29),
+    "Muzzle": (0,.018,-1.32),
+    "Sight": (0,.195,-.03),
+}.items():
+    anchor=bpy.data.objects.new(name,None)
+    bpy.context.collection.objects.link(anchor)
+    anchor.location=game_to_blender @ Vector(point)
+
 bpy.ops.export_scene.gltf(filepath=str(out),export_format="GLB",export_apply=False,
     export_animations=False,export_image_format='JPEG')
 print("AURORA_AWM_GLTF_EXPORTED",out,out.stat().st_size,"mesh_parts",len(objects))

@@ -1,6 +1,8 @@
 extends Area3D
 ## Touchable actual 3D ammo/medkit cache. Triggered by CharacterBody3D proximity.
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
+const PRIVATE_GEAR=preload("res://scripts/player/aurora_private_equipment.gd")
 
 var pickup_type: String = "ammo_ar"
 var player: CharacterBody3D
@@ -57,7 +59,8 @@ func _ready() -> void:
         "ammo_ar": material.albedo_color=Color(.89,.66,.21)
         "cover_charge": material.albedo_color=Color(.26,.71,.97)
         "armor_plate": material.albedo_color=Color(.32,.84,.52)
-        "backpack": material.albedo_color=Color(.93,.51,.23)
+        "backpack", "backpack_2", "backpack_3":
+            material.albedo_color=Color(.93,.51,.23)
         "weapon_awm": material.albedo_color=Color(.98,.34,.40)
         _: material.albedo_color=Color(.56,.43,.95)
     material.emission_enabled=true
@@ -65,6 +68,27 @@ func _ready() -> void:
     material.emission_energy_multiplier=.55
     item.material_override=material
     _visual.add_child(item)
+    var source_gear: String=""
+    var source_scale: float=.48
+    match pickup_type:
+        "medkit":
+            source_gear=PRIVATE_GEAR.MEDKIT
+            source_scale=.38
+        "backpack", "backpack_2", "backpack_3":
+            source_gear=PRIVATE_GEAR.BACKPACK
+            source_scale=.56
+        "vest_1","vest_2","vest_3":
+            source_gear=PRIVATE_GEAR.VEST
+            source_scale=.62
+        "helmet_1","helmet_2","helmet_3":
+            source_gear=PRIVATE_GEAR.HELMET
+            source_scale=.34
+    if not source_gear.is_empty():
+        var original: Node3D=PRIVATE_GEAR.mount_optional(_visual,source_gear,
+            source_scale,Vector3.ZERO)
+        if original:
+            original.name="OriginalAuroraGearPickup"
+            item.hide()
     if pickup_type=="weapon_awm":
         # Use the actual authored sniper GLB, not a decorative placeholder.
         item.visible=not _add_ground_weapon_visual()
@@ -75,8 +99,9 @@ func _ready() -> void:
             var scene:=load(path) as PackedScene
             if scene:
                 var weapon:=scene.instantiate() as Node3D
-                weapon.position.y=.12
                 _visual.add_child(weapon)
+                WEAPON_VISUALS.calibrate_expansion(weapon,slot)
+                weapon.position.y+=.12
                 item.hide()
     var ring:=MeshInstance3D.new()
     ring.name="SupplyBeacon"
@@ -98,10 +123,15 @@ func _ready() -> void:
         "ammo_ar": floating_name.text="MUNICION AR"
         "cover_charge": floating_name.text="BARRERA +1"
         "armor_plate": floating_name.text="CHALECO AURORA"
-        "backpack": floating_name.text="MOCHILA TACTICA"
+        "backpack", "backpack_2", "backpack_3":
+            floating_name.text="MOCHILA TÁCTICA NV. "+(
+                "1" if pickup_type=="backpack" else pickup_type.get_slice("_",1))
         "weapon_awm": floating_name.text="RECOGER AWM"
         "ammo_smg": floating_name.text="MUNICIÓN SMG"
-        "weapon_scar", "weapon_mp40", "weapon_kriss": floating_name.text="RECOGER "+str(WEAPONS.ENTRIES[slot]["short"])
+        "weapon_scar", "weapon_mp40", "weapon_kriss", "weapon_hk416", "weapon_p90", "weapon_vss", "weapon_mp5", "weapon_shotgun", "weapon_magnum", "weapon_knife", "weapon_sniper":
+            floating_name.text="RECOGER "+str(WEAPONS.ENTRIES[slot]["short"])
+        "ammo_shells": floating_name.text="CARTUCHOS ESCOPETA"
+        "ammo_pistol": floating_name.text="MUNICIÓN PISTOLA"
         "vest_1", "vest_2", "vest_3": floating_name.text="CHALECO NV. "+pickup_type.get_slice("_",1)
         "helmet_1", "helmet_2", "helmet_3": floating_name.text="CASCO NV. "+pickup_type.get_slice("_",1)
         _: floating_name.text="MUNICION AWM"

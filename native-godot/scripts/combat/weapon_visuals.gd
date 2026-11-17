@@ -5,6 +5,10 @@ extends Node3D
 
 const AK_PATH: String="res://assets/weapons/ak74-tactical.glb"
 const AWM_PATH: String="res://assets/weapons/aurora_awm.glb"
+# Source-faithful SCAR option: retains the real rig and animations, unlike
+# the static mobile derivative. Private staging only, fallback never removed.
+const SCAR_ANIMATED_SOURCE: String="res://assets/weapons/aurora_v3_sources/aurora_scar_animated_private.glb"
+const SUPPORT_IK=preload("res://scripts/combat/weapon_support_ik.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 
 var operator: CharacterBody3D
@@ -25,10 +29,15 @@ var equipped_visual_scale: float=1.0
 var attachment_uses_hand: bool=false
 var _expansion: Dictionary={}
 var _expansion_holsters: Dictionary={}
+var _source_animation_players: Dictionary={}
 var _mp40_magazine: Node3D
 var _mp40_charging_handle: Node3D
 var _magazine_rest: Transform3D
 var _charging_rest: Vector3
+var _skeleton: Skeleton3D
+var _right_hand_id: int=-1
+var _support_ik: SkeletonModifier3D
+var _support_anchors: Dictionary={}
 
 
 func attach_to_player(player: CharacterBody3D) -> void:
@@ -48,6 +57,8 @@ func attach_to_player(player: CharacterBody3D) -> void:
     mount=Node3D.new()
     mount.name="WeaponMount"
     if skeleton and right_hand_id>=0:
+        _skeleton=skeleton
+        _right_hand_id=right_hand_id
         right_hand_socket=BoneAttachment3D.new()
         right_hand_socket.name="RightHandWeaponSocket"
         right_hand_socket.bone_name=skeleton.get_bone_name(right_hand_id)
@@ -121,6 +132,15 @@ func attach_to_player(player: CharacterBody3D) -> void:
         back_awm=_load_visual(AWM_PATH,"AWMBackHolsterVisual",back_mount)
     set_awm_owned(false)
     equip(0)
+    # The mount follows the solved wrist in world space; a later bone update
+    # must not apply its transform a second time to the already aligned gun.
+    mount.top_level=attachment_uses_hand
+    if skeleton and support_socket:
+        _support_ik=SUPPORT_IK.new()
+        _support_ik.name="WeaponSupportArm"
+        _support_ik.weapons=self
+        skeleton.add_child(_support_ik)
+        _support_ik.bind_chain()
 
 
 func _load_visual(path: String, display_name: String,
@@ -163,6 +183,18 @@ func _load_visual(path: String, display_name: String,
     var desired_origin:=Vector3(0,.03,-.25 if display_name.begins_with("AK") else -.39)
     visual.scale=Vector3.ONE*factor
     visual.position=desired_origin-(visual.quaternion*optical_center)*factor
+    # Authored anchors take precedence over an estimated optical center.
+    # The AWM now exports its real pistol grip in canonical game axes.
+    var grip:=visual.find_child("Grip",true,false) as Node3D
+    if grip:
+        visual.position-=holder.to_local(grip.global_position)
+    if display_name.begins_with("AK"):
+        var support:=Node3D.new()
+        # Rear part of the handguard, ahead of the magazine: this is a
+        # usable close support hold for Lila\'s measured 46 cm arm reach.
+        support.name="SupportGrip"
+        visual.add_child(support)
+        support.global_position=holder.to_global(Vector3(0,.025,-.25))
     print("AURORA_WEAPON_VISUAL ",display_name,
         " mesh_length_m=",desired_length," imported_bounds=",extent)
     return visual
@@ -177,7 +209,7 @@ func _process(_delta: float) -> void:
     _align_mount_to_sight()
 
 
-func _align_mount_to_sight() -> void:
+func _align_mount_to_sight(from_modifier: bool=false) -> void:
     if not attachment_uses_hand or not is_instance_valid(operator) or right_hand_socket==null:
         return
     # Keep the rifle physically aligned with Lila's torso/hands during
@@ -191,7 +223,9 @@ func _align_mount_to_sight() -> void:
     if not forward.is_finite() or forward.length_squared()<0.9:
         return
     var basis: Basis=Basis.looking_at(forward.normalized(),Vector3.UP)
-    var grip_world: Vector3=right_hand_socket.global_position
+    var grip_world: Vector3=(_skeleton.to_global(
+        _skeleton.get_bone_global_pose(_right_hand_id).origin)
+        if from_modifier and _skeleton and _right_hand_id>=0 else right_hand_socket.global_position)
     mount.global_transform=Transform3D(basis,
         grip_world+basis*Vector3(.015,-.027,-.02))
 
@@ -212,18 +246,55 @@ func add_expansion(slot: int) -> bool:
     if _expansion.has(slot):
         return true
     var path: String=WEAPONS.ENTRIES[slot]["asset"]
+    var animated_scar: bool=slot==WEAPONS.SCAR and ResourceLoader.exists(
+        SCAR_ANIMATED_SOURCE,"PackedScene")
+    if animated_scar:
+        path=SCAR_ANIMATED_SOURCE
     if not ResourceLoader.exists(path):
         return false
     var scene:=load(path) as PackedScene
     if scene==null:
         return false
     var carried:=scene.instantiate() as Node3D
+    if carried==null:
+        return false
+    carried.name="AuroraAnimatedScar" if animated_scar else "AuroraWeapon_"+str(slot)
     mount.add_child(carried)
+    calibrate_expansion(carried,slot)
+    # An import can exist but contain invalid or empty meshes: never grant
+    # an invisible weapon as if its visual passed inspection.
+    if not carried.visible:
+        carried.queue_free()
+        return false
     _expansion[slot]=carried
+    if animated_scar or slot>=WEAPONS.MP5:
+        var source_anim: AnimationPlayer=carried.find_child(
+            "*AnimationPlayer*",true,false) as AnimationPlayer
+        if source_anim:
+            _source_animation_players[slot]=source_anim
+            # A native source reload, shot or equip must return to its authored
+            # resting pose, rather than leaving the original rig frozen.
+            source_anim.animation_finished.connect(func(clip: StringName) -> void:
+                if not str(clip).to_lower().contains("idle") and is_instance_valid(source_anim) and (
+                        _source_animation_players.get(slot)==source_anim):
+                    play_source_action(slot,"idle"))
+            play_source_action(slot,"idle")
+        else:
+            push_warning("SCAR original GLB has no imported AnimationPlayer")
     if back_mount:
         var holstered:=scene.instantiate() as Node3D
-        back_mount.add_child(holstered)
-        _expansion_holsters[slot]=holstered
+        if holstered:
+            # Apply exactly the same source-unit normalization to the spine
+            # attachment. Otherwise the privately staged animated SCAR can
+            # appear 10x larger on the back than in Lila's right hand.
+            holstered.name="AuroraAnimatedScar" if animated_scar else "AuroraBackWeapon_"+str(slot)
+            back_mount.add_child(holstered)
+            calibrate_expansion(holstered,slot)
+            var passive: AnimationPlayer=holstered.find_child(
+                "*AnimationPlayer*",true,false) as AnimationPlayer
+            if passive:
+                passive.stop()
+            _expansion_holsters[slot]=holstered
     if slot==WEAPONS.MP40:
         _mp40_magazine=carried.find_child("Magazine",true,false) as Node3D
         _mp40_charging_handle=carried.find_child("ChargingHandle",true,false) as Node3D
@@ -235,11 +306,133 @@ func add_expansion(slot: int) -> bool:
     return true
 
 
+static func calibrate_expansion(visual: Node3D,slot: int) -> void:
+    if slot>=WEAPONS.HK416 or (slot==WEAPONS.SCAR and
+            visual.name=="AuroraAnimatedScar"):
+        # User GLBs have very different units (HK416 ~86, P90 ~1235,
+        # VSS ~0.9). Calibrate geometry in holder coordinates, not by name.
+        # An imported GLB is never a valid mounted rifle at raw source scale.
+        var low:=Vector3(INF,INF,INF)
+        var high:=Vector3(-INF,-INF,-INF)
+        var count: int=0
+        for element in visual.find_children("*","MeshInstance3D",true,false):
+            var part: MeshInstance3D=element as MeshInstance3D
+            if part.mesh==null:
+                continue
+            count+=1
+            var bound: AABB=part.get_aabb()
+            for point in range(8):
+                var local: Vector3=visual.to_local(
+                    part.to_global(bound.get_endpoint(point)))
+                low=low.min(local)
+                high=high.max(local)
+        var extents: Vector3=high-low
+        var length: float=maxf(extents.x,maxf(extents.y,extents.z))
+        if count==0 or not extents.is_finite() or not is_finite(length) or length<.0001:
+            visual.hide()
+            push_error("Optional gun GLB has no usable mesh geometry: "+visual.name)
+            return
+        # Source long-axis to canonical forward (-Z), without mirroring.
+        if extents.x>=extents.y and extents.x>=extents.z:
+            visual.rotation.y=PI*.5
+        elif extents.y>=extents.z:
+            visual.rotation.x=-PI*.5
+        var target_length: float=(
+            .38 if slot==WEAPONS.KNIFE else
+            .54 if slot==WEAPONS.MAGNUM else
+            .76 if slot==WEAPONS.P90 else
+            .84 if slot==WEAPONS.MP5 else
+            1.38 if slot==WEAPONS.SNIPER else
+            1.15 if slot==WEAPONS.SHOTGUN else
+            1.05 if slot==WEAPONS.VSS else 1.10)
+        var factor: float=clampf(target_length/length,.00001,100.0)
+        var center: Vector3=low+extents*.5
+        var grip_location:=Vector3(0,.01,-.20)
+        visual.scale=Vector3.ONE*factor
+        visual.position=grip_location-(visual.quaternion*center)*factor
+        var holder: Node3D=visual.get_parent() as Node3D
+        # A knife or revolver should NOT force Lila's left hand into a
+        # nonexistent foregrip. Keep her weapon-specific upper body free.
+        if slot!=WEAPONS.KNIFE and slot!=WEAPONS.MAGNUM:
+            var support:=Node3D.new()
+            support.name="SupportGrip"
+            visual.add_child(support)
+            if holder:
+                support.global_position=holder.to_global(Vector3(0,.015,-.36))
+        # A real scene muzzle attachment is needed for geometry-based bullets.
+        # This approximation is tested against the displayed mesh and kept
+        # separate from the user's original GLB (no destructive asset edits).
+        if visual.find_child("Muzzle",true,false)==null:
+            var muzzle:=Node3D.new()
+            muzzle.name="Muzzle"
+            visual.add_child(muzzle)
+            if holder:
+                muzzle.global_position=holder.to_global(Vector3(0,.03,
+                    -.70 if slot!=WEAPONS.P90 else -.52))
+        print("AURORA_OPTIONAL_GUN ",slot," source_bounds=",extents,
+            " target_length=",target_length)
+        return
+    if slot!=WEAPONS.SCAR:
+        var front:=Node3D.new()
+        front.name="SupportGrip"
+        visual.add_child(front)
+        front.position=(Vector3(0,.025,-.22) if slot==WEAPONS.MP40 else
+            Vector3(0,.015,-.18))
+        return
+    # Measured from the existing V3 GLB POSITION accessors. Its rifle is
+    # along +Y at Z=1.63..1.89, while the old empty markers described an
+    # unrelated origin. Normalize the EXISTING derivative, without changing
+    # source bytes or pretending its discarded FPS clips were retargeted.
+    visual.rotation_degrees.x=-90.0
+    visual.position=Vector3(0,-1.72,-1.49)
+    var grip:=visual.find_child("Grip",true,false) as Node3D
+    var muzzle:=visual.find_child("Muzzle",true,false) as Node3D
+    if grip:
+        grip.position=Vector3(0,-1.49,1.72)
+    if muzzle:
+        muzzle.position=Vector3(.0014,-.7864,1.7956)
+    var support:=Node3D.new()
+    support.name="SupportGrip"
+    visual.add_child(support)
+    support.position=Vector3(0,-1.26,1.77)
+
+
+## Play the genuine imported weapon action on its own source skeleton.
+## Lila's independently rigged upper body remains driven by operator_animation.
+## Clips are never faked when the licensed source has not been staged.
+func play_source_action(slot: int,kind: String) -> bool:
+    var animator: AnimationPlayer=_source_animation_players.get(slot) as AnimationPlayer
+    if animator==null or not is_instance_valid(animator):
+        return false
+    var keyword: String=""
+    match kind:
+        "fire": keyword="fire1" if slot==WEAPONS.KNIFE else (
+            "shot" if slot==WEAPONS.SNIPER else "shoot")
+        "reload": keyword="reload"
+        "equip": keyword="take"
+        "idle": keyword="idle"
+        _: return false
+    var names: PackedStringArray=animator.get_animation_list()
+    # Prefer exact actions over ReloadStart / ReloadEnd (shotgun holds
+    # those as distinct source clips). Keep all original clips intact.
+    for name in names:
+        if str(name).to_lower().ends_with("|"+keyword):
+            animator.play(name)
+            return true
+    for name in names:
+        if str(name).to_lower().contains(keyword):
+            animator.play(name)
+            return true
+    return false
+
+
 func clear_expansion() -> void:
+    _source_animation_players.clear()
     for visual: Node3D in _expansion.values()+_expansion_holsters.values():
         visual.hide()
         visual.queue_free()
     _expansion.clear()
+    _support_anchors.clear()
     _expansion_holsters.clear()
     _mp40_magazine=null
     _mp40_charging_handle=null
@@ -328,8 +521,35 @@ func equipped_global_length() -> float:
 func muzzle_position() -> Vector3:
     # Input may fire between render frames: align before computing the ray.
     _align_mount_to_sight()
-    if selected_weapon>=WEAPONS.SCAR:
-        var tip:=currently_equipped().find_child("Muzzle",true,false) as Node3D
+    var equipped: Node3D=currently_equipped()
+    if equipped:
+        var tip:=equipped.find_child("Muzzle",true,false) as Node3D
         if tip:
             return tip.global_position
     return mount.to_global(Vector3(0,.03,-1.10 if selected_weapon==1 else -.78))
+
+
+
+func support_grip_anchor() -> Node3D:
+    if not _support_anchors.has(selected_weapon):
+        var weapon: Node3D=currently_equipped()
+        if weapon==null:
+            return null
+        _support_anchors[selected_weapon]=weapon.find_child("SupportGrip",true,false)
+    return _support_anchors[selected_weapon] as Node3D
+
+
+func support_grip_enabled() -> bool:
+    if not is_instance_valid(operator) or medical_busy or flight_holster:
+        return false
+    if operator.get("air_mode") in ["freefall","parachute"]:
+        return false
+    # Let the original hand tracks perform reloads and medical actions.
+    # The AnimationTree is authoritative even during a manual visual capture.
+    var controller: Node=operator.get("_animation_controller")
+    if controller and controller.tree and bool(
+            controller.tree.get("parameters/UpperBody/active")):
+        var action_name: String=str(controller.action_clip.animation)
+        if action_name.begins_with("AuroraReload") or action_name=="AuroraHeal":
+            return false
+    return currently_equipped()!=null

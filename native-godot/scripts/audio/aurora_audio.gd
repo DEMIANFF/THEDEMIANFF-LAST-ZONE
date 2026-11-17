@@ -52,6 +52,9 @@ func _ready() -> void:
         "scar_fire":.32,
         "mp40_fire":.17,
         "kriss_fire":.13,
+        "shotgun_fire":.58,
+        "pistol_fire":.34,
+        "knife_swing":.19,
         "distant_fire":.36,
         "mp40_extract":.16,
         "mp40_seat":.20,
@@ -69,6 +72,13 @@ func _ready() -> void:
     }
     for name in recipes:
         _samples[name]=_render(name,float(recipes[name]))
+    # Prefer rights-cleared, short one-shot Aurora V3 audio only when staged.
+    # No user-supplied recording is embedded in this public repository.
+    # Existing original procedural samples remain authoritative fallbacks.
+    for name in recipes:
+        var external: AudioStream=ADDENDUM.imported("weapons/"+str(name)+".ogg")
+        if external!=null:
+            _samples[name]=external
     _samples["grenade"]=blast if blast!=null else _render("grenade",2.83)
     for i in range(VOICES):
         var voice:=AudioStreamPlayer.new()
@@ -360,6 +370,13 @@ func _render(kind: String,duration: float) -> AudioStreamWAV:
                 value=(.86*high+.34*pulse)*exp(-t*37.0)+.35*middle*exp(-t*16.0)
             "kriss_fire":
                 value=(.68*high+.53*middle+.24*pulse)*exp(-t*45.0)
+            "shotgun_fire":
+                value=(.85*middle+.57*high+.32*pulse)*exp(-t*17.0)
+                value+=.27*low*exp(-t*4.4)
+            "pistol_fire":
+                value=(.83*high+.34*middle+.25*pulse)*exp(-t*27.0)
+            "knife_swing":
+                value=(.55*high+.24*middle)*exp(-t*26.0)
             "distant_fire":
                 value=(.9*low+.17*middle+.16*pulse)*exp(-t*11.0)
                 if t>.12:

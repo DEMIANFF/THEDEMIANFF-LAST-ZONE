@@ -7,6 +7,7 @@ const ACCELERATION: float = 16.0
 const GRAVITY: float = 17.5
 const LOOK_SENSITIVITY: float = 0.0032
 const ANIMATION_CONTROLLER=preload("res://scripts/player/operator_animation.gd")
+const BACKPACK_VISUAL=preload("res://scripts/player/aurora_backpack_visual.gd")
 const LOCAL_PLAYER_RECORDS=preload("res://scripts/persistence/offline_match_records.gd")
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
@@ -61,6 +62,9 @@ var respawn_point: Vector3 = Vector3.ZERO
 var training_knockouts: int = 0
 var _training_immunity: float = 0.0
 var _sprint_touch: bool = false
+# Real vehicle state is optional and uses the existing mobile joystick.
+var _vehicle_ride: AuroraDriveableVehicle
+var _vehicle_saved_collision_mask: int=1
 var _jump_requested: bool = false
 var _jump_buffer_seconds: float = 0.0
 var _coyote_seconds: float = 0.0
@@ -120,6 +124,7 @@ var _crouching: bool = false
 var _normal_visual_scale: Vector3 = Vector3.ONE
 var _normal_visual_y: float = 0.0
 var _protection_visual: Node3D
+var _backpack_visual: Node3D
 
 
 func _ready() -> void:
@@ -204,6 +209,12 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+    if _vehicle_ride!=null:
+        if not is_instance_valid(_vehicle_ride) or royale_eliminated or round_finished:
+            force_vehicle_exit()
+        else:
+            _advance_vehicle_rider(delta)
+            return
     if air_mode!="ground":
         _foot_contacts.advance(&"",0.0,0.0,delta)
         _air_step(delta)
@@ -942,7 +953,24 @@ func _sync_protection_visual() -> void:
         _protection_visual.apply_levels(helmet_level,vest_level)
 
 
+## Inventory owns the backpack level; this is visual-only and appears
+## on Lila's real Spine bone after collecting the world pickup.
+func set_backpack_visual_level(level: int) -> void:
+    if _avatar==null:
+        return
+    if _backpack_visual==null and level>0:
+        var gear_path: String=(
+            "res://assets/gear/aurora_v3_private/AuroraMilitaryBackpackPrivate.glb")
+        if ResourceLoader.exists(gear_path,"PackedScene"):
+            _backpack_visual=BACKPACK_VISUAL.new()
+            add_child(_backpack_visual)
+            _backpack_visual.attach(_avatar)
+    if _backpack_visual:
+        _backpack_visual.apply_level(level)
+
+
 func end_sector_battle() -> void:
+    force_vehicle_exit()
     round_finished=true
     tactical_acceleration_remaining=0.0
     velocity=Vector3.ZERO
@@ -950,6 +978,7 @@ func end_sector_battle() -> void:
 
 
 func begin_sector_battle(from_airdrop: bool=false) -> void:
+    force_vehicle_exit()
     reset_controls()
     tactical_acceleration_remaining=0.0
     round_finished=false
@@ -1132,6 +1161,82 @@ func fire_aim_delta(delta: Vector2) -> void:
     _turn_camera(delta, true)
 
 
+## The operator rides inside a real VehicleBody3D chassis. The gameplay
+## CharacterBody is moved with the seat, retains health and hit reactions,
+## while the existing camera is the only active third-person view.
+func begin_vehicle_ride(car: AuroraDriveableVehicle) -> bool:
+    if car==null or _vehicle_ride!=null or not can_act():
+        return false
+    if not car.enter(self):
+        return false
+    reset_controls()
+    _vehicle_ride=car
+    _vehicle_saved_collision_mask=collision_mask
+    collision_mask=0  # operator no longer moves by kinematic collisions
+    add_collision_exception_with(car)
+    car.add_collision_exception_with(self)
+    velocity=Vector3.ZERO
+    _yaw=car.rotation.y
+    _desired_yaw=_yaw
+    rotation.y=_yaw
+    if _avatar:
+        _avatar.hide()
+    return true
+
+
+func _advance_vehicle_rider(delta: float) -> void:
+    if _vehicle_ride==null or not is_instance_valid(_vehicle_ride):
+        return
+    var car: AuroraDriveableVehicle=_vehicle_ride
+    # Ride simulation must not pause damage immunity, buffs or recoil timers.
+    _training_immunity=maxf(0.0,_training_immunity-delta)
+    tactical_acceleration_remaining=maxf(0.0,
+        tactical_acceleration_remaining-delta)
+    _recoil_pitch=move_toward(_recoil_pitch,0.0,delta*.32)
+    global_position=car.to_global(Vector3(0,-.06,.18))
+    rotation.y=car.global_rotation.y
+    velocity=Vector3.ZERO
+    measured_ground_speed=0.0
+    _footstep_distance=0.0
+    _pitch=lerpf(_pitch,clampf(_desired_pitch,-.55,.42),
+        1.0-exp(-delta*10.0))
+    _yaw=lerp_angle(_yaw,_desired_yaw,1.0-exp(-delta*10.0))
+    _camera_pivot.rotation=Vector3(_pitch,
+        wrapf(_yaw-rotation.y,-PI,PI),0)
+    _camera_pivot.position.y=1.7
+    if _camera:
+        _camera.fov=lerpf(_camera.fov,77.0,1.0-exp(-delta*10.0))
+        var distance: float=_collision_safe_camera_distance(6.0,.20)
+        _camera.position.x=.20
+        _camera.position.z=clampf(distance,.18,6.0)
+    # A source driving animation is still needed before a seated operator
+    # can be rendered faithfully. Do not pose Lila as a standing gunner.
+
+
+func vehicle_ride_active() -> bool:
+    return _vehicle_ride!=null and is_instance_valid(_vehicle_ride)
+
+
+func force_vehicle_exit(at: Vector3=Vector3(INF,INF,INF)) -> void:
+    if _vehicle_ride==null:
+        return
+    var old: AuroraDriveableVehicle=_vehicle_ride
+    _vehicle_ride=null
+    collision_mask=_vehicle_saved_collision_mask
+    if is_instance_valid(old):
+        remove_collision_exception_with(old)
+        old.remove_collision_exception_with(self)
+        old.leave()
+    if at.is_finite():
+        global_position=at
+    velocity=Vector3.ZERO
+    _sprint_touch=false
+    if _avatar:
+        _avatar.show()
+    _current_clip=""
+    _play_matching_animation("AuroraArmedIdle")
+
+
 func get_view_camera() -> Camera3D:
     return _camera
 
@@ -1144,6 +1249,8 @@ func _collision_safe_camera_distance(requested: float,shoulder_x: float=.38) -> 
     query.transform=Transform3D(Basis(),_camera_pivot.to_global(shoulder))
     query.motion=_camera_pivot.global_basis.z*requested
     query.exclude=[get_rid()]
+    if _vehicle_ride!=null and is_instance_valid(_vehicle_ride):
+        query.exclude.append(_vehicle_ride.get_rid())
     query.collision_mask=1
     var space:=get_world_3d().direct_space_state
     if not space.intersect_shape(query,1).is_empty():
@@ -1275,7 +1382,8 @@ func _ensure_keyboard_actions() -> void:
 
 
 func can_act() -> bool:
-    return air_mode=="ground" and not royale_eliminated and not round_finished
+    return air_mode=="ground" and not royale_eliminated and not round_finished and (
+        _vehicle_ride==null)
 
 
 func reset_controls() -> void:

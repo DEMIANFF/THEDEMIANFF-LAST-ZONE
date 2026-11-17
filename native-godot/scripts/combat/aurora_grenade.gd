@@ -23,7 +23,58 @@ func _ready() -> void:
     paint.metallic=.35
     visual.material_override=paint
     visual.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    visual.name="AuroraGrenadeShell"
     add_child(visual)
+    # Original low-poly game prop: actual spoon, fuze/collar and safety ring.
+    # The supplied CC BY-ND grenade model remains outside all releases until
+    # its distribution rights are independently resolved. Physics is unchanged.
+    _build_original_grenade_detail()
+
+
+func _detail(mesh: Mesh,display: String,at: Vector3,
+        rot: Vector3,material: StandardMaterial3D) -> void:
+    var part:=MeshInstance3D.new()
+    part.name=display
+    part.mesh=mesh
+    part.position=at
+    part.rotation=rot
+    part.material_override=material
+    part.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    add_child(part)
+
+
+func _build_original_grenade_detail() -> void:
+    var steel:=StandardMaterial3D.new()
+    steel.albedo_color=Color(.21,.24,.21)
+    steel.metallic=.48
+    steel.roughness=.38
+    var band:=StandardMaterial3D.new()
+    band.albedo_color=Color(.15,.18,.15)
+    band.metallic=.2
+    band.roughness=.71
+    var neck:=CylinderMesh.new()
+    neck.top_radius=.054
+    neck.bottom_radius=.073
+    neck.height=.058
+    neck.radial_segments=10
+    _detail(neck,"AuroraFuzeCollar",Vector3(0,.130,0),Vector3.ZERO,steel)
+    var lever:=BoxMesh.new()
+    lever.size=Vector3(.025,.195,.065)
+    _detail(lever,"AuroraSafetySpoon",Vector3(.079,.057,0),
+        Vector3(0,0,-.16),steel)
+    var pin:=TorusMesh.new()
+    pin.inner_radius=.023
+    pin.outer_radius=.036
+    pin.rings=9
+    pin.ring_segments=11
+    _detail(pin,"AuroraSafetyPin",Vector3(.085,.174,.01),
+        Vector3(PI*.5,0,0),steel)
+    var seam:=CylinderMesh.new()
+    seam.top_radius=.105
+    seam.bottom_radius=.105
+    seam.height=.017
+    seam.radial_segments=12
+    _detail(seam,"AuroraGripBand",Vector3(0,-.018,0),Vector3.ZERO,band)
 
 
 func _physics_process(delta: float) -> void:
