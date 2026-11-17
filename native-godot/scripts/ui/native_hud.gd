@@ -18,6 +18,7 @@ signal jump_pressed
 signal movement_axis_changed(value: Vector2)
 signal start_battle_requested
 signal leave_to_lobby_requested
+signal vehicle_action_requested
 signal settings_requested
 signal hud_editor_closed
 const SAFE_SCREEN=preload("res://scripts/ui/safe_screen.gd")
@@ -78,6 +79,9 @@ var _damage_flash: ColorRect
 var _result_window: PanelContainer
 var _result_text: Label
 var _jump_button: Button
+var _vehicle_action_button: Button
+var _vehicle_speed_label: Label
+var _driving_vehicle: bool=false
 var _exit_button: Button
 var _settings_button: Button
 var _inventory_button: Button
@@ -289,6 +293,15 @@ func _ready() -> void:
     _cover_button=_button(root,"BARRERA 0",.52,.68,96,55,Color(.13,.53,.68),_cover_down)
     _cover_button.visible=false
     _cover_button.disabled=true
+    _vehicle_action_button=_button(root,"CONDUCIR",.5,.60,92,74,
+        Color(.24,.43,.30),func(): vehicle_action_requested.emit())
+    _vehicle_action_button.name="AuroraRealVehicleAction"
+    _vehicle_action_button.visible=false
+    _vehicle_action_button.disabled=true
+    _vehicle_speed_label=_text(root,"",.49,.45,15,
+        Color(.86,.96,.75),HORIZONTAL_ALIGNMENT_CENTER)
+    _vehicle_speed_label.name="RealVehicleSpeedKMH"
+    _vehicle_speed_label.visible=false
     _exit_button=_button(root,"LOBBY",.936,.255,95,46,Color(.13,.27,.43),_return_lobby)
     _settings_button=_button(root,"AJUSTES",.85,.255,78,78,
         Color(.16,.34,.44),func(): settings_requested.emit())
@@ -578,6 +591,31 @@ func set_battle_button(label: String) -> void:
         _battle_button.text=label
         _battle_button.disabled=label=="EN PARTIDA"
         _battle_button.visible=label in ["INICIAR BR","REINICIAR BR"]
+
+
+## The same mobile joystick steers/accelerates the four-wheel physics.
+## This action is invisible unless a verified real car exists within range.
+func set_vehicle_context(can_enter: bool,driving: bool,speed_kmh: float) -> void:
+    _driving_vehicle=driving
+    if _vehicle_action_button==null:
+        return
+    _vehicle_action_button.visible=driving or can_enter
+    _vehicle_action_button.disabled=not (driving or can_enter)
+    _vehicle_action_button.text="BAJAR" if driving else "CONDUCIR"
+    if _vehicle_speed_label:
+        _vehicle_speed_label.visible=driving
+        _vehicle_speed_label.text="AUTO %d km/h"%roundi(speed_kmh)
+    # No simulated firing through a rigid chassis, and no accidental healing
+    # while steering with the same fingers on the phone.
+    var root: Control=get_node_or_null("AuroraTacticalOverlay")
+    if root:
+        var fire_pad: Control=root.get_node_or_null("DirectionalFirePad")
+        if fire_pad:
+            fire_pad.visible=not driving and air_stage=="ground"
+    for control in [_aim_button,_reload_button,_medkit_button,
+            _cover_button,_crouch_button,_inventory_button,_jump_button]:
+        if control:
+            control.visible=not driving and air_stage=="ground"
 
 
 func set_sector_state(status: String, alive: int, safe_radius: float, elapsed_seconds: int) -> void:
@@ -989,6 +1027,10 @@ func _layout() -> void:
     _hit.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     _place(root.get_node("MovePad"),Rect2(origin+Vector2(40,h-235),Vector2(210,210)))
     _place(_run_button,Rect2(origin+Vector2(96,h-341),Vector2(90,90)))
+    _place(_vehicle_action_button,Rect2(
+        origin+Vector2(w*.5-40,h-159),Vector2(88,80)))
+    _place(_vehicle_speed_label,Rect2(
+        origin+Vector2(w*.5-67,h-195),Vector2(135,29)))
     _place(root.get_node("DirectionalFirePad"),Rect2(origin+Vector2(w-172,h-257),Vector2(144,144)))
     _place(_aim_button,Rect2(origin+Vector2(w-310,h-285),Vector2(86,86)))
     _place(root.get_node("RECARGA"),Rect2(origin+Vector2(w-314,h-186),Vector2(76,76)))
@@ -1210,6 +1252,7 @@ func is_action_at(point: Vector2) -> bool:
 
 
 func reset_controls() -> void:
+    set_vehicle_context(false,false,0.0)
     var root: Control=get_node("AuroraTacticalOverlay")
     set_reload_state(false,0.0,0.0)
     set_zone_threat(false,0.0)
@@ -1226,6 +1269,8 @@ func reset_controls() -> void:
 
 
 func set_match_controls(enabled: bool) -> void:
+    if not enabled:
+        set_vehicle_context(false,false,0.0)
     var root: Control=get_node("AuroraTacticalOverlay")
     for control in root.get_children():
         if control is Button and control!=_battle_button and control!=_exit_button and control!=_settings_button:
