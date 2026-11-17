@@ -206,7 +206,10 @@ func _process(dt: float) -> void:
         elif _reload_ui_clock<=0.0:
             _reload_ui_clock=.10
             hud.set_reload_state(true,reload_timer,_reload_duration)
-    if trigger_held and weapon_index!=WEAPONS.AWM and cooldown<=0 and reload_timer<=0:
+    # Semi-automatic shotgun, revolver and snipers require a new press.
+    if trigger_held and weapon_index not in [
+            WEAPONS.AWM,WEAPONS.SHOTGUN,WEAPONS.MAGNUM,
+            WEAPONS.KNIFE,WEAPONS.SNIPER] and cooldown<=0 and reload_timer<=0:
         _shoot()
 
 
@@ -224,10 +227,8 @@ func _on_fire_pressed() -> void:
     _cancel_healing("CURACION CANCELADA / DISPARO")
     trigger_held=true
     operator.set_firing(true)
-    if weapon_index==1:
-        _shoot()  # One press, one bolt-action AWM round.
-    elif cooldown<=0:
-        _shoot()
+    if cooldown<=0:
+        _shoot()  # Held automatics continue in _process; other guns fire once.
 
 
 func _on_fire_released() -> void:
@@ -273,6 +274,9 @@ func _equip_inventory_weapon(index: int) -> void:
 
 func _on_aim() -> void:
     if not operator.can_act():
+        return
+    if weapon_index==WEAPONS.KNIFE:
+        hud.impact("CUCHILLO / MELEE / SIN MIRA")
         return
     _cancel_healing("CURACION CANCELADA / MIRA")
     # AR cycles through free -> x2 -> x4 -> free. AWM has its exclusive x8.
@@ -359,6 +363,9 @@ func _complete_healing() -> void:
 
 func _on_reload() -> void:
     if not operator.can_act():
+        return
+    if weapon_index==WEAPONS.KNIFE:
+        hud.impact("CUCHILLO / SIN RECARGA")
         return
     _cancel_healing("CURACION CANCELADA / RECARGA")
     if reload_timer>0:
@@ -1008,9 +1015,22 @@ func collect_sector_loot(kind: String,quantity: int=-1,
             if _weapon_visuals:
                 _weapon_visuals.set_awm_owned(true)
             hud.impact("AWM RECOGIDA / VISIBLE EN ESPALDA")
-        "weapon_scar", "weapon_mp40", "weapon_kriss", "weapon_hk416", "weapon_p90", "weapon_vss":
+        "weapon_scar", "weapon_mp40", "weapon_kriss", "weapon_hk416", "weapon_p90", "weapon_vss", "weapon_mp5", "weapon_shotgun", "weapon_magnum", "weapon_knife", "weapon_sniper":
             if not _collect_expansion_weapon(WEAPONS.pickup_slot(kind)):
                 return false
+        "ammo_shells", "ammo_pistol":
+            var slot: int=WEAPONS.SHOTGUN if kind=="ammo_shells" else WEAPONS.MAGNUM
+            if weapon_owned.size()<=slot or not weapon_owned[slot]:
+                return false
+            var gained: int=16 if kind=="ammo_shells" else 24
+            if quantity>=0:
+                gained=clampi(quantity,0,gained)
+            gained=mini(gained,maxi(0,_reserve_limit(slot)-reserve[slot]))
+            if gained<=0:
+                return false
+            reserve[slot]+=gained
+            hud.impact("MUNICION "+("ESCOPETA" if slot==WEAPONS.SHOTGUN else "PISTOLA")+
+                " +"+str(gained))
         "ammo_smg":
             if not _owns_smg():
                 return false
@@ -1043,6 +1063,10 @@ func _collect_expansion_weapon(slot: int) -> bool:
     ammo[slot]=WEAPONS.ENTRIES[slot]["capacity"]
     if first_smg:
         reserve[WEAPONS.MP40]=30
+    if slot==WEAPONS.SHOTGUN:
+        reserve[slot]=24
+    elif slot==WEAPONS.MAGNUM:
+        reserve[slot]=36
     hud.impact("%s RECOGIDA"%WEAPONS.ENTRIES[slot]["short"])
     return true
 
@@ -1058,6 +1082,12 @@ func _owns_smg() -> bool:
 func _reserve_limit(index: int) -> int:
     if index==WEAPONS.MP40:
         return 180 if backpack_level>0 else 90
+    if index==WEAPONS.SHOTGUN:
+        return 72 if backpack_level>0 else 48
+    if index==WEAPONS.MAGNUM:
+        return 120 if backpack_level>0 else 72
+    if index==WEAPONS.KNIFE:
+        return 0
     return (AWM_RESERVE_BACKPACK if backpack_level>0 else AWM_RESERVE_BASE) if index==1 else (AR_RESERVE_BACKPACK if backpack_level>0 else AR_RESERVE_BASE)
 
 
