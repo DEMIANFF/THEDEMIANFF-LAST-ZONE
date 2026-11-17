@@ -272,6 +272,12 @@ func add_expansion(slot: int) -> bool:
             "*AnimationPlayer*",true,false) as AnimationPlayer
         if source_anim:
             _source_animation_players[slot]=source_anim
+            # A native source reload, shot or equip must return to its authored
+            # resting pose, rather than leaving the original rig frozen.
+            source_anim.animation_finished.connect(func(clip: StringName) -> void:
+                if not str(clip).to_lower().contains("idle") and is_instance_valid(source_anim) and (
+                        _source_animation_players.get(slot)==source_anim):
+                    play_source_action(slot,"idle"))
             play_source_action(slot,"idle")
         else:
             push_warning("SCAR original GLB has no imported AnimationPlayer")
@@ -394,6 +400,7 @@ func play_source_action(slot: int,kind: String) -> bool:
     match kind:
         "fire": keyword="shoot"
         "reload": keyword="reload"
+        "equip": keyword="take"
         "idle": keyword="idle"
         _: return false
     for name in animator.get_animation_list():
