@@ -2361,6 +2361,24 @@ func _play_lobby_gesture() -> void:
     if stage!="lobby" or _preview_avatar==null or not is_instance_valid(
             _preview_avatar):
         return
+    if _preview_male_active:
+        _preview_male_motion_index=(_preview_male_motion_index+1)%3
+        var clip: String=[
+            "AuroraArmedWalk","AuroraArmedRun","AuroraJump"
+        ][_preview_male_motion_index]
+        var subject: Node3D=_preview_avatar
+        if MALE_PREVIEW.play_original_motion(subject,clip):
+            _preview_resume_spin=3.0
+            if clip=="AuroraJump":
+                var source_player: AnimationPlayer=subject.find_child(
+                    "*AnimationPlayer*",true,false) as AnimationPlayer
+                if source_player:
+                    source_player.animation_finished.connect(
+                        func(_ended: StringName) -> void:
+                            if _preview_male_active and _preview_avatar==subject and is_instance_valid(subject):
+                                MALE_PREVIEW.play_original_motion(subject,"AuroraArmedWalk"),
+                        CONNECT_ONE_SHOT)
+        return
     var animator:=_preview_avatar.find_child(
         "AnimationPlayer",true,false) as AnimationPlayer
     if animator==null or not animator.has_animation(LOBBY_MOTION_CLIP):
