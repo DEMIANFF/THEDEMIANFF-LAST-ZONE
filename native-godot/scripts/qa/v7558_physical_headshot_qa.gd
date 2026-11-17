@@ -3,6 +3,7 @@ extends SceneTree
 ## scores, no synthetic mobile performance measurements.
 const RECORDS=preload("res://scripts/persistence/offline_match_records.gd")
 const COMBAT=preload("res://scripts/combat/training_combat.gd")
+const CATALOG=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const LEDGER_PATH="user://qa/aurora_headshot_ledger_ci.json"
 var failed: bool=false
 
@@ -34,7 +35,8 @@ func _verify() -> void:
         absf(COMBAT.physical_hit_damage(0,true)-48.1)<.01 and
         absf(COMBAT.physical_hit_damage(1,false)-115.0)<.01 and
         absf(COMBAT.physical_hit_damage(1,true)-189.75)<.01 and
-        COMBAT.physical_hit_damage(9,true)==0.0,
+        COMBAT.physical_hit_damage(CATALOG.ENTRIES.size(),true)==0.0 and
+        COMBAT.physical_hit_damage(-1,false)==0.0,
         "AR/AWM physically grounded head/body damage multipliers regressed")
 
     var game: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
