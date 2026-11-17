@@ -78,6 +78,25 @@ func _verify() -> void:
                 check((hit["normal"] as Vector3).y>.5,
                     "villa "+str(i)+" roof has a non-walkable surface normal")
                 roof_hits+=1
+    # Horizontal rays across both upper gables exercise the physics server
+    # and catch the previous visual-only facade closure regression.
+    var gable_hits: int=0
+    for i in range(quarter.HOUSE_COUNT):
+        var house: Node3D=quarter.get_node("AuroraCoastalVilla"+str(i))
+        var gable_body: StaticBody3D=house.get_node("SealedVillaGableCollision")
+        for z_side in [-1.0,1.0]:
+            var from: Vector3=house.to_global(Vector3(0,6.3,z_side*12.0))
+            var to: Vector3=house.to_global(Vector3(0,6.3,0))
+            var gable_ray:=PhysicsRayQueryParameters3D.create(from,to)
+            gable_ray.collision_mask=3
+            var gable_hit: Dictionary=space.intersect_ray(gable_ray)
+            check(not gable_hit.is_empty(),
+                "villa "+str(i)+" gable has no physical wall hit")
+            if not gable_hit.is_empty():
+                check(gable_hit.get("collider")==gable_body,
+                    "villa "+str(i)+" gable ray hit another body")
+                gable_hits+=1
+    check(gable_hits==quarter.HOUSE_COUNT*2,"gable wall rays failed")
     check(roof_hits==quarter.HOUSE_COUNT*2,"roof landing rays failed")
     check(roof_count==quarter.HOUSE_COUNT*2,"missing walkable convex roof surfaces")
     game.queue_free()
