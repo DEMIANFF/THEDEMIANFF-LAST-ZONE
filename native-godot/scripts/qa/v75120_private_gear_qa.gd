@@ -48,6 +48,19 @@ func _verify() -> void:
     operator.set_backpack_visual_level(0)
     operator.set_backpack_visual_level(1)
     operator.set_backpack_visual_level(0)
+    var combat: Node3D=game.get_node("CombatRange")
+    var medkit: Node3D=combat._medical_visual
+    var held: Node3D=medkit.medical_case.get_node_or_null("OriginalMedicalKitInHand")
+    if ResourceLoader.exists(GEAR.MEDKIT,"PackedScene"):
+        check(held!=null,"real authored medkit is missing from Lila hand")
+    else:
+        check(held==null,"private authored medkit instantiated without bytes")
+    medkit.set_healing(true,false)
+    check(medkit.medical_case.visible and not medkit.syringe.visible,
+        "the user medkit does not follow real healing state")
+    medkit.set_healing(false)
+    check(not medkit.medical_case.visible,
+        "held first aid case leaked after healing")
     if not ResourceLoader.exists(GEAR.BACKPACK,"PackedScene"):
         check(operator._backpack_visual==null,
             "private backpack was added when its real model is absent")
