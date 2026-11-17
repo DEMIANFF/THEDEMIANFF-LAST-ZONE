@@ -676,8 +676,11 @@ func set_inventory_snapshot(items: Dictionary) -> void:
         equip_button.visible=additions.has(slot)
         if equip_button.visible:
             var counts: Dictionary=additions[slot]
-            equip_button.text="%s %d/%d"%[EXPANSION_WEAPONS.ENTRIES[slot]["short"],
-                counts["loaded"],counts["reserve"]]
+            if bool(EXPANSION_WEAPONS.ENTRIES[slot].get("melee",false)):
+                equip_button.text="CUCHILLO / MELEE"
+            else:
+                equip_button.text="%s %d/%d"%[EXPANSION_WEAPONS.ENTRIES[slot]["short"],
+                    counts["loaded"],counts["reserve"]]
             equip_button.disabled=int(items.get("active_weapon",0))==slot
     _inventory_expansion_row.visible=not additions.is_empty()
     var syringes: int=int(items.get("syringes",0))
@@ -756,6 +759,13 @@ func set_weapon(name: String,loaded: int,reserve: int) -> void:
         _weapon.text=name
     if _ammo:
         _ammo.text=str(loaded)+" / "+str(reserve)
+
+func set_melee_weapon(name: String) -> void:
+    if _weapon:
+        _weapon.text=name
+    if _ammo:
+        _ammo.text="CUERPO A CUERPO"
+        _ammo.add_theme_color_override("font_color",Color(1,.81,.43))
 
 
 func set_aim(active: bool,scope: String,zoom: float=1.0) -> void:
