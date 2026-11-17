@@ -13,6 +13,7 @@ const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.g
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
 const LOBBY_MOTION = preload("res://assets/animations/aurora_lobby_motion.tres")
 const LOBBY_MOTION_CLIP: StringName=&"aurora_lobby/Motion"
+const MALE_PREVIEW=preload("res://scripts/player/aurora_mixamo_male_preview.gd")
 const LOCAL_PLAYER_NAME=preload("res://scripts/persistence/local_player_name.gd")
 const FIREBASE_BRIDGE=preload("res://scripts/persistence/aurora_firebase_bridge.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
@@ -74,6 +75,8 @@ var _preview_zoomed: bool=false
 var _preview_frame_tween: Tween
 var _preview_turn_tween: Tween
 var _preview_skin_applied: String=""
+var _preview_male_active: bool=false
+var _preview_male_motion_index: int=0
 var _offline_records: RefCounted
 var _player_name: RefCounted
 var _name_entry: LineEdit
@@ -1018,8 +1021,9 @@ func _show_lobby() -> void:
     _preview_resume_spin=2.0
     if _preview_avatar:
         _preview_avatar.rotation.y=0.0
-        _apply_preview_skin(str(
-            _offline_records.cosmetic_state()["equipped"]))
+        if not _preview_male_active:
+            _apply_preview_skin(str(
+                _offline_records.cosmetic_state()["equipped"]))
     _clear_page()
     _lobby_section_title=_label("BATTLE ROYALE",30)
     _lobby_section_title.add_theme_font_override("font",DISPLAY_FONT)
@@ -1860,7 +1864,10 @@ func _select_tab(tab: String) -> void:
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot()
-            _info.text="LILA AURORA\nTraje táctico personalizable.\nCAMBIAR VISTA / GIRAR: controles táctiles bajo Lila.\nVISTA 3D: %s · sin compra ni equipamiento."%_shop_selected_skin.to_upper()
+            _info.text=(
+                "OPERADOR MASCULINO / VISTA 3D\nModelo Ch02 original con CAMINAR, TROTAR y SALTAR.\nCombate masculino pendiente de clips de disparo/recarga."
+                if _preview_male_active else
+                "LILA AURORA\nTraje táctico personalizable.\nCAMBIAR VISTA / GIRAR: controles táctiles bajo Lila.\nVISTA 3D: %s · sin compra ni equipamiento."%_shop_selected_skin.to_upper())
             _info.text+="\nPARTIDAS %d  •  VICTORIAS %d  •  BAJAS %d"%[int(stats.get("played",0)),int(stats.get("wins",0)),int(stats.get("kills",0))]
             _info.text+="\nRÉCORD %d BAJAS  •  %d S VIVO"%[int(stats.get("best_kills",0)),int(stats.get("longest_survival_seconds",0))]
             var measured: Dictionary=PERFORMANCE.latest()
@@ -1923,7 +1930,7 @@ func _select_tab(tab: String) -> void:
 
 func _apply_preview_skin(skin: String) -> void:
     if stage!="lobby" or _preview_avatar==null or not (
-            is_instance_valid(_preview_avatar)) or (
+            is_instance_valid(_preview_avatar)) or _preview_male_active or (
             _preview_skin_applied==skin):
         return
     if COSMETICS.apply_to_operator(_preview_avatar,skin):
@@ -2233,6 +2240,8 @@ func _release_preview() -> void:
     _gesture_button=null
     _preview_zoomed=false
     _preview_skin_applied=""
+    _preview_male_active=false
+    _preview_male_motion_index=0
     if _preview_caption!=null and is_instance_valid(_preview_caption):
         _preview_caption.queue_free()
     _preview_container=null
