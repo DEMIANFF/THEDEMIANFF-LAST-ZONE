@@ -11,6 +11,7 @@ const ZONE_VISUAL = preload("res://scripts/match/aurora_zone_visual.gd")
 const DROP_SEQUENCE = preload("res://scripts/match/airdrop_sequence.gd")
 const COMBAT_ROSTER=preload("res://scripts/combat/training_combat.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const DRIVEABLE_VEHICLE=preload("res://scripts/world/aurora_driveable_vehicle.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const INITIAL_RADIUS: float = 112.0
@@ -56,6 +57,8 @@ var zone_seconds_remaining: int=0
 var _damage_clock: float = 0.0
 var _ui_clock: float = 0.0
 var _loot: Array[Area3D] = []
+var _driveable_cars: Array[VehicleBody3D]=[]
+var _vehicle_ui_clock: float=0.0
 var _zone_visual: Node3D
 var _flight: Node3D
 var _aircraft_paused_navigation: bool=false
@@ -92,6 +95,7 @@ func _ready() -> void:
     player.landed_from_airdrop.connect(_flight.landed)
     hud.jump_pressed.connect(_flight.request_jump_or_parachute)
     hud.start_battle_requested.connect(begin_aircraft_phase)
+    hud.vehicle_action_requested.connect(_on_real_vehicle_action)
     player.player_eliminated.connect(_on_player_eliminated)
     combat.bot_eliminated.connect(_on_opponent_eliminated)
     combat.bot_shot.connect(_on_rival_gunfire)
@@ -108,6 +112,7 @@ func begin_aircraft_phase() -> void:
         return
     # Every player-accessible deployment (including Training HUD -> BR)
     # uses the SAME 50-person classic roster, without any difficulty menu.
+    _remove_driveable_vehicles()
     combat.set_encounter_size(COMBAT_ROSTER.CLASSIC_BR_PARTICIPANTS)
     combat.end_sector_battle()
     # There is no ground combat or pathfinding in the aircraft. Do not keep
@@ -144,6 +149,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
         return
     aircraft_audio_changed.emit(false)
     # A repeatable elimination round, not an endless training target spawner.
+    _remove_driveable_vehicles()
     for old in _loot:
         if is_instance_valid(old):
             old.queue_free()
@@ -192,6 +198,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     hud.reset_controls()
     hud.set_match_controls(true)
     _spawn_loot()
+    _spawn_authentic_vehicles()
     hud.set_battle_button("EN PARTIDA")
     hud.set_sector_state("BATALLA SECTOR",combat.active_fighter_count(),radius,0)
     hud.impact("BATALLA AURORA · 1 JUGADOR + "+
@@ -213,6 +220,14 @@ func _process(delta: float) -> void:
             retry_result()
     if mode != "sector_battle" or match_ended:
         return
+    _vehicle_ui_clock-=delta
+    if _vehicle_ui_clock<=0.0:
+        _vehicle_ui_clock=.25
+        var ride: VehicleBody3D=player._vehicle_ride
+        if ride!=null and is_instance_valid(ride):
+            hud.set_vehicle_context(false,true,ride.speed_kmh())
+        else:
+            hud.set_vehicle_context(_nearest_enterable_car()!=null,false,0.0)
     elapsed += delta
     # Sample measured hardware FPS twice per second. Store only at the
     # actual match end, avoiding file writes during interactive combat.
@@ -452,6 +467,83 @@ func _finish(victory: bool) -> void:
         int(extras["accuracy"]),int(extras["headshots"]))
     hud.impact(("¡VICTORIA DEL SECTOR!" if victory else "PARTIDA TERMINADA / REINTENTAR") if last_match_saved else "ALERTA: NO SE GUARDO EL RESULTADO")
     round_ended.emit(victory)
+
+
+## Authored Toyota/BMW meshes are never fabricated. An unstaged private
+## source produces no car, button or false functionality in the public APK.
+func _spawn_authentic_vehicles() -> void:
+    for details in [
+        {"kind":"Toyota","site":Vector2(72,-6),"yaw":.20},
+        {"kind":"BMW","site":Vector2(-66,-58),"yaw":-.65}
+    ]:
+        var kind: String=details["kind"]
+        if not DRIVEABLE_VEHICLE.source_available(kind):
+            continue
+        var position2d: Vector2=details["site"]
+        var height: float=float(terrain.height_at(position2d.x,position2d.y))
+        if not is_finite(height):
+            continue
+        var car: VehicleBody3D=DRIVEABLE_VEHICLE.new()
+        car.variant=kind
+        car.terrain=terrain
+        car.name="AuroraAuthentic"+kind+"Vehicle"
+        car.position=Vector3(position2d.x,height+1.40,position2d.y)
+        car.rotation.y=float(details["yaw"])
+        add_child(car)
+        _driveable_cars.append(car)
+    hud.set_vehicle_context(false,false,0.0)
+
+
+func _remove_driveable_vehicles() -> void:
+    if player!=null and player.has_method("vehicle_ride_active") and (
+            player.vehicle_ride_active()):
+        player.force_vehicle_exit()
+    for car in _driveable_cars:
+        if is_instance_valid(car):
+            car.queue_free()
+    _driveable_cars.clear()
+    if hud!=null:
+        hud.set_vehicle_context(false,false,0.0)
+
+
+func _nearest_enterable_car() -> VehicleBody3D:
+    var closest: VehicleBody3D=null
+    var distance: float=INF
+    if player==null or not player.can_act():
+        return null
+    for car in _driveable_cars:
+        if not is_instance_valid(car) or not car.can_enter(player):
+            continue
+        var gap: float=player.global_position.distance_to(car.global_position)
+        if gap<distance:
+            closest=car
+            distance=gap
+    return closest
+
+
+func _on_real_vehicle_action() -> void:
+    if mode!="sector_battle" or match_ended:
+        return
+    if player.vehicle_ride_active():
+        var car: VehicleBody3D=player._vehicle_ride
+        if car==null or not is_instance_valid(car):
+            player.force_vehicle_exit()
+            return
+        if car.linear_velocity.length()>2.5:
+            hud.impact("DETÉN EL VEHÍCULO ANTES DE BAJAR")
+            return
+        var landing: Vector3=car.exit_position(player)
+        if not landing.is_finite():
+            hud.impact("SALIDA BLOQUEADA / BUSCA SUELO SEGURO")
+            return
+        player.force_vehicle_exit(landing)
+        hud.set_vehicle_context(true,false,0.0)
+        hud.impact("VEHÍCULO ESTACIONADO")
+        return
+    var nearby: VehicleBody3D=_nearest_enterable_car()
+    if nearby!=null and player.begin_vehicle_ride(nearby):
+        hud.set_vehicle_context(false,true,nearby.speed_kmh())
+        hud.impact("CONDUCCIÓN REAL / JOYSTICK: AVANZAR, GIRAR, RETROCEDER")
 
 
 func _spawn_loot() -> void:
