@@ -6,7 +6,10 @@ const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const ITEMS: Array[String]=[
     "weapon_scar","weapon_mp40","weapon_kriss","ammo_ar","ammo_smg"]
 # Do not show a pickup for a weapon whose real GLB has not been staged.
-const OPTIONAL: Array[String]=["weapon_hk416","weapon_p90","weapon_vss"]
+const OPTIONAL: Array[String]=[
+    "weapon_hk416","weapon_p90","weapon_vss",
+    "weapon_mp5","weapon_shotgun","weapon_magnum","weapon_knife","weapon_sniper"
+]
 var player: CharacterBody3D
 var combat: Node3D
 var terrain: StaticBody3D
