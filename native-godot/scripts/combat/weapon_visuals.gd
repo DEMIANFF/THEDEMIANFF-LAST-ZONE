@@ -267,7 +267,7 @@ func add_expansion(slot: int) -> bool:
         carried.queue_free()
         return false
     _expansion[slot]=carried
-    if animated_scar:
+    if animated_scar or slot>=WEAPONS.MP5:
         var source_anim: AnimationPlayer=carried.find_child(
             "*AnimationPlayer*",true,false) as AnimationPlayer
         if source_anim:
@@ -337,20 +337,26 @@ static func calibrate_expansion(visual: Node3D,slot: int) -> void:
             visual.rotation.y=PI*.5
         elif extents.y>=extents.z:
             visual.rotation.x=-PI*.5
-        var target_length: float=1.10 if slot in [
-            WEAPONS.HK416,WEAPONS.SCAR] else (
-            .76 if slot==WEAPONS.P90 else 1.05)
+        var target_length: float=(
+            .38 if slot==WEAPONS.KNIFE else
+            .54 if slot==WEAPONS.MAGNUM else
+            .84 if slot in [WEAPONS.P90,WEAPONS.MP5] else
+            1.38 if slot==WEAPONS.SNIPER else
+            1.15 if slot==WEAPONS.SHOTGUN else 1.10)
         var factor: float=clampf(target_length/length,.00001,100.0)
         var center: Vector3=low+extents*.5
         var grip_location:=Vector3(0,.01,-.20)
         visual.scale=Vector3.ONE*factor
         visual.position=grip_location-(visual.quaternion*center)*factor
-        var support:=Node3D.new()
-        support.name="SupportGrip"
-        visual.add_child(support)
         var holder: Node3D=visual.get_parent() as Node3D
-        if holder:
-            support.global_position=holder.to_global(Vector3(0,.015,-.36))
+        # A knife or revolver should NOT force Lila's left hand into a
+        # nonexistent foregrip. Keep her weapon-specific upper body free.
+        if slot!=WEAPONS.KNIFE and slot!=WEAPONS.MAGNUM:
+            var support:=Node3D.new()
+            support.name="SupportGrip"
+            visual.add_child(support)
+            if holder:
+                support.global_position=holder.to_global(Vector3(0,.015,-.36))
         # A real scene muzzle attachment is needed for geometry-based bullets.
         # This approximation is tested against the displayed mesh and kept
         # separate from the user's original GLB (no destructive asset edits).
@@ -398,12 +404,20 @@ func play_source_action(slot: int,kind: String) -> bool:
         return false
     var keyword: String=""
     match kind:
-        "fire": keyword="shoot"
+        "fire": keyword="fire1" if slot==WEAPONS.KNIFE else (
+            "shot" if slot==WEAPONS.SNIPER else "shoot")
         "reload": keyword="reload"
         "equip": keyword="take"
         "idle": keyword="idle"
         _: return false
-    for name in animator.get_animation_list():
+    var names: PackedStringArray=animator.get_animation_list()
+    # Prefer exact actions over ReloadStart / ReloadEnd (shotgun holds
+    # those as distinct source clips). Keep all original clips intact.
+    for name in names:
+        if str(name).to_lower().ends_with("|"+keyword):
+            animator.play(name)
+            return true
+    for name in names:
         if str(name).to_lower().contains(keyword):
             animator.play(name)
             return true
