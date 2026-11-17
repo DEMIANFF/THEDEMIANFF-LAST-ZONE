@@ -999,7 +999,7 @@ func collect_sector_loot(kind: String,quantity: int=-1,
             if _weapon_visuals:
                 _weapon_visuals.set_awm_owned(true)
             hud.impact("AWM RECOGIDA / VISIBLE EN ESPALDA")
-        "weapon_scar", "weapon_mp40", "weapon_kriss":
+        "weapon_scar", "weapon_mp40", "weapon_kriss", "weapon_hk416", "weapon_p90", "weapon_vss":
             if not _collect_expansion_weapon(WEAPONS.pickup_slot(kind)):
                 return false
         "ammo_smg":
@@ -1039,8 +1039,11 @@ func _collect_expansion_weapon(slot: int) -> bool:
 
 
 func _owns_smg() -> bool:
-    return ((weapon_owned.size()>WEAPONS.MP40 and weapon_owned[WEAPONS.MP40]) or
-        (weapon_owned.size()>WEAPONS.KRISS and weapon_owned[WEAPONS.KRISS]))
+    # Newly recovered SMGs share the same reserve but keep individual mags.
+    for slot in range(WEAPONS.MP40,weapon_owned.size()):
+        if weapon_owned[slot] and WEAPONS.reserve_slot(slot)==WEAPONS.MP40:
+            return true
+    return false
 
 
 func _reserve_limit(index: int) -> int:
