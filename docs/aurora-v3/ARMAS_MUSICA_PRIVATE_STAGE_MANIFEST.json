@@ -1,0 +1,78 @@
+{
+  "format": "aurora_v3_private_expansion_v1",
+  "status": "private_dev_staging_no_distribution_rights_granted",
+  "entries": [
+    {
+      "id": "SHOTGUN",
+      "name": "aurora_shotgun_source.glb",
+      "path": "native-godot/assets/weapons/aurora_v3_extended/aurora_shotgun_source.glb",
+      "bytes": 7725108,
+      "sha256": "666721a6b3ed105b43cde3f841d066ed47300ed98d534b2f87cd1c2589e2ae75",
+      "source_original": "animated_shotgun.glb",
+      "clips": 7,
+      "source_rig_preserved": true,
+      "gameplay_verified": false,
+      "rights_approved": false
+    },
+    {
+      "id": "MAGNUM",
+      "name": "aurora_magnum_source.glb",
+      "path": "native-godot/assets/weapons/aurora_v3_extended/aurora_magnum_source.glb",
+      "bytes": 5188340,
+      "sha256": "d1ad4c925de178050e150e2173a476c64625a247eb7ad2e2ece2a8d6c2f8208e",
+      "source_original": "animated_magnum.glb",
+      "clips": 5,
+      "source_rig_preserved": true,
+      "gameplay_verified": false,
+      "rights_approved": false
+    },
+    {
+      "id": "KNIFE",
+      "name": "aurora_knife_source.glb",
+      "path": "native-godot/assets/weapons/aurora_v3_extended/aurora_knife_source.glb",
+      "bytes": 1788036,
+      "sha256": "01a3045e2d369ddbe8fad3f38f3dc239420f75cf004d81bb68e78b72f05533fc",
+      "source_original": "animated_knife.glb",
+      "clips": 4,
+      "source_rig_preserved": true,
+      "gameplay_verified": false,
+      "rights_approved": false
+    },
+    {
+      "id": "MP5",
+      "name": "aurora_mp5_source.glb",
+      "path": "native-godot/assets/weapons/aurora_v3_extended/aurora_mp5_source.glb",
+      "bytes": 5840392,
+      "sha256": "0288e40f21e7c8890f5fc0e49b4bffe2d1764073c0299534e803985713261dab",
+      "source_original": "animated_mp5.glb",
+      "clips": 3,
+      "source_rig_preserved": true,
+      "gameplay_verified": false,
+      "rights_approved": false
+    },
+    {
+      "id": "SNIPER",
+      "name": "aurora_sniper_source.glb",
+      "path": "native-godot/assets/weapons/aurora_v3_extended/aurora_sniper_source.glb",
+      "bytes": 5604912,
+      "sha256": "d6845eb933f59931999f39101274cacfac0bd4e30414c635d9df871d0c0c580f",
+      "source_original": "fps_animations_sniper_rifle.glb",
+      "clips": 6,
+      "source_rig_preserved": true,
+      "gameplay_verified": false,
+      "rights_approved": false
+    },
+    {
+      "id": "LOBBY_BGM",
+      "name": "aurora_lobby_loop.ogg",
+      "path": "native-godot/assets/audio/aurora_v3_addendum/aurora_lobby_loop.ogg",
+      "bytes": 1960364,
+      "sha256": "c835874d1e3068f653738406271c9ae0481c32d7a3a9c7d0801699b04ab67c04",
+      "source_original": "ikoliks_aj-gaming-gaming-music-614619.mp3",
+      "duration_seconds": 140.5,
+      "gameplay_verified": false,
+      "rights_approved": false,
+      "music_content_id": true
+    }
+  ]
+}
