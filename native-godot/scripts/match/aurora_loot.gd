@@ -2,6 +2,7 @@ extends Area3D
 ## Touchable actual 3D ammo/medkit cache. Triggered by CharacterBody3D proximity.
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
+const PRIVATE_GEAR=preload("res://scripts/player/aurora_private_equipment.gd")
 
 var pickup_type: String = "ammo_ar"
 var player: CharacterBody3D
@@ -66,6 +67,27 @@ func _ready() -> void:
     material.emission_energy_multiplier=.55
     item.material_override=material
     _visual.add_child(item)
+    var source_gear: String=""
+    var source_scale: float=.48
+    match pickup_type:
+        "medkit":
+            source_gear=PRIVATE_GEAR.MEDKIT
+            source_scale=.38
+        "backpack":
+            source_gear=PRIVATE_GEAR.BACKPACK
+            source_scale=.56
+        "vest_1","vest_2","vest_3":
+            source_gear=PRIVATE_GEAR.VEST
+            source_scale=.62
+        "helmet_1","helmet_2","helmet_3":
+            source_gear=PRIVATE_GEAR.HELMET
+            source_scale=.34
+    if not source_gear.is_empty():
+        var original: Node3D=PRIVATE_GEAR.mount_optional(_visual,source_gear,
+            source_scale,Vector3.ZERO)
+        if original:
+            original.name="OriginalAuroraGearPickup"
+            item.hide()
     if pickup_type=="weapon_awm":
         # Use the actual authored sniper GLB, not a decorative placeholder.
         item.visible=not _add_ground_weapon_visual()
