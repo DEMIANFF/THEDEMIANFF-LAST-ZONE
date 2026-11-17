@@ -250,6 +250,11 @@ func add_expansion(slot: int) -> bool:
     var carried:=scene.instantiate() as Node3D
     mount.add_child(carried)
     calibrate_expansion(carried,slot)
+    # An import can exist but contain invalid or empty meshes: never grant
+    # an invisible weapon as if its visual passed inspection.
+    if not carried.visible:
+        carried.queue_free()
+        return false
     _expansion[slot]=carried
     if back_mount:
         var holstered:=scene.instantiate() as Node3D
