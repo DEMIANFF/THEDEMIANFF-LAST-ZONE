@@ -48,7 +48,7 @@ func _verify() -> void:
                         found=true
                         break
                 check(found,"original clip not imported: "+expected)
-            for action in ["idle","fire","reload"]:
+            for action in ["idle","fire","reload","equip"]:
                 check(combat._weapon_visuals.play_source_action(CATALOG.SCAR,action),
                     "original clip failed to play: "+action)
                 await process_frame
