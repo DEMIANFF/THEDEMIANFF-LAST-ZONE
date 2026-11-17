@@ -27,7 +27,8 @@ func _verify() -> void:
         "training equipment was granted before opening the armory")
     combat.open_training_armory()
     var optional: Array[String]=[]
-    for kind in ["weapon_hk416","weapon_p90","weapon_vss"]:
+    for kind in ["weapon_hk416","weapon_p90","weapon_vss",
+            "weapon_mp5","weapon_shotgun","weapon_magnum","weapon_knife","weapon_sniper"]:
         var slot: int=CATALOG.pickup_slot(kind)
         if ResourceLoader.exists(str(CATALOG.ENTRIES[slot]["asset"])):
             optional.append(kind)
@@ -88,15 +89,27 @@ func _verify() -> void:
         check(visual!=null and visual.is_visible_in_tree(),"equipped mesh hidden")
         var length: float=combat._weapon_visuals.equipped_global_length()
         check(length>.25 and length<2.0,"weapon outside human scale: "+str(length))
+        # Knife is truly close range, does not waste ammo and cannot reload.
+        var melee: bool=slot==CATALOG.KNIFE
+        target.global_position=player.global_position+Vector3(0,0,-1.70 if melee else -12.0)
+        await physics_frame
         var health: float=target.health
         var rounds: int=combat.ammo[slot]
         combat.cooldown=0.0
         combat._shoot()
-        check(combat.ammo[slot]==rounds-1 and target.health<health,
-            "training gun did not consume a real round and damage an opponent")
-        combat._on_reload()
-        combat._process(float(CATALOG.ENTRIES[slot]["reload"])+.01)
-        check(combat.ammo[slot]==rounds,"training reload did not replenish the magazine")
+        if melee:
+            check(combat.ammo[slot]==rounds and target.health<health,
+                "knife consumed a bullet or struck from too far")
+            combat._on_reload()
+            check(combat.ammo[slot]==rounds and combat.reload_timer==0.0,
+                "knife illegally activated a firearm reload")
+        else:
+            check(combat.ammo[slot]==rounds-1 and target.health<health,
+                "training gun did not consume a real round and damage an opponent")
+            combat._on_reload()
+            combat._process(float(CATALOG.ENTRIES[slot]["reload"])+.01)
+            check(combat.ammo[slot]==rounds,
+                "training reload did not replenish the magazine")
     # A new BR must remove the training table and all its extra ownership.
     director.start_sector_battle()
     check(combat._training_armory==null and combat.weapon_owned==[true,false],
