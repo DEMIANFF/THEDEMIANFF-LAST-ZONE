@@ -29,7 +29,10 @@ static func find_clip(animator: AnimationPlayer,short_name: String) -> String:
 static func inspect(subject: Node3D) -> Dictionary:
     if subject==null:
         return {"valid":false,"reason":"instantiation_failed"}
-    var skeleton: Skeleton3D=subject.find_child("*","Skeleton3D",true,false) as Skeleton3D
+    var skeleton: Skeleton3D=null
+    for node in subject.find_children("*","Skeleton3D",true,false):
+        skeleton=node as Skeleton3D
+        break
     if skeleton==null:
         return {"valid":false,"reason":"missing_skeleton"}
     var count: int=skeleton.get_bone_count()
@@ -38,7 +41,7 @@ static func inspect(subject: Node3D) -> Dictionary:
     var names: Dictionary={}
     for i in range(count):
         names[str(skeleton.get_bone_name(i)).to_lower()]=true
-    for needed in ["mixamorig:hips","mixamorig:leftfoot","mixamorig:righthand"]:
+    for needed in ["hips","leftfoot","righthand"]:
         var found: bool=false
         for bone in names:
             if str(bone).ends_with(needed):
