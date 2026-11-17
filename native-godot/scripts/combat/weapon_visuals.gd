@@ -268,6 +268,61 @@ func add_expansion(slot: int) -> bool:
 
 
 static func calibrate_expansion(visual: Node3D,slot: int) -> void:
+    if slot>=WEAPONS.HK416:
+        # User GLBs have very different units (HK416 ~86, P90 ~1235,
+        # VSS ~0.9). Calibrate geometry in holder coordinates, not by name.
+        # An imported GLB is never a valid mounted rifle at raw source scale.
+        var low:=Vector3(INF,INF,INF)
+        var high:=Vector3(-INF,-INF,-INF)
+        var count: int=0
+        for element in visual.find_children("*","MeshInstance3D",true,false):
+            var part: MeshInstance3D=element as MeshInstance3D
+            if part.mesh==null:
+                continue
+            count+=1
+            var bound: AABB=part.get_aabb()
+            for point in range(8):
+                var local: Vector3=visual.to_local(
+                    part.to_global(bound.get_endpoint(point)))
+                low=low.min(local)
+                high=high.max(local)
+        var extents: Vector3=high-low
+        var length: float=maxf(extents.x,maxf(extents.y,extents.z))
+        if count==0 or not extents.is_finite() or not is_finite(length) or length<.0001:
+            visual.hide()
+            push_error("Optional gun GLB has no usable mesh geometry: "+visual.name)
+            return
+        # Source long-axis to canonical forward (-Z), without mirroring.
+        if extents.x>=extents.y and extents.x>=extents.z:
+            visual.rotation.y=PI*.5
+        elif extents.y>=extents.z:
+            visual.rotation.x=-PI*.5
+        var target_length: float=1.10 if slot==WEAPONS.HK416 else (
+            .76 if slot==WEAPONS.P90 else 1.05)
+        var factor: float=clampf(target_length/length,.00001,100.0)
+        var center: Vector3=low+extents*.5
+        var grip_location:=Vector3(0,.01,-.20)
+        visual.scale=Vector3.ONE*factor
+        visual.position=grip_location-(visual.quaternion*center)*factor
+        var support:=Node3D.new()
+        support.name="SupportGrip"
+        visual.add_child(support)
+        var holder: Node3D=visual.get_parent() as Node3D
+        if holder:
+            support.global_position=holder.to_global(Vector3(0,.015,-.36))
+        # A real scene muzzle attachment is needed for geometry-based bullets.
+        # This approximation is tested against the displayed mesh and kept
+        # separate from the user's original GLB (no destructive asset edits).
+        if visual.find_child("Muzzle",true,false)==null:
+            var muzzle:=Node3D.new()
+            muzzle.name="Muzzle"
+            visual.add_child(muzzle)
+            if holder:
+                muzzle.global_position=holder.to_global(Vector3(0,.03,
+                    -.70 if slot!=WEAPONS.P90 else -.52))
+        print("AURORA_OPTIONAL_GUN ",slot," source_bounds=",extents,
+            " target_length=",target_length)
+        return
     if slot!=WEAPONS.SCAR:
         var front:=Node3D.new()
         front.name="SupportGrip"
