@@ -7,6 +7,7 @@ const ACCELERATION: float = 16.0
 const GRAVITY: float = 17.5
 const LOOK_SENSITIVITY: float = 0.0032
 const ANIMATION_CONTROLLER=preload("res://scripts/player/operator_animation.gd")
+const BACKPACK_VISUAL=preload("res://scripts/player/aurora_backpack_visual.gd")
 const LOCAL_PLAYER_RECORDS=preload("res://scripts/persistence/offline_match_records.gd")
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
@@ -120,6 +121,7 @@ var _crouching: bool = false
 var _normal_visual_scale: Vector3 = Vector3.ONE
 var _normal_visual_y: float = 0.0
 var _protection_visual: Node3D
+var _backpack_visual: Node3D
 
 
 func _ready() -> void:
@@ -940,6 +942,22 @@ func _sync_protection_visual() -> void:
         _protection_visual.attach(_avatar)
     if _protection_visual!=null:
         _protection_visual.apply_levels(helmet_level,vest_level)
+
+
+## Inventory owns the backpack level; this is visual-only and appears
+## on Lila's real Spine bone after collecting the world pickup.
+func set_backpack_visual_level(level: int) -> void:
+    if _avatar==null:
+        return
+    if _backpack_visual==null and level>0:
+        var gear_path: String=(
+            "res://assets/gear/aurora_v3_private/AuroraMilitaryBackpackPrivate.glb")
+        if ResourceLoader.exists(gear_path,"PackedScene"):
+            _backpack_visual=BACKPACK_VISUAL.new()
+            add_child(_backpack_visual)
+            _backpack_visual.attach(_avatar)
+    if _backpack_visual:
+        _backpack_visual.apply_level(level)
 
 
 func end_sector_battle() -> void:
