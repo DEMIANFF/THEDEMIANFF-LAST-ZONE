@@ -596,6 +596,7 @@ func set_battle_button(label: String) -> void:
 ## The same mobile joystick steers/accelerates the four-wheel physics.
 ## This action is invisible unless a verified real car exists within range.
 func set_vehicle_context(can_enter: bool,driving: bool,speed_kmh: float) -> void:
+    var was_driving: bool=_driving_vehicle
     _driving_vehicle=driving
     if _vehicle_action_button==null:
         return
@@ -605,17 +606,21 @@ func set_vehicle_context(can_enter: bool,driving: bool,speed_kmh: float) -> void
     if _vehicle_speed_label:
         _vehicle_speed_label.visible=driving
         _vehicle_speed_label.text="AUTO %d km/h"%roundi(speed_kmh)
-    # No simulated firing through a rigid chassis, and no accidental healing
-    # while steering with the same fingers on the phone.
+    # Preserve aircraft/parachute controls. Near-vehicle polling at 4 Hz
+    # may never change button visibility unless riding mode actually flips.
+    if was_driving==driving:
+        return
     var root: Control=get_node_or_null("AuroraTacticalOverlay")
     if root:
         var fire_pad: Control=root.get_node_or_null("DirectionalFirePad")
         if fire_pad:
             fire_pad.visible=not driving and air_stage=="ground"
     for control in [_aim_button,_reload_button,_medkit_button,
-            _cover_button,_crouch_button,_inventory_button,_jump_button]:
+            _cover_button,_crouch_button,_inventory_button]:
         if control:
             control.visible=not driving and air_stage=="ground"
+    if _jump_button:
+        _jump_button.visible=not driving  # usable for airborne controls too
 
 
 func set_sector_state(status: String, alive: int, safe_radius: float, elapsed_seconds: int) -> void:
