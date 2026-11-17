@@ -41,6 +41,16 @@ func _verify() -> void:
             var gable_mesh: ArrayMesh=gable.mesh
             check(gable_mesh.surface_get_array_len(0)==12,
                 "villa "+str(i)+" is missing a front or rear gable face")
+        var gable_body: StaticBody3D=house.get_node("SealedVillaGableCollision")
+        check(gable_body.get_child_count()==2,
+            "villa "+str(i)+" must have two solid gable walls")
+        for gable_shape in gable_body.get_children():
+            check(gable_shape is CollisionShape3D and
+                gable_shape.shape is ConvexPolygonShape3D,
+                "villa "+str(i)+" gable is missing convex collision")
+            if gable_shape is CollisionShape3D and gable_shape.shape is ConvexPolygonShape3D:
+                check(gable_shape.shape.points.size()==6,
+                    "villa "+str(i)+" gable must be a closed triangular prism")
         check(roof.get_child_count()==2,"villa "+str(i)+" must have two roof slabs")
         for slab in roof.get_children():
             check(slab is CollisionShape3D and slab.shape is ConvexPolygonShape3D,
