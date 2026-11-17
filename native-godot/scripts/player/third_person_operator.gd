@@ -63,7 +63,7 @@ var training_knockouts: int = 0
 var _training_immunity: float = 0.0
 var _sprint_touch: bool = false
 # Real vehicle state is optional and uses the existing mobile joystick.
-var _vehicle_ride: VehicleBody3D
+var _vehicle_ride: AuroraDriveableVehicle
 var _vehicle_saved_collision_mask: int=1
 var _jump_requested: bool = false
 var _jump_buffer_seconds: float = 0.0
@@ -1164,7 +1164,7 @@ func fire_aim_delta(delta: Vector2) -> void:
 ## The operator rides inside a real VehicleBody3D chassis. The gameplay
 ## CharacterBody is moved with the seat, retains health and hit reactions,
 ## while the existing camera is the only active third-person view.
-func begin_vehicle_ride(car: VehicleBody3D) -> bool:
+func begin_vehicle_ride(car: AuroraDriveableVehicle) -> bool:
     if car==null or _vehicle_ride!=null or not can_act():
         return false
     if not car.enter(self):
@@ -1185,7 +1185,7 @@ func begin_vehicle_ride(car: VehicleBody3D) -> bool:
 func _advance_vehicle_rider(delta: float) -> void:
     if _vehicle_ride==null or not is_instance_valid(_vehicle_ride):
         return
-    var car: VehicleBody3D=_vehicle_ride
+    var car: AuroraDriveableVehicle=_vehicle_ride
     global_position=car.to_global(Vector3(0,-.06,.18))
     rotation.y=car.global_rotation.y
     velocity=Vector3.ZERO
@@ -1213,7 +1213,7 @@ func vehicle_ride_active() -> bool:
 func force_vehicle_exit(at: Vector3=Vector3(INF,INF,INF)) -> void:
     if _vehicle_ride==null:
         return
-    var old: VehicleBody3D=_vehicle_ride
+    var old: AuroraDriveableVehicle=_vehicle_ride
     _vehicle_ride=null
     collision_mask=_vehicle_saved_collision_mask
     if is_instance_valid(old):
