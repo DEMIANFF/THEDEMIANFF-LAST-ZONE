@@ -265,7 +265,7 @@ func _equip_inventory_weapon(index: int) -> void:
     current_zoom=1.0
     if _weapon_visuals:
         _weapon_visuals.equip(weapon_index)
-        _weapon_visuals.play_source_action(weapon_index,"idle")
+        _weapon_visuals.play_source_action(weapon_index,"equip")
     operator.set_equipped_weapon(weapon_index)
     operator.set_ads(false,1.0)
     hud.set_aim(false,"MIRA LIBRE",1.0)
