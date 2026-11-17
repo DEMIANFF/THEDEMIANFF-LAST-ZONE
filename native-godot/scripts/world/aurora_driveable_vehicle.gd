@@ -4,8 +4,8 @@ extends VehicleBody3D
 ## Never substitute a cube/textured fake: this node is only spawned when
 ## the real source GLB is staged privately and imported successfully.
 const SOURCE_FILES: Dictionary={
-    "Toyota":"res://assets/vehicles/aurora_v3_private/AuroraToyotaOriginal.glb",
-    "BMW":"res://assets/vehicles/aurora_v3_private/AuroraBMWOriginal.glb"
+    "Toyota":"res://assets/vehicles/aurora_v3_private/AuroraToyotaMobile.glb",
+    "BMW":"res://assets/vehicles/aurora_v3_private/AuroraBMWMobile.glb"
 }
 const TARGET_LENGTHS: Dictionary={"Toyota":5.0,"BMW":4.8}
 const SAFE_ENTRY_RADIUS: float=3.35
