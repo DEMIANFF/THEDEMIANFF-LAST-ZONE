@@ -1,0 +1,97 @@
+{
+  "type": "source_asset_geometry_math_only",
+  "Godot_import_approved": false,
+  "Arm_IK_visual_approved": false,
+  "physical_motorola_approved": false,
+  "source_total_bytes": 12698284,
+  "models": [
+    {
+      "name": "HK416",
+      "filename": "aurora_hk416_textures1024.glb",
+      "sha256": "dae024ca21a784553c3c588f67c9c6dc64f0ef2309b2a1d9a81b59bbc09c237d",
+      "mesh_instances": 2,
+      "triangles": 30088,
+      "raw_bounds": [
+        [
+          -45.3058602809906,
+          -0.3063904991193205,
+          -18.595063808306747
+        ],
+        [
+          41.328054428100586,
+          25.368158304224238,
+          3.755360132412944
+        ]
+      ],
+      "raw_extents": [
+        86.63391470909119,
+        25.67454880334356,
+        22.350423940719693
+      ],
+      "raw_length": 86.63391470909119,
+      "game_target_length_metres": 1.1,
+      "normalization_scale": 0.012697106020127339,
+      "result_length_metres": 1.1,
+      "pass": true
+    },
+    {
+      "name": "P90",
+      "filename": "aurora_modular_p90_tactical_textures1024.glb",
+      "sha256": "0560b555ce3c01014d9fb689b93bd48cf2a600b2a66b844ec8db94f29406308c",
+      "mesh_instances": 8,
+      "triangles": 21268,
+      "raw_bounds": [
+        [
+          -595.563720703125,
+          -177.90970611572266,
+          -108.4510307200579
+        ],
+        [
+          638.9824676513672,
+          245.08722686767578,
+          45.2319564819336
+        ]
+      ],
+      "raw_extents": [
+        1234.5461883544922,
+        422.99693298339844,
+        153.6829872019915
+      ],
+      "raw_length": 1234.5461883544922,
+      "game_target_length_metres": 0.76,
+      "normalization_scale": 0.0006156108270140888,
+      "result_length_metres": 0.7599999999999999,
+      "pass": true
+    },
+    {
+      "name": "VSS",
+      "filename": "aurora_vss_vintorez_gameready_textures1024.glb",
+      "sha256": "57decf52b1ed0c661786c13192a414f2e9b5ef59b72a6976f94e210080578576",
+      "mesh_instances": 1,
+      "triangles": 7660,
+      "raw_bounds": [
+        [
+          -0.02104216977467371,
+          -0.07840880976843509,
+          -0.4475801027155583
+        ],
+        [
+          0.029823460580849875,
+          0.07753184138702941,
+          0.4456791363764576
+        ]
+      ],
+      "raw_extents": [
+        0.050865630355523585,
+        0.15594065115546452,
+        0.893259239092016
+      ],
+      "raw_length": 0.893259239092016,
+      "game_target_length_metres": 1.05,
+      "normalization_scale": 1.1754706294079964,
+      "result_length_metres": 1.05,
+      "pass": true
+    }
+  ],
+  "overall_pass": true
+}
