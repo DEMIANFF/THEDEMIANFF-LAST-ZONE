@@ -26,8 +26,8 @@ func _verify() -> void:
     ]:
         check(grenade.get_node_or_null(name) is MeshInstance3D,
             "original low-poly physical grenade is missing "+name)
-    check(float(grenade.FUSE_SECONDS)>0 and
-        float(grenade.FUSE_SECONDS)<3.0,
+    check(float(GRENADE.FUSE_SECONDS)>0 and
+        float(GRENADE.FUSE_SECONDS)<3.0,
         "grenade fuse physics contract changed")
     holder.queue_free()
     await process_frame
