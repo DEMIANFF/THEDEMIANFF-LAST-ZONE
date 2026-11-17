@@ -340,9 +340,11 @@ static func calibrate_expansion(visual: Node3D,slot: int) -> void:
         var target_length: float=(
             .38 if slot==WEAPONS.KNIFE else
             .54 if slot==WEAPONS.MAGNUM else
-            .84 if slot in [WEAPONS.P90,WEAPONS.MP5] else
+            .76 if slot==WEAPONS.P90 else
+            .84 if slot==WEAPONS.MP5 else
             1.38 if slot==WEAPONS.SNIPER else
-            1.15 if slot==WEAPONS.SHOTGUN else 1.10)
+            1.15 if slot==WEAPONS.SHOTGUN else
+            1.05 if slot==WEAPONS.VSS else 1.10)
         var factor: float=clampf(target_length/length,.00001,100.0)
         var center: Vector3=low+extents*.5
         var grip_location:=Vector3(0,.01,-.20)
