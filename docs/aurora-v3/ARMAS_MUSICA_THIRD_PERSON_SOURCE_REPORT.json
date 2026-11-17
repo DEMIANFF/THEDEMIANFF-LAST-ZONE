@@ -1,0 +1,127 @@
+[
+  {
+    "original": "animated_shotgun.glb",
+    "optimized_input": "aurora_animated_shotgun.glb",
+    "output": "aurora_shotgun_source.glb",
+    "sha256": "666721a6b3ed105b43cde3f841d066ed47300ed98d534b2f87cd1c2589e2ae75",
+    "bytes": 7725108,
+    "original_animation_count": 7,
+    "visible_mesh_count": 3,
+    "removed_fps_mesh_assignments": [
+      {
+        "node": 7,
+        "node_name": "shape_pose__0",
+        "mesh_name": "shape_pose__0"
+      },
+      {
+        "node": 12,
+        "node_name": "Object_12",
+        "mesh_name": "sleeve_sleeve_st6_generalist_0"
+      },
+      {
+        "node": 14,
+        "node_name": "Object_14",
+        "mesh_name": "hardknuckle_glove_hardknuckle_0"
+      },
+      {
+        "node": 112,
+        "node_name": "crosshair_crosshair_0",
+        "mesh_name": "crosshair_crosshair_0"
+      }
+    ],
+    "original_skinned_rig_preserved": true,
+    "retargeted_to_lila": false,
+    "godot_tested": false
+  },
+  {
+    "original": "animated_magnum.glb",
+    "optimized_input": "aurora_animated_magnum.glb",
+    "output": "aurora_magnum_source.glb",
+    "sha256": "d1ad4c925de178050e150e2173a476c64625a247eb7ad2e2ece2a8d6c2f8208e",
+    "bytes": 5188340,
+    "original_animation_count": 5,
+    "visible_mesh_count": 4,
+    "removed_fps_mesh_assignments": [
+      {
+        "node": 7,
+        "node_name": "shape_pose__0",
+        "mesh_name": "shape_pose__0"
+      },
+      {
+        "node": 12,
+        "node_name": "Object_12",
+        "mesh_name": "sleeve_sleeve_st6_generalist_0"
+      },
+      {
+        "node": 14,
+        "node_name": "Object_14",
+        "mesh_name": "hardknuckle_glove_hardknuckle_0"
+      },
+      {
+        "node": 116,
+        "node_name": "crosshair_crosshair_0",
+        "mesh_name": "crosshair_crosshair_0"
+      }
+    ],
+    "original_skinned_rig_preserved": true,
+    "retargeted_to_lila": false,
+    "godot_tested": false
+  },
+  {
+    "original": "animated_knife.glb",
+    "optimized_input": "aurora_animated_knife.glb",
+    "output": "aurora_knife_source.glb",
+    "sha256": "01a3045e2d369ddbe8fad3f38f3dc239420f75cf004d81bb68e78b72f05533fc",
+    "bytes": 1788036,
+    "original_animation_count": 4,
+    "visible_mesh_count": 1,
+    "removed_fps_mesh_assignments": [
+      {
+        "node": 120,
+        "node_name": "Object_120",
+        "mesh_name": "DMC5_Nero_ArmR_DMC5_Nero_BareArm_0"
+      }
+    ],
+    "original_skinned_rig_preserved": true,
+    "retargeted_to_lila": false,
+    "godot_tested": false
+  },
+  {
+    "original": "animated_mp5.glb",
+    "optimized_input": "aurora_animated_mp5.glb",
+    "output": "aurora_mp5_source.glb",
+    "sha256": "0288e40f21e7c8890f5fc0e49b4bffe2d1764073c0299534e803985713261dab",
+    "bytes": 5840392,
+    "original_animation_count": 3,
+    "visible_mesh_count": 3,
+    "removed_fps_mesh_assignments": [
+      {
+        "node": 124,
+        "node_name": "Object_124",
+        "mesh_name": "DMC5_Nero_ArmR_DMC5_Nero_BareArm_0"
+      }
+    ],
+    "original_skinned_rig_preserved": true,
+    "retargeted_to_lila": false,
+    "godot_tested": false
+  },
+  {
+    "original": "fps_animations_sniper_rifle.glb",
+    "optimized_input": "aurora_fps_animations_sniper_rifle.glb",
+    "output": "aurora_sniper_source.glb",
+    "sha256": "d6845eb933f59931999f39101274cacfac0bd4e30414c635d9df871d0c0c580f",
+    "bytes": 5604912,
+    "original_animation_count": 6,
+    "visible_mesh_count": 2,
+    "removed_fps_mesh_assignments": [
+      {
+        "node": 9,
+        "node_name": "Object_9",
+        "mesh_name": "arms_arms_0"
+      }
+    ],
+    "original_skinned_rig_preserved": true,
+    "retargeted_to_lila": false,
+    "godot_tested": false
+  }
+]
