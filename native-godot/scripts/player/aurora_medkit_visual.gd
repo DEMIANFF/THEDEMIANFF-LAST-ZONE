@@ -4,6 +4,7 @@ extends Node3D
 ## Shows the current consumable only during its real healing channel.
 
 const SYRINGE = preload("res://assets/gear/aurora_v3/AuroraSyringe.glb")
+const PRIVATE_GEAR=preload("res://scripts/player/aurora_private_equipment.gd")
 
 var hand_socket: BoneAttachment3D
 var medkit_mount: Node3D
@@ -85,6 +86,16 @@ func attach_to_operator(player: CharacterBody3D) -> void:
     _solid("AuroraCrossVertical",Vector3(0,0,.039),Vector3(.027,.074,.007),cross)
     _solid("AuroraCrossHorizontal",Vector3(0,0,.041),Vector3(.075,.027,.007),cross)
     _solid("BlueSafetyLatch",Vector3(.095,-.01,0),Vector3(.013,.048,.042),blue)
+    # Substitute the actual delivered medkit during the real healing action,
+    # not just on the ground. Preserve this low-memory medical case if the
+    # licensed source is absent or has corrupt geometry.
+    var authored_case: Node3D=PRIVATE_GEAR.mount_optional(
+        medical_case,PRIVATE_GEAR.MEDKIT,.24,Vector3.ZERO)
+    if authored_case:
+        authored_case.name="OriginalMedicalKitInHand"
+        for piece in medical_case.get_children():
+            if piece is MeshInstance3D:
+                (piece as MeshInstance3D).hide()
     syringe=SYRINGE.instantiate() as Node3D
     medkit_mount.add_child(syringe)
     syringe.position=Vector3(0,0,.026)
