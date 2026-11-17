@@ -2357,6 +2357,12 @@ func _toggle_operator_frame() -> void:
         camera,"position",target_position,.25)
 
 
+func _on_mixamo_preview_motion_finished(_clip: StringName) -> void:
+    if _preview_male_active and _preview_avatar!=null and (
+            is_instance_valid(_preview_avatar)):
+        MALE_PREVIEW.play_original_motion(_preview_avatar,"AuroraArmedWalk")
+
+
 func _play_lobby_gesture() -> void:
     if stage!="lobby" or _preview_avatar==null or not is_instance_valid(
             _preview_avatar):
@@ -2374,9 +2380,7 @@ func _play_lobby_gesture() -> void:
                     "*AnimationPlayer*",true,false) as AnimationPlayer
                 if source_player:
                     source_player.animation_finished.connect(
-                        func(_ended: StringName) -> void:
-                            if _preview_male_active and _preview_avatar==subject and is_instance_valid(subject):
-                                MALE_PREVIEW.play_original_motion(subject,"AuroraArmedWalk"),
+                        Callable(self,"_on_mixamo_preview_motion_finished"),
                         CONNECT_ONE_SHOT)
         return
     var animator:=_preview_avatar.find_child(
