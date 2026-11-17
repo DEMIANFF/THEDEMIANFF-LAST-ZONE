@@ -37,6 +37,10 @@ func _verify() -> void:
         var gable: MeshInstance3D=house.get_node("SealedVillaGableWalls")
         check(gable.mesh!=null and gable.mesh.get_surface_count()==1,
             "villa "+str(i)+" has an open front/rear gable")
+        if gable.mesh is ArrayMesh:
+            var gable_mesh: ArrayMesh=gable.mesh
+            check(gable_mesh.surface_get_array_len(0)==12,
+                "villa "+str(i)+" is missing a front or rear gable face")
         check(roof.get_child_count()==2,"villa "+str(i)+" must have two roof slabs")
         for slab in roof.get_children():
             check(slab is CollisionShape3D and slab.shape is ConvexPolygonShape3D,
