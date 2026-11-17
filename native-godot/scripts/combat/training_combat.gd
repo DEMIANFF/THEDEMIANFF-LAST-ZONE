@@ -937,8 +937,12 @@ func collect_sector_loot(kind: String,quantity: int=-1,
     if operator.royale_eliminated:
         return false
     if not sector_battle_active:
+        # The armory adds optional *physical* weapon pickups only when its
+        # source GLB is locally staged. The old base-only whitelist silently
+        # rejected them even after actual Area3D contact.
         if (not is_instance_valid(_training_armory) or from_opponent or
-                not kind in TRAINING_ARMORY.ITEMS):
+                not (kind in TRAINING_ARMORY.ITEMS or
+                kind in TRAINING_ARMORY.OPTIONAL)):
             return false
     match kind:
         "medkit":
