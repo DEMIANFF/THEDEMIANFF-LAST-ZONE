@@ -5,6 +5,9 @@ extends Node3D
 
 const AK_PATH: String="res://assets/weapons/ak74-tactical.glb"
 const AWM_PATH: String="res://assets/weapons/aurora_awm.glb"
+# Source-faithful SCAR option: retains the real rig and animations, unlike
+# the static mobile derivative. Private staging only, fallback never removed.
+const SCAR_ANIMATED_SOURCE: String="res://assets/weapons/aurora_v3_sources/aurora_scar_animated_private.glb"
 const SUPPORT_IK=preload("res://scripts/combat/weapon_support_ik.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 
@@ -26,6 +29,7 @@ var equipped_visual_scale: float=1.0
 var attachment_uses_hand: bool=false
 var _expansion: Dictionary={}
 var _expansion_holsters: Dictionary={}
+var _source_animation_players: Dictionary={}
 var _mp40_magazine: Node3D
 var _mp40_charging_handle: Node3D
 var _magazine_rest: Transform3D
@@ -242,12 +246,19 @@ func add_expansion(slot: int) -> bool:
     if _expansion.has(slot):
         return true
     var path: String=WEAPONS.ENTRIES[slot]["asset"]
+    var animated_scar: bool=slot==WEAPONS.SCAR and ResourceLoader.exists(
+        SCAR_ANIMATED_SOURCE,"PackedScene")
+    if animated_scar:
+        path=SCAR_ANIMATED_SOURCE
     if not ResourceLoader.exists(path):
         return false
     var scene:=load(path) as PackedScene
     if scene==null:
         return false
     var carried:=scene.instantiate() as Node3D
+    if carried==null:
+        return false
+    carried.name="AuroraAnimatedScar" if animated_scar else "AuroraWeapon_"+str(slot)
     mount.add_child(carried)
     calibrate_expansion(carried,slot)
     # An import can exist but contain invalid or empty meshes: never grant
@@ -256,6 +267,14 @@ func add_expansion(slot: int) -> bool:
         carried.queue_free()
         return false
     _expansion[slot]=carried
+    if animated_scar:
+        var source_anim: AnimationPlayer=carried.find_child(
+            "*AnimationPlayer*",true,false) as AnimationPlayer
+        if source_anim:
+            _source_animation_players[slot]=source_anim
+            play_source_action(slot,"idle")
+        else:
+            push_warning("SCAR original GLB has no imported AnimationPlayer")
     if back_mount:
         var holstered:=scene.instantiate() as Node3D
         back_mount.add_child(holstered)
@@ -273,7 +292,8 @@ func add_expansion(slot: int) -> bool:
 
 
 static func calibrate_expansion(visual: Node3D,slot: int) -> void:
-    if slot>=WEAPONS.HK416:
+    if slot>=WEAPONS.HK416 or (slot==WEAPONS.SCAR and
+            visual.name=="AuroraAnimatedScar"):
         # User GLBs have very different units (HK416 ~86, P90 ~1235,
         # VSS ~0.9). Calibrate geometry in holder coordinates, not by name.
         # An imported GLB is never a valid mounted rifle at raw source scale.
@@ -302,7 +322,8 @@ static func calibrate_expansion(visual: Node3D,slot: int) -> void:
             visual.rotation.y=PI*.5
         elif extents.y>=extents.z:
             visual.rotation.x=-PI*.5
-        var target_length: float=1.10 if slot==WEAPONS.HK416 else (
+        var target_length: float=1.10 if slot in [
+            WEAPONS.HK416,WEAPONS.SCAR] else (
             .76 if slot==WEAPONS.P90 else 1.05)
         var factor: float=clampf(target_length/length,.00001,100.0)
         var center: Vector3=low+extents*.5
@@ -353,7 +374,28 @@ static func calibrate_expansion(visual: Node3D,slot: int) -> void:
     support.position=Vector3(0,-1.26,1.77)
 
 
+## Play the genuine imported weapon action on its own source skeleton.
+## Lila's independently rigged upper body remains driven by operator_animation.
+## Clips are never faked when the licensed source has not been staged.
+func play_source_action(slot: int,kind: String) -> bool:
+    var animator: AnimationPlayer=_source_animation_players.get(slot) as AnimationPlayer
+    if animator==null or not is_instance_valid(animator):
+        return false
+    var keyword: String=""
+    match kind:
+        "fire": keyword="shoot"
+        "reload": keyword="reload"
+        "idle": keyword="idle"
+        _: return false
+    for name in animator.get_animation_list():
+        if str(name).to_lower().contains(keyword):
+            animator.play(name)
+            return true
+    return false
+
+
 func clear_expansion() -> void:
+    _source_animation_players.clear()
     for visual: Node3D in _expansion.values()+_expansion_holsters.values():
         visual.hide()
         visual.queue_free()
