@@ -407,6 +407,23 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
     _window_frame(building,Vector3(w*.29,3.6,front+.22),1.4,1.45)
     _furnish_interior(building,w,d,seed)
     _roof_mesh(building,w,d,height)
+    # Seal the triangular openings above front/rear masonry walls.
+    # The roof ridge is 0.95m higher than the wall top; a flat ceiling
+    # alone does not close the exterior gable visible from the street.
+    var gables:=SurfaceTool.new()
+    gables.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for z in [-d*.5,d*.5]:
+        var left:=Vector3(-w*.5,height,z)
+        var peak:=Vector3(0,height+.95,z)
+        var right:=Vector3(w*.5,height,z)
+        for point in [left,peak,right,right,peak,left]:
+            gables.add_vertex(point)
+    gables.generate_normals()
+    var gable_visual:=MeshInstance3D.new()
+    gable_visual.name="SealedVillaGableWalls"
+    gable_visual.mesh=gables.commit()
+    gable_visual.material_override=_plaster
+    building.add_child(gable_visual)
     # Continuous interior ceiling: do not depend on winding/culling of
     # sloped roof triangles to close the room when the camera looks up.
     _panel(building,"SealedVillaCeiling",Vector3(0,height-.12,0),
