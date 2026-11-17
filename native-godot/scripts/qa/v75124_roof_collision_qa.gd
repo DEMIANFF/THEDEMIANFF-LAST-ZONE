@@ -37,6 +37,27 @@ func _verify() -> void:
             if slab is CollisionShape3D and slab.shape is ConvexPolygonShape3D:
                 check(slab.shape.points.size()==8,"roof slab lacks closed corners")
                 roof_count+=1
+    # Raycast from above the real roof to confirm the physics server
+    # exposes both slopes as landing surfaces, not merely shape resources.
+    var space:=game.get_world_3d().direct_space_state
+    var roof_hits: int=0
+    for i in range(quarter.HOUSE_COUNT):
+        var house: Node3D=quarter.get_node("AuroraCoastalVilla"+str(i))
+        var roof: StaticBody3D=house.get_node("WalkableRoofCollision")
+        for local_x in [-1.0,1.0]:
+            var start: Vector3=house.to_global(Vector3(local_x,12.0,0.0))
+            var stop: Vector3=house.to_global(Vector3(local_x,5.9,0.0))
+            var ray:=PhysicsRayQueryParameters3D.create(start,stop)
+            ray.collision_mask=3
+            var hit: Dictionary=space.intersect_ray(ray)
+            check(not hit.is_empty(),"villa "+str(i)+" roof has no physical landing hit")
+            if not hit.is_empty():
+                check(hit.get("collider")==roof,
+                    "villa "+str(i)+" landing ray hit another body")
+                check((hit["normal"] as Vector3).y>.5,
+                    "villa "+str(i)+" roof has a non-walkable surface normal")
+                roof_hits+=1
+    check(roof_hits==quarter.HOUSE_COUNT*2,"roof landing rays failed")
     check(roof_count==quarter.HOUSE_COUNT*2,"missing walkable convex roof surfaces")
     game.queue_free()
     await process_frame
