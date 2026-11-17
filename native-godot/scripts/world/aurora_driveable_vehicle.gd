@@ -1,3 +1,4 @@
+class_name AuroraDriveableVehicle
 extends VehicleBody3D
 ## Actual four-wheel Godot suspension and traction around user-submitted cars.
 ## Never substitute a cube/textured fake: this node is only spawned when
