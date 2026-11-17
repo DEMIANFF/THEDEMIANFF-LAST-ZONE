@@ -59,7 +59,8 @@ func _ready() -> void:
         "ammo_ar": material.albedo_color=Color(.89,.66,.21)
         "cover_charge": material.albedo_color=Color(.26,.71,.97)
         "armor_plate": material.albedo_color=Color(.32,.84,.52)
-        "backpack": material.albedo_color=Color(.93,.51,.23)
+        "backpack", "backpack_2", "backpack_3":
+            material.albedo_color=Color(.93,.51,.23)
         "weapon_awm": material.albedo_color=Color(.98,.34,.40)
         _: material.albedo_color=Color(.56,.43,.95)
     material.emission_enabled=true
@@ -73,7 +74,7 @@ func _ready() -> void:
         "medkit":
             source_gear=PRIVATE_GEAR.MEDKIT
             source_scale=.38
-        "backpack":
+        "backpack", "backpack_2", "backpack_3":
             source_gear=PRIVATE_GEAR.BACKPACK
             source_scale=.56
         "vest_1","vest_2","vest_3":
@@ -122,7 +123,9 @@ func _ready() -> void:
         "ammo_ar": floating_name.text="MUNICION AR"
         "cover_charge": floating_name.text="BARRERA +1"
         "armor_plate": floating_name.text="CHALECO AURORA"
-        "backpack": floating_name.text="MOCHILA TACTICA"
+        "backpack", "backpack_2", "backpack_3":
+            floating_name.text="MOCHILA TÁCTICA NV. "+(
+                "1" if pickup_type=="backpack" else pickup_type.get_slice("_",1))
         "weapon_awm": floating_name.text="RECOGER AWM"
         "ammo_smg": floating_name.text="MUNICIÓN SMG"
         "weapon_scar", "weapon_mp40", "weapon_kriss", "weapon_hk416", "weapon_p90", "weapon_vss", "weapon_mp5", "weapon_shotgun", "weapon_magnum", "weapon_knife", "weapon_sniper":
