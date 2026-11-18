@@ -63,7 +63,7 @@ func _verify() -> void:
                         " offset "+str(distance)+" grade="+str(slope))
                 previous_y=ground
                 previous_weight=weight
-    for old in terrain.LEGACY_CENTERS:
+    for old in TERRAIN.LEGACY_CENTERS:
         check(absf(terrain._elevation(old.x,old.y)-
             terrain._wilderness_height(old.x,old.y))<.001,
             "grading changed the protected original town "+str(old))
