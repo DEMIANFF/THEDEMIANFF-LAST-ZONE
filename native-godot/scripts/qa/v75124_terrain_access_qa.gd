@@ -63,6 +63,47 @@ func _verify() -> void:
                         " offset "+str(distance)+" grade="+str(slope))
                 previous_y=ground
                 previous_weight=weight
+    # Four-neighbor slope graph across the real sampled mesh. From the
+    # coastal village a walking-grade route must reach the inland high ground
+    # without crossing water or depending on infinite jump spam.
+    var start:=Vector2i(
+        roundi((RESIDENTIAL.SITES[1].x+TERRAIN.HALF_EXTENT)/TERRAIN.HEIGHT_STEP),
+        roundi((RESIDENTIAL.SITES[1].y+TERRAIN.HALF_EXTENT)/TERRAIN.HEIGHT_STEP))
+    var inland:=Vector2i(TERRAIN.CELLS/2,TERRAIN.CELLS/2)
+    var queue: Array[Vector2i]=[start]
+    var seen: Dictionary={start:true}
+    var head: int=0
+    var mountain_route: bool=false
+    var reachable_peak: float=RESIDENTIAL.PAD_HEIGHT
+    var cardinal: Array[Vector2i]=[
+        Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1)]
+    while head<queue.size():
+        var cell: Vector2i=queue[head]
+        head+=1
+        var x: float=-TERRAIN.HALF_EXTENT+float(cell.x)*TERRAIN.HEIGHT_STEP
+        var z: float=-TERRAIN.HALF_EXTENT+float(cell.y)*TERRAIN.HEIGHT_STEP
+        var y: float=terrain.height_at(x,z)
+        reachable_peak=maxf(reachable_peak,y)
+        if cell==inland:
+            mountain_route=true
+            break
+        for step in cardinal:
+            var next: Vector2i=cell+step
+            if next.x<0 or next.x>TERRAIN.CELLS or next.y<0 or next.y>TERRAIN.CELLS:
+                continue
+            if seen.has(next):
+                continue
+            var nx: float=-TERRAIN.HALF_EXTENT+float(next.x)*TERRAIN.HEIGHT_STEP
+            var nz: float=-TERRAIN.HALF_EXTENT+float(next.y)*TERRAIN.HEIGHT_STEP
+            var ny: float=terrain.height_at(nx,nz)
+            if ny<0.0 or absf(ny-y)>TERRAIN.HEIGHT_STEP*.85:
+                continue
+            seen[next]=true
+            queue.append(next)
+    check(mountain_route,
+        "no continuous walking-grade route from coastal homes to inland mountain")
+    check(terrain.height_at(0,0)>RESIDENTIAL.PAD_HEIGHT+6.0,
+        "terrain smoothing flattened the entire mountain instead of retaining high ground")
     for old in TERRAIN.LEGACY_CENTERS:
         check(absf(terrain._elevation(old.x,old.y)-
             terrain._wilderness_height(old.x,old.y))<.001,
@@ -72,5 +113,6 @@ func _verify() -> void:
     if not failed:
         print("V75124_TERRAIN_ACCESS PASS homes=",RESIDENTIAL.HOUSE_COUNT,
             " collider_rays=",rays," max_graded_slope=",max_graded_slope,
-            " blend_width=",RESIDENTIAL.PAD_BLEND_WIDTH)
+            " blend_width=",RESIDENTIAL.PAD_BLEND_WIDTH,
+            " mountain_route=",mountain_route," visited=",seen.size())
     quit(1 if failed else 0)
