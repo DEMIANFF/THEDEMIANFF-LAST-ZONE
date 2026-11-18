@@ -292,6 +292,10 @@ func _roof_mesh(root: Node3D,w: float,d: float,ridge_height: float) -> void:
     tiles.name="InstancedCurvedTerracottaTiles"
     tiles.multimesh=collection
     tiles.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    # Distance LOD for Mobile/Vulkan: the solid painted roof remains visible,
+    # but thousands of decorative barrel tiles need not reach the GPU from afar.
+    # Physics lives in WalkableRoofCollision and is unaffected by visual culling.
+    tiles.visibility_range_end=170.0
     root.add_child(tiles)
     tile_instances+=amount
 
