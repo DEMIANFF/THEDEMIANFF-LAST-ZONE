@@ -60,7 +60,8 @@ func _verify() -> void:
                     max_graded_slope=maxf(max_graded_slope,slope)
                     check(slope<.95,
                         "unwalkable graded ditch/cliff at villa "+str(index)+
-                        " offset "+str(distance)+" grade="+str(slope))
+                        " offset "+str(distance)+" direction="+str(direction)+
+                        " position="+str(at)+" grade="+str(slope))
                 previous_y=ground
                 previous_weight=weight
     # Four-neighbor slope graph across the real sampled mesh. From the
