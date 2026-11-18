@@ -1,5 +1,7 @@
 extends SceneTree
-## V75.7 mobile repair gate: house/terrain clearance and functioning PCM mixer.
+## Audio/terrain regression: playable cues, supported houses and paving aligned
+## to the REAL terrain heightfield (not obsolete hard-coded street heights).
+const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 var failed: bool=false
 
 func _initialize() -> void:
@@ -52,17 +54,19 @@ func _verify() -> void:
     check(sound._world_cursor==(spatial_before+1)%sound._world_voices.size(),
         "real AI gunfire not audible at world position")
 
-    # All four houses and main plaza must be level and aligned with the
-    # actual physics heightfield. Zero ground intrusion into occupied rooms.
+    # Verify the actual eight foundation pads rather than four original
+    # house coordinates plus street points. Streets and plazas intentionally
+    # conform to the sculpted heightfield; the pads remain strictly level.
     var highest_deviation: float=0.0
-    for spot in [Vector2(-4,42),Vector2(19,43),Vector2(43,41),
-                 Vector2(62,28),Vector2(20,28),Vector2(29,26),
-                 Vector2(5,20),Vector2(57,13)]:
-        var y: float=terrain.height_at(spot.x,spot.y)
-        highest_deviation=maxf(highest_deviation,absf(y-7.0))
-        check(absf(y-7.0)<.08,"urban grade not planar at "+str(spot)+": "+str(y))
+    for site in RESIDENTIAL.SITES:
+        var ground: float=terrain.height_at(site.x,site.y)
+        highest_deviation=maxf(highest_deviation,
+            absf(ground-RESIDENTIAL.PAD_HEIGHT))
+        check(absf(ground-RESIDENTIAL.PAD_HEIGHT)<.08,
+            "coastal foundation not level at "+str(Vector2(site.x,site.y))+
+            ": "+str(ground))
     var spaces:=scene.get_world_3d().direct_space_state
-    for i in range(4):
+    for i in range(RESIDENTIAL.HOUSE_COUNT):
         var house: Node3D=quarter.get_node("AuroraCoastalVilla"+str(i))
         var flat_y: float=terrain.height_at(house.global_position.x,house.global_position.z)
         check(absf(house.global_position.y-flat_y)<.18,"floating house "+str(i))
@@ -87,14 +91,40 @@ func _verify() -> void:
                 "snow penetrates legacy interior "+name+" at "+str(inside))
     var pavement: MeshInstance3D=quarter.get_node("AuroraCobblestoneMarketPlaza")
     check(pavement.mesh!=null,"paved plaza missing")
-    check(absf(terrain.height_at(19,28)-terrain.height_at(27,28))<.09,
-        "flat street still behaves like snow mountain")
+    # The market and pedestrian lanes are projected onto the same 96x96
+    # terrain triangles: check the actual paving mesh, not an obsolete
+    # assumption that the entire district is uniformly 7 m above sea level.
+    # The new terrain access test separately checks ramp grade and an
+    # uninterrupted walkable route between homes and the inland mountains.
+    var verified_paving_vertices: int=0
+    var largest_paving_gap: float=0.0
+    var paving_mesh: ArrayMesh=pavement.mesh as ArrayMesh
+    check(paving_mesh!=null and paving_mesh.get_surface_count()>0,
+        "paved plaza mesh has no visible terrain-conforming surface")
+    if paving_mesh!=null and paving_mesh.get_surface_count()>0:
+        var mesh_arrays: Array=paving_mesh.surface_get_arrays(0)
+        var paved_vertices: PackedVector3Array=mesh_arrays[Mesh.ARRAY_VERTEX]
+        var stride: int=maxi(1,int(paved_vertices.size()/64))
+        for idx in range(0,paved_vertices.size(),stride):
+            var vertex: Vector3=pavement.to_global(paved_vertices[idx])
+            var gap: float=absf(vertex.y-terrain.height_at(vertex.x,vertex.z)-.055)
+            largest_paving_gap=maxf(largest_paving_gap,gap)
+            check(gap<.02,
+                "paving hovers or cuts into actual terrain at "+str(vertex)+
+                " gap="+str(gap))
+            verified_paving_vertices+=1
+    check(verified_paving_vertices>=16,
+        "insufficient physical paving samples checked")
     var camera: Camera3D=player.get_view_camera()
     check(camera!=null,"TPS camera disappeared")
     check(player._camera_collision_query.collision_mask==1,"camera world collision check disabled")
-    print("V757_WORLD_AUDIO PASS plateau_error=",highest_deviation,
-        " houses=",quarter.buildings_built," audio_samples=",sound.sound_count(),
-        " polyphony=",sound._voices.size()," camera_collision=true")
+    if not failed:
+        print("V757_WORLD_AUDIO PASS plateau_error=",highest_deviation,
+            " houses=",quarter.buildings_built,
+            " paving_vertices=",verified_paving_vertices,
+            " paving_gap=",largest_paving_gap,
+            " audio_samples=",sound.sound_count(),
+            " polyphony=",sound._voices.size()," camera_collision=true")
     sound.set_enabled(false)
     await create_timer(.12).timeout
     quit(1 if failed else 0)
