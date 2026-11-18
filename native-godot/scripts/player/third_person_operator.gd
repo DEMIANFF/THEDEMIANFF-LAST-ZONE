@@ -743,6 +743,9 @@ func _air_step(delta: float) -> void:
     if first_canopy_step:
         FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_move_and_slide",
             "fall_speed="+str(snappedf(velocity.y,0.01)))
+    # move_and_slide() resolves vertical velocity to zero on contact, so
+    # capture the real descent speed BEFORE the collision solver runs.
+    var touchdown_speed_before_collision: float=velocity.y
     move_and_slide()
     if first_freefall_step:
         FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,"freefall_tick_after_move_and_slide",
@@ -785,7 +788,6 @@ func _air_step(delta: float) -> void:
         # Touchdown previously discarded the entire landing state. Preserve
         # the genuine surface impact so Lila plays AuroraLand and the landing
         # sound fires once, including a touchdown on a coastal roof.
-        var touchdown_speed: float=velocity.y
         air_mode="ground"
         _queued_air_clip=""
         _queued_air_phase=""
@@ -793,9 +795,9 @@ func _air_step(delta: float) -> void:
         if _parachute_visual:
             _parachute_visual.visible=false
         _current_clip=""
-        if touchdown_speed < -2.0:
+        if touchdown_speed_before_collision < -2.0:
             _landing_seconds=.28
-            if touchdown_speed < -4.5:
+            if touchdown_speed_before_collision < -4.5:
                 grounded_impact.emit(_on_stone_footing())
         landed_from_airdrop.emit()
 
