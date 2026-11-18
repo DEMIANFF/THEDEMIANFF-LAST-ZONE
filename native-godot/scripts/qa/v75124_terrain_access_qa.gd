@@ -110,6 +110,20 @@ func _verify() -> void:
         check(absf(terrain._elevation(old.x,old.y)-
             terrain._wilderness_height(old.x,old.y))<.001,
             "grading changed the protected original town "+str(old))
+    # A few center-only checks missed the northeast floor tiles of
+    # PUESTO_VORTEX, where the coast approaches touch the old town.
+    # Assert the complete original four building footprints on the same
+    # sampled collider consumed by real gameplay and indoor loot.
+    for lot in TERRAIN.LEGACY_LOTS:
+        var historic_center: float=terrain.height_at(lot.x,lot.y)
+        for side in [-.43,0.0,.43]:
+            for front in [-.43,0.0,.43]:
+                var at:=Vector2(lot.x+lot.z*side,lot.y+lot.w*front)
+                var actual: float=terrain.height_at(at.x,at.y)
+                check(absf(actual-historic_center)<.11,
+                    "historic interior floor intruded by coastal grading at "+
+                    str(at)+" height="+str(actual)+
+                    " center="+str(historic_center))
     terrain.queue_free()
     await process_frame
     if not failed:

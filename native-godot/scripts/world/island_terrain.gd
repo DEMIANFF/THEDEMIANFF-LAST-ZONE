@@ -35,9 +35,12 @@ func _smooth_residential_transition_samples() -> void:
             var x: float=-HALF_EXTENT+float(ix)*HEIGHT_STEP
             var z: float=-HALF_EXTENT+float(iz)*HEIGHT_STEP
             var weight: float=RESIDENTIAL.grading_weight(x,z)
-            # Keep the entire flat build pad immutable and never alter
-            # wilderness or the separately protected legacy residences.
-            if weight>.32 and weight<.995:
+            var historic: Dictionary=legacy_grading_weight(x,z)
+            # Never smooth the physical floor of a historic house. The
+            # coastal transition partially overlaps PUESTO_VORTEX and used
+            # to lift its last row of floor triangles into the building.
+            # Keep the new villa pads and distant wilderness unchanged.
+            if weight>.32 and weight<.995 and float(historic["weight"])<.995:
                 editable[iz*side+ix]=1
     # Conservative, deterministic 4-neighbor relaxation along the approach
     # shoulders. Eight light passes remove noise-driven ridges while retaining
@@ -149,12 +152,14 @@ func _elevation(x: float,z: float) -> float:
     var old_world: float=_wilderness_height(x,z)
     var base: float=lerpf(old_world,COAST_SHELF_ELEVATION,
         _coastal_shelf_weight(x,z))
-    # Both historic and newer houses rest on the actual terrain collider.
-    # Keep hills outside all protected residential building footprints.
-    var legacy: Dictionary=legacy_grading_weight(x,z)
-    base=lerpf(base,float(legacy["height"]),float(legacy["weight"]))
+    # The new coast grading can overlap a protected historic house.
+    # Grade new villa approaches first, then let old interior foundations
+    # take final precedence. The historic rooms must never be lifted by
+    # the newer terraces, even at their shared transition shoulders.
     var residential: float=RESIDENTIAL.grading_weight(x,z)
-    return lerpf(base,RESIDENTIAL.PAD_HEIGHT,residential)
+    base=lerpf(base,RESIDENTIAL.PAD_HEIGHT,residential)
+    var legacy: Dictionary=legacy_grading_weight(x,z)
+    return lerpf(base,float(legacy["height"]),float(legacy["weight"]))
 
 
 func residential_pad_height(x: float,z: float) -> float:
