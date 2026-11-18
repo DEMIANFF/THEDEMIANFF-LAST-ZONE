@@ -77,7 +77,8 @@ func _verify() -> void:
                     "villa "+str(i)+" landing ray hit another body")
                 check((hit["normal"] as Vector3).y>.5,
                     "villa "+str(i)+" roof has a non-walkable surface normal")
-                roof_hits+=1
+                if hit.get("collider")==roof and (hit["normal"] as Vector3).y>.5:
+                    roof_hits+=1
     # Horizontal rays across both upper gables exercise the physics server
     # and catch the previous visual-only facade closure regression.
     var gable_hits: int=0
@@ -95,7 +96,8 @@ func _verify() -> void:
             if not gable_hit.is_empty():
                 check(gable_hit.get("collider")==gable_body,
                     "villa "+str(i)+" gable ray hit another body")
-                gable_hits+=1
+                if gable_hit.get("collider")==gable_body:
+                    gable_hits+=1
     check(gable_hits==quarter.HOUSE_COUNT*2,"gable wall rays failed")
     check(roof_hits==quarter.HOUSE_COUNT*2,"roof landing rays failed")
     check(roof_count==quarter.HOUSE_COUNT*2,"missing walkable convex roof surfaces")
