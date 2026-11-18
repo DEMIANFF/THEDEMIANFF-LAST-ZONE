@@ -2035,7 +2035,7 @@ func _update_equipment_details() -> void:
         "BOTIQUÍN · restaura salud al usarlo en combate.",
         "GRANADA · consumible arrojadizo; requiere recogerse en partida."
     ]
-    _info.text="EQUIPAMIENTO EN PARTIDA  ·  %d / %d\n%s\n\n"%[
+    _info.text="INVENTARIO EN PARTIDA · EQUIPAMIENTO  ·  %d / %d\n%s\n\n"%[
         _equipment_selected+1,summaries.size(),summaries[_equipment_selected]]
     _info.text+=("Este catálogo explica objetos del Battle Royale. El inventario "+
         "real y el equipo disponible se consultan en el HUD durante cada partida; "+

@@ -42,6 +42,8 @@ func _verify() -> void:
         front._info.text.contains("CARGADOR"),
         "selection did not reveal live MP40 ballistic data")
     front._select_tab("INVENTARIO")
+    check(front._info.text.contains("INVENTARIO EN PARTIDA"),
+        "inventory section lost its real equipment route label")
     check(front._equipment_selector.visible and not weapons.visible and
         front._equipment_selector.item_count==5,
         "lobby has no equipment browser or leaks weapons into gear tab")
