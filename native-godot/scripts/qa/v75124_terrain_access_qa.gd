@@ -69,9 +69,10 @@ func _verify() -> void:
     var start:=Vector2i(
         roundi((RESIDENTIAL.SITES[1].x+TERRAIN.HALF_EXTENT)/TERRAIN.HEIGHT_STEP),
         roundi((RESIDENTIAL.SITES[1].y+TERRAIN.HALF_EXTENT)/TERRAIN.HEIGHT_STEP))
-    var inland:=Vector2i(TERRAIN.CELLS/2,TERRAIN.CELLS/2)
+    var inland:=Vector2i(int(TERRAIN.CELLS/2),int(TERRAIN.CELLS/2))
     var queue: Array[Vector2i]=[start]
-    var seen: Dictionary={start:true}
+    var seen: Dictionary={}
+    seen[start]=true
     var head: int=0
     var mountain_route: bool=false
     var reachable_peak: float=RESIDENTIAL.PAD_HEIGHT
