@@ -782,6 +782,10 @@ func _air_step(delta: float) -> void:
             _queued_air_phase=air_mode
             call_deferred("_commit_air_clip",clip,air_mode,first_animation,first_canopy_step)
     if is_on_floor():
+        # Touchdown previously discarded the entire landing state. Preserve
+        # the genuine surface impact so Lila plays AuroraLand and the landing
+        # sound fires once, including a touchdown on a coastal roof.
+        var touchdown_speed: float=velocity.y
         air_mode="ground"
         _queued_air_clip=""
         _queued_air_phase=""
@@ -789,6 +793,10 @@ func _air_step(delta: float) -> void:
         if _parachute_visual:
             _parachute_visual.visible=false
         _current_clip=""
+        if touchdown_speed < -2.0:
+            _landing_seconds=.28
+            if touchdown_speed < -4.5:
+                grounded_impact.emit(_on_stone_footing())
         landed_from_airdrop.emit()
 
 
