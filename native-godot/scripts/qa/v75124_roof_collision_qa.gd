@@ -21,6 +21,10 @@ func _verify() -> void:
         enemy.set_physics_process(false)
     player.set_physics_process(false)
     await physics_frame
+    check(absf(player.floor_snap_length-0.28)<0.001,
+        "operator lost ground adhesion across split roof slopes")
+    check(absf(player.safe_margin-0.015)<0.001,
+        "operator lost safe capsule contact margin")
     var roof_count: int=0
     for i in range(quarter.HOUSE_COUNT):
         var house: Node3D=quarter.get_node("AuroraCoastalVilla"+str(i))
@@ -101,6 +105,36 @@ func _verify() -> void:
     check(gable_hits==quarter.HOUSE_COUNT*2,"gable wall rays failed")
     check(roof_hits==quarter.HOUSE_COUNT*2,"roof landing rays failed")
     check(roof_count==quarter.HOUSE_COUNT*2,"missing walkable convex roof surfaces")
+    # Exercise the actual 1.82m playable capsule, not only raycast surfaces.
+    # Two spatially separate homes and both sides of their ridges must accept
+    # a downward body sweep and an outward move without freezing the actor.
+    var actual_landings: int=0
+    for i in [0,quarter.HOUSE_COUNT-1]:
+        var house: Node3D=quarter.get_node("AuroraCoastalVilla"+str(i))
+        var roof: StaticBody3D=house.get_node("WalkableRoofCollision")
+        for side in [-1.0,1.0]:
+            player.global_position=house.to_global(Vector3(side,12.0,0.0))
+            player.velocity=Vector3.ZERO
+            await physics_frame
+            var collision: KinematicCollision3D=player.move_and_collide(
+                Vector3.DOWN*9.0)
+            check(collision!=null,
+                "villa "+str(i)+" roof did not stop the falling operator")
+            if collision==null:
+                continue
+            check(collision.get_collider()==roof,
+                "villa "+str(i)+" operator landed on an unexpected body")
+            check(collision.get_normal().y>.5,
+                "villa "+str(i)+" operator hit a non-walkable roof face")
+            if collision.get_collider()!=roof:
+                continue
+            var before_move: Vector3=player.global_position
+            player.velocity=house.global_basis*Vector3(side*2.5,-1.0,0.0)
+            player.move_and_slide()
+            check(player.global_position.distance_to(before_move)>.015,
+                "villa "+str(i)+" operator capsule stuck on roof slope")
+            actual_landings+=1
+    check(actual_landings==4,"operator roof collision sweeps failed")
     game.queue_free()
     await process_frame
     if not failed:
