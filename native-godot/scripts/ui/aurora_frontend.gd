@@ -16,6 +16,7 @@ const LOBBY_MOTION_CLIP: StringName=&"aurora_lobby/Motion"
 const MALE_PREVIEW=preload("res://scripts/player/aurora_mixamo_male_preview.gd")
 const LOCAL_PLAYER_NAME=preload("res://scripts/persistence/local_player_name.gd")
 const FIREBASE_BRIDGE=preload("res://scripts/persistence/aurora_firebase_bridge.gd")
+const WEAPON_CATALOG=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
@@ -132,6 +133,11 @@ var _shop_selector: OptionButton
 var _shop_buy_button: Button
 var _shop_equip_button: Button
 var _shop_selected_skin: String="aurora_glacier"
+var _armory_list: ItemList
+var _armory_selected_slot: int=0
+var _armory_test_button: Button
+var _equipment_selector: OptionButton
+var _equipment_selected: int=0
 var _banner: Label
 var _game_scene: PackedScene
 var _loading_overlay: ColorRect
@@ -1201,6 +1207,38 @@ func _show_lobby() -> void:
     _shop_equip_button.custom_minimum_size.y=33
     _shop_equip_button.add_theme_font_size_override("font_size",13)
     _page.add_child(_shop_equip_button)
+    # A real, scrollable weapon catalog replaces the old 2-weapon text card.
+    # Imported GLBs and their ballistic entries remain the single source
+    # of truth: never show an unavailable private model as installed.
+    _armory_list=ItemList.new()
+    _armory_list.name="AuroraWeaponCatalogList"
+    _armory_list.custom_minimum_size=Vector2(245,118)
+    _armory_list.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _armory_list.select_mode=ItemList.SELECT_SINGLE
+    for slot in range(WEAPON_CATALOG.ENTRIES.size()):
+        var weapon: Dictionary=WEAPON_CATALOG.ENTRIES[slot]
+        var model: String=str(weapon.get("asset",""))
+        var available: bool=model.is_empty() or ResourceLoader.exists(model,"PackedScene")
+        _armory_list.add_item(str(weapon["short"])+(
+            "  · MODELO LISTO" if available else "  · GLB PENDIENTE"))
+    _armory_list.select(_armory_selected_slot)
+    _armory_list.item_selected.connect(_on_armory_slot_selected)
+    _page.add_child(_armory_list)
+    _armory_test_button=_button("PROBAR EN ENTRENAMIENTO",_open_weapon_training,245)
+    _armory_test_button.name="AuroraWeaponTrainingEntry"
+    _armory_test_button.custom_minimum_size.y=32
+    _armory_test_button.add_theme_font_size_override("font_size",13)
+    _page.add_child(_armory_test_button)
+    # Armor and supplies are acquired during a match, never silently owned
+    # merely because the player opened the local lobby.
+    _equipment_selector=OptionButton.new()
+    _equipment_selector.name="AuroraEquipmentCatalog"
+    _equipment_selector.custom_minimum_size=Vector2(245,35)
+    for item in ["MOCHILA","CASCO","CHALECO","BOTIQUÍN","GRANADA"]:
+        _equipment_selector.add_item(item)
+    _equipment_selector.select(_equipment_selected)
+    _equipment_selector.item_selected.connect(_on_equipment_selected)
+    _page.add_child(_equipment_selector)
     # Long account and match history text remains reachable on small screens.
     _lobby_detail_scroll=ScrollContainer.new()
     _lobby_detail_scroll.name="LobbyDetailsScroll"
@@ -1420,6 +1458,9 @@ func _sync_lobby_match_mode() -> void:
     _shop_selector.visible=_selected_tab in ["TIENDA","PERSONAJE"]
     _shop_buy_button.visible=_selected_tab=="TIENDA"
     _shop_equip_button.visible=_selected_tab=="TIENDA"
+    _armory_list.visible=_selected_tab=="ARMAS"
+    _armory_test_button.visible=_selected_tab=="ARMAS"
+    _equipment_selector.visible=_selected_tab=="INVENTARIO"
     _lobby_mode_status.visible=show_modes and _selected_match_mode=="ranked"
     _lobby_detail_scroll.visible=not show_modes and _selected_tab not in ["AJUSTES","PRESET"]
     match _selected_match_mode:
@@ -1887,9 +1928,9 @@ func _select_tab(tab: String) -> void:
                         str(measured.get("render_driver","unknown")).to_upper(),
                         float(measured.get("quality_scale",1.0))*100.0]
         "INVENTARIO":
-            _info.text="INVENTARIO EN PARTIDA\nArmas, munición, casco y botiquines se recogen físicamente en el Battle Royale.\nTu equipo se consulta desde el HUD del combate.\nNo hay compras ni objetos permanentes inventados."
+            _update_equipment_details()
         "ARMAS":
-            _info.text="ARSENAL ACTIVO\nAR-7: mira x2 / x4.\nAWM: mira x8 y cerrojo automático.\nBR: AWM sobre el suelo, en la PLAZA (8, 24).\nENTRENAMIENTO: pulsa ARMA para probarla."
+            _update_armory_details()
         "OBJETIVOS":
             _update_objective_details()
         "LUCK":
@@ -1927,6 +1968,60 @@ func _select_tab(tab: String) -> void:
         var shown: String=(_shop_selected_skin if tab in ["TIENDA","PERSONAJE"] else
             str(_offline_records.cosmetic_state()["equipped"]))
         _apply_preview_skin(shown)
+
+func _on_armory_slot_selected(slot: int) -> void:
+    _armory_selected_slot=clampi(slot,0,WEAPON_CATALOG.ENTRIES.size()-1)
+    if stage=="lobby" and _selected_tab=="ARMAS":
+        _update_armory_details()
+
+
+func _update_armory_details() -> void:
+    if _info==null:
+        return
+    var weapon: Dictionary=WEAPON_CATALOG.ENTRIES[_armory_selected_slot]
+    var model: String=str(weapon.get("asset",""))
+    var available: bool=model.is_empty() or ResourceLoader.exists(model,"PackedScene")
+    var magazine: String="CUCHILLO · SIN MUNICIÓN" if bool(weapon.get("melee",false)) else (
+        "CARGADOR: %d"%int(weapon["capacity"]))
+    _info.text="CATÁLOGO DE ARMAS  ·  %d / %d\n%s\n%s · DAÑO %.0f · RECARGA %.2f S\n%s\n"%[
+        _armory_selected_slot+1,WEAPON_CATALOG.ENTRIES.size(),
+        str(weapon["label"]),magazine,float(weapon["damage"]),
+        float(weapon["reload"]),
+        "MODELO DISPONIBLE EN LA INSTALACIÓN" if available else
+        "MODELO 3D PENDIENTE DE RECURSO AUTORIZADO"]
+    _info.text+=("PRUEBA: abre Entrenamiento, recoge el arma en la armería y equípala.\n"+
+        "Catálogo no significa arma poseída ni desbloqueo permanente.")
+
+
+func _open_weapon_training() -> void:
+    if stage!="lobby" or _selected_tab!="ARMAS":
+        return
+    _selected_match_mode="training"
+    _launch(false)
+
+
+func _on_equipment_selected(index: int) -> void:
+    _equipment_selected=clampi(index,0,4)
+    if stage=="lobby" and _selected_tab=="INVENTARIO":
+        _update_equipment_details()
+
+
+func _update_equipment_details() -> void:
+    if _info==null:
+        return
+    var summaries: Array[String]=[
+        "MOCHILA · niveles 1–3. Aumenta la capacidad real de munición.",
+        "CASCO · niveles 1–3. Protección obtenida mediante botín.",
+        "CHALECO · niveles 1–3. Absorbe daño y se equipa en partida.",
+        "BOTIQUÍN · restaura salud al usarlo en combate.",
+        "GRANADA · consumible arrojadizo; requiere recogerse en partida."
+    ]
+    _info.text="EQUIPAMIENTO EN PARTIDA  ·  %d / %d\n%s\n\n"%[
+        _equipment_selected+1,summaries.size(),summaries[_equipment_selected]]
+    _info.text+=("Este catálogo explica objetos del Battle Royale. El inventario "+
+        "real y el equipo disponible se consultan en el HUD durante cada partida; "+
+        "abrir esta sección no otorga objetos ni inventa compras.")
+
 
 func _apply_preview_skin(skin: String) -> void:
     if stage!="lobby" or _preview_avatar==null or not (
