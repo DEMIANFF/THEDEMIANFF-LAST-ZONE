@@ -59,18 +59,21 @@ func _smooth_ramp(at: float, low: float, high: float) -> float:
 
 
 func _coastal_shelf_weight(x: float,z: float) -> float:
-    # Only the new eastern coastal residential strip. The old exploration
-    # sector and its corner approach stay on their proven V75.6 heightfield.
+    # Grade the eastern coastal neighborhood through a broad, natural ramp.
+    # Previously the shelf ended within 12-25m and its legacy-lot protection
+    # snapped from 0 to 1 in just 3m, creating unwalkable cliffs and ditches.
+    # The old homes remain protected: their centers keep wilderness elevation,
+    # while distant hills are deliberately left untouched.
     var south_end: float=lerpf(18.0,8.5,
         clampf((x-20.0)/25.0,0.0,1.0))
-    var south: float=_smooth_ramp(z,south_end-12.0,south_end)
-    var west: float=_smooth_ramp(x,-35.0,-16.0)
-    var east: float=1.0-_smooth_ramp(x,81.0,106.0)
-    var north: float=1.0-_smooth_ramp(z,76.0,107.0)
+    var south: float=_smooth_ramp(z,south_end-27.0,south_end)
+    var west: float=_smooth_ramp(x,-58.0,-16.0)
+    var east: float=1.0-_smooth_ramp(x,81.0,123.0)
+    var north: float=1.0-_smooth_ramp(z,76.0,132.0)
     var protection: float=1.0
     for center in LEGACY_CENTERS:
         # The old walls, 8-m door approaches and graph loops are not graded.
-        protection*= _smooth_ramp(Vector2(x,z).distance_to(center),25.0,28.0)
+        protection*= _smooth_ramp(Vector2(x,z).distance_to(center),25.0,53.0)
     return south*west*east*north*protection
 
 
