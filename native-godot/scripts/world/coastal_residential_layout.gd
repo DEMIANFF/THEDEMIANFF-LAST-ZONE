@@ -10,11 +10,10 @@ const PAD_HEIGHT: float=7.0
 const PAD_SIDE_MARGIN: float=6.7
 const PAD_REAR_MARGIN: float=6.7
 const PAD_FRONT_MARGIN: float=14.5
-# Gradual transition across the edge of each building pad. The previous
-# 8 m blend created a sharp berm/ditch between 7 m residential ground and
-# surrounding wilderness, preventing normal walking around the homes.
-# Keep this under the nearest protected legacy lot clearance (about 27 m).
-const PAD_BLEND_WIDTH: float=22.0
+# Gradual transition across building pads. The previous 8 m and 22 m
+# transitions produced steep side approaches on the 4.6875 m terrain grid.
+# Use 26 m, remaining below the nearest protected legacy-lot clearance.
+const PAD_BLEND_WIDTH: float=26.0
 # World X, world Z, physical house width, physical house depth.
 const SITES: Array[Vector4]=[
     Vector4(-4.0,42.0,11.2,8.0),
