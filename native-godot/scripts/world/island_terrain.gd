@@ -40,9 +40,9 @@ func _smooth_residential_transition_samples() -> void:
             if weight>.32 and weight<.995:
                 editable[iz*side+ix]=1
     # Conservative, deterministic 4-neighbor relaxation along the approach
-    # shoulders. Four small passes remove noise-driven ridges while retaining
+    # shoulders. Eight light passes remove noise-driven ridges while retaining
     # relief, avoiding a giant new flat platform around the coastal district.
-    for iteration in range(4):
+    for iteration in range(8):
         var revised: PackedFloat32Array=_height_samples.duplicate()
         for iz in range(1,CELLS):
             for ix in range(1,CELLS):
@@ -53,7 +53,7 @@ func _smooth_residential_transition_samples() -> void:
                 var average: float=(
                     _height_samples[index-1]+_height_samples[index+1]+
                     _height_samples[index-side]+_height_samples[index+side])*.25
-                revised[index]=lerpf(original,average,.40)
+                revised[index]=lerpf(original,average,.45)
         _height_samples=revised
 
 
