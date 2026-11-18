@@ -148,6 +148,14 @@ func _ready() -> void:
     _camera_collision_query.exclude=[get_rid()]
     _camera_collision_query.collision_mask=1
 
+    # Retain floor contact while crossing the two convex halves of a gabled
+    # roof, uneven thresholds and downhill ground. Snap applies only when
+    # descending, so an upward jump is not pulled back onto the roof.
+    # A small safety margin also prevents the 1.82m capsule from catching
+    # precisely at adjoining static collider edges after parachute landing.
+    floor_snap_length=0.28
+    safe_margin=0.015
+
     var capsule := CollisionShape3D.new()
     capsule.name = "CapsuleCollider"
     var shape := CapsuleShape3D.new()
