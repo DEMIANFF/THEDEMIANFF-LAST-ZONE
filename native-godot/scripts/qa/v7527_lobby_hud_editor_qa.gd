@@ -59,6 +59,8 @@ func _verify() -> void:
     var hud: CanvasLayer=front._game.get_node("TrainingHUD")
     check(hud._hud_editing and paused and hud._hud_editor.visible,
         "HUD editor did not pause combat or enable the real edit overlay")
+    check(hud.return_to_lobby_on_save,
+        "lobby-origin HUD editor must return to lobby after save")
 
     var storage=HUD_LAYOUT.new(path)
     hud._hud_layout=storage
@@ -77,6 +79,9 @@ func _verify() -> void:
         "drag positioning not reflected on actual fired button")
     check(firepad.scale.x>1.05 and firepad.modulate.a<.95,
         "size and opacity edits did not change the real control")
+    # Keep this first session open to exercise backup/recovery/reset paths.
+    # A second lobby-origin session below tests the normal save-and-return flow.
+    hud.return_to_lobby_on_save=false
     hud._hud_edit_save()
     check(FileAccess.file_exists(path),"HUD layout not saved to persistent disk")
     var restored=HUD_LAYOUT.new(path)
@@ -115,15 +120,32 @@ func _verify() -> void:
     hud._hud_edit_close()
     check(not paused and not hud._hud_editing and not hud._hud_editor.visible,
         "closing edit session did not resume training and release overlay")
-    front._return_to_lobby()
+    # Closing an editor opened from lobby must return automatically, without
+    # launching Training or requiring the player to press LOBBY again.
     for i in range(4):
         await process_frame
     check(front.stage=="lobby" and front._game==null and
         front._preview_container!=null and
         is_instance_valid(front._preview_container),
         "return to lobby did not restore 3D portrait after HUD editing")
+    # Normal lobby save path: successful persistence immediately closes the
+    # paused HUD editor and restores lobby. Training/battle editors stay open.
+    front._launch_hud_editor()
+    for i in range(16):
+        await process_frame
+    check(front.stage=="training" and front._game!=null,
+        "lobby edit session did not enter temporary HUD host")
+    if front._game!=null:
+        var lobby_hud: CanvasLayer=front._game.get_node("TrainingHUD")
+        check(lobby_hud._hud_editing and lobby_hud.return_to_lobby_on_save,
+            "temporary HUD host lost lobby save-return context")
+        lobby_hud._hud_edit_save()
+        for i in range(8):
+            await process_frame
+        check(front.stage=="lobby" and front._game==null and not paused,
+            "saving lobby HUD settings stranded player in Training")
     if not failed:
         print("V7527_HUD_EDITOR PASS real lobby preview, safe paused HUD editor,",
-            " normalized drag/scale/opacity, durable save/recovery/reset",
-            " and re-entry to 3D lobby")
+            " normalized drag/scale/opacity, durable save/recovery/reset,",
+            " automatic lobby return on save and re-entry to 3D lobby")
     quit(1 if failed else 0)
