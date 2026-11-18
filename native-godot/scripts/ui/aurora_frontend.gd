@@ -2153,6 +2153,9 @@ func _activate_game(battle: bool,serial: int) -> void:
     hud.leave_to_lobby_requested.connect(_return_to_lobby)
     hud.connect("settings_requested",_open_settings)
     hud.connect("hud_editor_closed",_on_lobby_hud_editor_closed)
+    # The real HUD editor can be hosted in a temporary Training scene.
+    # Persisting a lobby-origin edit must return to the lobby automatically.
+    hud.set("return_to_lobby_on_save",_hud_editor_requested and _hud_editor_origin=="lobby")
     visible=false
     stage="battle" if battle else "training"
     if battle:
