@@ -99,6 +99,9 @@ var air_stage: String="ground"
 var _hud_layout: RefCounted
 var _hud_editor: Control
 var _hud_editor_label: Label
+# When opened from the lobby, saving returns there without starting Training.
+# In a real match or explicitly started Training, saving keeps the session open.
+var return_to_lobby_on_save: bool=false
 var _vibration_enabled: bool=false
 var _hud_editing: bool=false
 var _hud_selected: String=""
@@ -1212,6 +1215,11 @@ func _hud_edit_save() -> void:
     var result: Error=_hud_layout.save()
     if result!=OK:
         _hud_editor_label.text="ERROR AL GUARDAR HUD: "+str(result)
+        return
+    if return_to_lobby_on_save:
+        # Closing emits hud_editor_closed; AuroraFrontend performs the safe,
+        # deferred return after the paused editor releases all touch input.
+        _hud_edit_close()
         return
     _hud_editor_label.text="HUD GUARDADO  •  Cerrar para volver"
 
