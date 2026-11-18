@@ -19,6 +19,42 @@ func _init() -> void:
     for iz in range(CELLS+1):
         for ix in range(CELLS+1):
             _height_samples.append(_elevation(-HALF_EXTENT+ix*HEIGHT_STEP,-HALF_EXTENT+iz*HEIGHT_STEP))
+    # Smooth only the transition band of the eight coastal plots on the
+    # ACTUAL sampled heightfield. Analytic easing alone can still leave sharp
+    # triangular edges once noisy wilderness is sampled at 4.6875 m.
+    # Flat house foundations, original town and distant mountains stay fixed.
+    _smooth_residential_transition_samples()
+
+
+func _smooth_residential_transition_samples() -> void:
+    var side: int=CELLS+1
+    var editable:=PackedByteArray()
+    editable.resize(_height_samples.size())
+    for iz in range(1,CELLS):
+        for ix in range(1,CELLS):
+            var x: float=-HALF_EXTENT+float(ix)*HEIGHT_STEP
+            var z: float=-HALF_EXTENT+float(iz)*HEIGHT_STEP
+            var weight: float=RESIDENTIAL.grading_weight(x,z)
+            # Keep the entire flat build pad immutable and never alter
+            # wilderness or the separately protected legacy residences.
+            if weight>.32 and weight<.995:
+                editable[iz*side+ix]=1
+    # Conservative, deterministic 4-neighbor relaxation along the approach
+    # shoulders. Four small passes remove noise-driven ridges while retaining
+    # relief, avoiding a giant new flat platform around the coastal district.
+    for iteration in range(4):
+        var revised: PackedFloat32Array=_height_samples.duplicate()
+        for iz in range(1,CELLS):
+            for ix in range(1,CELLS):
+                var index: int=iz*side+ix
+                if editable[index]==0:
+                    continue
+                var original: float=_height_samples[index]
+                var average: float=(
+                    _height_samples[index-1]+_height_samples[index+1]+
+                    _height_samples[index-side]+_height_samples[index+side])*.25
+                revised[index]=lerpf(original,average,.40)
+        _height_samples=revised
 
 
 func height_at(x: float, z: float) -> float:
