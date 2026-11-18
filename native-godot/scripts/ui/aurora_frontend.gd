@@ -1997,6 +1997,10 @@ func _update_armory_details() -> void:
         float(weapon["reload"]),
         "MODELO DISPONIBLE EN LA INSTALACIÓN" if available else
         "MODELO 3D PENDIENTE DE RECURSO AUTORIZADO"]
+    # AWM exists as a physical local BR pickup, independent of whether an
+    # optional training model has been imported. Keep its map position
+    # discoverable no matter which catalog entry the user is browsing.
+    _info.text+="\nAWM EN BR LOCAL: PLAZA (8, 24). Busca la baliza RECOGER AWM.\n"
     _info.text+=("PRUEBA: tu selección aparece primero en la armería física de Entrenamiento.\n"+
         "Debes recogerla; el catálogo no concede armas ni desbloqueos." if available else
         "\nSIN MODELO INSTALADO: esta arma requiere su GLB autorizado antes de poder probarla.")

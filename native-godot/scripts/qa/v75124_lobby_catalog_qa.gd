@@ -18,6 +18,9 @@ func _verify() -> void:
     await front.wait_for_startup()
     front._show_lobby()
     front._select_tab("ARMAS")
+    check(front._info.text.contains("PLAZA (8, 24)") and
+        front._info.text.contains("RECOGER AWM"),
+        "lobby catalog lost physical BR AWM directions")
     var weapons: ItemList=front._armory_list
     check(weapons!=null and weapons.visible and
         weapons.item_count==CATALOG.ENTRIES.size(),
