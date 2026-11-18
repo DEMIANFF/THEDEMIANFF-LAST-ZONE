@@ -47,8 +47,20 @@ static func grading_weight(x: float,z: float) -> float:
         var dz: float=maxf(0.0,maxf(back-delta.z,delta.z-front))
         var outside: float=Vector2(dx,dz).length()
         var ratio: float=clampf(outside/PAD_BLEND_WIDTH,0.0,1.0)
-        var smooth: float=ratio*ratio*(3.0-2.0*ratio)
-        coverage=maxf(coverage,1.0-smooth)
+        # Ease the first/last 20% of the transition, keeping a gentler
+        # 1.25 maximum normalized mid-slope (old smoothstep peak: 1.5).
+        # This reduces the berm without flattening the inland mountains.
+        const SHOULDER: float=0.20
+        const GRADE_RATE: float=1.25
+        var graded: float=0.0
+        if ratio<SHOULDER:
+            graded=GRADE_RATE*ratio*ratio/(2.0*SHOULDER)
+        elif ratio>1.0-SHOULDER:
+            var remaining: float=1.0-ratio
+            graded=1.0-GRADE_RATE*remaining*remaining/(2.0*SHOULDER)
+        else:
+            graded=GRADE_RATE*(ratio-SHOULDER*.5)
+        coverage=maxf(coverage,1.0-graded)
     return coverage
 
 
