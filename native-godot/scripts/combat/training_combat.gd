@@ -1021,7 +1021,7 @@ func active_fighter_count() -> int:
     return count
 
 
-func open_training_armory() -> void:
+func open_training_armory(preferred_slot: int=-1) -> void:
     if sector_battle_active or is_instance_valid(_training_armory):
         return
     _training_armory=TRAINING_ARMORY.new()
@@ -1029,7 +1029,12 @@ func open_training_armory() -> void:
     _training_armory.player=operator
     _training_armory.combat=self
     _training_armory.terrain=terrain
+    _training_armory.set("preferred_weapon_slot",preferred_slot)
     add_child(_training_armory)
+    # Both baseline training guns are already owned; merely equip the
+    # selected one. Expanded weapons remain physical pickups.
+    if preferred_slot in [WEAPONS.AR,WEAPONS.AWM] and weapon_owned[preferred_slot]:
+        _equip_inventory_weapon(preferred_slot)
 
 
 func _close_training_armory() -> void:

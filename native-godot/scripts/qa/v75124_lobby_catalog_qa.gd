@@ -48,8 +48,8 @@ func _verify() -> void:
         front._info.text.contains("no otorga objetos"),
         "inventory preview fabricates gear or ignores selection")
     front._select_tab("ARMAS")
-    check(front._armory_test_button.visible,
-        "no accessible path to physically try the staged weapons")
+    check(front._armory_test_button.visible and not front._armory_test_button.disabled,
+        "staged MP40 cannot be selected for a physical training session")
     front._open_weapon_training()
     for frame in range(10):
         await process_frame
@@ -59,6 +59,17 @@ func _verify() -> void:
         var combat: Node3D=front._game.get_node("CombatRange")
         check(combat._training_armory!=null,
             "training failed to create a real pickup table")
+        if combat._training_armory!=null:
+            var armory: Node3D=combat._training_armory
+            check(int(armory.get("preferred_weapon_slot"))==CATALOG.MP40,
+                "lobby MP40 choice was lost during the scene transition")
+            var first: Area3D=armory.get_node_or_null("Training_weapon_mp40") as Area3D
+            check(first!=null,"the selected MP40 has no physical pickup")
+            if first!=null:
+                check(first.world_spot.distance_to(Vector2(-9,-6))<.01,
+                    "the selected MP40 is not first on the actual pickup line")
+            check(combat.weapon_index==CATALOG.AR,
+                "lobby selection silently equipped an uncollected MP40")
     front.queue_free()
     await process_frame
     if not failed:

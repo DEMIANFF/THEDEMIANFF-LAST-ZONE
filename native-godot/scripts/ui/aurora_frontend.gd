@@ -135,6 +135,9 @@ var _shop_equip_button: Button
 var _shop_selected_skin: String="aurora_glacier"
 var _armory_list: ItemList
 var _armory_selected_slot: int=0
+# A lobby catalogue choice changes the actual training armory order only.
+# Never grant an uncollected BR weapon or persist a fictitious entitlement.
+var _requested_training_weapon_slot: int=-1
 var _armory_test_button: Button
 var _equipment_selector: OptionButton
 var _equipment_selected: int=0
@@ -1981,6 +1984,11 @@ func _update_armory_details() -> void:
     var weapon: Dictionary=WEAPON_CATALOG.ENTRIES[_armory_selected_slot]
     var model: String=str(weapon.get("asset",""))
     var available: bool=model.is_empty() or ResourceLoader.exists(model,"PackedScene")
+    if _armory_test_button!=null:
+        _armory_test_button.disabled=not available
+        _armory_test_button.tooltip_text=(
+            "La selección aparecerá al comienzo de la armería física." if available else
+            "Modelo 3D no instalado: prueba deshabilitada hasta importar el GLB.")
     var magazine: String="CUCHILLO · SIN MUNICIÓN" if bool(weapon.get("melee",false)) else (
         "CARGADOR: %d"%int(weapon["capacity"]))
     _info.text="CATÁLOGO DE ARMAS  ·  %d / %d\n%s\n%s · DAÑO %.0f · RECARGA %.2f S\n%s\n"%[
@@ -1989,13 +1997,20 @@ func _update_armory_details() -> void:
         float(weapon["reload"]),
         "MODELO DISPONIBLE EN LA INSTALACIÓN" if available else
         "MODELO 3D PENDIENTE DE RECURSO AUTORIZADO"]
-    _info.text+=("PRUEBA: abre Entrenamiento, recoge el arma en la armería y equípala.\n"+
-        "Catálogo no significa arma poseída ni desbloqueo permanente.")
+    _info.text+=("PRUEBA: tu selección aparece primero en la armería física de Entrenamiento.\n"+
+        "Debes recogerla; el catálogo no concede armas ni desbloqueos." if available else
+        "\nSIN MODELO INSTALADO: esta arma requiere su GLB autorizado antes de poder probarla.")
 
 
 func _open_weapon_training() -> void:
     if stage!="lobby" or _selected_tab!="ARMAS":
         return
+    var selected: Dictionary=WEAPON_CATALOG.ENTRIES[_armory_selected_slot]
+    var asset: String=str(selected.get("asset",""))
+    if not asset.is_empty() and not ResourceLoader.exists(asset,"PackedScene"):
+        _update_armory_details()
+        return
+    _requested_training_weapon_slot=_armory_selected_slot
     _selected_match_mode="training"
     _launch(false)
 
@@ -2268,7 +2283,9 @@ func _activate_game(battle: bool,serial: int) -> void:
             # Main._ready and the old 3D lobby viewport have been released.
             hud.call_deferred("open_hud_editor")
         else:
-            _game.get_node("CombatRange").open_training_armory()
+            var combat: Node3D=_game.get_node("CombatRange")
+            combat.open_training_armory(_requested_training_weapon_slot)
+            _requested_training_weapon_slot=-1
     # This confirmation is written after a visible 3D frame, not after
     # merely enqueuing the world. A missing confirmation is not a GPU proof.
     # Headless QA never submits drawable frames; a stale one-shot callback
@@ -2315,6 +2332,7 @@ func _return_to_lobby() -> void:
         old.queue_free()
     _hud_editor_requested=false
     _hud_editor_origin=""
+    _requested_training_weapon_slot=-1
     _show_lobby()
 
 
