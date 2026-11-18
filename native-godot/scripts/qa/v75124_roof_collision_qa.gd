@@ -34,6 +34,8 @@ func _verify() -> void:
         var tiles: MultiMeshInstance3D=house.get_node("InstancedCurvedTerracottaTiles")
         check(tiles.multimesh!=null and tiles.multimesh.instance_count>0,
             "villa "+str(i)+" lost its instanced terracotta tiles")
+        check(tiles.visibility_range_end>=140.0 and tiles.visibility_range_end<=220.0,
+            "villa "+str(i)+" must cull distant decorative tiles without hiding roof")
         if tiles.multimesh!=null and tiles.multimesh.mesh is ArrayMesh:
             var tile_mesh: ArrayMesh=tiles.multimesh.mesh
             check(tile_mesh.surface_get_array_len(0)==36,
