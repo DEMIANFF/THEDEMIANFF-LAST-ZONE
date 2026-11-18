@@ -106,10 +106,10 @@ func _verify() -> void:
     check(roof_hits==quarter.HOUSE_COUNT*2,"roof landing rays failed")
     check(roof_count==quarter.HOUSE_COUNT*2,"missing walkable convex roof surfaces")
     # Exercise the actual 1.82m playable capsule, not only raycast surfaces.
-    # Two spatially separate homes and both sides of their ridges must accept
-    # a downward body sweep and an outward move without freezing the actor.
+    # All eight homes and both sides of their ridges must accept
+    # a downward body sweep and outward movement without freezing the actor.
     var actual_landings: int=0
-    for i in [0,quarter.HOUSE_COUNT-1]:
+    for i in range(quarter.HOUSE_COUNT):
         var house: Node3D=quarter.get_node("AuroraCoastalVilla"+str(i))
         var roof: StaticBody3D=house.get_node("WalkableRoofCollision")
         for side in [-1.0,1.0]:
@@ -134,9 +134,35 @@ func _verify() -> void:
             check(player.global_position.distance_to(before_move)>.015,
                 "villa "+str(i)+" operator capsule stuck on roof slope")
             actual_landings+=1
-    check(actual_landings==4,"operator roof collision sweeps failed")
+    check(actual_landings==quarter.HOUSE_COUNT*2,
+        "operator roof collision sweeps failed")
+    # A real parachute descent onto the roof must enter ground state once,
+    # play AuroraLand and trigger a single landing audio signal. This tests
+    # CharacterBody3D.move_and_slide, not an isolated state setter.
+    var landing_events: Array[int]=[0]
+    var impact_events: Array[int]=[0]
+    player.landed_from_airdrop.connect(func(): landing_events[0]+=1)
+    player.grounded_impact.connect(func(_stone: bool): impact_events[0]+=1)
+    var last_house: Node3D=quarter.get_node(
+        "AuroraCoastalVilla"+str(quarter.HOUSE_COUNT-1))
+    player.global_position=last_house.to_global(Vector3(1.0,9.5,0.0))
+    player.velocity=Vector3(0,-5.6,0)
+    player.air_mode="parachute"
+    player._landing_seconds=0.0
+    for tick in range(45):
+        if player.air_mode=="ground":
+            break
+        await physics_frame
+        player._air_step(1.0/30.0)
+    check(player.air_mode=="ground" and player.is_on_floor(),
+        "physical parachute descent did not land on the coastal roof")
+    check(landing_events[0]==1 and impact_events[0]==1,
+        "parachute touchdown emitted duplicate or missing landing signals")
+    check(player._landing_seconds>0.0,
+        "roof landing did not schedule AuroraLand animation")
     game.queue_free()
     await process_frame
     if not failed:
-        print("V75124_ROOF PASS villas=8 convex_slabs=16 visual_roofs=8")
+        print("V75124_ROOF PASS villas=8 convex_slabs=16 capsule_sweeps=16",
+            " real_parachute_roof_touchdown=1 landing_audio_once=1")
     quit(1 if failed else 0)
