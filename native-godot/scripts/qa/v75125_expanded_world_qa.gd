@@ -21,7 +21,7 @@ func _verify() -> void:
         "terrain size or preserved original sample spacing regressed")
     check(TACTICAL_MAP.WORLD_HALF==TERRAIN.HALF_EXTENT,
         "full map still crops the new outer terrain")
-    check(DIRECTOR.INITIAL_RADIUS==205.0 and
+    check(DIRECTOR.INITIAL_RADIUS==245.0 and
         DIRECTOR.PHASE_RADII.size()==5 and
         COMBAT.CLASSIC_BR_PARTICIPANTS==50,
         "match ring or combat roster does not fit expanded island")
@@ -34,6 +34,12 @@ func _verify() -> void:
     var frontiers: Array[Vector2]=[
         Vector2(197,23),Vector2(-15,-198),
         Vector2(-194,65),Vector2(5,208)]
+    check(DIRECTOR.FRONTIER_LOOT_SITES.size()==4,
+        "expanded map lost its four real physical frontier supplies")
+    for i in range(frontiers.size()):
+        check(DIRECTOR.FRONTIER_LOOT_SITES[i]==frontiers[i] and
+            frontiers[i].distance_to(DIRECTOR.CENTER)<DIRECTOR.INITIAL_RADIUS-5.0,
+            "new island pickup starts outside first playable ring")
     for p in frontiers:
         var y: float=terrain.height_at(p.x,p.y)
         check(y>terrain.sea_level+5.0,
@@ -101,5 +107,5 @@ func _verify() -> void:
     if not failed:
         print("V75125_EXPANDED_WORLD PASS 675_m_extent=1 144_cells=1 "+
             "physics_frontiers=4 map_projection=1 frontier_forest=1 "+
-            "physical_trees=1 first_ring=205 players=50")
+            "physical_trees=1 frontier_loot=4 first_ring=245 players=50")
     quit(1 if failed else 0)
