@@ -30,10 +30,13 @@ func _verify() -> void:
     check(map!=null and button!=null and map.get("terrain")==terrain and
         map.get("player")==player and map.get("director")==director,
         "full-screen map did not bind real live island, player and match director")
-    check(not map.visible and button.visible,
-        "map should remain closed until player taps its actual HUD button")
-    hud._toggle_map()
-    check(map.visible,"MAPA button did not open real map")
+    var radar: Control=hud.get_node("AuroraTacticalOverlay/AuroraTrainingRadar")
+    check(not map.visible and button.visible and button.text=="" and
+        button.get_global_rect().grow(1.0).encloses(radar.get_global_rect()) and
+        radar.get_global_rect().grow(1.0).encloses(button.get_global_rect()),
+        "the minimap must be the only visible map opener, no MAPA circle")
+    button.button_down.emit()
+    check(map.visible,"tapping the minimap did not open the actual map")
     var target:=Vector2(23.0,-15.0)
     var projected: Vector2=map.call("project",target)
     var result: Vector2=map.call("unproject",projected)
@@ -55,8 +58,8 @@ func _verify() -> void:
     map.call("_clear_waypoint")
     check(not (map.get("waypoint") as Vector2).is_finite(),
         "map marker cannot be removed")
-    hud._toggle_map()
-    check(not map.visible,"MAPA button did not close map")
+    map.get_node("MapActions/MapAction0").pressed.emit()
+    check(not map.visible,"map's close X did not dismiss the tactical map")
 
     director.begin_aircraft_phase()
     var flight: Node3D=director.get("_flight") as Node3D
@@ -80,11 +83,13 @@ func _verify() -> void:
     check(absf(float(flight.ROUTE_START_Z)-76.0)<.01 and
         absf(float(flight.ROUTE_END_Z)+78.0)<.01,
         "interactive map line not tied to real aircraft path")
-    hud._toggle_map()
-    check(map.visible and map.get("director")==director and
-        hud.get_node("AuroraTacticalOverlay/MAPA").visible,
-        "full map cannot open during actual aircraft deployment")
-    hud._toggle_map()
+    hud.set_match_controls(false)
+    check(not button.disabled,
+        "minimap must remain touchable during real aircraft deployment")
+    button.button_down.emit()
+    check(map.visible and map.get("director")==director,
+        "tapping minimap cannot open map during aircraft deployment")
+    map.get_node("MapActions/MapAction0").pressed.emit()
 
     var weapons: Node3D=combat._weapon_visuals
     check(weapons.attachment_uses_hand and weapons.right_hand_socket!=null,

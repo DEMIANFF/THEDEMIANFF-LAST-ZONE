@@ -313,8 +313,16 @@ func _ready() -> void:
     _inventory_button=_button(root,"MOCHILA",.75,.255,105,46,
         Color(.17,.35,.41),_toggle_inventory)
     _inventory_button.disabled=true
-    _map_button=_button(root,"MAPA",.19,.22,70,70,
-        Color(.11,.39,.53),_toggle_map)
+    # The minimap itself is the ONLY opener, as in the reference footage.
+    # Keep the legacy MAPA node solely for saved HUD preset compatibility:
+    # it is an invisible touch target over the radar, not a second circle.
+    _map_button=_button(root,"MAPA",.017,.175,178,162,
+        Color(.0,.0,.0),_toggle_map)
+    _map_button.text=""
+    _map_button.tooltip_text="Abrir mapa táctico Aurora"
+    var map_hitbox_style:=StyleBoxEmpty.new()
+    for state in ["normal","hover","pressed","disabled","focus"]:
+        _map_button.add_theme_stylebox_override(state,map_hitbox_style)
     _inventory_panel=PanelContainer.new()
     _inventory_panel.name="RealMatchInventory"
     _inventory_panel.visible=false
@@ -471,6 +479,10 @@ func set_tactical_map_sources(character: CharacterBody3D,world: StaticBody3D,
         match_director: Node3D) -> void:
     if _map_overlay!=null:
         _map_overlay.call("set_sources",character,world,match_director)
+        _map_overlay.call("_ensure_terrain_texture")
+        if _training_radar!=null:
+            _training_radar.set("map_texture",_map_overlay.get("_terrain_texture"))
+            _training_radar.queue_redraw()
 
 
 func apply_ui_settings() -> void:
@@ -1009,7 +1021,6 @@ func _layout() -> void:
     var h: float=safe.size.y
     root.get_node("AuroraHeader").visible=false
     _place(_training_radar,Rect2(origin+Vector2(24,62),Vector2(156,142)))
-    _place(_map_button,Rect2(origin+Vector2(201,103),Vector2(76,76)))
     _place(_health_label,Rect2(origin+Vector2(w*.5-85,h-91),Vector2(170,28)))
     _place(_armor_label,Rect2(origin+Vector2(w*.5-85,h-118),Vector2(170,24)))
     _place(_lila_ability_label,Rect2(origin+Vector2(w*.5-165,h-149),
@@ -1056,14 +1067,16 @@ func _layout() -> void:
     # Always reset to the factory coordinates before applying persisted
     # normalized overrides, including on every display/orientation resize.
     for id in HUD_LAYOUT.IDS:
-        var control: Control=root.get_node_or_null(id) as Control
+        var control: Control=(_training_radar if id=="MAPA" else
+            root.get_node_or_null(id)) as Control
         if control==null:
             continue
         control.scale=Vector2.ONE
         control.modulate.a=1.0
     if air_stage=="ground":
         for id in HUD_LAYOUT.IDS:
-            var target: Control=root.get_node_or_null(id) as Control
+            var target: Control=(_training_radar if id=="MAPA" else
+                root.get_node_or_null(id)) as Control
             var item: Dictionary=_hud_layout.get_item(id)
             if target==null or item.is_empty():
                 continue
@@ -1076,6 +1089,11 @@ func _layout() -> void:
             target.position=target_center-new_size*.5
             target.scale=Vector2.ONE*factor
             target.modulate.a=float(item["alpha"])
+    # Match the minimap hitbox AFTER applying any saved minimap size/position.
+    # The hitbox never creates a second control beside the radar.
+    var radar_bounds: Rect2=_training_radar.get_global_rect()
+    _place(_map_button,Rect2(
+        radar_bounds.position-root.global_position,radar_bounds.size))
     if _hud_editing and _hud_editor:
         _hud_editor.queue_redraw()
 
@@ -1157,6 +1175,8 @@ func open_hud_editor() -> void:
 func hud_editor_target(id: String) -> Control:
     if not HUD_LAYOUT.IDS.has(id):
         return null
+    if id=="MAPA":
+        return _training_radar
     return get_node_or_null("AuroraTacticalOverlay/"+id) as Control
 
 
@@ -1288,8 +1308,10 @@ func set_match_controls(enabled: bool) -> void:
         set_vehicle_context(false,false,0.0)
     var root: Control=get_node("AuroraTacticalOverlay")
     for control in root.get_children():
-        if control is Button and control!=_battle_button and control!=_exit_button and control!=_settings_button:
+        if control is Button and control!=_battle_button and control!=_exit_button and control!=_settings_button and control!=_map_button:
             control.disabled=not enabled
+    # Map access must remain available during aircraft, jump, and canopy.
+    _map_button.disabled=false
     root.get_node("MovePad").visible=enabled
     root.get_node("DirectionalFirePad").visible=enabled
     _cover_button.visible=enabled and air_stage=="ground"

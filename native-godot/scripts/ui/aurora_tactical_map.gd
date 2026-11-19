@@ -58,13 +58,15 @@ func _ready() -> void:
             waypoint=Vector2(x,z)
     _control_panel=VBoxContainer.new()
     _control_panel.name="MapActions"
-    _control_panel.anchor_left=.81
-    _control_panel.anchor_right=.99
-    _control_panel.anchor_top=.09
+    # Keep gameplay visible on the left, as in the supplied BR references.
+    # Compact action column remains touch-safe on 964x434 Motorola screens.
+    _control_panel.anchor_left=.78
+    _control_panel.anchor_right=.985
+    _control_panel.anchor_top=.10
     _control_panel.anchor_bottom=.90
-    _control_panel.add_theme_constant_override("separation",7)
+    _control_panel.add_theme_constant_override("separation",4)
     add_child(_control_panel)
-    _action("CERRAR MAPA",func(): visible=false)
+    _action("✕",func(): visible=false)
     _action("ZOOM +",func(): _zoom_at(1.32))
     _action("ZOOM −",func(): _zoom_at(1.0/1.32))
     _action("SEGUIR",func(): _follow())
@@ -78,8 +80,8 @@ func _action(title: String,handler: Callable) -> void:
     btn.name="MapAction"+str(_control_panel.get_child_count())
     btn.text=title
     btn.focus_mode=Control.FOCUS_NONE
-    btn.custom_minimum_size=Vector2(124,52)
-    btn.add_theme_font_size_override("font_size",15)
+    btn.custom_minimum_size=Vector2(108,36)
+    btn.add_theme_font_size_override("font_size",12)
     var style:=StyleBoxFlat.new()
     style.bg_color=Color(.016,.094,.146,.96)
     style.border_color=Color(.27,.84,.92)
@@ -113,8 +115,8 @@ func _process(dt: float) -> void:
 
 func _map_rect() -> Rect2:
     var height: float=size.y*.88
-    return Rect2(Vector2(size.x*.06,size.y*.055),
-        Vector2(minf(size.x*.73,height),height))
+    return Rect2(Vector2(size.x*.255,size.y*.065),
+        Vector2(minf(size.x*.505,height*1.16),height))
 
 
 func _meters_per_pixel(rect: Rect2) -> float:
@@ -132,7 +134,7 @@ func unproject(screen_point: Vector2) -> Vector2:
 
 
 func _zoom_at(factor: float) -> void:
-    zoom=clampf(zoom*factor,1.0,4.0)
+    zoom=clampf(zoom*factor,1.0,8.0)
     queue_redraw()
 
 
@@ -149,7 +151,7 @@ func _route() -> void:
     _follow_player=false
     pan=(Vector2(player.global_position.x,player.global_position.z)+waypoint)*.5
     var delta: float=Vector2(player.global_position.x,player.global_position.z).distance_to(waypoint)
-    zoom=clampf((WORLD_HALF*2.0)/maxf(170.0,delta*1.5),1.0,4.0)
+    zoom=clampf((WORLD_HALF*2.0)/maxf(170.0,delta*1.5),1.0,8.0)
     queue_redraw()
 
 
@@ -208,7 +210,7 @@ func _gui_input(event: InputEvent) -> void:
                 var second: Vector2=fingers[1]
                 var separation: float=first.distance_to(second)
                 if separation>15.0 and old_separation>15.0:
-                    zoom=clampf(zoom*separation/old_separation,1.0,4.0)
+                    zoom=clampf(zoom*separation/old_separation,1.0,8.0)
             else:
                 pan-=drag.relative*_meters_per_pixel(rect)
                 _follow_player=false
@@ -310,7 +312,8 @@ func _draw_landmark(at: Vector2,title: String,boxes: Array[Rect2],
 
 
 func _draw() -> void:
-    draw_rect(Rect2(Vector2.ZERO,size),Color(.012,.033,.067,.975))
+    # See-through overlay: player can still see the live match behind it.
+    draw_rect(Rect2(Vector2.ZERO,size),Color(.012,.033,.067,.60))
     var rect: Rect2=_map_rect()
     draw_rect(rect,Color(.025,.14,.24),true)
     _ensure_terrain_texture()
@@ -362,7 +365,8 @@ func _draw() -> void:
             draw_string(font,name_rect.position+Vector2(6,14),"AWM",
                 HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(1,.95,.75))
     if is_instance_valid(director):
-        var center: Vector2=ZONE_CENTER
+        # Actual live zone center moves through the BR phases.
+        var center: Vector2=director.get("zone_center") as Vector2
         var rad: float=float(director.get("radius"))/_meters_per_pixel(rect)
         draw_arc(project(center),rad,0,TAU,120,Color(.35,.95,1.0,.92),3.0,true)
         var flight: Node3D=director.get("_flight") as Node3D
@@ -385,9 +389,9 @@ func _draw() -> void:
             draw_string(font,target+Vector2(10,0),str(meters)+" m",
                 HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color(1.0,.86,.48))
     draw_rect(rect,Color(.38,.83,.94),false,2.0)
-    draw_string(font,Vector2(size.x*.06,size.y*.04),
-        "PUERTO AURORA  /  MAPA TÁCTICO ORIGINAL",
+    draw_string(font,Vector2(size.x*.26,size.y*.05),
+        "PUERTO AURORA  /  MAPA TÁCTICO",
         HORIZONTAL_ALIGNMENT_LEFT,-1,20,Color(.94,.97,1))
-    draw_string(font,Vector2(size.x*.82,size.y*.94),
-        "TOCA PARA MARCAR · ARRASTRA · AMPLÍA",
+    draw_string(font,Vector2(size.x*.30,size.y*.97),
+        "TOCA PARA MARCAR · ARRASTRA · PELLIZCA PARA AMPLIAR",
         HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.75,.92,.98))
