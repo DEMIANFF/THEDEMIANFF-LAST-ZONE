@@ -64,26 +64,42 @@ jobs:
             native-godot/assets/characters/aurora_operator.glb
             native-godot/assets/weapons/aurora_awm.glb
           key: aurora-godot472-original-glbs-v1-${{ hashFiles('native-godot/tools/fetch_operator.sh', 'native-godot/tools/convert_operator.py', 'native-godot/tools/build_awm.py') }}
-          save-always: true
+          # Caches save automatically after successful jobs; no deprecated flag.
       - name: Prepare CC0 detailed AI rig source (pinned and verified)
         if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
         run: bash native-godot/tools/fetch_operator.sh /tmp/aurora-operator
-      - name: Install Blender FBX importer / GLB exporter
+      - name: Install official Blender 4.0.2 portable archive (no apt install)
         if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
         run: |
           set -euo pipefail
-          # The previous unbounded apt-get stage stalled during repeated CI.
-          # Time out with diagnostics instead of consuming the full job.
-          if ! sudo env DEBIAN_FRONTEND=noninteractive timeout --kill-after=30s 5m apt-get update -qq; then
-            echo "::error::Ubuntu apt index update timed out or failed"
-            exit 1
-          fi
-          if ! sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a timeout --kill-after=30s 16m apt-get install -y -qq --no-install-recommends blender python3-numpy > /tmp/aurora-blender-install.log 2>&1; then
-            echo "::error::Blender package installation timed out or failed. Last apt output:"
-            tail -n 100 /tmp/aurora-blender-install.log
-            exit 1
-          fi
-          blender --background --version | head -n 2
+          # Ubuntu's apt-get Blender installation timed out repeatedly.
+          # Use Blender's exact 4.0.2 official standalone Linux build instead.
+          # Check the archive against the official SHA-256 release manifest.
+          name="blender-4.0.2-linux-x64.tar.xz"
+          version_manifest="blender-4.0.2.sha256"
+          primary="https://download.blender.org/release/Blender4.0"
+          backup="https://ftp.blender.org/release/Blender4.0"
+          download() {
+            local filename="$1"
+            local output="$2"
+            if ! curl --fail --location --silent --show-error --retry 2 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 480 "$primary/$filename" -o "$output"; then
+              rm -f "$output"
+              curl --fail --location --silent --show-error --retry 2 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 480 "$backup/$filename" -o "$output"
+            fi
+          }
+          cd /tmp
+          download "$name" "$name"
+          download "$version_manifest" "$version_manifest"
+          test "$(stat -c '%s' "$name")" -eq 277588768
+          grep -F "$name" "$version_manifest" | sha256sum --check --status
+          echo "AURORA_OFFICIAL_BLENDER_SHA256_PASS blender=4.0.2"
+          mkdir -p /tmp/aurora-blender
+          tar -xJf "$name" -C /tmp/aurora-blender
+          bin="/tmp/aurora-blender/blender-4.0.2-linux-x64"
+          test -x "$bin/blender"
+          "$bin/blender" --background --version | head -n 2
+          echo "$bin" >> "$GITHUB_PATH"
+          rm -f "/tmp/$name" "/tmp/$version_manifest"
       - name: Generate the detailed AI rig from verified CC0 source
         if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
         run: |
