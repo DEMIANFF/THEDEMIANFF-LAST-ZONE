@@ -154,15 +154,19 @@ func _add_ice_spires() -> void:
 func _append_frontier_instances(places: Array[Vector3],
         orientations: Array[float],sizes: Array[float],
         per_site: int,ice: bool) -> void:
+    # Use a wide deterministic search on the actual collision heightfield.
+    # The former 150 tries at 1.4 m/m left all four playable frontiers
+    # with insufficient objects in Godot's expanded-world QA.
     var rng:=RandomNumberGenerator.new()
     rng.seed=151124 if ice else 151125
     for site in FRONTIER_SITES:
         var planted: int=0
-        for attempt in range(150):
+        for attempt in range(480):
             if planted>=per_site:
                 break
+            # Keep scenery on land within the same 17 m QA/playable radius.
             var angle: float=rng.randf_range(-PI,PI)
-            var radius: float=rng.randf_range(2.0,12.5)
+            var radius: float=rng.randf_range(1.0,14.0)
             var x: float=site.x+cos(angle)*radius
             var z: float=site.y+sin(angle)*radius
             if RESIDENTIAL.grading_weight(x,z)>.05:
@@ -170,15 +174,31 @@ func _append_frontier_instances(places: Array[Vector3],
             var y: float=terrain.height_at(x,z)
             if y<terrain.sea_level+(2.5 if ice else 1.8):
                 continue
-            # Skip cliff faces: tree trunks belong on usable terrain.
-            if (absf(terrain.height_at(x+1.0,z)-y)>1.4 or
-                    absf(terrain.height_at(x,z+1.0)-y)>1.4):
+            var slope: float=maxf(
+                absf(terrain.height_at(x+1.0,z)-y),
+                absf(terrain.height_at(x,z+1.0)-y))
+            # Prefer easy walking ground. Ice is visual scenery; solid
+            # pine trunks require a tighter final slope bound.
+            var slope_limit: float=1.4 if attempt<240 else (3.0 if ice else 2.3)
+            if slope>slope_limit:
+                continue
+            var too_close: bool=false
+            var min_spacing: float=1.3 if ice else 2.0
+            for previous in places:
+                if Vector2(previous.x,previous.z).distance_to(Vector2(x,z))<min_spacing:
+                    too_close=true
+                    break
+            if too_close:
                 continue
             places.append(Vector3(x,y,z))
             orientations.append(rng.randf_range(-PI,PI))
             sizes.append(rng.randf_range(.60,1.55) if ice else
                 rng.randf_range(.72,1.25))
             planted+=1
+        if planted<per_site:
+            push_warning("AURORA_FRONTIER_SCATTER_NOT_FULL site="+str(site)+
+                " ice="+str(ice)+" placed="+str(planted)+
+                " target="+str(per_site))
 
 
 func _instance_mesh(title: String,mesh: Mesh,places: Array[Vector3],orientations: Array[float],sizes: Array[float],vertical: float) -> void:
