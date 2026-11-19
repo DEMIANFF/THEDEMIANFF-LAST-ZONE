@@ -52,6 +52,20 @@ func _verify() -> void:
     check(roles.has(WEAPONS.AR) and roles.has(WEAPONS.AWM) and
         roles.size()>=3,
         "49 opponents still share just one rifle instead of real loadouts")
+    check(BOT.CHASE_SPEED>=4.0 and BOT.CHASE_SPEED<7.1,
+        "enemies cannot pursue effectively or sprint faster than Lila")
+    check(BOT.BURST_ROUNDS==2 and BOT.MAX_VISION_RAYS<=5,
+        "faster combat changed the mobile perception or burst safety budget")
+    var ar_bot: CharacterBody3D=combat._targets[0]
+    check(ar_bot._loadout_shot_gap()>=.20 and
+        ar_bot._loadout_shot_gap()<BOT.BURST_SHOT_GAP and
+        ar_bot._loadout_burst_rest()<BOT.BURST_RECOVERY,
+        "rifle rivals still use the outdated sluggish identical burst timer")
+    for rival in combat._targets:
+        check(rival._loadout_shot_gap()>=.20 and
+            rival._loadout_burst_rest()>=.67 and
+            rival._loadout_burst_rest()<=BOT.BURST_RECOVERY,
+            "a rival weapon bypassed the finite bounded shot/recovery timers")
     check(BOT.MAX_DETAILED_ENEMY_RIGS<=14,
         "weapon variation made every remote enemy allocate a full skeleton")
     if not failed:
