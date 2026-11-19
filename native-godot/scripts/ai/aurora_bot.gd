@@ -244,7 +244,7 @@ func _advance_real_airdrop(dt: float) -> void:
     var to_destination: Vector2=spawn_coordinates-Vector2(
         global_position.x,global_position.z)
     var drift: Vector2=(to_destination.normalized()*
-        minf(15.0,to_destination.length()*.40))
+        minf(20.0,to_destination.length()*.40))
     velocity=Vector3(drift.x,-7.8,drift.y)
     move_and_slide()
     if is_on_floor():
