@@ -120,11 +120,16 @@ func _verify() -> void:
         if real_finisher.get("collider")!=enemy:
             break
         combat.shots_fired_total=3+index
+        var hp_before: float=enemy.health
         var final_hit: Dictionary=combat._apply_verified_opponent_hit(real_finisher)
+        # Authoritative damage is capped at the victim's remaining HP.
+        # The lethal final shot may deal less than the weapon's raw damage.
+        var expected_damage: float=minf(hp_before,finisher_damage)
         check(bool(final_hit.get("critical",false)) and
-            absf(float(final_hit.get("damage",0.0))-finisher_damage)<.05 and
+            absf(float(final_hit.get("damage",0.0))-expected_damage)<.05 and
+            absf(enemy.health-maxf(0.0,hp_before-finisher_damage))<.05 and
             bool(final_hit.get("eliminated",false))==(index==finishing_shots-1),
-            "headshot finisher had wrong damage/elimination timing")
+            "headshot finisher had wrong HP damage/elimination timing")
     check(enemy.health==0.0 and combat.eliminations==1 and
         combat.headshots_total==expected_headshots and
         combat.shots_hit_total==expected_hits,
