@@ -21,6 +21,38 @@ func _verify() -> void:
     check(front._info.text.contains("PLAZA (8, 24)") and
         front._info.text.contains("RECOGER AWM"),
         "lobby catalog lost physical BR AWM directions")
+    # Live 3D models share Lila's original viewport; the armory never
+    # manufactures a weapon for an absent optional license/asset.
+    var renderer: SubViewport=front._preview_container.get_node(
+        "PreviewViewport") as SubViewport
+    var original_renderer_id: int=renderer.get_instance_id()
+    check(front._preview_weapon!=null and
+        front._preview_weapon_slot==CATALOG.AR and
+        not front._preview_avatar.visible,
+        "real original AR GLB does not replace operator in armory preview")
+    front._on_armory_slot_selected(CATALOG.AWM)
+    check(front._preview_weapon!=null and
+        front._preview_weapon_slot==CATALOG.AWM and
+        front._preview_container.get_node("PreviewViewport").get_instance_id()==
+        original_renderer_id,
+        "AWM is missing from live original 3D viewport or added a new renderer")
+    front._on_armory_slot_selected(CATALOG.AR)
+    check(front._preview_weapon!=null and
+        front._preview_weapon_slot==CATALOG.AR,
+        "returning to original AR preview failed")
+    var absent_optional: int=-1
+    for index in range(CATALOG.HK416,CATALOG.ENTRIES.size()):
+        var optional_path: String=str(CATALOG.ENTRIES[index].get("asset",""))
+        if not ResourceLoader.exists(optional_path,"PackedScene"):
+            absent_optional=index
+            break
+    if absent_optional>=0:
+        front._on_armory_slot_selected(absent_optional)
+        check(front._preview_weapon==null and
+            front._preview_avatar.visible and
+            front._preview_caption.text.contains("PENDIENTE"),
+            "missing optional weapon showed a fabricated 3D model")
+    front._on_armory_slot_selected(CATALOG.AR)
     var weapons: ItemList=front._armory_list
     check(weapons!=null and weapons.visible and
         weapons.item_count==CATALOG.ENTRIES.size(),
@@ -42,6 +74,10 @@ func _verify() -> void:
         front._info.text.contains("CARGADOR"),
         "selection did not reveal live MP40 ballistic data")
     front._select_tab("INVENTARIO")
+    check(front._preview_weapon==null and front._preview_avatar.visible and
+        front._preview_container.get_node("PreviewViewport").get_instance_id()==
+        original_renderer_id,
+        "leaving ARMAS did not release the imported GLB or restore Lila")
     check(front._info.text.contains("INVENTARIO EN PARTIDA"),
         "inventory section lost its real equipment route label")
     check(front._equipment_selector.visible and not weapons.visible and
