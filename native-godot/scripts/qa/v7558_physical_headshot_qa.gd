@@ -104,17 +104,32 @@ func _verify() -> void:
         }).is_empty() and combat.headshots_total==1,
         "empty, environmental or invalid hits were falsely counted")
 
-    # Complete the same physical duel with a final headshot.
-    var real_finisher: Dictionary=space.intersect_ray(upper)
-    if real_finisher.get("collider")==enemy:
-        combat.shots_fired_total=3
+    # The full roster now has 200 HP, not 100 HP. Keep real collision
+    # rays, physically delivered damage and one actual elimination, while
+    # deriving the required number of finishing shots from the live health.
+    var finisher_damage: float=COMBAT.physical_hit_damage(CATALOG.AR,true)
+    var finishing_shots: int=ceili(enemy.health/finisher_damage)
+    check(finishing_shots>0 and finishing_shots<=6,
+        "physical rival health or headshot damage became invalid")
+    var expected_headshots: int=1+finishing_shots
+    var expected_hits: int=2+finishing_shots
+    for index in range(finishing_shots):
+        var real_finisher: Dictionary=space.intersect_ray(upper)
+        check(real_finisher.get("collider")==enemy,
+            "physical ray stopped reaching a living enemy")
+        if real_finisher.get("collider")!=enemy:
+            break
+        combat.shots_fired_total=3+index
         var final_hit: Dictionary=combat._apply_verified_opponent_hit(real_finisher)
         check(bool(final_hit.get("critical",false)) and
-            bool(final_hit.get("eliminated",false)) and
-            enemy.health==0.0 and combat.eliminations==1 and
-            combat.headshots_total==2 and combat.shots_hit_total==3,
-            "actual headshot elimination failed or invented an extra kill")
-    check(int(combat.inventory_snapshot().get("headshots",-1))==2 and
+            absf(float(final_hit.get("damage",0.0))-finisher_damage)<.05 and
+            bool(final_hit.get("eliminated",false))==(index==finishing_shots-1),
+            "headshot finisher had wrong damage/elimination timing")
+    check(enemy.health==0.0 and combat.eliminations==1 and
+        combat.headshots_total==expected_headshots and
+        combat.shots_hit_total==expected_hits,
+        "physical 200-HP enemy elimination failed or invented extra kill")
+    check(int(combat.inventory_snapshot().get("headshots",-1))==expected_headshots and
         combat.shot_accuracy_percent()==100,
         "real headshot and accuracy counters differ from live inventory")
 
@@ -127,10 +142,10 @@ func _verify() -> void:
     var saved: Dictionary=RECORDS.new(LEDGER_PATH).snapshot()
     var entry: Dictionary=saved["history"][0]
     check(director.last_match_saved and
-        int(entry.get("headshots",-1))==2 and
-        int(entry.get("hits",-1))==3 and
-        int(entry.get("shots",-1))==3 and
-        hud._result_text.text.contains("CABEZA: 2"),
+        int(entry.get("headshots",-1))==expected_headshots and
+        int(entry.get("hits",-1))==expected_hits and
+        int(entry.get("shots",-1))==expected_hits and
+        hud._result_text.text.contains("CABEZA: "+str(expected_headshots)),
         "physical critical hits did not persist atomically or appear in results")
     var store=RECORDS.new(LEDGER_PATH)
     check(not store.record_result(2,false,0,10,{
