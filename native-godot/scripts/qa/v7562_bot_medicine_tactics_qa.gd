@@ -99,7 +99,8 @@ func _verify() -> void:
     # Another physical opponent can reload proactively while undetected.
     var gunner: CharacterBody3D=combat._targets[1]
     gunner.global_position=Vector3(6.0,terrain.height_at(6.0,-20.0)+.17,-20.0)
-    gunner.health=90.0
+    # This healthy gunner must demonstrate proactive reload, not medical AI.
+    gunner.health=160.0
     gunner._target_visible=false
     gunner._target_actor=null
     gunner._sense_clock=90.0
