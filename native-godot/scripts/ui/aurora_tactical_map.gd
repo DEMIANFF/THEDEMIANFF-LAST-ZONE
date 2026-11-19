@@ -4,26 +4,31 @@ extends Control
 ## Map: drag/pinch/zoom, waypoint, player, safe zone, aircraft route, POIs.
 signal waypoint_changed(world_point: Vector2)
 const FLIGHT=preload("res://scripts/match/airdrop_sequence.gd")
-const WORLD_HALF: float=225.0
+const TERRAIN_SCALE=preload("res://scripts/world/island_terrain.gd")
+const WORLD_HALF: float=TERRAIN_SCALE.HALF_EXTENT
 const ZONE_CENTER: Vector2=Vector2(0,-24)
 const POINTS: Array[Vector2]=[
     Vector2(18,-8),Vector2(-19,-29),Vector2(46,-36),Vector2(-48,22),
     Vector2(-4,42),Vector2(19,43),Vector2(43,41),Vector2(62,28),
-    Vector2(-22,66),Vector2(26,68),Vector2(-55,60),Vector2(68,48)]
+    Vector2(-22,66),Vector2(26,68),Vector2(-55,60),Vector2(68,48),
+    Vector2(197,23),Vector2(-15,-198),Vector2(-194,65),Vector2(5,208)]
 const NAMES: Array[String]=[
     "CENTRO","HELIOS","METEO","VORTEX",
     "COSTA OESTE","PLAZA","MIRADOR","ESTE",
-    "FAROS","NORTE","MUELLE","COLINA"]
+    "FAROS","NORTE","MUELLE","COLINA",
+    "FRONTERA ESTE","SUR HELADO","VALLE OESTE","PASO NORTE"]
 const SAVE_PATH: String="user://aurora_map_waypoint.cfg"
 const AWM_POSITION: Vector2=Vector2(8,24)
 const MAP_SAMPLES: int=160
 const LANDMARK_POSITIONS: Array[Vector2]=[
     Vector2(18,-8),Vector2(-19,-29),Vector2(46,-36),
     Vector2(-48,22),Vector2(5,53),Vector2(-54,56),
-    Vector2(64,43)]
+    Vector2(64,43),Vector2(197,23),Vector2(-15,-198),
+    Vector2(-194,65),Vector2(5,208)]
 const LANDMARK_NAMES: Array[String]=[
     "CENTRO","HELIOS","METEO","VORTEX",
-    "PUERTO AURORA","MUELLE","MIRADOR"]
+    "PUERTO AURORA","MUELLE","MIRADOR",
+    "SIERRA ESTE","SUR HELADO","VALLE OESTE","PASO NORTE"]
 var player: CharacterBody3D
 var terrain: StaticBody3D
 var director: Node3D
@@ -144,7 +149,7 @@ func _route() -> void:
     _follow_player=false
     pan=(Vector2(player.global_position.x,player.global_position.z)+waypoint)*.5
     var delta: float=Vector2(player.global_position.x,player.global_position.z).distance_to(waypoint)
-    zoom=clampf(450.0/maxf(170.0,delta*1.5),1.0,4.0)
+    zoom=clampf((WORLD_HALF*2.0)/maxf(170.0,delta*1.5),1.0,4.0)
     queue_redraw()
 
 
@@ -247,8 +252,8 @@ func _ensure_terrain_texture() -> void:
     var sea: float=float(terrain.get("sea_level"))
     for z in range(MAP_SAMPLES):
         for x in range(MAP_SAMPLES):
-            var world_x: float=-WORLD_HALF+(float(x)+.5)*450.0/MAP_SAMPLES
-            var world_z: float=-WORLD_HALF+(float(z)+.5)*450.0/MAP_SAMPLES
+            var world_x: float=-WORLD_HALF+(float(x)+.5)*(WORLD_HALF*2.0)/MAP_SAMPLES
+            var world_z: float=-WORLD_HALF+(float(z)+.5)*(WORLD_HALF*2.0)/MAP_SAMPLES
             var h: float=float(terrain.call("height_at",world_x,world_z))
             var color: Color=Color(.025,.16,.26)
             if h>sea+.3:
@@ -312,8 +317,8 @@ func _draw() -> void:
     if _terrain_texture!=null:
         var src_span: float=float(MAP_SAMPLES)/zoom
         var src_origin: Vector2=Vector2(
-            (pan.x+WORLD_HALF)*MAP_SAMPLES/450.0-src_span*.5,
-            (pan.y+WORLD_HALF)*MAP_SAMPLES/450.0-src_span*.5)
+            (pan.x+WORLD_HALF)*MAP_SAMPLES/(WORLD_HALF*2.0)-src_span*.5,
+            (pan.y+WORLD_HALF)*MAP_SAMPLES/(WORLD_HALF*2.0)-src_span*.5)
         draw_texture_rect_region(_terrain_texture,rect,
             Rect2(src_origin,Vector2.ONE*src_span))
     # The roads connect real named districts, not fictional map screenshots.

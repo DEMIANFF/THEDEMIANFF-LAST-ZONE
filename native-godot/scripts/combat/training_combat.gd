@@ -886,7 +886,7 @@ func set_encounter_size(size: int) -> void:
 
 
 func _is_clear_spawn(at: Vector2) -> bool:
-    if at.distance_to(Vector2(0,-24))>102.0:
+    if at.distance_to(Vector2(0,-24))>205.0:
         return false
     var sea: float=float(terrain.get("sea_level"))
     var floor_y: float=float(terrain.call("height_at",at.x,at.y))
@@ -922,7 +922,7 @@ func _encounter_spawn(index: int) -> Vector2:
     var base: float=float(index)*2.3999632297
     for attempt in range(128):
         var angle: float=base+float(attempt)*.61803398875
-        var radius: float=22.0+float((index*17+attempt*11)%75)
+        var radius: float=28.0+float((index*17+attempt*11)%170)
         var at:=Vector2(sin(angle),cos(angle))*radius+Vector2(0,-24)
         if _spawn_has_clearance(at):
             return at
@@ -930,7 +930,7 @@ func _encounter_spawn(index: int) -> Vector2:
     # houses, rocks or steep slopes; NEVER blindly stack at (33,-10).
     for attempt in range(400):
         var phase: float=base+float(attempt)*2.3999632297
-        var radius: float=16.0+float((index*29+attempt*31)%81)
+        var radius: float=16.0+float((index*29+attempt*31)%184)
         var at:=Vector2(cos(phase),sin(phase))*radius+Vector2(0,-24)
         if _spawn_has_clearance(at):
             return at
@@ -970,7 +970,7 @@ func _find_clear_away_from_landing(index: int,landing: Vector2) -> Vector2:
     var origin: Vector2=Vector2(0.0,-24.0)
     for attempt in range(512):
         var angle: float=base_angle+float(attempt)*.61803398875
-        var distance: float=21.0+float((index*17+attempt*29)%77)
+        var distance: float=21.0+float((index*17+attempt*29)%174)
         var at: Vector2=origin+Vector2.from_angle(angle)*distance
         if (at.distance_squared_to(landing)>=
                 PLAYER_LANDING_CLEARANCE*PLAYER_LANDING_CLEARANCE and

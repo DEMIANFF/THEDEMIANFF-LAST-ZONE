@@ -72,6 +72,13 @@ func _build() -> void:
     for x in range(-84,85,12):
         for z in range(-96,73,12):
             _samples.append(Vector3(x,0,z))
+    # Four sparse 12m navigation corridors reach the new land without
+    # multiplying the expensive pairwise graph edge budget on mobile.
+    for offset in range(84,253,12):
+        for side in [-1.0,1.0]:
+            for lateral in [-36.0,0.0,36.0]:
+                _samples.append(Vector3(side*float(offset),0,lateral))
+                _samples.append(Vector3(lateral,0,side*float(offset)))
     _samples.append_array(district.navigation_points)
 
 func _trace_actor() -> Node3D:

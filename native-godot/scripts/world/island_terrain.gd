@@ -1,8 +1,8 @@
 extends StaticBody3D
 ## Irregular continuous archipelago elevation. Not a cube, grid of houses or square island.
-const CELLS: int = 96
+const CELLS: int = 144
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
-const HALF_EXTENT: float = 225.0
+const HALF_EXTENT: float = 337.5
 const HEIGHT_STEP: float = (HALF_EXTENT * 2.0) / float(CELLS)
 
 var sea_level: float = -2.8
@@ -120,7 +120,14 @@ func _wilderness_height(x: float, z: float) -> float:
     var main := 1.0 - Vector2(x * 0.92, z * 1.11).length() / 173.0
     var bay := 1.0 - Vector2((x - 121.0) * 1.22, z + 52.0).length() / 70.0
     var sanctuary := 1.0 - Vector2(x + 113.0, (z - 102.0) * 1.18).length() / 68.0
-    var shape: float = maxf(main, maxf(bay, sanctuary))
+    # Four outer peninsulas overlap the old island, forming true new land.
+    var east_frontier: float=1.0-Vector2((x-197.0)/96.0,(z-23.0)/103.0).length()
+    var south_frontier: float=1.0-Vector2((x+15.0)/101.0,(z+198.0)/122.0).length()
+    var west_frontier: float=1.0-Vector2((x+194.0)/100.0,(z-65.0)/94.0).length()
+    var north_frontier: float=1.0-Vector2((x-5.0)/88.0,(z-208.0)/115.0).length()
+    var shape: float=maxf(main,maxf(bay,maxf(sanctuary,
+        maxf(east_frontier,maxf(south_frontier,maxf(west_frontier,
+        north_frontier))))))
     var coast: float = shape + _noise.get_noise_2d(x * 1.45, z * 1.45) * 0.18
     var elevation: float = pow(maxf(coast, 0.0), 1.65) * 21.0
     var hills: float = _noise.get_noise_2d(x * 2.6 + 53.0, z * 2.6) * 5.6

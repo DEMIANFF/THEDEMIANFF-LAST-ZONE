@@ -14,7 +14,7 @@ const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const DRIVEABLE_VEHICLE=preload("res://scripts/world/aurora_driveable_vehicle.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
-const INITIAL_RADIUS: float = 112.0
+const INITIAL_RADIUS: float = 205.0
 const FINAL_RADIUS: float = 12.0
 # Four phases total ten minutes rather than the previous 4m40s.
 # Early victories remain possible when all physical enemies are eliminated.
@@ -32,7 +32,7 @@ const MAX_OPPONENT_DROPS: int=12
 const PHASE_COUNT: int=4
 const PHASE_SECONDS: float=SHRINK_DURATION/float(PHASE_COUNT)
 const PHASE_HOLD_SECONDS: float=24.0
-const PHASE_RADII: Array[float]=[INITIAL_RADIUS,84.0,53.0,28.0,FINAL_RADIUS]
+const PHASE_RADII: Array[float]=[INITIAL_RADIUS,155.0,105.0,54.0,FINAL_RADIUS]
 # Per-phase center shift stays strictly inside the radius loss. Every new
 # circle is enclosed by the last one, including during interpolation.
 const ZONE_CENTER_PROGRESS: Array[float]=[0.0,.40,.70,.88,1.0]
@@ -332,8 +332,7 @@ func _sync_bot_safe_zone() -> void:
 ## A new match has a seeded destination ON WALKABLE LAND instead of a
 ## permanently centered storm. Phase centers are deterministic for a match
 ## (debuggable with the persisted sequential match ID), not network users.
-## The max displacement of 46m multiplied by the largest 0.40 phase step
-## is less than the first radius loss (28m); subsequent steps are smaller.
+## The original seeded center shift remains inside the expanded phase losses.
 func _configure_zone_centers(match_id: int) -> void:
     var random:=RandomNumberGenerator.new()
     random.seed=int(match_id)*9539+7588

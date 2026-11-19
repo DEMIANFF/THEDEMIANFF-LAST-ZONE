@@ -4,8 +4,8 @@ extends Node3D
 
 var terrain: StaticBody3D
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
-const PINE_TARGET: int = 110
-const ICE_TARGET: int = 62
+const PINE_TARGET: int = 162
+const ICE_TARGET: int = 88
 
 
 func _ready() -> void:
@@ -20,11 +20,11 @@ func _add_trees() -> void:
     var locations: Array[Vector3]=[]
     var rotations: Array[float]=[]
     var sizes: Array[float]=[]
-    for n in range(550):
+    for n in range(1050):
         if locations.size()>=PINE_TARGET:
             break
-        var x: float=rng.randf_range(-154.0,154.0)
-        var z: float=rng.randf_range(-152.0,152.0)
+        var x: float=rng.randf_range(-258.0,258.0)
+        var z: float=rng.randf_range(-258.0,258.0)
         var p:=Vector2(x,z)
         if p.length()<29.0:
             continue
@@ -97,11 +97,11 @@ func _add_ice_spires() -> void:
     var locations: Array[Vector3]=[]
     var rotations: Array[float]=[]
     var sizes: Array[float]=[]
-    for i in range(390):
+    for i in range(690):
         if locations.size()>=ICE_TARGET:
             break
-        var x: float=rng.randf_range(-160.0,160.0)
-        var z: float=rng.randf_range(-155.0,155.0)
+        var x: float=rng.randf_range(-255.0,255.0)
+        var z: float=rng.randf_range(-255.0,255.0)
         if Vector2(x,z).length()<38.0:
             continue
         if x>-52.0 and x<89.0 and z>7.0 and z<86.0:
