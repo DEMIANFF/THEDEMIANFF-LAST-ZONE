@@ -47,7 +47,8 @@ signal grounded_impact(on_stone: bool)
 signal sprint_cancelled
 signal tactical_acceleration_activated(duration: float)
 @export var approved_operator_scene: PackedScene
-var training_health: float = 100.0
+const MAX_HEALTH: float = 200.0
+var training_health: float = MAX_HEALTH
 # Armor absorbs direct combat damage but not radiation outside the ring.
 var armor_points: float=0.0
 var vest_level: int=0
@@ -906,7 +907,7 @@ func receive_training_hit(amount: float, environmental: bool=false,
             player_eliminated.emit()
             return
         training_knockouts+=1
-        training_health=100.0
+        training_health=MAX_HEALTH
         _training_immunity=3.0
         velocity=Vector3.ZERO
         global_position=respawn_point
@@ -1002,7 +1003,7 @@ func begin_sector_battle(from_airdrop: bool=false) -> void:
     round_finished=false
     battle_royale_active = true
     royale_eliminated = false
-    training_health = 100.0
+    training_health = MAX_HEALTH
     armor_points=0.0
     vest_level=0
     helmet_level=0
@@ -1031,7 +1032,7 @@ func receive_training_heal(amount: float) -> void:
         return
     if amount<=0:
         return
-    training_health=minf(100.0,training_health+amount)
+    training_health=minf(MAX_HEALTH,training_health+amount)
     training_health_changed.emit(training_health)
 
 

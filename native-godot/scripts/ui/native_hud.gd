@@ -1,4 +1,5 @@
 extends CanvasLayer
+const PLAYER_HEALTH=preload("res://scripts/player/third_person_operator.gd")
 ## Transparent native touch HUD for the first Aurora training slice.
 ## Every button emits a real gameplay action; no decorative fake multiplayer.
 signal fire_pressed
@@ -151,7 +152,7 @@ func _ready() -> void:
     _compass=_text(root,"N 000°",.45,.025,18,Color(.87,.97,1),HORIZONTAL_ALIGNMENT_CENTER)
     _compass.name="CameraHeading"
     _eliminations_label=_text(root,"BAJAS 0",.72,.027,16,Color(.99,.63,.55),HORIZONTAL_ALIGNMENT_LEFT)
-    _health_label = _text(root,"SALUD 100 / 100",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
+    _health_label = _text(root,"SALUD 200 / 200",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
     _armor_label=_text(root,"",.018,.128,14,Color(.52,.85,1),HORIZONTAL_ALIGNMENT_LEFT)
     _armor_label.name="PlayerArmorStatus"
     _lila_ability_label=_text(root,"",.42,.17,15,
@@ -169,7 +170,8 @@ func _ready() -> void:
     _health_meter.offset_top=0
     _health_meter.offset_bottom=12
     _health_meter.show_percentage=false
-    _health_meter.value=100
+    _health_meter.max_value=PLAYER_HEALTH.MAX_HEALTH
+    _health_meter.value=PLAYER_HEALTH.MAX_HEALTH
     _health_meter.mouse_filter=Control.MOUSE_FILTER_IGNORE
     var health_bg:=StyleBoxFlat.new()
     health_bg.bg_color=Color(.07,.12,.14,.91)
@@ -794,10 +796,10 @@ func set_crouch_state(active: bool) -> void:
 
 func set_health(value: float) -> void:
     if _health_meter:
-        _health_meter.value=clampf(value,0.0,100.0)
+        _health_meter.value=clampf(value,0.0,PLAYER_HEALTH.MAX_HEALTH)
     if _health_label:
-        _health_label.text="SALUD "+str(roundi(value))+" / 100"
-        _health_label.add_theme_color_override("font_color",Color(.98,.45,.38) if value<30.0 else Color(.71,.98,.82))
+        _health_label.text="SALUD "+str(roundi(value))+" / "+str(roundi(PLAYER_HEALTH.MAX_HEALTH))
+        _health_label.add_theme_color_override("font_color",Color(.98,.45,.38) if value<PLAYER_HEALTH.MAX_HEALTH*.30 else Color(.71,.98,.82))
 
 
 func set_weapon(name: String,loaded: int,reserve: int) -> void:

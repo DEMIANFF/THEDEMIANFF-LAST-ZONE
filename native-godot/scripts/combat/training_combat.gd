@@ -35,6 +35,7 @@ const HEAL_MOVE_TOLERANCE_SQ: float=.16
 const AR_RELOAD_SECONDS: float=1.55
 const AWM_RELOAD_SECONDS: float=3.10
 const BOT = preload("res://scripts/ai/aurora_bot.gd")
+const PLAYER_HEALTH=preload("res://scripts/player/third_person_operator.gd")
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
 const MEDKIT_VISUAL = preload("res://scripts/player/aurora_medkit_visual.gd")
@@ -301,7 +302,7 @@ func _on_heal(syringe: bool=false) -> void:
     if (syringes_remaining if syringe else medkits_remaining)<=0:
         hud.impact("SIN JERINGAS" if syringe else "SIN BOTIQUINES")
         return
-    if operator.training_health>=99.5:
+    if operator.training_health>=PLAYER_HEALTH.MAX_HEALTH-.5:
         hud.impact("SALUD COMPLETA")
         return
     if (trigger_held or reload_timer>0.0 or operator._sprint_touch or
@@ -348,7 +349,7 @@ func _complete_healing() -> void:
     _heal_remaining=0.0
     _set_medical_presentation(false)
     hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
-    if not operator.can_act() or operator.training_health>=99.5 or (
+    if not operator.can_act() or operator.training_health>=PLAYER_HEALTH.MAX_HEALTH-.5 or (
             (syringes_remaining if syringe else medkits_remaining)<=0):
         return
     if syringe:

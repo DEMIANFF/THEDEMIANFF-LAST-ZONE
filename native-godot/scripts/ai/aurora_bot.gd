@@ -10,8 +10,8 @@ signal foot_contact(world_position: Vector3,running: bool,on_stone: bool)
 ## This line is derived from the actual PhysicsServer hit; never a fake shot.
 signal shot_trace(from: Vector3,to: Vector3)
 
-const WALK_SPEED: float = 1.85
-const CHASE_SPEED: float = 2.45
+const WALK_SPEED: float = 2.1
+const CHASE_SPEED: float = 3.25
 var _foot_contacts=preload("res://scripts/animation/aurora_foot_contacts.gd").new()
 const SIGHT_RANGE: float = 31.0
 const SHOOT_RANGE: float = 21.0
@@ -36,7 +36,10 @@ const NEXT_ZONE_ROTATE_SECONDS: int=45
 const FIELD_MEDKIT_CAPACITY: int=1
 const FIELD_MEDKIT_SECONDS: float=3.0
 const FIELD_MEDKIT_HEAL: float=40.0
-const FIELD_MEDKIT_HEALTH_THRESHOLD: float=38.0
+# A physical rifle impact now applies the same damage to Lila and other rivals.
+const RIFLE_DAMAGE: float=20.0
+const MAX_HEALTH: float=IMPACT.MAX_HEALTH
+const FIELD_MEDKIT_HEALTH_THRESHOLD: float=85.0
 const FIELD_MEDKIT_INTERRUPTED_COOLDOWN: float=1.25
 const PROACTIVE_RELOAD_THRESHOLD: int=4
 # 17 separate CPU buckets prevent 49 real agents from replanning together.
@@ -87,7 +90,7 @@ var _cover_point:=Vector3(INF,INF,INF)
 var terrain: StaticBody3D
 var operator: CharacterBody3D
 var spawn_coordinates: Vector2 = Vector2.ZERO
-var health: float = 100.0
+var health: float = MAX_HEALTH
 var sector_battle: bool = false
 var respawn_enabled: bool = true
 var _foes: Array[CharacterBody3D] = []
@@ -710,7 +713,7 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     sector_battle=true
     respawn_enabled=false
     _foes=actors.duplicate()
-    health=100.0
+    health=MAX_HEALTH
     visible=true
     var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
     if collider:
@@ -929,7 +932,7 @@ func _respawn() -> void:
     reload_actions_shown=0
     hit_reactions_shown=0
     last_hit_reaction=""
-    health=100
+    health=MAX_HEALTH
     _field_medkits=FIELD_MEDKIT_CAPACITY
     _heal_remaining=0.0
     _heal_cooldown=0.0
@@ -985,7 +988,7 @@ func _advance_field_heal(dt: float) -> bool:
         return true
     _heal_remaining=maxf(0.0,_heal_remaining-maxf(0.0,dt))
     if _heal_remaining<=0.0:
-        var restored: float=minf(100.0,health+FIELD_MEDKIT_HEAL)
+        var restored: float=minf(MAX_HEALTH,health+FIELD_MEDKIT_HEAL)
         if restored>health and _field_medkits>0:
             health=restored
             _field_medkits-=1
@@ -1125,10 +1128,10 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
         hit.get("position",endpoint))
     var actor: Object=hit.get("collider")
     if actor==operator and not operator.royale_eliminated:
-        operator.receive_training_hit(5.0,false,global_position,hit["position"])
+        operator.receive_training_hit(RIFLE_DAMAGE,false,global_position,hit["position"])
         shots_hit+=1
     elif actor is CharacterBody3D and actor.is_in_group("training_target") and actor.health>0:
-        actor.take_training_damage(22.0,self)
+        actor.take_training_damage(RIFLE_DAMAGE,self)
         shots_hit+=1
     elif actor is StaticBody3D and actor.is_in_group("aurora_deployable_cover"):
         actor.call("take_damage",12.0)
