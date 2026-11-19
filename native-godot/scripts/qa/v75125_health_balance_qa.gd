@@ -17,8 +17,8 @@ func _verify() -> void:
         "player and enemy health pools must both equal 200 HP")
     check(BOT.RIFLE_DAMAGE>=18.0 and BOT.RIFLE_DAMAGE<=23.0,
         "AI still has ineffective five-HP hits or excessive one-shot damage")
-    check(BOT.FIELD_MEDKIT_HEALTH_THRESHOLD>=70.0 and
-        BOT.FIELD_MEDKIT_HEALTH_THRESHOLD<PLAYER.MAX_HEALTH*.5,
+    check(BOT.FIELD_MEDKIT_HEALTH_THRESHOLD>=110.0 and
+        BOT.FIELD_MEDKIT_HEALTH_THRESHOLD<=PLAYER.MAX_HEALTH*.60,
         "enemy tactical heal threshold not adapted to 200 HP")
     var game: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
     root.add_child(game)
