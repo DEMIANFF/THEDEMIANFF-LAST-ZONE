@@ -27,6 +27,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
+          package-manager-cache: false  # Keep CI behavior deterministic; no dependency installation here.
       - name: Verify Firebase Android bridge prerequisites (no deployment)
         run: python3 native-godot/tools/audit_firebase_native_preflight.py --assert-blocked
       - name: Preflight exact-package Firebase JSON before expensive Android build
