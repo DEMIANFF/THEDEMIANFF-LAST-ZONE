@@ -3,6 +3,7 @@ extends Node3D
 ## It is a playable sector prototype, not an 8km aircraft network simulation.
 signal touchdown
 signal aircraft_audio_changed(active: bool)
+signal rival_airdrop_started
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 # Optional original-source model. Never replace the working flight physics with GLB geometry.
 const C17_ASSET: String="res://assets/vehicles/user_pack/aurora_c17_mobile.glb"
@@ -174,6 +175,7 @@ func _commit_jump() -> void:
     _trace_clock=1.2
     set_physics_process(true)
     FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",player,"jump_committed")
+    rival_airdrop_started.emit()
 
 
 func _queue_auto_parachute() -> void:

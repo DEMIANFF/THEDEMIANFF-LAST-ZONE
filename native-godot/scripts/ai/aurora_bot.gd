@@ -92,6 +92,10 @@ var _cover_clock: float=0.0
 var _cover_probe_clock: float=0.0
 var _cover_deploy_clock: float=0.0
 var _cover_charges: int=1
+var _airdrop_stage: String="inactive"
+var _airdrop_delay: float=0.0
+var _airdrop_origin: Vector3=Vector3.ZERO
+var _airdrop_canopy: MeshInstance3D
 var _cover_deploy_queued: bool=false
 var covers_deployed: int=0
 var _owned_covers: Array[StaticBody3D]=[]
@@ -186,6 +190,92 @@ func _ready() -> void:
 ## Restore the same actual health/collider-bearing agent at its new
 ## terrain-correct match spawn BEFORE the next BR round becomes active.
 ## Never teleport a live opponent away from a player during combat.
+## Actual collidable bot bodies descend from the aircraft route. They are
+## NOT repositioned onto the ground at the first player touchdown.
+func begin_real_airdrop(origin: Vector3,delay: float) -> void:
+    if not origin.is_finite() or not is_inside_tree():
+        return
+    _airdrop_origin=origin
+    _airdrop_delay=maxf(0.0,delay)
+    _airdrop_stage="waiting"
+    sector_battle=false
+    health=MAX_HEALTH
+    visible=false
+    collision_layer=0
+    velocity=Vector3.ZERO
+    set_physics_process(true)
+
+
+func _create_real_parachute() -> void:
+    if _airdrop_canopy!=null and is_instance_valid(_airdrop_canopy):
+        _airdrop_canopy.show()
+        return
+    _airdrop_canopy=MeshInstance3D.new()
+    _airdrop_canopy.name="RealRivalParachute"
+    var dome:=SphereMesh.new()
+    dome.radius=1.38
+    dome.height=.74
+    dome.radial_segments=10
+    dome.rings=4
+    _airdrop_canopy.mesh=dome
+    _airdrop_canopy.position=Vector3(0,3.15,0)
+    _airdrop_canopy.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    var fabric:=StandardMaterial3D.new()
+    fabric.albedo_color=Color(.33,.66,.88)
+    fabric.roughness=.90
+    _airdrop_canopy.material_override=fabric
+    add_child(_airdrop_canopy)
+
+
+func _advance_real_airdrop(dt: float) -> void:
+    if health<=0.0:
+        cancel_real_airdrop()
+        return
+    if _airdrop_stage=="waiting":
+        _airdrop_delay=maxf(0.0,_airdrop_delay-dt)
+        if _airdrop_delay>0.0:
+            return
+        global_position=_airdrop_origin
+        velocity=Vector3.ZERO
+        collision_layer=1
+        visible=true
+        _airdrop_stage="descending"
+        _create_real_parachute()
+    var to_destination: Vector2=spawn_coordinates-Vector2(
+        global_position.x,global_position.z)
+    var drift: Vector2=(to_destination.normalized()*
+        minf(15.0,to_destination.length()*.40))
+    velocity=Vector3(drift.x,-7.8,drift.y)
+    move_and_slide()
+    if is_on_floor():
+        _airdrop_stage="landed"
+        velocity=Vector3.ZERO
+        if _airdrop_canopy!=null:
+            _airdrop_canopy.hide()
+        if not sector_battle:
+            set_physics_process(false)
+
+
+func retarget_real_airdrop(at: Vector2) -> void:
+    if not at.is_finite() or terrain==null:
+        return
+    spawn_coordinates=at
+    _anchor=Vector3(at.x,terrain.height_at(at.x,at.y)+.15,at.y)
+    if _airdrop_stage=="landed":
+        # Physical pre-combat landing clearance: never move live fighters.
+        global_position=_anchor
+
+
+func cancel_real_airdrop() -> void:
+    if _airdrop_canopy!=null and is_instance_valid(_airdrop_canopy):
+        _airdrop_canopy.queue_free()
+    _airdrop_canopy=null
+    _airdrop_stage="inactive"
+    _airdrop_delay=0.0
+    collision_layer=1
+    visible=true
+
+
 func set_match_spawn(at: Vector2) -> void:
     # A reused bot keeps sector_battle=true after its previous finished
     # match. Its physics process is disabled at that boundary, so permit
@@ -452,6 +542,10 @@ func _update_distance_lod(dt: float) -> void:
 
 
 func _physics_process(dt: float) -> void:
+    # Live physics-only descent precedes shooting, healing and pathfinding.
+    if _airdrop_stage in ["waiting","descending"]:
+        _advance_real_airdrop(dt)
+        return
     _update_distance_lod(dt)
     # Distant bots update in staggered frames to limit path and physics
     # cost. They are still active agents, may shoot each other and take
@@ -772,7 +866,8 @@ func hear_gunshot(at: Vector3, originator: Node3D) -> void:
     heard_shots+=1
 
 
-func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
+func configure_sector_battle(actors: Array[CharacterBody3D],
+        preserve_airdrop: bool=false) -> void:
     _reset_death_presentation()
     muzzle_flashes_shown=0
     weapon_actions_shown=0
@@ -783,13 +878,17 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     respawn_enabled=false
     _foes=actors.duplicate()
     health=MAX_HEALTH
-    visible=true
+    visible=not (preserve_airdrop and _airdrop_stage=="waiting")
     var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
     if collider:
         collider.set_deferred("disabled",false)
     set_physics_process(true)
     velocity=Vector3.ZERO
-    global_position=_anchor
+    if not preserve_airdrop:
+        cancel_real_airdrop()
+        global_position=_anchor
+    elif _airdrop_stage=="landed":
+        _airdrop_stage="inactive"
     _target_visible=false
     _target_actor=null
     _attack_clock=1.3

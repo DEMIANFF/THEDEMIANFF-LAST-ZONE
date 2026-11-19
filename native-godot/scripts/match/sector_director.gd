@@ -62,6 +62,8 @@ var _vehicle_ui_clock: float=0.0
 var _zone_visual: Node3D
 var _flight: Node3D
 var _aircraft_paused_navigation: bool=false
+var _rivals_departed: bool=false
+var _rival_jump_elapsed: float=0.0
 var _records: RefCounted
 var _match_id: int=0
 var last_match_saved: bool=false
@@ -92,6 +94,7 @@ func _ready() -> void:
     add_child(_flight)
     _flight.touchdown.connect(_on_airdrop_landed)
     _flight.aircraft_audio_changed.connect(aircraft_audio_changed.emit)
+    _flight.rival_airdrop_started.connect(_on_rival_airdrop_started)
     player.landed_from_airdrop.connect(_flight.landed)
     hud.jump_pressed.connect(_flight.request_jump_or_parachute)
     hud.start_battle_requested.connect(begin_aircraft_phase)
@@ -115,6 +118,8 @@ func begin_aircraft_phase() -> void:
     _remove_driveable_vehicles()
     combat.set_encounter_size(COMBAT_ROSTER.CLASSIC_BR_PARTICIPANTS)
     combat.end_sector_battle()
+    _rivals_departed=false
+    _rival_jump_elapsed=0.0
     # There is no ground combat or pathfinding in the aircraft. Do not keep
     # the animated bot world, 3D gun rigs or navigation shape sweeps running
     # while the renderer is still preparing the full island on Android.
@@ -138,9 +143,43 @@ func begin_aircraft_phase() -> void:
     _flight.begin()
 
 
+## Stage a few REAL collidable combatants per frame during aircraft flight
+## to avoid the original synchronous 41-rig jump/freefall crash.
+func _stage_rival_airdrops(dt: float) -> void:
+    if mode!="aircraft":
+        return
+    if combat._targets.size()<COMBAT_ROSTER.CLASSIC_BR_PARTICIPANTS-1:
+        combat._ensure_encounter_capacity(3)
+    if not _rivals_departed:
+        return
+    _rival_jump_elapsed+=maxf(0.0,dt)
+    for i in range(combat._targets.size()):
+        var rival: CharacterBody3D=combat._targets[i]
+        if rival._airdrop_stage!="inactive":
+            continue
+        var progress: float=float(i)/float(COMBAT_ROSTER.CLASSIC_BR_PARTICIPANTS-2)
+        var origin: Vector3=_flight._route_point(progress)
+        origin.x+=float(i%5-2)*2.7
+        origin.y-=3.0
+        rival.begin_real_airdrop(origin,maxf(0.0,float(i)*.17-_rival_jump_elapsed))
+
+
+func _on_rival_airdrop_started() -> void:
+    if mode!="aircraft" or _rivals_departed:
+        return
+    _rivals_departed=true
+    _rival_jump_elapsed=0.0
+    combat.visible=true
+    _stage_rival_airdrops(0.0)
+    hud.impact("RIVALES SALTANDO / DESCENSO FISICO AURORA")
+
+
 func _on_airdrop_landed() -> void:
     if mode!="aircraft":
         return
+    if _rivals_departed:
+        combat._ensure_encounter_capacity()
+        _stage_rival_airdrops(0.0)
     start_sector_battle(true)
 
 
@@ -189,7 +228,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _zone_entries=0
     hud.set_zone_threat(false,0.0)
     player.begin_sector_battle(from_airdrop)
-    combat.begin_sector_battle()
+    combat.begin_sector_battle(from_airdrop and _rivals_departed)
     # The previous round can end with a 12 m radius. Reset every bot's
     # strategic radius NOW, before its next physics tick, rather than
     # allowing stale values to drive several escape/cover decisions.
@@ -213,6 +252,8 @@ func _ready_for_round() -> bool:
 
 
 func _process(delta: float) -> void:
+    if mode=="aircraft":
+        _stage_rival_airdrops(delta)
     if match_ended and not last_match_saved:
         _save_clock-=delta
         if _save_clock<=0.0:

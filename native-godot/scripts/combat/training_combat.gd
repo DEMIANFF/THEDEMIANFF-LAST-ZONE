@@ -819,10 +819,11 @@ func end_sector_battle() -> void:
     for bot in _targets:
         if is_instance_valid(bot):
             bot._clear_owned_covers()
+            bot.cancel_real_airdrop()
             bot.set_physics_process(false)
 
 
-func begin_sector_battle() -> void:
+func begin_sector_battle(from_real_airdrop: bool=false) -> void:
     _close_training_armory()
     _cancel_healing()
     _cancel_awm_bolt()
@@ -863,10 +864,10 @@ func begin_sector_battle() -> void:
     loot_collected=0
     opponent_caches_collected=0
     _ensure_encounter_capacity()
-    _protect_player_landing_from_spawn_overlap()
+    _protect_player_landing_from_spawn_overlap(from_real_airdrop)
     for bot in _targets:
         if is_instance_valid(bot):
-            bot.configure_sector_battle(_targets)
+            bot.configure_sector_battle(_targets,from_real_airdrop)
     if _weapon_visuals:
         _weapon_visuals.clear_expansion()
         _weapon_visuals.set_awm_owned(weapon_owned[1])
@@ -948,7 +949,7 @@ func _encounter_spawn(index: int) -> Vector2:
 ## reposition rivals during round initialization, before they become
 ## combat-active, using the original terrain and collision constraints.
 ## Training and internal small-roster QA retain their historic placements.
-func _protect_player_landing_from_spawn_overlap() -> void:
+func _protect_player_landing_from_spawn_overlap(preserve_airdrop: bool=false) -> void:
     if (encounter_size!=CLASSIC_BR_PARTICIPANTS or
             not is_instance_valid(operator) or
             not operator.global_position.is_finite()):
@@ -965,7 +966,10 @@ func _protect_player_landing_from_spawn_overlap() -> void:
             push_error("Aurora no clear BR enemy position away from actual landing "+
                 str(i))
             continue
-        bot.set_match_spawn(at)
+        if preserve_airdrop and bot._airdrop_stage!="inactive":
+            bot.retarget_real_airdrop(at)
+        else:
+            bot.set_match_spawn(at)
 
 
 func _find_clear_away_from_landing(index: int,landing: Vector2) -> Vector2:
@@ -982,12 +986,14 @@ func _find_clear_away_from_landing(index: int,landing: Vector2) -> Vector2:
     return Vector2(INF,INF)
 
 
-func _ensure_encounter_capacity() -> void:
+func _ensure_encounter_capacity(batch_limit: int=49) -> void:
     var original: Array[Vector2]=[
         Vector2(-47,-10),Vector2(55,-17),Vector2(26,-55),
         Vector2(-35,-48)]
     var needed: int=clampi(encounter_size-1,8,49)
-    while _targets.size()<needed:
+    var added: int=0
+    while _targets.size()<needed and added<batch_limit:
+        added+=1
         var i: int=_targets.size()
         var bot: CharacterBody3D=BOT.new()
         bot.name="AuroraPatrol"+str(i+1)
