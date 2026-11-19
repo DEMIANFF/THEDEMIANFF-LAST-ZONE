@@ -14,7 +14,7 @@ const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const DRIVEABLE_VEHICLE=preload("res://scripts/world/aurora_driveable_vehicle.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
-const INITIAL_RADIUS: float = 205.0
+const INITIAL_RADIUS: float = 245.0
 const FINAL_RADIUS: float = 12.0
 # Four phases total ten minutes rather than the previous 4m40s.
 # Early victories remain possible when all physical enemies are eliminated.
@@ -32,7 +32,7 @@ const MAX_OPPONENT_DROPS: int=12
 const PHASE_COUNT: int=4
 const PHASE_SECONDS: float=SHRINK_DURATION/float(PHASE_COUNT)
 const PHASE_HOLD_SECONDS: float=24.0
-const PHASE_RADII: Array[float]=[INITIAL_RADIUS,155.0,105.0,54.0,FINAL_RADIUS]
+const PHASE_RADII: Array[float]=[INITIAL_RADIUS,185.0,120.0,60.0,FINAL_RADIUS]
 # Per-phase center shift stays strictly inside the radius loss. Every new
 # circle is enclosed by the last one, including during interpolation.
 const ZONE_CENTER_PROGRESS: Array[float]=[0.0,.40,.70,.88,1.0]
@@ -41,6 +41,11 @@ const ZONE_CENTER_PROGRESS: Array[float]=[0.0,.40,.70,.88,1.0]
 const RESUPPLY_SITES: Array[Vector2]=[
     Vector2(8.0,-6.0),Vector2(-11.0,-17.0),Vector2(5.0,-35.0)]
 const RESUPPLY_TYPES: Array[String]=["ammo_ar","armor_plate","medkit"]
+# One existing pickup in each new frontier region; reposition rather than
+# adding free items, preserving the 25-piece physical match-loot ledger.
+const FRONTIER_LOOT_SITES: Array[Vector2]=[
+    Vector2(197,23),Vector2(-15,-198),
+    Vector2(-194,65),Vector2(5,208)]
 
 var player: CharacterBody3D
 var combat: Node3D
@@ -591,7 +596,8 @@ func _spawn_loot() -> void:
         Vector2(6,-7),Vector2(-9,-18),Vector2(19,-11),Vector2(-27,-15),
         Vector2(-7,-38),Vector2(35,-34),Vector2(41,15),Vector2(-43,9),
         Vector2(20,34),Vector2(-57,-36),Vector2(53,-61),Vector2(0,-71),
-        Vector2(65,8),Vector2(-33,-62),Vector2(12,63),Vector2(49,43)]
+        FRONTIER_LOOT_SITES[0],FRONTIER_LOOT_SITES[1],
+        FRONTIER_LOOT_SITES[2],FRONTIER_LOOT_SITES[3]]
     var categories: Array[String]=[
         "ammo_ar","medkit","ammo_awm","ammo_ar",
         "medkit","ammo_ar","ammo_awm","medkit",
