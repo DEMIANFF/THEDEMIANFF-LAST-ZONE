@@ -135,6 +135,25 @@ func _verify() -> void:
         gunner._magazine==BOT.PROACTIVE_RELOAD_THRESHOLD,
         "AI attempted proactive reload with a live target in sight")
 
+    # While using a real medkit, new visual contact must interrupt the
+    # vulnerable animation/channel without magically spending the item.
+    gunner.health=105.0
+    gunner._field_medkits=1
+    gunner._heal_cooldown=0.0
+    gunner._reload_remaining=0.0
+    gunner._target_visible=false
+    gunner.safe_radius=112.0
+    gunner.safe_center=director.CENTER
+    check(gunner._begin_field_heal(),
+        "wounded rival could not begin its own medical channel")
+    gunner._target_visible=true
+    gunner._sense_clock=90.0
+    gunner._attack_clock=20.0
+    gunner._physics_process(.016)
+    check(gunner._heal_remaining==0.0 and
+        gunner._field_medkits==1 and gunner.heal_channels_interrupted>=1,
+        "visible attacker failed to interrupt autonomous opponent healing")
+
     director.start_sector_battle()
     director.set_process(false)
     combat.set_process(false)
@@ -153,5 +172,6 @@ func _verify() -> void:
             "three_second_channel=1 damage_interrupt=1 cooldown=1 "+
             "visible_enemy_blocked=1 zone_safe=1 physics_autonomous=1 "+
             "limited_healing=1 proactive_reload=1 active_fire_priority=1 "+
+            "visual_heal_interrupt=1 "+
             "match_reset=clean vulkan=1")
     quit(1 if failed else 0)
