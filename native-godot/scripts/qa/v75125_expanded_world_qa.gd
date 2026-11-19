@@ -92,7 +92,8 @@ func _verify() -> void:
                 if Vector2(p.x,p.z).distance_to(site)<17.0:
                     nearby_ice+=1
             check(nearby_pines>=4 and nearby_ice>=2,
-                "walkable outer peninsula remains barren "+str(site))
+                "walkable outer peninsula remains barren "+str(site)+
+                " pines="+str(nearby_pines)+" ice="+str(nearby_ice))
     var solid_pines: int=0
     for child in nature.get_children():
         if child is StaticBody3D and child.name.begins_with("AuroraPineSolid"):
