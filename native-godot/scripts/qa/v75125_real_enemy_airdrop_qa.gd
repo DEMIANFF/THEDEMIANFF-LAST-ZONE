@@ -52,9 +52,24 @@ func _verify() -> void:
     check(first.global_position.y>terrain.height_at(
         first.global_position.x,first.global_position.z)+30.0,
         "BR start snapped an already-falling enemy onto the ground")
+    # The expanded island must actually receive real rivals outside the
+    # former 205m ring, not 49 bots crowded around the original village.
+    var outer_assignments: int=0
+    var frontier_assignments: int=0
+    for rival in combat._targets:
+        if rival.spawn_coordinates.distance_to(director.CENTER)>205.0:
+            outer_assignments+=1
+    for site in combat.FRONTIER_SPAWN_SITES:
+        for rival in combat._targets:
+            if rival.spawn_coordinates.distance_to(site)<14.0:
+                frontier_assignments+=1
+                break
+    check(outer_assignments>=2 and frontier_assignments>=2,
+        "expanded BR is still deploying every physical rival near old town")
     for rival in combat._targets:
         rival.set_physics_process(false)
     if not failed:
         print("V75125_REAL_ENEMY_AIRDROP PASS physics=1 "+
-            "canopy=1 physical_drop=1 no_teleport=1 roster=50")
+            "canopy=1 physical_drop=1 no_teleport=1 "+
+            "outer_rivals=1 roster=50")
     quit(1 if failed else 0)
