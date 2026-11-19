@@ -1,4 +1,4 @@
-name: Aurora V75.124 Isolated Signed Motorola APK Trial
+name: Aurora V75.125 one-shot signed Motorola APK trial
 concurrency:
   # Separate renamed frontend pipelines from superseded jobs while still
   # cancelling repeated commits of the SAME workflow on the same branch.
@@ -227,7 +227,7 @@ jobs:
       # This lets the Motorola UI redesign be reviewed before installation.
       - uses: actions/upload-artifact@v4
         with:
-          name: THEDEMIAN-V75.123-LOBBY-ACCOUNT-PREVIEW
+          name: THEDEMIAN-V75.125-LOBBY-ACCOUNT-PREVIEW
           path: |
             native-godot/out/aurora-v75-19-welcome.png
             native-godot/out/aurora-v75-19-lobby.png
@@ -252,7 +252,7 @@ jobs:
           grep -F 'CANOPY_OPENGL_RENDER PASS' native-godot/out/qa/canopy-render.log
           test -s native-godot/out/audit-first-canopy-opengl.png
       - name: Configure permanent signed preview identity
-        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/codex/v75-123-aurora-motorola-apk-qa') }}
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' && contains(github.event.head_commit.message, '[motorola-apk]')) }}
         env:
           PREVIEW_KEYSTORE_B64: ${{ secrets.AURORA_PREVIEW_KEYSTORE_B64 }}
         run: |
@@ -294,7 +294,7 @@ jobs:
       # One production-directed Android preview: Mobile/Vulkan ONLY.
       # Desktop headless QA may use OpenGL to run on CI; no OpenGL APK built.
       - name: Export signed Vulkan Mobile APK (single release)
-        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/codex/v75-123-aurora-motorola-apk-qa') }}
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' && contains(github.event.head_commit.message, '[motorola-apk]')) }}
         run: |
           set -euo pipefail
           if grep -E "SCRIPT ERROR:|ERROR:" native-godot/out/qa/responsive-render.log; then exit 1; fi
@@ -302,14 +302,14 @@ jobs:
           python3 native-godot/tools/configure_android_renderer.py --variant mobile
           grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
           grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
-          grep -Fx 'version/code=113' native-godot/export_presets.cfg
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.123-MOTOROLA-VULKAN.apk
-          test -s native-godot/out/THEDEMIAN-V75.123-MOTOROLA-VULKAN.apk
+          grep -Fx 'version/code=114' native-godot/export_presets.cfg
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.125-MOTOROLA-VULKAN.apk
+          test -s native-godot/out/THEDEMIAN-V75.125-MOTOROLA-VULKAN.apk
       - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
-        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/codex/v75-123-aurora-motorola-apk-qa') }}
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' && contains(github.event.head_commit.message, '[motorola-apk]')) }}
         run: |
           set -euo pipefail
-          APK=native-godot/out/THEDEMIAN-V75.123-MOTOROLA-VULKAN.apk
+          APK=native-godot/out/THEDEMIAN-V75.125-MOTOROLA-VULKAN.apk
           python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/vulkan-verification
           expected="$(cat native-godot/out/preview-signer-sha256.txt)"
           grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/vulkan-verification/signature.txt
@@ -367,11 +367,11 @@ jobs:
           sha256sum "$APK" > native-godot/out/SHA256SUMS.txt
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v4
-        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/codex/v75-123-aurora-motorola-apk-qa') }}
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' && contains(github.event.head_commit.message, '[motorola-apk]')) }}
         with:
-          name: THEDEMIAN-V75.123-MOTOROLA-VULKAN
+          name: THEDEMIAN-V75.125-MOTOROLA-VULKAN
           path: |
-            native-godot/out/THEDEMIAN-V75.123-MOTOROLA-VULKAN.apk
+            native-godot/out/THEDEMIAN-V75.125-MOTOROLA-VULKAN.apk
             native-godot/out/vulkan-verification/
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
@@ -433,13 +433,13 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           set -euo pipefail
-          APK="native-godot/out/THEDEMIAN-V75.123-MOTOROLA-FIREBASE-GRADLE.apk"
+          APK="native-godot/out/THEDEMIAN-V75.125-MOTOROLA-FIREBASE-GRADLE.apk"
           LOG="native-godot/out/firebase-gradle-export.log"
           # Headless Godot 4.7.2 may emit an ADB daemon error at shutdown.
           # Preserve its exit code and export diagnostics; do not assume either
           # a completed progress bar or this ADB message means success.
           set +e
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.123-MOTOROLA-FIREBASE-GRADLE.apk > "$LOG" 2>&1
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.125-MOTOROLA-FIREBASE-GRADLE.apk > "$LOG" 2>&1
           GODOT_EXIT=$?
           set -e
           tail -n 65 "$LOG"
@@ -498,7 +498,7 @@ jobs:
           python3 - <<'PY'
           import zipfile
           from pathlib import Path
-          apk=Path('native-godot/out/THEDEMIAN-V75.123-MOTOROLA-FIREBASE-GRADLE.apk')
+          apk=Path('native-godot/out/THEDEMIAN-V75.125-MOTOROLA-FIREBASE-GRADLE.apk')
           with zipfile.ZipFile(apk) as archive:
               dex=[z for z in archive.namelist() if z.startswith('classes') and z.endswith('.dex')]
               assert dex, 'No Android DEX compiled'
@@ -510,9 +510,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ github.event_name == 'workflow_dispatch' }}
         with:
-          name: THEDEMIAN-V75.123-MOTOROLA-FIREBASE-GRADLE-DIAGNOSTIC
+          name: THEDEMIAN-V75.125-MOTOROLA-FIREBASE-GRADLE-DIAGNOSTIC
           path: |
-            native-godot/out/THEDEMIAN-V75.123-MOTOROLA-FIREBASE-GRADLE.apk
+            native-godot/out/THEDEMIAN-V75.125-MOTOROLA-FIREBASE-GRADLE.apk
             native-godot/out/FIREBASE-GRADLE-SHA256SUMS.txt
             native-godot/out/FIREBASE-GRADLE-BUILD.txt
             native-godot/out/firebase-gradle-verification/
