@@ -75,6 +75,15 @@ func _verify() -> void:
     if pines!=null and crystals!=null:
         var forest: MultiMesh=pines.multimesh
         var ice: MultiMesh=crystals.multimesh
+        # The headless renderer can return default transforms for GPU-only
+        # MultiMesh data. Inspect the real CPU placement arrays that were
+        # passed into _instance_mesh(), and independently assert that the
+        # draw-instance counts match those arrays exactly.
+        var pine_locations: Array=nature.get("pine_positions")
+        var ice_locations: Array=nature.get("ice_positions")
+        check(forest.instance_count==pine_locations.size() and
+            ice.instance_count==ice_locations.size(),
+            "GPU instance counts differ from actual scatter positions")
         check(forest.instance_count<=NATURE.PINE_TARGET+
                 NATURE.FRONTIER_SITES.size()*NATURE.FRONTIER_PINE_COUNT and
             ice.instance_count<=NATURE.ICE_TARGET+
@@ -83,17 +92,19 @@ func _verify() -> void:
         for site in NATURE.FRONTIER_SITES:
             var nearby_pines: int=0
             var nearby_ice: int=0
-            for i in range(forest.instance_count):
-                var p: Vector3=forest.get_instance_transform(i).origin
+            for location in pine_locations:
+                var p: Vector3=location
                 if Vector2(p.x,p.z).distance_to(site)<17.0:
                     nearby_pines+=1
-            for i in range(ice.instance_count):
-                var p: Vector3=ice.get_instance_transform(i).origin
+            for location in ice_locations:
+                var p: Vector3=location
                 if Vector2(p.x,p.z).distance_to(site)<17.0:
                     nearby_ice+=1
             check(nearby_pines>=4 and nearby_ice>=2,
                 "walkable outer peninsula remains barren "+str(site)+
-                " pines="+str(nearby_pines)+" ice="+str(nearby_ice))
+                " pines="+str(nearby_pines)+" ice="+str(nearby_ice)+
+                " total_pines="+str(forest.instance_count)+
+                " total_ice="+str(ice.instance_count))
     var solid_pines: int=0
     for child in nature.get_children():
         if child is StaticBody3D and child.name.begins_with("AuroraPineSolid"):
