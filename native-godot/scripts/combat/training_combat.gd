@@ -41,6 +41,8 @@ const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
 const MEDKIT_VISUAL = preload("res://scripts/player/aurora_medkit_visual.gd")
 const COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const BOT_LOADOUTS: Array[int]=[WEAPONS.AR,WEAPONS.SCAR,WEAPONS.MP40,
+    WEAPONS.KRISS,WEAPONS.AWM,WEAPONS.HK416,WEAPONS.P90,WEAPONS.VSS]
 const TRAINING_ARMORY=preload("res://scripts/match/training_armory.gd")
 var _training_armory: Node3D
 
@@ -996,6 +998,13 @@ func _ensure_encounter_capacity() -> void:
         # Additional bots are real damageable physics agents with distance
         # LOD (the full rig is loaded when within 39m, unloaded beyond 55m).
         bot.set("distance_lod",i>=8)
+        if i>=8:
+            var slot: int=BOT_LOADOUTS[(i-8)%BOT_LOADOUTS.size()]
+            var model: String=(WEAPON_VISUALS.AWM_PATH if slot==WEAPONS.AWM else
+                WEAPON_VISUALS.AK_PATH if slot==WEAPONS.AR else
+                str(WEAPONS.ENTRIES[slot].get("asset","")))
+            # No invisible unlicensed gun: fallback to the real imported AR.
+            bot.weapon_slot=slot if ResourceLoader.exists(model,"PackedScene") else WEAPONS.AR
         bot.spawn_coordinates=original[i-4] if i<8 else _encounter_spawn(i)
         bot.eliminated.connect(_on_bot_eliminated)
         bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))

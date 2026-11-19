@@ -3,6 +3,7 @@ const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.
 const IMPACT=preload("res://scripts/player/third_person_operator.gd")
 const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 const AURORA_COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
+const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 ## Aurora V73 offline training opponent: rigged glTF visual, bounded ray-LOS,
 ## grounded patrol and actual damage. This is not a networked human player.
 signal eliminated(agent: CharacterBody3D, killer: Node3D)
@@ -73,6 +74,7 @@ var reloads_completed: int=0
 var vision_rays_last: int=0
 var vision_rays_total: int=0
 var _magazine: int=MAGAZINE_CAPACITY
+var weapon_slot: int=WEAPONS.AR
 var _reload_remaining: float=0.0
 var _field_medkits: int=FIELD_MEDKIT_CAPACITY
 var _heal_remaining: float=0.0
@@ -151,6 +153,7 @@ var _lod_rest_transform: Transform3D=Transform3D.IDENTITY
 func _ready() -> void:
     add_to_group("training_target")
     _random.seed=7503+int(absf(spawn_coordinates.x)*31+absf(spawn_coordinates.y)*17)
+    _magazine=_loadout_capacity()
     var marker := Label3D.new()
     marker.name = "TrainingTargetMarker"
     marker.text = "ENEMIGO IA"
@@ -285,12 +288,68 @@ func _create_full_rig() -> void:
 ## are no camera/HUD-tracked guns, no copied third-party items, and no
 ## rifle objects at all for the 41 low-poly physical rivals. Share the
 ## existing AK GLB loader's correct FBX scale/axis normalization.
+
+## Each combatant is assigned a real, installed weapon catalog slot.
+## Existing training rigs retain the original AR/18-round QA contract.
+func _loadout_capacity() -> int:
+    if weapon_slot==WEAPONS.AR:
+        return MAGAZINE_CAPACITY
+    return int(WEAPONS.ENTRIES[weapon_slot]["capacity"])
+
+
+func _loadout_range() -> float:
+    match weapon_slot:
+        WEAPONS.AWM:
+            return 65.0
+        WEAPONS.VSS:
+            return 46.0
+        WEAPONS.SCAR,WEAPONS.HK416:
+            return 30.0
+        WEAPONS.MP40,WEAPONS.KRISS,WEAPONS.P90:
+            return 18.0
+    return SHOOT_RANGE
+
+
+func _loadout_sight_range() -> float:
+    return maxf(SIGHT_RANGE,_loadout_range()*1.08)
+
+
+func _loadout_damage() -> float:
+    match weapon_slot:
+        WEAPONS.AWM:
+            return 72.0
+        WEAPONS.VSS:
+            return 31.0
+        WEAPONS.SCAR,WEAPONS.HK416:
+            return 22.0
+        WEAPONS.MP40,WEAPONS.P90:
+            return 16.0
+        WEAPONS.KRISS:
+            return 14.0
+    return RIFLE_DAMAGE
+
+
+func _loadout_reload_seconds() -> float:
+    if weapon_slot==WEAPONS.AR:
+        return RELOAD_SECONDS
+    return float(WEAPONS.ENTRIES[weapon_slot]["reload"])
+
+
+func _loadout_visual_path() -> String:
+    if weapon_slot==WEAPONS.AWM:
+        return WEAPON_VISUALS.AWM_PATH
+    if weapon_slot==WEAPONS.AR:
+        return WEAPON_VISUALS.AK_PATH
+    return str(WEAPONS.ENTRIES[weapon_slot].get("asset",""))
+
+
 func _attach_original_hand_rifle() -> void:
     _enemy_hand_rifle=null
     _enemy_right_hand_socket=null
     _enemy_muzzle_flash=null
     _muzzle_flash_remaining=0.0
-    if _rig==null or not ResourceLoader.exists(WEAPON_VISUALS.AK_PATH):
+    var equipped_path: String=_loadout_visual_path()
+    if _rig==null or equipped_path.is_empty() or not ResourceLoader.exists(equipped_path):
         return
     var skeleton: Skeleton3D=_rig.find_child(
         "Skeleton3D",true,false) as Skeleton3D
@@ -322,7 +381,7 @@ func _attach_original_hand_rifle() -> void:
     # GLB normalization; the returned mesh becomes a skeleton child.
     var visual_loader: Node3D=WEAPON_VISUALS.new()
     _enemy_hand_rifle=visual_loader._load_visual(
-        WEAPON_VISUALS.AK_PATH,"AK74TacticalOpponentVisual",mount)
+        equipped_path,"AK74TacticalOpponentVisual" if weapon_slot==WEAPONS.AR else "RivalWeapon3DVisual",mount)
     visual_loader.free()
     if _enemy_hand_rifle==null:
         _enemy_right_hand_socket.queue_free()
@@ -337,7 +396,7 @@ func _attach_original_hand_rifle() -> void:
     flash_mesh.radial_segments=8
     flash_mesh.rings=4
     _enemy_muzzle_flash.mesh=flash_mesh
-    _enemy_muzzle_flash.position=Vector3(0,.03,-.78)
+    _enemy_muzzle_flash.position=Vector3(0,.03,-.43 if weapon_slot in [WEAPONS.MP40,WEAPONS.KRISS,WEAPONS.P90] else -.78)
     var flash_material:=StandardMaterial3D.new()
     flash_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
     flash_material.albedo_color=Color(1.0,.51,.17)
@@ -425,7 +484,7 @@ func _physics_process(dt: float) -> void:
     if _reload_remaining>0.0:
         _reload_remaining=maxf(0.0,_reload_remaining-dt)
         if _reload_remaining<=0.0:
-            _magazine=MAGAZINE_CAPACITY
+            _magazine=_loadout_capacity()
             reloads_completed+=1
     _suppression_seconds=maxf(0.0,_suppression_seconds-dt)
     _heal_cooldown=maxf(0.0,_heal_cooldown-dt)
@@ -469,7 +528,7 @@ func _physics_process(dt: float) -> void:
     var distance: float=delta_to_contact.length()
     var destination: Vector3
     var target_speed: float=WALK_SPEED
-    if _target_visible and distance < SIGHT_RANGE:
+    if _target_visible and distance < _loadout_sight_range():
         _last_seen=contact_position
         _alert_time=2.9
     behavior="patrol"
@@ -481,7 +540,7 @@ func _physics_process(dt: float) -> void:
         # Reposition to the side of a visible opponent rather than always
         # rushing to the same target point. Stable for several seconds to
         # avoid churn in navigation requests and mobile physics queries.
-        if _target_visible and distance<SHOOT_RANGE*.9 and distance>4.0:
+        if _target_visible and distance<_loadout_range()*.9 and distance>4.0:
             if _strafe_clock<=0.0:
                 _avoid_side*=-1.0
                 _strafe_clock=STRAFE_SWITCH_SECONDS+float(get_instance_id()%3)*.19
@@ -509,7 +568,7 @@ func _physics_process(dt: float) -> void:
     # Rotate toward the next ACTUAL circle near the end of the phase.
     # Prioritize live engagements and physical cover, but avoid waiting
     # until the storm is already damaging a distant rival.
-    var engaged: bool=(_target_visible and distance<SHOOT_RANGE) or behavior=="cover"
+    var engaged: bool=(_target_visible and distance<_loadout_range()) or behavior=="cover"
     if sector_battle and next_zone_active and should_rotate_to_next_zone(
             global_position,next_safe_center,next_safe_radius,
             zone_seconds_remaining,engaged):
@@ -568,7 +627,7 @@ func _physics_process(dt: float) -> void:
     var moving: bool=is_on_floor() and Vector2(offset.x,offset.z).length()>.8*dt
     var running: bool=moving and Vector2(offset.x,offset.z).length()>2.15*dt
 
-    if (_target_visible and distance<SHOOT_RANGE and
+    if (_target_visible and distance<_loadout_range() and
             _attack_clock<=0.0 and _reload_remaining<=0.0 and
             _has_line_of_fire(_target_actor)):
         if _magazine<=0:
@@ -580,9 +639,9 @@ func _physics_process(dt: float) -> void:
                 _begin_reload()
             elif _burst_count>=BURST_ROUNDS:
                 _burst_count=0
-                _attack_clock=BURST_RECOVERY+float(get_instance_id()%4)*.14
+                _attack_clock=maxf(BURST_RECOVERY,float(WEAPONS.ENTRIES[weapon_slot]["cadence"])*2.0)+float(get_instance_id()%4)*.14
             else:
-                _attack_clock=BURST_SHOT_GAP
+                _attack_clock=1.0 if weapon_slot==WEAPONS.AWM else BURST_SHOT_GAP
     # A previously seen/heard enemy behind destructible cover is no
     # longer visually locked. Fire at the last ACTUAL contact coordinate
     # only if a fresh physics ray hits real Aurora cover first.
@@ -630,7 +689,7 @@ func _insert_sight_candidate(picks: Array[Dictionary],
         return
     var distance_sq: float=global_position.distance_squared_to(
         foe.global_position)
-    if distance_sq>=SIGHT_RANGE*SIGHT_RANGE:
+    if distance_sq>=_loadout_sight_range()*_loadout_sight_range():
         return
     var place: int=picks.size()
     while place>0 and distance_sq<float(picks[place-1]["distance_sq"]):
@@ -680,7 +739,7 @@ func _sense_player() -> void:
             vision_rays_last<MAX_VISION_RAYS and
             (previous==operator or previous.health>0.0)):
         var prior_distance: float=global_position.distance_squared_to(previous.global_position)
-        if prior_distance<SIGHT_RANGE*SIGHT_RANGE and prior_distance<=(
+        if prior_distance<_loadout_sight_range()*_loadout_sight_range() and prior_distance<=(
                 sqrt(found_distance)+TARGET_STICKINESS_METERS)*(
                 sqrt(found_distance)+TARGET_STICKINESS_METERS):
             vision_rays_last+=1
@@ -734,7 +793,7 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _target_visible=false
     _target_actor=null
     _attack_clock=1.3
-    _magazine=MAGAZINE_CAPACITY
+    _magazine=_loadout_capacity()
     _reload_remaining=0.0
     _field_medkits=FIELD_MEDKIT_CAPACITY
     _heal_remaining=0.0
@@ -1173,7 +1232,7 @@ func _fire_at_last_known_cover() -> bool:
             _reload_remaining>0.0 or _magazine<=0 or
             not _last_seen.is_finite() or health<=0.0):
         return false
-    if global_position.distance_squared_to(_last_seen)>SHOOT_RANGE*SHOOT_RANGE:
+    if global_position.distance_squared_to(_last_seen)>_loadout_range()*_loadout_range():
         return false
     _cover_probe_clock=COVER_PROBE_SECONDS+float(get_instance_id()%5)*.06
     var muzzle: Vector3=global_position+Vector3.UP*1.35
@@ -1211,7 +1270,7 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
     _show_real_muzzle_flash()
     weapon_fired.emit(global_position)
     var distance: float=global_position.distance_to(foe.global_position)
-    var spread: float=clampf(distance/SHOOT_RANGE,0.0,1.0)*.52
+    var spread: float=clampf(distance/_loadout_range(),0.0,1.0)*(.22 if weapon_slot==WEAPONS.AWM else .52)
     var sideways: Vector3=(foe.global_position-global_position).cross(Vector3.UP).normalized()
     var endpoint: Vector3=foe.global_position+Vector3.UP*(1.0+_random.randf_range(-spread*.6,spread*.6))+sideways*_random.randf_range(-spread,spread)
     var muzzle: Vector3=global_position+Vector3.UP*1.35
@@ -1222,10 +1281,10 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
         hit.get("position",endpoint))
     var actor: Object=hit.get("collider")
     if actor==operator and not operator.royale_eliminated:
-        operator.receive_training_hit(RIFLE_DAMAGE,false,global_position,hit["position"])
+        operator.receive_training_hit(_loadout_damage(),false,global_position,hit["position"])
         shots_hit+=1
     elif actor is CharacterBody3D and actor.is_in_group("training_target") and actor.health>0:
-        actor.take_training_damage(RIFLE_DAMAGE,self)
+        actor.take_training_damage(_loadout_damage(),self)
         shots_hit+=1
     elif actor is StaticBody3D and actor.is_in_group("aurora_deployable_cover"):
         actor.call("take_damage",12.0)
@@ -1236,9 +1295,9 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
 func _begin_reload() -> void:
     if _reload_remaining>0.0 or health<=0.0:
         return
-    _reload_remaining=RELOAD_SECONDS
+    _reload_remaining=_loadout_reload_seconds()
     _burst_count=0
-    _attack_clock=RELOAD_SECONDS
+    _attack_clock=_reload_remaining
     _play_weapon_action("AuroraReloadAR",RELOAD_SECONDS)
 
 
