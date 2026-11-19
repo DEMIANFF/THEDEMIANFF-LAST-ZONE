@@ -12,8 +12,8 @@ signal foot_contact(world_position: Vector3,running: bool,on_stone: bool)
 ## This line is derived from the actual PhysicsServer hit; never a fake shot.
 signal shot_trace(from: Vector3,to: Vector3)
 
-const WALK_SPEED: float = 2.1
-const CHASE_SPEED: float = 3.25
+const WALK_SPEED: float = 2.5
+const CHASE_SPEED: float = 4.15
 var _foot_contacts=preload("res://scripts/animation/aurora_foot_contacts.gd").new()
 const SIGHT_RANGE: float = 31.0
 const SHOOT_RANGE: float = 21.0
@@ -41,7 +41,7 @@ const FIELD_MEDKIT_HEAL: float=40.0
 # A physical rifle impact now applies the same damage to Lila and other rivals.
 const RIFLE_DAMAGE: float=20.0
 const MAX_HEALTH: float=IMPACT.MAX_HEALTH
-const FIELD_MEDKIT_HEALTH_THRESHOLD: float=85.0
+const FIELD_MEDKIT_HEALTH_THRESHOLD: float=115.0
 const FIELD_MEDKIT_INTERRUPTED_COOLDOWN: float=1.25
 const PROACTIVE_RELOAD_THRESHOLD: int=4
 # 17 separate CPU buckets prevent 49 real agents from replanning together.
@@ -419,6 +419,23 @@ func _loadout_damage() -> float:
     return RIFLE_DAMAGE
 
 
+## Different weapons must not share the same slow AR burst pacing.
+## Keep two real rounds per burst and the existing bounded LOS budget.
+## Fast SMGs recover sooner; an AWM still waits one second per bolt.
+func _loadout_shot_gap() -> float:
+    if weapon_slot==WEAPONS.AWM:
+        return 1.0
+    return clampf(float(WEAPONS.ENTRIES[weapon_slot]["cadence"])*2.4,
+        .20,BURST_SHOT_GAP)
+
+
+func _loadout_burst_rest() -> float:
+    if weapon_slot==WEAPONS.AWM:
+        return BURST_RECOVERY
+    return clampf(float(WEAPONS.ENTRIES[weapon_slot]["cadence"])*7.5,
+        .67,BURST_RECOVERY)
+
+
 func _loadout_reload_seconds() -> float:
     if weapon_slot==WEAPONS.AR:
         return RELOAD_SECONDS
@@ -733,9 +750,9 @@ func _physics_process(dt: float) -> void:
                 _begin_reload()
             elif _burst_count>=BURST_ROUNDS:
                 _burst_count=0
-                _attack_clock=maxf(BURST_RECOVERY,float(WEAPONS.ENTRIES[weapon_slot]["cadence"])*2.0)+float(get_instance_id()%4)*.14
+                _attack_clock=_loadout_burst_rest()+float(get_instance_id()%4)*.14
             else:
-                _attack_clock=1.0 if weapon_slot==WEAPONS.AWM else BURST_SHOT_GAP
+                _attack_clock=_loadout_shot_gap()
     # A previously seen/heard enemy behind destructible cover is no
     # longer visually locked. Fire at the last ACTUAL contact coordinate
     # only if a fresh physics ray hits real Aurora cover first.
@@ -1082,7 +1099,7 @@ func _play_weapon_action(clip: String,seconds: float) -> bool:
     if not is_finite(authored_length) or authored_length<=0.0:
         return false
     # ReloadAR is authored for a different time scale; match the actual
-    # 2.25-second physical magazine timer without altering its ballistics.
+    # per-weapon physical magazine timer without altering its ballistics.
     _animation.speed_scale=authored_length/maxf(.05,seconds)
     _animation.play(clip,.06)
     _clip=clip
@@ -1397,7 +1414,7 @@ func _begin_reload() -> void:
     _reload_remaining=_loadout_reload_seconds()
     _burst_count=0
     _attack_clock=_reload_remaining
-    _play_weapon_action("AuroraReloadAR",RELOAD_SECONDS)
+    _play_weapon_action("AuroraReloadAR",_loadout_reload_seconds())
 
 
 ## Move inside the next safe circle without stacking all rivals at center.
