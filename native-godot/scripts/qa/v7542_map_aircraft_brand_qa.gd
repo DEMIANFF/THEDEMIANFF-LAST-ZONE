@@ -31,6 +31,9 @@ func _verify() -> void:
         map.get("player")==player and map.get("director")==director,
         "full-screen map did not bind real live island, player and match director")
     var radar: Control=hud.get_node("AuroraTacticalOverlay/AuroraTrainingRadar")
+    check(radar.get("map_texture") is Texture2D and
+        (radar.get("map_texture") as Texture2D).get_width()>=160,
+        "minimap does not display the real Aurora island heightfield")
     check(not map.visible and button.visible and button.text=="" and
         button.get_global_rect().grow(1.0).encloses(radar.get_global_rect()) and
         radar.get_global_rect().grow(1.0).encloses(button.get_global_rect()),

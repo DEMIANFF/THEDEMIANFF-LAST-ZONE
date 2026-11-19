@@ -1,4 +1,5 @@
 extends Control
+const TERRAIN_SCALE=preload("res://scripts/world/island_terrain.gd")
 ## Training: real opponent positions. Battle Royale: NO omniscient opponent
 ## positions; only short-lived acoustic pings from actual enemy gunshots.
 ## All current/future storm circles continue using authoritative zone geometry.
@@ -129,7 +130,7 @@ func _draw() -> void:
         # physical island texture that supplies Aurora's full-screen map.
         var world: Vector2=Vector2(player.global_position.x,player.global_position.z)
         var terrain_size: float=map_texture.get_width()
-        var half_extent: float=337.5 # Aurora expanded island half-extent.
+        var half_extent: float=TERRAIN_SCALE.HALF_EXTENT
         var src_center: Vector2=(world+Vector2.ONE*half_extent)*(
             terrain_size/(half_extent*2.0))
         var src_size: float=world_range*2.0*terrain_size/(half_extent*2.0)

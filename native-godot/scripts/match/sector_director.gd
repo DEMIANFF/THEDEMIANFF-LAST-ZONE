@@ -709,9 +709,25 @@ func _on_opponent_eliminated(victim: CharacterBody3D,killer: Node3D) -> void:
     var amount: int=int(supply["quantity"])
     var at:=Vector2(position.x,position.z)
     var ground_y: float=float(terrain.height_at(at.x,at.y))
-    # Keep loot on a raised walkable deck when the bot died inside a villa,
-    # and never float a cache below the current physical standing surface.
-    var surface_y: float=maxf(ground_y,position.y-.15)
+    # Airborne eliminations MUST drop loot to the terrain, not freeze the
+    # cache at the victim's altitude. Preserve real supported decks only when
+    # the actor is grounded on a physical walkable floor right underfoot.
+    var surface_y: float=ground_y
+    if victim.is_on_floor() and position.y>=ground_y-.25:
+        var ray:=PhysicsRayQueryParameters3D.create(
+            position+Vector3.UP*.35,
+            Vector3(at.x,ground_y-2.0,at.y))
+        ray.collision_mask=3
+        ray.exclude=[victim.get_rid()]
+        var hit: Dictionary=get_world_3d().direct_space_state.intersect_ray(ray)
+        if not hit.is_empty() and hit.get("collider") is StaticBody3D:
+            var support_position: Vector3=hit["position"]
+            var support_normal: Vector3=hit["normal"]
+            if support_normal.y>.55 and
+                    support_position.y>=ground_y-.15 and
+                    support_position.y<=position.y+.35 and
+                    position.y-support_position.y<=1.25:
+                surface_y=support_position.y
     _make_pickup(at,kind,"AuroraOpponentLoot"+str(_opponent_drops_spawned),
         surface_y,true,amount)
 
