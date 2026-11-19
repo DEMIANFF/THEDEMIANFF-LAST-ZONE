@@ -1,4 +1,5 @@
 extends SceneTree
+const BOT=preload("res://scripts/ai/aurora_bot.gd")
 ## Internal physics stress fixtures plus ONE 50-fighter playable BR lobby.
 ## lobby scenery. Never counts simulated clients as human online players.
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
@@ -41,7 +42,7 @@ func _verify() -> void:
     var positions: Array[Vector2]=[]
     for i in range(combat._targets.size()):
         var bot: CharacterBody3D=combat._targets[i]
-        check(bot is CharacterBody3D and bot.health==100.0 and
+        check(bot is CharacterBody3D and bot.health==BOT.MAX_HEALTH and
             bot.sector_battle and bot.get_node_or_null("OpponentCollider")!=null,
             "20-person round has fake or collision-less participant "+str(i))
         var at: Vector2=bot.spawn_coordinates
