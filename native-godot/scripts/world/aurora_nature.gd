@@ -3,6 +3,11 @@ extends Node3D
 ## Clearly a small sector art pass; no false 8-km landscape claim.
 
 var terrain: StaticBody3D
+# Retain the actual CPU-side scatter positions. A headless Godot build may
+# use a dummy RenderingServer, making MultiMesh GPU transform readback
+# unreliable even when the scene was populated correctly.
+var pine_positions: Array[Vector3]=[]
+var ice_positions: Array[Vector3]=[]
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const PINE_TARGET: int = 162
 const ICE_TARGET: int = 88
@@ -50,6 +55,7 @@ func _add_trees() -> void:
         sizes.append(rng.randf_range(.67,1.31))
 
     _append_frontier_instances(locations,rotations,sizes,FRONTIER_PINE_COUNT,false)
+    pine_positions=locations.duplicate()
 
     var bark:=CylinderMesh.new()
     bark.top_radius=.14
@@ -133,6 +139,7 @@ func _add_ice_spires() -> void:
         rotations.append(rng.randf_range(-PI,PI))
         sizes.append(rng.randf_range(.55,2.1))
     _append_frontier_instances(locations,rotations,sizes,FRONTIER_ICE_COUNT,true)
+    ice_positions=locations.duplicate()
     var crystal:=CylinderMesh.new()
     crystal.radial_segments=5
     crystal.top_radius=.0
