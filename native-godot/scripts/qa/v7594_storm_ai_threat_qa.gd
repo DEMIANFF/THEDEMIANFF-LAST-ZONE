@@ -47,6 +47,9 @@ func _verify() -> void:
         "full BR no longer contains 49 real collision-driven rivals")
 
     var listener: CharacterBody3D=combat._targets[8]
+    # This manual one-tick behavior fixture must not be skipped by the
+    # independent far-distance LOD physics scheduler.
+    listener.distance_lod=false
     listener._sense_clock=100.0
     listener._target_actor=null
     listener._target_visible=false
