@@ -599,6 +599,18 @@ func _physics_process(dt: float) -> void:
             reloads_completed+=1
     _suppression_seconds=maxf(0.0,_suppression_seconds-dt)
     _heal_cooldown=maxf(0.0,_heal_cooldown-dt)
+    # A healing enemy must keep sensing threats. Previously the early
+    # medkit return stopped LOS checks for the full three seconds, so an
+    # enemy entering view could not interrupt a helpless stationary bot.
+    if _heal_remaining>0.0:
+        _sense_clock-=dt
+        if _sense_clock<=0.0:
+            _sense_clock=.22+float(get_instance_id()%5)*.025
+            _sense_player()
+        if (_target_visible or (sector_battle and
+                should_escape_current_zone(global_position,
+                    safe_center,safe_radius))):
+            _interrupt_field_heal()
     # Medicines are a real timed, interruptible action on CharacterBody3D.
     # An opponent cannot move/fire while channeling, and mobile distant
     # AI frame staggering preserves the same elapsed seconds through dt.
