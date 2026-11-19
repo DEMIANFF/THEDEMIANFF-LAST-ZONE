@@ -53,14 +53,39 @@ jobs:
           node --check functions/src/offline-progress.js
           node --check functions/src/player-profile.js
           node --test functions/test/*.test.js
+      # Generated CC0 models depend only on the pinned source and converter.
+      # On retries use validated cached GLBs; never repeat a large Blender
+      # installation when the exact source scripts are unchanged.
+      - name: Cache reproducible Aurora model GLBs
+        id: aurora-model-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            native-godot/assets/characters/aurora_operator.glb
+            native-godot/assets/weapons/aurora_awm.glb
+          key: aurora-godot472-original-glbs-v1-${{ hashFiles('native-godot/tools/fetch_operator.sh', 'native-godot/tools/convert_operator.py', 'native-godot/tools/build_awm.py') }}
+          save-always: true
       - name: Prepare CC0 detailed AI rig source (pinned and verified)
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
         run: bash native-godot/tools/fetch_operator.sh /tmp/aurora-operator
       - name: Install Blender FBX importer / GLB exporter
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq blender python3-numpy > /tmp/aurora-blender-install.log
+          set -euo pipefail
+          # The previous unbounded apt-get stage stalled during repeated CI.
+          # Time out with diagnostics instead of consuming the full job.
+          if ! sudo env DEBIAN_FRONTEND=noninteractive timeout --kill-after=30s 5m apt-get update -qq; then
+            echo "::error::Ubuntu apt index update timed out or failed"
+            exit 1
+          fi
+          if ! sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a timeout --kill-after=30s 16m apt-get install -y -qq --no-install-recommends blender python3-numpy > /tmp/aurora-blender-install.log 2>&1; then
+            echo "::error::Blender package installation timed out or failed. Last apt output:"
+            tail -n 100 /tmp/aurora-blender-install.log
+            exit 1
+          fi
           blender --background --version | head -n 2
       - name: Generate the detailed AI rig from verified CC0 source
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
         run: |
           blender -b --python native-godot/tools/convert_operator.py -- \
             /tmp/aurora-operator/attractor_mechanic_tpose.fbx \
@@ -124,6 +149,7 @@ jobs:
                 hair_vertices,'vertices,',len(hair_mats),'materials')
           PY
       - name: Build original AWM GLB from authored Blender mesh
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
         run: |
           blender --background --python native-godot/tools/build_awm.py -- native-godot/assets/weapons/aurora_awm.glb
           python3 - <<'PY'
@@ -139,6 +165,8 @@ jobs:
           print('ORIGINAL_AWM_MESH',len(payload.get('meshes',[])),'GLB_BYTES',p.stat().st_size)
           assert len(payload.get('meshes',[]))>=32, 'AWM missing real modelling detail'
           PY
+      - name: Verify cached or generated GLBs against Aurora rig requirements
+        run: python3 native-godot/tools/verify_prepared_model_glbs.py
       - name: Install Godot 4.7.2 editor
         run: |
           curl -fL --retry 3 --retry-delay 3 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip' -o /tmp/aurora-godot.zip
