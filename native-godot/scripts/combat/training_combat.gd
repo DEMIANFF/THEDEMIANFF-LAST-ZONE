@@ -816,6 +816,7 @@ func end_sector_battle() -> void:
     operator.set_firing(false)
     for bot in _targets:
         if is_instance_valid(bot):
+            bot._clear_owned_covers()
             bot.set_physics_process(false)
 
 

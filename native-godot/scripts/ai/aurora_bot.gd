@@ -2,6 +2,7 @@ extends CharacterBody3D
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 const IMPACT=preload("res://scripts/player/third_person_operator.gd")
 const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
+const AURORA_COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 ## Aurora V73 offline training opponent: rigged glTF visual, bounded ray-LOS,
 ## grounded patrol and actual damage. This is not a networked human player.
 signal eliminated(agent: CharacterBody3D, killer: Node3D)
@@ -47,6 +48,9 @@ const ROUTE_REPLAN_BUCKETS: int=17
 # Throttle cover sound-investigation probes independently of real firing.
 # No omniscient vision through a wall that happens to be destructible.
 const COVER_PROBE_SECONDS: float=.55
+const MAX_ENEMY_COVERS: int=8
+const ENEMY_COVER_HEALTH_THRESHOLD: float=145.0
+const ENEMY_COVER_COOLDOWN: float=16.0
 # Physical death is registered instantly; the existing skinned visual gets
 # a short non-colliding reaction. No persistent bodies/particles on mobile.
 const DEFEAT_PRESENTATION_SECONDS: float=.75
@@ -84,6 +88,11 @@ var _route_goal:=Vector3(INF,INF,INF)
 var _route_clock: float=0.0
 var _cover_clock: float=0.0
 var _cover_probe_clock: float=0.0
+var _cover_deploy_clock: float=0.0
+var _cover_charges: int=1
+var _cover_deploy_queued: bool=false
+var covers_deployed: int=0
+var _owned_covers: Array[StaticBody3D]=[]
 var _suppression_seconds: float=0.0
 var _last_attacker: Node3D
 var _cover_point:=Vector3(INF,INF,INF)
@@ -411,6 +420,7 @@ func _physics_process(dt: float) -> void:
     _route_clock-=dt
     _cover_clock-=dt
     _cover_probe_clock=maxf(0.0,_cover_probe_clock-dt)
+    _cover_deploy_clock=maxf(0.0,_cover_deploy_clock-dt)
     _strafe_clock-=dt
     if _reload_remaining>0.0:
         _reload_remaining=maxf(0.0,_reload_remaining-dt)
@@ -729,6 +739,11 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     _field_medkits=FIELD_MEDKIT_CAPACITY
     _heal_remaining=0.0
     _heal_cooldown=0.0
+    _clear_owned_covers()
+    _cover_deploy_clock=0.0
+    _cover_charges=1
+    _cover_deploy_queued=false
+    covers_deployed=0
     heal_channels_completed=0
     heal_channels_interrupted=0
     var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
@@ -776,6 +791,7 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
         _cover_clock=0.0
         _sense_clock=0.0
         _alert_time=maxf(_alert_time,5.5)
+        _request_defensive_cover()
     # A null attacker means ambient/zone damage: interrupt healing and
     # reduce real HP, but do not fabricate a shooter, reset cover queries
     # or refresh pursuit against an unrelated player.
@@ -802,6 +818,79 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
 ## Hit origin uses the SAME body-local directional classification as Lila.
 ## Never allocate new skeletons for 41 LOD enemies; their real health, cover
 ## and collisions continue unmodified when no detailed rig is present.
+
+## Same physical, destructible Aurora cover as Lila. A rival carries one
+## wall per round, deployed after real damage and bounded for mobile.
+func _request_defensive_cover() -> void:
+    if (not sector_battle or health<=0.0 or
+            health>ENEMY_COVER_HEALTH_THRESHOLD or
+            _cover_charges<=0 or _cover_deploy_clock>0.0 or
+            _cover_deploy_queued or not _last_seen.is_finite()):
+        return
+    _cover_deploy_queued=true
+    call_deferred("_try_deploy_cover")
+
+
+func _try_deploy_cover() -> bool:
+    _cover_deploy_queued=false
+    if (not is_inside_tree() or not sector_battle or health<=0.0 or
+            health>ENEMY_COVER_HEALTH_THRESHOLD or
+            _cover_charges<=0 or _cover_deploy_clock>0.0 or terrain==null):
+        return false
+    if get_tree().get_nodes_in_group("aurora_deployable_cover").size()>=MAX_ENEMY_COVERS:
+        _cover_deploy_clock=2.0
+        return false
+    var forward: Vector3=_last_seen-global_position
+    forward.y=0.0
+    if (not forward.is_finite() or forward.length_squared()<16.0 or
+            forward.length_squared()>SHOOT_RANGE*SHOOT_RANGE*2.25):
+        return false
+    forward=forward.normalized()
+    var center: Vector3=global_position+forward*2.9
+    var side: Vector3=Vector3(-forward.z,0.0,forward.x)
+    var floor_y: float=terrain.height_at(center.x,center.z)
+    if (not is_finite(floor_y) or
+            absf(floor_y-global_position.y)>1.3 or
+            absf(terrain.height_at(center.x+side.x*1.6,
+                    center.z+side.z*1.6)-floor_y)>.65 or
+            absf(terrain.height_at(center.x-side.x*1.6,
+                    center.z-side.z*1.6)-floor_y)>.65):
+        _cover_deploy_clock=2.0
+        return false
+    var angle: float=atan2(-forward.x,-forward.z)
+    var shape:=BoxShape3D.new()
+    shape.size=Vector3(3.45,2.30,.62)
+    var probe:=PhysicsShapeQueryParameters3D.new()
+    probe.shape=shape
+    probe.collision_mask=1
+    probe.exclude=[get_rid()]
+    probe.transform=Transform3D(Basis(Vector3.UP,angle),
+        Vector3(center.x,floor_y+1.18,center.z))
+    for hit in get_world_3d().direct_space_state.intersect_shape(probe,12):
+        if hit.get("collider")!=terrain:
+            _cover_deploy_clock=2.0
+            return false
+    var wall: StaticBody3D=AURORA_COVER.new()
+    wall.name="RivalAuroraCover"+str(get_instance_id())
+    # A static barrier stays on the world, never following a moving bot.
+    get_parent().add_child(wall)
+    wall.global_position=Vector3(center.x,floor_y,center.z)
+    wall.rotation.y=angle
+    _owned_covers.append(wall)
+    _cover_charges-=1
+    _cover_deploy_clock=ENEMY_COVER_COOLDOWN
+    covers_deployed+=1
+    behavior="deploy_cover"
+    return true
+
+
+func _clear_owned_covers() -> void:
+    for wall in _owned_covers:
+        if is_instance_valid(wall):
+            wall.queue_free()
+    _owned_covers.clear()
+
+
 func _play_directional_hit(origin: Vector3) -> void:
     if (_rig==null or _animation==null or not origin.is_finite() or
             not is_instance_valid(operator) or
@@ -936,6 +1025,11 @@ func _respawn() -> void:
     _field_medkits=FIELD_MEDKIT_CAPACITY
     _heal_remaining=0.0
     _heal_cooldown=0.0
+    _clear_owned_covers()
+    _cover_deploy_clock=0.0
+    _cover_charges=1
+    _cover_deploy_queued=false
+    covers_deployed=0
     heal_channels_completed=0
     heal_channels_interrupted=0
     var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
