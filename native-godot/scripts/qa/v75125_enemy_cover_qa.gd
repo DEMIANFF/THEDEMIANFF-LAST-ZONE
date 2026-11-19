@@ -53,6 +53,9 @@ func _verify() -> void:
         var start: Vector3=wall.global_position+wall.global_basis.z*4.0+Vector3.UP*1.25
         var end: Vector3=wall.global_position-wall.global_basis.z*4.0+Vector3.UP*1.25
         var ray:=PhysicsRayQueryParameters3D.create(start,end)
+        # The shooter stands behind its cover: exclude that actual body
+        # to test the wall collision rather than the shooter capsule.
+        ray.exclude=[rival.get_rid()]
         var hit: Dictionary=game.get_world_3d().direct_space_state.intersect_ray(ray)
         check(hit.get("collider")==wall,
             "bullets pass through a real AI deployable wall")
