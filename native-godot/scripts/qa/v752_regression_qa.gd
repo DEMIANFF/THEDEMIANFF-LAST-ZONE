@@ -120,6 +120,12 @@ func _verify() -> void:
     player._training_immunity=0
     player.training_health=100
     player.set_physics_process(false)
+    # The deployment director is still in aircraft mode after the parachute
+    # checks above. Each idle frame it restages opponents whose airdrop is
+    # inactive. Stop that producer BEFORE cancelling this bot's airdrop;
+    # otherwise it silently assigns a new descent before the shooting test.
+    # The actual flight and 49-rival airdrop are verified separately.
+    director.set_process(false)
     var bot=combat._targets[0]
     # This legacy cover test runs immediately after the player's parachute
     # stage, when real opponents are STILL in their aircraft descent.
@@ -136,7 +142,11 @@ func _verify() -> void:
     await frames(2)
     bot._sense_player()
     check(bot._airdrop_stage=="inactive" and bot._target_visible,
-        "ground-fire fixture still descending or failed visual acquisition")
+        "ground-fire fixture still descending or failed visual acquisition; "+
+        "director_process="+str(director.is_processing())+
+        " director_mode="+str(director.mode)+
+        " stage="+bot._airdrop_stage+
+        " visual="+str(bot._target_visible))
     wall.position=center+Vector3.UP
     game.add_child(wall)
     await frames(2)
