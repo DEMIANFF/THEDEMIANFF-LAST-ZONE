@@ -66,7 +66,13 @@ func _verify() -> void:
                 break
     check(outer_assignments>=2 and frontier_assignments>=2,
         "expanded BR is still deploying every physical rival near old town")
+    # Assert every actual participant survives the aircraft transition;
+    # no newly allocated placeholder is counted as a physical rival.
     for rival in combat._targets:
+        check(rival.health==BOT.MAX_HEALTH and
+            rival._airdrop_stage in ["waiting","descending","landed"] and
+            rival.get_node_or_null("OpponentCollider") is CollisionShape3D,
+            "a 200-HP rival was omitted from the real aircraft deployment")
         rival.set_physics_process(false)
     if not failed:
         print("V75125_REAL_ENEMY_AIRDROP PASS physics=1 "+
