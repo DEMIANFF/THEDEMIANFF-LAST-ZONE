@@ -143,7 +143,7 @@ func _verify() -> void:
     for opponent in combat._targets:
         opponent.set_physics_process(false)
     check(combat.active_fighter_count()==50 and
-        shooter.health==100.0 and shooter.muzzle_flashes_shown==0 and
+        shooter.health==BOT.MAX_HEALTH and shooter.muzzle_flashes_shown==0 and
         shooter._enemy_muzzle_flash!=null and
         not shooter._enemy_muzzle_flash.visible and
         shooter._muzzle_flash_remaining==0.0,
