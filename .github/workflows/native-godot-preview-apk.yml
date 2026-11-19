@@ -23,8 +23,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 48
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
       - name: Verify Firebase Android bridge prerequisites (no deployment)
@@ -152,7 +152,7 @@ jobs:
           echo 4.7.2.stable > "$HOME/.local/share/godot/export_templates/4.7.2.stable/version.txt"
           test -s "$HOME/.local/share/godot/export_templates/4.7.2.stable/android_debug.apk"
           rm /tmp/aurora-templates.tpz
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -225,7 +225,7 @@ jobs:
           echo "AURORA_MOTOROLA_FRONTEND_CAPTURE PASS 964x434"
       # Preserve real in-engine screenshots even if a later APK gate fails.
       # This lets the Motorola UI redesign be reviewed before installation.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: THEDEMIAN-V75.125-LOBBY-ACCOUNT-PREVIEW
           path: |
@@ -366,7 +366,7 @@ jobs:
           grep -F 'V75102_RIFLE_MUZZLE PASS' native-godot/out/qa-exported-vulkan/v75102_rifle_muzzle_qa.log
           sha256sum "$APK" > native-godot/out/SHA256SUMS.txt
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' && contains(github.event.head_commit.message, '[motorola-apk]')) }}
         with:
           name: THEDEMIAN-V75.125-MOTOROLA-VULKAN
@@ -388,7 +388,7 @@ jobs:
       # A second, isolated Godot Gradle build packages the actual Firebase
       # plugin. It is deliberately not the normal signed Vulkan preview.
       # Without an EXACT Godot Android registration it is diagnostics-only.
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
         if: ${{ github.event_name == 'workflow_dispatch' }}
         with:
           gradle-version: '8.13'
@@ -507,7 +507,7 @@ jobs:
           PY
           sha256sum "$APK" > native-godot/out/FIREBASE-GRADLE-SHA256SUMS.txt
           { echo 'V75.105 Motorola Firebase Gradle integration; login requires matching Firebase app + App Check'; git rev-parse HEAD; } > native-godot/out/FIREBASE-GRADLE-BUILD.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: ${{ github.event_name == 'workflow_dispatch' }}
         with:
           name: THEDEMIAN-V75.125-MOTOROLA-FIREBASE-GRADLE-DIAGNOSTIC
@@ -517,10 +517,10 @@ jobs:
             native-godot/out/FIREBASE-GRADLE-BUILD.txt
             native-godot/out/firebase-gradle-verification/
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
-          name: V75109-FAILED-VALIDATION-LOGS
+          name: V75125-FAILED-VALIDATION-LOGS
           path: |
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
