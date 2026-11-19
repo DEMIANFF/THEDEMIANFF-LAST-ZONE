@@ -23,7 +23,8 @@ func _verify() -> void:
         "full map still crops the new outer terrain")
     check(DIRECTOR.INITIAL_RADIUS==245.0 and
         DIRECTOR.PHASE_RADII.size()==5 and
-        COMBAT.CLASSIC_BR_PARTICIPANTS==50,
+        COMBAT.CLASSIC_BR_PARTICIPANTS==50 and
+        COMBAT.BR_SPAWN_RADIUS==DIRECTOR.INITIAL_RADIUS-5.0,
         "match ring or combat roster does not fit expanded island")
     var terrain: StaticBody3D=TERRAIN.new()
     terrain.name="ExpandedRealIsland"
