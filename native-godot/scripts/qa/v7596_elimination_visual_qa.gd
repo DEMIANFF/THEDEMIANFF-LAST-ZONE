@@ -86,14 +86,14 @@ func _verify() -> void:
     nav.set_physics_process(false)
     for rival in combat._targets:
         rival.set_physics_process(false)
-    check(physical_victim.visible and physical_victim.health==100.0 and
-        distant.visible and distant.health==100.0 and
+    check(physical_victim.visible and physical_victim.health==BOT.MAX_HEALTH and
+        distant.visible and distant.health==BOT.MAX_HEALTH and
         physical_victim._rig.transform==original and
         distant._death_tween==null and
         combat.eliminations==0 and combat.active_fighter_count()==50,
         "new round inherited corpse pose, deferred hide, or past human kills")
     await create_timer(BOT.DEFEAT_PRESENTATION_SECONDS+.12).timeout
-    check(distant.visible and distant.health==100.0 and
+    check(distant.visible and distant.health==BOT.MAX_HEALTH and
         combat.active_fighter_count()==50,
         "old corpse callback hid a live respawned opponent")
     game.queue_free()
