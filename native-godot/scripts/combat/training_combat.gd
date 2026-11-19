@@ -43,6 +43,13 @@ const COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const BOT_LOADOUTS: Array[int]=[WEAPONS.AR,WEAPONS.SCAR,WEAPONS.MP40,
     WEAPONS.KRISS,WEAPONS.AWM,WEAPONS.HK416,WEAPONS.P90,WEAPONS.VSS]
+# Five metres inside the actual 245m starting circle, never beyond it.
+# Four designated wide-island rivals fall to walkable frontier sectors.
+const BR_SPAWN_RADIUS: float=240.0
+const FRONTIER_SPAWN_INDICES: Array[int]=[8,20,32,48]
+const FRONTIER_SPAWN_SITES: Array[Vector2]=[
+    Vector2(5,208),Vector2(197,23),
+    Vector2(-194,65),Vector2(-15,-198)]
 const TRAINING_ARMORY=preload("res://scripts/match/training_armory.gd")
 var _training_armory: Node3D
 
@@ -890,7 +897,7 @@ func set_encounter_size(size: int) -> void:
 
 
 func _is_clear_spawn(at: Vector2) -> bool:
-    if at.distance_to(Vector2(0,-24))>205.0:
+    if at.distance_to(Vector2(0,-24))>BR_SPAWN_RADIUS:
         return false
     var sea: float=float(terrain.get("sea_level"))
     var floor_y: float=float(terrain.call("height_at",at.x,at.y))
@@ -923,10 +930,20 @@ func _encounter_spawn(index: int) -> Vector2:
     # Offline match: each physical combatant starts on distinct walkable
     # terrain. Low-discrepancy angular sampling covers inner/outer sectors
     # without piling 49 rivals around one fixed fallback coordinate.
+    var frontier_index: int=FRONTIER_SPAWN_INDICES.find(index)
+    if frontier_index>=0:
+        var site: Vector2=FRONTIER_SPAWN_SITES[frontier_index]
+        for attempt in range(64):
+            var near: Vector2=site
+            if attempt>0:
+                var angle: float=float(index)*.7+float(attempt)*2.3999632297
+                near+=Vector2.from_angle(angle)*(1.5+float(attempt%7))
+            if _spawn_has_clearance(near):
+                return near
     var base: float=float(index)*2.3999632297
     for attempt in range(128):
         var angle: float=base+float(attempt)*.61803398875
-        var radius: float=28.0+float((index*17+attempt*11)%170)
+        var radius: float=28.0+float((index*17+attempt*11)%206)
         var at:=Vector2(sin(angle),cos(angle))*radius+Vector2(0,-24)
         if _spawn_has_clearance(at):
             return at
@@ -934,7 +951,7 @@ func _encounter_spawn(index: int) -> Vector2:
     # houses, rocks or steep slopes; NEVER blindly stack at (33,-10).
     for attempt in range(400):
         var phase: float=base+float(attempt)*2.3999632297
-        var radius: float=16.0+float((index*29+attempt*31)%184)
+        var radius: float=16.0+float((index*29+attempt*31)%219)
         var at:=Vector2(cos(phase),sin(phase))*radius+Vector2(0,-24)
         if _spawn_has_clearance(at):
             return at
@@ -977,7 +994,7 @@ func _find_clear_away_from_landing(index: int,landing: Vector2) -> Vector2:
     var origin: Vector2=Vector2(0.0,-24.0)
     for attempt in range(512):
         var angle: float=base_angle+float(attempt)*.61803398875
-        var distance: float=21.0+float((index*17+attempt*29)%174)
+        var distance: float=21.0+float((index*17+attempt*29)%214)
         var at: Vector2=origin+Vector2.from_angle(angle)*distance
         if (at.distance_squared_to(landing)>=
                 PLAYER_LANDING_CLEARANCE*PLAYER_LANDING_CLEARANCE and
