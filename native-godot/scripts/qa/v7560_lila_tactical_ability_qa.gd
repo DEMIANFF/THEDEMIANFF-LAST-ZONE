@@ -1,4 +1,5 @@
 extends SceneTree
+const BOT=preload("res://scripts/ai/aurora_bot.gd")
 ## V75.60 — Lila's original approved tactical acceleration is triggered
 ## by real CharacterBody3D eliminations only. No simulated opponents.
 const OPERATOR=preload("res://scripts/player/third_person_operator.gd")
@@ -50,7 +51,7 @@ func _verify() -> void:
         player.tactical_acceleration_remaining==0.0,
         "fresh real BR must start with no fictitious ability bonus")
     var victim: CharacterBody3D=combat._targets[0]
-    check(victim.health==100.0 and
+    check(victim.health==BOT.MAX_HEALTH and
         victim.take_training_damage(999.0,player),
         "player kill cannot be confirmed against a real target")
     check(combat.eliminations==1 and
