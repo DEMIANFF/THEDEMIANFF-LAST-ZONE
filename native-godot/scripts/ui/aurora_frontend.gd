@@ -72,6 +72,7 @@ var _preview_container: SubViewportContainer
 var _preview_avatar: Node3D
 var _preview_weapon: Node3D
 var _preview_weapon_slot: int=-1
+var _armory_fill_light: OmniLight3D
 var _preview_caption: Label
 var _gesture_button: Button
 var _operator_controls: Array[Button]=[]
@@ -2045,6 +2046,8 @@ func _sync_armory_visual() -> void:
             _preview_container):
         return
     var in_armory: bool=_selected_tab=="ARMAS"
+    if is_instance_valid(_armory_fill_light):
+        _armory_fill_light.visible=in_armory
     if not in_armory:
         _clear_weapon_preview()
         if _preview_avatar!=null and is_instance_valid(_preview_avatar):
@@ -2786,6 +2789,19 @@ func _build_preview() -> void:
     portrait_spot.shadow_enabled=true
     stage3d.add_child(portrait_spot)
     portrait_spot.look_at(Vector3(0,.62,-.15),Vector3.UP)
+    # The SCAR and scoped AWM lost nearly all edge contrast against the
+    # dark aircraft hangar in the actual 964x434 CI screenshots. An armory-
+    # only fill illuminates imported GLB meshes, not the whole island/lobby.
+    _armory_fill_light=OmniLight3D.new()
+    _armory_fill_light.name="AuroraArmoryWeaponFill"
+    _armory_fill_light.position=Vector3(-.42,1.50,1.72)
+    _armory_fill_light.light_color=Color(1.0,.90,.77)
+    _armory_fill_light.light_energy=1.28
+    _armory_fill_light.omni_range=3.25
+    _armory_fill_light.light_cull_mask=PORTRAIT_LIGHT_LAYER
+    _armory_fill_light.shadow_enabled=false
+    _armory_fill_light.visible=false
+    stage3d.add_child(_armory_fill_light)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
     # V75.109 CI screenshot showed the operator's head hidden behind the
