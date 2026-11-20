@@ -116,6 +116,11 @@ func set_next_zone(center: Vector2,radius: float) -> void:
 
 func clear_next_zone() -> void:
     _next_zone_enabled=false
+    # No fifth circle exists after the last scheduled phase. Keep the
+    # disabled internal snapshot coherent with the actual damage circle;
+    # do not retain an obsolete 3m/12m target from the preceding phase.
+    _next_zone_center=_zone_world_center
+    _next_zone_radius=_zone_radius
     _refresh_zone_label()
     queue_redraw()
 
