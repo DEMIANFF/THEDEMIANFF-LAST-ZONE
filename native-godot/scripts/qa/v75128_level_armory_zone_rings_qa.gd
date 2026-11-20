@@ -59,7 +59,8 @@ func _verify() -> void:
         is_equal_approx(float(planned.get("radius",0.0)),SECTOR.FINAL_RADIUS),
         "fourth phase no longer plans the real final circle")
     probe.set("zone_phase",SECTOR.PHASE_COUNT)
-    check(not bool(probe.call("next_zone_preview").get("active",true)),
+    var overtime: Dictionary=probe.call("next_zone_preview")
+    check(not bool(overtime.get("active",true)),
         "final overtime incorrectly displays an invented fifth ring")
     probe.free()
 
