@@ -21,6 +21,7 @@ const GUNFIRE_HEARING_RANGE: float=42.0
 const GUNFIRE_PING_SECONDS: float=3.0
 const GUNFIRE_MERGE_DISTANCE: float=6.0
 const MAX_GUNFIRE_PINGS: int=8
+const MAP_DISC_SIDES: int=64
 var _battle_mode: bool=false
 var _gunfire_pings: Array[Dictionary]=[]
 
@@ -137,6 +138,36 @@ func ring_coverage() -> Dictionary:
             world_range if _next_zone_enabled else 0.0)}
 
 
+
+## Exact world-to-texture pixel projection shared by camera-up radar and
+## rotating view. The source is Aurora's physical heightfield, never a
+## screenshot or a manually moved second map.
+func _terrain_pixel(world: Vector2,texture_size: Vector2) -> Vector2:
+    var half_extent: float=TERRAIN_SCALE.HALF_EXTENT
+    return (world+Vector2.ONE*half_extent)*texture_size/(half_extent*2.0)
+
+
+func _draw_terrain_disc(center: Vector2,screen_radius: float,
+        world_range: float,yaw: float) -> void:
+    if map_texture==null or not is_instance_valid(player) or screen_radius<1.0:
+        return
+    var world: Vector2=Vector2(player.global_position.x,player.global_position.z)
+    var texture_size: Vector2=map_texture.get_size()
+    var points:=PackedVector2Array()
+    var uvs:=PackedVector2Array()
+    # Draw one convex 64-sided disc instead of a square texture under a
+    # circular bezel. Pixel UVs preserve the same exact projection used
+    # for zone rings and world markers; no extra Viewport or per-frame image.
+    for i in range(MAP_DISC_SIDES):
+        var radial: Vector2=Vector2.from_angle(
+            TAU*float(i)/float(MAP_DISC_SIDES))*screen_radius
+        points.append(center+radial)
+        var terrain_at: Vector2=world+radial.rotated(yaw)*(
+            world_range/screen_radius)
+        uvs.append(_terrain_pixel(terrain_at,texture_size))
+    draw_polygon(points,PackedColorArray([Color(1,1,1,.85)]),uvs,map_texture)
+
+
 func _process(delta: float) -> void:
     # Fixed upper bound: even all 49 rivals firing cannot grow the radar
     # history or repeatedly allocate hundreds of map markers.
@@ -164,21 +195,7 @@ func _draw() -> void:
         return
     var yaw: float=float(player.get("_yaw")) if rotate_with_camera else 0.0
     var world_range: float=_world_range()
-    if map_texture!=null:
-        # No hand-painted or copied third-party radar: sample the same live
-        # physical island texture that supplies Aurora's full-screen map.
-        var world: Vector2=Vector2(player.global_position.x,player.global_position.z)
-        var terrain_size: float=map_texture.get_width()
-        var half_extent: float=TERRAIN_SCALE.HALF_EXTENT
-        var src_center: Vector2=(world+Vector2.ONE*half_extent)*(
-            terrain_size/(half_extent*2.0))
-        var src_size: float=world_range*2.0*terrain_size/(half_extent*2.0)
-        draw_set_transform(center,-yaw,Vector2.ONE)
-        draw_texture_rect_region(map_texture,
-            Rect2(-Vector2.ONE*radius,Vector2.ONE*radius*2.0),
-            Rect2(src_center-Vector2.ONE*src_size*.5,
-                Vector2.ONE*src_size),Color(1,1,1,.85))
-        draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+    _draw_terrain_disc(center,radius,world_range,yaw)
     draw_arc(center,radius,0,TAU,52,Color(.41,.89,.95,.86),1.9,true)
     draw_arc(center,radius*.5,0,TAU,52,Color(.75,.91,.92,.27),1.0,true)
     draw_line(center+Vector2(-radius,0),center+Vector2(radius,0),Color(.28,.50,.55,.32),1.0)
