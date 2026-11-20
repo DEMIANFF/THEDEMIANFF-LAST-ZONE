@@ -389,6 +389,31 @@ func _draw_landmark(at: Vector2,title: String,boxes: Array[Rect2],
         return
 
 
+
+## A tactical ring can be larger than the map pane or move off its edges.
+## Clip its actual world-space circle to the map rectangle, never drawing
+## cyan/gold storm arcs over the live match or action buttons beside the pane.
+func _draw_clipped_zone_outline(world_center: Vector2,world_radius: float,
+        rect: Rect2,tint: Color,line_width: float) -> void:
+    if not world_center.is_finite() or not is_finite(world_radius) or world_radius<=0.0:
+        return
+    var pixel_radius: float=world_radius/_meters_per_pixel(rect)
+    var origin: Vector2=project(world_center)
+    var segments: int=clampi(ceili(pixel_radius*.75),96,256)
+    var ring:=PackedVector2Array()
+    for step in range(segments+1):
+        var angle: float=TAU*float(step)/float(segments)
+        ring.append(origin+Vector2.from_angle(angle)*pixel_radius)
+    var inset: Rect2=rect.grow(-2.0)
+    var viewport_polygon:=PackedVector2Array([
+        inset.position,Vector2(inset.end.x,inset.position.y),
+        inset.end,Vector2(inset.position.x,inset.end.y)])
+    for clipped in Geometry2D.intersect_polyline_with_polygon(
+            ring,viewport_polygon):
+        if clipped.size()>=2:
+            draw_polyline(clipped,tint,line_width,true)
+
+
 func _draw() -> void:
     # See-through overlay: player can still see the live match behind it.
     draw_rect(Rect2(Vector2.ZERO,size),Color(.012,.033,.067,.60))
@@ -443,10 +468,18 @@ func _draw() -> void:
             draw_string(font,name_rect.position+Vector2(6,14),"AWM",
                 HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(1,.95,.75))
     if is_instance_valid(director):
-        # Actual live zone center moves through the BR phases.
-        var center: Vector2=director.get("zone_center") as Vector2
-        var rad: float=float(director.get("radius"))/_meters_per_pixel(rect)
-        draw_arc(project(center),rad,0,TAU,120,Color(.35,.95,1.0,.92),3.0,true)
+        # Both overlays track the same zone director driving physical damage.
+        # Gold is the NEXT destination; cyan is the current contracting ring.
+        if str(director.get("mode"))=="sector_battle" and not bool(
+                director.get("match_ended")):
+            var current_center: Vector2=director.get("zone_center") as Vector2
+            var current_radius: float=float(director.get("radius"))
+            _draw_clipped_zone_outline(current_center,current_radius,rect,
+                Color(.35,.95,1.0,.97),3.0)
+            var preview: Dictionary=director.call("next_zone_preview")
+            if bool(preview.get("active",false)):
+                _draw_clipped_zone_outline(preview["center"],
+                    float(preview["radius"]),rect,Color(1.0,.78,.32,.87),2.0)
         var flight: Node3D=director.get("_flight") as Node3D
         if flight!=null and str(flight.get("phase"))=="aircraft":
             var start:=project(Vector2(0,FLIGHT.ROUTE_START_Z))
