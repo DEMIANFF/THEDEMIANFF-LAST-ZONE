@@ -30,6 +30,10 @@ func _verify() -> void:
     # authoritative starting radius is larger than its old 130 m viewport.
     radar.call("set_zone",SECTOR.CENTER,SECTOR.INITIAL_RADIUS)
     radar.call("set_next_zone",Vector2(12.0,-6.0),185.0)
+    var zone_label: Label=radar.get("_zone_label") as Label
+    check(zone_label!=null and zone_label.text.contains("245") and
+        zone_label.text.contains("185"),
+        "minimap does not distinguish actual current/planned zone radii")
     var coverage: Dictionary=radar.call("ring_coverage")
     check(float(coverage["current"])<=0.915 and
         float(coverage["next"])<=0.915,
@@ -49,8 +53,9 @@ func _verify() -> void:
         corner.x<mid.x and corner.y<mid.y,
         "disc UV mapping does not follow the world-space heightfield")
     radar.call("clear_next_zone")
-    check(not bool(radar.get("_next_zone_enabled")),
-        "future ring persists after clearing the planned phase")
+    check(not bool(radar.get("_next_zone_enabled")) and
+        zone_label!=null and not zone_label.text.contains("PRÓX"),
+        "future ring or its label persists after clearing the planned phase")
     radar.call("set_battle_mode",false)
     check(not bool(radar.get("_zone_enabled")) and
         not bool(radar.get("_next_zone_enabled")),
