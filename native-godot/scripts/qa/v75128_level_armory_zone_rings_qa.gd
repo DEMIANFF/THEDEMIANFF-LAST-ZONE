@@ -180,6 +180,27 @@ func _verify() -> void:
         check(model!=null,"real GLB missing in slot "+str(slot))
         if model==null:
             continue
+        if slot==CATALOG.SCAR:
+            # The source has two original receiver/polymer geometry surfaces
+            # (~9.4k vertices), though their Blender object names say "mag".
+            # Verify actual geometry rather than assuming an incomplete GLB
+            # merely from those legacy material-group names.
+            var scar_surfaces: int=0
+            var scar_vertices: int=0
+            var scar_length: float=0.0
+            for node in model.find_children("*","MeshInstance3D",true,false):
+                var part: MeshInstance3D=node as MeshInstance3D
+                if part.mesh==null:
+                    continue
+                var bounds: Vector3=part.get_aabb().size
+                scar_length=maxf(scar_length,
+                    maxf(bounds.x,maxf(bounds.y,bounds.z)))
+                for surface in range(part.mesh.get_surface_count()):
+                    scar_surfaces+=1
+                    scar_vertices+=part.mesh.surface_get_array_len(surface)
+            check(scar_surfaces>=2 and scar_vertices>=4000 and
+                scar_length>.65,
+                "SCAR original receiver/polymer model lost genuine rifle geometry")
         var axis: Vector3=model.get_meta("armory_long_axis",Vector3.ZERO)
         var source_up: Vector3=model.get_meta("armory_up_axis",Vector3.ZERO)
         check(axis.length_squared()>.5 and source_up.length_squared()>.5,
