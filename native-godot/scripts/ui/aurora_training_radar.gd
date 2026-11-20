@@ -16,6 +16,7 @@ var _next_zone_radius: float=90.0
 var rotate_with_camera: bool=true
 # Reuse the actual terrain-derived cartography of the full tactical map.
 var map_texture: Texture2D
+var _zone_label: Label
 var _waypoint: Vector2=Vector2(INF,INF)
 const GUNFIRE_HEARING_RANGE: float=42.0
 const GUNFIRE_PING_SECONDS: float=3.0
@@ -33,12 +34,13 @@ func _ready() -> void:
     # cover adjacent HUD controls. Clip ALL map content to its actual hitbox.
     clip_contents=true
     var heading:=Label.new()
-    heading.text="AURORA · MAPA TÁCTICO"
+    heading.text="PUERTO AURORA"
     heading.position=Vector2(9,3)
     heading.add_theme_font_size_override("font_size",10)
     heading.add_theme_color_override("font_color",Color(.79,.95,.96))
     heading.mouse_filter=Control.MOUSE_FILTER_IGNORE
     add_child(heading)
+    _zone_label=heading
     queue_redraw()
 
 
@@ -56,6 +58,7 @@ func set_battle_mode(enabled: bool) -> void:
         # match's last circle or its obsolete future-circle marker.
         _zone_enabled=false
         _next_zone_enabled=false
+    _refresh_zone_label()
     queue_redraw()
 
 
@@ -97,6 +100,7 @@ func set_zone(center: Vector2,radius: float) -> void:
     _zone_enabled=true
     _zone_world_center=center
     _zone_radius=maxf(.35,radius)
+    _refresh_zone_label()
     queue_redraw()
 
 
@@ -104,12 +108,27 @@ func set_next_zone(center: Vector2,radius: float) -> void:
     _next_zone_enabled=true
     _next_zone_center=center
     _next_zone_radius=maxf(.35,radius)
+    _refresh_zone_label()
     queue_redraw()
 
 
 func clear_next_zone() -> void:
     _next_zone_enabled=false
+    _refresh_zone_label()
     queue_redraw()
+
+
+
+func _refresh_zone_label() -> void:
+    if not is_instance_valid(_zone_label):
+        return
+    var caption: String="PUERTO AURORA"
+    if _zone_enabled:
+        caption="ZONA %d m"%roundi(_zone_radius)
+        if _next_zone_enabled:
+            caption+=" · PRÓX %d m"%roundi(_next_zone_radius)
+    if _zone_label.text!=caption:
+        _zone_label.text=caption
 
 
 ## A fixed 130 m radar made the 245 m opening circle disappear. Fit both
