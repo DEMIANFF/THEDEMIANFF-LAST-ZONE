@@ -167,6 +167,14 @@ func _verify() -> void:
             "showroom did not load weapon slot "+str(slot))
         if pivot==null or camera==null:
             continue
+        # Catch the separate placement regression: a level rifle can still
+        # sit above or outside the actual portrait frame at phone resolution.
+        var projected_center: Vector2=camera.unproject_position(
+            pivot.global_position)
+        var portrait_size: Vector2=Vector2(camera.get_viewport().size)
+        check(projected_center.distance_to(portrait_size*.5)<
+            portrait_size.y*.24,
+            "original weapon is misplaced/off-centre in lobby: "+str(slot))
         var model: Node3D=pivot.get_node_or_null(
             "SelectedOriginalWeaponGLB") as Node3D
         check(model!=null,"real GLB missing in slot "+str(slot))
