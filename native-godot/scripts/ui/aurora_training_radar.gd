@@ -50,6 +50,11 @@ func set_sources(player_character: CharacterBody3D, enemies: Array[CharacterBody
 func set_battle_mode(enabled: bool) -> void:
     _battle_mode=enabled
     clear_gunfire()
+    if not enabled:
+        # Training and a newly entered lobby must not inherit the previous
+        # match's last circle or its obsolete future-circle marker.
+        _zone_enabled=false
+        _next_zone_enabled=false
     queue_redraw()
 
 
@@ -101,6 +106,37 @@ func set_next_zone(center: Vector2,radius: float) -> void:
     queue_redraw()
 
 
+func clear_next_zone() -> void:
+    _next_zone_enabled=false
+    queue_redraw()
+
+
+## A fixed 130 m radar made the 245 m opening circle disappear. Fit both
+## real rings around the player (including moving centres), with a 10% margin.
+## No fabricated zone position or independent hazard simulation.
+func _world_range() -> float:
+    if not _zone_enabled or not is_instance_valid(player):
+        return 60.0
+    var at: Vector2=Vector2(player.global_position.x,player.global_position.z)
+    var farthest: float=_zone_radius+at.distance_to(_zone_world_center)
+    if _next_zone_enabled:
+        farthest=maxf(farthest,_next_zone_radius+
+            at.distance_to(_next_zone_center))
+    return maxf(60.0,farthest*1.10)
+
+
+func ring_coverage() -> Dictionary:
+    # Diagnostics: values under 1 fit entirely inside the circular radar.
+    var world_range: float=_world_range()
+    if not _zone_enabled or not is_instance_valid(player):
+        return {"current":0.0,"next":0.0}
+    var at: Vector2=Vector2(player.global_position.x,player.global_position.z)
+    return {"current":(_zone_radius+at.distance_to(
+        _zone_world_center))/world_range,
+        "next":((_next_zone_radius+at.distance_to(_next_zone_center))/
+            world_range if _next_zone_enabled else 0.0)}
+
+
 func _process(delta: float) -> void:
     # Fixed upper bound: even all 49 rivals firing cannot grow the radar
     # history or repeatedly allocate hundreds of map markers.
@@ -127,7 +163,7 @@ func _draw() -> void:
         draw_arc(center,radius,0,TAU,52,Color(.34,.67,.72,.62),1.2,true)
         return
     var yaw: float=float(player.get("_yaw")) if rotate_with_camera else 0.0
-    var world_range: float=130.0 if _zone_enabled else 60.0
+    var world_range: float=_world_range()
     if map_texture!=null:
         # No hand-painted or copied third-party radar: sample the same live
         # physical island texture that supplies Aurora's full-screen map.
