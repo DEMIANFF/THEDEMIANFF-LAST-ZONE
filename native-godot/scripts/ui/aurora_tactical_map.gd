@@ -40,6 +40,7 @@ var _drag_touch: int=-1
 var _last_pointer: Vector2
 var _touches: Dictionary={}
 var _touch_starts: Dictionary={}
+var _touch_gesture_multitouch: bool=false
 var _mouse_press_origin: Vector2=Vector2.ZERO
 var _redraw_seconds: float=0.0
 var _follow_player: bool=true
@@ -193,20 +194,33 @@ func _gui_input(event: InputEvent) -> void:
     var rect: Rect2=_map_rect()
     if event is InputEventScreenTouch:
         var touch:=event as InputEventScreenTouch
-        if touch.pressed and rect.has_point(touch.position):
+        if touch.pressed and not touch.canceled and rect.has_point(touch.position):
+            if _touches.is_empty():
+                _touch_gesture_multitouch=false
             _touches[touch.index]=touch.position
             _touch_starts[touch.index]=touch.position
+            if _touches.size()>1:
+                # Once a pinch has begun, neither finger may place a
+                # waypoint merely by being lifted inside the map pane.
+                _touch_gesture_multitouch=true
             _drag_touch=touch.index
             _last_pointer=touch.position
             accept_event()
-        elif not touch.pressed and _touches.has(touch.index):
+        elif (not touch.pressed or touch.canceled) and _touches.has(touch.index):
             var start: Vector2=_touch_starts.get(touch.index,touch.position)
+            var was_active: bool=_drag_touch==touch.index
+            var can_place: bool=(was_active and not _touch_gesture_multitouch
+                and _touches.size()==1 and not touch.canceled
+                and rect.has_point(touch.position)
+                and touch.position.distance_to(start)<12.0)
             _touches.erase(touch.index)
             _touch_starts.erase(touch.index)
-            if _drag_touch==touch.index:
+            if was_active:
                 _drag_touch=-1
-                if rect.has_point(touch.position) and touch.position.distance_to(start)<12.0:
-                    mark(unproject(touch.position))
+            if _touches.is_empty():
+                _touch_gesture_multitouch=false
+            if can_place:
+                mark(unproject(touch.position))
             accept_event()
     elif event is InputEventScreenDrag:
         var drag:=event as InputEventScreenDrag
@@ -235,7 +249,16 @@ func _gui_input(event: InputEvent) -> void:
             accept_event()
     elif event is InputEventMouseButton:
         var mouse:=event as InputEventMouseButton
-        if rect.has_point(mouse.position):
+        # Release anywhere on the fullscreen tactical overlay, otherwise
+        # a drag ending beside the map can keep panning after mouse-up.
+        if mouse.button_index==MOUSE_BUTTON_LEFT and not mouse.pressed:
+            if _drag_touch==0:
+                if (rect.has_point(mouse.position) and
+                        mouse.position.distance_to(_mouse_press_origin)<12.0):
+                    mark(unproject(mouse.position))
+                _drag_touch=-1
+                accept_event()
+        elif rect.has_point(mouse.position):
             if mouse.button_index==MOUSE_BUTTON_WHEEL_UP and mouse.pressed:
                 _zoom_at(1.25)
                 accept_event()
@@ -246,11 +269,6 @@ func _gui_input(event: InputEvent) -> void:
                 _drag_touch=0
                 _mouse_press_origin=mouse.position
                 _last_pointer=mouse.position
-                accept_event()
-            elif mouse.button_index==MOUSE_BUTTON_LEFT and not mouse.pressed:
-                if mouse.position.distance_to(_mouse_press_origin)<12.0:
-                    mark(unproject(mouse.position))
-                _drag_touch=-1
                 accept_event()
     elif event is InputEventMouseMotion and _drag_touch==0:
         var motion:=event as InputEventMouseMotion
