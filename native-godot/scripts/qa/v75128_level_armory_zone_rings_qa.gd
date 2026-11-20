@@ -51,8 +51,26 @@ func _verify() -> void:
         "off-centre shrinking zone is cropped or scales against stale 130m")
     radar.call("set_zone",SECTOR.CENTER,SECTOR.INITIAL_RADIUS)
     radar.call("set_next_zone",Vector2(12.0,-6.0),185.0)
-    check(tactical.has_method("_draw_clipped_zone_outline"),
-        "tactical map lacks clipped live/future rings")
+    check(tactical.has_method("_draw_clipped_zone_outline") and
+        tactical.has_method("_clipped_map_segments"),
+        "tactical overlay lacks geometry clipping for zone, roads or routes")
+    var map_rect: Rect2=tactical.call("_map_rect")
+    if map_rect.size.x>10.0 and map_rect.size.y>10.0:
+        # Route crossing two edges must never draw into the live match.
+        var crossing:=PackedVector2Array([
+            map_rect.get_center()+Vector2(-map_rect.size.x,0),
+            map_rect.get_center()+Vector2(map_rect.size.x,0)])
+        var clipped: Array=tactical.call("_clipped_map_segments",
+            crossing,map_rect)
+        check(clipped.size()==1 and
+            (clipped[0] as PackedVector2Array).size()>=2,
+            "crossing road was not clipped to the tactical pane")
+        for section in clipped:
+            for vertex in section:
+                check(map_rect.grow(.1).has_point(vertex),
+                    "road/route segment still leaks outside the map pane")
+    else:
+        check(false,"tactical map has zero-sized mobile viewport")
     check(radar.has_method("_draw_terrain_disc"),
         "terrain cartography still uses a square instead of a circular mask")
     # World-space centre and boundaries must produce identical image UVs
