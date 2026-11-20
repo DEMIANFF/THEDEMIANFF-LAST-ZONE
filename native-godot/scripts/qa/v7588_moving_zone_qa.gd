@@ -93,6 +93,9 @@ func _verify() -> void:
     check(absf(float(radar.get("_zone_radius"))-DIRECTOR.OVERTIME_RADIUS)<.001
         and not bool(radar.get("_next_zone_enabled")),
         "minimap is not at the true 0.75m final radius or shows a fifth zone")
+    check(absf(float(radar.get("_next_zone_radius"))-
+            float(radar.get("_zone_radius")))<.001,
+        "hidden next-zone cache retained a previous 3m/12m phase")
     var zone_label: Label=radar.get("_zone_label") as Label
     check(zone_label!=null and zone_label.text.contains("0.75") and
         not zone_label.text.contains("PRÓX"),
