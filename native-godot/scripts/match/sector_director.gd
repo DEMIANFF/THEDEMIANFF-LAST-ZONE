@@ -142,6 +142,10 @@ func begin_aircraft_phase() -> void:
     mode="aircraft"
     match_ended=false
     hud.set_radar_battle_mode(true)
+    # A new flight must never inherit the 12 m final ring or planned target
+    # from the previous BR. The next centre is not selected until landing.
+    hud.set_sector_zone(CENTER,INITIAL_RADIUS)
+    hud.clear_next_sector_zone()
     hud.clear_match_result()
     hud.set_battle_button("DESPLIEGUE")
     hud.set_sector_state("AERONAVE / AURORA",int(combat.get("encounter_size")),INITIAL_RADIUS,0)
