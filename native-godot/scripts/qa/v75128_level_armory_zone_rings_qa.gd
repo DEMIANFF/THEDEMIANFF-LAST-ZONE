@@ -36,6 +36,18 @@ func _verify() -> void:
         "current/future 245m rings still spill outside minimap")
     check(tactical.has_method("_draw_clipped_zone_outline"),
         "tactical map lacks clipped live/future rings")
+    check(radar.has_method("_draw_terrain_disc"),
+        "terrain cartography still uses a square instead of a circular mask")
+    # World-space centre and boundaries must produce identical image UVs
+    # regardless of radar compass rotation or current shrinking phase.
+    var mid: Vector2=radar.call("_terrain_pixel",
+        Vector2.ZERO,Vector2(256,256))
+    var corner: Vector2=radar.call("_terrain_pixel",
+        Vector2(-SECTOR.INITIAL_RADIUS,-SECTOR.INITIAL_RADIUS),
+        Vector2(256,256))
+    check(mid.distance_to(Vector2(128,128))<.001 and
+        corner.x<mid.x and corner.y<mid.y,
+        "disc UV mapping does not follow the world-space heightfield")
     radar.call("clear_next_zone")
     check(not bool(radar.get("_next_zone_enabled")),
         "future ring persists after clearing the planned phase")
