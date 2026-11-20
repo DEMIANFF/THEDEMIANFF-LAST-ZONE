@@ -59,14 +59,16 @@ func _capture() -> void:
     hud.set_next_sector_zone(centres[1],SECTOR.PHASE_RADII[1])
     for frame in range(8):
         await process_frame
-    if not await _save("minimap-zones",tag):
+    var minimap_saved: bool=await _save("minimap-zones",tag)
+    if not minimap_saved:
         quit(3)
         return
     map.visible=true
     map.queue_redraw()
     for frame in range(8):
         await process_frame
-    if not await _save("tactical-zones",tag):
+    var tactical_saved: bool=await _save("tactical-zones",tag)
+    if not tactical_saved:
         quit(4)
         return
     var coverage: Dictionary=radar.call("ring_coverage")
