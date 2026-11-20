@@ -193,6 +193,18 @@ func _verify() -> void:
     await boot.wait_for_startup()
     boot._show_lobby()
     boot._select_tab("ARMAS")
+    # Light the imported receiver and scope meshes without brightening the
+    # whole 3D airfield or adding permanent Android render cost to gameplay.
+    var weapon_fill: OmniLight3D=boot._armory_fill_light
+    check(weapon_fill!=null and weapon_fill.visible and
+        weapon_fill.light_energy>0.0 and not weapon_fill.shadow_enabled,
+        "armory-only weapon fill missing or disabled")
+    boot._select_tab("JUGAR")
+    check(weapon_fill!=null and not weapon_fill.visible,
+        "armory-only fill remains visible in the main player lobby")
+    boot._select_tab("ARMAS")
+    check(weapon_fill!=null and weapon_fill.visible,
+        "armory-only fill did not restore after changing tabs")
     var camera: Camera3D=boot._preview_container.get_node_or_null(
         "PreviewViewport/AuroraCharacterStage/LobbyPortraitCamera") as Camera3D
     check(camera!=null,"lobby showroom camera missing")
