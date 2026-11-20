@@ -13,6 +13,7 @@ const OPTIONAL: Array[String]=[
 var player: CharacterBody3D
 var combat: Node3D
 var terrain: StaticBody3D
+var preferred_weapon_slot: int=-1
 
 
 func _ready() -> void:
@@ -21,6 +22,13 @@ func _ready() -> void:
         var slot: int=WEAPONS.pickup_slot(kind)
         if slot>=0 and ResourceLoader.exists(str(WEAPONS.ENTRIES[slot]["asset"])):
             available.append(kind)
+    # The weapon selected in the lobby goes to the first physical pickup
+    # position. A missing optional model is never fabricated or granted.
+    if preferred_weapon_slot>=WEAPONS.SCAR and preferred_weapon_slot<WEAPONS.ENTRIES.size():
+        var preferred: String=str(WEAPONS.ENTRIES[preferred_weapon_slot].get("pickup",""))
+        if available.has(preferred):
+            available.erase(preferred)
+            available.push_front(preferred)
     for index in range(available.size()):
         var pickup: Area3D=LOOT.new()
         pickup.name="Training_"+available[index]

@@ -39,7 +39,7 @@ func _verify() -> void:
     var senses: Dictionary={}
     var routes: Dictionary={}
     for actor in combat._targets:
-        check(actor.sector_battle and actor.health==100.0 and
+        check(actor.sector_battle and actor.health==BOT.MAX_HEALTH and
             actor._foes.size()==49 and
             actor.get_node_or_null("OpponentCollider") is CollisionShape3D,
             "a living opponent lacks physics body, adversaries or collision")

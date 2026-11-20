@@ -1,0 +1,170 @@
+extends SceneTree
+## Regression for eight real coastal villas: two closed convex roof slopes
+## per building, with visual roofing preserved and no triangle mesh physics.
+var failed: bool=false
+
+func _initialize() -> void:
+    call_deferred("_verify")
+
+func check(ok: bool, reason: String) -> void:
+    if not ok:
+        failed=true
+        push_error("V75124_ROOF "+reason)
+
+func _verify() -> void:
+    var game: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
+    root.add_child(game)
+    var quarter: Node3D=game.get_node("PuertoAuroraCoastalQuarter")
+    var player: CharacterBody3D=game.get_node("Operator")
+    var combat: Node3D=game.get_node("CombatRange")
+    for enemy in combat._targets:
+        enemy.set_physics_process(false)
+    player.set_physics_process(false)
+    await physics_frame
+    check(absf(player.floor_snap_length-0.28)<0.001,
+        "operator lost ground adhesion across split roof slopes")
+    check(absf(player.safe_margin-0.015)<0.001,
+        "operator lost safe capsule contact margin")
+    var roof_count: int=0
+    for i in range(quarter.HOUSE_COUNT):
+        var house: Node3D=quarter.get_node("AuroraCoastalVilla"+str(i))
+        var roof: StaticBody3D=house.get_node("WalkableRoofCollision")
+        var visual: MeshInstance3D=house.get_node("TerracottaGableRoof")
+        check(visual.mesh!=null,"villa "+str(i)+" lost its roof visual")
+        var tiles: MultiMeshInstance3D=house.get_node("InstancedCurvedTerracottaTiles")
+        check(tiles.multimesh!=null and tiles.multimesh.instance_count>0,
+            "villa "+str(i)+" lost its instanced terracotta tiles")
+        check(tiles.visibility_range_end>=140.0 and tiles.visibility_range_end<=220.0,
+            "villa "+str(i)+" must cull distant decorative tiles without hiding roof")
+        if tiles.multimesh!=null and tiles.multimesh.mesh is ArrayMesh:
+            var tile_mesh: ArrayMesh=tiles.multimesh.mesh
+            check(tile_mesh.surface_get_array_len(0)==36,
+                "villa "+str(i)+" tile mesh exceeded six arc segments")
+        var gable: MeshInstance3D=house.get_node("SealedVillaGableWalls")
+        check(gable.mesh!=null and gable.mesh.get_surface_count()==1,
+            "villa "+str(i)+" has an open front/rear gable")
+        if gable.mesh is ArrayMesh:
+            var gable_mesh: ArrayMesh=gable.mesh
+            check(gable_mesh.surface_get_array_len(0)==12,
+                "villa "+str(i)+" is missing a front or rear gable face")
+        var gable_body: StaticBody3D=house.get_node("SealedVillaGableCollision")
+        check(gable_body.get_child_count()==2,
+            "villa "+str(i)+" must have two solid gable walls")
+        for gable_shape in gable_body.get_children():
+            check(gable_shape is CollisionShape3D and
+                gable_shape.shape is ConvexPolygonShape3D,
+                "villa "+str(i)+" gable is missing convex collision")
+            if gable_shape is CollisionShape3D and gable_shape.shape is ConvexPolygonShape3D:
+                check(gable_shape.shape.points.size()==6,
+                    "villa "+str(i)+" gable must be a closed triangular prism")
+        check(roof.get_child_count()==2,"villa "+str(i)+" must have two roof slabs")
+        for slab in roof.get_children():
+            check(slab is CollisionShape3D and slab.shape is ConvexPolygonShape3D,
+                "villa "+str(i)+" has a non-convex roof collider")
+            if slab is CollisionShape3D and slab.shape is ConvexPolygonShape3D:
+                check(slab.shape.points.size()==8,"roof slab lacks closed corners")
+                roof_count+=1
+    # Raycast from above the real roof to confirm the physics server
+    # exposes both slopes as landing surfaces, not merely shape resources.
+    var space:=game.get_world_3d().direct_space_state
+    var roof_hits: int=0
+    for i in range(quarter.HOUSE_COUNT):
+        var house: Node3D=quarter.get_node("AuroraCoastalVilla"+str(i))
+        var roof: StaticBody3D=house.get_node("WalkableRoofCollision")
+        for local_x in [-1.0,1.0]:
+            var start: Vector3=house.to_global(Vector3(local_x,12.0,0.0))
+            var stop: Vector3=house.to_global(Vector3(local_x,5.9,0.0))
+            var ray:=PhysicsRayQueryParameters3D.create(start,stop)
+            ray.collision_mask=3
+            var hit: Dictionary=space.intersect_ray(ray)
+            check(not hit.is_empty(),"villa "+str(i)+" roof has no physical landing hit")
+            if not hit.is_empty():
+                check(hit.get("collider")==roof,
+                    "villa "+str(i)+" landing ray hit another body")
+                check((hit["normal"] as Vector3).y>.5,
+                    "villa "+str(i)+" roof has a non-walkable surface normal")
+                if hit.get("collider")==roof and (hit["normal"] as Vector3).y>.5:
+                    roof_hits+=1
+    # Horizontal rays across both upper gables exercise the physics server
+    # and catch the previous visual-only facade closure regression.
+    var gable_hits: int=0
+    for i in range(quarter.HOUSE_COUNT):
+        var house: Node3D=quarter.get_node("AuroraCoastalVilla"+str(i))
+        var gable_body: StaticBody3D=house.get_node("SealedVillaGableCollision")
+        for z_side in [-1.0,1.0]:
+            var from: Vector3=house.to_global(Vector3(0,6.3,z_side*12.0))
+            var to: Vector3=house.to_global(Vector3(0,6.3,0))
+            var gable_ray:=PhysicsRayQueryParameters3D.create(from,to)
+            gable_ray.collision_mask=3
+            var gable_hit: Dictionary=space.intersect_ray(gable_ray)
+            check(not gable_hit.is_empty(),
+                "villa "+str(i)+" gable has no physical wall hit")
+            if not gable_hit.is_empty():
+                check(gable_hit.get("collider")==gable_body,
+                    "villa "+str(i)+" gable ray hit another body")
+                if gable_hit.get("collider")==gable_body:
+                    gable_hits+=1
+    check(gable_hits==quarter.HOUSE_COUNT*2,"gable wall rays failed")
+    check(roof_hits==quarter.HOUSE_COUNT*2,"roof landing rays failed")
+    check(roof_count==quarter.HOUSE_COUNT*2,"missing walkable convex roof surfaces")
+    # Exercise the actual 1.82m playable capsule, not only raycast surfaces.
+    # All eight homes and both sides of their ridges must accept
+    # a downward body sweep and outward movement without freezing the actor.
+    var actual_landings: int=0
+    for i in range(quarter.HOUSE_COUNT):
+        var house: Node3D=quarter.get_node("AuroraCoastalVilla"+str(i))
+        var roof: StaticBody3D=house.get_node("WalkableRoofCollision")
+        for side in [-1.0,1.0]:
+            player.global_position=house.to_global(Vector3(side,12.0,0.0))
+            player.velocity=Vector3.ZERO
+            await physics_frame
+            var collision: KinematicCollision3D=player.move_and_collide(
+                Vector3.DOWN*9.0)
+            check(collision!=null,
+                "villa "+str(i)+" roof did not stop the falling operator")
+            if collision==null:
+                continue
+            check(collision.get_collider()==roof,
+                "villa "+str(i)+" operator landed on an unexpected body")
+            check(collision.get_normal().y>.5,
+                "villa "+str(i)+" operator hit a non-walkable roof face")
+            if collision.get_collider()!=roof:
+                continue
+            var before_move: Vector3=player.global_position
+            player.velocity=house.global_basis*Vector3(side*2.5,-1.0,0.0)
+            player.move_and_slide()
+            check(player.global_position.distance_to(before_move)>.015,
+                "villa "+str(i)+" operator capsule stuck on roof slope")
+            actual_landings+=1
+    check(actual_landings==quarter.HOUSE_COUNT*2,
+        "operator roof collision sweeps failed")
+    # A real parachute descent onto the roof must enter ground state once,
+    # play AuroraLand and trigger a single landing audio signal. This tests
+    # CharacterBody3D.move_and_slide, not an isolated state setter.
+    var landing_events: Array[int]=[0]
+    var impact_events: Array[int]=[0]
+    player.landed_from_airdrop.connect(func(): landing_events[0]+=1)
+    player.grounded_impact.connect(func(_stone: bool): impact_events[0]+=1)
+    var last_house: Node3D=quarter.get_node(
+        "AuroraCoastalVilla"+str(quarter.HOUSE_COUNT-1))
+    player.global_position=last_house.to_global(Vector3(1.0,9.5,0.0))
+    player.velocity=Vector3(0,-5.6,0)
+    player.air_mode="parachute"
+    player._landing_seconds=0.0
+    for tick in range(45):
+        if player.air_mode=="ground":
+            break
+        await physics_frame
+        player._air_step(1.0/30.0)
+    check(player.air_mode=="ground" and player.is_on_floor(),
+        "physical parachute descent did not land on the coastal roof")
+    check(landing_events[0]==1 and impact_events[0]==1,
+        "parachute touchdown emitted duplicate or missing landing signals")
+    check(player._landing_seconds>0.0,
+        "roof landing did not schedule AuroraLand animation")
+    game.queue_free()
+    await process_frame
+    if not failed:
+        print("V75124_ROOF PASS villas=8 convex_slabs=16 capsule_sweeps=16",
+            " real_parachute_roof_touchdown=1 landing_audio_once=1")
+    quit(1 if failed else 0)

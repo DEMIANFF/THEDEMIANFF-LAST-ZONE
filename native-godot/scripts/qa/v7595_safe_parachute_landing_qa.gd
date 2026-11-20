@@ -1,4 +1,5 @@
 extends SceneTree
+const BOT=preload("res://scripts/ai/aurora_bot.gd")
 ## V75.95: no instant spawn-kill at Lila's actual parachute touchdown.
 ## Three distinct landing spots: 49 genuine damageable CharacterBody3D
 ## rivals remain on terrain, with real colliders and mutually separated.
@@ -72,7 +73,7 @@ func _verify() -> void:
             var at: Vector2=rival.spawn_coordinates
             check(at.distance_to(landing)>=COMBAT.PLAYER_LANDING_CLEARANCE-.001,
                 "real enemy body overlaps the landing player trial "+str(trial))
-            check(rival.health==100.0 and rival.sector_battle and
+            check(rival.health==BOT.MAX_HEALTH and rival.sector_battle and
                 rival.get_node_or_null("OpponentCollider") is CollisionShape3D,
                 "repositioned rival lost physical combat or collision")
             check(rival.global_position.distance_to(rival._anchor)<.001,

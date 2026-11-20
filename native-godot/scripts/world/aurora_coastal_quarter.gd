@@ -21,6 +21,7 @@ var interior_supply_spots: Array[Vector3]=[]
 var furnished_interiors: int=0
 
 var _plaster: StandardMaterial3D
+var _facade_palette: Array[StandardMaterial3D]=[]
 var _sandstone: StandardMaterial3D
 var _roof: StandardMaterial3D
 var _wood: StandardMaterial3D
@@ -115,6 +116,15 @@ func _build_materials() -> void:
     _plaster.normal_texture=_normal_from_height(whitewash,2.0)
     _plaster.normal_enabled=true
     _plaster.normal_scale=.40
+    # Four original limewash colors. All villas share the same four
+    # materials, and static mesh batching remains enabled.
+    _facade_palette.clear()
+    for shade in [
+            Color(.98,.96,.90),Color(.83,.90,.88),
+            Color(.91,.86,.79),Color(.86,.88,.94)]:
+        var facade_material:=_plaster.duplicate() as StandardMaterial3D
+        facade_material.albedo_color=shade
+        _facade_palette.append(facade_material)
     _sandstone.normal_texture=_normal_from_height(image,1.9)
     _sandstone.normal_enabled=true
     _sandstone.normal_scale=.55
@@ -230,18 +240,37 @@ func _roof_mesh(root: Node3D,w: float,d: float,ridge_height: float) -> void:
     var collider:=StaticBody3D.new()
     collider.name="WalkableRoofCollision"
     collider.collision_layer=3
-    var shape:=CollisionShape3D.new()
-    shape.shape=surface.create_trimesh_shape()
-    collider.add_child(shape)
+    # Two closed convex roof slabs replace a thin triangle-mesh collider.
+    # A single-sided trimesh can snag the operator at the ridge and eaves.
+    # The visual terracotta tiles remain decoration, never physics geometry.
+    for side in [-1.0,1.0]:
+        var half_width: float=w*.56
+        var half_depth: float=d*.55
+        var thickness: float=.22
+        var roof_points:=PackedVector3Array()
+        for z in [-half_depth,half_depth]:
+            for x in [0.0,half_width]:
+                var roof_x: float=side*x
+                var roof_y: float=mid-(x/half_width)*.95
+                roof_points.append(Vector3(roof_x,roof_y,z))
+                roof_points.append(Vector3(roof_x,roof_y-thickness,z))
+        var slab:=ConvexPolygonShape3D.new()
+        slab.points=roof_points
+        var shape:=CollisionShape3D.new()
+        shape.name="RoofSlopeSolid"+("Left" if side<0.0 else "Right")
+        shape.shape=slab
+        collider.add_child(shape)
     root.add_child(collider)
     collision_bodies+=1
     # Actual curved half-cylinder barrel tiles, GPU-instanced; not box roofs.
     var tube:=SurfaceTool.new()
     tube.begin(Mesh.PRIMITIVE_TRIANGLES)
     var tile_len: float=.52
-    for t in range(9):
-        var first: float=PI*float(t)/9.0
-        var next: float=PI*float(t+1)/9.0
+    # Six arc segments preserve the curved silhouette while removing
+    # one third of tile triangles from the 6,692-instance roof batch.
+    for t in range(6):
+        var first: float=PI*float(t)/6.0
+        var next: float=PI*float(t+1)/6.0
         var v0:=Vector3(cos(first)*.19,sin(first)*.13,-tile_len*.5)
         var v1:=Vector3(cos(next)*.19,sin(next)*.13,-tile_len*.5)
         var v2:=Vector3(cos(first)*.19,sin(first)*.13,tile_len*.5)
@@ -273,6 +302,10 @@ func _roof_mesh(root: Node3D,w: float,d: float,ridge_height: float) -> void:
     tiles.name="InstancedCurvedTerracottaTiles"
     tiles.multimesh=collection
     tiles.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    # Distance LOD for Mobile/Vulkan: the solid painted roof remains visible,
+    # but thousands of decorative barrel tiles need not reach the GPU from afar.
+    # Physics lives in WalkableRoofCollision and is unaffected by visual culling.
+    tiles.visibility_range_end=170.0
     root.add_child(tiles)
     tile_instances+=amount
 
@@ -360,6 +393,7 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
     add_child(building)
     var height: float=5.85
     var door_width: float=2.65
+    var facade: Material=_facade_palette[seed % _facade_palette.size()]
     var front: float=d*.5
     var remainder: float=(w-door_width)*.5
     # The shallow, buried masonry edge visually grounds the façade while
@@ -369,31 +403,84 @@ func _villa(at: Vector2,w: float,d: float,rotation: float,seed: int) -> void:
     _panel(building,"WalkableInteriorFloor",Vector3(0,.12,0),
         Vector3(w-.30,.24,d-.30),_paving)
     _panel(building,"LeftDoorWall",Vector3(-(w+door_width)*.25,height*.5,front),
-        Vector3(remainder,height,.38),_plaster)
+        Vector3(remainder,height,.38),facade)
     _panel(building,"RightDoorWall",Vector3((w+door_width)*.25,height*.5,front),
-        Vector3(remainder,height,.38),_plaster)
+        Vector3(remainder,height,.38),facade)
     _panel(building,"DoorLintel",Vector3(0,(height+3.22)*.5,front),
-        Vector3(door_width,height-3.22,.38),_plaster)
+        Vector3(door_width,height-3.22,.38),facade)
     _door_frame(building,front+.20,door_width,2.8)
     _panel(building,"RearWall",Vector3(0,height*.5,-front),
-        Vector3(w,height,.39),_plaster)
+        Vector3(w,height,.39),facade)
     for side in [-1.0,1.0]:
         var x: float=side*w*.5
         _panel(building,"SideBase",Vector3(x,1.10,0),
-            Vector3(.40,2.20,d),_plaster)
+            Vector3(.40,2.20,d),facade)
         _panel(building,"SideTop",Vector3(x,(height+4.5)*.5,0),
-            Vector3(.40,height-4.5,d),_plaster)
+            Vector3(.40,height-4.5,d),facade)
         for zside in [-1.0,1.0]:
             _panel(building,"SideWindowPier",Vector3(x,3.35,zside*(d+2.1)*.25),
-                Vector3(.40,2.30,(d-2.1)*.5),_plaster)
+                Vector3(.40,2.30,(d-2.1)*.5),facade)
     _window_frame(building,Vector3(-w*.29,3.6,front+.22),1.4,1.45)
     _window_frame(building,Vector3(w*.29,3.6,front+.22),1.4,1.45)
     _furnish_interior(building,w,d,seed)
     _roof_mesh(building,w,d,height)
+    # Seal the triangular openings above front/rear masonry walls.
+    # The roof ridge is 0.95m higher than the wall top; a flat ceiling
+    # alone does not close the exterior gable visible from the street.
+    var gables:=SurfaceTool.new()
+    gables.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for z in [-d*.5,d*.5]:
+        var left:=Vector3(-w*.5,height,z)
+        var peak:=Vector3(0,height+.95,z)
+        var right:=Vector3(w*.5,height,z)
+        for point in [left,peak,right,right,peak,left]:
+            gables.add_vertex(point)
+    gables.generate_normals()
+    var gable_visual:=MeshInstance3D.new()
+    gable_visual.name="SealedVillaGableWalls"
+    gable_visual.mesh=gables.commit()
+    gable_visual.material_override=facade
+    building.add_child(gable_visual)
+    # Close the same gaps in physics as well as in rendering. Without
+    # solid gables a falling character can pass through the visible wall.
+    var gable_body:=StaticBody3D.new()
+    gable_body.name="SealedVillaGableCollision"
+    gable_body.collision_layer=3
+    for z_side in [-1.0,1.0]:
+        var end_z: float=z_side*d*.5
+        var solid_points:=PackedVector3Array()
+        for z_offset in [-.18,.18]:
+            solid_points.append(Vector3(-w*.5,height,end_z+z_offset))
+            solid_points.append(Vector3(w*.5,height,end_z+z_offset))
+            solid_points.append(Vector3(0,height+.95,end_z+z_offset))
+        var solid:=ConvexPolygonShape3D.new()
+        solid.points=solid_points
+        var solid_node:=CollisionShape3D.new()
+        solid_node.name="FrontGableSolid" if z_side>0.0 else "RearGableSolid"
+        solid_node.shape=solid
+        gable_body.add_child(solid_node)
+    building.add_child(gable_body)
     # Continuous interior ceiling: do not depend on winding/culling of
     # sloped roof triangles to close the room when the camera looks up.
     _panel(building,"SealedVillaCeiling",Vector3(0,height-.12,0),
         Vector3(w-.25,.24,d-.25),_wood,true)
+    # Batched visual-only architectural details: no added collision volumes.
+    for z_side in [-1.0,1.0]:
+        var wall_z: float=z_side*(front+.21)
+        _panel(building,"StoneEaveCornice",Vector3(0,height-.09,wall_z),
+            Vector3(w-.18,.20,.31),_sandstone,false)
+        for x_side in [-1.0,1.0]:
+            _panel(building,"CoastalCornerQuoin",Vector3(
+                x_side*(w*.5-.14),height*.52,wall_z),
+                Vector3(.27,height*.94,.20),_sandstone,false)
+    for window_side in [-1.0,1.0]:
+        var window_x: float=window_side*w*.29
+        _panel(building,"WindowRainLedge",Vector3(window_x,4.42,front+.34),
+            Vector3(1.85,.11,.45),_wood,false)
+        for shutter_side in [-1.0,1.0]:
+            _panel(building,"CoastalWoodShutter",Vector3(
+                window_x+shutter_side*.92,3.6,front+.32),
+                Vector3(.27,1.42,.10),_wood,false)
     _stair_ramp(building,front,door_width*.64,at)
     # Walkable terrace: physical railing and ground-level cover, balcony visual.
     # Ramp is the ONLY collision support across this threshold. A second

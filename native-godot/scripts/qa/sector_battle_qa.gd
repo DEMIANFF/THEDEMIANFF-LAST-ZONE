@@ -15,6 +15,7 @@ func _verify() -> void:
     var combat:=game.get_node("CombatRange") as Node3D
     var operator:=game.get_node("Operator") as CharacterBody3D
     var hud:=game.get_node("TrainingHUD") as CanvasLayer
+    var terrain:=game.get_node("AuroraTerrain") as StaticBody3D
     var save_path: String=ProjectSettings.globalize_path(SAVE_PATH)
     DirAccess.make_dir_recursive_absolute(save_path.get_base_dir())
     for suffix in ["",".bak",".tmp"]:
@@ -68,9 +69,22 @@ func _verify() -> void:
         return
     operator._training_immunity=0
     var health_before: float=operator.training_health
-    operator.global_position=Vector3(155.0,28.0,-24.0)
+    # Old x=155 was outside the original ring, but lies INSIDE the
+    # 245m ring required by the expanded island. Probe walkable eastern
+    # frontier ground, just beyond the ACTUAL current safe radius.
+    var frontier: Vector2=director.FRONTIER_LOOT_SITES[0]
+    var outward: Vector2=(frontier-director.zone_center).normalized()
+    var hazard_probe: Vector2=director.zone_center+outward*(director.radius+10.0)
+    var ground_y: float=terrain.height_at(hazard_probe.x,hazard_probe.y)
+    if ground_y<=terrain.sea_level+1.0:
+        push_error("Outer Aurora hazard probe is not on dry physical land: "+
+            str(hazard_probe)+" elevation="+str(ground_y))
+        quit(85)
+        return
+    operator.global_position=Vector3(hazard_probe.x,ground_y+.2,hazard_probe.y)
     if not director.is_outside_zone(operator.global_position):
-        push_error("Outer Aurora hazard geometry failed")
+        push_error("Outer Aurora hazard geometry failed: radius="+
+            str(director.radius)+" probe="+str(hazard_probe))
         quit(85)
         return
     director._check_hazard_damage()
@@ -117,7 +131,7 @@ func _verify() -> void:
         push_error("AI not configured for free-for-all opponents")
         quit(88)
         return
-    victim.take_training_damage(150.0,challenger)
+    victim.take_training_damage(victim.health+1.0,challenger)
     if combat.eliminations!=0:
         push_error("Bot or zone eliminations incorrectly counted as player kills")
         quit(98)
@@ -127,14 +141,14 @@ func _verify() -> void:
         quit(89)
         return
     var player_target: CharacterBody3D=combat._targets[2]
-    player_target.take_training_damage(180.0,operator)
+    player_target.take_training_damage(player_target.health+1.0,operator)
     if combat.eliminations!=1:
         push_error("Player kill was not credited correctly")
         quit(99)
         return
     for bot in combat._targets:
         if bot.health>0:
-            bot.take_training_damage(180.0)
+            bot.take_training_damage(bot.health+1.0)
     director._process(.015)
     if not director.match_ended or not director.mode=="sector_battle":
         push_error("Victory did not end the last-survivor round")

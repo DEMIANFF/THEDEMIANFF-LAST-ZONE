@@ -1,4 +1,5 @@
 extends CanvasLayer
+const PLAYER_HEALTH=preload("res://scripts/player/third_person_operator.gd")
 ## Transparent native touch HUD for the first Aurora training slice.
 ## Every button emits a real gameplay action; no decorative fake multiplayer.
 signal fire_pressed
@@ -99,6 +100,9 @@ var air_stage: String="ground"
 var _hud_layout: RefCounted
 var _hud_editor: Control
 var _hud_editor_label: Label
+# When opened from the lobby, saving returns there without starting Training.
+# In a real match or explicitly started Training, saving keeps the session open.
+var return_to_lobby_on_save: bool=false
 var _vibration_enabled: bool=false
 var _hud_editing: bool=false
 var _hud_selected: String=""
@@ -148,7 +152,7 @@ func _ready() -> void:
     _compass=_text(root,"N 000°",.45,.025,18,Color(.87,.97,1),HORIZONTAL_ALIGNMENT_CENTER)
     _compass.name="CameraHeading"
     _eliminations_label=_text(root,"BAJAS 0",.72,.027,16,Color(.99,.63,.55),HORIZONTAL_ALIGNMENT_LEFT)
-    _health_label = _text(root,"SALUD 100 / 100",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
+    _health_label = _text(root,"SALUD 200 / 200",.018,.095,16,Color(.71,.98,.82),HORIZONTAL_ALIGNMENT_LEFT)
     _armor_label=_text(root,"",.018,.128,14,Color(.52,.85,1),HORIZONTAL_ALIGNMENT_LEFT)
     _armor_label.name="PlayerArmorStatus"
     _lila_ability_label=_text(root,"",.42,.17,15,
@@ -166,7 +170,8 @@ func _ready() -> void:
     _health_meter.offset_top=0
     _health_meter.offset_bottom=12
     _health_meter.show_percentage=false
-    _health_meter.value=100
+    _health_meter.max_value=PLAYER_HEALTH.MAX_HEALTH
+    _health_meter.value=PLAYER_HEALTH.MAX_HEALTH
     _health_meter.mouse_filter=Control.MOUSE_FILTER_IGNORE
     var health_bg:=StyleBoxFlat.new()
     health_bg.bg_color=Color(.07,.12,.14,.91)
@@ -308,8 +313,16 @@ func _ready() -> void:
     _inventory_button=_button(root,"MOCHILA",.75,.255,105,46,
         Color(.17,.35,.41),_toggle_inventory)
     _inventory_button.disabled=true
-    _map_button=_button(root,"MAPA",.19,.22,70,70,
-        Color(.11,.39,.53),_toggle_map)
+    # The minimap itself is the ONLY opener, as in the reference footage.
+    # Keep the legacy MAPA node solely for saved HUD preset compatibility:
+    # it is an invisible touch target over the radar, not a second circle.
+    _map_button=_button(root,"MAPA",.017,.175,178,162,
+        Color(.0,.0,.0),_toggle_map)
+    _map_button.text=""
+    _map_button.tooltip_text="Abrir mapa táctico Aurora"
+    var map_hitbox_style:=StyleBoxEmpty.new()
+    for state in ["normal","hover","pressed","disabled","focus"]:
+        _map_button.add_theme_stylebox_override(state,map_hitbox_style)
     _inventory_panel=PanelContainer.new()
     _inventory_panel.name="RealMatchInventory"
     _inventory_panel.visible=false
@@ -466,6 +479,10 @@ func set_tactical_map_sources(character: CharacterBody3D,world: StaticBody3D,
         match_director: Node3D) -> void:
     if _map_overlay!=null:
         _map_overlay.call("set_sources",character,world,match_director)
+        _map_overlay.call("_ensure_terrain_texture")
+        if _training_radar!=null:
+            _training_radar.set("map_texture",_map_overlay.get("_terrain_texture"))
+            _training_radar.queue_redraw()
 
 
 func apply_ui_settings() -> void:
@@ -791,10 +808,10 @@ func set_crouch_state(active: bool) -> void:
 
 func set_health(value: float) -> void:
     if _health_meter:
-        _health_meter.value=clampf(value,0.0,100.0)
+        _health_meter.value=clampf(value,0.0,PLAYER_HEALTH.MAX_HEALTH)
     if _health_label:
-        _health_label.text="SALUD "+str(roundi(value))+" / 100"
-        _health_label.add_theme_color_override("font_color",Color(.98,.45,.38) if value<30.0 else Color(.71,.98,.82))
+        _health_label.text="SALUD "+str(roundi(value))+" / "+str(roundi(PLAYER_HEALTH.MAX_HEALTH))
+        _health_label.add_theme_color_override("font_color",Color(.98,.45,.38) if value<PLAYER_HEALTH.MAX_HEALTH*.30 else Color(.71,.98,.82))
 
 
 func set_weapon(name: String,loaded: int,reserve: int) -> void:
@@ -1004,7 +1021,6 @@ func _layout() -> void:
     var h: float=safe.size.y
     root.get_node("AuroraHeader").visible=false
     _place(_training_radar,Rect2(origin+Vector2(24,62),Vector2(156,142)))
-    _place(_map_button,Rect2(origin+Vector2(201,103),Vector2(76,76)))
     _place(_health_label,Rect2(origin+Vector2(w*.5-85,h-91),Vector2(170,28)))
     _place(_armor_label,Rect2(origin+Vector2(w*.5-85,h-118),Vector2(170,24)))
     _place(_lila_ability_label,Rect2(origin+Vector2(w*.5-165,h-149),
@@ -1051,14 +1067,16 @@ func _layout() -> void:
     # Always reset to the factory coordinates before applying persisted
     # normalized overrides, including on every display/orientation resize.
     for id in HUD_LAYOUT.IDS:
-        var control: Control=root.get_node_or_null(id) as Control
+        var control: Control=(_training_radar if id=="MAPA" else
+            root.get_node_or_null(id)) as Control
         if control==null:
             continue
         control.scale=Vector2.ONE
         control.modulate.a=1.0
     if air_stage=="ground":
         for id in HUD_LAYOUT.IDS:
-            var target: Control=root.get_node_or_null(id) as Control
+            var target: Control=(_training_radar if id=="MAPA" else
+                root.get_node_or_null(id)) as Control
             var item: Dictionary=_hud_layout.get_item(id)
             if target==null or item.is_empty():
                 continue
@@ -1071,6 +1089,11 @@ func _layout() -> void:
             target.position=target_center-new_size*.5
             target.scale=Vector2.ONE*factor
             target.modulate.a=float(item["alpha"])
+    # Match the minimap hitbox AFTER applying any saved minimap size/position.
+    # The hitbox never creates a second control beside the radar.
+    var radar_bounds: Rect2=_training_radar.get_global_rect()
+    _place(_map_button,Rect2(
+        radar_bounds.position-root.global_position,radar_bounds.size))
     if _hud_editing and _hud_editor:
         _hud_editor.queue_redraw()
 
@@ -1152,6 +1175,8 @@ func open_hud_editor() -> void:
 func hud_editor_target(id: String) -> Control:
     if not HUD_LAYOUT.IDS.has(id):
         return null
+    if id=="MAPA":
+        return _training_radar
     return get_node_or_null("AuroraTacticalOverlay/"+id) as Control
 
 
@@ -1212,6 +1237,11 @@ func _hud_edit_save() -> void:
     var result: Error=_hud_layout.save()
     if result!=OK:
         _hud_editor_label.text="ERROR AL GUARDAR HUD: "+str(result)
+        return
+    if return_to_lobby_on_save:
+        # Closing emits hud_editor_closed; AuroraFrontend performs the safe,
+        # deferred return after the paused editor releases all touch input.
+        _hud_edit_close()
         return
     _hud_editor_label.text="HUD GUARDADO  •  Cerrar para volver"
 
@@ -1278,8 +1308,10 @@ func set_match_controls(enabled: bool) -> void:
         set_vehicle_context(false,false,0.0)
     var root: Control=get_node("AuroraTacticalOverlay")
     for control in root.get_children():
-        if control is Button and control!=_battle_button and control!=_exit_button and control!=_settings_button:
+        if control is Button and control!=_battle_button and control!=_exit_button and control!=_settings_button and control!=_map_button:
             control.disabled=not enabled
+    # Map access must remain available during aircraft, jump, and canopy.
+    _map_button.disabled=false
     root.get_node("MovePad").visible=enabled
     root.get_node("DirectionalFirePad").visible=enabled
     _cover_button.visible=enabled and air_stage=="ground"

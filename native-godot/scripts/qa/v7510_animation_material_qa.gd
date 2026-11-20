@@ -1,6 +1,7 @@
 extends SceneTree
 ## Verifies actual Godot material normal/tangent data and leg gait transitions.
 ## No APK export or synthetic screenshot counts as this quality gate.
+const TERRAIN=preload("res://scripts/world/island_terrain.gd")
 var failed: bool=false
 
 func _initialize() -> void:
@@ -25,7 +26,9 @@ func _verify() -> void:
     var points: PackedVector3Array=data[Mesh.ARRAY_VERTEX]
     var uv: PackedVector2Array=data[Mesh.ARRAY_TEX_UV]
     var tangents: PackedFloat32Array=data[Mesh.ARRAY_TANGENT]
-    check(points.size()==(96+1)*(96+1),"terrain vertex grid changed")
+    check(TERRAIN.CELLS>=144 and
+        points.size()==(TERRAIN.CELLS+1)*(TERRAIN.CELLS+1),
+        "terrain grid mismatched current expanded archipelago resolution")
     check(tangents.size()==points.size()*4,"tangents missing from world surface")
     check(uv.size()==points.size(),"terrain UV count changed")
     check(uv[1].distance_to(uv[0])>.55,"snow material stretched across entire 450m island")

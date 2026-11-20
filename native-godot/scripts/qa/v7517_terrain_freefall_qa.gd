@@ -56,8 +56,9 @@ func _verify() -> void:
         "persistent diagnostic does not identify entry into near-ground path")
     check(player.global_position.is_finite() and player.velocity.is_finite(),
         "proximity traversal produced a non-finite motion state")
-    check(not combat.visible,
-        "ground combat was erroneously activated while still freefalling")
+    check(director._rivals_departed and combat.visible and
+        not combat.is_processing(),
+        "real rival parachutes missing or ground combat processing during freefall")
 
     # The live Motorola position was still above 26 m clearance. Approach
     # the actual deploy threshold under the same -26m/s vertical velocity.

@@ -2,6 +2,8 @@ extends CharacterBody3D
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 const IMPACT=preload("res://scripts/player/third_person_operator.gd")
 const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
+const AURORA_COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
+const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 ## Aurora V73 offline training opponent: rigged glTF visual, bounded ray-LOS,
 ## grounded patrol and actual damage. This is not a networked human player.
 signal eliminated(agent: CharacterBody3D, killer: Node3D)
@@ -10,8 +12,8 @@ signal foot_contact(world_position: Vector3,running: bool,on_stone: bool)
 ## This line is derived from the actual PhysicsServer hit; never a fake shot.
 signal shot_trace(from: Vector3,to: Vector3)
 
-const WALK_SPEED: float = 1.85
-const CHASE_SPEED: float = 2.45
+const WALK_SPEED: float = 2.5
+const CHASE_SPEED: float = 4.15
 var _foot_contacts=preload("res://scripts/animation/aurora_foot_contacts.gd").new()
 const SIGHT_RANGE: float = 31.0
 const SHOOT_RANGE: float = 21.0
@@ -36,7 +38,10 @@ const NEXT_ZONE_ROTATE_SECONDS: int=45
 const FIELD_MEDKIT_CAPACITY: int=1
 const FIELD_MEDKIT_SECONDS: float=3.0
 const FIELD_MEDKIT_HEAL: float=40.0
-const FIELD_MEDKIT_HEALTH_THRESHOLD: float=38.0
+# A physical rifle impact now applies the same damage to Lila and other rivals.
+const RIFLE_DAMAGE: float=20.0
+const MAX_HEALTH: float=IMPACT.MAX_HEALTH
+const FIELD_MEDKIT_HEALTH_THRESHOLD: float=115.0
 const FIELD_MEDKIT_INTERRUPTED_COOLDOWN: float=1.25
 const PROACTIVE_RELOAD_THRESHOLD: int=4
 # 17 separate CPU buckets prevent 49 real agents from replanning together.
@@ -44,6 +49,9 @@ const ROUTE_REPLAN_BUCKETS: int=17
 # Throttle cover sound-investigation probes independently of real firing.
 # No omniscient vision through a wall that happens to be destructible.
 const COVER_PROBE_SECONDS: float=.55
+const MAX_ENEMY_COVERS: int=8
+const ENEMY_COVER_HEALTH_THRESHOLD: float=145.0
+const ENEMY_COVER_COOLDOWN: float=16.0
 # Physical death is registered instantly; the existing skinned visual gets
 # a short non-colliding reaction. No persistent bodies/particles on mobile.
 const DEFEAT_PRESENTATION_SECONDS: float=.75
@@ -66,6 +74,7 @@ var reloads_completed: int=0
 var vision_rays_last: int=0
 var vision_rays_total: int=0
 var _magazine: int=MAGAZINE_CAPACITY
+var weapon_slot: int=WEAPONS.AR
 var _reload_remaining: float=0.0
 var _field_medkits: int=FIELD_MEDKIT_CAPACITY
 var _heal_remaining: float=0.0
@@ -81,13 +90,22 @@ var _route_goal:=Vector3(INF,INF,INF)
 var _route_clock: float=0.0
 var _cover_clock: float=0.0
 var _cover_probe_clock: float=0.0
+var _cover_deploy_clock: float=0.0
+var _cover_charges: int=1
+var _airdrop_stage: String="inactive"
+var _airdrop_delay: float=0.0
+var _airdrop_origin: Vector3=Vector3.ZERO
+var _airdrop_canopy: MeshInstance3D
+var _cover_deploy_queued: bool=false
+var covers_deployed: int=0
+var _owned_covers: Array[StaticBody3D]=[]
 var _suppression_seconds: float=0.0
 var _last_attacker: Node3D
 var _cover_point:=Vector3(INF,INF,INF)
 var terrain: StaticBody3D
 var operator: CharacterBody3D
 var spawn_coordinates: Vector2 = Vector2.ZERO
-var health: float = 100.0
+var health: float = MAX_HEALTH
 var sector_battle: bool = false
 var respawn_enabled: bool = true
 var _foes: Array[CharacterBody3D] = []
@@ -139,6 +157,7 @@ var _lod_rest_transform: Transform3D=Transform3D.IDENTITY
 func _ready() -> void:
     add_to_group("training_target")
     _random.seed=7503+int(absf(spawn_coordinates.x)*31+absf(spawn_coordinates.y)*17)
+    _magazine=_loadout_capacity()
     var marker := Label3D.new()
     marker.name = "TrainingTargetMarker"
     marker.text = "ENEMIGO IA"
@@ -171,6 +190,92 @@ func _ready() -> void:
 ## Restore the same actual health/collider-bearing agent at its new
 ## terrain-correct match spawn BEFORE the next BR round becomes active.
 ## Never teleport a live opponent away from a player during combat.
+## Actual collidable bot bodies descend from the aircraft route. They are
+## NOT repositioned onto the ground at the first player touchdown.
+func begin_real_airdrop(origin: Vector3,delay: float) -> void:
+    if not origin.is_finite() or not is_inside_tree():
+        return
+    _airdrop_origin=origin
+    _airdrop_delay=maxf(0.0,delay)
+    _airdrop_stage="waiting"
+    sector_battle=false
+    health=MAX_HEALTH
+    visible=false
+    collision_layer=0
+    velocity=Vector3.ZERO
+    set_physics_process(true)
+
+
+func _create_real_parachute() -> void:
+    if _airdrop_canopy!=null and is_instance_valid(_airdrop_canopy):
+        _airdrop_canopy.show()
+        return
+    _airdrop_canopy=MeshInstance3D.new()
+    _airdrop_canopy.name="RealRivalParachute"
+    var dome:=SphereMesh.new()
+    dome.radius=1.38
+    dome.height=.74
+    dome.radial_segments=10
+    dome.rings=4
+    _airdrop_canopy.mesh=dome
+    _airdrop_canopy.position=Vector3(0,3.15,0)
+    _airdrop_canopy.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    var fabric:=StandardMaterial3D.new()
+    fabric.albedo_color=Color(.33,.66,.88)
+    fabric.roughness=.90
+    _airdrop_canopy.material_override=fabric
+    add_child(_airdrop_canopy)
+
+
+func _advance_real_airdrop(dt: float) -> void:
+    if health<=0.0:
+        cancel_real_airdrop()
+        return
+    if _airdrop_stage=="waiting":
+        _airdrop_delay=maxf(0.0,_airdrop_delay-dt)
+        if _airdrop_delay>0.0:
+            return
+        global_position=_airdrop_origin
+        velocity=Vector3.ZERO
+        collision_layer=1
+        visible=true
+        _airdrop_stage="descending"
+        _create_real_parachute()
+    var to_destination: Vector2=spawn_coordinates-Vector2(
+        global_position.x,global_position.z)
+    var drift: Vector2=(to_destination.normalized()*
+        minf(20.0,to_destination.length()*.40))
+    velocity=Vector3(drift.x,-7.8,drift.y)
+    move_and_slide()
+    if is_on_floor():
+        _airdrop_stage="landed"
+        velocity=Vector3.ZERO
+        if _airdrop_canopy!=null:
+            _airdrop_canopy.hide()
+        if not sector_battle:
+            set_physics_process(false)
+
+
+func retarget_real_airdrop(at: Vector2) -> void:
+    if not at.is_finite() or terrain==null:
+        return
+    spawn_coordinates=at
+    _anchor=Vector3(at.x,terrain.height_at(at.x,at.y)+.15,at.y)
+    if _airdrop_stage=="landed":
+        # Physical pre-combat landing clearance: never move live fighters.
+        global_position=_anchor
+
+
+func cancel_real_airdrop() -> void:
+    if _airdrop_canopy!=null and is_instance_valid(_airdrop_canopy):
+        _airdrop_canopy.queue_free()
+    _airdrop_canopy=null
+    _airdrop_stage="inactive"
+    _airdrop_delay=0.0
+    collision_layer=1
+    visible=true
+
+
 func set_match_spawn(at: Vector2) -> void:
     # A reused bot keeps sector_battle=true after its previous finished
     # match. Its physics process is disabled at that boundary, so permit
@@ -273,12 +378,85 @@ func _create_full_rig() -> void:
 ## are no camera/HUD-tracked guns, no copied third-party items, and no
 ## rifle objects at all for the 41 low-poly physical rivals. Share the
 ## existing AK GLB loader's correct FBX scale/axis normalization.
+
+## Each combatant is assigned a real, installed weapon catalog slot.
+## Existing training rigs retain the original AR/18-round QA contract.
+func _loadout_capacity() -> int:
+    if weapon_slot==WEAPONS.AR:
+        return MAGAZINE_CAPACITY
+    return int(WEAPONS.ENTRIES[weapon_slot]["capacity"])
+
+
+func _loadout_range() -> float:
+    match weapon_slot:
+        WEAPONS.AWM:
+            return 65.0
+        WEAPONS.VSS:
+            return 46.0
+        WEAPONS.SCAR,WEAPONS.HK416:
+            return 30.0
+        WEAPONS.MP40,WEAPONS.KRISS,WEAPONS.P90:
+            return 18.0
+    return SHOOT_RANGE
+
+
+func _loadout_sight_range() -> float:
+    return maxf(SIGHT_RANGE,_loadout_range()*1.08)
+
+
+func _loadout_damage() -> float:
+    match weapon_slot:
+        WEAPONS.AWM:
+            return 72.0
+        WEAPONS.VSS:
+            return 31.0
+        WEAPONS.SCAR,WEAPONS.HK416:
+            return 22.0
+        WEAPONS.MP40,WEAPONS.P90:
+            return 16.0
+        WEAPONS.KRISS:
+            return 14.0
+    return RIFLE_DAMAGE
+
+
+## Different weapons must not share the same slow AR burst pacing.
+## Keep two real rounds per burst and the existing bounded LOS budget.
+## Fast SMGs recover sooner; an AWM still waits one second per bolt.
+func _loadout_shot_gap() -> float:
+    if weapon_slot==WEAPONS.AWM:
+        return 1.0
+    return clampf(float(WEAPONS.ENTRIES[weapon_slot]["cadence"])*2.4,
+        .20,BURST_SHOT_GAP)
+
+
+func _loadout_burst_rest() -> float:
+    if weapon_slot==WEAPONS.AWM:
+        return BURST_RECOVERY
+    return clampf(float(WEAPONS.ENTRIES[weapon_slot]["cadence"])*7.5,
+        .67,BURST_RECOVERY)
+
+
+func _loadout_reload_seconds() -> float:
+    if weapon_slot==WEAPONS.AR:
+        return RELOAD_SECONDS
+    return float(WEAPONS.ENTRIES[weapon_slot]["reload"])
+
+
+func _loadout_visual_path() -> String:
+    if weapon_slot==WEAPONS.AWM:
+        return WEAPON_VISUALS.AWM_PATH
+    if weapon_slot==WEAPONS.AR:
+        return WEAPON_VISUALS.AK_PATH
+    return str(WEAPONS.ENTRIES[weapon_slot].get("asset",""))
+
+
 func _attach_original_hand_rifle() -> void:
     _enemy_hand_rifle=null
     _enemy_right_hand_socket=null
     _enemy_muzzle_flash=null
     _muzzle_flash_remaining=0.0
-    if _rig==null or not ResourceLoader.exists(WEAPON_VISUALS.AK_PATH):
+    var equipped_path: String=_loadout_visual_path()
+    if _rig==null or equipped_path.is_empty() or not ResourceLoader.exists(equipped_path):
         return
     var skeleton: Skeleton3D=_rig.find_child(
         "Skeleton3D",true,false) as Skeleton3D
@@ -310,7 +488,7 @@ func _attach_original_hand_rifle() -> void:
     # GLB normalization; the returned mesh becomes a skeleton child.
     var visual_loader: Node3D=WEAPON_VISUALS.new()
     _enemy_hand_rifle=visual_loader._load_visual(
-        WEAPON_VISUALS.AK_PATH,"AK74TacticalOpponentVisual",mount)
+        equipped_path,"AK74TacticalOpponentVisual" if weapon_slot==WEAPONS.AR else "RivalWeapon3DVisual",mount)
     visual_loader.free()
     if _enemy_hand_rifle==null:
         _enemy_right_hand_socket.queue_free()
@@ -325,7 +503,7 @@ func _attach_original_hand_rifle() -> void:
     flash_mesh.radial_segments=8
     flash_mesh.rings=4
     _enemy_muzzle_flash.mesh=flash_mesh
-    _enemy_muzzle_flash.position=Vector3(0,.03,-.78)
+    _enemy_muzzle_flash.position=Vector3(0,.03,-.43 if weapon_slot in [WEAPONS.MP40,WEAPONS.KRISS,WEAPONS.P90] else -.78)
     var flash_material:=StandardMaterial3D.new()
     flash_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
     flash_material.albedo_color=Color(1.0,.51,.17)
@@ -381,6 +559,10 @@ func _update_distance_lod(dt: float) -> void:
 
 
 func _physics_process(dt: float) -> void:
+    # Live physics-only descent precedes shooting, healing and pathfinding.
+    if _airdrop_stage in ["waiting","descending"]:
+        _advance_real_airdrop(dt)
+        return
     _update_distance_lod(dt)
     # Distant bots update in staggered frames to limit path and physics
     # cost. They are still active agents, may shoot each other and take
@@ -408,14 +590,27 @@ func _physics_process(dt: float) -> void:
     _route_clock-=dt
     _cover_clock-=dt
     _cover_probe_clock=maxf(0.0,_cover_probe_clock-dt)
+    _cover_deploy_clock=maxf(0.0,_cover_deploy_clock-dt)
     _strafe_clock-=dt
     if _reload_remaining>0.0:
         _reload_remaining=maxf(0.0,_reload_remaining-dt)
         if _reload_remaining<=0.0:
-            _magazine=MAGAZINE_CAPACITY
+            _magazine=_loadout_capacity()
             reloads_completed+=1
     _suppression_seconds=maxf(0.0,_suppression_seconds-dt)
     _heal_cooldown=maxf(0.0,_heal_cooldown-dt)
+    # A healing enemy must keep sensing threats. Previously the early
+    # medkit return stopped LOS checks for the full three seconds, so an
+    # enemy entering view could not interrupt a helpless stationary bot.
+    if _heal_remaining>0.0:
+        _sense_clock-=dt
+        if _sense_clock<=0.0:
+            _sense_clock=.22+float(get_instance_id()%5)*.025
+            _sense_player()
+        if (_target_visible or (sector_battle and
+                should_escape_current_zone(global_position,
+                    safe_center,safe_radius))):
+            _interrupt_field_heal()
     # Medicines are a real timed, interruptible action on CharacterBody3D.
     # An opponent cannot move/fire while channeling, and mobile distant
     # AI frame staggering preserves the same elapsed seconds through dt.
@@ -456,7 +651,7 @@ func _physics_process(dt: float) -> void:
     var distance: float=delta_to_contact.length()
     var destination: Vector3
     var target_speed: float=WALK_SPEED
-    if _target_visible and distance < SIGHT_RANGE:
+    if _target_visible and distance < _loadout_sight_range():
         _last_seen=contact_position
         _alert_time=2.9
     behavior="patrol"
@@ -468,7 +663,7 @@ func _physics_process(dt: float) -> void:
         # Reposition to the side of a visible opponent rather than always
         # rushing to the same target point. Stable for several seconds to
         # avoid churn in navigation requests and mobile physics queries.
-        if _target_visible and distance<SHOOT_RANGE*.9 and distance>4.0:
+        if _target_visible and distance<_loadout_range()*.9 and distance>4.0:
             if _strafe_clock<=0.0:
                 _avoid_side*=-1.0
                 _strafe_clock=STRAFE_SWITCH_SECONDS+float(get_instance_id()%3)*.19
@@ -496,7 +691,7 @@ func _physics_process(dt: float) -> void:
     # Rotate toward the next ACTUAL circle near the end of the phase.
     # Prioritize live engagements and physical cover, but avoid waiting
     # until the storm is already damaging a distant rival.
-    var engaged: bool=(_target_visible and distance<SHOOT_RANGE) or behavior=="cover"
+    var engaged: bool=(_target_visible and distance<_loadout_range()) or behavior=="cover"
     if sector_battle and next_zone_active and should_rotate_to_next_zone(
             global_position,next_safe_center,next_safe_radius,
             zone_seconds_remaining,engaged):
@@ -555,7 +750,7 @@ func _physics_process(dt: float) -> void:
     var moving: bool=is_on_floor() and Vector2(offset.x,offset.z).length()>.8*dt
     var running: bool=moving and Vector2(offset.x,offset.z).length()>2.15*dt
 
-    if (_target_visible and distance<SHOOT_RANGE and
+    if (_target_visible and distance<_loadout_range() and
             _attack_clock<=0.0 and _reload_remaining<=0.0 and
             _has_line_of_fire(_target_actor)):
         if _magazine<=0:
@@ -567,9 +762,9 @@ func _physics_process(dt: float) -> void:
                 _begin_reload()
             elif _burst_count>=BURST_ROUNDS:
                 _burst_count=0
-                _attack_clock=BURST_RECOVERY+float(get_instance_id()%4)*.14
+                _attack_clock=_loadout_burst_rest()+float(get_instance_id()%4)*.14
             else:
-                _attack_clock=BURST_SHOT_GAP
+                _attack_clock=_loadout_shot_gap()
     # A previously seen/heard enemy behind destructible cover is no
     # longer visually locked. Fire at the last ACTUAL contact coordinate
     # only if a fresh physics ray hits real Aurora cover first.
@@ -617,7 +812,7 @@ func _insert_sight_candidate(picks: Array[Dictionary],
         return
     var distance_sq: float=global_position.distance_squared_to(
         foe.global_position)
-    if distance_sq>=SIGHT_RANGE*SIGHT_RANGE:
+    if distance_sq>=_loadout_sight_range()*_loadout_sight_range():
         return
     var place: int=picks.size()
     while place>0 and distance_sq<float(picks[place-1]["distance_sq"]):
@@ -667,7 +862,7 @@ func _sense_player() -> void:
             vision_rays_last<MAX_VISION_RAYS and
             (previous==operator or previous.health>0.0)):
         var prior_distance: float=global_position.distance_squared_to(previous.global_position)
-        if prior_distance<SIGHT_RANGE*SIGHT_RANGE and prior_distance<=(
+        if prior_distance<_loadout_sight_range()*_loadout_sight_range() and prior_distance<=(
                 sqrt(found_distance)+TARGET_STICKINESS_METERS)*(
                 sqrt(found_distance)+TARGET_STICKINESS_METERS):
             vision_rays_last+=1
@@ -700,7 +895,8 @@ func hear_gunshot(at: Vector3, originator: Node3D) -> void:
     heard_shots+=1
 
 
-func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
+func configure_sector_battle(actors: Array[CharacterBody3D],
+        preserve_airdrop: bool=false) -> void:
     _reset_death_presentation()
     muzzle_flashes_shown=0
     weapon_actions_shown=0
@@ -710,22 +906,31 @@ func configure_sector_battle(actors: Array[CharacterBody3D]) -> void:
     sector_battle=true
     respawn_enabled=false
     _foes=actors.duplicate()
-    health=100.0
-    visible=true
+    health=MAX_HEALTH
+    visible=not (preserve_airdrop and _airdrop_stage=="waiting")
     var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
     if collider:
         collider.set_deferred("disabled",false)
     set_physics_process(true)
     velocity=Vector3.ZERO
-    global_position=_anchor
+    if not preserve_airdrop:
+        cancel_real_airdrop()
+        global_position=_anchor
+    elif _airdrop_stage=="landed":
+        _airdrop_stage="inactive"
     _target_visible=false
     _target_actor=null
     _attack_clock=1.3
-    _magazine=MAGAZINE_CAPACITY
+    _magazine=_loadout_capacity()
     _reload_remaining=0.0
     _field_medkits=FIELD_MEDKIT_CAPACITY
     _heal_remaining=0.0
     _heal_cooldown=0.0
+    _clear_owned_covers()
+    _cover_deploy_clock=0.0
+    _cover_charges=1
+    _cover_deploy_queued=false
+    covers_deployed=0
     heal_channels_completed=0
     heal_channels_interrupted=0
     var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
@@ -773,6 +978,7 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
         _cover_clock=0.0
         _sense_clock=0.0
         _alert_time=maxf(_alert_time,5.5)
+        _request_defensive_cover()
     # A null attacker means ambient/zone damage: interrupt healing and
     # reduce real HP, but do not fabricate a shooter, reset cover queries
     # or refresh pursuit against an unrelated player.
@@ -799,6 +1005,79 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
 ## Hit origin uses the SAME body-local directional classification as Lila.
 ## Never allocate new skeletons for 41 LOD enemies; their real health, cover
 ## and collisions continue unmodified when no detailed rig is present.
+
+## Same physical, destructible Aurora cover as Lila. A rival carries one
+## wall per round, deployed after real damage and bounded for mobile.
+func _request_defensive_cover() -> void:
+    if (not sector_battle or health<=0.0 or
+            health>ENEMY_COVER_HEALTH_THRESHOLD or
+            _cover_charges<=0 or _cover_deploy_clock>0.0 or
+            _cover_deploy_queued or not _last_seen.is_finite()):
+        return
+    _cover_deploy_queued=true
+    call_deferred("_try_deploy_cover")
+
+
+func _try_deploy_cover() -> bool:
+    _cover_deploy_queued=false
+    if (not is_inside_tree() or not sector_battle or health<=0.0 or
+            health>ENEMY_COVER_HEALTH_THRESHOLD or
+            _cover_charges<=0 or _cover_deploy_clock>0.0 or terrain==null):
+        return false
+    if get_tree().get_nodes_in_group("aurora_deployable_cover").size()>=MAX_ENEMY_COVERS:
+        _cover_deploy_clock=2.0
+        return false
+    var forward: Vector3=_last_seen-global_position
+    forward.y=0.0
+    if (not forward.is_finite() or forward.length_squared()<16.0 or
+            forward.length_squared()>SHOOT_RANGE*SHOOT_RANGE*2.25):
+        return false
+    forward=forward.normalized()
+    var center: Vector3=global_position+forward*2.9
+    var side: Vector3=Vector3(-forward.z,0.0,forward.x)
+    var floor_y: float=terrain.height_at(center.x,center.z)
+    if (not is_finite(floor_y) or
+            absf(floor_y-global_position.y)>1.3 or
+            absf(terrain.height_at(center.x+side.x*1.6,
+                    center.z+side.z*1.6)-floor_y)>.65 or
+            absf(terrain.height_at(center.x-side.x*1.6,
+                    center.z-side.z*1.6)-floor_y)>.65):
+        _cover_deploy_clock=2.0
+        return false
+    var angle: float=atan2(-forward.x,-forward.z)
+    var shape:=BoxShape3D.new()
+    shape.size=Vector3(3.45,2.30,.62)
+    var probe:=PhysicsShapeQueryParameters3D.new()
+    probe.shape=shape
+    probe.collision_mask=1
+    probe.exclude=[get_rid()]
+    probe.transform=Transform3D(Basis(Vector3.UP,angle),
+        Vector3(center.x,floor_y+1.18,center.z))
+    for hit in get_world_3d().direct_space_state.intersect_shape(probe,12):
+        if hit.get("collider")!=terrain:
+            _cover_deploy_clock=2.0
+            return false
+    var wall: StaticBody3D=AURORA_COVER.new()
+    wall.name="RivalAuroraCover"+str(get_instance_id())
+    # A static barrier stays on the world, never following a moving bot.
+    get_parent().add_child(wall)
+    wall.global_position=Vector3(center.x,floor_y,center.z)
+    wall.rotation.y=angle
+    _owned_covers.append(wall)
+    _cover_charges-=1
+    _cover_deploy_clock=ENEMY_COVER_COOLDOWN
+    covers_deployed+=1
+    behavior="deploy_cover"
+    return true
+
+
+func _clear_owned_covers() -> void:
+    for wall in _owned_covers:
+        if is_instance_valid(wall):
+            wall.queue_free()
+    _owned_covers.clear()
+
+
 func _play_directional_hit(origin: Vector3) -> void:
     if (_rig==null or _animation==null or not origin.is_finite() or
             not is_instance_valid(operator) or
@@ -832,7 +1111,7 @@ func _play_weapon_action(clip: String,seconds: float) -> bool:
     if not is_finite(authored_length) or authored_length<=0.0:
         return false
     # ReloadAR is authored for a different time scale; match the actual
-    # 2.25-second physical magazine timer without altering its ballistics.
+    # per-weapon physical magazine timer without altering its ballistics.
     _animation.speed_scale=authored_length/maxf(.05,seconds)
     _animation.play(clip,.06)
     _clip=clip
@@ -929,10 +1208,15 @@ func _respawn() -> void:
     reload_actions_shown=0
     hit_reactions_shown=0
     last_hit_reaction=""
-    health=100
+    health=MAX_HEALTH
     _field_medkits=FIELD_MEDKIT_CAPACITY
     _heal_remaining=0.0
     _heal_cooldown=0.0
+    _clear_owned_covers()
+    _cover_deploy_clock=0.0
+    _cover_charges=1
+    _cover_deploy_queued=false
+    covers_deployed=0
     heal_channels_completed=0
     heal_channels_interrupted=0
     var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
@@ -985,7 +1269,7 @@ func _advance_field_heal(dt: float) -> bool:
         return true
     _heal_remaining=maxf(0.0,_heal_remaining-maxf(0.0,dt))
     if _heal_remaining<=0.0:
-        var restored: float=minf(100.0,health+FIELD_MEDKIT_HEAL)
+        var restored: float=minf(MAX_HEALTH,health+FIELD_MEDKIT_HEAL)
         if restored>health and _field_medkits>0:
             health=restored
             _field_medkits-=1
@@ -1076,7 +1360,7 @@ func _fire_at_last_known_cover() -> bool:
             _reload_remaining>0.0 or _magazine<=0 or
             not _last_seen.is_finite() or health<=0.0):
         return false
-    if global_position.distance_squared_to(_last_seen)>SHOOT_RANGE*SHOOT_RANGE:
+    if global_position.distance_squared_to(_last_seen)>_loadout_range()*_loadout_range():
         return false
     _cover_probe_clock=COVER_PROBE_SECONDS+float(get_instance_id()%5)*.06
     var muzzle: Vector3=global_position+Vector3.UP*1.35
@@ -1114,7 +1398,7 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
     _show_real_muzzle_flash()
     weapon_fired.emit(global_position)
     var distance: float=global_position.distance_to(foe.global_position)
-    var spread: float=clampf(distance/SHOOT_RANGE,0.0,1.0)*.52
+    var spread: float=clampf(distance/_loadout_range(),0.0,1.0)*(.22 if weapon_slot==WEAPONS.AWM else .52)
     var sideways: Vector3=(foe.global_position-global_position).cross(Vector3.UP).normalized()
     var endpoint: Vector3=foe.global_position+Vector3.UP*(1.0+_random.randf_range(-spread*.6,spread*.6))+sideways*_random.randf_range(-spread,spread)
     var muzzle: Vector3=global_position+Vector3.UP*1.35
@@ -1125,10 +1409,10 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
         hit.get("position",endpoint))
     var actor: Object=hit.get("collider")
     if actor==operator and not operator.royale_eliminated:
-        operator.receive_training_hit(5.0,false,global_position,hit["position"])
+        operator.receive_training_hit(_loadout_damage(),false,global_position,hit["position"])
         shots_hit+=1
     elif actor is CharacterBody3D and actor.is_in_group("training_target") and actor.health>0:
-        actor.take_training_damage(22.0,self)
+        actor.take_training_damage(_loadout_damage(),self)
         shots_hit+=1
     elif actor is StaticBody3D and actor.is_in_group("aurora_deployable_cover"):
         actor.call("take_damage",12.0)
@@ -1139,10 +1423,10 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
 func _begin_reload() -> void:
     if _reload_remaining>0.0 or health<=0.0:
         return
-    _reload_remaining=RELOAD_SECONDS
+    _reload_remaining=_loadout_reload_seconds()
     _burst_count=0
-    _attack_clock=RELOAD_SECONDS
-    _play_weapon_action("AuroraReloadAR",RELOAD_SECONDS)
+    _attack_clock=_reload_remaining
+    _play_weapon_action("AuroraReloadAR",_loadout_reload_seconds())
 
 
 ## Move inside the next safe circle without stacking all rivals at center.

@@ -61,7 +61,9 @@ func _verify() -> void:
         check(history.contains(note),"diagnostic history missing "+note)
     check(player.velocity.y> -26.0 and player.global_position.is_finite(),
         "parachute did not physically slow descent")
-    check(not combat.visible,"combat incorrectly resumed during flight")
+    check(director._rivals_departed and combat.visible and
+        not combat.is_processing(),
+        "rival airdrops missing or ground combat resumed during flight")
 
     # The actual world must complete its existing touchdown flow.
     var z: float=-20.0

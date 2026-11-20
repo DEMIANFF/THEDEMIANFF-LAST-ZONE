@@ -47,7 +47,8 @@ signal grounded_impact(on_stone: bool)
 signal sprint_cancelled
 signal tactical_acceleration_activated(duration: float)
 @export var approved_operator_scene: PackedScene
-var training_health: float = 100.0
+const MAX_HEALTH: float = 200.0
+var training_health: float = MAX_HEALTH
 # Armor absorbs direct combat damage but not radiation outside the ring.
 var armor_points: float=0.0
 var vest_level: int=0
@@ -147,6 +148,14 @@ func _ready() -> void:
     _camera_collision_query.shape=_camera_collision_shape
     _camera_collision_query.exclude=[get_rid()]
     _camera_collision_query.collision_mask=1
+
+    # Retain floor contact while crossing the two convex halves of a gabled
+    # roof, uneven thresholds and downhill ground. Snap applies only when
+    # descending, so an upward jump is not pulled back onto the roof.
+    # A small safety margin also prevents the 1.82m capsule from catching
+    # precisely at adjoining static collider edges after parachute landing.
+    floor_snap_length=0.28
+    safe_margin=0.015
 
     var capsule := CollisionShape3D.new()
     capsule.name = "CapsuleCollider"
@@ -735,6 +744,9 @@ func _air_step(delta: float) -> void:
     if first_canopy_step:
         FLIGHT_DIAGNOSTICS.checkpoint("active","parachute",self,"operator_before_move_and_slide",
             "fall_speed="+str(snappedf(velocity.y,0.01)))
+    # move_and_slide() resolves vertical velocity to zero on contact, so
+    # capture the real descent speed BEFORE the collision solver runs.
+    var touchdown_speed_before_collision: float=velocity.y
     move_and_slide()
     if first_freefall_step:
         FLIGHT_DIAGNOSTICS.checkpoint("active","freefall",self,"freefall_tick_after_move_and_slide",
@@ -774,6 +786,9 @@ func _air_step(delta: float) -> void:
             _queued_air_phase=air_mode
             call_deferred("_commit_air_clip",clip,air_mode,first_animation,first_canopy_step)
     if is_on_floor():
+        # Touchdown previously discarded the entire landing state. Preserve
+        # the genuine surface impact so Lila plays AuroraLand and the landing
+        # sound fires once, including a touchdown on a coastal roof.
         air_mode="ground"
         _queued_air_clip=""
         _queued_air_phase=""
@@ -781,6 +796,10 @@ func _air_step(delta: float) -> void:
         if _parachute_visual:
             _parachute_visual.visible=false
         _current_clip=""
+        if touchdown_speed_before_collision < -2.0:
+            _landing_seconds=.28
+            if touchdown_speed_before_collision < -4.5:
+                grounded_impact.emit(_on_stone_footing())
         landed_from_airdrop.emit()
 
 
@@ -888,7 +907,7 @@ func receive_training_hit(amount: float, environmental: bool=false,
             player_eliminated.emit()
             return
         training_knockouts+=1
-        training_health=100.0
+        training_health=MAX_HEALTH
         _training_immunity=3.0
         velocity=Vector3.ZERO
         global_position=respawn_point
@@ -984,7 +1003,7 @@ func begin_sector_battle(from_airdrop: bool=false) -> void:
     round_finished=false
     battle_royale_active = true
     royale_eliminated = false
-    training_health = 100.0
+    training_health = MAX_HEALTH
     armor_points=0.0
     vest_level=0
     helmet_level=0
@@ -1013,7 +1032,7 @@ func receive_training_heal(amount: float) -> void:
         return
     if amount<=0:
         return
-    training_health=minf(100.0,training_health+amount)
+    training_health=minf(MAX_HEALTH,training_health+amount)
     training_health_changed.emit(training_health)
 
 

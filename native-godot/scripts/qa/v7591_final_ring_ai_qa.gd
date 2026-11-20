@@ -54,6 +54,9 @@ func _verify() -> void:
         "real 50-person battle missing at final-zone simulation")
 
     var fighter: CharacterBody3D=combat._targets[8]
+    # Force this one manual fixture tick past the independent mobile
+    # three-frame LOD scheduler; leave production LOD implementation intact.
+    fighter.distance_lod=false
     var previous_navigation: Node3D=fighter.navigation
     fighter.navigation=null
     fighter._sense_clock=80.0

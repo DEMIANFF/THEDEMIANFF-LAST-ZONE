@@ -16,6 +16,8 @@ const LOBBY_MOTION_CLIP: StringName=&"aurora_lobby/Motion"
 const MALE_PREVIEW=preload("res://scripts/player/aurora_mixamo_male_preview.gd")
 const LOCAL_PLAYER_NAME=preload("res://scripts/persistence/local_player_name.gd")
 const FIREBASE_BRIDGE=preload("res://scripts/persistence/aurora_firebase_bridge.gd")
+const WEAPON_CATALOG=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
@@ -68,6 +70,8 @@ var _primary: Button
 var _selected_tab: String = "JUGAR"
 var _preview_container: SubViewportContainer
 var _preview_avatar: Node3D
+var _preview_weapon: Node3D
+var _preview_weapon_slot: int=-1
 var _preview_caption: Label
 var _gesture_button: Button
 var _operator_controls: Array[Button]=[]
@@ -132,6 +136,14 @@ var _shop_selector: OptionButton
 var _shop_buy_button: Button
 var _shop_equip_button: Button
 var _shop_selected_skin: String="aurora_glacier"
+var _armory_list: ItemList
+var _armory_selected_slot: int=0
+# A lobby catalogue choice changes the actual training armory order only.
+# Never grant an uncollected BR weapon or persist a fictitious entitlement.
+var _requested_training_weapon_slot: int=-1
+var _armory_test_button: Button
+var _equipment_selector: OptionButton
+var _equipment_selected: int=0
 var _banner: Label
 var _game_scene: PackedScene
 var _loading_overlay: ColorRect
@@ -226,12 +238,15 @@ func _process(delta: float) -> void:
         return
     # Keep the real CC0 rig animated and turnable, without any extra 3D
     # viewport allocations. The full preview is freed before match creation.
-    if stage!="lobby" or _preview_avatar==null or not             is_instance_valid(_preview_avatar):
+    if stage!="lobby":
+        return
+    var subject: Node3D=(_preview_weapon if _selected_tab=="ARMAS" and
+        is_instance_valid(_preview_weapon) else _preview_avatar)
+    if subject==null or not is_instance_valid(subject):
         return
     _preview_resume_spin=maxf(0.0,_preview_resume_spin-delta)
     if _preview_resume_spin<=0.0 and _preview_touch<0 and not _preview_mouse_drag:
-        _preview_avatar.rotation.y=wrapf(
-            _preview_avatar.rotation.y+delta*.18,-PI,PI)
+        subject.rotation.y=wrapf(subject.rotation.y+delta*.18,-PI,PI)
 
 
 func _exit_tree() -> void:
@@ -240,6 +255,10 @@ func _exit_tree() -> void:
 
 func _preview_input(event: InputEvent) -> void:
     if stage!="lobby" or _preview_avatar==null:
+        return
+    var subject: Node3D=(_preview_weapon if _selected_tab=="ARMAS" and
+        is_instance_valid(_preview_weapon) else _preview_avatar)
+    if subject==null:
         return
     if event is InputEventScreenTouch:
         var touch:=event as InputEventScreenTouch
@@ -254,8 +273,8 @@ func _preview_input(event: InputEvent) -> void:
     elif event is InputEventScreenDrag:
         var drag:=event as InputEventScreenDrag
         if drag.index==_preview_touch:
-            _preview_avatar.rotation.y=wrapf(
-                _preview_avatar.rotation.y+drag.relative.x*.008,-PI,PI)
+            subject.rotation.y=wrapf(
+                subject.rotation.y+drag.relative.x*.008,-PI,PI)
             _preview_drag_last=drag.position
             _preview_resume_spin=2.2
             _preview_container.accept_event()
@@ -268,8 +287,8 @@ func _preview_input(event: InputEvent) -> void:
             _preview_container.accept_event()
     elif event is InputEventMouseMotion and _preview_mouse_drag:
         var motion:=event as InputEventMouseMotion
-        _preview_avatar.rotation.y=wrapf(
-            _preview_avatar.rotation.y+motion.relative.x*.008,-PI,PI)
+        subject.rotation.y=wrapf(
+            subject.rotation.y+motion.relative.x*.008,-PI,PI)
         _preview_drag_last=motion.position
         _preview_resume_spin=2.2
         _preview_container.accept_event()
@@ -1201,6 +1220,38 @@ func _show_lobby() -> void:
     _shop_equip_button.custom_minimum_size.y=33
     _shop_equip_button.add_theme_font_size_override("font_size",13)
     _page.add_child(_shop_equip_button)
+    # A real, scrollable weapon catalog replaces the old 2-weapon text card.
+    # Imported GLBs and their ballistic entries remain the single source
+    # of truth: never show an unavailable private model as installed.
+    _armory_list=ItemList.new()
+    _armory_list.name="AuroraWeaponCatalogList"
+    _armory_list.custom_minimum_size=Vector2(245,118)
+    _armory_list.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _armory_list.select_mode=ItemList.SELECT_SINGLE
+    for slot in range(WEAPON_CATALOG.ENTRIES.size()):
+        var weapon: Dictionary=WEAPON_CATALOG.ENTRIES[slot]
+        var model: String=str(weapon.get("asset",""))
+        var available: bool=model.is_empty() or ResourceLoader.exists(model,"PackedScene")
+        _armory_list.add_item(str(weapon["short"])+(
+            "  · MODELO LISTO" if available else "  · GLB PENDIENTE"))
+    _armory_list.select(_armory_selected_slot)
+    _armory_list.item_selected.connect(_on_armory_slot_selected)
+    _page.add_child(_armory_list)
+    _armory_test_button=_button("PROBAR EN ENTRENAMIENTO",_open_weapon_training,245)
+    _armory_test_button.name="AuroraWeaponTrainingEntry"
+    _armory_test_button.custom_minimum_size.y=32
+    _armory_test_button.add_theme_font_size_override("font_size",13)
+    _page.add_child(_armory_test_button)
+    # Armor and supplies are acquired during a match, never silently owned
+    # merely because the player opened the local lobby.
+    _equipment_selector=OptionButton.new()
+    _equipment_selector.name="AuroraEquipmentCatalog"
+    _equipment_selector.custom_minimum_size=Vector2(245,35)
+    for item in ["MOCHILA","CASCO","CHALECO","BOTIQUÍN","GRANADA"]:
+        _equipment_selector.add_item(item)
+    _equipment_selector.select(_equipment_selected)
+    _equipment_selector.item_selected.connect(_on_equipment_selected)
+    _page.add_child(_equipment_selector)
     # Long account and match history text remains reachable on small screens.
     _lobby_detail_scroll=ScrollContainer.new()
     _lobby_detail_scroll.name="LobbyDetailsScroll"
@@ -1420,6 +1471,9 @@ func _sync_lobby_match_mode() -> void:
     _shop_selector.visible=_selected_tab in ["TIENDA","PERSONAJE"]
     _shop_buy_button.visible=_selected_tab=="TIENDA"
     _shop_equip_button.visible=_selected_tab=="TIENDA"
+    _armory_list.visible=_selected_tab=="ARMAS"
+    _armory_test_button.visible=_selected_tab=="ARMAS"
+    _equipment_selector.visible=_selected_tab=="INVENTARIO"
     _lobby_mode_status.visible=show_modes and _selected_match_mode=="ranked"
     _lobby_detail_scroll.visible=not show_modes and _selected_tab not in ["AJUSTES","PRESET"]
     match _selected_match_mode:
@@ -1887,9 +1941,9 @@ func _select_tab(tab: String) -> void:
                         str(measured.get("render_driver","unknown")).to_upper(),
                         float(measured.get("quality_scale",1.0))*100.0]
         "INVENTARIO":
-            _info.text="INVENTARIO EN PARTIDA\nArmas, munición, casco y botiquines se recogen físicamente en el Battle Royale.\nTu equipo se consulta desde el HUD del combate.\nNo hay compras ni objetos permanentes inventados."
+            _update_equipment_details()
         "ARMAS":
-            _info.text="ARSENAL ACTIVO\nAR-7: mira x2 / x4.\nAWM: mira x8 y cerrojo automático.\nBR: AWM sobre el suelo, en la PLAZA (8, 24).\nENTRENAMIENTO: pulsa ARMA para probarla."
+            _update_armory_details()
         "OBJETIVOS":
             _update_objective_details()
         "LUCK":
@@ -1920,6 +1974,7 @@ func _select_tab(tab: String) -> void:
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()
+    _sync_armory_visual()
     # Real 3D cosmetics are previewed only in the shop/character screens.
     # Leaving both restores the equipped outfit; no purchase is performed.
     if _offline_records!=null and _preview_avatar!=null and (
@@ -1927,6 +1982,202 @@ func _select_tab(tab: String) -> void:
         var shown: String=(_shop_selected_skin if tab in ["TIENDA","PERSONAJE"] else
             str(_offline_records.cosmetic_state()["equipped"]))
         _apply_preview_skin(shown)
+
+func _on_armory_slot_selected(slot: int) -> void:
+    _armory_selected_slot=clampi(slot,0,WEAPON_CATALOG.ENTRIES.size()-1)
+    if stage=="lobby" and _selected_tab=="ARMAS":
+        _update_armory_details()
+        _sync_armory_visual()
+
+
+## Reuse the existing Aurora 3D SubViewport instead of allocating a
+## separate renderer for the armory. Show only genuine imported weapon GLBs.
+## Missing licensed sources remain unavailable: never substitute a fake model.
+func _armory_model_path(slot: int) -> String:
+    if slot==WEAPON_CATALOG.AR:
+        return WEAPON_VISUALS.AK_PATH
+    if slot==WEAPON_CATALOG.AWM:
+        return WEAPON_VISUALS.AWM_PATH
+    if slot>=0 and slot<WEAPON_CATALOG.ENTRIES.size():
+        return str(WEAPON_CATALOG.ENTRIES[slot].get("asset",""))
+    return ""
+
+
+func _clear_weapon_preview() -> void:
+    if _preview_weapon!=null and is_instance_valid(_preview_weapon):
+        if _preview_weapon.get_parent()!=null:
+            _preview_weapon.get_parent().remove_child(_preview_weapon)
+        _preview_weapon.queue_free()
+    _preview_weapon=null
+    _preview_weapon_slot=-1
+
+
+func _sync_armory_visual() -> void:
+    if stage!="lobby" or _preview_container==null or not is_instance_valid(
+            _preview_container):
+        return
+    var in_armory: bool=_selected_tab=="ARMAS"
+    if not in_armory:
+        _clear_weapon_preview()
+        if _preview_avatar!=null and is_instance_valid(_preview_avatar):
+            _preview_avatar.visible=true
+        if _preview_caption!=null and is_instance_valid(_preview_caption):
+            _preview_caption.text=("CH02 MIXAMO / VISTA PREVIA" if
+                _preview_male_active else "LILA AURORA / OPERADORA")
+        if _gesture_button!=null and is_instance_valid(_gesture_button):
+            _gesture_button.visible=true
+        for action in _operator_controls:
+            if is_instance_valid(action):
+                action.visible=true
+        return
+    # In ARMAS the center of the 3D stage belongs to the selected rifle;
+    # Lila and her gesture controls return when navigating to another tab.
+    if _gesture_button!=null and is_instance_valid(_gesture_button):
+        _gesture_button.visible=false
+    for action in _operator_controls:
+        if is_instance_valid(action):
+            action.visible=false
+    if (_preview_weapon_slot==_armory_selected_slot and
+            _preview_weapon!=null and is_instance_valid(_preview_weapon)):
+        return
+    _clear_weapon_preview()
+    var spec: Dictionary=WEAPON_CATALOG.ENTRIES[_armory_selected_slot]
+    var path: String=_armory_model_path(_armory_selected_slot)
+    if path.is_empty() or not ResourceLoader.exists(path,"PackedScene"):
+        if _preview_avatar!=null and is_instance_valid(_preview_avatar):
+            _preview_avatar.visible=true
+        if _preview_caption!=null:
+            _preview_caption.text="MODELO 3D PENDIENTE / "+str(spec["short"])
+        return
+    var source: PackedScene=load(path) as PackedScene
+    if source==null:
+        return
+    var stage3d: Node3D=_preview_container.get_node_or_null(
+        "PreviewViewport/AuroraCharacterStage") as Node3D
+    if stage3d==null:
+        return
+    var pivot:=Node3D.new()
+    pivot.name="AuroraSelectedWeaponPreview"
+    pivot.position=Vector3(0,.98,.12)
+    stage3d.add_child(pivot)
+    var visual: Node3D=source.instantiate() as Node3D
+    if visual==null:
+        pivot.queue_free()
+        return
+    visual.name="SelectedOriginalWeaponGLB"
+    pivot.add_child(visual)
+    var low:=Vector3(INF,INF,INF)
+    var high:=Vector3(-INF,-INF,-INF)
+    var meshes: int=0
+    for node in visual.find_children("*","MeshInstance3D",true,false):
+        var part: MeshInstance3D=node as MeshInstance3D
+        if part.mesh==null:
+            continue
+        meshes+=1
+        part.layers|=PORTRAIT_LIGHT_LAYER
+        var bounds: AABB=part.get_aabb()
+        for corner in range(8):
+            var point: Vector3=visual.to_local(part.to_global(
+                bounds.get_endpoint(corner)))
+            low=low.min(point)
+            high=high.max(point)
+    var extent: Vector3=high-low
+    var length: float=maxf(extent.x,maxf(extent.y,extent.z))
+    if meshes==0 or not extent.is_finite() or not is_finite(length) or length<=.0001:
+        pivot.queue_free()
+        if _preview_caption!=null:
+            _preview_caption.text="GEOMETRÍA NO DISPONIBLE / "+str(spec["short"])
+        return
+    # The old longest-axis correction left the SCAR side-on/flat against
+    # the hangar. First orient the source rifle along horizontal showroom X,
+    # then apply a fixed three-quarter hero angle and small upward cant.
+    # The same display pose is used for AWM/SCAR/MP40 without touching their
+    # real held-gun axes, physics, rigs or file formats.
+    var source_to_horizontal: Quaternion=Quaternion.IDENTITY
+    if extent.y>=extent.x and extent.y>=extent.z:
+        source_to_horizontal=Quaternion(Vector3.BACK,-PI*.5)
+    elif extent.z>=extent.x:
+        source_to_horizontal=Quaternion(Vector3.UP,PI*.5)
+    var hero_yaw: float=deg_to_rad(-24.0)
+    var hero_bank: float=deg_to_rad(10.0)
+    visual.quaternion=(Quaternion(Vector3.UP,hero_yaw)*
+        Quaternion(Vector3.BACK,hero_bank)*source_to_horizontal)
+    var scale_factor: float=clampf(1.80/length,.00001,100.0)
+    var source_center: Vector3=(low+high)*.5
+    visual.scale=Vector3.ONE*scale_factor
+    visual.position=-(visual.quaternion*source_center)*scale_factor
+    _preview_weapon=pivot
+    _preview_weapon_slot=_armory_selected_slot
+    if _preview_avatar!=null and is_instance_valid(_preview_avatar):
+        _preview_avatar.visible=false
+    if _preview_caption!=null:
+        _preview_caption.text=str(spec["short"])+"  ·  VISTA 3D 360°"
+    _preview_resume_spin=1.0
+
+
+func _update_armory_details() -> void:
+    if _info==null:
+        return
+    var weapon: Dictionary=WEAPON_CATALOG.ENTRIES[_armory_selected_slot]
+    var model: String=str(weapon.get("asset",""))
+    var available: bool=model.is_empty() or ResourceLoader.exists(model,"PackedScene")
+    if _armory_test_button!=null:
+        _armory_test_button.disabled=not available
+        _armory_test_button.tooltip_text=(
+            "La selección aparecerá al comienzo de la armería física." if available else
+            "Modelo 3D no instalado: prueba deshabilitada hasta importar el GLB.")
+    var magazine: String="CUCHILLO · SIN MUNICIÓN" if bool(weapon.get("melee",false)) else (
+        "CARGADOR: %d"%int(weapon["capacity"]))
+    _info.text="CATÁLOGO DE ARMAS  ·  %d / %d\n%s\n%s · DAÑO %.0f · RECARGA %.2f S\n%s\n"%[
+        _armory_selected_slot+1,WEAPON_CATALOG.ENTRIES.size(),
+        str(weapon["label"]),magazine,float(weapon["damage"]),
+        float(weapon["reload"]),
+        "MODELO DISPONIBLE EN LA INSTALACIÓN" if available else
+        "MODELO 3D PENDIENTE DE RECURSO AUTORIZADO"]
+    # AWM exists as a physical local BR pickup, independent of whether an
+    # optional training model has been imported. Keep its map position
+    # discoverable no matter which catalog entry the user is browsing.
+    _info.text+="\nAWM EN BR LOCAL: PLAZA (8, 24). Busca la baliza RECOGER AWM.\n"
+    _info.text+=("PRUEBA: tu selección aparece primero en la armería física de Entrenamiento.\n"+
+        "Debes recogerla; el catálogo no concede armas ni desbloqueos." if available else
+        "\nSIN MODELO INSTALADO: esta arma requiere su GLB autorizado antes de poder probarla.")
+
+
+func _open_weapon_training() -> void:
+    if stage!="lobby" or _selected_tab!="ARMAS":
+        return
+    var selected: Dictionary=WEAPON_CATALOG.ENTRIES[_armory_selected_slot]
+    var asset: String=str(selected.get("asset",""))
+    if not asset.is_empty() and not ResourceLoader.exists(asset,"PackedScene"):
+        _update_armory_details()
+        return
+    _requested_training_weapon_slot=_armory_selected_slot
+    _selected_match_mode="training"
+    _launch(false)
+
+
+func _on_equipment_selected(index: int) -> void:
+    _equipment_selected=clampi(index,0,4)
+    if stage=="lobby" and _selected_tab=="INVENTARIO":
+        _update_equipment_details()
+
+
+func _update_equipment_details() -> void:
+    if _info==null:
+        return
+    var summaries: Array[String]=[
+        "MOCHILA · niveles 1–3. Aumenta la capacidad real de munición.",
+        "CASCO · niveles 1–3. Protección obtenida mediante botín.",
+        "CHALECO · niveles 1–3. Absorbe daño y se equipa en partida.",
+        "BOTIQUÍN · restaura salud al usarlo en combate.",
+        "GRANADA · consumible arrojadizo; requiere recogerse en partida."
+    ]
+    _info.text="INVENTARIO EN PARTIDA · EQUIPAMIENTO  ·  %d / %d\n%s\n\n"%[
+        _equipment_selected+1,summaries.size(),summaries[_equipment_selected]]
+    _info.text+=("Este catálogo explica objetos del Battle Royale. El inventario "+
+        "real y el equipo disponible se consultan en el HUD durante cada partida; "+
+        "abrir esta sección no otorga objetos ni inventa compras.")
+
 
 func _apply_preview_skin(skin: String) -> void:
     if stage!="lobby" or _preview_avatar==null or not (
@@ -2153,6 +2404,9 @@ func _activate_game(battle: bool,serial: int) -> void:
     hud.leave_to_lobby_requested.connect(_return_to_lobby)
     hud.connect("settings_requested",_open_settings)
     hud.connect("hud_editor_closed",_on_lobby_hud_editor_closed)
+    # The real HUD editor can be hosted in a temporary Training scene.
+    # Persisting a lobby-origin edit must return to the lobby automatically.
+    hud.set("return_to_lobby_on_save",_hud_editor_requested and _hud_editor_origin=="lobby")
     visible=false
     stage="battle" if battle else "training"
     if battle:
@@ -2170,7 +2424,9 @@ func _activate_game(battle: bool,serial: int) -> void:
             # Main._ready and the old 3D lobby viewport have been released.
             hud.call_deferred("open_hud_editor")
         else:
-            _game.get_node("CombatRange").open_training_armory()
+            var combat: Node3D=_game.get_node("CombatRange")
+            combat.open_training_armory(_requested_training_weapon_slot)
+            _requested_training_weapon_slot=-1
     # This confirmation is written after a visible 3D frame, not after
     # merely enqueuing the world. A missing confirmation is not a GPU proof.
     # Headless QA never submits drawable frames; a stale one-shot callback
@@ -2217,10 +2473,12 @@ func _return_to_lobby() -> void:
         old.queue_free()
     _hud_editor_requested=false
     _hud_editor_origin=""
+    _requested_training_weapon_slot=-1
     _show_lobby()
 
 
 func _release_preview() -> void:
+    _clear_weapon_preview()
     # A hidden SubViewport still retains its render target and imported
     # skinned rig. Queue-free it on logout AND before 3D match creation.
     if _preview_container!=null and is_instance_valid(_preview_container):

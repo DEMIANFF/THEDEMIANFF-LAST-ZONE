@@ -1,8 +1,8 @@
 extends StaticBody3D
 ## Irregular continuous archipelago elevation. Not a cube, grid of houses or square island.
-const CELLS: int = 96
+const CELLS: int = 144
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
-const HALF_EXTENT: float = 225.0
+const HALF_EXTENT: float = 337.5
 const HEIGHT_STEP: float = (HALF_EXTENT * 2.0) / float(CELLS)
 
 var sea_level: float = -2.8
@@ -19,6 +19,45 @@ func _init() -> void:
     for iz in range(CELLS+1):
         for ix in range(CELLS+1):
             _height_samples.append(_elevation(-HALF_EXTENT+ix*HEIGHT_STEP,-HALF_EXTENT+iz*HEIGHT_STEP))
+    # Smooth only the transition band of the eight coastal plots on the
+    # ACTUAL sampled heightfield. Analytic easing alone can still leave sharp
+    # triangular edges once noisy wilderness is sampled at 4.6875 m.
+    # Flat house foundations, original town and distant mountains stay fixed.
+    _smooth_residential_transition_samples()
+
+
+func _smooth_residential_transition_samples() -> void:
+    var side: int=CELLS+1
+    var editable:=PackedByteArray()
+    editable.resize(_height_samples.size())
+    for iz in range(1,CELLS):
+        for ix in range(1,CELLS):
+            var x: float=-HALF_EXTENT+float(ix)*HEIGHT_STEP
+            var z: float=-HALF_EXTENT+float(iz)*HEIGHT_STEP
+            var weight: float=RESIDENTIAL.grading_weight(x,z)
+            var historic: Dictionary=legacy_grading_weight(x,z)
+            # Never smooth the physical floor of a historic house. The
+            # coastal transition partially overlaps PUESTO_VORTEX and used
+            # to lift its last row of floor triangles into the building.
+            # Keep the new villa pads and distant wilderness unchanged.
+            if weight>.32 and weight<.995 and float(historic["weight"])<.995:
+                editable[iz*side+ix]=1
+    # Conservative, deterministic 4-neighbor relaxation along the approach
+    # shoulders. Eight light passes remove noise-driven ridges while retaining
+    # relief, avoiding a giant new flat platform around the coastal district.
+    for iteration in range(8):
+        var revised: PackedFloat32Array=_height_samples.duplicate()
+        for iz in range(1,CELLS):
+            for ix in range(1,CELLS):
+                var index: int=iz*side+ix
+                if editable[index]==0:
+                    continue
+                var original: float=_height_samples[index]
+                var average: float=(
+                    _height_samples[index-1]+_height_samples[index+1]+
+                    _height_samples[index-side]+_height_samples[index+side])*.25
+                revised[index]=lerpf(original,average,.45)
+        _height_samples=revised
 
 
 func height_at(x: float, z: float) -> float:
@@ -59,18 +98,21 @@ func _smooth_ramp(at: float, low: float, high: float) -> float:
 
 
 func _coastal_shelf_weight(x: float,z: float) -> float:
-    # Only the new eastern coastal residential strip. The old exploration
-    # sector and its corner approach stay on their proven V75.6 heightfield.
+    # Grade the eastern coastal neighborhood through a broad, natural ramp.
+    # Previously the shelf ended within 12-25m and its legacy-lot protection
+    # snapped from 0 to 1 in just 3m, creating unwalkable cliffs and ditches.
+    # The old homes remain protected: their centers keep wilderness elevation,
+    # while distant hills are deliberately left untouched.
     var south_end: float=lerpf(18.0,8.5,
         clampf((x-20.0)/25.0,0.0,1.0))
-    var south: float=_smooth_ramp(z,south_end-12.0,south_end)
-    var west: float=_smooth_ramp(x,-35.0,-16.0)
-    var east: float=1.0-_smooth_ramp(x,81.0,106.0)
-    var north: float=1.0-_smooth_ramp(z,76.0,107.0)
+    var south: float=_smooth_ramp(z,south_end-27.0,south_end)
+    var west: float=_smooth_ramp(x,-58.0,-16.0)
+    var east: float=1.0-_smooth_ramp(x,81.0,123.0)
+    var north: float=1.0-_smooth_ramp(z,76.0,132.0)
     var protection: float=1.0
     for center in LEGACY_CENTERS:
         # The old walls, 8-m door approaches and graph loops are not graded.
-        protection*= _smooth_ramp(Vector2(x,z).distance_to(center),25.0,28.0)
+        protection*= _smooth_ramp(Vector2(x,z).distance_to(center),25.0,53.0)
     return south*west*east*north*protection
 
 
@@ -78,7 +120,14 @@ func _wilderness_height(x: float, z: float) -> float:
     var main := 1.0 - Vector2(x * 0.92, z * 1.11).length() / 173.0
     var bay := 1.0 - Vector2((x - 121.0) * 1.22, z + 52.0).length() / 70.0
     var sanctuary := 1.0 - Vector2(x + 113.0, (z - 102.0) * 1.18).length() / 68.0
-    var shape: float = maxf(main, maxf(bay, sanctuary))
+    # Four outer peninsulas overlap the old island, forming true new land.
+    var east_frontier: float=1.0-Vector2((x-197.0)/96.0,(z-23.0)/103.0).length()
+    var south_frontier: float=1.0-Vector2((x+15.0)/101.0,(z+198.0)/122.0).length()
+    var west_frontier: float=1.0-Vector2((x+194.0)/100.0,(z-65.0)/94.0).length()
+    var north_frontier: float=1.0-Vector2((x-5.0)/88.0,(z-208.0)/115.0).length()
+    var shape: float=maxf(main,maxf(bay,maxf(sanctuary,
+        maxf(east_frontier,maxf(south_frontier,maxf(west_frontier,
+        north_frontier))))))
     var coast: float = shape + _noise.get_noise_2d(x * 1.45, z * 1.45) * 0.18
     var elevation: float = pow(maxf(coast, 0.0), 1.65) * 21.0
     var hills: float = _noise.get_noise_2d(x * 2.6 + 53.0, z * 2.6) * 5.6
@@ -110,12 +159,14 @@ func _elevation(x: float,z: float) -> float:
     var old_world: float=_wilderness_height(x,z)
     var base: float=lerpf(old_world,COAST_SHELF_ELEVATION,
         _coastal_shelf_weight(x,z))
-    # Both historic and newer houses rest on the actual terrain collider.
-    # Keep hills outside all protected residential building footprints.
-    var legacy: Dictionary=legacy_grading_weight(x,z)
-    base=lerpf(base,float(legacy["height"]),float(legacy["weight"]))
+    # The new coast grading can overlap a protected historic house.
+    # Grade new villa approaches first, then let old interior foundations
+    # take final precedence. The historic rooms must never be lifted by
+    # the newer terraces, even at their shared transition shoulders.
     var residential: float=RESIDENTIAL.grading_weight(x,z)
-    return lerpf(base,RESIDENTIAL.PAD_HEIGHT,residential)
+    base=lerpf(base,RESIDENTIAL.PAD_HEIGHT,residential)
+    var legacy: Dictionary=legacy_grading_weight(x,z)
+    return lerpf(base,float(legacy["height"]),float(legacy["weight"]))
 
 
 func residential_pad_height(x: float,z: float) -> float:

@@ -35,11 +35,21 @@ const HEAL_MOVE_TOLERANCE_SQ: float=.16
 const AR_RELOAD_SECONDS: float=1.55
 const AWM_RELOAD_SECONDS: float=3.10
 const BOT = preload("res://scripts/ai/aurora_bot.gd")
+const PLAYER_HEALTH=preload("res://scripts/player/third_person_operator.gd")
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const WEAPON_VISUALS = preload("res://scripts/combat/weapon_visuals.gd")
 const MEDKIT_VISUAL = preload("res://scripts/player/aurora_medkit_visual.gd")
 const COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const BOT_LOADOUTS: Array[int]=[WEAPONS.AR,WEAPONS.SCAR,WEAPONS.MP40,
+    WEAPONS.KRISS,WEAPONS.AWM,WEAPONS.HK416,WEAPONS.P90,WEAPONS.VSS]
+# Five metres inside the actual 245m starting circle, never beyond it.
+# Four designated wide-island rivals fall to walkable frontier sectors.
+const BR_SPAWN_RADIUS: float=240.0
+const FRONTIER_SPAWN_INDICES: Array[int]=[8,20,32,48]
+const FRONTIER_SPAWN_SITES: Array[Vector2]=[
+    Vector2(5,208),Vector2(197,23),
+    Vector2(-194,65),Vector2(-15,-198)]
 const TRAINING_ARMORY=preload("res://scripts/match/training_armory.gd")
 var _training_armory: Node3D
 
@@ -301,7 +311,7 @@ func _on_heal(syringe: bool=false) -> void:
     if (syringes_remaining if syringe else medkits_remaining)<=0:
         hud.impact("SIN JERINGAS" if syringe else "SIN BOTIQUINES")
         return
-    if operator.training_health>=99.5:
+    if operator.training_health>=PLAYER_HEALTH.MAX_HEALTH-.5:
         hud.impact("SALUD COMPLETA")
         return
     if (trigger_held or reload_timer>0.0 or operator._sprint_touch or
@@ -348,7 +358,7 @@ func _complete_healing() -> void:
     _heal_remaining=0.0
     _set_medical_presentation(false)
     hud.set_heal_channel(false,0.0,HEAL_APPLY_SECONDS,medkits_remaining)
-    if not operator.can_act() or operator.training_health>=99.5 or (
+    if not operator.can_act() or operator.training_health>=PLAYER_HEALTH.MAX_HEALTH-.5 or (
             (syringes_remaining if syringe else medkits_remaining)<=0):
         return
     if syringe:
@@ -815,10 +825,12 @@ func end_sector_battle() -> void:
     operator.set_firing(false)
     for bot in _targets:
         if is_instance_valid(bot):
+            bot._clear_owned_covers()
+            bot.cancel_real_airdrop()
             bot.set_physics_process(false)
 
 
-func begin_sector_battle() -> void:
+func begin_sector_battle(from_real_airdrop: bool=false) -> void:
     _close_training_armory()
     _cancel_healing()
     _cancel_awm_bolt()
@@ -859,10 +871,10 @@ func begin_sector_battle() -> void:
     loot_collected=0
     opponent_caches_collected=0
     _ensure_encounter_capacity()
-    _protect_player_landing_from_spawn_overlap()
+    _protect_player_landing_from_spawn_overlap(from_real_airdrop)
     for bot in _targets:
         if is_instance_valid(bot):
-            bot.configure_sector_battle(_targets)
+            bot.configure_sector_battle(_targets,from_real_airdrop)
     if _weapon_visuals:
         _weapon_visuals.clear_expansion()
         _weapon_visuals.set_awm_owned(weapon_owned[1])
@@ -885,7 +897,7 @@ func set_encounter_size(size: int) -> void:
 
 
 func _is_clear_spawn(at: Vector2) -> bool:
-    if at.distance_to(Vector2(0,-24))>102.0:
+    if at.distance_to(Vector2(0,-24))>BR_SPAWN_RADIUS:
         return false
     var sea: float=float(terrain.get("sea_level"))
     var floor_y: float=float(terrain.call("height_at",at.x,at.y))
@@ -918,10 +930,20 @@ func _encounter_spawn(index: int) -> Vector2:
     # Offline match: each physical combatant starts on distinct walkable
     # terrain. Low-discrepancy angular sampling covers inner/outer sectors
     # without piling 49 rivals around one fixed fallback coordinate.
+    var frontier_index: int=FRONTIER_SPAWN_INDICES.find(index)
+    if frontier_index>=0:
+        var site: Vector2=FRONTIER_SPAWN_SITES[frontier_index]
+        for attempt in range(64):
+            var near: Vector2=site
+            if attempt>0:
+                var angle: float=float(index)*.7+float(attempt)*2.3999632297
+                near+=Vector2.from_angle(angle)*(1.5+float(attempt%7))
+            if _spawn_has_clearance(near):
+                return near
     var base: float=float(index)*2.3999632297
     for attempt in range(128):
         var angle: float=base+float(attempt)*.61803398875
-        var radius: float=22.0+float((index*17+attempt*11)%75)
+        var radius: float=28.0+float((index*17+attempt*11)%206)
         var at:=Vector2(sin(angle),cos(angle))*radius+Vector2(0,-24)
         if _spawn_has_clearance(at):
             return at
@@ -929,7 +951,7 @@ func _encounter_spawn(index: int) -> Vector2:
     # houses, rocks or steep slopes; NEVER blindly stack at (33,-10).
     for attempt in range(400):
         var phase: float=base+float(attempt)*2.3999632297
-        var radius: float=16.0+float((index*29+attempt*31)%81)
+        var radius: float=16.0+float((index*29+attempt*31)%219)
         var at:=Vector2(cos(phase),sin(phase))*radius+Vector2(0,-24)
         if _spawn_has_clearance(at):
             return at
@@ -944,7 +966,7 @@ func _encounter_spawn(index: int) -> Vector2:
 ## reposition rivals during round initialization, before they become
 ## combat-active, using the original terrain and collision constraints.
 ## Training and internal small-roster QA retain their historic placements.
-func _protect_player_landing_from_spawn_overlap() -> void:
+func _protect_player_landing_from_spawn_overlap(preserve_airdrop: bool=false) -> void:
     if (encounter_size!=CLASSIC_BR_PARTICIPANTS or
             not is_instance_valid(operator) or
             not operator.global_position.is_finite()):
@@ -961,7 +983,10 @@ func _protect_player_landing_from_spawn_overlap() -> void:
             push_error("Aurora no clear BR enemy position away from actual landing "+
                 str(i))
             continue
-        bot.set_match_spawn(at)
+        if preserve_airdrop and bot._airdrop_stage!="inactive":
+            bot.retarget_real_airdrop(at)
+        else:
+            bot.set_match_spawn(at)
 
 
 func _find_clear_away_from_landing(index: int,landing: Vector2) -> Vector2:
@@ -969,7 +994,7 @@ func _find_clear_away_from_landing(index: int,landing: Vector2) -> Vector2:
     var origin: Vector2=Vector2(0.0,-24.0)
     for attempt in range(512):
         var angle: float=base_angle+float(attempt)*.61803398875
-        var distance: float=21.0+float((index*17+attempt*29)%77)
+        var distance: float=21.0+float((index*17+attempt*29)%214)
         var at: Vector2=origin+Vector2.from_angle(angle)*distance
         if (at.distance_squared_to(landing)>=
                 PLAYER_LANDING_CLEARANCE*PLAYER_LANDING_CLEARANCE and
@@ -978,12 +1003,14 @@ func _find_clear_away_from_landing(index: int,landing: Vector2) -> Vector2:
     return Vector2(INF,INF)
 
 
-func _ensure_encounter_capacity() -> void:
+func _ensure_encounter_capacity(batch_limit: int=49) -> void:
     var original: Array[Vector2]=[
         Vector2(-47,-10),Vector2(55,-17),Vector2(26,-55),
         Vector2(-35,-48)]
     var needed: int=clampi(encounter_size-1,8,49)
-    while _targets.size()<needed:
+    var added: int=0
+    while _targets.size()<needed and added<batch_limit:
+        added+=1
         var i: int=_targets.size()
         var bot: CharacterBody3D=BOT.new()
         bot.name="AuroraPatrol"+str(i+1)
@@ -994,6 +1021,13 @@ func _ensure_encounter_capacity() -> void:
         # Additional bots are real damageable physics agents with distance
         # LOD (the full rig is loaded when within 39m, unloaded beyond 55m).
         bot.set("distance_lod",i>=8)
+        if i>=8:
+            var slot: int=BOT_LOADOUTS[(i-8)%BOT_LOADOUTS.size()]
+            var model: String=(WEAPON_VISUALS.AWM_PATH if slot==WEAPONS.AWM else
+                WEAPON_VISUALS.AK_PATH if slot==WEAPONS.AR else
+                str(WEAPONS.ENTRIES[slot].get("asset","")))
+            # No invisible unlicensed gun: fallback to the real imported AR.
+            bot.weapon_slot=slot if ResourceLoader.exists(model,"PackedScene") else WEAPONS.AR
         bot.spawn_coordinates=original[i-4] if i<8 else _encounter_spawn(i)
         bot.eliminated.connect(_on_bot_eliminated)
         bot.weapon_fired.connect(func(at: Vector3): bot_shot.emit(at))
@@ -1021,7 +1055,7 @@ func active_fighter_count() -> int:
     return count
 
 
-func open_training_armory() -> void:
+func open_training_armory(preferred_slot: int=-1) -> void:
     if sector_battle_active or is_instance_valid(_training_armory):
         return
     _training_armory=TRAINING_ARMORY.new()
@@ -1029,7 +1063,12 @@ func open_training_armory() -> void:
     _training_armory.player=operator
     _training_armory.combat=self
     _training_armory.terrain=terrain
+    _training_armory.set("preferred_weapon_slot",preferred_slot)
     add_child(_training_armory)
+    # Both baseline training guns are already owned; merely equip the
+    # selected one. Expanded weapons remain physical pickups.
+    if preferred_slot in [WEAPONS.AR,WEAPONS.AWM] and weapon_owned[preferred_slot]:
+        _equip_inventory_weapon(preferred_slot)
 
 
 func _close_training_armory() -> void:

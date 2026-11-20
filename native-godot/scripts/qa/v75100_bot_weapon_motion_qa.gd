@@ -160,7 +160,7 @@ func _verify() -> void:
         shooter.weapon_actions_shown==0 and
         shooter.reload_actions_shown==0 and
         shooter._weapon_action_remaining==0.0 and
-        shooter.health==100.0,
+        shooter.health==BOT.MAX_HEALTH,
         "new round inherited stale weapon action or damaged roster")
     game.queue_free()
     await process_frame

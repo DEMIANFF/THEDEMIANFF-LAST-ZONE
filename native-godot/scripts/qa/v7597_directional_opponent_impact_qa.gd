@@ -134,7 +134,7 @@ func _verify() -> void:
     nav.set_physics_process(false)
     for rival in combat._targets:
         rival.set_physics_process(false)
-    check(victim.health==100.0 and victim.last_hit_reaction=="" and
+    check(victim.health==BOT.MAX_HEALTH and victim.last_hit_reaction=="" and
         victim.hit_reactions_shown==0 and
         victim._impact_reaction_remaining==0.0 and
         combat.active_fighter_count()==50 and combat.eliminations==0,

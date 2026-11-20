@@ -1,4 +1,5 @@
 extends SceneTree
+const PLAYER=preload("res://scripts/player/third_person_operator.gd")
 ## V75.49: healing is an actual interruptible gameplay action, not a tap
 ## that grants instant health. Real character, HUD, combat and battle director.
 var failed: bool=false
@@ -39,7 +40,8 @@ func _verify() -> void:
 
     player.receive_training_hit(48.0,true)
     var injured: float=player.training_health
-    check(injured<60.0,"cannot test heal without real damage")
+    check(absf(injured-(PLAYER.MAX_HEALTH-48.0))<.01,
+        "environmental hit did not remove 48 real HP from 200")
 
     combat._on_heal()
     check(combat._heal_remaining==combat.HEAL_APPLY_SECONDS and
@@ -79,7 +81,7 @@ func _verify() -> void:
         "first aid should release ADS without destroying camera state")
     combat._process(combat.HEAL_APPLY_SECONDS+.1)
     check(combat._heal_remaining==0.0 and combat.medkits_remaining==1 and
-        absf(player.training_health-minf(100.0,injured_again+45.0))<.01,
+        absf(player.training_health-minf(PLAYER.MAX_HEALTH,injured_again+45.0))<.01,
         "completed heal did not restore exactly 45 HP and use one medkit")
     check(not bar.visible and hud._medkit_button.text=="CURAR 1",
         "completed first aid left a stale timer or wrong medkit count")

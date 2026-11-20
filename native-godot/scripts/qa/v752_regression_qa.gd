@@ -120,11 +120,33 @@ func _verify() -> void:
     player._training_immunity=0
     player.training_health=100
     player.set_physics_process(false)
+    # The deployment director is still in aircraft mode after the parachute
+    # checks above. Each idle frame it restages opponents whose airdrop is
+    # inactive. Stop that producer BEFORE cancelling this bot's airdrop;
+    # otherwise it silently assigns a new descent before the shooting test.
+    # The actual flight and 49-rival airdrop are verified separately.
+    director.set_process(false)
     var bot=combat._targets[0]
+    # This legacy cover test runs immediately after the player's parachute
+    # stage, when real opponents are STILL in their aircraft descent.
+    # Their physics callback correctly returns early during descent, so a
+    # ground-fire test must explicitly end this bot's real airdrop first.
+    # The separate V75.125 QA validates the uninterrupted air descent.
+    bot.cancel_real_airdrop()
+    bot.set_physics_process(false)
     bot.global_position=center+Vector3(0,0,3)
+    bot.velocity=Vector3.ZERO
+    bot._reload_remaining=0.0
+    bot._heal_remaining=0.0
+    bot._magazine=bot._loadout_capacity()
     await frames(2)
     bot._sense_player()
-    check(bot._target_visible,"bot fixture failed acquisition")
+    check(bot._airdrop_stage=="inactive" and bot._target_visible,
+        "ground-fire fixture still descending or failed visual acquisition; "+
+        "director_process="+str(director.is_processing())+
+        " director_mode="+str(director.mode)+
+        " stage="+bot._airdrop_stage+
+        " visual="+str(bot._target_visible))
     wall.position=center+Vector3.UP
     game.add_child(wall)
     await frames(2)
@@ -145,8 +167,24 @@ func _verify() -> void:
     check(player.training_health==100,"bot fired through new cover")
     wall.queue_free()
     await frames(2)
-    bot._attack_clock=0
-    bot._physics_process(1.0/60)
-    check(player.training_health<100,"clear shot does not hit")
+    # Removing a physical wall also requires a fresh PhysicsServer LOS;
+    # do not reuse a target lock or bypass cover to force a green result.
+    bot._sense_player()
+    check(bot._target_visible and bot._has_line_of_fire(player),
+        "clear shooting lane remains occluded after cover is removed")
+    # Physical bullet spread is deliberately stochastic. Allow a small
+    # bounded burst rather than requiring the first projectile to hit.
+    var shots_before: int=bot.shots_fired
+    for attempt in range(4):
+        if player.training_health<100:
+            break
+        bot._attack_clock=0.0
+        bot._sense_clock=10.0
+        bot._physics_process(1.0/60)
+    check(player.training_health<100,
+        "clear shots did not damage Lila after "+str(bot.shots_fired-shots_before)+
+        " physical projectiles; stage="+bot._airdrop_stage+
+        " magazine="+str(bot._magazine)+
+        " line_of_fire="+str(bot._has_line_of_fire(player)))
     print("V752_COVER blocked=100 clear=",player.training_health)
     quit(1 if failed else 0)

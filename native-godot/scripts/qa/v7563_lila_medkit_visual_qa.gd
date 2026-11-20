@@ -59,9 +59,13 @@ func _verify() -> void:
         check(player._animator.get_animation("AuroraHeal").length>=2.5,
             "aurora medical body movement is not a timed 3D clip")
 
+    var original_hp: float=player.training_health
+    check(is_equal_approx(original_hp,player.MAX_HEALTH),
+        "new match did not start at authoritative 200 HP")
     player.receive_training_hit(48.0,true)
     var before: float=player.training_health
-    check(before<99.0,"real damage did not decrease player HP")
+    check(before<original_hp and is_equal_approx(before,original_hp-48.0),
+        "real damage did not decrease player HP")
     combat._on_heal()
     check(combat._heal_remaining==combat.HEAL_APPLY_SECONDS and
         medkit.healing and medkit.medical_case.visible and
@@ -117,7 +121,7 @@ func _verify() -> void:
     combat._process(combat.HEAL_APPLY_SECONDS+.1)
     check(combat._heal_remaining==0.0 and
         combat.medkits_remaining==1 and
-        absf(player.training_health-minf(100.0,injured+45.0))<.01 and
+        absf(player.training_health-minf(player.MAX_HEALTH,injured+45.0))<.01 and
         not medkit.medical_case.visible and weapons.ak.visible and
         not weapons.medical_busy and hud._medkit_button.text=="CURAR 1",
         "completed real healing mismatched HP, item consumption or geometry")

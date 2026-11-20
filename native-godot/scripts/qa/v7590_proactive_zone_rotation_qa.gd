@@ -67,6 +67,10 @@ func _verify() -> void:
             rival.next_safe_center.distance_to(first_center)<.001,
             "bots do not receive updated phase timing and safe destination")
     var test_bot: CharacterBody3D=combat._targets[8]
+    # This fixture manually steps exactly one physics tick; the mobile
+    # distance-LOD scheduler legitimately drops two of three distant ticks.
+    # Other QA covers the production scheduler, so isolate movement here.
+    test_bot.distance_lod=false
     var saved_nav: Node3D=test_bot.navigation
     test_bot.navigation=null
     test_bot._sense_clock=100.0

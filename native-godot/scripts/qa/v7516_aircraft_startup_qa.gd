@@ -62,8 +62,11 @@ func _verify() -> void:
     for i in range(8):
         await process_frame
     check(player.air_mode=="freefall","real freefall did not begin")
-    check(not combat.visible and not navigation.is_physics_processing(),
-        "full ground combat or navigation reactivated before landing")
+    # Real parachuting rivals are visible during freefall; ground AI and
+    # navigation must still remain paused until the player's touchdown.
+    check(director._rivals_departed and combat.visible and
+        not combat.is_processing() and not navigation.is_physics_processing(),
+        "physical rival descent missing or full ground combat resumed before landing")
     director._flight.deploy_parachute()
     check(player.air_mode=="parachute","real parachute was not deployed")
     var z: float=-20.0

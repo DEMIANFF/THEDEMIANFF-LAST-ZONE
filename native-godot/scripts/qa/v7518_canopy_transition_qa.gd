@@ -58,7 +58,11 @@ func _verify() -> void:
             break
     check(player.global_position.is_finite() and player.velocity.is_finite(),
         "parachute camera movement produced invalid physics")
-    check(not combat.visible,"ground bots resumed before landing")
+    # Opponents can be visible while physically parachuting. No active
+    # ground-combat process is allowed until touchdown.
+    check(director._rivals_departed and combat.visible and
+        not combat.is_processing(),
+        "airborne rivals missing or ground combat resumed before landing")
     # Land and verify the full sector restoration.
     var z: float=-20.0
     player.global_position=Vector3(0,terrain.height_at(0,z)+2.8,z)

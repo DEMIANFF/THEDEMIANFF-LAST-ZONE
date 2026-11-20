@@ -29,6 +29,9 @@ func verify() -> void:
     player.global_position=Vector3(100,y,3)
     var target=combat._targets[0]
     target.global_position=Vector3(100,y,-5)
+    var initial_target_health: float=target.health
+    check(is_equal_approx(initial_target_health,200.0),
+        "fixture lost the same 200 HP as active BR opponents")
     var wall:=StaticBody3D.new()
     var shape:=CollisionShape3D.new()
     shape.shape=BoxShape3D.new()
@@ -41,13 +44,15 @@ func verify() -> void:
     camera.look_at(target.global_position+Vector3.UP)
     await frames(4)
     combat._shoot()
-    check(target.health==100.0,"low cover allowed damage")
+    check(is_equal_approx(target.health,initial_target_health),
+        "low cover allowed damage")
     print("V753_LOW_COVER blocked_health=",target.health)
     wall.queue_free()
     await frames(3)
     combat.cooldown=0
     combat._shoot()
-    check(target.health==74.0,"clear muzzle lost reticle hit")
+    check(is_equal_approx(target.health,initial_target_health-combat.AR_DAMAGE),
+        "clear muzzle lost actual rifle impact damage")
     print("V753_CLEAR_SHOT health=",target.health)
     var nodes: int=combat.get_child_count()
     for i in range(500):

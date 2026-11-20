@@ -1,4 +1,5 @@
 extends Control
+const TERRAIN_SCALE=preload("res://scripts/world/island_terrain.gd")
 ## Training: real opponent positions. Battle Royale: NO omniscient opponent
 ## positions; only short-lived acoustic pings from actual enemy gunshots.
 ## All current/future storm circles continue using authoritative zone geometry.
@@ -13,6 +14,8 @@ var _next_zone_enabled: bool=false
 var _next_zone_center: Vector2=Vector2.ZERO
 var _next_zone_radius: float=90.0
 var rotate_with_camera: bool=true
+# Reuse the actual terrain-derived cartography of the full tactical map.
+var map_texture: Texture2D
 var _waypoint: Vector2=Vector2(INF,INF)
 const GUNFIRE_HEARING_RANGE: float=42.0
 const GUNFIRE_PING_SECONDS: float=3.0
@@ -25,10 +28,13 @@ var _gunfire_pings: Array[Dictionary]=[]
 func _ready() -> void:
     name="AuroraTrainingRadar"
     mouse_filter=Control.MOUSE_FILTER_IGNORE
+    # The first 245m safe-zone ring used to bleed out of the minimap and
+    # cover adjacent HUD controls. Clip ALL map content to its actual hitbox.
+    clip_contents=true
     var heading:=Label.new()
-    heading.text="RADAR AURORA · 60 m"
+    heading.text="AURORA · MAPA TÁCTICO"
     heading.position=Vector2(9,3)
-    heading.add_theme_font_size_override("font_size",12)
+    heading.add_theme_font_size_override("font_size",10)
     heading.add_theme_color_override("font_color",Color(.79,.95,.96))
     heading.mouse_filter=Control.MOUSE_FILTER_IGNORE
     add_child(heading)
@@ -115,18 +121,34 @@ func _draw() -> void:
     var rect: Rect2=Rect2(Vector2.ZERO,size)
     draw_rect(rect,Color(.025,.09,.13,.77))
     draw_rect(rect,Color(.30,.73,.81,.85),false,1.6)
-    var center: Vector2=Vector2(size.x*.5,size.y*.57)
-    var radius: float=minf(size.x*.40,size.y*.36)
-    draw_arc(center,radius,0,TAU,52,Color(.34,.67,.72,.62),1.2,true)
-    draw_arc(center,radius*.5,0,TAU,52,Color(.30,.61,.69,.31),1.0,true)
-    draw_line(center+Vector2(-radius,0),center+Vector2(radius,0),Color(.28,.50,.55,.37),1.0)
-    draw_line(center+Vector2(0,-radius),center+Vector2(0,radius),Color(.28,.50,.55,.37),1.0)
-    var arrow:=PackedVector2Array([center+Vector2(0,-8),center+Vector2(-5,6),center+Vector2(5,6)])
-    draw_colored_polygon(arrow,Color(.75,.99,1.0))
+    var center: Vector2=Vector2(size.x*.5,size.y*.55)
+    var radius: float=minf(size.x*.45,size.y*.43)
     if player==null or not is_instance_valid(player):
+        draw_arc(center,radius,0,TAU,52,Color(.34,.67,.72,.62),1.2,true)
         return
     var yaw: float=float(player.get("_yaw")) if rotate_with_camera else 0.0
     var world_range: float=130.0 if _zone_enabled else 60.0
+    if map_texture!=null:
+        # No hand-painted or copied third-party radar: sample the same live
+        # physical island texture that supplies Aurora's full-screen map.
+        var world: Vector2=Vector2(player.global_position.x,player.global_position.z)
+        var terrain_size: float=map_texture.get_width()
+        var half_extent: float=TERRAIN_SCALE.HALF_EXTENT
+        var src_center: Vector2=(world+Vector2.ONE*half_extent)*(
+            terrain_size/(half_extent*2.0))
+        var src_size: float=world_range*2.0*terrain_size/(half_extent*2.0)
+        draw_set_transform(center,-yaw,Vector2.ONE)
+        draw_texture_rect_region(map_texture,
+            Rect2(-Vector2.ONE*radius,Vector2.ONE*radius*2.0),
+            Rect2(src_center-Vector2.ONE*src_size*.5,
+                Vector2.ONE*src_size),Color(1,1,1,.85))
+        draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+    draw_arc(center,radius,0,TAU,52,Color(.41,.89,.95,.86),1.9,true)
+    draw_arc(center,radius*.5,0,TAU,52,Color(.75,.91,.92,.27),1.0,true)
+    draw_line(center+Vector2(-radius,0),center+Vector2(radius,0),Color(.28,.50,.55,.32),1.0)
+    draw_line(center+Vector2(0,-radius),center+Vector2(0,radius),Color(.28,.50,.55,.32),1.0)
+    var arrow:=PackedVector2Array([center+Vector2(0,-8),center+Vector2(-5,6),center+Vector2(5,6)])
+    draw_colored_polygon(arrow,Color(.75,.99,1.0))
     if _zone_enabled:
         var offset: Vector2=_zone_world_center-Vector2(player.global_position.x,player.global_position.z)
         var screen_position: Vector2=center+offset.rotated(-yaw)*(radius/world_range)
