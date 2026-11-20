@@ -531,8 +531,11 @@ func _draw() -> void:
             var end:=project(Vector2(0,FLIGHT.ROUTE_END_Z))
             _draw_clipped_dashed_map_line(start,end,rect,
                 Color(1.0,.81,.34),3.0,8.0)
-            var plane_pos: Vector3=player.global_position
-            draw_circle(project(Vector2(plane_pos.x,plane_pos.z)),8.0,Color(1,.84,.19))
+            if is_instance_valid(player):
+                var plane_pos: Vector3=player.global_position
+                var plane_dot: Vector2=project(Vector2(plane_pos.x,plane_pos.z))
+                if rect.grow(-9.0).has_point(plane_dot):
+                    draw_circle(plane_dot,8.0,Color(1,.84,.19))
     if is_instance_valid(player):
         var p: Vector2=project(Vector2(
             player.global_position.x,player.global_position.z))
@@ -559,6 +562,27 @@ func _draw() -> void:
                 draw_string(font,Vector2(label_x,label_y),label,
                     HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color(1.0,.86,.48))
     draw_rect(rect,Color(.38,.83,.94),false,2.0)
+    if is_instance_valid(director) and (
+            str(director.get("mode"))=="sector_battle" and
+            not bool(director.get("match_ended"))):
+        # Label the exact same ring values used to apply storm damage.
+        # Compact fixed-size legend is confined to the map's top-right.
+        var legend_pos: Vector2=Vector2(rect.end.x-162.0,rect.position.y+7.0)
+        draw_rect(Rect2(legend_pos,Vector2(155,40)),
+            Color(.013,.064,.105,.84))
+        var current_radius: int=roundi(float(director.get("radius")))
+        draw_string(font,legend_pos+Vector2(8,15),
+            "ACTUAL %d m"%current_radius,
+            HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(.49,.96,1))
+        var planned: Dictionary=director.call("next_zone_preview")
+        if bool(planned.get("active",false)):
+            draw_string(font,legend_pos+Vector2(8,32),
+                "SIGUIENTE %d m"%roundi(float(planned["radius"])),
+                HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(1,.83,.46))
+        else:
+            draw_string(font,legend_pos+Vector2(8,32),
+                "CIERRE FINAL",
+                HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(1,.83,.46))
     # Chart orientation and scale remain grounded in the real island metres.
     var scale_m: float=100.0
     var max_scale_width: float=maxf(14.0,rect.size.x-30.0)
