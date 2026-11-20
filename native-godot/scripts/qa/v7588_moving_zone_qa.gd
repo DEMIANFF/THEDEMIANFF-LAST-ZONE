@@ -86,9 +86,20 @@ func _verify() -> void:
         absf(director._zone_visual.safe_radius-DIRECTOR.OVERTIME_RADIUS)<.001 and
         director._zone_visual.world_center.distance_to(final_center)<.001,
         "visible final ring stays 3m while actual damage zone is 0.75m")
+    # The final overtime has no hypothetical fifth safe circle. The
+    # next-ring indicator must be hidden, not forced to match the last radius.
+    # The old assertion inspected a stale hidden cache and reported a false
+    # visible-map regression despite the actual zone already being 0.75m.
     check(absf(float(radar.get("_zone_radius"))-DIRECTOR.OVERTIME_RADIUS)<.001
-        and absf(float(radar.get("_next_zone_radius"))-DIRECTOR.OVERTIME_RADIUS)<.001,
-        "minimap or next circle still reports 3m at true 0.75m end")
+        and not bool(radar.get("_next_zone_enabled")),
+        "minimap is not at the true 0.75m final radius or shows a fifth zone")
+    check(absf(float(radar.get("_next_zone_radius"))-
+            float(radar.get("_zone_radius")))<.001,
+        "hidden next-zone cache retained a previous 3m/12m phase")
+    var zone_label: Label=radar.get("_zone_label") as Label
+    check(zone_label!=null and zone_label.text.contains("0.75") and
+        not zone_label.text.contains("PRÓX"),
+        "final minimap label must show 0.75m without any future circle")
     game.queue_free()
     await process_frame
     if not failed:

@@ -72,6 +72,9 @@ var _preview_container: SubViewportContainer
 var _preview_avatar: Node3D
 var _preview_weapon: Node3D
 var _preview_weapon_slot: int=-1
+var _armory_fill_light: OmniLight3D
+var _armory_inspection_backdrop: Node3D
+var _armory_matte_material: StandardMaterial3D
 var _preview_caption: Label
 var _gesture_button: Button
 var _operator_controls: Array[Button]=[]
@@ -2003,6 +2006,34 @@ func _armory_model_path(slot: int) -> String:
     return ""
 
 
+
+## The imported GLBs do not agree on their longitudinal/up axes.
+## Derive a level showroom pose from the original mesh bounds rather than
+## applying a generic 10-degree bank (which made MP40/AWM/AR-7 point upward).
+## This is lobby-only: gameplay rig, muzzle and socket transforms are untouched.
+func _armory_level_pose(extent: Vector3) -> Dictionary:
+    var long_axis: Vector3=Vector3.RIGHT
+    var source_up: Vector3=Vector3.UP
+    if extent.y>=extent.x and extent.y>=extent.z:
+        long_axis=Vector3.UP
+        source_up=Vector3.BACK if extent.z>=extent.x else Vector3.RIGHT
+    elif extent.z>=extent.x:
+        long_axis=Vector3.BACK
+        source_up=Vector3.UP if extent.y>=extent.x else Vector3.RIGHT
+    else:
+        source_up=Vector3.UP if extent.y>=extent.z else Vector3.BACK
+    # Bring the longitudinal model axis onto showroom X, and roll its
+    # second-largest axis upright. This preserves level barrels independently
+    # of source GLB up-axis, while keeping a shallow three-quarter yaw.
+    var aim: Quaternion=Quaternion(long_axis,Vector3.RIGHT)
+    var spun_up: Vector3=aim*source_up
+    var level: Quaternion=Quaternion(Vector3.RIGHT,
+        -atan2(spun_up.z,spun_up.y))
+    var hero: Quaternion=Quaternion(Vector3.UP,deg_to_rad(-16.0))
+    return {"rotation":hero*level*aim,"long_axis":long_axis,
+        "source_up":source_up}
+
+
 func _clear_weapon_preview() -> void:
     if _preview_weapon!=null and is_instance_valid(_preview_weapon):
         if _preview_weapon.get_parent()!=null:
@@ -2017,6 +2048,10 @@ func _sync_armory_visual() -> void:
             _preview_container):
         return
     var in_armory: bool=_selected_tab=="ARMAS"
+    if is_instance_valid(_armory_fill_light):
+        _armory_fill_light.visible=in_armory
+    if is_instance_valid(_armory_inspection_backdrop):
+        _armory_inspection_backdrop.visible=in_armory
     if not in_armory:
         _clear_weapon_preview()
         if _preview_avatar!=null and is_instance_valid(_preview_avatar):
@@ -2042,6 +2077,14 @@ func _sync_armory_visual() -> void:
         return
     _clear_weapon_preview()
     var spec: Dictionary=WEAPON_CATALOG.ENTRIES[_armory_selected_slot]
+    # The original SCAR's gunmetal receiver is dark gray. Against the
+    # navy inspection panel it was still nearly invisible in actual CI PNGs.
+    # Change ONLY the lobby backdrop, never its original GLB material.
+    if is_instance_valid(_armory_matte_material):
+        _armory_matte_material.albedo_color=(
+            Color(.37,.46,.55,.94)
+            if _armory_selected_slot==WEAPON_CATALOG.SCAR
+            else Color(.085,.135,.19,.89))
     var path: String=_armory_model_path(_armory_selected_slot)
     if path.is_empty() or not ResourceLoader.exists(path,"PackedScene"):
         if _preview_avatar!=null and is_instance_valid(_preview_avatar):
@@ -2088,20 +2131,12 @@ func _sync_armory_visual() -> void:
         if _preview_caption!=null:
             _preview_caption.text="GEOMETRÍA NO DISPONIBLE / "+str(spec["short"])
         return
-    # The old longest-axis correction left the SCAR side-on/flat against
-    # the hangar. First orient the source rifle along horizontal showroom X,
-    # then apply a fixed three-quarter hero angle and small upward cant.
-    # The same display pose is used for AWM/SCAR/MP40 without touching their
-    # real held-gun axes, physics, rigs or file formats.
-    var source_to_horizontal: Quaternion=Quaternion.IDENTITY
-    if extent.y>=extent.x and extent.y>=extent.z:
-        source_to_horizontal=Quaternion(Vector3.BACK,-PI*.5)
-    elif extent.z>=extent.x:
-        source_to_horizontal=Quaternion(Vector3.UP,PI*.5)
-    var hero_yaw: float=deg_to_rad(-24.0)
-    var hero_bank: float=deg_to_rad(10.0)
-    visual.quaternion=(Quaternion(Vector3.UP,hero_yaw)*
-        Quaternion(Vector3.BACK,hero_bank)*source_to_horizontal)
+    var display_pose: Dictionary=_armory_level_pose(extent)
+    visual.quaternion=display_pose["rotation"]
+    # Geometry-based axis metadata lets QA verify screen-space levelness
+    # without relying on a particular source asset's Euler angles.
+    visual.set_meta("armory_long_axis",display_pose["long_axis"])
+    visual.set_meta("armory_up_axis",display_pose["source_up"])
     var scale_factor: float=clampf(1.80/length,.00001,100.0)
     var source_center: Vector3=(low+high)*.5
     visual.scale=Vector3.ONE*scale_factor
@@ -2766,6 +2801,56 @@ func _build_preview() -> void:
     portrait_spot.shadow_enabled=true
     stage3d.add_child(portrait_spot)
     portrait_spot.look_at(Vector3(0,.62,-.15),Vector3.UP)
+    # The SCAR and scoped AWM lost nearly all edge contrast against the
+    # dark aircraft hangar in the actual 964x434 CI screenshots. An armory-
+    # only fill illuminates imported GLB meshes, not the whole island/lobby.
+    _armory_fill_light=OmniLight3D.new()
+    _armory_fill_light.name="AuroraArmoryWeaponFill"
+    _armory_fill_light.position=Vector3(-.42,1.50,1.72)
+    _armory_fill_light.light_color=Color(1.0,.90,.77)
+    _armory_fill_light.light_energy=1.28
+    _armory_fill_light.omni_range=3.25
+    _armory_fill_light.light_cull_mask=PORTRAIT_LIGHT_LAYER
+    _armory_fill_light.shadow_enabled=false
+    _armory_fill_light.visible=false
+    stage3d.add_child(_armory_fill_light)
+    # Imported metal receivers and scoped silhouettes disappeared against
+    # the snow/ramp background in the 964x434 Godot capture, even after fill
+    # lighting. A small matte, framed 3D inspection panel sits BEHIND the
+    # real rifle geometry. It is lobby-only and never enters match scenes.
+    _armory_inspection_backdrop=Node3D.new()
+    _armory_inspection_backdrop.name="AuroraArmoryInspectionBackdrop"
+    _armory_inspection_backdrop.position=Vector3(0.0,1.04,-.52)
+    _armory_inspection_backdrop.visible=false
+    stage3d.add_child(_armory_inspection_backdrop)
+    var outer:=MeshInstance3D.new()
+    outer.name="InspectionEdge"
+    var edge_mesh:=QuadMesh.new()
+    edge_mesh.size=Vector2(2.48,1.06)
+    outer.mesh=edge_mesh
+    var edge_finish:=StandardMaterial3D.new()
+    edge_finish.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    edge_finish.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+    edge_finish.albedo_color=Color(.20,.53,.62,.80)
+    edge_finish.cull_mode=BaseMaterial3D.CULL_DISABLED
+    outer.material_override=edge_finish
+    outer.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    _armory_inspection_backdrop.add_child(outer)
+    var inner:=MeshInstance3D.new()
+    inner.name="InspectionMatte"
+    var matte_mesh:=QuadMesh.new()
+    matte_mesh.size=Vector2(2.43,1.01)
+    inner.mesh=matte_mesh
+    inner.position.z=.006
+    var matte_finish:=StandardMaterial3D.new()
+    matte_finish.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    matte_finish.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+    matte_finish.albedo_color=Color(.085,.135,.19,.89)
+    matte_finish.cull_mode=BaseMaterial3D.CULL_DISABLED
+    inner.material_override=matte_finish
+    _armory_matte_material=matte_finish
+    inner.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    _armory_inspection_backdrop.add_child(inner)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
     # V75.109 CI screenshot showed the operator's head hidden behind the

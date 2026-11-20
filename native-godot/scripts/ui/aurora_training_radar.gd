@@ -16,11 +16,13 @@ var _next_zone_radius: float=90.0
 var rotate_with_camera: bool=true
 # Reuse the actual terrain-derived cartography of the full tactical map.
 var map_texture: Texture2D
+var _zone_label: Label
 var _waypoint: Vector2=Vector2(INF,INF)
 const GUNFIRE_HEARING_RANGE: float=42.0
 const GUNFIRE_PING_SECONDS: float=3.0
 const GUNFIRE_MERGE_DISTANCE: float=6.0
 const MAX_GUNFIRE_PINGS: int=8
+const MAP_DISC_SIDES: int=64
 var _battle_mode: bool=false
 var _gunfire_pings: Array[Dictionary]=[]
 
@@ -32,12 +34,15 @@ func _ready() -> void:
     # cover adjacent HUD controls. Clip ALL map content to its actual hitbox.
     clip_contents=true
     var heading:=Label.new()
-    heading.text="AURORA · MAPA TÁCTICO"
-    heading.position=Vector2(9,3)
+    heading.text="PUERTO AURORA"
+    heading.position=Vector2(8,3)
+    # Phone-sized radar: avoid a clipped single 200px line over the map.
+    heading.custom_minimum_size=Vector2(142,25)
     heading.add_theme_font_size_override("font_size",10)
     heading.add_theme_color_override("font_color",Color(.79,.95,.96))
     heading.mouse_filter=Control.MOUSE_FILTER_IGNORE
     add_child(heading)
+    _zone_label=heading
     queue_redraw()
 
 
@@ -50,6 +55,12 @@ func set_sources(player_character: CharacterBody3D, enemies: Array[CharacterBody
 func set_battle_mode(enabled: bool) -> void:
     _battle_mode=enabled
     clear_gunfire()
+    if not enabled:
+        # Training and a newly entered lobby must not inherit the previous
+        # match's last circle or its obsolete future-circle marker.
+        _zone_enabled=false
+        _next_zone_enabled=false
+    _refresh_zone_label()
     queue_redraw()
 
 
@@ -91,6 +102,7 @@ func set_zone(center: Vector2,radius: float) -> void:
     _zone_enabled=true
     _zone_world_center=center
     _zone_radius=maxf(.35,radius)
+    _refresh_zone_label()
     queue_redraw()
 
 
@@ -98,7 +110,103 @@ func set_next_zone(center: Vector2,radius: float) -> void:
     _next_zone_enabled=true
     _next_zone_center=center
     _next_zone_radius=maxf(.35,radius)
+    _refresh_zone_label()
     queue_redraw()
+
+
+func clear_next_zone() -> void:
+    _next_zone_enabled=false
+    # No fifth circle exists after the last scheduled phase. Keep the
+    # disabled internal snapshot coherent with the actual damage circle;
+    # do not retain an obsolete 3m/12m target from the preceding phase.
+    _next_zone_center=_zone_world_center
+    _next_zone_radius=_zone_radius
+    _refresh_zone_label()
+    queue_redraw()
+
+
+
+## The overtime radius genuinely shrinks below one metre. Preserve the
+## precision of that final hazard instead of labeling 0.75 m as 1 m.
+func _format_zone_radius(radius: float) -> String:
+    if radius<2.0:
+        return "%.2f"%radius
+    return "%d"%roundi(radius)
+
+
+func _refresh_zone_label() -> void:
+    if not is_instance_valid(_zone_label):
+        return
+    var caption: String="PUERTO AURORA"
+    if _zone_enabled:
+        caption="ZONA %s m"%_format_zone_radius(_zone_radius)
+        if _next_zone_enabled:
+            # Use two readable rows instead of overflowing the 156px radar.
+            caption+="\nPRÓX %s m"%_format_zone_radius(_next_zone_radius)
+    if _zone_label.text!=caption:
+        _zone_label.text=caption
+
+
+## A fixed 130 m radar made the 245 m opening circle disappear. Fit both
+## real rings around the player (including moving centres), with a 10% margin.
+## No fabricated zone position or independent hazard simulation.
+func _world_range() -> float:
+    if not _zone_enabled or not is_instance_valid(player):
+        return 60.0
+    var at: Vector2=Vector2(player.global_position.x,player.global_position.z)
+    var farthest: float=_zone_radius+at.distance_to(_zone_world_center)
+    if _next_zone_enabled:
+        farthest=maxf(farthest,_next_zone_radius+
+            at.distance_to(_next_zone_center))
+    return maxf(60.0,farthest*1.10)
+
+
+func ring_coverage() -> Dictionary:
+    # Diagnostics: values under 1 fit entirely inside the circular radar.
+    var world_range: float=_world_range()
+    if not _zone_enabled or not is_instance_valid(player):
+        return {"current":0.0,"next":0.0}
+    var at: Vector2=Vector2(player.global_position.x,player.global_position.z)
+    return {"current":(_zone_radius+at.distance_to(
+        _zone_world_center))/world_range,
+        "next":((_next_zone_radius+at.distance_to(_next_zone_center))/
+            world_range if _next_zone_enabled else 0.0)}
+
+
+
+## Exact world-to-texture pixel projection shared by camera-up radar and
+## rotating view. The source is Aurora's physical heightfield, never a
+## screenshot or a manually moved second map.
+func _terrain_uv(world: Vector2) -> Vector2:
+    # CanvasItem.draw_polygon uses normalized [0,1] texture UVs, not
+    # pixel coordinates. Values outside this range represent ocean/off-island
+    # and are clamped by the texture sampler.
+    var half_extent: float=TERRAIN_SCALE.HALF_EXTENT
+    return (world+Vector2.ONE*half_extent)/(half_extent*2.0)
+
+
+func _terrain_pixel(world: Vector2,texture_size: Vector2) -> Vector2:
+    return _terrain_uv(world)*texture_size
+
+
+func _draw_terrain_disc(center: Vector2,screen_radius: float,
+        world_range: float,yaw: float) -> void:
+    if map_texture==null or not is_instance_valid(player) or screen_radius<1.0:
+        return
+    var world: Vector2=Vector2(player.global_position.x,player.global_position.z)
+    var points:=PackedVector2Array()
+    var uvs:=PackedVector2Array()
+    # Draw one convex 64-sided disc instead of a square texture under a
+    # circular bezel. Normalized UVs preserve the same projection used
+    # for zone rings and world markers; no extra Viewport or per-frame image.
+    for i in range(MAP_DISC_SIDES):
+        var radial: Vector2=Vector2.from_angle(
+            TAU*float(i)/float(MAP_DISC_SIDES))*screen_radius
+        points.append(center+radial)
+        var terrain_at: Vector2=world+radial.rotated(yaw)*(
+            world_range/screen_radius)
+        uvs.append(_terrain_uv(terrain_at))
+    draw_polygon(points,PackedColorArray([Color(1,1,1,.85)]),uvs,map_texture)
 
 
 func _process(delta: float) -> void:
@@ -127,22 +235,8 @@ func _draw() -> void:
         draw_arc(center,radius,0,TAU,52,Color(.34,.67,.72,.62),1.2,true)
         return
     var yaw: float=float(player.get("_yaw")) if rotate_with_camera else 0.0
-    var world_range: float=130.0 if _zone_enabled else 60.0
-    if map_texture!=null:
-        # No hand-painted or copied third-party radar: sample the same live
-        # physical island texture that supplies Aurora's full-screen map.
-        var world: Vector2=Vector2(player.global_position.x,player.global_position.z)
-        var terrain_size: float=map_texture.get_width()
-        var half_extent: float=TERRAIN_SCALE.HALF_EXTENT
-        var src_center: Vector2=(world+Vector2.ONE*half_extent)*(
-            terrain_size/(half_extent*2.0))
-        var src_size: float=world_range*2.0*terrain_size/(half_extent*2.0)
-        draw_set_transform(center,-yaw,Vector2.ONE)
-        draw_texture_rect_region(map_texture,
-            Rect2(-Vector2.ONE*radius,Vector2.ONE*radius*2.0),
-            Rect2(src_center-Vector2.ONE*src_size*.5,
-                Vector2.ONE*src_size),Color(1,1,1,.85))
-        draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+    var world_range: float=_world_range()
+    _draw_terrain_disc(center,radius,world_range,yaw)
     draw_arc(center,radius,0,TAU,52,Color(.41,.89,.95,.86),1.9,true)
     draw_arc(center,radius*.5,0,TAU,52,Color(.75,.91,.92,.27),1.0,true)
     draw_line(center+Vector2(-radius,0),center+Vector2(radius,0),Color(.28,.50,.55,.32),1.0)
