@@ -152,7 +152,7 @@ func _draw_terrain_disc(center: Vector2,screen_radius: float,
     if map_texture==null or not is_instance_valid(player) or screen_radius<1.0:
         return
     var world: Vector2=Vector2(player.global_position.x,player.global_position.z)
-    var texture_size: Vector2=map_texture.get_size()
+    var texture_size: Vector2=Vector2(map_texture.get_size())
     var points:=PackedVector2Array()
     var uvs:=PackedVector2Array()
     # Draw one convex 64-sided disc instead of a square texture under a
