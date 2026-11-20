@@ -39,17 +39,32 @@ func _verify() -> void:
     await boot.wait_for_startup()
     boot._show_lobby()
     boot._select_tab("ARMAS")
-    for slot in [CATALOG.SCAR,CATALOG.AWM,CATALOG.MP40]:
+    var portrait: Camera3D=boot._preview_container.get_node_or_null(
+        "PreviewViewport/AuroraCharacterStage/LobbyPortraitCamera") as Camera3D
+    check(portrait!=null,"original lobby camera missing from showroom")
+    # A raw Y Euler-angle threshold approved weapons that were visibly tilted
+    # upward. The longitudinal source axis must project horizontally instead.
+    for slot in [CATALOG.AR,CATALOG.AWM,CATALOG.SCAR,CATALOG.MP40]:
         boot._on_armory_slot_selected(slot)
         check(boot._preview_weapon!=null and boot._preview_weapon_slot==slot,
             "installed weapon missing from original 3D showroom: "+str(slot))
-        if boot._preview_weapon!=null:
+        if boot._preview_weapon!=null and portrait!=null:
             var real_model: Node3D=boot._preview_weapon.get_node_or_null(
                 "SelectedOriginalWeaponGLB") as Node3D
-            check(real_model!=null and
-                absf(real_model.rotation.y)>deg_to_rad(12.0),
-                "showroom lacks three-quarter view: "+str(slot))
+            check(real_model!=null,
+                "original showroom GLB missing: "+str(slot))
+            if real_model!=null:
+                var source_axis: Vector3=real_model.get_meta(
+                    "armory_long_axis",Vector3.ZERO)
+                check(source_axis.length_squared()>.5,
+                    "missing original barrel-axis metadata: "+str(slot))
+                if source_axis.length_squared()>.5:
+                    var projected: Vector3=(
+                        real_model.global_transform.basis*source_axis).normalized()
+                    check(absf(projected.dot(
+                        portrait.global_transform.basis.y))<.14,
+                        "weapon appears raised/diagonal: "+str(slot))
     if not failed:
         print("V75127_CARTOGRAPHY_ARMORY PASS terrain=256 roads=3 "+
-            "real_houses=12 clipped_minimap=1 real_models=3 hero_angle=1")
+            "real_houses=12 clipped_minimap=1 real_models=4 level_pose=1")
     quit(1 if failed else 0)
