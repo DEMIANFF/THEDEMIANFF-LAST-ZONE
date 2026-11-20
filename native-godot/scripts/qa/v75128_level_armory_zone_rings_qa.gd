@@ -38,6 +38,19 @@ func _verify() -> void:
     check(float(coverage["current"])<=0.915 and
         float(coverage["next"])<=0.915,
         "current/future 245m rings still spill outside minimap")
+    # A moving phase can place both ring centres far from the player:
+    # inspect the dynamic, off-centre fit instead of only the initial stage.
+    var actor_world: Vector2=Vector2(player.global_position.x,
+        player.global_position.z)
+    radar.call("set_zone",actor_world+Vector2(140,-85),120.0)
+    radar.call("set_next_zone",actor_world+Vector2(175,-50),60.0)
+    var shifted: Dictionary=radar.call("ring_coverage")
+    check(float(shifted["current"])<=0.915 and
+        float(shifted["next"])<=0.915 and
+        float(shifted["current"])>.70,
+        "off-centre shrinking zone is cropped or scales against stale 130m")
+    radar.call("set_zone",SECTOR.CENTER,SECTOR.INITIAL_RADIUS)
+    radar.call("set_next_zone",Vector2(12.0,-6.0),185.0)
     check(tactical.has_method("_draw_clipped_zone_outline"),
         "tactical map lacks clipped live/future rings")
     check(radar.has_method("_draw_terrain_disc"),
