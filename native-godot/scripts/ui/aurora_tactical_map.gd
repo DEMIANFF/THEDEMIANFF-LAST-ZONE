@@ -351,13 +351,38 @@ func _ensure_terrain_texture() -> void:
             Vector2(historic.z,historic.w),sea)
     _terrain_texture=ImageTexture.create_from_image(image)
 
+## Every overlay feature is clipped to the cartography pane. The live world
+## remains visible outside it, so roads/grid/rings must never paint over HUD.
+func _map_clip_polygon(rect: Rect2) -> PackedVector2Array:
+    return PackedVector2Array([
+        rect.position,Vector2(rect.end.x,rect.position.y),
+        rect.end,Vector2(rect.position.x,rect.end.y)])
+
+
+func _clipped_map_segments(points: PackedVector2Array,
+        rect: Rect2) -> Array[PackedVector2Array]:
+    if points.size()<2 or rect.size.x<=4.0 or rect.size.y<=4.0:
+        return []
+    return Geometry2D.intersect_polyline_with_polygon(
+        points,_map_clip_polygon(rect.grow(-2.0)))
+
+
+func _draw_clipped_map_line(points: PackedVector2Array,rect: Rect2,
+        tint: Color,width: float,outline: bool=false) -> void:
+    for section in _clipped_map_segments(points,rect):
+        if section.size()<2:
+            continue
+        if outline:
+            draw_polyline(section,Color(.017,.10,.14,.85),
+                width+3.0,true)
+        draw_polyline(section,tint,width,true)
+
+
 func _draw_path(world_points: Array[Vector2],tint: Color,width: float) -> void:
     var points:=PackedVector2Array()
     for at in world_points:
         points.append(project(at))
-    if points.size()>=2:
-        draw_polyline(points,Color(.017,.10,.14,.85),width+3.0,true)
-        draw_polyline(points,tint,width,true)
+    _draw_clipped_map_line(points,_map_rect(),tint,width,true)
 
 
 func _draw_landmark(at: Vector2,title: String,boxes: Array[Rect2],
@@ -404,14 +429,7 @@ func _draw_clipped_zone_outline(world_center: Vector2,world_radius: float,
     for step in range(segments+1):
         var angle: float=TAU*float(step)/float(segments)
         ring.append(origin+Vector2.from_angle(angle)*pixel_radius)
-    var inset: Rect2=rect.grow(-2.0)
-    var viewport_polygon:=PackedVector2Array([
-        inset.position,Vector2(inset.end.x,inset.position.y),
-        inset.end,Vector2(inset.position.x,inset.end.y)])
-    for clipped in Geometry2D.intersect_polyline_with_polygon(
-            ring,viewport_polygon):
-        if clipped.size()>=2:
-            draw_polyline(clipped,tint,line_width,true)
+    _draw_clipped_map_line(ring,rect,tint,line_width)
 
 
 func _draw() -> void:
@@ -441,10 +459,12 @@ func _draw() -> void:
         var grid_x: float=float(n)*50.0
         var a:=project(Vector2(grid_x,-WORLD_HALF))
         var b:=project(Vector2(grid_x,WORLD_HALF))
-        draw_line(a,b,Color(.75,.85,.91,.10),1)
+        _draw_clipped_map_line(PackedVector2Array([a,b]),rect,
+            Color(.75,.85,.91,.10),1.0)
         var c:=project(Vector2(-WORLD_HALF,grid_x))
         var d:=project(Vector2(WORLD_HALF,grid_x))
-        draw_line(c,d,Color(.75,.85,.91,.10),1)
+        _draw_clipped_map_line(PackedVector2Array([c,d]),rect,
+            Color(.75,.85,.91,.10),1.0)
     var font: Font=get_theme_default_font()
     for point in POINTS:
         var parcel: Vector2=project(point)
@@ -484,7 +504,8 @@ func _draw() -> void:
         if flight!=null and str(flight.get("phase"))=="aircraft":
             var start:=project(Vector2(0,FLIGHT.ROUTE_START_Z))
             var end:=project(Vector2(0,FLIGHT.ROUTE_END_Z))
-            draw_dashed_line(start,end,Color(1.0,.81,.34),3.0,8.0)
+            _draw_clipped_map_line(PackedVector2Array([start,end]),
+                rect,Color(1.0,.81,.34),2.0)
             var plane_pos: Vector3=player.global_position
             draw_circle(project(Vector2(plane_pos.x,plane_pos.z)),8.0,Color(1,.84,.19))
     if is_instance_valid(player):
@@ -493,7 +514,8 @@ func _draw() -> void:
         draw_arc(p,11,0,TAU,30,Color(.06,.87,.98),2.0)
         if waypoint.is_finite():
             var target:=project(waypoint)
-            draw_line(p,target,Color(1,.76,.22,.8),2)
+            _draw_clipped_map_line(PackedVector2Array([p,target]),
+                rect,Color(1,.76,.22,.8),2.0)
             draw_circle(target,8.0,Color(1,.62,.13))
             var meters: int=roundi(Vector2(player.global_position.x,
                 player.global_position.z).distance_to(waypoint))
@@ -502,13 +524,17 @@ func _draw() -> void:
     draw_rect(rect,Color(.38,.83,.94),false,2.0)
     # Chart orientation and scale remain grounded in the real island metres.
     var scale_m: float=100.0
+    var max_scale_width: float=maxf(14.0,rect.size.x-30.0)
+    # Prevent the scale bar from extending into the HUD at 8x map zoom.
+    while scale_m/_meters_per_pixel(rect)>max_scale_width:
+        scale_m*=.5
     var scale_pixels: float=scale_m/_meters_per_pixel(rect)
     var bottom: Vector2=Vector2(rect.position.x+14,rect.end.y-15)
     draw_line(bottom,bottom+Vector2(scale_pixels,0),Color(.96,.95,.77),2.0)
     draw_line(bottom+Vector2(0,-4),bottom+Vector2(0,4),Color(.96,.95,.77),2.0)
     draw_line(bottom+Vector2(scale_pixels,-4),
         bottom+Vector2(scale_pixels,4),Color(.96,.95,.77),2.0)
-    draw_string(font,bottom+Vector2(3,-6),"100 m",
+    draw_string(font,bottom+Vector2(3,-6),"%d m"%roundi(scale_m),
         HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(.96,.95,.77))
     draw_string(font,rect.position+Vector2(12,19),"N ↑",
         HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(.94,.98,1.0))
