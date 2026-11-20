@@ -2003,6 +2003,34 @@ func _armory_model_path(slot: int) -> String:
     return ""
 
 
+
+## The imported GLBs do not agree on their longitudinal/up axes.
+## Derive a level showroom pose from the original mesh bounds rather than
+## applying a generic 10-degree bank (which made MP40/AWM/AR-7 point upward).
+## This is lobby-only: gameplay rig, muzzle and socket transforms are untouched.
+func _armory_level_pose(extent: Vector3) -> Dictionary:
+    var long_axis: Vector3=Vector3.RIGHT
+    var source_up: Vector3=Vector3.UP
+    if extent.y>=extent.x and extent.y>=extent.z:
+        long_axis=Vector3.UP
+        source_up=Vector3.BACK if extent.z>=extent.x else Vector3.RIGHT
+    elif extent.z>=extent.x:
+        long_axis=Vector3.BACK
+        source_up=Vector3.UP if extent.y>=extent.x else Vector3.RIGHT
+    else:
+        source_up=Vector3.UP if extent.y>=extent.z else Vector3.BACK
+    # Bring the longitudinal model axis onto showroom X, and roll its
+    # second-largest axis upright. This preserves level barrels independently
+    # of source GLB up-axis, while keeping a shallow three-quarter yaw.
+    var aim: Quaternion=Quaternion(long_axis,Vector3.RIGHT)
+    var spun_up: Vector3=aim*source_up
+    var level: Quaternion=Quaternion(Vector3.RIGHT,
+        -atan2(spun_up.z,spun_up.y))
+    var hero: Quaternion=Quaternion(Vector3.UP,deg_to_rad(-16.0))
+    return {"rotation":hero*level*aim,"long_axis":long_axis,
+        "source_up":source_up}
+
+
 func _clear_weapon_preview() -> void:
     if _preview_weapon!=null and is_instance_valid(_preview_weapon):
         if _preview_weapon.get_parent()!=null:
@@ -2088,20 +2116,12 @@ func _sync_armory_visual() -> void:
         if _preview_caption!=null:
             _preview_caption.text="GEOMETRÍA NO DISPONIBLE / "+str(spec["short"])
         return
-    # The old longest-axis correction left the SCAR side-on/flat against
-    # the hangar. First orient the source rifle along horizontal showroom X,
-    # then apply a fixed three-quarter hero angle and small upward cant.
-    # The same display pose is used for AWM/SCAR/MP40 without touching their
-    # real held-gun axes, physics, rigs or file formats.
-    var source_to_horizontal: Quaternion=Quaternion.IDENTITY
-    if extent.y>=extent.x and extent.y>=extent.z:
-        source_to_horizontal=Quaternion(Vector3.BACK,-PI*.5)
-    elif extent.z>=extent.x:
-        source_to_horizontal=Quaternion(Vector3.UP,PI*.5)
-    var hero_yaw: float=deg_to_rad(-24.0)
-    var hero_bank: float=deg_to_rad(10.0)
-    visual.quaternion=(Quaternion(Vector3.UP,hero_yaw)*
-        Quaternion(Vector3.BACK,hero_bank)*source_to_horizontal)
+    var display_pose: Dictionary=_armory_level_pose(extent)
+    visual.quaternion=display_pose["rotation"]
+    # Geometry-based axis metadata lets QA verify screen-space levelness
+    # without relying on a particular source asset's Euler angles.
+    visual.set_meta("armory_long_axis",display_pose["long_axis"])
+    visual.set_meta("armory_up_axis",display_pose["source_up"])
     var scale_factor: float=clampf(1.80/length,.00001,100.0)
     var source_center: Vector3=(low+high)*.5
     visual.scale=Vector3.ONE*scale_factor
