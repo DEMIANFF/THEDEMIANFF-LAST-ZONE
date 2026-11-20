@@ -52,6 +52,14 @@ func _verify() -> void:
     check(mid.distance_to(Vector2(128,128))<.001 and
         corner.x<mid.x and corner.y<mid.y,
         "disc UV mapping does not follow the world-space heightfield")
+    # Regression gate: the polygon API samples normalized UVs, whereas
+    # drawing the old 128px centre directly would repeatedly tile the map.
+    var center_uv: Vector2=radar.call("_terrain_uv",Vector2.ZERO)
+    var uv_near: Vector2=radar.call("_terrain_uv",Vector2(20,-12))
+    check(center_uv.distance_to(Vector2(.5,.5))<.00001 and
+        uv_near.x>center_uv.x and uv_near.y<center_uv.y and
+        uv_near.x<1.0 and uv_near.y>0.0,
+        "Godot polygon texture UVs must be normalized to [0,1]")
     radar.call("clear_next_zone")
     check(not bool(radar.get("_next_zone_enabled")) and
         zone_label!=null and not zone_label.text.contains("PRÓX"),
