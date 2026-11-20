@@ -98,8 +98,9 @@ func set_sources(character: CharacterBody3D,world: StaticBody3D,match_director: 
     terrain=world
     _terrain_texture=null
     director=match_director
-    if _follow_player and player:
+    if _follow_player and is_instance_valid(player):
         pan=Vector2(player.global_position.x,player.global_position.z)
+    _clamp_pan_to_terrain()
     queue_redraw()
 
 
@@ -111,6 +112,7 @@ func _process(dt: float) -> void:
         _redraw_seconds=.20
         if _follow_player and is_instance_valid(player):
             pan=Vector2(player.global_position.x,player.global_position.z)
+        _clamp_pan_to_terrain()
         queue_redraw()
 
 
@@ -134,8 +136,18 @@ func unproject(screen_point: Vector2) -> Vector2:
     return pan+(screen_point-rect.get_center())*_meters_per_pixel(rect)
 
 
+## At zoom 1 the entire physical island is visible, so the only valid pan
+## centre is world origin. At zoom 8, the camera may follow a moving player,
+## but never into repeated/off-island heightfield pixels.
+func _clamp_pan_to_terrain() -> void:
+    var visible_half: float=WORLD_HALF/maxf(1.0,zoom)
+    var limit: float=maxf(0.0,WORLD_HALF-visible_half)
+    pan=pan.clamp(Vector2.ONE*-limit,Vector2.ONE*limit)
+
+
 func _zoom_at(factor: float) -> void:
     zoom=clampf(zoom*factor,1.0,8.0)
+    _clamp_pan_to_terrain()
     queue_redraw()
 
 
@@ -143,6 +155,7 @@ func _follow() -> void:
     _follow_player=true
     if is_instance_valid(player):
         pan=Vector2(player.global_position.x,player.global_position.z)
+    _clamp_pan_to_terrain()
     queue_redraw()
 
 
@@ -153,6 +166,7 @@ func _route() -> void:
     pan=(Vector2(player.global_position.x,player.global_position.z)+waypoint)*.5
     var delta: float=Vector2(player.global_position.x,player.global_position.z).distance_to(waypoint)
     zoom=clampf((WORLD_HALF*2.0)/maxf(170.0,delta*1.5),1.0,8.0)
+    _clamp_pan_to_terrain()
     queue_redraw()
 
 
@@ -215,6 +229,7 @@ func _gui_input(event: InputEvent) -> void:
             else:
                 pan-=drag.relative*_meters_per_pixel(rect)
                 _follow_player=false
+            _clamp_pan_to_terrain()
             _last_pointer=drag.position
             queue_redraw()
             accept_event()
@@ -241,6 +256,7 @@ func _gui_input(event: InputEvent) -> void:
         var motion:=event as InputEventMouseMotion
         pan-=motion.relative*_meters_per_pixel(rect)
         _follow_player=false
+        _clamp_pan_to_terrain()
         _last_pointer=motion.position
         queue_redraw()
         accept_event()
