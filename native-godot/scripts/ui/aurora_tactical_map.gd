@@ -378,6 +378,15 @@ func _draw_clipped_map_line(points: PackedVector2Array,rect: Rect2,
         draw_polyline(section,tint,width,true)
 
 
+
+func _draw_clipped_dashed_map_line(from: Vector2,to: Vector2,
+        rect: Rect2,tint: Color,width: float,dash: float) -> void:
+    # Preserve the aircraft's dotted route even where it crosses a map edge.
+    for section in _clipped_map_segments(PackedVector2Array([from,to]),rect):
+        for i in range(section.size()-1):
+            draw_dashed_line(section[i],section[i+1],tint,width,dash)
+
+
 func _draw_path(world_points: Array[Vector2],tint: Color,width: float) -> void:
     var points:=PackedVector2Array()
     for at in world_points:
@@ -504,23 +513,35 @@ func _draw() -> void:
         if flight!=null and str(flight.get("phase"))=="aircraft":
             var start:=project(Vector2(0,FLIGHT.ROUTE_START_Z))
             var end:=project(Vector2(0,FLIGHT.ROUTE_END_Z))
-            _draw_clipped_map_line(PackedVector2Array([start,end]),
-                rect,Color(1.0,.81,.34),2.0)
+            _draw_clipped_dashed_map_line(start,end,rect,
+                Color(1.0,.81,.34),3.0,8.0)
             var plane_pos: Vector3=player.global_position
             draw_circle(project(Vector2(plane_pos.x,plane_pos.z)),8.0,Color(1,.84,.19))
     if is_instance_valid(player):
-        var p:=project(Vector2(player.global_position.x,player.global_position.z))
-        draw_circle(p,7.5,Color(.96,.99,1))
-        draw_arc(p,11,0,TAU,30,Color(.06,.87,.98),2.0)
+        var p: Vector2=project(Vector2(
+            player.global_position.x,player.global_position.z))
+        # Pan/zoom must not move player/waypoint icons over gameplay HUD.
+        var safe_rect: Rect2=rect.grow(-14.0)
+        if safe_rect.has_point(p):
+            draw_circle(p,7.5,Color(.96,.99,1))
+            draw_arc(p,11,0,TAU,30,Color(.06,.87,.98),2.0)
         if waypoint.is_finite():
-            var target:=project(waypoint)
+            var target: Vector2=project(waypoint)
             _draw_clipped_map_line(PackedVector2Array([p,target]),
                 rect,Color(1,.76,.22,.8),2.0)
-            draw_circle(target,8.0,Color(1,.62,.13))
-            var meters: int=roundi(Vector2(player.global_position.x,
-                player.global_position.z).distance_to(waypoint))
-            draw_string(font,target+Vector2(10,0),str(meters)+" m",
-                HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color(1.0,.86,.48))
+            if safe_rect.has_point(target):
+                draw_circle(target,8.0,Color(1,.62,.13))
+                var meters: int=roundi(Vector2(
+                    player.global_position.x,
+                    player.global_position.z).distance_to(waypoint))
+                var label: String=str(meters)+" m"
+                var width: float=float(label.length())*9.0
+                var label_x: float=clampf(target.x+10.0,
+                    rect.position.x+8.0,rect.end.x-width-7.0)
+                var label_y: float=clampf(target.y,
+                    rect.position.y+16.0,rect.end.y-7.0)
+                draw_string(font,Vector2(label_x,label_y),label,
+                    HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color(1.0,.86,.48))
     draw_rect(rect,Color(.38,.83,.94),false,2.0)
     # Chart orientation and scale remain grounded in the real island metres.
     var scale_m: float=100.0
