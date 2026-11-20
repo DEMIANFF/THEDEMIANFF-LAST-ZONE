@@ -588,14 +588,19 @@ func _draw() -> void:
         var legend_pos: Vector2=Vector2(rect.end.x-162.0,rect.position.y+7.0)
         draw_rect(Rect2(legend_pos,Vector2(155,40)),
             Color(.013,.064,.105,.84))
-        var current_radius: int=roundi(float(director.get("radius")))
+        var current_radius: float=float(director.get("radius"))
+        var display_radius: String=("%.2f"%current_radius
+            if current_radius<2.0 else "%d"%roundi(current_radius))
         draw_string(font,legend_pos+Vector2(8,15),
-            "ACTUAL %d m"%current_radius,
+            "ACTUAL %s m"%display_radius,
             HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(.49,.96,1))
         var planned: Dictionary=director.call("next_zone_preview")
         if bool(planned.get("active",false)):
+            var planned_radius: float=float(planned["radius"])
+            var planned_text: String=("%.2f"%planned_radius
+                if planned_radius<2.0 else "%d"%roundi(planned_radius))
             draw_string(font,legend_pos+Vector2(8,32),
-                "SIGUIENTE %d m"%roundi(float(planned["radius"])),
+                "SIGUIENTE %s m"%planned_text,
                 HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(1,.83,.46))
         else:
             draw_string(font,legend_pos+Vector2(8,32),
