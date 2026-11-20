@@ -219,6 +219,13 @@ func _verify() -> void:
     # imported sources have different native axes, and hero yaw is allowed.
     for slot in [CATALOG.AR,CATALOG.AWM,CATALOG.SCAR,CATALOG.MP40]:
         boot._on_armory_slot_selected(slot)
+        var matte: StandardMaterial3D=boot._armory_matte_material
+        check(matte!=null,"showroom contrast backing has no material")
+        if matte!=null:
+            var expected_brightness: float=(
+                .37 if slot==CATALOG.SCAR else .085)
+            check(absf(matte.albedo_color.r-expected_brightness)<.001,
+                "contrast mat does not adapt to selected weapon "+str(slot))
         var pivot: Node3D=boot._preview_weapon
         check(pivot!=null and boot._preview_weapon_slot==slot,
             "showroom did not load weapon slot "+str(slot))
