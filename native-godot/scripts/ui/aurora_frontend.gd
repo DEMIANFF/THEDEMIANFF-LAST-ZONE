@@ -73,6 +73,7 @@ var _preview_avatar: Node3D
 var _preview_weapon: Node3D
 var _preview_weapon_slot: int=-1
 var _armory_fill_light: OmniLight3D
+var _armory_inspection_backdrop: Node3D
 var _preview_caption: Label
 var _gesture_button: Button
 var _operator_controls: Array[Button]=[]
@@ -2048,6 +2049,8 @@ func _sync_armory_visual() -> void:
     var in_armory: bool=_selected_tab=="ARMAS"
     if is_instance_valid(_armory_fill_light):
         _armory_fill_light.visible=in_armory
+    if is_instance_valid(_armory_inspection_backdrop):
+        _armory_inspection_backdrop.visible=in_armory
     if not in_armory:
         _clear_weapon_preview()
         if _preview_avatar!=null and is_instance_valid(_preview_avatar):
@@ -2802,6 +2805,42 @@ func _build_preview() -> void:
     _armory_fill_light.shadow_enabled=false
     _armory_fill_light.visible=false
     stage3d.add_child(_armory_fill_light)
+    # Imported metal receivers and scoped silhouettes disappeared against
+    # the snow/ramp background in the 964x434 Godot capture, even after fill
+    # lighting. A small matte, framed 3D inspection panel sits BEHIND the
+    # real rifle geometry. It is lobby-only and never enters match scenes.
+    _armory_inspection_backdrop=Node3D.new()
+    _armory_inspection_backdrop.name="AuroraArmoryInspectionBackdrop"
+    _armory_inspection_backdrop.position=Vector3(0.0,1.04,-.52)
+    _armory_inspection_backdrop.visible=false
+    stage3d.add_child(_armory_inspection_backdrop)
+    var outer:=MeshInstance3D.new()
+    outer.name="InspectionEdge"
+    var edge_mesh:=QuadMesh.new()
+    edge_mesh.size=Vector2(2.48,1.06)
+    outer.mesh=edge_mesh
+    var edge_finish:=StandardMaterial3D.new()
+    edge_finish.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    edge_finish.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+    edge_finish.albedo_color=Color(.20,.53,.62,.80)
+    edge_finish.cull_mode=BaseMaterial3D.CULL_DISABLED
+    outer.material_override=edge_finish
+    outer.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    _armory_inspection_backdrop.add_child(outer)
+    var inner:=MeshInstance3D.new()
+    inner.name="InspectionMatte"
+    var matte_mesh:=QuadMesh.new()
+    matte_mesh.size=Vector2(2.43,1.01)
+    inner.mesh=matte_mesh
+    inner.position.z=.006
+    var matte_finish:=StandardMaterial3D.new()
+    matte_finish.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    matte_finish.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+    matte_finish.albedo_color=Color(.085,.135,.19,.89)
+    matte_finish.cull_mode=BaseMaterial3D.CULL_DISABLED
+    inner.material_override=matte_finish
+    inner.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    _armory_inspection_backdrop.add_child(inner)
     var camera:=Camera3D.new()
     camera.name="LobbyPortraitCamera"
     # V75.109 CI screenshot showed the operator's head hidden behind the
