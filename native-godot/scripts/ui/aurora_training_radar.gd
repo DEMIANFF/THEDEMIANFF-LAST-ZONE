@@ -161,9 +161,16 @@ func ring_coverage() -> Dictionary:
 ## Exact world-to-texture pixel projection shared by camera-up radar and
 ## rotating view. The source is Aurora's physical heightfield, never a
 ## screenshot or a manually moved second map.
-func _terrain_pixel(world: Vector2,texture_size: Vector2) -> Vector2:
+func _terrain_uv(world: Vector2) -> Vector2:
+    # CanvasItem.draw_polygon uses normalized [0,1] texture UVs, not
+    # pixel coordinates. Values outside this range represent ocean/off-island
+    # and are clamped by the texture sampler.
     var half_extent: float=TERRAIN_SCALE.HALF_EXTENT
-    return (world+Vector2.ONE*half_extent)*texture_size/(half_extent*2.0)
+    return (world+Vector2.ONE*half_extent)/(half_extent*2.0)
+
+
+func _terrain_pixel(world: Vector2,texture_size: Vector2) -> Vector2:
+    return _terrain_uv(world)*texture_size
 
 
 func _draw_terrain_disc(center: Vector2,screen_radius: float,
@@ -171,11 +178,10 @@ func _draw_terrain_disc(center: Vector2,screen_radius: float,
     if map_texture==null or not is_instance_valid(player) or screen_radius<1.0:
         return
     var world: Vector2=Vector2(player.global_position.x,player.global_position.z)
-    var texture_size: Vector2=Vector2(map_texture.get_size())
     var points:=PackedVector2Array()
     var uvs:=PackedVector2Array()
     # Draw one convex 64-sided disc instead of a square texture under a
-    # circular bezel. Pixel UVs preserve the same exact projection used
+    # circular bezel. Normalized UVs preserve the same projection used
     # for zone rings and world markers; no extra Viewport or per-frame image.
     for i in range(MAP_DISC_SIDES):
         var radial: Vector2=Vector2.from_angle(
@@ -183,7 +189,7 @@ func _draw_terrain_disc(center: Vector2,screen_radius: float,
         points.append(center+radial)
         var terrain_at: Vector2=world+radial.rotated(yaw)*(
             world_range/screen_radius)
-        uvs.append(_terrain_pixel(terrain_at,texture_size))
+        uvs.append(_terrain_uv(terrain_at))
     draw_polygon(points,PackedColorArray([Color(1,1,1,.85)]),uvs,map_texture)
 
 
