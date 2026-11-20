@@ -28,8 +28,11 @@ var _gunfire_pings: Array[Dictionary]=[]
 func _ready() -> void:
     name="AuroraTrainingRadar"
     mouse_filter=Control.MOUSE_FILTER_IGNORE
+    # The first 245m safe-zone ring used to bleed out of the minimap and
+    # cover adjacent HUD controls. Clip ALL map content to its actual hitbox.
+    clip_contents=true
     var heading:=Label.new()
-    heading.text="AURORA · TOCA PARA ABRIR"
+    heading.text="AURORA · MAPA TÁCTICO"
     heading.position=Vector2(9,3)
     heading.add_theme_font_size_override("font_size",10)
     heading.add_theme_color_override("font_color",Color(.79,.95,.96))
@@ -118,8 +121,8 @@ func _draw() -> void:
     var rect: Rect2=Rect2(Vector2.ZERO,size)
     draw_rect(rect,Color(.025,.09,.13,.77))
     draw_rect(rect,Color(.30,.73,.81,.85),false,1.6)
-    var center: Vector2=Vector2(size.x*.5,size.y*.57)
-    var radius: float=minf(size.x*.40,size.y*.36)
+    var center: Vector2=Vector2(size.x*.5,size.y*.55)
+    var radius: float=minf(size.x*.45,size.y*.43)
     if player==null or not is_instance_valid(player):
         draw_arc(center,radius,0,TAU,52,Color(.34,.67,.72,.62),1.2,true)
         return
@@ -140,8 +143,8 @@ func _draw() -> void:
             Rect2(src_center-Vector2.ONE*src_size*.5,
                 Vector2.ONE*src_size),Color(1,1,1,.85))
         draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
-    draw_arc(center,radius,0,TAU,52,Color(.41,.89,.95,.82),1.7,true)
-    draw_arc(center,radius*.5,0,TAU,52,Color(.75,.91,.92,.34),1.0,true)
+    draw_arc(center,radius,0,TAU,52,Color(.41,.89,.95,.86),1.9,true)
+    draw_arc(center,radius*.5,0,TAU,52,Color(.75,.91,.92,.27),1.0,true)
     draw_line(center+Vector2(-radius,0),center+Vector2(radius,0),Color(.28,.50,.55,.32),1.0)
     draw_line(center+Vector2(0,-radius),center+Vector2(0,radius),Color(.28,.50,.55,.32),1.0)
     var arrow:=PackedVector2Array([center+Vector2(0,-8),center+Vector2(-5,6),center+Vector2(5,6)])

@@ -2088,12 +2088,20 @@ func _sync_armory_visual() -> void:
         if _preview_caption!=null:
             _preview_caption.text="GEOMETRÍA NO DISPONIBLE / "+str(spec["short"])
         return
-    # Longest imported mesh axis faces horizontally; normalize GLBs authored
-    # in meters, centimeters or other units without modifying source files.
+    # The old longest-axis correction left the SCAR side-on/flat against
+    # the hangar. First orient the source rifle along horizontal showroom X,
+    # then apply a fixed three-quarter hero angle and small upward cant.
+    # The same display pose is used for AWM/SCAR/MP40 without touching their
+    # real held-gun axes, physics, rigs or file formats.
+    var source_to_horizontal: Quaternion=Quaternion.IDENTITY
     if extent.y>=extent.x and extent.y>=extent.z:
-        visual.rotation.z=-PI*.5
+        source_to_horizontal=Quaternion(Vector3.BACK,-PI*.5)
     elif extent.z>=extent.x:
-        visual.rotation.y=PI*.5
+        source_to_horizontal=Quaternion(Vector3.UP,PI*.5)
+    var hero_yaw: float=deg_to_rad(-24.0)
+    var hero_bank: float=deg_to_rad(10.0)
+    visual.quaternion=(Quaternion(Vector3.UP,hero_yaw)*
+        Quaternion(Vector3.BACK,hero_bank)*source_to_horizontal)
     var scale_factor: float=clampf(1.80/length,.00001,100.0)
     var source_center: Vector3=(low+high)*.5
     visual.scale=Vector3.ONE*scale_factor
@@ -2103,7 +2111,7 @@ func _sync_armory_visual() -> void:
     if _preview_avatar!=null and is_instance_valid(_preview_avatar):
         _preview_avatar.visible=false
     if _preview_caption!=null:
-        _preview_caption.text="MODELO 3D ORIGINAL / "+str(spec["short"])
+        _preview_caption.text=str(spec["short"])+"  ·  VISTA 3D 360°"
     _preview_resume_spin=1.0
 
 

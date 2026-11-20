@@ -5,6 +5,7 @@ extends Control
 signal waypoint_changed(world_point: Vector2)
 const FLIGHT=preload("res://scripts/match/airdrop_sequence.gd")
 const TERRAIN_SCALE=preload("res://scripts/world/island_terrain.gd")
+const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const WORLD_HALF: float=TERRAIN_SCALE.HALF_EXTENT
 const ZONE_CENTER: Vector2=Vector2(0,-24)
 const POINTS: Array[Vector2]=[
@@ -19,7 +20,7 @@ const NAMES: Array[String]=[
     "FRONTERA ESTE","SUR HELADO","VALLE OESTE","PASO NORTE"]
 const SAVE_PATH: String="user://aurora_map_waypoint.cfg"
 const AWM_POSITION: Vector2=Vector2(8,24)
-const MAP_SAMPLES: int=160
+const MAP_SAMPLES: int=256
 const LANDMARK_POSITIONS: Array[Vector2]=[
     Vector2(18,-8),Vector2(-19,-29),Vector2(46,-36),
     Vector2(-48,22),Vector2(5,53),Vector2(-54,56),
@@ -245,33 +246,110 @@ func _gui_input(event: InputEvent) -> void:
         accept_event()
 
 
+func _terrain_pixel(at: Vector2) -> Vector2:
+    return (at+Vector2.ONE*WORLD_HALF)*float(MAP_SAMPLES)/(WORLD_HALF*2.0)
+
+
+func _paint_road(image: Image,heights: PackedFloat32Array,
+        points: Array[Vector2],sea: float) -> void:
+    # The original navigable-sector connections are painted ONCE into the
+    # shared heightfield image: they also appear in the small minimap.
+    # No 3D geometry, collision or new per-frame allocations.
+    for segment in range(points.size()-1):
+        var first: Vector2=_terrain_pixel(points[segment])
+        var last: Vector2=_terrain_pixel(points[segment+1])
+        var steps: int=maxi(1,ceili(first.distance_to(last)*1.5))
+        for n in range(steps+1):
+            var p: Vector2=first.lerp(last,float(n)/float(steps))
+            for dz in range(-2,3):
+                for dx in range(-2,3):
+                    var px: int=roundi(p.x)+dx
+                    var pz: int=roundi(p.y)+dz
+                    if px<0 or pz<0 or px>=MAP_SAMPLES or pz>=MAP_SAMPLES:
+                        continue
+                    if heights[pz*MAP_SAMPLES+px]<=sea+.75:
+                        continue
+                    var edge: bool=abs(dx)==2 or abs(dz)==2
+                    image.set_pixel(px,pz,Color(.19,.24,.25) if edge else
+                        Color(.81,.74,.56))
+
+
+func _paint_house(image: Image,heights: PackedFloat32Array,
+        center: Vector2,span: Vector2,sea: float) -> void:
+    # Use actual house footprint coordinates, not fictional copied icons.
+    var point: Vector2=_terrain_pixel(center)
+    var half_width: int=maxi(2,roundi(span.x*MAP_SAMPLES/(WORLD_HALF*4.0)))
+    var half_depth: int=maxi(2,roundi(span.y*MAP_SAMPLES/(WORLD_HALF*4.0)))
+    for dz in range(-half_depth-1,half_depth+2):
+        for dx in range(-half_width-1,half_width+2):
+            var px: int=roundi(point.x)+dx
+            var pz: int=roundi(point.y)+dz
+            if px<0 or pz<0 or px>=MAP_SAMPLES or pz>=MAP_SAMPLES:
+                continue
+            if heights[pz*MAP_SAMPLES+px]<=sea+.30:
+                continue
+            var edge: bool=abs(dx)>half_width or abs(dz)>half_depth
+            image.set_pixel(px,pz,Color(.09,.16,.19) if edge else
+                Color(.79,.84,.81))
+
+
 func _ensure_terrain_texture() -> void:
     if _terrain_texture!=null or not is_instance_valid(terrain):
         return
-    # A cached, real 160x160 heightfield replaces the old 35x35 blocks.
-    # Sampling occurs only once per loaded island, not every HUD frame.
-    var image:=Image.create(MAP_SAMPLES,MAP_SAMPLES,false,Image.FORMAT_RGBA8)
+    # The cache is generated once per terrain on the CPU. Two-pass relief,
+    # 8m contour bands, beaches, navigable roads and the REAL house footprints
+    # replace the old bare circle/160px map. Never recompute during gameplay.
+    var heights:=PackedFloat32Array()
+    heights.resize(MAP_SAMPLES*MAP_SAMPLES)
     var sea: float=float(terrain.get("sea_level"))
     for z in range(MAP_SAMPLES):
         for x in range(MAP_SAMPLES):
-            var world_x: float=-WORLD_HALF+(float(x)+.5)*(WORLD_HALF*2.0)/MAP_SAMPLES
-            var world_z: float=-WORLD_HALF+(float(z)+.5)*(WORLD_HALF*2.0)/MAP_SAMPLES
-            var h: float=float(terrain.call("height_at",world_x,world_z))
-            var color: Color=Color(.025,.16,.26)
-            if h>sea+.3:
-                color=Color(.20,.34,.28).lerp(Color(.47,.43,.32),
-                    clampf((h-8.0)/44.0,0.0,1.0))
-                if h<sea+3.0:
-                    color=color.lerp(Color(.73,.65,.46),
-                        clampf(1.0-(h-sea)/3.0,0.0,1.0))
-                if h>35.0:
-                    color=color.lerp(Color(.72,.78,.78),
-                        clampf((h-35.0)/28.0,0.0,1.0))
-            elif h>sea-1.0:
-                color=Color(.10,.44,.51)
+            var wx: float=-WORLD_HALF+(float(x)+.5)*WORLD_HALF*2.0/MAP_SAMPLES
+            var wz: float=-WORLD_HALF+(float(z)+.5)*WORLD_HALF*2.0/MAP_SAMPLES
+            heights[z*MAP_SAMPLES+x]=float(terrain.call("height_at",wx,wz))
+    var image:=Image.create(MAP_SAMPLES,MAP_SAMPLES,false,Image.FORMAT_RGBA8)
+    for z in range(MAP_SAMPLES):
+        for x in range(MAP_SAMPLES):
+            var index: int=z*MAP_SAMPLES+x
+            var h: float=heights[index]
+            var color: Color=Color(.035,.17,.24)
+            if h<=sea+.15:
+                color=Color(.025,.12,.20).lerp(Color(.12,.39,.46),
+                    clampf((h-(sea-7.0))/8.0,0.0,1.0))
+            elif h<sea+3.5:
+                color=Color(.67,.65,.48).lerp(Color(.37,.51,.42),
+                    clampf((h-sea)/3.5,0.0,1.0))
+            elif h<28.0:
+                color=Color(.29,.47,.39).lerp(Color(.24,.33,.38),
+                    clampf((h-8.0)/30.0,0.0,1.0))
+            else:
+                color=Color(.40,.48,.53).lerp(Color(.83,.89,.90),
+                    clampf((h-28.0)/25.0,0.0,1.0))
+            if h>sea+.4:
+                var west: float=heights[z*MAP_SAMPLES+maxi(0,x-1)]
+                var east: float=heights[z*MAP_SAMPLES+mini(MAP_SAMPLES-1,x+1)]
+                var north: float=heights[maxi(0,z-1)*MAP_SAMPLES+x]
+                var south: float=heights[mini(MAP_SAMPLES-1,z+1)*MAP_SAMPLES+x]
+                var light: float=clampf((west-east+north-south)*.055,-.19,.19)
+                color=(color.lightened(light) if light>=0.0 else
+                    color.darkened(-light))
+                if floori(h/8.0)!=floori(west/8.0) or floori(h/8.0)!=floori(north/8.0):
+                    color=color.darkened(.20)
             image.set_pixel(x,z,color)
+    _paint_road(image,heights,[Vector2(-48,22),Vector2(-26,2),
+        Vector2(4,4),Vector2(26,20),Vector2(48,41),Vector2(68,48)],sea)
+    _paint_road(image,heights,[Vector2(-55,60),Vector2(-22,66),
+        Vector2(5,50),Vector2(19,43),Vector2(43,41),Vector2(68,48)],sea)
+    _paint_road(image,heights,[Vector2(4,4),Vector2(18,-8),
+        Vector2(46,-36),Vector2(53,-61)],sea)
+    for i in range(RESIDENTIAL.SITES.size()):
+        var site: Vector4=RESIDENTIAL.SITES[i]
+        _paint_house(image,heights,Vector2(site.x,site.y),
+            Vector2(site.z,site.w),sea)
+    for historic in TERRAIN_SCALE.LEGACY_LOTS:
+        _paint_house(image,heights,Vector2(historic.x,historic.y),
+            Vector2(historic.z,historic.w),sea)
     _terrain_texture=ImageTexture.create_from_image(image)
-
 
 func _draw_path(world_points: Array[Vector2],tint: Color,width: float) -> void:
     var points:=PackedVector2Array()
@@ -389,6 +467,18 @@ func _draw() -> void:
             draw_string(font,target+Vector2(10,0),str(meters)+" m",
                 HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color(1.0,.86,.48))
     draw_rect(rect,Color(.38,.83,.94),false,2.0)
+    # Chart orientation and scale remain grounded in the real island metres.
+    var scale_m: float=100.0
+    var scale_pixels: float=scale_m/_meters_per_pixel(rect)
+    var bottom: Vector2=Vector2(rect.position.x+14,rect.end.y-15)
+    draw_line(bottom,bottom+Vector2(scale_pixels,0),Color(.96,.95,.77),2.0)
+    draw_line(bottom+Vector2(0,-4),bottom+Vector2(0,4),Color(.96,.95,.77),2.0)
+    draw_line(bottom+Vector2(scale_pixels,-4),
+        bottom+Vector2(scale_pixels,4),Color(.96,.95,.77),2.0)
+    draw_string(font,bottom+Vector2(3,-6),"100 m",
+        HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(.96,.95,.77))
+    draw_string(font,rect.position+Vector2(12,19),"N ↑",
+        HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(.94,.98,1.0))
     draw_string(font,Vector2(size.x*.26,size.y*.05),
         "PUERTO AURORA  /  MAPA TÁCTICO",
         HORIZONTAL_ALIGNMENT_LEFT,-1,20,Color(.94,.97,1))
