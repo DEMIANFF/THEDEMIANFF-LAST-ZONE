@@ -75,6 +75,44 @@ func _verify() -> void:
                     "road/route segment still leaks outside the map pane")
     else:
         check(false,"tactical map has zero-sized mobile viewport")
+    if map_rect.size.x>30.0 and map_rect.size.y>30.0:
+        # Reproduce the actual Android gesture lifecycle with two fingers.
+        # Releasing the second finger at its original position used to place
+        # a waypoint even though this gesture was only a pinch.
+        var original_waypoint: Vector2=tactical.get("waypoint")
+        var one: Vector2=map_rect.get_center()+Vector2(-22,0)
+        var two: Vector2=map_rect.get_center()+Vector2(22,0)
+        var first:=InputEventScreenTouch.new()
+        first.index=4
+        first.pressed=true
+        first.position=one
+        tactical._gui_input(first)
+        var second:=InputEventScreenTouch.new()
+        second.index=5
+        second.pressed=true
+        second.position=two
+        tactical._gui_input(second)
+        second.pressed=false
+        tactical._gui_input(second)
+        first.pressed=false
+        tactical._gui_input(first)
+        check(tactical.get("waypoint")==original_waypoint and
+            tactical.get("_touches").is_empty() and
+            not bool(tactical.get("_touch_gesture_multitouch")),
+            "pinch release placed a false waypoint or kept stale touch state")
+        # Releasing the mouse outside the map must terminate dragging.
+        var press:=InputEventMouseButton.new()
+        press.button_index=MOUSE_BUTTON_LEFT
+        press.pressed=true
+        press.position=map_rect.get_center()
+        tactical._gui_input(press)
+        var release:=InputEventMouseButton.new()
+        release.button_index=MOUSE_BUTTON_LEFT
+        release.pressed=false
+        release.position=map_rect.position+Vector2(-18,8)
+        tactical._gui_input(release)
+        check(int(tactical.get("_drag_touch"))==-1,
+            "map mouse drag remains active after off-pane release")
     check(tactical.has_method("_clamp_pan_to_terrain"),
         "tactical drag/zoom lacks world-bound checks")
     tactical.set("zoom",1.0)
