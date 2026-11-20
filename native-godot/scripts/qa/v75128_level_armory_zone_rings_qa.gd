@@ -2,6 +2,7 @@ extends SceneTree
 ## V75.128: level original showroom GLBs and true mobile safe-zone rings.
 const CATALOG=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const SECTOR=preload("res://scripts/match/sector_director.gd")
+const ISLAND=preload("res://scripts/world/island_terrain.gd")
 var failed: bool=false
 
 
@@ -74,6 +75,24 @@ func _verify() -> void:
                     "road/route segment still leaks outside the map pane")
     else:
         check(false,"tactical map has zero-sized mobile viewport")
+    check(tactical.has_method("_clamp_pan_to_terrain"),
+        "tactical drag/zoom lacks world-bound checks")
+    tactical.set("zoom",1.0)
+    tactical.set("pan",Vector2(9999,-9999))
+    tactical.call("_clamp_pan_to_terrain")
+    var full_pan: Vector2=tactical.get("pan")
+    check(full_pan.length_squared()<.0001,
+        "unzoomed tactical view should be centred on the physical island")
+    tactical.set("zoom",8.0)
+    tactical.set("pan",Vector2(9999,-9999))
+    tactical.call("_clamp_pan_to_terrain")
+    var zoom_pan: Vector2=tactical.get("pan")
+    var max_pan: float=ISLAND.HALF_EXTENT*(1.0-1.0/8.0)
+    check(absf(zoom_pan.x)<=max_pan+.01 and
+        absf(zoom_pan.y)<=max_pan+.01,
+        "zoom/pan can leave Aurora physical terrain or repeat map texture")
+    tactical.set("zoom",1.0)
+    tactical.set("pan",Vector2.ZERO)
     check(radar.has_method("_draw_terrain_disc"),
         "terrain cartography still uses a square instead of a circular mask")
     # World-space centre and boundaries must produce identical image UVs
@@ -94,7 +113,15 @@ func _verify() -> void:
         uv_near.x>center_uv.x and uv_near.y<center_uv.y and
         uv_near.x<1.0 and uv_near.y>0.0,
         "Godot polygon texture UVs must be normalized to [0,1]")
+    # Entering another aircraft phase after a 12 m final ring must reset
+    # the radar to its original opening geometry, without a stale future arc.
+    radar.call("set_zone",SECTOR.CENTER,SECTOR.FINAL_RADIUS)
+    radar.call("set_next_zone",SECTOR.CENTER,SECTOR.FINAL_RADIUS*.5)
+    radar.call("set_zone",SECTOR.CENTER,SECTOR.INITIAL_RADIUS)
     radar.call("clear_next_zone")
+    check(is_equal_approx(float(radar.get("_zone_radius")),
+        SECTOR.INITIAL_RADIUS),
+        "new aircraft phase inherited a stale final-zone radius")
     check(not bool(radar.get("_next_zone_enabled")) and
         zone_label!=null and not zone_label.text.contains("PRÓX"),
         "future ring or its label persists after clearing the planned phase")
