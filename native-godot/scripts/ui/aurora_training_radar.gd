@@ -35,7 +35,9 @@ func _ready() -> void:
     clip_contents=true
     var heading:=Label.new()
     heading.text="PUERTO AURORA"
-    heading.position=Vector2(9,3)
+    heading.position=Vector2(8,3)
+    # Phone-sized radar: avoid a clipped single 200px line over the map.
+    heading.custom_minimum_size=Vector2(142,25)
     heading.add_theme_font_size_override("font_size",10)
     heading.add_theme_color_override("font_color",Color(.79,.95,.96))
     heading.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -126,7 +128,8 @@ func _refresh_zone_label() -> void:
     if _zone_enabled:
         caption="ZONA %d m"%roundi(_zone_radius)
         if _next_zone_enabled:
-            caption+=" · PRÓX %d m"%roundi(_next_zone_radius)
+            # Use two readable rows instead of overflowing the 156px radar.
+            caption+="\nPRÓX %d m"%roundi(_next_zone_radius)
     if _zone_label.text!=caption:
         _zone_label.text=caption
 
