@@ -311,10 +311,11 @@ func _process(delta: float) -> void:
             hud.impact("ZONA PELIGROSA / REGRESA AL CIRCULO")
         _was_player_outside=outside
         hud.set_sector_zone(zone_center,radius)
-        var next_phase: int=mini(zone_phase+1,PHASE_COUNT)
-        var next_radius: float=(PHASE_RADII[next_phase]
-            if zone_phase<PHASE_COUNT else OVERTIME_RADIUS)
-        hud.set_next_sector_zone(_zone_center_at(next_phase),next_radius)
+        var planned: Dictionary=next_zone_preview()
+        if bool(planned["active"]):
+            hud.set_next_sector_zone(planned["center"],float(planned["radius"]))
+        else:
+            hud.clear_next_sector_zone()
         var status: String=("CIERRE FINAL · %ds"%zone_seconds_remaining
             if zone_phase>=PHASE_COUNT and zone_seconds_remaining>0
             else "COMBATE FINAL / ZONA CERRADA" if zone_phase>=PHASE_COUNT
@@ -407,6 +408,17 @@ func _zone_center_at(phase: int,progress: float=0.0) -> Vector2:
         return _phase_centers[PHASE_COUNT]
     return _phase_centers[phase].lerp(_phase_centers[phase+1],
         clampf(progress,0.0,1.0))
+
+
+
+## Both minimap and full tactical map consume this single authoritative
+## planned-circle state. In overtime there is no nonexistent fifth circle.
+func next_zone_preview() -> Dictionary:
+    if mode!="sector_battle" or match_ended or zone_phase>=PHASE_COUNT:
+        return {"active":false}
+    var next_phase: int=zone_phase+1
+    return {"active":true,"center":_zone_center_at(next_phase),
+        "radius":PHASE_RADII[next_phase]}
 
 
 ## Four actual scheduled storm phases, beginning wide enough to cover both
