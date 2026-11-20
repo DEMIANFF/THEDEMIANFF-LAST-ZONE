@@ -121,15 +121,23 @@ func clear_next_zone() -> void:
 
 
 
+## The overtime radius genuinely shrinks below one metre. Preserve the
+## precision of that final hazard instead of labeling 0.75 m as 1 m.
+func _format_zone_radius(radius: float) -> String:
+    if radius<2.0:
+        return "%.2f"%radius
+    return "%d"%roundi(radius)
+
+
 func _refresh_zone_label() -> void:
     if not is_instance_valid(_zone_label):
         return
     var caption: String="PUERTO AURORA"
     if _zone_enabled:
-        caption="ZONA %d m"%roundi(_zone_radius)
+        caption="ZONA %s m"%_format_zone_radius(_zone_radius)
         if _next_zone_enabled:
             # Use two readable rows instead of overflowing the 156px radar.
-            caption+="\nPRÓX %d m"%roundi(_next_zone_radius)
+            caption+="\nPRÓX %s m"%_format_zone_radius(_next_zone_radius)
     if _zone_label.text!=caption:
         _zone_label.text=caption
 
