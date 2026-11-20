@@ -271,6 +271,13 @@ jobs:
             test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
           done
           echo "AURORA_MOTOROLA_FRONTEND_CAPTURE PASS 964x434"
+          # Real showroom GLBs, same phone-aspect viewport. Desktop render
+          # evidence only; actual Motorola/Vulkan test remains separate.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_armory_qa.gd
+          for weapon in ar awm scar mp40; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-armory-${weapon}.png"
+          done
+          echo "AURORA_ARMORY_MOTOROLA_VIEWPORT_CAPTURE PASS models=4"
       # Preserve real in-engine screenshots even if a later APK gate fails.
       # This lets the Motorola UI redesign be reviewed before installation.
       - uses: actions/upload-artifact@v6
@@ -290,6 +297,7 @@ jobs:
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-loading.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-login.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-lobby.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-armory-*.png
           retention-days: 30
       - name: Render expanded Motorola layout and verify absence of side bars
         run: xvfb-run -a -s "-screen 0 2712x1220x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_responsive_preview.gd > native-godot/out/qa/responsive-render.log 2>&1
