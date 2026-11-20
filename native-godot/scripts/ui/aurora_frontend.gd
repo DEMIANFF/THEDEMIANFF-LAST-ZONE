@@ -74,6 +74,7 @@ var _preview_weapon: Node3D
 var _preview_weapon_slot: int=-1
 var _armory_fill_light: OmniLight3D
 var _armory_inspection_backdrop: Node3D
+var _armory_matte_material: StandardMaterial3D
 var _preview_caption: Label
 var _gesture_button: Button
 var _operator_controls: Array[Button]=[]
@@ -2076,6 +2077,14 @@ func _sync_armory_visual() -> void:
         return
     _clear_weapon_preview()
     var spec: Dictionary=WEAPON_CATALOG.ENTRIES[_armory_selected_slot]
+    # The original SCAR's gunmetal receiver is dark gray. Against the
+    # navy inspection panel it was still nearly invisible in actual CI PNGs.
+    # Change ONLY the lobby backdrop, never its original GLB material.
+    if is_instance_valid(_armory_matte_material):
+        _armory_matte_material.albedo_color=(
+            Color(.37,.46,.55,.94)
+            if _armory_selected_slot==WEAPON_CATALOG.SCAR
+            else Color(.085,.135,.19,.89))
     var path: String=_armory_model_path(_armory_selected_slot)
     if path.is_empty() or not ResourceLoader.exists(path,"PackedScene"):
         if _preview_avatar!=null and is_instance_valid(_preview_avatar):
@@ -2839,6 +2848,7 @@ func _build_preview() -> void:
     matte_finish.albedo_color=Color(.085,.135,.19,.89)
     matte_finish.cull_mode=BaseMaterial3D.CULL_DISABLED
     inner.material_override=matte_finish
+    _armory_matte_material=matte_finish
     inner.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     _armory_inspection_backdrop.add_child(inner)
     var camera:=Camera3D.new()
