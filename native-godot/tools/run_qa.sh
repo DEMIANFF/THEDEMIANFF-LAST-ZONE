@@ -23,6 +23,26 @@ if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
   mv "$LOGS/import.running" "$LOGS/import.log"
   if [ "$import_status" -ne 0 ]; then cat "$LOGS/import.log"; exit 1; fi
   if grep -E 'SCRIPT ERROR:|ERROR:' "$LOGS/import.log"; then exit 1; fi
+  # Parse the affected runtime scripts BEFORE running hundreds of physics
+  # tests. A broken dependency previously generated scores of 90s timeouts.
+  for source in \
+    scripts/match/sector_director.gd \
+    scripts/main.gd \
+    scripts/ui/aurora_tactical_map.gd \
+    scripts/ui/aurora_training_radar.gd \
+    scripts/ui/native_hud.gd; do
+    safe_name="${source//\//_}"
+    syntax_status=0
+    timeout 40 "$GODOT" --headless --path "$ROOT" --check-only \
+      --script "res://$source" > "$LOGS/${safe_name}.check.log" 2>&1 || syntax_status=$?
+    if [ "$syntax_status" -ne 0 ] || \
+        grep -Eq 'SCRIPT ERROR:|ERROR:' "$LOGS/${safe_name}.check.log"; then
+      echo "AURORA_SCRIPT_CHECK_FAIL source=$source status=$syntax_status"
+      tail -n 80 "$LOGS/${safe_name}.check.log"
+      exit 1
+    fi
+    echo "AURORA_SCRIPT_CHECK_PASS source=$source"
+  done
 fi
 failures=0
 failed_scripts=()

@@ -723,10 +723,15 @@ func _on_opponent_eliminated(victim: CharacterBody3D,killer: Node3D) -> void:
         if not hit.is_empty() and hit.get("collider") is StaticBody3D:
             var support_position: Vector3=hit["position"]
             var support_normal: Vector3=hit["normal"]
-            if support_normal.y>.55 and
-                    support_position.y>=ground_y-.15 and
-                    support_position.y<=position.y+.35 and
-                    position.y-support_position.y<=1.25:
+            # Group multiline boolean conditions in parentheses: GDScript
+            # does not permit an unparenthesized line break after 'and'.
+            var walkable_support: bool=(
+                support_normal.y>0.55
+                and support_position.y>=ground_y-0.15
+                and support_position.y<=position.y+0.35
+                and position.y-support_position.y<=1.25
+            )
+            if walkable_support:
                 surface_y=support_position.y
     _make_pickup(at,kind,"AuroraOpponentLoot"+str(_opponent_drops_spawned),
         surface_y,true,amount)
