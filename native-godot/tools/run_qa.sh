@@ -25,11 +25,14 @@ if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
   if grep -E 'SCRIPT ERROR:|ERROR:' "$LOGS/import.log"; then exit 1; fi
   # Parse the affected runtime scripts BEFORE running hundreds of physics
   # tests. A broken dependency previously generated scores of 90s timeouts.
+  # Do not parse aurora_frontend.gd as a standalone --check-only script:
+  # it uses project autoload AuroraLobbyMusic, which is not registered in
+  # standalone check-only mode. The real Boot scene is instantiated in
+  # v75127/v75128 frontend QA and the Xvfb visual capture instead.
   for source in \
     scripts/match/sector_director.gd \
     scripts/main.gd \
     scripts/ui/aurora_tactical_map.gd \
-    scripts/ui/aurora_frontend.gd \
     scripts/ui/aurora_training_radar.gd \
     scripts/ui/native_hud.gd \
     scripts/qa/v75128_level_armory_zone_rings_qa.gd \
