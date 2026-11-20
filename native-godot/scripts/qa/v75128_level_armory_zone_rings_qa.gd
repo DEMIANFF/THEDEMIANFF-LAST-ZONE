@@ -62,8 +62,11 @@ func _verify() -> void:
             map_rect.get_center()+Vector2(map_rect.size.x,0)])
         var clipped: Array=tactical.call("_clipped_map_segments",
             crossing,map_rect)
-        check(clipped.size()==1 and
-            (clipped[0] as PackedVector2Array).size()>=2,
+        var crossing_visible: bool=clipped.size()==1
+        if crossing_visible:
+            var first_section: PackedVector2Array=clipped[0]
+            crossing_visible=first_section.size()>=2
+        check(crossing_visible,
             "crossing road was not clipped to the tactical pane")
         for section in clipped:
             for vertex in section:
