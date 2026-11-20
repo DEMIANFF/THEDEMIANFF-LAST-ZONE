@@ -588,6 +588,11 @@ func set_next_sector_zone(center: Vector2,radius: float) -> void:
         _training_radar.call("set_next_zone",center,radius)
 
 
+func clear_next_sector_zone() -> void:
+    if _training_radar:
+        _training_radar.call("clear_next_zone")
+
+
 func set_radar_battle_mode(enabled: bool) -> void:
     if _training_radar:
         _training_radar.call("set_battle_mode",enabled)
