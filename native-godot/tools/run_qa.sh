@@ -31,7 +31,10 @@ if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
     scripts/ui/aurora_tactical_map.gd \
     scripts/ui/aurora_frontend.gd \
     scripts/ui/aurora_training_radar.gd \
-    scripts/ui/native_hud.gd; do
+    scripts/ui/native_hud.gd \
+    scripts/qa/v75128_level_armory_zone_rings_qa.gd \
+    scripts/qa/capture_motorola_zone_map_qa.gd \
+    scripts/qa/capture_motorola_armory_qa.gd; do
     safe_name="${source//\//_}"
     syntax_status=0
     timeout 40 "$GODOT" --headless --path "$ROOT" --check-only \
