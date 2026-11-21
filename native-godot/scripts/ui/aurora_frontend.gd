@@ -18,6 +18,7 @@ const LOCAL_PLAYER_NAME=preload("res://scripts/persistence/local_player_name.gd"
 const FIREBASE_BRIDGE=preload("res://scripts/persistence/aurora_firebase_bridge.gd")
 const WEAPON_CATALOG=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const WEAPON_FAMILIES=preload("res://scripts/combat/aurora_weapon_families.gd")
+const EQUIPMENT_FAMILIES=preload("res://scripts/combat/aurora_equipment_families.gd")
 const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
@@ -137,6 +138,7 @@ var _play_match_card: PanelContainer
 var _pass_claim_button: Button
 var _pass_progress: ProgressBar
 var _shop_selector: OptionButton
+var _operator_selector: OptionButton
 var _shop_buy_button: Button
 var _shop_equip_button: Button
 var _shop_selected_skin: String="aurora_glacier"
@@ -149,6 +151,8 @@ var _armory_selected_slot: int=0
 var _requested_training_weapon_slot: int=-1
 var _armory_test_button: Button
 var _equipment_selector: OptionButton
+var _equipment_category_selector: OptionButton
+var _equipment_category: int=0
 var _equipment_selected: int=0
 var _banner: Label
 var _game_scene: PackedScene
@@ -1204,6 +1208,21 @@ func _show_lobby() -> void:
     _pass_claim_button.add_theme_font_size_override("font_size",14)
     _style_primary_action(_pass_claim_button)
     _page.add_child(_pass_claim_button)
+    # Pick the actual imported 3D actor, without claiming CH02 is a
+    # combat-ready operator. Missing licensed sources stay unavailable.
+    _operator_selector=OptionButton.new()
+    _operator_selector.name="AuroraOperatorPreviewSelector"
+    _operator_selector.custom_minimum_size=Vector2(245,36)
+    _operator_selector.fit_to_longest_item=false
+    _operator_selector.clip_text=true
+    _operator_selector.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _operator_selector.add_theme_font_size_override("font_size",13)
+    _operator_selector.add_item("LILA AURORA · JUGABLE",0)
+    _operator_selector.add_item("CH02 · SOLO VISTA 3D",1)
+    _operator_selector.set_item_disabled(1,not MALE_PREVIEW.source_available())
+    _operator_selector.select(1 if _preview_male_active else 0)
+    _operator_selector.item_selected.connect(_on_operator_selected)
+    _page.add_child(_operator_selector)
     _shop_selector=OptionButton.new()
     _shop_selector.name="AuroraLocalSkinSelector"
     _shop_selector.custom_minimum_size=Vector2(245,31)
@@ -1258,14 +1277,32 @@ func _show_lobby() -> void:
     _page.add_child(_armory_test_button)
     # Armor and supplies are acquired during a match, never silently owned
     # merely because the player opened the local lobby.
+    # The lobby only INSPECTS actual gear. Match pickups and inventory live
+    # in the game scene; changing this selector cannot grant any supplies.
+    _equipment_category_selector=OptionButton.new()
+    _equipment_category_selector.name="AuroraEquipmentFamilySelector"
+    _equipment_category_selector.custom_minimum_size=Vector2(245,35)
+    _equipment_category_selector.fit_to_longest_item=false
+    _equipment_category_selector.clip_text=true
+    _equipment_category_selector.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    for category in range(EQUIPMENT_FAMILIES.LABELS.size()):
+        _equipment_category_selector.add_item(
+            "%s  (%d)"%[EQUIPMENT_FAMILIES.LABELS[category],
+                EQUIPMENT_FAMILIES.slots_for_category(category).size()],
+            category)
+    _equipment_category_selector.select(_equipment_category)
+    _equipment_category_selector.item_selected.connect(
+        _on_equipment_category_selected)
+    _page.add_child(_equipment_category_selector)
     _equipment_selector=OptionButton.new()
     _equipment_selector.name="AuroraEquipmentCatalog"
     _equipment_selector.custom_minimum_size=Vector2(245,35)
-    for item in ["MOCHILA","CASCO","CHALECO","BOTIQUÍN","GRANADA"]:
-        _equipment_selector.add_item(item)
-    _equipment_selector.select(_equipment_selected)
+    _equipment_selector.fit_to_longest_item=false
+    _equipment_selector.clip_text=true
+    _equipment_selector.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _equipment_selector.item_selected.connect(_on_equipment_selected)
     _page.add_child(_equipment_selector)
+    _refresh_equipment_catalog()
     # Long account and match history text remains reachable on small screens.
     _lobby_detail_scroll=ScrollContainer.new()
     _lobby_detail_scroll.name="LobbyDetailsScroll"
@@ -1482,13 +1519,16 @@ func _sync_lobby_match_mode() -> void:
             not _entry_should_show_briefing())
     _pass_progress.visible=_selected_tab=="PASE"
     _pass_claim_button.visible=_selected_tab=="PASE"
-    _shop_selector.visible=_selected_tab in ["TIENDA","PERSONAJE"]
+    _shop_selector.visible=_selected_tab in ["TIENDA","PERSONAJE"] and not (
+        _selected_tab=="PERSONAJE" and _preview_male_active)
+    _operator_selector.visible=_selected_tab=="PERSONAJE"
     _shop_buy_button.visible=_selected_tab=="TIENDA"
     _shop_equip_button.visible=_selected_tab=="TIENDA"
     _armory_list.visible=_selected_tab=="ARMAS"
     _armory_category_selector.visible=_selected_tab=="ARMAS"
     _armory_test_button.visible=_selected_tab=="ARMAS"
     _equipment_selector.visible=_selected_tab=="INVENTARIO"
+    _equipment_category_selector.visible=_selected_tab=="INVENTARIO"
     _lobby_mode_status.visible=show_modes and _selected_match_mode=="ranked"
     _lobby_detail_scroll.visible=not show_modes and _selected_tab not in ["AJUSTES","PRESET"]
     match _selected_match_mode:
@@ -2018,6 +2058,8 @@ func _select_tab(tab: String) -> void:
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
     _sync_lobby_match_mode()
+    if _operator_selector!=null:
+        _operator_selector.select(1 if _preview_male_active else 0)
     _sync_armory_visual()
     # Real 3D cosmetics are previewed only in the shop/character screens.
     # Leaving both restores the equipped outfit; no purchase is performed.
@@ -2280,8 +2322,39 @@ func _open_weapon_training() -> void:
     _launch(false)
 
 
+func _refresh_equipment_catalog() -> void:
+    if _equipment_selector==null:
+        return
+    var slots: Array[int]=EQUIPMENT_FAMILIES.slots_for_category(
+        _equipment_category)
+    _equipment_selected=EQUIPMENT_FAMILIES.select_slot(
+        _equipment_category,_equipment_selected)
+    _equipment_selector.clear()
+    for slot in slots:
+        # The item ID IS the original BR equipment ID, not a filtered row.
+        _equipment_selector.add_item(
+            EQUIPMENT_FAMILIES.ITEM_NAMES[slot],slot)
+        if slot==_equipment_selected:
+            _equipment_selector.select(_equipment_selector.item_count-1)
+
+
+func _on_equipment_category_selected(index: int) -> void:
+    if _equipment_category_selector==null:
+        return
+    _equipment_category=_equipment_category_selector.get_item_id(index)
+    _refresh_equipment_catalog()
+    if stage=="lobby" and _selected_tab=="INVENTARIO":
+        _update_equipment_details()
+
+
 func _on_equipment_selected(index: int) -> void:
-    _equipment_selected=clampi(index,0,4)
+    if _equipment_selector==null or index<0 or (
+            index>=_equipment_selector.item_count):
+        return
+    var slot: int=_equipment_selector.get_item_id(index)
+    if slot<0 or slot>=EQUIPMENT_FAMILIES.ITEM_NAMES.size():
+        return
+    _equipment_selected=slot
     if stage=="lobby" and _selected_tab=="INVENTARIO":
         _update_equipment_details()
 
@@ -2289,15 +2362,12 @@ func _on_equipment_selected(index: int) -> void:
 func _update_equipment_details() -> void:
     if _info==null:
         return
-    var summaries: Array[String]=[
-        "MOCHILA · niveles 1–3. Aumenta la capacidad real de munición.",
-        "CASCO · niveles 1–3. Protección obtenida mediante botín.",
-        "CHALECO · niveles 1–3. Absorbe daño y se equipa en partida.",
-        "BOTIQUÍN · restaura salud al usarlo en combate.",
-        "GRANADA · consumible arrojadizo; requiere recogerse en partida."
-    ]
-    _info.text="INVENTARIO EN PARTIDA · EQUIPAMIENTO  ·  %d / %d\n%s\n\n"%[
-        _equipment_selected+1,summaries.size(),summaries[_equipment_selected]]
+    var selected: int=clampi(_equipment_selected,0,
+        EQUIPMENT_FAMILIES.ITEM_NAMES.size()-1)
+    var category: String=EQUIPMENT_FAMILIES.family_for_slot(selected)
+    _info.text="INVENTARIO EN PARTIDA · %s  ·  %d / %d\n%s\n\n"%[
+        category,selected+1,EQUIPMENT_FAMILIES.ITEM_NAMES.size(),
+        EQUIPMENT_FAMILIES.DESCRIPTIONS[selected]]
     _info.text+=("Este catálogo explica objetos del Battle Royale. El inventario "+
         "real y el equipo disponible se consultan en el HUD durante cada partida; "+
         "abrir esta sección no otorga objetos ni inventa compras.")
@@ -2319,6 +2389,18 @@ func _apply_preview_skin(skin: String) -> void:
                 portrait.shader=LOBBY_OPERATOR_SURFACE
                 portrait.set_shader_parameter("source_albedo",material.albedo_texture)
                 body.material_override=portrait
+
+
+## The character selector switches real imported previews; this does not
+## replace the playable battle operator or create online character ownership.
+func _on_operator_selected(index: int) -> void:
+    if _operator_selector==null or stage!="lobby" or (
+            _selected_tab!="PERSONAJE"):
+        return
+    var target_male: bool=_operator_selector.get_item_id(index)==1
+    if target_male!=_preview_male_active:
+        _toggle_mixamo_preview()
+    _operator_selector.select(1 if _preview_male_active else 0)
 
 
 func _on_shop_skin_selected(index: int) -> void:
@@ -2668,6 +2750,8 @@ func _toggle_mixamo_preview() -> void:
     scene3d.add_child(incoming)
     _preview_avatar=incoming
     _preview_male_active=next_male
+    if _operator_selector!=null and is_instance_valid(_operator_selector):
+        _operator_selector.select(1 if next_male else 0)
     _preview_male_motion_index=0
     _preview_resume_spin=2.0
     _preview_skin_applied=""
