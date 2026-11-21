@@ -111,6 +111,9 @@ var _hud_editor_origin: String=""
 var _settings_modal: CanvasLayer
 var _brand_logo: TextureRect
 var _match_mode_selector: OptionButton
+var _mode_gallery_entry: Button
+var _mode_gallery_overlay: Control
+var _mode_gallery_cards: Dictionary={}
 var _selected_match_mode: String="classic"
 var _lobby_mode_heading: Label
 var _lobby_mode_caption: Label
@@ -686,6 +689,10 @@ func _welcome() -> void:
             plate.visible=false
     if _bottom_navigation!=null and is_instance_valid(_bottom_navigation):
         _bottom_navigation.visible=false
+    if is_instance_valid(_mode_gallery_entry):
+        _mode_gallery_entry.visible=false
+    if is_instance_valid(_mode_gallery_overlay):
+        _mode_gallery_overlay.visible=false
     if _social_panel!=null and is_instance_valid(_social_panel):
         _social_panel.visible=false
     if _top_account_button!=null and is_instance_valid(_top_account_button):
@@ -1031,6 +1038,10 @@ func _show_lobby() -> void:
     _lobby_nav.visible=false
     _left_shortcuts.visible=true
     _bottom_navigation.visible=true
+    if is_instance_valid(_mode_gallery_overlay):
+        _mode_gallery_overlay.visible=false
+    if is_instance_valid(_mode_gallery_entry):
+        _mode_gallery_entry.visible=_selected_tab=="JUGAR"
     _top_account_button.visible=true
     _top_settings_button.visible=true
     _top_social_button.visible=true
@@ -1475,6 +1486,8 @@ func _on_match_mode_selected(index: int) -> void:
         _:
             _selected_match_mode="classic"
     _sync_lobby_match_mode()
+    if _mode_gallery_overlay!=null and _mode_gallery_overlay.visible:
+        _refresh_mode_gallery_cards()
 
 
 func _sync_lobby_match_mode() -> void:
@@ -1891,6 +1904,155 @@ func _ensure_lobby_navigation() -> void:
     _top_social_button.accessibility_name="Escuadra y amistades"
     _style_aurora_tab(_top_social_button,Color(.53,.39,.87))
     _surface.add_child(_top_social_button)
+    _build_mode_gallery()
+
+
+## V75.131: the original Aurora mode gallery uses only the existing,
+## working gameplay routes. Ranked is a disclosure, not fake matchmaking.
+func _build_mode_gallery() -> void:
+    _mode_gallery_entry=_button("☷ MODOS",Callable(self,"_open_mode_gallery"),0)
+    _mode_gallery_entry.name="AuroraModeGalleryEntry"
+    _mode_gallery_entry.accessibility_name="Elegir modalidad de partida"
+    _mode_gallery_entry.anchor_left=.219
+    _mode_gallery_entry.anchor_right=.357
+    _mode_gallery_entry.anchor_top=.290
+    _mode_gallery_entry.anchor_bottom=.394
+    _mode_gallery_entry.custom_minimum_size=Vector2.ZERO
+    _mode_gallery_entry.add_theme_font_size_override("font_size",17)
+    _mode_gallery_entry.tooltip_text="Abre las modalidades reales del juego"
+    _style_aurora_tab(_mode_gallery_entry,Color(.96,.70,.32))
+    _surface.add_child(_mode_gallery_entry)
+
+    _mode_gallery_overlay=Control.new()
+    _mode_gallery_overlay.name="AuroraModeGalleryOverlay"
+    _mode_gallery_overlay.set_anchors_and_offsets_preset(
+        Control.PRESET_FULL_RECT)
+    _mode_gallery_overlay.mouse_filter=Control.MOUSE_FILTER_STOP
+    _mode_gallery_overlay.visible=false
+    _surface.add_child(_mode_gallery_overlay)
+    var dim:=ColorRect.new()
+    dim.name="ModeGalleryDim"
+    dim.color=Color(.009,.022,.043,.91)
+    dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    dim.mouse_filter=Control.MOUSE_FILTER_STOP
+    _mode_gallery_overlay.add_child(dim)
+
+    var panel:=PanelContainer.new()
+    panel.name="ModeGalleryPanel"
+    panel.anchor_left=.085
+    panel.anchor_right=.915
+    panel.anchor_top=.15
+    panel.anchor_bottom=.85
+    panel.mouse_filter=Control.MOUSE_FILTER_STOP
+    var panel_style:=StyleBoxFlat.new()
+    panel_style.bg_color=Color(.020,.039,.064,.99)
+    panel_style.border_color=Color(.43,.70,.83,.92)
+    panel_style.set_border_width_all(2)
+    panel_style.set_corner_radius_all(12)
+    panel_style.content_margin_left=12
+    panel_style.content_margin_right=12
+    panel_style.content_margin_top=10
+    panel_style.content_margin_bottom=10
+    panel.add_theme_stylebox_override("panel",panel_style)
+    _mode_gallery_overlay.add_child(panel)
+
+    var content:=VBoxContainer.new()
+    content.name="ModeGalleryContent"
+    content.add_theme_constant_override("separation",6)
+    panel.add_child(content)
+    var heading:=Label.new()
+    heading.name="ModeGalleryHeading"
+    heading.text="ELEGIR MODO  /  BASE AURORA"
+    heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    heading.add_theme_font_size_override("font_size",25)
+    heading.add_theme_color_override(
+        "font_color",Color(.98,.81,.47))
+    content.add_child(heading)
+    var notice:=Label.new()
+    notice.name="ModeGalleryNotice"
+    notice.text="Partidas locales reales. Online requiere servidores y cuentas."
+    notice.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    notice.add_theme_font_size_override("font_size",14)
+    notice.add_theme_color_override(
+        "font_color",Color(.82,.91,.97))
+    content.add_child(notice)
+    var cards:=HBoxContainer.new()
+    cards.name="ModeGalleryCards"
+    cards.size_flags_vertical=Control.SIZE_EXPAND_FILL
+    cards.add_theme_constant_override("separation",9)
+    content.add_child(cards)
+    for data in [
+        ["classic","BR CLÁSICO\n50 PARTICIPANTES\n1 JUGADOR + 49 IA"],
+        ["training","ENTRENAMIENTO\nPRACTICAR ARMAS\nSOLO LOCAL"],
+        ["ranked","CLASIFICATORIA\nBLOQUEADA\nSERVIDOR PENDIENTE"]
+    ]:
+        var mode: String=str(data[0])
+        var card:=_button(str(data[1]),
+            Callable(self,"_choose_mode_gallery").bind(mode),0)
+        card.name="ModeCard"+mode.capitalize()
+        card.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        card.size_flags_vertical=Control.SIZE_EXPAND_FILL
+        card.custom_minimum_size=Vector2(0,94)
+        card.add_theme_font_size_override("font_size",17)
+        card.tooltip_text=(
+            "Clasificatoria no disponible: requiere servidores reales" if
+            mode=="ranked" else
+            "Seleccionar modo local "+mode)
+        cards.add_child(card)
+        _mode_gallery_cards[mode]=card
+    var close:=_button("VOLVER AL LOBBY",
+        Callable(self,"_close_mode_gallery"),0)
+    close.name="CloseModeGallery"
+    close.custom_minimum_size=Vector2(0,34)
+    close.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    close.add_theme_font_size_override("font_size",15)
+    _style_aurora_tab(close,Color(.45,.71,.83))
+    content.add_child(close)
+
+
+func _open_mode_gallery() -> void:
+    if stage!="lobby" or _selected_tab!="JUGAR" or (
+            not is_instance_valid(_mode_gallery_overlay)):
+        return
+    _refresh_mode_gallery_cards()
+    _mode_gallery_overlay.visible=true
+
+
+func _close_mode_gallery() -> void:
+    if is_instance_valid(_mode_gallery_overlay):
+        _mode_gallery_overlay.visible=false
+
+
+func _choose_mode_gallery(mode: String) -> void:
+    if stage!="lobby" or _selected_tab!="JUGAR" or (
+            not is_instance_valid(_mode_gallery_overlay)) or
+            not _mode_gallery_overlay.visible):
+        return
+    var options: Array[String]=["classic","ranked","training"]
+    var index: int=options.find(mode)
+    if index<0:
+        return
+    _match_mode_selector.select(index)
+    _on_match_mode_selected(index)
+    _close_mode_gallery()
+
+
+func _refresh_mode_gallery_cards() -> void:
+    for mode in _mode_gallery_cards:
+        var card: Button=_mode_gallery_cards[mode] as Button
+        if card==null:
+            continue
+        var selected: bool=str(mode)==_selected_match_mode
+        card.set_meta("aurora_selected_mode",selected)
+        if selected and mode!="ranked":
+            _style_primary_action(card)
+        else:
+            _style_aurora_tab(card,Color(.46,.68,.86) if mode!="ranked"
+                else Color(.55,.44,.44))
+            card.modulate=(Color(.85,.87,.91) if mode=="ranked"
+                else Color.WHITE)
+        if selected and mode!="ranked":
+            card.modulate=Color.WHITE
 
 
 func _style_aurora_tab(button: Button,tint: Color) -> void:
@@ -1959,6 +2121,10 @@ func _select_tab(tab: String) -> void:
     if stage!="lobby" or _info==null:
         return
     _settings_panel.visible=tab in ["AJUSTES","PRESET"]
+    if is_instance_valid(_mode_gallery_entry):
+        _mode_gallery_entry.visible=tab=="JUGAR"
+    if tab!="JUGAR":
+        _close_mode_gallery()
     if _left_shortcuts!=null:
         for button in _left_shortcuts.get_children():
             if button is Button:
@@ -2568,6 +2734,9 @@ func _launch(battle: bool) -> void:
     if not _hud_editor_requested:
         AuroraLobbyMusic.leave_lobby()
     stage="loading"
+    _close_mode_gallery()
+    if is_instance_valid(_mode_gallery_entry):
+        _mode_gallery_entry.visible=false
     FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",null,
         "frontend_launch_requested",
         "mode="+("battle" if battle else "training")+
