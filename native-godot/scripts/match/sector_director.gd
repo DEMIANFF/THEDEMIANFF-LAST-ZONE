@@ -814,6 +814,32 @@ func _make_pickup(at: Vector2,kind: String,pickup_name: String,
     _loot.append(pickup)
 
 
+## Read-only tactical evidence from actual uncollected enemy caches.
+## At most six local positions, never omniscient rival coordinates or a
+## fabricated supply marker. Outside battle and after victory: no markers.
+func nearby_opponent_supply_points(observer: Vector2,
+        hearing_radius: float=70.0,max_markers: int=6) -> Array[Vector2]:
+    var points: Array[Vector2]=[]
+    if (mode!="sector_battle" or match_ended or
+            not observer.is_finite()):
+        return points
+    var radius: float=clampf(hearing_radius,0.0,70.0)
+    var limit: int=clampi(max_markers,0,6)
+    if radius<=0.0 or limit==0:
+        return points
+    var distance_sq: float=radius*radius
+    for pickup in _loot:
+        if (not is_instance_valid(pickup) or not pickup.from_opponent or
+                pickup.collected or pickup.is_queued_for_deletion()):
+            continue
+        var at:=Vector2(pickup.global_position.x,pickup.global_position.z)
+        if at.distance_squared_to(observer)<=distance_sq:
+            points.append(at)
+            if points.size()>=limit:
+                break
+    return points
+
+
 func get_loot_remaining() -> int:
     var count: int = 0
     for pickup in _loot:
