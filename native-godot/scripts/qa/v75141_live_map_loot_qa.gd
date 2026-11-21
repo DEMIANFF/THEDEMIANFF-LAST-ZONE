@@ -45,7 +45,10 @@ func _verify() -> void:
     check(director.nearby_opponent_supply_points(Vector2.ZERO).is_empty(),
         "no player kill yet but map fabricated enemy reward markers")
 
-    var at:=Vector2(12.0,-12.0)
+    # Use the actual unobstructed field site validated by V75.138's
+    # successful physical ammo pickup. (12,-12) is inside a coastal
+    # house; a wall/deck blocks the genuine pickup's line-of-sight ray.
+    var at:=Vector2(8.0,-22.0)
     var victim: CharacterBody3D=combat._targets[0]
     victim.global_position=Vector3(
         at.x,terrain.height_at(at.x,at.y)+2.0,at.y)
@@ -80,6 +83,8 @@ func _verify() -> void:
         await physics_frame
         if is_instance_valid(cache) and not cache.collected:
             cache._collect(player)
+        check(is_instance_valid(cache) and cache.collected,
+            "actual pickup blocked at known accessible field site")
         check(director.nearby_opponent_supply_points(at).is_empty(),
             "collected ammo still leaves a phantom tactical marker")
         check(combat.opponent_caches_collected==1,
