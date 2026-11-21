@@ -481,6 +481,7 @@ func set_tactical_map_sources(character: CharacterBody3D,world: StaticBody3D,
         _map_overlay.call("set_sources",character,world,match_director)
         _map_overlay.call("_ensure_terrain_texture")
         if _training_radar!=null:
+            _training_radar.call("set_sector_director",match_director)
             _training_radar.set("map_texture",_map_overlay.get("_terrain_texture"))
             _training_radar.queue_redraw()
 
