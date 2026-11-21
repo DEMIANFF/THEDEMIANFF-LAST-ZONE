@@ -200,6 +200,10 @@ func begin_real_airdrop(origin: Vector3,delay: float) -> void:
     _airdrop_stage="waiting"
     sector_battle=false
     health=MAX_HEALTH
+    # Departure and descent are part of BR, not enemy-marked training.
+    var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
+    if name_plate:
+        name_plate.visible=false
     visible=false
     collision_layer=0
     velocity=Vector3.ZERO
@@ -935,7 +939,11 @@ func configure_sector_battle(actors: Array[CharacterBody3D],
     heal_channels_interrupted=0
     var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
     if name_plate:
+        # Debug nameplates, including the 'RIVAL / CURANDO' state, are
+        # training-only. A BR opponent must be identified by its real 3D
+        # body, weapon and audio, not a floating prototype caption.
         name_plate.text="ENEMIGO IA"
+        name_plate.visible=false
     _burst_count=0
     _strafe_clock=0.0
     reloads_completed=0
@@ -1196,7 +1204,9 @@ func _reset_death_presentation() -> void:
         _lod_body.visible=_rig==null
     var marker:=get_node_or_null("TrainingTargetMarker") as Label3D
     if marker!=null:
-        marker.visible=true
+        # The death animation resets the mesh across rounds; do not let
+        # its reset resurrect a debug label during a live 50-player BR.
+        marker.visible=not sector_battle
 
 
 func _respawn() -> void:
@@ -1222,6 +1232,7 @@ func _respawn() -> void:
     var name_plate:=get_node_or_null("TrainingTargetMarker") as Label3D
     if name_plate:
         name_plate.text="ENEMIGO IA"
+        name_plate.visible=not sector_battle
     global_position=_anchor
     visible=true
     var collider:=get_node_or_null("OpponentCollider") as CollisionShape3D
