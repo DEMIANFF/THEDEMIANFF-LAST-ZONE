@@ -77,18 +77,21 @@ func _verify() -> void:
         "map is not reading actual nearby caches from the match director")
 
     if cache!=null:
+        var ammo_before: int=combat.reserve[0]
         player.global_position=cache.global_position-Vector3.UP*.85
         player.velocity=Vector3.ZERO
         await physics_frame
         await physics_frame
+        # Physics may invoke body_entered, grant the ammo, queue_free the
+        # Area3D and fully destroy it before this coroutine resumes.
+        # Never require a successfully collected node to remain valid.
         if is_instance_valid(cache) and not cache.collected:
             cache._collect(player)
-        check(is_instance_valid(cache) and cache.collected,
-            "actual pickup blocked at known accessible field site")
+        check(combat.reserve[0]==ammo_before+7 and
+            combat.opponent_caches_collected==1,
+            "physical ammo pickup did not grant exactly seven rounds")
         check(director.nearby_opponent_supply_points(at).is_empty(),
             "collected ammo still leaves a phantom tactical marker")
-        check(combat.opponent_caches_collected==1,
-            "map marker removal did not reflect an actual inventory pickup")
 
     if is_instance_valid(awm):
         player.global_position=awm.global_position-Vector3.UP*.85
