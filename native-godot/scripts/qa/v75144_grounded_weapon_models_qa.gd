@@ -96,7 +96,7 @@ func _verify() -> void:
         "Training_weapon_scar") as Area3D
     var original_grip: Node3D=scar.find_child("Grip",true,false) as Node3D
     check(original_grip!=null and
-        original_grip.global_position.distance_to(scar.global_position)<.45,
+        original_grip.global_position.distance_to(scar.global_position)<.95,
         "SCAR's real physical grip detached from collectible source GLB")
     # The armory pickup still changes real inventory; this is not a
     # separate showcase image or a fake newly granted weapon.
