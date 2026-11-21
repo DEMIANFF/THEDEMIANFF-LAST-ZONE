@@ -1495,7 +1495,7 @@ func _on_objective_category_selected(index: int) -> void:
 func _update_objective_progress(played: int,kills: int,wins: int) -> void:
     if not is_instance_valid(_objectives_progress_panel):
         return
-    var definitions: Array[Array]=[]
+    var definitions: Array=[]
     if _objective_page=="missions":
         definitions=[
             ["PARTIDAS CLÁSICAS",played,3],
