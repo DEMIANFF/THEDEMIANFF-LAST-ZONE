@@ -2010,9 +2010,10 @@ func _refresh_armory_catalog() -> void:
     for slot in filtered:
         var weapon: Dictionary=WEAPON_CATALOG.ENTRIES[slot]
         var available: bool=_armory_has_model(slot)
-        var row: int=_armory_list.add_item(
-            "%s  ·  %s"%[str(weapon["short"]),
-                "3D LISTO" if available else "GLB PENDIENTE"])
+        var row: int=_armory_list.item_count
+        _armory_list.add_item("%s  ·  %s"%[
+            str(weapon["short"]),
+            "3D LISTO" if available else "GLB PENDIENTE"])
         _armory_list.set_item_metadata(row,slot)
         if slot==_armory_selected_slot:
             _armory_list.select(row)
