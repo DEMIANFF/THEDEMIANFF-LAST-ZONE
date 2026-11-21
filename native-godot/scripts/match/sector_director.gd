@@ -840,6 +840,63 @@ func nearby_opponent_supply_points(observer: Vector2,
     return points
 
 
+## Bounded ground-resource intelligence from physical Area3D pickups only.
+## No off-island wallhack or phantom/collected ammo; the dedicated AWM
+## icon remains owned by the original real sniper pickup marker.
+func nearby_world_pickups(observer: Vector2,
+        scan_radius: float=65.0,max_markers: int=8) -> Array[Dictionary]:
+    var found: Array[Dictionary]=[]
+    if (mode!="sector_battle" or match_ended or
+            not observer.is_finite() or not is_instance_valid(player) or
+            player.royale_eliminated):
+        return found
+    var range_m: float=clampf(scan_radius,0.0,65.0)
+    var limit: int=clampi(max_markers,0,8)
+    if range_m<=0.0 or limit==0:
+        return found
+    for pickup in _loot:
+        if (not is_instance_valid(pickup) or pickup.collected or
+                pickup.is_queued_for_deletion() or pickup.from_opponent or
+                pickup.pickup_type=="weapon_awm"):
+            continue
+        var at:=Vector2(pickup.global_position.x,pickup.global_position.z)
+        var metres: float=at.distance_to(observer)
+        if metres<=range_m:
+            found.append({"at":at,"kind":pickup.pickup_type,"meters":metres})
+    # The nearest supplies are always prioritized; only eight markers
+    # are ever drawn, even when the player crosses the coastal loot field.
+    found.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
+        return float(a["meters"])<float(b["meters"]))
+    if found.size()>limit:
+        found.resize(limit)
+    return found
+
+
+## No vehicle mesh file means no car, no vehicle marker. Both cars and
+## their wheels/colliders are instantiated by the original gameplay code.
+func nearby_real_vehicles(observer: Vector2,
+        scan_radius: float=95.0,max_markers: int=2) -> Array[Vector2]:
+    var found: Array[Vector2]=[]
+    if (mode!="sector_battle" or match_ended or
+            not observer.is_finite() or not is_instance_valid(player) or
+            player.royale_eliminated):
+        return found
+    var range_sq: float=pow(clampf(scan_radius,0.0,95.0),2.0)
+    var limit: int=clampi(max_markers,0,2)
+    if limit==0 or range_sq<=0.0:
+        return found
+    for car in _driveable_cars:
+        if (not is_instance_valid(car) or car.is_queued_for_deletion() or
+                not car._model_ready):
+            continue
+        var at:=Vector2(car.global_position.x,car.global_position.z)
+        if at.distance_squared_to(observer)<=range_sq:
+            found.append(at)
+            if found.size()>=limit:
+                break
+    return found
+
+
 func get_loot_remaining() -> int:
     var count: int = 0
     for pickup in _loot:

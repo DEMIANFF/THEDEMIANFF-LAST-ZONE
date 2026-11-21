@@ -511,6 +511,24 @@ func _live_awm_pickup() -> Area3D:
     return pickup
 
 
+## Tactical scans never expose all supplies island-wide. A compact
+## 65-metre budget shows only currently existing, collectible physics.
+func _live_world_resources() -> Array[Dictionary]:
+    if (not is_instance_valid(player) or not is_instance_valid(director) or
+            player.royale_eliminated):
+        return []
+    return director.nearby_world_pickups(
+        Vector2(player.global_position.x,player.global_position.z),65.0,8)
+
+
+func _live_vehicles() -> Array[Vector2]:
+    if (not is_instance_valid(player) or not is_instance_valid(director) or
+            player.royale_eliminated):
+        return []
+    return director.nearby_real_vehicles(
+        Vector2(player.global_position.x,player.global_position.z),95.0,2)
+
+
 func _live_local_cache_markers() -> Array[Vector2]:
     if not is_instance_valid(player) or not is_instance_valid(director):
         return []
@@ -576,6 +594,29 @@ func _draw() -> void:
                 draw_string(font,name_rect.position+Vector2(6,14),"AWM",
                     HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(1,.95,.75))
                 occupied.append(name_rect)
+    # Genuine nearby pickups are listed with their original world locations.
+    # No decorative inventory or third-party map art is rendered.
+    var nearby_supplies: Array[Dictionary]=_live_world_resources()
+    for item in nearby_supplies:
+        var pixel: Vector2=project(item["at"] as Vector2)
+        if not rect.grow(-11).has_point(pixel):
+            continue
+        var kind: String=str(item["kind"])
+        var tint: Color=(Color(.98,.43,.46) if kind in ["medkit","syringe"]
+            else Color(.41,.81,1.0) if kind.begins_with("vest") or
+            kind.begins_with("helmet") or kind.begins_with("backpack")
+            else Color(1.0,.82,.35))
+        draw_circle(pixel,5.0,tint)
+        draw_arc(pixel,7.0,0,TAU,18,Color(.02,.11,.14,.94),1.1)
+    # Cars are displayed only when their actual original source, four
+    # physics wheels and mesh have been instantiated in the match.
+    for vehicle_at in _live_vehicles():
+        var pixel: Vector2=project(vehicle_at)
+        if rect.grow(-13).has_point(pixel):
+            draw_rect(Rect2(pixel-Vector2(6,4),Vector2(12,8)),
+                Color(.08,.22,.28,.95),true)
+            draw_rect(Rect2(pixel-Vector2(6,4),Vector2(12,8)),
+                Color(.63,.93,1.0),false,1.5)
     # A compact square means physical, recoverable enemy supply within
     # 70 metres of the player; do not plot every unobserved kill on the island.
     # Maximum six icons is bounded for the 49-opponent mobile roster.

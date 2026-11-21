@@ -76,6 +76,26 @@ func _nearby_supply_markers() -> Array[Vector2]:
         MINIMAP_CACHE_RANGE,MAX_MINIMAP_CACHES)
 
 
+## Read only nearby, uncollected real-world resources. Never invent cars
+## when optional original Toyota/BMW model assets are not installed.
+func nearby_physical_resources() -> Array[Dictionary]:
+    if (not _battle_mode or not is_instance_valid(player) or
+            not is_instance_valid(_sector_director) or
+            player.royale_eliminated):
+        return []
+    return _sector_director.nearby_world_pickups(
+        Vector2(player.global_position.x,player.global_position.z),48.0,5)
+
+
+func nearby_physical_vehicles() -> Array[Vector2]:
+    if (not _battle_mode or not is_instance_valid(player) or
+            not is_instance_valid(_sector_director) or
+            player.royale_eliminated):
+        return []
+    return _sector_director.nearby_real_vehicles(
+        Vector2(player.global_position.x,player.global_position.z),65.0,2)
+
+
 func set_battle_mode(enabled: bool) -> void:
     _battle_mode=enabled
     clear_gunfire()
@@ -127,7 +147,9 @@ func set_waypoint(at: Vector2) -> void:
 ## a fabricated landing site, or an independent full-map coordinate space.
 func landing_waypoint_guidance() -> Dictionary:
     if (not _battle_mode or not _waypoint.is_finite() or
-            not is_instance_valid(player) or player.royale_eliminated):
+            not is_instance_valid(player) or player.royale_eliminated or
+            not is_instance_valid(_sector_director) or
+            bool(_sector_director.get("match_ended"))):
         return {}
     var listener:=Vector2(player.global_position.x,player.global_position.z)
     var delta: Vector2=_waypoint-listener
@@ -343,11 +365,39 @@ func _draw() -> void:
         # or adjacent controls on 964x434 phone screens.
         var dot: Vector2=center+waypoint_delta.limit_length(world_range)*(
             (radius-10.0)/world_range)
-        if _battle_mode and player.air_mode in ["aircraft","freefall","parachute"]:
-            draw_line(center,dot,Color(1.0,.71,.16,.56),1.7,true)
+        if _battle_mode:
+            # Ground combat keeps a subtler real navigation line too;
+            # arrival/heading remains attached to the physical destination.
+            var opacity: float=.56 if player.air_mode!="ground" else .29
+            draw_line(center,dot,Color(1.0,.71,.16,opacity),1.5,true)
         draw_circle(dot,5.3,Color(1.0,.73,.15))
         draw_arc(dot,8.0,0,TAU,28,Color(1.0,.90,.42),1.6)
     if _battle_mode:
+        # Resource dots use real Area3D collision items, not a second
+        # simulated loot map. Yellow=ammo, red=medical, blue=equipment.
+        var physical_listener:=Vector2(
+            player.global_position.x,player.global_position.z)
+        for resource in nearby_physical_resources():
+            var relative: Vector2=(resource["at"] as Vector2)-physical_listener
+            var dot: Vector2=center+relative.rotated(-yaw)*(
+                radius/world_range)
+            if dot.distance_to(center)>radius-6.0:
+                continue
+            var kind: String=str(resource["kind"])
+            var tint: Color=(Color(.99,.42,.42) if kind=="medkit"
+                or kind=="syringe" else Color(.44,.79,1.0)
+                if kind.begins_with("vest") or kind.begins_with("helmet")
+                or kind.begins_with("backpack") else Color(1.0,.83,.33))
+            draw_circle(dot,3.3,tint)
+            draw_arc(dot,5.0,0,TAU,16,Color(.02,.12,.17,.95),1.0)
+        for at in nearby_physical_vehicles():
+            var relative: Vector2=at-physical_listener
+            var dot: Vector2=center+relative.rotated(-yaw)*(
+                radius/world_range)
+            if dot.distance_to(center)>radius-7.0:
+                continue
+            draw_rect(Rect2(dot-Vector2(4,2.5),Vector2(8,5)),
+                Color(.72,.93,1.0),true)
         # Existing physical caches, NOT the living rivals, are eligible
         # for a tiny, bounded supply icon near the listener. The match
         # director filters dead/collected/remote objects for us.
