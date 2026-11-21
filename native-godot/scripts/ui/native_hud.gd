@@ -77,6 +77,8 @@ var _crouching: bool = false
 var _reticle: Control
 var _battle_button: Button
 var _battle_status: Label
+var _ground_intel: Label
+var _ground_intel_clock: float=0.0
 var _eliminations_label: Label
 var _health_meter: ProgressBar
 var _damage_flash: ColorRect
@@ -185,6 +187,11 @@ func _ready() -> void:
     root.add_child(_health_meter)
     _battle_button=_button(root,"INICIAR BR",.63,.035,139,52,Color(.25,.39,.49),_battle_down)
     _battle_status=_text(root,"ENTRENAMIENTO",.46,.125,15,Color(.98,.85,.61),HORIZONTAL_ALIGNMENT_CENTER)
+    _ground_intel=_text(root,"",.38,.18,12,
+        Color(.99,.87,.53),HORIZONTAL_ALIGNMENT_CENTER)
+    _ground_intel.name="RealGroundBattleIntel"
+    _ground_intel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _ground_intel.visible=false
 
     _training_radar=TRAINING_RADAR.new()
     _training_radar.anchor_left=.017
@@ -406,7 +413,8 @@ func _ready() -> void:
     root.add_child(_map_overlay)
     _map_overlay.connect("waypoint_changed",func(point: Vector2):
         _training_radar.call("set_waypoint",point)
-        _refresh_airdrop_waypoint_guidance())
+        _refresh_airdrop_waypoint_guidance()
+        _refresh_ground_battle_intel())
     _training_radar.call("set_waypoint",_map_overlay.get("waypoint"))
     apply_ui_settings()
     get_viewport().size_changed.connect(_layout)
@@ -556,6 +564,62 @@ func set_air_stage(value: String) -> void:
     _airdrop_guidance_clock=0.0
     if airborne:
         _refresh_airdrop_waypoint_guidance()
+    _refresh_ground_battle_intel()
+
+
+## A 4Hz read-only indication of actual map targets and physical supplies.
+## The same waypoint persists from the plane into combat; if none was set,
+## nearby real ammo/medical/equipment and optional drivable cars take its
+## place. This banner is not shown during training, aircraft or results.
+func _refresh_ground_battle_intel() -> void:
+    if _ground_intel==null or _training_radar==null:
+        return
+    _ground_intel.visible=false
+    if air_stage!="ground" or _hud_editing:
+        return
+    var director: Node3D=_training_radar.get("_sector_director") as Node3D
+    var actor: CharacterBody3D=_training_radar.get("player") as CharacterBody3D
+    if (not is_instance_valid(director) or not is_instance_valid(actor) or
+            actor.royale_eliminated or str(director.get("mode"))!="sector_battle"
+            or bool(director.get("match_ended"))):
+        return
+    var target: Dictionary=_training_radar.call("landing_waypoint_guidance")
+    if not target.is_empty():
+        var metres: int=roundi(float(target["distance_m"]))
+        var angle: float=float(target["relative_degrees"])
+        var direction: String="FRENTE"
+        if metres<12:
+            direction="CERCA"
+        elif absf(angle)>=150.0:
+            direction="DETRAS"
+        elif angle>22.0:
+            direction="DERECHA"
+        elif angle< -22.0:
+            direction="IZQUIERDA"
+        _ground_intel.text="DESTINO %d m · %s"%[metres,direction]
+        _ground_intel.visible=true
+        return
+    var resources: Array=_training_radar.call("nearby_physical_resources")
+    if not resources.is_empty():
+        var first: Dictionary=resources[0]
+        var kind: String=str(first["kind"])
+        var label: String=("BOTIQUIN" if kind=="medkit"
+            else "MUNICION" if kind.begins_with("ammo")
+            else "EQUIPO" if kind.begins_with("vest") or
+            kind.begins_with("helmet") or kind.begins_with("backpack")
+            else "SUMINISTROS")
+        _ground_intel.text="%s A %d m"%[
+            label,roundi(float(first["meters"]))]
+        _ground_intel.visible=true
+        return
+    var cars: Array=_training_radar.call("nearby_physical_vehicles")
+    if not cars.is_empty():
+        var car_at: Vector2=cars[0]
+        var player_at:=Vector2(actor.global_position.x,
+            actor.global_position.z)
+        _ground_intel.text="VEHICULO REAL A %d m"%roundi(
+            player_at.distance_to(car_at))
+        _ground_intel.visible=true
 
 
 ## Read the live, persisted tactical waypoint instead of drawing a fictitious
@@ -1043,6 +1107,13 @@ func _process(delta: float) -> void:
             _incoming_hint.text=""
     if _damage_flash and _damage_flash.color.a>0:
         _damage_flash.color.a=maxf(0.0,_damage_flash.color.a-delta*.38)
+    if air_stage=="ground":
+        _ground_intel_clock-=delta
+        if _ground_intel_clock<=0.0:
+            _ground_intel_clock=.25
+            _refresh_ground_battle_intel()
+    else:
+        _ground_intel_clock=0.0
     if air_stage!="ground":
         _airdrop_guidance_clock-=delta
         if _airdrop_guidance_clock<=0.0:
@@ -1099,6 +1170,7 @@ func _layout() -> void:
     _place(_eliminations_label,Rect2(origin+Vector2(w-360,24),Vector2(90,24)))
     _place(_compass,Rect2(origin+Vector2(w*.5-75,6),Vector2(150,28)))
     _place(_battle_status,Rect2(origin+Vector2(w*.5-220,37),Vector2(440,30)))
+    _place(_ground_intel,Rect2(origin+Vector2(w*.5-165,83),Vector2(330,23)))
     _place(_battle_button,Rect2(origin+Vector2(w*.5-90,64),Vector2(180,46)))
     _place(_exit_button,Rect2(origin+Vector2(w-107,108),Vector2(78,78)))
     _place(_settings_button,Rect2(origin+Vector2(w-194,108),Vector2(78,78)))

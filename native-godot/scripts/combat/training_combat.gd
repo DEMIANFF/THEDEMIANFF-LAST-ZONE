@@ -67,6 +67,12 @@ var cooldown: float=0.0
 var reload_timer: float=0.0
 var _reload_duration: float=0.0
 var _reload_ui_clock: float=0.0
+# Autorifles/SMGs finish the last shot animation before beginning a real
+# timed reload. Semi-auto snipers/shotguns/pistols remain manual.
+const AUTO_RELOAD_SLOTS: Array[int]=[
+    WEAPONS.AR,WEAPONS.SCAR,WEAPONS.MP40,WEAPONS.KRISS,
+    WEAPONS.HK416,WEAPONS.P90,WEAPONS.VSS,WEAPONS.MP5]
+var _auto_reload_queued: bool=false
 var _mp40_reload_cue: int=0
 var _awm_bolt_remaining: float=0.0
 var _awm_bolt_pending: bool=false
@@ -191,12 +197,18 @@ func _process(dt: float) -> void:
             else:
                 hud.set_heal_channel(true,_heal_remaining,_heal_duration,medkits_remaining)
     if not operator.can_act():
+        _auto_reload_queued=false
         _cancel_healing()
         trigger_held=false
         _cancel_awm_bolt()
         _clear_reload()
         return
     cooldown=maxf(0,cooldown-dt)
+    if _auto_reload_queued and cooldown<=0.0 and reload_timer<=0.0:
+        _auto_reload_queued=false
+        if (ammo[weapon_index]==0 and
+                reserve[WEAPONS.reserve_slot(weapon_index)]>0):
+            _on_reload()
     _advance_awm_bolt(dt)
     if reload_timer>0:
         reload_timer=maxf(0,reload_timer-dt)
@@ -266,6 +278,7 @@ func _equip_inventory_weapon(index: int) -> void:
     if index==weapon_index:
         return
     _cancel_healing("CURACION CANCELADA / ARMA")
+    _auto_reload_queued=false
     _cancel_awm_bolt()
     weapon_index=index
     trigger_held=false
@@ -385,6 +398,7 @@ func _on_reload() -> void:
         hud.impact("SIN NECESIDAD DE RECARGA")
         return
     # Swapping magazines supersedes any remaining sniper bolt sound.
+    _auto_reload_queued=false
     _cancel_awm_bolt()
     reload_timer=WEAPONS.ENTRIES[weapon_index]["reload"]
     _reload_duration=reload_timer
@@ -457,6 +471,10 @@ func _shoot() -> void:
     ammo[weapon_index]-=1
     shots_fired_total+=1
     cooldown=WEAPONS.ENTRIES[weapon_index]["cadence"]
+    if (ammo[weapon_index]==0 and
+            reserve[WEAPONS.reserve_slot(weapon_index)]>0 and
+            AUTO_RELOAD_SLOTS.has(weapon_index)):
+        _auto_reload_queued=true
     if weapon_index==WEAPONS.AWM:
         _awm_bolt_remaining=AWM_BOLT_CUE_SECONDS
         _awm_bolt_pending=true
@@ -807,6 +825,7 @@ func _clear_grenades() -> void:
 
 
 func end_sector_battle() -> void:
+    _auto_reload_queued=false
     _close_training_armory()
     _cancel_healing()
     _cancel_awm_bolt()
@@ -831,6 +850,7 @@ func end_sector_battle() -> void:
 
 
 func begin_sector_battle(from_real_airdrop: bool=false) -> void:
+    _auto_reload_queued=false
     _close_training_armory()
     _cancel_healing()
     _cancel_awm_bolt()
