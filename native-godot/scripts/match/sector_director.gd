@@ -27,7 +27,9 @@ const CENTER: Vector2 = Vector2(0.0,-24.0)
 const TICK: float = 1.0
 # Max 15 minutes of sparse FPS samples at two measurements per second.
 const MAX_PERF_SAMPLES: int=1800
-# Physical supplies from actual combat eliminations, capped for mobile GPU/CPU.
+# Limit simultaneous opponent caches, not the entire match lifetime.
+# A collected/deleted cache releases its GPU/physics slot so a later kill
+# can still drop the ammunition/medicine it genuinely carried.
 const MAX_OPPONENT_DROPS: int=12
 const PHASE_COUNT: int=4
 const PHASE_SECONDS: float=SHRINK_DURATION/float(PHASE_COUNT)
@@ -698,9 +700,22 @@ static func opponent_inventory_reward(rounds_loaded: int,medkits_owned: int,
     return {}
 
 
+## The cumulative _opponent_drops_spawned counter is for unique node names
+## and diagnostics; the GPU/physics cap applies ONLY to uncollected caches.
+## Collection frees a cache via queue_free, so its slot is immediately reusable.
+func _active_opponent_drop_count() -> int:
+    var active: int=0
+    for pickup in _loot:
+        if (is_instance_valid(pickup) and pickup.from_opponent and
+                not pickup.collected and
+                not pickup.is_queued_for_deletion()):
+            active+=1
+    return active
+
+
 ## Loot is produced by an actual CharacterBody3D death, never by fake
-## timers or respawn counters. One cache per victim per round, at most 12
-## active additions to keep collision and draw costs bounded on Motorola.
+## timers or respawn counters. One cache per victim per round; at most 12
+## simultaneously live caches preserve the Motorola physics/draw budget.
 func _on_opponent_eliminated(victim: CharacterBody3D,killer: Node3D) -> void:
     if mode!="sector_battle" or match_ended or not combat.sector_battle_active:
         return
@@ -713,7 +728,10 @@ func _on_opponent_eliminated(victim: CharacterBody3D,killer: Node3D) -> void:
     var position: Vector3=victim.global_position
     if not position.is_finite() or is_outside_zone(position):
         return
-    if _opponent_drops_spawned>=MAX_OPPONENT_DROPS:
+    # A previous 12-kill lifetime limit incorrectly suppressed every later
+    # opponent drop, even if the player collected all prior supplies.
+    # Count currently active caches instead; never exceed 12 at once.
+    if _active_opponent_drop_count()>=MAX_OPPONENT_DROPS:
         return
     var supply: Dictionary=opponent_inventory_reward(
         int(victim.get("_magazine")),int(victim.get("_field_medkits")),
