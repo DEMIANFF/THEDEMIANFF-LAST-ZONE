@@ -1993,7 +1993,7 @@ func _build_mode_gallery() -> void:
         card.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         card.size_flags_vertical=Control.SIZE_EXPAND_FILL
         card.custom_minimum_size=Vector2(0,94)
-        card.add_theme_font_size_override("font_size",17)
+        card.add_theme_font_size_override("font_size",21)
         card.tooltip_text=(
             "Clasificatoria no disponible: requiere servidores reales" if
             mode=="ranked" else
@@ -2003,7 +2003,9 @@ func _build_mode_gallery() -> void:
     var close:=_button("VOLVER AL LOBBY",
         Callable(self,"_close_mode_gallery"),0)
     close.name="CloseModeGallery"
-    close.custom_minimum_size=Vector2(0,34)
+    # 434px physical screen can scale Godot's logical layout by ~0.6.
+    # Require ~45 actual touch pixels for the modal exit affordance.
+    close.custom_minimum_size=Vector2(0,76)
     close.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     close.add_theme_font_size_override("font_size",15)
     _style_aurora_tab(close,Color(.45,.71,.83))
