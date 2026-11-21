@@ -29,6 +29,7 @@ var _ground_approach_marked: bool=false
 var _parachute_first_tick_committed: bool=false
 var _aircraft_motion_committed: bool=false
 var _flight_tick_count: int=0
+var _route_hud_clock: float=0.0
 
 
 func _ready() -> void:
@@ -44,12 +45,14 @@ func begin() -> void:
     _parachute_first_tick_committed=false
     _aircraft_motion_committed=false
     _flight_tick_count=0
+    _route_hud_clock=0.0
     player.begin_aircraft()
     player.global_position=_route_point(0.0)
     _build_craft()
     aircraft_audio_changed.emit(true)
     hud.set_air_stage("aircraft")
-    hud.impact("VUELO AURORA / SALTA O ESPERA EL DESPLIEGUE")
+    hud.set_aircraft_route_progress(0.0,FLIGHT_SECONDS)
+    hud.impact("RUTA EN MINIMAPA / MARCA DESTINO Y SALTA")
     FLIGHT_DIAGNOSTICS.checkpoint("active","aircraft",player,"start")
     set_physics_process(true)
 
@@ -77,6 +80,11 @@ func _physics_process(delta: float) -> void:
     if phase=="aircraft":
         elapsed+=delta
         player.global_position=_route_point(elapsed/FLIGHT_SECONDS)
+        _route_hud_clock-=maxf(0.0,delta)
+        if _route_hud_clock<=0.0:
+            _route_hud_clock=.25
+            if is_instance_valid(hud):
+                hud.set_aircraft_route_progress(elapsed,FLIGHT_SECONDS)
         if not _aircraft_motion_committed:
             FLIGHT_DIAGNOSTICS.checkpoint("active","aircraft",player,"first_player_motion")
         if _craft:
