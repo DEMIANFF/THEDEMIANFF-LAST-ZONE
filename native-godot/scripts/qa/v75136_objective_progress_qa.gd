@@ -51,11 +51,20 @@ func _verify() -> void:
         var label: Label=rows[i]["label"] as Label
         var value: int=[2,5,1][i]
         var maximum: int=[3,5,1][i]
+        var paint: StyleBoxFlat=bar.get_theme_stylebox("fill") as StyleBoxFlat
+        var track: StyleBoxFlat=bar.get_theme_stylebox(
+            "background") as StyleBoxFlat
         check(bar!=null and label!=null and
             int(bar.value)==value and int(bar.max_value)==maximum and
             label.text.contains("%d / %d"%[value,maximum]) and
             not bar.show_percentage,
             "mission progress differs from verified journal counts")
+        check(bar.custom_minimum_size.y>=20.0 and
+            label.get_theme_font_size("font_size")>=15 and
+            paint!=null and track!=null and
+            (paint.bg_color.r>.9 if value==maximum else
+                paint.bg_color.g>.7),
+            "phone-sized mission progress invisible or incorrect state color")
     front._objective_selector.select(1)
     front._on_objective_category_selected(1)
     check(panel.visible,"completed real achievements have no progress")
@@ -75,10 +84,15 @@ func _verify() -> void:
     await process_frame
     front._layout_safe()
     check(root.get_visible_rect().encloses(panel.get_global_rect()) and
-        panel.get_global_rect().size.y>=60 and
+        panel.get_global_rect().size.y>=76 and
         front._lobby_detail_scroll.get_global_rect().end.y<=
             front._page.get_global_rect().end.y+4.0,
         "three mission bars overflow Motorola 964x434 lobby panel")
+    for row in rows:
+        var gauge: ProgressBar=row["bar"] as ProgressBar
+        check(root.get_visible_rect().encloses(gauge.get_global_rect()) and
+            gauge.get_global_rect().size.y>=10.0,
+            "a local mission progress bar becomes a hairline on Motorola")
     front._select_tab("JUGAR")
     check(not panel.visible and front._battle_entry.visible,
         "objectives overlay classic local game launch")
