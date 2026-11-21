@@ -133,6 +133,10 @@ func _ready() -> void:
     combat.bot_shot.connect(sound.play_world_shot)
     combat.bot_foot_contact.connect(sound.play_bot_contact)
     combat.grenade_detonated.connect(sound.play_grenade_detonation)
+    # A real, player-near fuse is audible in the same pooled SFX path;
+    # pitch only increases near detonation and is never a fake radar ping.
+    combat.grenade_fuse_close.connect(func(seconds_left: float):
+        sound.play_event("grenade_fuse",1.14 if seconds_left<.45 else 1.0))
     combat.reload_started.connect(func():
         if combat.weapon_index!=COMBAT.WEAPONS.MP40:
             sound.play_event("reload"))
