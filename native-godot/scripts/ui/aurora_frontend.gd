@@ -1229,25 +1229,37 @@ func _show_lobby() -> void:
     _objectives_progress_panel=VBoxContainer.new()
     _objectives_progress_panel.name="AuroraLocalObjectiveProgress"
     _objectives_progress_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    _objectives_progress_panel.add_theme_constant_override("separation",4)
+    # Readable progress rows at 964x434: thin default ProgressBars previously
+    # looked like a set of separators, not meaningful match goals.
+    _objectives_progress_panel.add_theme_constant_override("separation",8)
     _page.add_child(_objectives_progress_panel)
     for index in range(3):
         var line:=VBoxContainer.new()
         line.name="LocalObjectiveRow%d"%index
-        line.add_theme_constant_override("separation",1)
+        line.add_theme_constant_override("separation",3)
         line.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         _objectives_progress_panel.add_child(line)
         var caption:=Label.new()
         caption.name="LocalObjectiveCaption%d"%index
-        caption.add_theme_font_size_override("font_size",12)
+        caption.add_theme_font_size_override("font_size",15)
         caption.add_theme_color_override("font_color",Color(.85,.95,1.0))
         caption.clip_text=true
         line.add_child(caption)
         var gauge:=ProgressBar.new()
         gauge.name="LocalObjectiveGauge%d"%index
-        gauge.custom_minimum_size=Vector2(0,10)
+        gauge.custom_minimum_size=Vector2(0,22)
         gauge.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         gauge.show_percentage=false
+        var track:=StyleBoxFlat.new()
+        track.bg_color=Color(.07,.13,.19,1)
+        track.border_color=Color(.32,.51,.64,.93)
+        track.set_border_width_all(1)
+        track.set_corner_radius_all(4)
+        gauge.add_theme_stylebox_override("background",track)
+        var fill:=StyleBoxFlat.new()
+        fill.bg_color=Color(.27,.81,.85,1)
+        fill.set_corner_radius_all(4)
+        gauge.add_theme_stylebox_override("fill",fill)
         line.add_child(gauge)
         _objectives_progress_rows.append({"label":caption,"bar":gauge})
     _pass_progress=ProgressBar.new()
@@ -1516,7 +1528,16 @@ func _update_objective_progress(played: int,kills: int,wins: int) -> void:
         var target: int=maxi(1,int(item[2]))
         var label: Label=_objectives_progress_rows[index]["label"] as Label
         var bar: ProgressBar=_objectives_progress_rows[index]["bar"] as ProgressBar
-        label.text="%s  %d / %d"%[str(item[0]),mini(current,target),target]
+        var done: bool=current>=target
+        label.text="%s  %d / %d%s"%[
+            str(item[0]),mini(current,target),target,
+            "  ·  LISTO" if done else ""]
+        label.add_theme_color_override("font_color",
+            Color(1.0,.89,.62) if done else Color(.85,.95,1.0))
+        var paint: StyleBoxFlat=bar.get_theme_stylebox("fill") as StyleBoxFlat
+        if paint!=null:
+            paint.bg_color=(
+                Color(1.0,.75,.32,1.0) if done else Color(.27,.81,.85,1.0))
         bar.max_value=target
         bar.value=mini(current,target)
 
