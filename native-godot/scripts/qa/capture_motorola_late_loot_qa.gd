@@ -3,6 +3,7 @@ extends SceneTree
 ## its carried loot after twelve earlier caches were spawned and one picked up.
 ## 964x434 desktop GL: NOT a physical Motorola Vulkan certification.
 const CAPTURE_VERSION=preload("res://scripts/qa/aurora_capture_version.gd")
+const COMBAT=preload("res://scripts/combat/training_combat.gd")
 
 
 func _initialize() -> void:
@@ -31,7 +32,7 @@ func _capture() -> void:
     await physics_frame
     # Camera evidence must use the public fifty-participant battle rather
     # than Main.tscn's nine-person internal QA fixture.
-    combat.set_encounter_size(combat.CLASSIC_BR_PARTICIPANTS)
+    combat.set_encounter_size(COMBAT.CLASSIC_BR_PARTICIPANTS)
     director.start_sector_battle()
     director.set_process(false)
     combat.set_process(false)
