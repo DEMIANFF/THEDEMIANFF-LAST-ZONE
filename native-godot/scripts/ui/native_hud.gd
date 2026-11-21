@@ -47,6 +47,8 @@ var _lila_ability_displayed: int=-1
 var _combat_feed_label: Label
 var _hit_confirm_label: Label
 var _zone_warning_label: Label
+var _real_grenade_warning_label: Label
+var _real_grenade_warning_left: float=0.0
 var _reload_button: Button
 var _reload_progress: ProgressBar
 var _hit_confirm_timer: float=0.0
@@ -239,6 +241,11 @@ func _ready() -> void:
     _hit_confirm_label.name="ConfirmedBulletDamage"
     _zone_warning_label=_text(root,"",.35,.255,17,Color(1,.43,.30),HORIZONTAL_ALIGNMENT_CENTER)
     _zone_warning_label.name="ActualZoneDistance"
+    _real_grenade_warning_label=_text(root,"",.36,.215,15,
+        Color(1.0,.61,.30),HORIZONTAL_ALIGNMENT_CENTER)
+    _real_grenade_warning_label.name="LivePhysicalGrenadeThreat"
+    _real_grenade_warning_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _real_grenade_warning_label.visible=false
     _combat_feed_label=_text(root,"",.35,.185,12,Color(.91,.96,.99),HORIZONTAL_ALIGNMENT_RIGHT)
     _combat_feed_label.name="ActualEliminationFeed"
     _combat_feed_label.vertical_alignment=VERTICAL_ALIGNMENT_TOP
@@ -1086,6 +1093,12 @@ func impact(message: String) -> void:
 
 
 func _process(delta: float) -> void:
+    if _real_grenade_warning_left>0.0:
+        _real_grenade_warning_left=maxf(0.0,
+            _real_grenade_warning_left-maxf(0.0,delta))
+        if _real_grenade_warning_left<=0.0 and
+                _real_grenade_warning_label!=null:
+            _real_grenade_warning_label.visible=false
     if _lila_ability_seconds>0.0:
         _lila_ability_seconds=maxf(0.0,_lila_ability_seconds-delta)
         _refresh_lila_ability()
@@ -1129,6 +1142,24 @@ func _process(delta: float) -> void:
         _hit_timer=maxf(0,_hit_timer-delta)
         if _hit_timer==0 and _hit:
             _hit.text=""
+
+## Short-lived warning only if an actual, physically moving grenade is
+## near the player's CharacterBody3D. It does not reveal enemy locations.
+func show_real_grenade_warning(seconds_left: float) -> void:
+    if _real_grenade_warning_label==null or air_stage!="ground":
+        return
+    _real_grenade_warning_left=.42
+    _real_grenade_warning_label.text="GRANADA CERCANA · %.1f s"%(
+        maxf(0.0,seconds_left))
+    _real_grenade_warning_label.visible=true
+
+
+func clear_real_grenade_warning() -> void:
+    _real_grenade_warning_left=0.0
+    if _real_grenade_warning_label!=null:
+        _real_grenade_warning_label.visible=false
+        _real_grenade_warning_label.text=""
+
 
 func _refresh_heading() -> void:
     if _compass==null or _training_radar==null:
@@ -1179,6 +1210,8 @@ func _layout() -> void:
     _place(_incoming_hint,Rect2(origin+Vector2(w*.5-144,109),Vector2(288,28)))
     _place(_hit_confirm_label,Rect2(origin+Vector2(w*.5+65,h*.35),Vector2(132,28)))
     _place(_zone_warning_label,Rect2(origin+Vector2(w*.5-160,139),Vector2(320,28)))
+    _place(_real_grenade_warning_label,
+        Rect2(origin+Vector2(w*.5-145,111),Vector2(290,25)))
     _place(_combat_feed_label,Rect2(origin+Vector2(w*.5-160,168),Vector2(320,74)))
     _place(_hint,Rect2(origin+Vector2(w*.5-210,h-32),Vector2(420,24)))
     _hint.add_theme_font_size_override("font_size",11)

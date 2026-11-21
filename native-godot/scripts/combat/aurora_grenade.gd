@@ -1,13 +1,18 @@
 extends Node3D
 
 signal detonated(at: Vector3)
+# Sound of an actual moving grenade, never a constant radar reveal.
+signal audible_fuse(at: Vector3,seconds_left: float)
 
 const FUSE_SECONDS: float=1.65
 const WORLD_EDGE: float=446.0
+const AUDIBLE_FUSE_START_SECONDS: float=1.1
+const AUDIBLE_FUSE_INTERVAL_SECONDS: float=.25
 var velocity: Vector3
 var excluded: RID
 var _remaining: float=FUSE_SECONDS
 var _spent: bool=false
+var _fuse_warning_clock: float=0.0
 
 
 func _ready() -> void:
@@ -94,6 +99,12 @@ func _physics_process(delta: float) -> void:
     _remaining-=delta
     if _remaining<=0.0:
         _detonate()
+        return
+    _fuse_warning_clock-=maxf(0.0,delta)
+    if (_remaining<=AUDIBLE_FUSE_START_SECONDS and
+            _fuse_warning_clock<=0.0):
+        _fuse_warning_clock=AUDIBLE_FUSE_INTERVAL_SECONDS
+        audible_fuse.emit(global_position,_remaining)
 
 
 func _detonate() -> void:
