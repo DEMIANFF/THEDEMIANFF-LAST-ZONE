@@ -29,14 +29,17 @@ func _capture() -> void:
     for bot in combat._targets:
         bot.set_physics_process(false)
     await physics_frame
+    # Camera evidence must use the public fifty-participant battle rather
+    # than Main.tscn's nine-person internal QA fixture.
+    combat.set_encounter_size(combat.CLASSIC_BR_PARTICIPANTS)
     director.start_sector_battle()
     director.set_process(false)
     combat.set_process(false)
     player.set_physics_process(false)
     for bot in combat._targets:
         bot.set_physics_process(false)
-    if combat._targets.size()<14:
-        _fail("real 50-person roster missing")
+    if combat.encounter_size!=50 or combat._targets.size()!=49:
+        _fail("actual 49-opponent physical roster missing")
         return
     for i in range(12):
         var victim: CharacterBody3D=combat._targets[i]
