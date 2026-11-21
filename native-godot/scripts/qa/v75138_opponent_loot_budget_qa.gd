@@ -3,6 +3,7 @@ extends SceneTree
 ## simultaneously, but collecting one must allow a future real kill to
 ## drop actual supplies. Never mint items or exceed the mobile cache cap.
 const MATCH=preload("res://scripts/match/sector_director.gd")
+const COMBAT=preload("res://scripts/combat/training_combat.gd")
 var failed: bool=false
 
 
@@ -40,7 +41,7 @@ func _verify() -> void:
     await physics_frame
     # The scene defaults to the internal nine-person training fixture.
     # Exercise the actual single public 50-participant BR configuration.
-    combat.set_encounter_size(combat.CLASSIC_BR_PARTICIPANTS)
+    combat.set_encounter_size(COMBAT.CLASSIC_BR_PARTICIPANTS)
     director.start_sector_battle()
     director.set_process(false)
     combat.set_process(false)
