@@ -296,6 +296,10 @@ jobs:
           done
           echo "AURORA_ZONE_MAP_CAPTURE PASS resolution=964x434 screens=2"
           echo "AURORA_MAP_READABILITY_CAPTURE PASS resolution=964x434 map_source=physical_island"
+          # Real 13th opponent supply cache, after a previous physical pickup.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_late_loot_qa.gd
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-late-loot.png"
+          echo "AURORA_LATE_LOOT_CAPTURE PASS resolution=964x434 physical_source=13th_kill"
       # Preserve real in-engine screenshots even if a later APK gate fails.
       # This lets the Motorola UI redesign be reviewed before installation.
       - uses: actions/upload-artifact@v6
@@ -323,6 +327,7 @@ jobs:
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-operator-*.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-minimap-zones.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-tactical-zones.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-late-loot.png
           retention-days: 30
       - name: Render expanded Motorola layout and verify absence of side bars
         run: xvfb-run -a -s "-screen 0 2712x1220x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_responsive_preview.gd > native-godot/out/qa/responsive-render.log 2>&1
