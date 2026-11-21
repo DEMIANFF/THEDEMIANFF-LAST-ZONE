@@ -103,6 +103,8 @@ var _stats_strip: Label
 var _currency_strip: Label
 var _objective_selector: OptionButton
 var _objective_page: String="missions"
+var _objectives_progress_panel: VBoxContainer
+var _objectives_progress_rows: Array[Dictionary]=[]
 var _preview_touch: int=-1
 var _preview_mouse_drag: bool=false
 var _preview_drag_last: Vector2=Vector2.ZERO
@@ -1222,6 +1224,32 @@ func _show_lobby() -> void:
     _objective_selector.select(["missions","achievements","events"].find(_objective_page))
     _objective_selector.item_selected.connect(_on_objective_category_selected)
     _page.add_child(_objective_selector)
+    # These bars are read-only projections of the signed local match ledger.
+    # No new reward, entitlement, rank, claim or remote account is created.
+    _objectives_progress_panel=VBoxContainer.new()
+    _objectives_progress_panel.name="AuroraLocalObjectiveProgress"
+    _objectives_progress_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _objectives_progress_panel.add_theme_constant_override("separation",4)
+    _page.add_child(_objectives_progress_panel)
+    for index in range(3):
+        var line:=VBoxContainer.new()
+        line.name="LocalObjectiveRow%d"%index
+        line.add_theme_constant_override("separation",1)
+        line.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        _objectives_progress_panel.add_child(line)
+        var caption:=Label.new()
+        caption.name="LocalObjectiveCaption%d"%index
+        caption.add_theme_font_size_override("font_size",12)
+        caption.add_theme_color_override("font_color",Color(.85,.95,1.0))
+        caption.clip_text=true
+        line.add_child(caption)
+        var gauge:=ProgressBar.new()
+        gauge.name="LocalObjectiveGauge%d"%index
+        gauge.custom_minimum_size=Vector2(0,10)
+        gauge.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        gauge.show_percentage=false
+        line.add_child(gauge)
+        _objectives_progress_rows.append({"label":caption,"bar":gauge})
     _pass_progress=ProgressBar.new()
     _pass_progress.name="AuroraFreePassProgress"
     _pass_progress.custom_minimum_size=Vector2(245,16)
@@ -1461,6 +1489,38 @@ func _on_objective_category_selected(index: int) -> void:
     _update_objective_details()
 
 
+## The three visual progress bars come ONLY from the immutable snapshot of
+## the current local match journal. The objectives are informational, not
+## monetary claims, seasonal quests or server leaderboards.
+func _update_objective_progress(played: int,kills: int,wins: int) -> void:
+    if not is_instance_valid(_objectives_progress_panel):
+        return
+    var definitions: Array=[]
+    if _objective_page=="missions":
+        definitions=[
+            ["PARTIDAS CLÁSICAS",played,3],
+            ["ELIMINACIONES",kills,5],
+            ["VICTORIAS",wins,1]]
+    elif _objective_page=="achievements":
+        definitions=[
+            ["PRIMERA PARTIDA",played,1],
+            ["PRIMERA VICTORIA",wins,1],
+            ["10 ELIMINACIONES",kills,10]]
+    _objectives_progress_panel.visible=(
+        _selected_tab=="OBJETIVOS" and not definitions.is_empty())
+    if definitions.is_empty():
+        return
+    for index in range(mini(_objectives_progress_rows.size(),definitions.size())):
+        var item: Array=definitions[index]
+        var current: int=maxi(0,int(item[1]))
+        var target: int=maxi(1,int(item[2]))
+        var label: Label=_objectives_progress_rows[index]["label"] as Label
+        var bar: ProgressBar=_objectives_progress_rows[index]["bar"] as ProgressBar
+        label.text="%s  %d / %d"%[str(item[0]),mini(current,target),target]
+        bar.max_value=target
+        bar.value=mini(current,target)
+
+
 ## These milestones are displayed from verified saved matches. They are not
 ## a server event, seasonal quest or purchasable reward.
 func _update_objective_details() -> void:
@@ -1470,6 +1530,7 @@ func _update_objective_details() -> void:
     var played: int=int(stats.get("played",0))
     var wins: int=int(stats.get("wins",0))
     var kills: int=int(stats.get("kills",0))
+    _update_objective_progress(played,kills,wins)
     match _objective_page:
         "missions":
             _info.text="MISIONES / METAS LOCALES\n"
@@ -1541,6 +1602,9 @@ func _sync_lobby_match_mode() -> void:
         _auth_guest_button.tooltip_text=(
             "Crear o recuperar sesión anónima" if ready else message)
     _objective_selector.visible=_selected_tab=="OBJETIVOS"
+    if is_instance_valid(_objectives_progress_panel):
+        _objectives_progress_panel.visible=(
+            _selected_tab=="OBJETIVOS" and _objective_page!="events")
     _lobby_mode_heading.visible=false
     _match_mode_selector.visible=show_modes
     _lobby_play_modes.visible=show_modes and _selected_match_mode!="ranked"

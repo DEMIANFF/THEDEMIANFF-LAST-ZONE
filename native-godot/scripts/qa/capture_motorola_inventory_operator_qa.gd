@@ -67,6 +67,19 @@ func _capture() -> void:
         quit(9)
         return
     front._close_skin_gallery()
+    front._select_tab("OBJETIVOS")
+    if front._objectives_progress_panel==null or (
+            not front._objectives_progress_panel.visible):
+        push_error("V75136_CAPTURE verified local mission progress not visible")
+        quit(10)
+        return
+    for frame in range(10):
+        await process_frame
+    front._layout_safe()
+    await RenderingServer.frame_post_draw
+    if not _save("local-objectives",tag):
+        quit(11)
+        return
     front._select_tab("INVENTARIO")
     front._equipment_category_selector.select(GEAR.PROTECTION)
     front._on_equipment_category_selected(GEAR.PROTECTION)
@@ -101,7 +114,7 @@ func _capture() -> void:
     front.queue_free()
     for frame in range(7):
         await process_frame
-    print("V75132_CAPTURE PASS resolution=964x434 "+
-        "skin_gallery=1 mode_gallery=1 inventory=1 lila=1 "+
-        "optional_ch02=source_dependent")
+    print("V75136_CAPTURE PASS resolution=964x434 "+
+        "local_objectives=1 skin_gallery=1 mode_gallery=1 "+
+        "inventory=1 lila=1 optional_ch02=source_dependent")
     quit(0)
