@@ -36,6 +36,7 @@ if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
     scripts/qa/v75133_map_readability_qa.gd \
     scripts/qa/v75136_objective_progress_qa.gd \
     scripts/qa/v75138_opponent_loot_budget_qa.gd \
+    scripts/qa/capture_motorola_late_loot_qa.gd \
     scripts/ui/aurora_training_radar.gd \
     scripts/ui/native_hud.gd \
     scripts/combat/aurora_weapon_families.gd \
