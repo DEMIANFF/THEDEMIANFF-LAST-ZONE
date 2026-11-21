@@ -66,10 +66,10 @@ func _verify() -> void:
     map.call("mark",destination)
     check((map.get("waypoint") as Vector2).distance_to(destination)<.01,
         "no real world landing waypoint selected on map")
-    var map_route_start: Vector2=map.project(
-        Vector2(0,AIRDROP.ROUTE_START_Z))
-    var map_route_end: Vector2=map.project(
-        Vector2(0,AIRDROP.ROUTE_END_Z))
+    var map_route_start: Vector2=map.call(
+        "project",Vector2(0,AIRDROP.ROUTE_START_Z))
+    var map_route_end: Vector2=map.call(
+        "project",Vector2(0,AIRDROP.ROUTE_END_Z))
     check(map_route_start.distance_to(map_route_end)>5.0,
         "large map lost aircraft deployment route")
     map.get_node("MapActions/MapAction0").pressed.emit()
