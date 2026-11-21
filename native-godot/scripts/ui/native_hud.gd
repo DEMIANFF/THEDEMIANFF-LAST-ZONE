@@ -1096,8 +1096,8 @@ func _process(delta: float) -> void:
     if _real_grenade_warning_left>0.0:
         _real_grenade_warning_left=maxf(0.0,
             _real_grenade_warning_left-maxf(0.0,delta))
-        if _real_grenade_warning_left<=0.0 and
-                _real_grenade_warning_label!=null:
+        if (_real_grenade_warning_left<=0.0 and
+                _real_grenade_warning_label!=null):
             _real_grenade_warning_label.visible=false
     if _lila_ability_seconds>0.0:
         _lila_ability_seconds=maxf(0.0,_lila_ability_seconds-delta)
