@@ -304,7 +304,7 @@ jobs:
       # This lets the Motorola UI redesign be reviewed before installation.
       - uses: actions/upload-artifact@v6
         with:
-          name: THEDEMIAN-V75.138-AURORA-LOOT-PREVIEW
+          name: THEDEMIAN-V75.139-AURORA-LOOT-PREVIEW
           path: |
             native-godot/out/aurora-v75-19-welcome.png
             native-godot/out/aurora-v75-19-lobby.png
@@ -338,7 +338,7 @@ jobs:
           grep -F 'CANOPY_OPENGL_RENDER PASS' native-godot/out/qa/canopy-render.log
           test -s native-godot/out/audit-first-canopy-opengl.png
       - name: Configure permanent signed preview identity
-        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' || github.ref == 'refs/heads/codex/v75-130-inventory-operators-real-ui' || (github.ref == 'refs/heads/codex/v75-131-aurora-mode-gallery-real-gating' || github.ref == 'refs/heads/codex/v75-132-aurora-local-skin-catalog-gallery' || github.ref == 'refs/heads/codex/v75-133-map-overview-readability-touch-qa' || github.ref == 'refs/heads/codex/v75-134-clean-shop-drawer-map-footer' || github.ref == 'refs/heads/codex/v75-135-shop-preview-backplate-lifecycle' || github.ref == 'refs/heads/codex/v75-136-local-missions-progress-ui' || github.ref == 'refs/heads/codex/v75-137-objectives-readable-progress' || github.ref == 'refs/heads/codex/v75-138-opponent-loot-active-cap-reuse')) && contains(github.event.head_commit.message, '[motorola-apk]')) }}
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' || github.ref == 'refs/heads/codex/v75-130-inventory-operators-real-ui' || (github.ref == 'refs/heads/codex/v75-131-aurora-mode-gallery-real-gating' || github.ref == 'refs/heads/codex/v75-132-aurora-local-skin-catalog-gallery' || github.ref == 'refs/heads/codex/v75-133-map-overview-readability-touch-qa' || github.ref == 'refs/heads/codex/v75-134-clean-shop-drawer-map-footer' || github.ref == 'refs/heads/codex/v75-135-shop-preview-backplate-lifecycle' || github.ref == 'refs/heads/codex/v75-136-local-missions-progress-ui' || github.ref == 'refs/heads/codex/v75-137-objectives-readable-progress' || github.ref == 'refs/heads/codex/v75-138-opponent-loot-active-cap-reuse' || github.ref == 'refs/heads/codex/v75-139-near-deck-opponent-loot-snap')) && contains(github.event.head_commit.message, '[motorola-apk]')) }}
         env:
           PREVIEW_KEYSTORE_B64: ${{ secrets.AURORA_PREVIEW_KEYSTORE_B64 }}
         run: |
@@ -380,7 +380,7 @@ jobs:
       # One production-directed Android preview: Mobile/Vulkan ONLY.
       # Desktop headless QA may use OpenGL to run on CI; no OpenGL APK built.
       - name: Export signed Vulkan Mobile APK (single release)
-        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' || github.ref == 'refs/heads/codex/v75-130-inventory-operators-real-ui' || (github.ref == 'refs/heads/codex/v75-131-aurora-mode-gallery-real-gating' || github.ref == 'refs/heads/codex/v75-132-aurora-local-skin-catalog-gallery' || github.ref == 'refs/heads/codex/v75-133-map-overview-readability-touch-qa' || github.ref == 'refs/heads/codex/v75-134-clean-shop-drawer-map-footer' || github.ref == 'refs/heads/codex/v75-135-shop-preview-backplate-lifecycle' || github.ref == 'refs/heads/codex/v75-136-local-missions-progress-ui' || github.ref == 'refs/heads/codex/v75-137-objectives-readable-progress' || github.ref == 'refs/heads/codex/v75-138-opponent-loot-active-cap-reuse')) && contains(github.event.head_commit.message, '[motorola-apk]')) }}
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' || github.ref == 'refs/heads/codex/v75-130-inventory-operators-real-ui' || (github.ref == 'refs/heads/codex/v75-131-aurora-mode-gallery-real-gating' || github.ref == 'refs/heads/codex/v75-132-aurora-local-skin-catalog-gallery' || github.ref == 'refs/heads/codex/v75-133-map-overview-readability-touch-qa' || github.ref == 'refs/heads/codex/v75-134-clean-shop-drawer-map-footer' || github.ref == 'refs/heads/codex/v75-135-shop-preview-backplate-lifecycle' || github.ref == 'refs/heads/codex/v75-136-local-missions-progress-ui' || github.ref == 'refs/heads/codex/v75-137-objectives-readable-progress' || github.ref == 'refs/heads/codex/v75-138-opponent-loot-active-cap-reuse' || github.ref == 'refs/heads/codex/v75-139-near-deck-opponent-loot-snap')) && contains(github.event.head_commit.message, '[motorola-apk]')) }}
         run: |
           set -euo pipefail
           if grep -E "SCRIPT ERROR:|ERROR:" native-godot/out/qa/responsive-render.log; then exit 1; fi
@@ -389,13 +389,13 @@ jobs:
           grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
           grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
           grep -Fx 'version/code=128' native-godot/export_presets.cfg
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.138-MOTOROLA-VULKAN.apk
-          test -s native-godot/out/THEDEMIAN-V75.138-MOTOROLA-VULKAN.apk
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.139-MOTOROLA-VULKAN.apk
+          test -s native-godot/out/THEDEMIAN-V75.139-MOTOROLA-VULKAN.apk
       - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
-        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' || github.ref == 'refs/heads/codex/v75-130-inventory-operators-real-ui' || (github.ref == 'refs/heads/codex/v75-131-aurora-mode-gallery-real-gating' || github.ref == 'refs/heads/codex/v75-132-aurora-local-skin-catalog-gallery' || github.ref == 'refs/heads/codex/v75-133-map-overview-readability-touch-qa' || github.ref == 'refs/heads/codex/v75-134-clean-shop-drawer-map-footer' || github.ref == 'refs/heads/codex/v75-135-shop-preview-backplate-lifecycle' || github.ref == 'refs/heads/codex/v75-136-local-missions-progress-ui' || github.ref == 'refs/heads/codex/v75-137-objectives-readable-progress' || github.ref == 'refs/heads/codex/v75-138-opponent-loot-active-cap-reuse')) && contains(github.event.head_commit.message, '[motorola-apk]')) }}
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' || github.ref == 'refs/heads/codex/v75-130-inventory-operators-real-ui' || (github.ref == 'refs/heads/codex/v75-131-aurora-mode-gallery-real-gating' || github.ref == 'refs/heads/codex/v75-132-aurora-local-skin-catalog-gallery' || github.ref == 'refs/heads/codex/v75-133-map-overview-readability-touch-qa' || github.ref == 'refs/heads/codex/v75-134-clean-shop-drawer-map-footer' || github.ref == 'refs/heads/codex/v75-135-shop-preview-backplate-lifecycle' || github.ref == 'refs/heads/codex/v75-136-local-missions-progress-ui' || github.ref == 'refs/heads/codex/v75-137-objectives-readable-progress' || github.ref == 'refs/heads/codex/v75-138-opponent-loot-active-cap-reuse' || github.ref == 'refs/heads/codex/v75-139-near-deck-opponent-loot-snap')) && contains(github.event.head_commit.message, '[motorola-apk]')) }}
         run: |
           set -euo pipefail
-          APK=native-godot/out/THEDEMIAN-V75.138-MOTOROLA-VULKAN.apk
+          APK=native-godot/out/THEDEMIAN-V75.139-MOTOROLA-VULKAN.apk
           python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/vulkan-verification
           expected="$(cat native-godot/out/preview-signer-sha256.txt)"
           grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/vulkan-verification/signature.txt
@@ -453,11 +453,11 @@ jobs:
           sha256sum "$APK" > native-godot/out/SHA256SUMS.txt
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v6
-        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' || github.ref == 'refs/heads/codex/v75-130-inventory-operators-real-ui' || (github.ref == 'refs/heads/codex/v75-131-aurora-mode-gallery-real-gating' || github.ref == 'refs/heads/codex/v75-132-aurora-local-skin-catalog-gallery' || github.ref == 'refs/heads/codex/v75-133-map-overview-readability-touch-qa' || github.ref == 'refs/heads/codex/v75-134-clean-shop-drawer-map-footer' || github.ref == 'refs/heads/codex/v75-135-shop-preview-backplate-lifecycle' || github.ref == 'refs/heads/codex/v75-136-local-missions-progress-ui' || github.ref == 'refs/heads/codex/v75-137-objectives-readable-progress' || github.ref == 'refs/heads/codex/v75-138-opponent-loot-active-cap-reuse')) && contains(github.event.head_commit.message, '[motorola-apk]')) }}
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/codex/v75-124-roof-collision-aurora-integration' || github.ref == 'refs/heads/codex/v75-130-inventory-operators-real-ui' || (github.ref == 'refs/heads/codex/v75-131-aurora-mode-gallery-real-gating' || github.ref == 'refs/heads/codex/v75-132-aurora-local-skin-catalog-gallery' || github.ref == 'refs/heads/codex/v75-133-map-overview-readability-touch-qa' || github.ref == 'refs/heads/codex/v75-134-clean-shop-drawer-map-footer' || github.ref == 'refs/heads/codex/v75-135-shop-preview-backplate-lifecycle' || github.ref == 'refs/heads/codex/v75-136-local-missions-progress-ui' || github.ref == 'refs/heads/codex/v75-137-objectives-readable-progress' || github.ref == 'refs/heads/codex/v75-138-opponent-loot-active-cap-reuse' || github.ref == 'refs/heads/codex/v75-139-near-deck-opponent-loot-snap')) && contains(github.event.head_commit.message, '[motorola-apk]')) }}
         with:
-          name: THEDEMIAN-V75.138-MOTOROLA-VULKAN
+          name: THEDEMIAN-V75.139-MOTOROLA-VULKAN
           path: |
-            native-godot/out/THEDEMIAN-V75.138-MOTOROLA-VULKAN.apk
+            native-godot/out/THEDEMIAN-V75.139-MOTOROLA-VULKAN.apk
             native-godot/out/vulkan-verification/
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
