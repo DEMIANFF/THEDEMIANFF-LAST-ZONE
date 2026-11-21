@@ -43,6 +43,14 @@ func _verify() -> void:
     check(panel!=null and
         root.get_visible_rect().encloses(panel.get_global_rect()),
         "3-card mode selector clipped by phone safe layout")
+    await process_frame
+    await process_frame
+    var modal_exit: Button=panel.find_child(
+        "CloseModeGallery",true,false) as Button
+    check(modal_exit!=null and modal_exit.is_visible_in_tree() and
+        modal_exit.custom_minimum_size.y>=72.0 and
+        modal_exit.get_global_rect().size.y>=40.0,
+        "mode gallery close target too small for Motorola touch controls")
     check(cards["classic"] is Button and cards["training"] is Button and
         cards["ranked"] is Button,
         "mode choices are not interactive native buttons")
