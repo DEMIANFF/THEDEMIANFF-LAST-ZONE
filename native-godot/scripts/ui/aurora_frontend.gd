@@ -141,6 +141,13 @@ var _play_match_card: PanelContainer
 var _pass_claim_button: Button
 var _pass_progress: ProgressBar
 var _shop_selector: OptionButton
+var _shop_gallery_entry: Button
+var _shop_gallery_overlay: Control
+var _shop_gallery_cards: Dictionary={}
+var _shop_gallery_balance: Label
+var _shop_gallery_status: Label
+var _shop_gallery_buy: Button
+var _shop_gallery_equip: Button
 var _operator_selector: OptionButton
 var _shop_buy_button: Button
 var _shop_equip_button: Button
@@ -693,6 +700,8 @@ func _welcome() -> void:
         _mode_gallery_entry.visible=false
     if is_instance_valid(_mode_gallery_overlay):
         _mode_gallery_overlay.visible=false
+    if is_instance_valid(_shop_gallery_overlay):
+        _shop_gallery_overlay.visible=false
     if _social_panel!=null and is_instance_valid(_social_panel):
         _social_panel.visible=false
     if _top_account_button!=null and is_instance_valid(_top_account_button):
@@ -1040,6 +1049,8 @@ func _show_lobby() -> void:
     _bottom_navigation.visible=true
     if is_instance_valid(_mode_gallery_overlay):
         _mode_gallery_overlay.visible=false
+    if is_instance_valid(_shop_gallery_overlay):
+        _shop_gallery_overlay.visible=false
     if is_instance_valid(_mode_gallery_entry):
         _mode_gallery_entry.visible=_selected_tab=="JUGAR"
     _top_account_button.visible=true
@@ -1243,6 +1254,13 @@ func _show_lobby() -> void:
     _shop_selector.select(1)
     _shop_selector.item_selected.connect(_on_shop_skin_selected)
     _page.add_child(_shop_selector)
+    _shop_gallery_entry=_button("EXPLORAR TRAJES AURORA",
+        Callable(self,"_open_skin_gallery"),245)
+    _shop_gallery_entry.name="AuroraSkinCatalogEntry"
+    _shop_gallery_entry.custom_minimum_size.y=34
+    _shop_gallery_entry.add_theme_font_size_override("font_size",13)
+    _style_aurora_tab(_shop_gallery_entry,Color(.89,.68,.32))
+    _page.add_child(_shop_gallery_entry)
     _shop_buy_button=_button("COMPRAR TRAJE LOCAL",
         Callable(self,"_buy_local_skin"),245)
     _shop_buy_button.name="AuroraRealSkinPurchase"
@@ -1534,6 +1552,7 @@ func _sync_lobby_match_mode() -> void:
     _pass_claim_button.visible=_selected_tab=="PASE"
     _shop_selector.visible=_selected_tab in ["TIENDA","PERSONAJE"] and not (
         _selected_tab=="PERSONAJE" and _preview_male_active)
+    _shop_gallery_entry.visible=_selected_tab=="TIENDA"
     _operator_selector.visible=_selected_tab=="PERSONAJE"
     _shop_buy_button.visible=_selected_tab=="TIENDA"
     _shop_equip_button.visible=_selected_tab=="TIENDA"
@@ -1905,6 +1924,7 @@ func _ensure_lobby_navigation() -> void:
     _style_aurora_tab(_top_social_button,Color(.53,.39,.87))
     _surface.add_child(_top_social_button)
     _build_mode_gallery()
+    _build_skin_gallery()
 
 
 ## V75.131: the original Aurora mode gallery uses only the existing,
@@ -2057,6 +2077,191 @@ func _refresh_mode_gallery_cards() -> void:
             card.modulate=Color.WHITE
 
 
+## Three real authored Lila palettes, backed by the offline profile
+## ledger. No premium purchases or invented ownership.
+func _build_skin_gallery() -> void:
+    _shop_gallery_cards.clear()
+    _shop_gallery_overlay=Control.new()
+    _shop_gallery_overlay.name="AuroraSkinGalleryOverlay"
+    _shop_gallery_overlay.set_anchors_and_offsets_preset(
+        Control.PRESET_FULL_RECT)
+    _shop_gallery_overlay.mouse_filter=Control.MOUSE_FILTER_STOP
+    _shop_gallery_overlay.visible=false
+    _surface.add_child(_shop_gallery_overlay)
+
+    var shade:=ColorRect.new()
+    shade.name="SkinGalleryBackdrop"
+    # Keep Lila's actual 3D model visible during outfit inspection.
+    # A heavy fullscreen scrim made the character disappear on Motorola.
+    shade.color=Color(.005,.014,.027,.22)
+    shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    shade.mouse_filter=Control.MOUSE_FILTER_STOP
+    _shop_gallery_overlay.add_child(shade)
+
+    # Left drawer covers the sidebar, not the center-stage real 3D Lila
+    # preview at 964x434. This deliberately avoids the operator portrait
+    # (the previous right drawer obscured most of Lila's body).
+    var panel:=PanelContainer.new()
+    panel.name="AuroraSkinGalleryPanel"
+    panel.anchor_left=.018
+    panel.anchor_right=.393
+    panel.anchor_top=.095
+    panel.anchor_bottom=.91
+    var panel_style:=StyleBoxFlat.new()
+    panel_style.bg_color=Color(.018,.037,.064,.99)
+    panel_style.border_color=Color(.41,.72,.82,.91)
+    panel_style.set_border_width_all(2)
+    panel_style.set_corner_radius_all(10)
+    panel_style.content_margin_left=12
+    panel_style.content_margin_right=12
+    panel_style.content_margin_top=8
+    panel_style.content_margin_bottom=8
+    panel.add_theme_stylebox_override("panel",panel_style)
+    _shop_gallery_overlay.add_child(panel)
+    var content:=VBoxContainer.new()
+    content.name="SkinGalleryContent"
+    content.add_theme_constant_override("separation",4)
+    panel.add_child(content)
+    var title:=Label.new()
+    title.name="SkinGalleryHeading"
+    title.text="TIENDA AURORA  /  TRAJES DE LILA"
+    title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    title.add_theme_font_size_override("font_size",21)
+    title.add_theme_color_override("font_color",Color(.98,.81,.45))
+    content.add_child(title)
+    _shop_gallery_balance=Label.new()
+    _shop_gallery_balance.name="SkinGalleryLocalBalance"
+    _shop_gallery_balance.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _shop_gallery_balance.add_theme_font_size_override("font_size",14)
+    _shop_gallery_balance.add_theme_color_override(
+        "font_color",Color(.81,.93,.98))
+    content.add_child(_shop_gallery_balance)
+    var cards:=VBoxContainer.new()
+    cards.name="SkinGalleryCards"
+    cards.add_theme_constant_override("separation",5)
+    cards.size_flags_vertical=Control.SIZE_EXPAND_FILL
+    content.add_child(cards)
+    for skin in ["aurora_base","aurora_glacier","aurora_ember"]:
+        var card:=_button("",Callable(self,
+            "_choose_skin_gallery").bind(skin),0)
+        card.name="SkinCard"+skin
+        card.custom_minimum_size=Vector2(0,48)
+        card.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        card.size_flags_vertical=Control.SIZE_EXPAND_FILL
+        card.add_theme_font_size_override("font_size",16)
+        cards.add_child(card)
+        _shop_gallery_cards[skin]=card
+    _shop_gallery_status=Label.new()
+    _shop_gallery_status.name="SkinGallerySelectionStatus"
+    _shop_gallery_status.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _shop_gallery_status.add_theme_font_size_override("font_size",13)
+    _shop_gallery_status.add_theme_color_override(
+        "font_color",Color(.89,.94,.96))
+    content.add_child(_shop_gallery_status)
+    var actions:=HBoxContainer.new()
+    actions.name="SkinGalleryRealActions"
+    actions.add_theme_constant_override("separation",7)
+    content.add_child(actions)
+    _shop_gallery_buy=_button("COMPRAR",
+        Callable(self,"_buy_local_skin"),0)
+    _shop_gallery_buy.name="SkinGalleryBuy"
+    _shop_gallery_buy.custom_minimum_size.y=42
+    _shop_gallery_buy.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _shop_gallery_buy.add_theme_font_size_override("font_size",13)
+    _style_primary_action(_shop_gallery_buy)
+    actions.add_child(_shop_gallery_buy)
+    _shop_gallery_equip=_button("EQUIPAR",
+        Callable(self,"_equip_local_skin"),0)
+    _shop_gallery_equip.name="SkinGalleryEquip"
+    _shop_gallery_equip.custom_minimum_size.y=42
+    _shop_gallery_equip.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _shop_gallery_equip.add_theme_font_size_override("font_size",13)
+    _style_aurora_tab(_shop_gallery_equip,Color(.44,.76,.86))
+    actions.add_child(_shop_gallery_equip)
+    var close:=_button("VOLVER A LA TIENDA",
+        Callable(self,"_close_skin_gallery"),0)
+    close.name="CloseSkinGallery"
+    close.custom_minimum_size=Vector2(0,42)
+    close.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    close.add_theme_font_size_override("font_size",14)
+    _style_aurora_tab(close,Color(.45,.68,.84))
+    content.add_child(close)
+
+
+func _open_skin_gallery() -> void:
+    if stage!="lobby" or _selected_tab!="TIENDA" or (
+            not is_instance_valid(_shop_gallery_overlay)):
+        return
+    _refresh_skin_gallery()
+    _shop_gallery_overlay.visible=true
+
+
+func _close_skin_gallery() -> void:
+    if is_instance_valid(_shop_gallery_overlay):
+        _shop_gallery_overlay.visible=false
+
+
+func _choose_skin_gallery(skin: String) -> void:
+    if stage!="lobby" or _selected_tab!="TIENDA" or (
+            not is_instance_valid(_shop_gallery_overlay)) or (
+            not _shop_gallery_overlay.visible):
+        return
+    var ids: Array[String]=["aurora_base","aurora_glacier","aurora_ember"]
+    var index: int=ids.find(skin)
+    if index<0:
+        return
+    _on_shop_skin_selected(index)
+
+
+func _refresh_skin_gallery() -> void:
+    if _offline_records==null or _shop_gallery_cards.is_empty():
+        return
+    var ledger: Dictionary=_offline_records.cosmetic_state()
+    var owned: Array=ledger["owned"] as Array
+    var equipped: String=str(ledger["equipped"])
+    var credits: int=int(ledger["coins"])
+    if is_instance_valid(_shop_gallery_balance):
+        _shop_gallery_balance.text="MONEDAS LOCALES: %d  ·  SIN PAGOS"%credits
+    for skin in _shop_gallery_cards:
+        var card: Button=_shop_gallery_cards[skin] as Button
+        var price: int=int(MATCH_RECORDS.LOCAL_SKINS.get(str(skin),0))
+        var has_skin: bool=owned.has(str(skin))
+        var selected: bool=str(skin)==_shop_selected_skin
+        var label: String=(
+            "AURORA ORIGINAL" if skin=="aurora_base" else
+            "AURORA GLACIAL" if skin=="aurora_glacier" else
+            "AURORA FUEGO")
+        card.text="%s   ·   %s"%[
+            label,"EQUIPADO" if skin==equipped else
+            "ADQUIRIDO" if has_skin else "%d MONEDAS"%price]
+        card.set_meta("aurora_selected_skin",selected)
+        if selected:
+            _style_primary_action(card)
+        else:
+            _style_aurora_tab(card,Color(.36,.60,.78))
+    var selected_price: int=int(MATCH_RECORDS.LOCAL_SKINS.get(
+        _shop_selected_skin,0))
+    var is_owned: bool=owned.has(_shop_selected_skin)
+    var is_equipped: bool=equipped==_shop_selected_skin
+    if is_instance_valid(_shop_gallery_status):
+        _shop_gallery_status.text=(
+            "VISTA 3D · COMPRA PERMANENTE LOCAL" if not is_owned else
+            "YA EQUIPADO" if is_equipped else
+            "ADQUIRIDO · PUEDES EQUIPARLO")
+    if is_instance_valid(_shop_gallery_buy):
+        _shop_gallery_buy.disabled=is_owned or selected_price<=0 or (
+            credits<selected_price)
+        _shop_gallery_buy.text=(
+            "COMPRADO" if is_owned else
+            "SIN MONEDAS" if credits<selected_price else
+            "COMPRAR · %d"%selected_price)
+    if is_instance_valid(_shop_gallery_equip):
+        _shop_gallery_equip.disabled=not is_owned or is_equipped
+        _shop_gallery_equip.text=(
+            "EQUIPADO" if is_equipped else
+            "EQUIPAR" if is_owned else "NO ADQUIRIDO")
+
+
 func _style_aurora_tab(button: Button,tint: Color) -> void:
     var normal:=StyleBoxFlat.new()
     normal.bg_color=Color(.016,.029,.051,.87)
@@ -2127,6 +2332,8 @@ func _select_tab(tab: String) -> void:
         _mode_gallery_entry.visible=tab=="JUGAR"
     if tab!="JUGAR":
         _close_mode_gallery()
+    if tab!="TIENDA":
+        _close_skin_gallery()
     if _left_shortcuts!=null:
         for button in _left_shortcuts.get_children():
             if button is Button:
@@ -2575,6 +2782,8 @@ func _on_shop_skin_selected(index: int) -> void:
     var ids: Array[String]=["aurora_base","aurora_glacier","aurora_ember"]
     if index>=0 and index<ids.size():
         _shop_selected_skin=ids[index]
+        if is_instance_valid(_shop_selector):
+            _shop_selector.select(index)
     if stage=="lobby" and _selected_tab in ["TIENDA","PERSONAJE"]:
         if _selected_tab=="TIENDA":
             _refresh_local_skin_store()
@@ -2607,6 +2816,7 @@ func _refresh_local_skin_store() -> void:
     _shop_equip_button.disabled=not owned or equipped
     _shop_equip_button.text=(
         "EQUIPADO" if equipped else "EQUIPAR TRAJE")
+    _refresh_skin_gallery()
 
 
 func _update_cosmetic_after_transaction() -> void:
@@ -2737,6 +2947,7 @@ func _launch(battle: bool) -> void:
         AuroraLobbyMusic.leave_lobby()
     stage="loading"
     _close_mode_gallery()
+    _close_skin_gallery()
     if is_instance_valid(_mode_gallery_entry):
         _mode_gallery_entry.visible=false
     FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",null,

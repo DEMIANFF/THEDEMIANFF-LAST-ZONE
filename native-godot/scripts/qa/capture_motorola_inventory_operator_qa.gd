@@ -52,6 +52,21 @@ func _capture() -> void:
         quit(7)
         return
     front._close_mode_gallery()
+    front._select_tab("TIENDA")
+    front._open_skin_gallery()
+    if front._shop_gallery_overlay==null or (
+            not front._shop_gallery_overlay.visible):
+        push_error("V75132_CAPTURE real Lila shop gallery did not open")
+        quit(8)
+        return
+    for frame in range(10):
+        await process_frame
+    front._layout_safe()
+    await RenderingServer.frame_post_draw
+    if not _save("skin-gallery",tag):
+        quit(9)
+        return
+    front._close_skin_gallery()
     front._select_tab("INVENTARIO")
     front._equipment_category_selector.select(GEAR.PROTECTION)
     front._on_equipment_category_selected(GEAR.PROTECTION)
@@ -86,6 +101,7 @@ func _capture() -> void:
     front.queue_free()
     for frame in range(7):
         await process_frame
-    print("V75131_CAPTURE PASS resolution=964x434 "+
-        "mode_gallery=1 inventory=1 lila=1 optional_ch02=source_dependent")
+    print("V75132_CAPTURE PASS resolution=964x434 "+
+        "skin_gallery=1 mode_gallery=1 inventory=1 lila=1 "+
+        "optional_ch02=source_dependent")
     quit(0)
