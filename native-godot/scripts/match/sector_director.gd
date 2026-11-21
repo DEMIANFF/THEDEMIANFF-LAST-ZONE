@@ -706,8 +706,9 @@ static func opponent_inventory_reward(rounds_loaded: int,medkits_owned: int,
 func _active_opponent_drop_count() -> int:
     var active: int=0
     for pickup in _loot:
-        if is_instance_valid(pickup) and pickup.from_opponent and (
-                not pickup.collected) and not pickup.is_queued_for_deletion():
+        if (is_instance_valid(pickup) and pickup.from_opponent and
+                not pickup.collected and
+                not pickup.is_queued_for_deletion()):
             active+=1
     return active
 
