@@ -30,6 +30,9 @@ const LANDMARK_NAMES: Array[String]=[
     "CENTRO","HELIOS","METEO","VORTEX",
     "PUERTO AURORA","MUELLE","MIRADOR",
     "SIERRA ESTE","SUR HELADO","VALLE OESTE","PASO NORTE"]
+# At whole-island zoom, show only real district centres and outer POIs.
+# Smaller landmarks become individually readable at zoom >= 1.75.
+const OVERVIEW_LABEL_INDICES: Array[int]=[0,4,5,7,8,9,10]
 var player: CharacterBody3D
 var terrain: StaticBody3D
 var director: Node3D
@@ -64,8 +67,8 @@ func _ready() -> void:
     # Compact action column remains touch-safe on 964x434 Motorola screens.
     _control_panel.anchor_left=.78
     _control_panel.anchor_right=.985
-    _control_panel.anchor_top=.10
-    _control_panel.anchor_bottom=.90
+    _control_panel.anchor_top=.05
+    _control_panel.anchor_bottom=.95
     _control_panel.add_theme_constant_override("separation",4)
     add_child(_control_panel)
     _action("✕",func(): visible=false)
@@ -74,7 +77,8 @@ func _ready() -> void:
     _action("SEGUIR",func(): _follow())
     _action("QUITAR MARCA",_clear_waypoint)
     _action("RUTA",_route)
-    _action("NORTE ARRIBA",func(): _follow())
+    # "NORTE ARRIBA" duplicated SEGUIR: the Aurora map is already north-up.
+    # Remove the redundant row to give the remaining buttons touch-safe height.
 
 
 func _action(title: String,handler: Callable) -> void:
@@ -82,8 +86,8 @@ func _action(title: String,handler: Callable) -> void:
     btn.name="MapAction"+str(_control_panel.get_child_count())
     btn.text=title
     btn.focus_mode=Control.FOCUS_NONE
-    btn.custom_minimum_size=Vector2(108,36)
-    btn.add_theme_font_size_override("font_size",12)
+    btn.custom_minimum_size=Vector2(108,58)
+    btn.add_theme_font_size_override("font_size",14)
     var style:=StyleBoxFlat.new()
     style.bg_color=Color(.016,.094,.146,.96)
     style.border_color=Color(.27,.84,.92)
@@ -428,6 +432,13 @@ func _draw_path(world_points: Array[Vector2],tint: Color,width: float) -> void:
     _draw_clipped_map_line(points,_map_rect(),tint,width,true)
 
 
+## Keep the original physical POI locations while preventing dozens of
+## illegible names around the central town at minimum map zoom.
+func _show_landmark_label(index: int) -> bool:
+    return (index>=0 and index<LANDMARK_NAMES.size() and
+        (zoom>=1.75 or index in OVERVIEW_LABEL_INDICES))
+
+
 func _draw_landmark(at: Vector2,title: String,boxes: Array[Rect2],
         rect: Rect2,font: Font) -> void:
     var p: Vector2=project(at)
@@ -514,22 +525,27 @@ func _draw() -> void:
         if rect.grow(-8).has_point(parcel):
             draw_rect(Rect2(parcel-Vector2(3,3),Vector2(6,6)),
                 Color(.94,.92,.72))
-    # Labels are laid out against occupied bounding boxes. Clustered
-    # houses stay represented as footprints instead of unreadable names.
+    # Prioritise the real AWM loot marker before district labels: otherwise
+    # nearby names cover its pickup position and hide the last-mile target.
+    # Reserve its occupied area so collision-aware POI labels move aside.
     var occupied: Array[Rect2]=[]
-    for i in range(LANDMARK_POSITIONS.size()):
-        _draw_landmark(LANDMARK_POSITIONS[i],LANDMARK_NAMES[i],
-            occupied,rect,font)
-    # This is the actual AWM area in sector_director.gd, not a fake icon.
     var sniper: Vector2=project(AWM_POSITION)
     if rect.grow(-12).has_point(sniper):
         draw_circle(sniper,9.0,Color(1,.61,.09))
         draw_arc(sniper,13,0,TAU,32,Color(1,.85,.22),2.0)
+        occupied.append(Rect2(sniper-Vector2(13,13),Vector2(26,26)))
         var name_rect:=Rect2(sniper+Vector2(13,1),Vector2(57,18))
         if rect.grow(-8).encloses(name_rect):
             draw_rect(name_rect,Color(.23,.105,.02,.94))
             draw_string(font,name_rect.position+Vector2(6,14),"AWM",
                 HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(1,.95,.75))
+            occupied.append(name_rect)
+    # All real houses remain on the 256px terrain texture. Additional POI
+    # names appear only after pinch/zoom, not all piled on the city centre.
+    for i in range(LANDMARK_POSITIONS.size()):
+        if _show_landmark_label(i):
+            _draw_landmark(LANDMARK_POSITIONS[i],LANDMARK_NAMES[i],
+                occupied,rect,font)
     if is_instance_valid(director):
         # Both overlays track the same zone director driving physical damage.
         # Gold is the NEXT destination; cyan is the current contracting ring.
