@@ -122,6 +122,25 @@ func set_waypoint(at: Vector2) -> void:
     queue_redraw()
 
 
+## Single real target reading, shared by the radar and the mobile HUD.
+## Direction is relative to the actual player camera yaw, not the bot AI,
+## a fabricated landing site, or an independent full-map coordinate space.
+func landing_waypoint_guidance() -> Dictionary:
+    if (not _battle_mode or not _waypoint.is_finite() or
+            not is_instance_valid(player) or player.royale_eliminated):
+        return {}
+    var listener:=Vector2(player.global_position.x,player.global_position.z)
+    var delta: Vector2=_waypoint-listener
+    var distance: float=delta.length()
+    var camera_degrees: float=rad_to_deg(float(player.get("_yaw")))
+    var world_bearing: float=rad_to_deg(atan2(delta.x,-delta.y))
+    return {
+        "world":_waypoint,
+        "distance_m":distance,
+        "relative_degrees":wrapf(world_bearing-camera_degrees,-180.0,180.0)
+    }
+
+
 func set_zone(center: Vector2,radius: float) -> void:
     _zone_enabled=true
     _zone_world_center=center
@@ -319,9 +338,15 @@ func _draw() -> void:
     if _waypoint.is_finite():
         var position: Vector2=Vector2(player.global_position.x,player.global_position.z)
         var waypoint_delta: Vector2=(_waypoint-position).rotated(-yaw)
-        var dot: Vector2=center+waypoint_delta.limit_length(world_range)*radius/world_range
-        draw_circle(dot,6.0,Color(1.0,.73,.15))
-        draw_arc(dot,8.5,0,TAU,28,Color(1.0,.90,.42),1.6)
+        # Keep the real target INSIDE the circular terrain bezel, even
+        # when far away; it must not overlap the invisible map touch area
+        # or adjacent controls on 964x434 phone screens.
+        var dot: Vector2=center+waypoint_delta.limit_length(world_range)*(
+            (radius-10.0)/world_range)
+        if _battle_mode and player.air_mode in ["aircraft","freefall","parachute"]:
+            draw_line(center,dot,Color(1.0,.71,.16,.56),1.7,true)
+        draw_circle(dot,5.3,Color(1.0,.73,.15))
+        draw_arc(dot,8.0,0,TAU,28,Color(1.0,.90,.42),1.6)
     if _battle_mode:
         # Existing physical caches, NOT the living rivals, are eligible
         # for a tiny, bounded supply icon near the listener. The match
