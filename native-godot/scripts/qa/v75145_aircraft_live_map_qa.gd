@@ -37,7 +37,7 @@ func _verify() -> void:
         str(flight.get("phase"))=="aircraft" and
         player.air_mode=="aircraft",
         "real aircraft did not begin in physical Main scene")
-    check(hud.air_stage=="aircraft" and radar.visible and
+    check(str(hud.get("air_stage"))=="aircraft" and radar.visible and
         button.visible and not button.disabled and button.text=="",
         "in-air minimap remains hidden or has a separate MAPA label")
     var radar_bounds: Rect2=radar.get_global_rect()
@@ -45,26 +45,26 @@ func _verify() -> void:
     check(radar_bounds.grow(1.5).encloses(touch_bounds) and
         touch_bounds.grow(1.5).encloses(radar_bounds),
         "flight map hitbox does not match the displayed radar")
-    check(not hud._reticle.visible and
+    check(not (hud.get("_reticle") as Control).visible and
         not hud.get_node("AuroraTacticalOverlay/MovePad").visible,
         "combat fire/movement controls obscure the aircraft map")
-    var route: PackedVector2Array=radar.aircraft_route_pixels()
+    var route: PackedVector2Array=(radar.call("aircraft_route_pixels") as PackedVector2Array)
     check(route.size()==2 and route[0].distance_to(route[1])>10.0 and
         AIRDROP.ROUTE_START_Z==76.0 and AIRDROP.ROUTE_END_Z==-78.0,
         "minimap route does not use the actual aircraft segment")
-    check(str(hud._battle_status.text).contains("SALTO EN 13s") and
-        str(hud._hint.text).contains("MINIMAPA"),
+    check(str((hud.get("_battle_status") as Label).text).contains("SALTO EN 13s") and
+        str((hud.get("_hint") as Label).text).contains("MINIMAPA"),
         "flight HUD lacks real timed deployment and map guidance")
 
     # The player uses the SAME radar touch target and tactical map;
     # flight phase does not replace it with a separate static screenshot.
     button.button_down.emit()
-    check(map.visible and map.director==director and
-        map.player==player and map.terrain==terrain,
+    check(map.visible and map.get("director")==director and
+        map.get("player")==player and map.get("terrain")==terrain,
         "tapping flight radar failed to open authoritative map")
     var destination:=Vector2(26.0,-18.0)
-    map.mark(destination)
-    check((map.waypoint as Vector2).distance_to(destination)<.01,
+    map.call("mark",destination)
+    check((map.get("waypoint") as Vector2).distance_to(destination)<.01,
         "no real world landing waypoint selected on map")
     var map_route_start: Vector2=map.project(
         Vector2(0,AIRDROP.ROUTE_START_Z))
@@ -78,27 +78,27 @@ func _verify() -> void:
 
     for i in range(12):
         await physics_frame
-    check(flight.elapsed>0.0 and
-        str(hud._battle_status.text).contains("SALTO EN") and
-        radar.aircraft_route_pixels().size()==2,
+    check(float(flight.get("elapsed"))>0.0 and
+        str((hud.get("_battle_status") as Label).text).contains("SALTO EN") and
+        (radar.call("aircraft_route_pixels") as PackedVector2Array).size()==2,
         "moving aircraft does not update real route / countdown")
     flight.request_jump_or_parachute()
     for i in range(8):
         await process_frame
-    check(player.air_mode=="freefall" and hud.air_stage=="freefall" and
+    check(player.air_mode=="freefall" and str(hud.get("air_stage"))=="freefall" and
         radar.visible and button.visible and not button.disabled and
-        radar.aircraft_route_pixels().is_empty(),
+        (radar.call("aircraft_route_pixels") as PackedVector2Array).is_empty(),
         "actual freefall lost map access or retained fake aircraft line")
     check(hud.get_node("AuroraTacticalOverlay/MovePad").visible,
         "freefall has no steering joystick")
     button.button_down.emit()
-    check(map.visible and (map.waypoint as Vector2)==destination,
+    check(map.visible and (map.get("waypoint") as Vector2)==destination,
         "physical jump destroyed marked landing waypoint")
     map.get_node("MapActions/MapAction0").pressed.emit()
 
     flight.deploy_parachute()
     check(player.air_mode=="parachute" and
-        hud.air_stage=="parachute" and radar.visible and
+        str(hud.get("air_stage"))=="parachute" and radar.visible and
         not button.disabled,
         "real parachute phase hid the tactical minimap")
     # Same real collision-based landing technique as V75.16 QA.
@@ -110,15 +110,15 @@ func _verify() -> void:
         if director.mode=="sector_battle":
             break
     check(director.mode=="sector_battle" and
-        player.air_mode=="ground" and hud.air_stage=="ground" and
+        player.air_mode=="ground" and str(hud.get("air_stage"))=="ground" and
         combat.active_fighter_count()==50,
         "minimap flight integration broke real landing or 50-person BR")
     check(radar.visible and button.visible and not button.disabled and
-        radar.aircraft_route_pixels().is_empty(),
+        (radar.call("aircraft_route_pixels") as PackedVector2Array).is_empty(),
         "landed battle lost map or still paints aircraft route")
     button.button_down.emit()
-    check(map.visible and map.director==director and
-        (map.waypoint as Vector2)==destination,
+    check(map.visible and map.get("director")==director and
+        (map.get("waypoint") as Vector2)==destination,
         "map touch/waypoint did not survive full flight-to-combat loop")
     map.get_node("MapActions/MapAction0").pressed.emit()
     game.queue_free()
