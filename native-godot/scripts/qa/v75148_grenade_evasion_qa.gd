@@ -114,6 +114,7 @@ func _verify() -> void:
     check(not warning.visible,
         "match cleanup left an explosive threat label after the fuse")
     director.match_ended=true
+    combat.end_sector_battle()
     combat._on_grenade_audible_fuse(Vector3(site.x,y+2.0,site.y),.5)
     check(not warning.visible,
         "ended battle still exposed stale grenade warnings")
