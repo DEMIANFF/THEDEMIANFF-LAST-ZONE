@@ -38,6 +38,7 @@ if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
     scripts/combat/aurora_weapon_families.gd \
     scripts/combat/aurora_equipment_families.gd \
     scripts/qa/v75130_gear_operators_qa.gd \
+    scripts/qa/capture_motorola_inventory_operator_qa.gd \
     scripts/qa/v75129_armory_families_qa.gd \
     scripts/qa/v75128_level_armory_zone_rings_qa.gd \
     scripts/qa/capture_motorola_zone_map_qa.gd \
