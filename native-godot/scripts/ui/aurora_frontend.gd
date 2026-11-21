@@ -62,6 +62,7 @@ var _loading_actions: VBoxContainer
 var _entry_info_panel: PanelContainer
 var _header_glass: Panel
 var _lobby_backplates: Array[Control]=[]
+var _lobby_menu_backplate: Control
 var _lobby_status_ribbon: PanelContainer
 var _lobby_status_caption: Label
 var _lobby_match_facts: HBoxContainer
@@ -1622,6 +1623,7 @@ func _ensure_lobby_navigation() -> void:
     var backplate:=_make_glass_panel(
         Color(.012,.028,.067,.96),Color(.29,.66,.86,.78),10)
     backplate.name="LobbyMenuBackplate"
+    _lobby_menu_backplate=backplate
     backplate.anchor_left=.712
     backplate.anchor_right=.981
     backplate.anchor_top=.154
@@ -2202,6 +2204,10 @@ func _open_skin_gallery() -> void:
     # remain visible, and can suggest two separate purchase actions.
     if is_instance_valid(_page):
         _page.visible=false
+    # The right-hand glass backplate is owned by the old shop inspector.
+    # Without this toggle it becomes a large, empty black card beside Lila.
+    if is_instance_valid(_lobby_menu_backplate):
+        _lobby_menu_backplate.visible=false
     _shop_gallery_overlay.visible=true
 
 
@@ -2212,6 +2218,8 @@ func _close_skin_gallery() -> void:
     # it on close, on tab changes and before transitioning to welcome.
     if is_instance_valid(_page):
         _page.visible=true
+    if stage=="lobby" and is_instance_valid(_lobby_menu_backplate):
+        _lobby_menu_backplate.visible=true
 
 
 func _choose_skin_gallery(skin: String) -> void:
