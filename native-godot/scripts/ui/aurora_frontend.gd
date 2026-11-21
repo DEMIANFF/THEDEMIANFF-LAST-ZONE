@@ -17,6 +17,7 @@ const MALE_PREVIEW=preload("res://scripts/player/aurora_mixamo_male_preview.gd")
 const LOCAL_PLAYER_NAME=preload("res://scripts/persistence/local_player_name.gd")
 const FIREBASE_BRIDGE=preload("res://scripts/persistence/aurora_firebase_bridge.gd")
 const WEAPON_CATALOG=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const WEAPON_FAMILIES=preload("res://scripts/combat/aurora_weapon_families.gd")
 const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 const PERFORMANCE=preload("res://scripts/persistence/aurora_performance_report.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
@@ -140,6 +141,8 @@ var _shop_buy_button: Button
 var _shop_equip_button: Button
 var _shop_selected_skin: String="aurora_glacier"
 var _armory_list: ItemList
+var _armory_category_selector: OptionButton
+var _armory_category: int=0
 var _armory_selected_slot: int=0
 # A lobby catalogue choice changes the actual training armory order only.
 # Never grant an uncollected BR weapon or persist a fictitious entitlement.
@@ -1223,23 +1226,31 @@ func _show_lobby() -> void:
     _shop_equip_button.custom_minimum_size.y=33
     _shop_equip_button.add_theme_font_size_override("font_size",13)
     _page.add_child(_shop_equip_button)
-    # A real, scrollable weapon catalog replaces the old 2-weapon text card.
-    # Imported GLBs and their ballistic entries remain the single source
-    # of truth: never show an unavailable private model as installed.
+    # A source-of-truth weapon-family selector, based on the actual existing
+    # combat catalog rather than invented weapons or skins. Category numbers
+    # are navigation only; saved weapon slot IDs remain exactly unchanged.
+    _armory_category_selector=OptionButton.new()
+    _armory_category_selector.name="AuroraWeaponFamilySelector"
+    _armory_category_selector.custom_minimum_size=Vector2(245,35)
+    _armory_category_selector.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _armory_category_selector.fit_to_longest_item=false
+    _armory_category_selector.clip_text=true
+    _armory_category_selector.add_theme_font_size_override("font_size",13)
+    for family in range(WEAPON_FAMILIES.LABELS.size()):
+        var count: int=WEAPON_FAMILIES.slots_for_family(family).size()
+        _armory_category_selector.add_item(
+            "%s  (%d)"%[WEAPON_FAMILIES.LABELS[family],count],family)
+    _armory_category_selector.select(_armory_category)
+    _armory_category_selector.item_selected.connect(_on_armory_category_selected)
+    _page.add_child(_armory_category_selector)
     _armory_list=ItemList.new()
     _armory_list.name="AuroraWeaponCatalogList"
     _armory_list.custom_minimum_size=Vector2(245,118)
     _armory_list.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _armory_list.select_mode=ItemList.SELECT_SINGLE
-    for slot in range(WEAPON_CATALOG.ENTRIES.size()):
-        var weapon: Dictionary=WEAPON_CATALOG.ENTRIES[slot]
-        var model: String=str(weapon.get("asset",""))
-        var available: bool=model.is_empty() or ResourceLoader.exists(model,"PackedScene")
-        _armory_list.add_item(str(weapon["short"])+(
-            "  · MODELO LISTO" if available else "  · GLB PENDIENTE"))
-    _armory_list.select(_armory_selected_slot)
     _armory_list.item_selected.connect(_on_armory_slot_selected)
     _page.add_child(_armory_list)
+    _refresh_armory_catalog()
     _armory_test_button=_button("PROBAR EN ENTRENAMIENTO",_open_weapon_training,245)
     _armory_test_button.name="AuroraWeaponTrainingEntry"
     _armory_test_button.custom_minimum_size.y=32
@@ -1475,6 +1486,7 @@ func _sync_lobby_match_mode() -> void:
     _shop_buy_button.visible=_selected_tab=="TIENDA"
     _shop_equip_button.visible=_selected_tab=="TIENDA"
     _armory_list.visible=_selected_tab=="ARMAS"
+    _armory_category_selector.visible=_selected_tab=="ARMAS"
     _armory_test_button.visible=_selected_tab=="ARMAS"
     _equipment_selector.visible=_selected_tab=="INVENTARIO"
     _lobby_mode_status.visible=show_modes and _selected_match_mode=="ranked"
@@ -1986,11 +1998,51 @@ func _select_tab(tab: String) -> void:
             str(_offline_records.cosmetic_state()["equipped"]))
         _apply_preview_skin(shown)
 
-func _on_armory_slot_selected(slot: int) -> void:
-    _armory_selected_slot=clampi(slot,0,WEAPON_CATALOG.ENTRIES.size()-1)
+## Filtered row indices are not weapon slot IDs. Item metadata always holds
+## the original catalog slot, so saves, BR loot and training never get remapped.
+func _refresh_armory_catalog() -> void:
+    if _armory_list==null:
+        return
+    var filtered: Array[int]=WEAPON_FAMILIES.slots_for_family(_armory_category)
+    _armory_selected_slot=WEAPON_FAMILIES.selected_slot_for_family(
+        _armory_category,_armory_selected_slot)
+    _armory_list.clear()
+    for slot in filtered:
+        var weapon: Dictionary=WEAPON_CATALOG.ENTRIES[slot]
+        var available: bool=_armory_has_model(slot)
+        var row: int=_armory_list.add_item(
+            "%s  ·  %s"%[str(weapon["short"]),
+                "3D LISTO" if available else "GLB PENDIENTE"])
+        _armory_list.set_item_metadata(row,slot)
+        if slot==_armory_selected_slot:
+            _armory_list.select(row)
+
+
+func _on_armory_category_selected(index: int) -> void:
+    if _armory_category_selector==null:
+        return
+    _armory_category=_armory_category_selector.get_item_id(index)
+    _refresh_armory_catalog()
     if stage=="lobby" and _selected_tab=="ARMAS":
         _update_armory_details()
         _sync_armory_visual()
+
+
+func _on_armory_slot_selected(row: int) -> void:
+    if _armory_list==null or row<0 or row>=_armory_list.item_count:
+        return
+    var slot: int=int(_armory_list.get_item_metadata(row))
+    if slot<0 or slot>=WEAPON_CATALOG.ENTRIES.size():
+        return
+    _armory_selected_slot=slot
+    if stage=="lobby" and _selected_tab=="ARMAS":
+        _update_armory_details()
+        _sync_armory_visual()
+
+
+func _armory_has_model(slot: int) -> bool:
+    var path: String=_armory_model_path(slot)
+    return not path.is_empty() and ResourceLoader.exists(path,"PackedScene")
 
 
 ## Reuse the existing Aurora 3D SubViewport instead of allocating a
@@ -2154,21 +2206,28 @@ func _update_armory_details() -> void:
     if _info==null:
         return
     var weapon: Dictionary=WEAPON_CATALOG.ENTRIES[_armory_selected_slot]
-    var model: String=str(weapon.get("asset",""))
-    var available: bool=model.is_empty() or ResourceLoader.exists(model,"PackedScene")
+    var available: bool=_armory_has_model(_armory_selected_slot)
     if _armory_test_button!=null:
         _armory_test_button.disabled=not available
         _armory_test_button.tooltip_text=(
             "La selección aparecerá al comienzo de la armería física." if available else
             "Modelo 3D no instalado: prueba deshabilitada hasta importar el GLB.")
-    var magazine: String="CUCHILLO · SIN MUNICIÓN" if bool(weapon.get("melee",false)) else (
-        "CARGADOR: %d"%int(weapon["capacity"]))
-    _info.text="CATÁLOGO DE ARMAS  ·  %d / %d\n%s\n%s · DAÑO %.0f · RECARGA %.2f S\n%s\n"%[
-        _armory_selected_slot+1,WEAPON_CATALOG.ENTRIES.size(),
-        str(weapon["label"]),magazine,float(weapon["damage"]),
-        float(weapon["reload"]),
-        "MODELO DISPONIBLE EN LA INSTALACIÓN" if available else
-        "MODELO 3D PENDIENTE DE RECURSO AUTORIZADO"]
+    var magazine: String=("SIN MUNICIÓN" if bool(weapon.get("melee",false))
+        else "CARGADOR: %d"%int(weapon["capacity"]))
+    var cadence: float=maxf(.001,float(weapon["cadence"]))
+    var critical: float=float(weapon["critical"])
+    var family: String=WEAPON_FAMILIES.family_title(_armory_selected_slot)
+    _info.text=("ARSENAL AURORA  ·  %s\n"
+        +"%s  /  ID DE CATÁLOGO %d\n"
+        +"DAÑO BASE %.0f  ·  CRÍTICO ×%.2f\n"
+        +"CADENCIA %.1f DISPAROS/S  ·  RECARGA %.2f S\n"
+        +"%s  ·  RETROCESO %.3f\n"
+        +"%s\n")%[
+        family,str(weapon["label"]),_armory_selected_slot,
+        float(weapon["damage"]),critical,1.0/cadence,
+        float(weapon["reload"]),magazine,float(weapon["recoil"]),
+        "MODELO 3D AUTORIZADO INSTALADO" if available else
+        "MODELO 3D PENDIENTE · NO DISPONIBLE"]
     # AWM exists as a physical local BR pickup, independent of whether an
     # optional training model has been imported. Keep its map position
     # discoverable no matter which catalog entry the user is browsing.
