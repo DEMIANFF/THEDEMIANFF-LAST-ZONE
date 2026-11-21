@@ -40,6 +40,7 @@ if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
     scripts/qa/v75140_grounded_enemy_crates_qa.gd \
     scripts/qa/v75141_live_map_loot_qa.gd \
     scripts/qa/v75142_physical_loot_minimap_qa.gd \
+    scripts/qa/capture_motorola_live_loot_minimap_qa.gd \
     scripts/qa/capture_motorola_live_loot_map_qa.gd \
     scripts/qa/capture_motorola_late_loot_qa.gd \
     scripts/ui/aurora_training_radar.gd \
