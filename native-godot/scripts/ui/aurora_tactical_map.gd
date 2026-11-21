@@ -641,6 +641,13 @@ func _draw() -> void:
     draw_string(font,Vector2(size.x*.26,size.y*.05),
         "PUERTO AURORA  /  MAPA TÁCTICO",
         HORIZONTAL_ALIGNMENT_LEFT,-1,20,Color(.94,.97,1))
-    draw_string(font,Vector2(size.x*.30,size.y*.97),
-        "TOCA PARA MARCAR · ARRASTRA · PELLIZCA PARA AMPLIAR",
-        HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.75,.92,.98))
+    # The old instructions at 97% viewport height overlapped mobile HUD
+    # hints below the map. Keep guidance INSIDE the map's lower border,
+    # to the right of the (independently drawn) actual 100 m scale bar.
+    var help_rect:=Rect2(
+        Vector2(rect.position.x+96.0,rect.end.y-25.0),
+        Vector2(maxf(28.0,rect.size.x-109.0),19.0))
+    draw_rect(help_rect,Color(.012,.037,.057,.88))
+    draw_string(font,help_rect.position+Vector2(7.0,14.0),
+        "TOCA MARCA · ARRASTRA · PELLIZCA",
+        HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(.83,.95,.98))
