@@ -68,9 +68,36 @@ func _capture() -> void:
         push_error("V75145_FLIGHT_CAPTURE cannot close tactical route")
         quit(7)
         return
+    # The exact same live aircraft is now jumped from; never swap to a
+    # screenshot-only freefall or fake canopy just for the evidence.
+    var flight: Node3D=director.get("_flight") as Node3D
+    flight.request_jump_or_parachute()
+    for i in range(9):
+        await process_frame
+    if (str(flight.get("phase"))!="freefall" or
+            str(hud.get("air_stage"))!="freefall" or not radar.visible):
+        push_error("V75145_FLIGHT_CAPTURE freefall transition failed")
+        quit(8)
+        return
+    for i in range(6):
+        await process_frame
+    if not await _snapshot("freefall-live-hud",tag):
+        quit(9)
+        return
+    flight.deploy_parachute()
+    for i in range(12):
+        await process_frame
+    if (str(flight.get("phase"))!="parachute" or
+            str(hud.get("air_stage"))!="parachute" or not radar.visible):
+        push_error("V75145_FLIGHT_CAPTURE real canopy transition failed")
+        quit(10)
+        return
+    if not await _snapshot("parachute-live-hud",tag):
+        quit(11)
+        return
     game.queue_free()
     await process_frame
     print("V75145_FLIGHT_CAPTURE PASS aircraft=real "+
-        "route=actual_154m radar=touchable 964x434 screenshots=2 "+
-        "motorola_physical_certification=NO")
+        "route=actual_154m radar=touchable 964x434 screenshots=4 "+
+        "freefall=real parachute=real motorola_physical_certification=NO")
     quit(0)
