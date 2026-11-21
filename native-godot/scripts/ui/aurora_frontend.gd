@@ -1683,10 +1683,9 @@ func _ensure_lobby_navigation() -> void:
         button.custom_minimum_size=Vector2(0,30)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         button.add_theme_font_size_override("font_size",19)
-        if target=="JUGAR":
-            _style_primary_action(button)
-        else:
-            _style_aurora_tab(button,Color(.30,.63,.83))
+        # The selected tab is styled after _select_tab(), never hard-code a
+        # permanent golden JUGAR button on other screens like ARMAS.
+        _style_aurora_tab(button,Color(.30,.63,.83))
         _bottom_navigation.add_child(button)
 
     _social_panel=PanelContainer.new()
@@ -1872,6 +1871,40 @@ func _style_aurora_tab(button: Button,tint: Color) -> void:
     button.add_theme_color_override("font_hover_color",Color(1,.88,.64))
 
 
+## Bottom navigation indicates the currently open module, not a persistent
+## gold play action. The actual INICIAR button is handled separately.
+func _style_bottom_navigation_active(tab: String) -> void:
+    if _bottom_navigation==null:
+        return
+    for child in _bottom_navigation.get_children():
+        var button: Button=child as Button
+        if button==null:
+            continue
+        var active: bool=button.name=="Bottom"+tab
+        button.set_meta("aurora_active",active)
+        if active and tab=="JUGAR":
+            _style_primary_action(button)
+        elif active:
+            var selected:=StyleBoxFlat.new()
+            selected.bg_color=Color(.13,.20,.29,.99)
+            selected.border_color=Color(.98,.79,.34)
+            selected.set_border_width_all(2)
+            selected.border_width_bottom=3
+            selected.set_corner_radius_all(6)
+            var hover:=selected.duplicate() as StyleBoxFlat
+            hover.bg_color=Color(.20,.29,.39,1.0)
+            button.add_theme_stylebox_override("normal",selected)
+            button.add_theme_stylebox_override("hover",hover)
+            button.add_theme_stylebox_override("pressed",hover)
+            button.add_theme_color_override("font_color",Color(1,.92,.73))
+            button.add_theme_color_override("font_hover_color",Color(1,.94,.78))
+            button.add_theme_color_override("font_pressed_color",Color(1,.94,.78))
+        else:
+            _style_aurora_tab(button,Color(.30,.63,.83))
+            button.add_theme_color_override("font_pressed_color",Color(.95,.95,1))
+        button.modulate=Color.WHITE if active else Color(.84,.88,.94)
+
+
 func _open_lobby_category(tab: String,objective: String="") -> void:
     if not objective.is_empty():
         _objective_page=objective
@@ -1893,11 +1926,7 @@ func _select_tab(tab: String) -> void:
                 var active: bool=(target==tab or (tab=="OBJETIVOS" and
                     target==str(_objective_page).to_upper()))
                 button.modulate=Color.WHITE if active else Color(.72,.76,.85)
-    if _bottom_navigation!=null:
-        for button in _bottom_navigation.get_children():
-            if button is Button:
-                button.modulate=(Color.WHITE if button.name=="Bottom"+tab
-                    else Color(.72,.76,.85))
+    _style_bottom_navigation_active(tab)
     if _social_panel!=null:
         _social_panel.visible=tab=="JUGAR"
     if _play_match_card!=null:
