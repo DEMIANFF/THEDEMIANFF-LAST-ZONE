@@ -23,6 +23,11 @@ const GUNFIRE_PING_SECONDS: float=3.0
 const GUNFIRE_MERGE_DISTANCE: float=6.0
 const MAX_GUNFIRE_PINGS: int=8
 const MAP_DISC_SIDES: int=64
+# Player may recover nearby physical death crates; unlike enemy contacts
+# these are existing world items, not wallhack positions of living bots.
+const MAX_MINIMAP_CACHES: int=4
+const MINIMAP_CACHE_RANGE: float=50.0
+var _sector_director: Node3D
 var _battle_mode: bool=false
 var _gunfire_pings: Array[Dictionary]=[]
 
@@ -50,6 +55,24 @@ func set_sources(player_character: CharacterBody3D, enemies: Array[CharacterBody
     player=player_character
     opponents=enemies.duplicate()
     queue_redraw()
+
+
+func set_sector_director(match_director: Node3D) -> void:
+    _sector_director=match_director
+    queue_redraw()
+
+
+## Query only currently live Area3D pickups from the sector director.
+## On match end or return to training, this must be empty even if a stale
+## CanvasItem still exists for a frame.
+func _nearby_supply_markers() -> Array[Vector2]:
+    if (not _battle_mode or not is_instance_valid(player) or
+            not is_instance_valid(_sector_director) or
+            player.royale_eliminated):
+        return []
+    return _sector_director.nearby_opponent_supply_points(
+        Vector2(player.global_position.x,player.global_position.z),
+        MINIMAP_CACHE_RANGE,MAX_MINIMAP_CACHES)
 
 
 func set_battle_mode(enabled: bool) -> void:
@@ -268,9 +291,22 @@ func _draw() -> void:
         draw_circle(dot,6.0,Color(1.0,.73,.15))
         draw_arc(dot,8.5,0,TAU,28,Color(1.0,.90,.42),1.6)
     if _battle_mode:
-        # In BR, do NOT draw physical bot locations directly. The radar
-        # never tracks an unseen body behind buildings; only recent real
-        # gunshot locations may appear as a fading acoustic indicator.
+        # Existing physical caches, NOT the living rivals, are eligible
+        # for a tiny, bounded supply icon near the listener. The match
+        # director filters dead/collected/remote objects for us.
+        var listener: Vector2=Vector2(
+            player.global_position.x,player.global_position.z)
+        for cache_at in _nearby_supply_markers():
+            var relative: Vector2=cache_at-listener
+            var dot: Vector2=center+relative.rotated(-yaw)*(
+                radius/world_range)
+            if dot.distance_to(center)>radius-6.0:
+                continue
+            var bounds:=Rect2(dot-Vector2(3.5,3.5),Vector2(7,7))
+            draw_rect(bounds,Color(.06,.23,.20,.94),true)
+            draw_rect(bounds,Color(.64,.99,.73),false,1.1)
+        # In BR do NOT draw live bot locations directly. Only real
+        # audible gunshots may reveal their last-known positions.
         for ping in _gunfire_pings:
             var last_heard: Vector2=ping["position"]
             var relative: Vector2=last_heard-Vector2(
