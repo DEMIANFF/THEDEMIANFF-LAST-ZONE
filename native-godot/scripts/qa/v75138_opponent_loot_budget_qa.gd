@@ -119,8 +119,14 @@ func _verify() -> void:
         director._opponent_drops_spawned==13,
         "cache slot was reused again while all 12 were occupied")
 
-    # Each real round resets bookkeeping and disposes all stale cache
-    # physics bodies, with no profile, Firebase or reward side effects.
+    # A new round clears the live-loot budget immediately, while Godot
+    # queue_free() keeps old nodes accessible until the end of the frame.
+    # Assert both lifecycle phases rather than treating deferred deletion
+    # as a gameplay regression.
+    var stale: Area3D=director.get_node_or_null(
+        "AuroraOpponentLoot13") as Area3D
+    check(stale!=null and not stale.is_queued_for_deletion(),
+        "test fixture lost late-round cache before reset")
     director.start_sector_battle()
     director.set_process(false)
     combat.set_process(false)
@@ -129,8 +135,13 @@ func _verify() -> void:
         bot.set_physics_process(false)
     check(director._active_opponent_drop_count()==0 and
         director._opponent_drops_spawned==0 and
-        director.get_node_or_null("AuroraOpponentLoot13")==null,
-        "new round reused prior match caches/IDs")
+        stale!=null and stale.is_queued_for_deletion(),
+        "new round failed to reset cache budget or queue old caches")
+    await process_frame
+    check(not is_instance_valid(stale) and
+        director.get_node_or_null("AuroraOpponentLoot13")==null and
+        director._active_opponent_drop_count()==0,
+        "old cache survived the next frame after queue_free")
     if not failed:
         print("V75138_OPPONENT_LOOT_BUDGET PASS max_live=12 "+
             "later_kill_drops=1 real_pickup=1 no_fake_items=1 "+
