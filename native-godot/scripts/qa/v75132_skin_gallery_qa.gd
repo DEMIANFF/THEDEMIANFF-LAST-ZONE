@@ -57,6 +57,8 @@ func _verify() -> void:
     check(root.get_visible_rect().encloses(entry.get_global_rect()),
         "catalogue entry clipped on Motorola 964x434")
     entry.emit_signal("pressed")
+    check(not menu._page.visible and overlay.visible,
+        "legacy store purchase controls remain behind active skin drawer")
     check(overlay.visible and
         overlay.get_node_or_null("AuroraSkinGalleryPanel")!=null,
         "catalogue button does not show native interactive shop")
@@ -112,19 +114,22 @@ func _verify() -> void:
         "Ember card fabricates ownership or bypasses real price gating")
     menu._select_tab("INVENTARIO")
     check(not entry.visible and not overlay.visible and
-        menu._equipment_selector.visible,
-        "purchase modal spills into inventory or remains interactable")
+        menu._page.visible and menu._equipment_selector.visible,
+        "closing catalogue on tab switch did not restore inventory page")
     menu._select_tab("TIENDA")
     entry.emit_signal("pressed")
+    check(not menu._page.visible,
+        "reopened skin catalogue exposed duplicate legacy purchase controls")
     var exit: Button=panel.find_child("CloseSkinGallery",true,false) as Button
     check(exit!=null and exit.custom_minimum_size.y>=40,
         "store catalogue cannot be dismissed by a physical touch target")
     if exit!=null:
         exit.emit_signal("pressed")
-    check(not overlay.visible and menu.stage=="lobby",
-        "closing shop triggers a bogus purchase or match transition")
+    check(not overlay.visible and menu._page.visible and menu.stage=="lobby",
+        "closing shop must restore legacy store without a purchase or match")
     menu._welcome()
-    check(not overlay.visible,"shop UI leaks into authentication screen")
+    check(not overlay.visible and menu._page.visible,
+        "shop popup or hidden page persists into authentication screen")
     var persistent=LEDGER.new(PATH)
     check(str(persistent.cosmetic_state()["equipped"])=="aurora_base" and
         (persistent.cosmetic_state()["owned"] as Array).has("aurora_glacier") and

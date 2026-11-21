@@ -702,6 +702,8 @@ func _welcome() -> void:
         _mode_gallery_overlay.visible=false
     if is_instance_valid(_shop_gallery_overlay):
         _shop_gallery_overlay.visible=false
+    if is_instance_valid(_page):
+        _page.visible=true
     if _social_panel!=null and is_instance_valid(_social_panel):
         _social_panel.visible=false
     if _top_account_button!=null and is_instance_valid(_top_account_button):
@@ -1051,6 +1053,8 @@ func _show_lobby() -> void:
         _mode_gallery_overlay.visible=false
     if is_instance_valid(_shop_gallery_overlay):
         _shop_gallery_overlay.visible=false
+    if is_instance_valid(_page):
+        _page.visible=true
     if is_instance_valid(_mode_gallery_entry):
         _mode_gallery_entry.visible=_selected_tab=="JUGAR"
     _top_account_button.visible=true
@@ -2193,12 +2197,21 @@ func _open_skin_gallery() -> void:
             not is_instance_valid(_shop_gallery_overlay)):
         return
     _refresh_skin_gallery()
+    # The older TIENDA inspector and purchase controls are inside Page.
+    # Hide them while the live drawer is open: otherwise both UI layers
+    # remain visible, and can suggest two separate purchase actions.
+    if is_instance_valid(_page):
+        _page.visible=false
     _shop_gallery_overlay.visible=true
 
 
 func _close_skin_gallery() -> void:
     if is_instance_valid(_shop_gallery_overlay):
         _shop_gallery_overlay.visible=false
+    # Page is also used for login and all other lobby sections. Restore
+    # it on close, on tab changes and before transitioning to welcome.
+    if is_instance_valid(_page):
+        _page.visible=true
 
 
 func _choose_skin_gallery(skin: String) -> void:

@@ -76,6 +76,14 @@ func _verify() -> void:
             actions_rect.end.y<=map.size.y and
             map_rect.end.y<=map.size.y,
             "tactical map action column occludes real terrain pane")
+        var help_rect: Rect2=map.call("_map_footer_rect",map_rect)
+        check(map_rect.encloses(help_rect) and
+            help_rect.position.x>=map_rect.position.x+95.0 and
+            help_rect.end.y<=map_rect.end.y-5.0 and
+            help_rect.end.y<=map.size.y*.95,
+            "map instructions overlap the combat HUD below the map")
+        check(help_rect.position.x>=map_rect.position.x+90.0,
+            "map footer collides with physical-distance scale bar")
     check(MAP_SOURCE.AWM_POSITION==Vector2(8,24) and
         MAP_SOURCE.LANDMARK_NAMES.size()==MAP_SOURCE.LANDMARK_POSITIONS.size() and
         MAP_SOURCE.LANDMARK_NAMES.has("PUERTO AURORA"),
