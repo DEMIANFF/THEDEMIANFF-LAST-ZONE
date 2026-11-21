@@ -65,6 +65,16 @@ func _verify() -> void:
     var panel: PanelContainer=overlay.get_node("AuroraSkinGalleryPanel")
     check(root.get_visible_rect().encloses(panel.get_global_rect()),
         "skin gallery clipped outside the real mobile viewport")
+    # The actual Lila is around the middle of the horizontal lobby.
+    # Require the shop drawer to stay on the left, off the character.
+    check(panel.get_global_rect().end.x<=
+        float(root.get_visible_rect().size.x)*.42,
+        "skin gallery blocks the real center-stage Lila operator")
+    var scrim: ColorRect=overlay.get_node_or_null(
+        "SkinGalleryBackdrop") as ColorRect
+    check(scrim!=null and scrim.color.a<=.25 and
+        menu._preview_avatar!=null and menu._preview_avatar.visible,
+        "shop incorrectly hides/dims the original 3D playable Lila")
     var before: int=int(ledger.cosmetic_state()["coins"])
     check(not menu._shop_gallery_buy.disabled and
         menu._shop_selected_skin=="aurora_glacier" and
