@@ -29,6 +29,10 @@ var _ground_approach_marked: bool=false
 var _parachute_first_tick_committed: bool=false
 var _aircraft_motion_committed: bool=false
 var _flight_tick_count: int=0
+# Reuse six small meshes for actual prop rotation; no tweens or new objects
+# are allocated during flight or while the pilot is parachuting.
+var _fallback_propellers: Array[MeshInstance3D]=[]
+const PROPELLER_RADIANS_PER_SECOND: float=13.5
 var _route_hud_clock: float=0.0
 
 
@@ -89,6 +93,7 @@ func _physics_process(delta: float) -> void:
             FLIGHT_DIAGNOSTICS.checkpoint("active","aircraft",player,"first_player_motion")
         if _craft:
             _craft.global_position=player.global_position+Vector3(0,.7,-1)
+            _advance_visible_propellers(delta)
         if not _aircraft_motion_committed:
             _aircraft_motion_committed=true
             FLIGHT_DIAGNOSTICS.checkpoint("active","aircraft",player,"first_aircraft_frame_committed")
@@ -161,6 +166,7 @@ func _release_craft_for_jump() -> void:
         _craft.visible=false
         _craft.queue_free()
     _craft=null
+    _fallback_propellers.clear()
     FLIGHT_DIAGNOSTICS.checkpoint("active","jump_pending",player,"craft_release_scheduled")
     # Allow queued aircraft meshes to leave the RenderServer at the end
     # of this frame before revealing and animating the airborne operator.
@@ -252,6 +258,7 @@ func _commit_touchdown() -> void:
 func _build_craft() -> void:
     if _craft:
         _craft.queue_free()
+    _fallback_propellers.clear()
     _craft=Node3D.new()
     _craft.name="AuroraTransportAircraft"
     player.add_child(_craft)
@@ -317,17 +324,69 @@ func _build_craft() -> void:
             var direction: Vector3=Vector3(cos(angle),sin(angle),0)
             var normal: Vector3=Vector3(-direction.y,direction.x,0)
             var center:=Vector3(side*2.03,-.31,-1.14)
+            # Keep mesh vertices relative to the real engine hub. The old
+            # vertices were authored in entire-aircraft coordinates, making
+            # rotations around each propeller orbit the fuselage instead.
             var blade_mesh:=_panel_mesh([
-                center+normal*.055,
-                center+direction*.9+normal*.17,
-                center+direction*1.04-normal*.03,
-                center-normal*.055])
-            _piece("AuroraPropeller%d_%d"%[sign,blade],blade_mesh,
-                Vector3.ZERO,Vector3.ZERO,stripe)
+                normal*.055,
+                direction*.9+normal*.17,
+                direction*1.04-normal*.03,
+                -normal*.055])
+            var prop:=MeshInstance3D.new()
+            prop.name="AuroraPropeller%d_%d"%[sign,blade]
+            prop.mesh=blade_mesh
+            prop.position=center
+            prop.material_override=stripe
+            prop.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+            _craft.add_child(prop)
+            _fallback_propellers.append(prop)
+    # Navigation lights make the actual fallback airframe readable against
+    # Aurora's snow and twilight without extra Light3D/shadow passes.
+    var lamp_mesh:=SphereMesh.new()
+    lamp_mesh.radius=.115
+    lamp_mesh.height=.23
+    lamp_mesh.radial_segments=8
+    lamp_mesh.rings=3
+    var port:=StandardMaterial3D.new()
+    port.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    port.albedo_color=Color(.94,.17,.18)
+    port.emission_enabled=true
+    port.emission=port.albedo_color
+    port.emission_energy_multiplier=1.6
+    var starboard:=StandardMaterial3D.new()
+    starboard.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    starboard.albedo_color=Color(.14,.94,.40)
+    starboard.emission_enabled=true
+    starboard.emission=starboard.albedo_color
+    starboard.emission_energy_multiplier=1.6
+    var tail_lamp:=StandardMaterial3D.new()
+    tail_lamp.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    tail_lamp.albedo_color=Color(.78,.92,1.0)
+    tail_lamp.emission_enabled=true
+    tail_lamp.emission=tail_lamp.albedo_color
+    tail_lamp.emission_energy_multiplier=1.1
+    _piece("AuroraPortNavigation",lamp_mesh,
+        Vector3(-5.85,-.07,-.15),Vector3.ZERO,port)
+    _piece("AuroraStarboardNavigation",lamp_mesh,
+        Vector3(5.85,-.07,-.15),Vector3.ZERO,starboard)
+    _piece("AuroraTailNavigation",lamp_mesh,
+        Vector3(0,.26,3.30),Vector3.ZERO,tail_lamp)
     # The user-supplied C-17 is decorative only. If the verified, optimized
     # GLB is not staged or has invalid geometry, retain the tested Aurora mesh.
     _install_optional_aurora_c17()
     # Physical player and camera remain independent of decorative airplane.
+
+
+## Physical aircraft movement is unchanged. Only the 6 visible blades
+## animate about the two actual engine hubs; no rotation happens after the
+## jump or when the original imported C-17 has hidden this fallback model.
+func _advance_visible_propellers(delta: float) -> void:
+    if not is_instance_valid(_craft):
+        return
+    for prop in _fallback_propellers:
+        if is_instance_valid(prop) and prop.visible:
+            prop.rotation.z=wrapf(prop.rotation.z+
+                maxf(0.0,delta)*PROPELLER_RADIANS_PER_SECOND,-PI,PI)
 
 
 func _install_optional_aurora_c17() -> void:
