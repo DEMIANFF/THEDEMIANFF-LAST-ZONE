@@ -43,12 +43,21 @@ func _ready() -> void:
     add_child(_visual)
     var item:=MeshInstance3D.new()
     item.name="AuroraSupplyPod"
-    var mesh:=SphereMesh.new()
-    mesh.radius=.48
-    mesh.height=.82
-    mesh.radial_segments=12
-    mesh.rings=5
-    item.mesh=mesh
+    if from_opponent:
+        # A grounded supply crate is easier to distinguish from world
+        # pickups than the old spherical, endlessly spinning death reward.
+        # Its underside sits just 4 cm above the actual support surface.
+        var crate:=BoxMesh.new()
+        crate.size=Vector3(.90,.68,.76)
+        item.mesh=crate
+        item.position.y=-.12
+    else:
+        var mesh:=SphereMesh.new()
+        mesh.radius=.48
+        mesh.height=.82
+        mesh.radial_segments=12
+        mesh.rings=5
+        item.mesh=mesh
     var material:=StandardMaterial3D.new()
     material.metallic=.52
     material.roughness=.31
@@ -66,8 +75,34 @@ func _ready() -> void:
     material.emission_enabled=true
     material.emission=material.albedo_color
     material.emission_energy_multiplier=.55
-    item.material_override=material
+    if from_opponent:
+        var armor:=StandardMaterial3D.new()
+        armor.albedo_color=Color(.10,.16,.20)
+        armor.metallic=.25
+        armor.roughness=.66
+        item.material_override=armor
+    else:
+        item.material_override=material
     _visual.add_child(item)
+    if from_opponent:
+        # Two lightweight meshes share the existing type-colored accent
+        # material. No extra lights, texture downloads or rigged assets.
+        var band:=MeshInstance3D.new()
+        band.name="OpponentCacheBand"
+        var belt:=BoxMesh.new()
+        belt.size=Vector3(.16,.70,.78)
+        band.mesh=belt
+        band.position.y=-.12
+        band.material_override=material
+        _visual.add_child(band)
+        var lid:=MeshInstance3D.new()
+        lid.name="OpponentCacheLid"
+        var lid_mesh:=BoxMesh.new()
+        lid_mesh.size=Vector3(.96,.075,.81)
+        lid.mesh=lid_mesh
+        lid.position.y=.26
+        lid.material_override=item.material_override
+        _visual.add_child(lid)
     var source_gear: String=""
     var source_scale: float=.48
     match pickup_type:
@@ -83,7 +118,7 @@ func _ready() -> void:
         "helmet_1","helmet_2","helmet_3":
             source_gear=PRIVATE_GEAR.HELMET
             source_scale=.34
-    if not source_gear.is_empty():
+    if not source_gear.is_empty() and not from_opponent:
         var original: Node3D=PRIVATE_GEAR.mount_optional(_visual,source_gear,
             source_scale,Vector3.ZERO)
         if original:
@@ -210,9 +245,13 @@ func _process(delta: float) -> void:
         _pickup_clock=.3
         if global_position.distance_to(player.global_position+Vector3.UP)<1.65:
             _collect(player)
-    _phase+=delta
-    _visual.position.y=sin(_phase*2.6)*.045
-    _visual.rotation.y+=delta*.95
+    # Collected enemy caches must look physically supported, not float or
+    # rotate through the floor. Keep the old animated visual for normal
+    # world pickups, whose position/collision/collection are unchanged.
+    if not from_opponent:
+        _phase+=delta
+        _visual.position.y=sin(_phase*2.6)*.045
+        _visual.rotation.y+=delta*.95
 
 
 func _collect(body: Node3D) -> void:
