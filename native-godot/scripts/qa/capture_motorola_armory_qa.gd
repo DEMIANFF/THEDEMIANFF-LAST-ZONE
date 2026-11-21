@@ -3,6 +3,7 @@ extends SceneTree
 ## Desktop Xvfb capture is visual CI evidence, NOT a physical Motorola trial.
 const CAPTURE_VERSION=preload("res://scripts/qa/aurora_capture_version.gd")
 const CATALOG=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const FAMILIES=preload("res://scripts/combat/aurora_weapon_families.gd")
 
 
 func _initialize() -> void:
@@ -26,7 +27,26 @@ func _capture() -> void:
     for frame in range(5):
         await process_frame
     for slot in [CATALOG.AR,CATALOG.AWM,CATALOG.SCAR,CATALOG.MP40]:
-        front._on_armory_slot_selected(slot)
+        # Show the REAL filtered category in every captured screenshot.
+        # The displayed row number is never the persistent combat slot.
+        var family: int=FAMILIES.family_for_slot(slot)
+        front._armory_category_selector.select(family)
+        front._on_armory_category_selected(family)
+        var row: int=-1
+        for index in range(front._armory_list.item_count):
+            if int(front._armory_list.get_item_metadata(index))==slot:
+                row=index
+                break
+        if row<0:
+            push_error("ARMORY_MOTOROLA_CAPTURE filtered slot missing "+str(slot))
+            quit(7)
+            return
+        front._armory_list.select(row)
+        front._on_armory_slot_selected(row)
+        if front._armory_selected_slot!=slot:
+            push_error("ARMORY_MOTOROLA_CAPTURE filtered row remapped weapon")
+            quit(8)
+            return
         for frame in range(10):
             await process_frame
         front._layout_safe()
