@@ -311,10 +311,10 @@ jobs:
           # Live airplane phase: real flight route on minimap and tactical map.
           # Xvfb screenshots are engine output, not hardware Vulkan certification.
           xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_flight_route_qa.gd
-          for screen in aircraft-live-minimap aircraft-tactical-route; do
+          for screen in aircraft-live-minimap aircraft-tactical-route freefall-live-hud parachute-live-hud; do
             test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
           done
-          echo "AURORA_FLIGHT_MAP_CAPTURE PASS viewport=964x434 screenshots=2"
+          echo "AURORA_FLIGHT_MAP_CAPTURE PASS viewport=964x434 screenshots=4 physical_transitions=2"
       # Preserve real in-engine screenshots even if a later APK gate fails.
       # This lets the Motorola UI redesign be reviewed before installation.
       - uses: actions/upload-artifact@v6
@@ -347,6 +347,8 @@ jobs:
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-live-loot-minimap.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-aircraft-live-minimap.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-aircraft-tactical-route.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-freefall-live-hud.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-parachute-live-hud.png
           retention-days: 30
       - name: Render expanded Motorola layout and verify absence of side bars
         run: xvfb-run -a -s "-screen 0 2712x1220x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_responsive_preview.gd > native-godot/out/qa/responsive-render.log 2>&1
