@@ -45,6 +45,23 @@ func _verify() -> void:
     await boot.wait_for_startup()
     boot._show_lobby()
     boot._select_tab("ARMAS")
+    var play_nav: Button=boot._bottom_navigation.get_node_or_null(
+        "BottomJUGAR") as Button
+    var armory_nav: Button=boot._bottom_navigation.get_node_or_null(
+        "BottomARMAS") as Button
+    check(play_nav!=null and armory_nav!=null,
+        "mobile lobby bottom navigation missing actual play/armory buttons")
+    if play_nav!=null and armory_nav!=null:
+        var play_idle: StyleBoxFlat=play_nav.get_theme_stylebox(
+            "normal") as StyleBoxFlat
+        var armory_selected: StyleBoxFlat=armory_nav.get_theme_stylebox(
+            "normal") as StyleBoxFlat
+        check(bool(armory_nav.get_meta("aurora_active",false)) and
+            not bool(play_nav.get_meta("aurora_active",true)) and
+            play_idle!=null and armory_selected!=null and
+            play_idle.bg_color.r<.2 and
+            armory_selected.border_color.r>.9,
+            "JUGAR stays gold while ARMAS is selected on phone")
     var chooser: OptionButton=boot._armory_category_selector
     var list: ItemList=boot._armory_list
     check(chooser!=null and list!=null,
@@ -101,6 +118,16 @@ func _verify() -> void:
     check(not chooser.visible and not list.visible and
         not boot._armory_test_button.visible,
         "armory UI overlays the live lobby after navigating to JUGAR")
+    if play_nav!=null and armory_nav!=null:
+        var gold_play: StyleBoxFlat=play_nav.get_theme_stylebox(
+            "normal") as StyleBoxFlat
+        var idle_armory: StyleBoxFlat=armory_nav.get_theme_stylebox(
+            "normal") as StyleBoxFlat
+        check(bool(play_nav.get_meta("aurora_active",false)) and
+            not bool(armory_nav.get_meta("aurora_active",true)) and
+            gold_play!=null and idle_armory!=null and
+            gold_play.bg_color.r>.9 and idle_armory.bg_color.r<.2,
+            "JUGAR did not reclaim gold highlight when returning to play")
     if not failed:
         print("V75129_ARMORY_FAMILIES PASS slot_contract=13 groups=8 "+
             "filtered_rows=metadata live_3d=SCAR/AWM truthful_licensing=1")
