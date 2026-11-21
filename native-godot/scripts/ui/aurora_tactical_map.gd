@@ -494,6 +494,30 @@ func _map_footer_rect(rect: Rect2) -> Rect2:
         Vector2(maxf(28.0,rect.size.x-109.0),19.0))
 
 
+## The AWM icon is real inventory information, not a permanently
+## painted image. Once the player collects the actual weapon Area3D, the
+## map must stop promising another gun at that spot.
+func _live_awm_pickup() -> Area3D:
+    if (not is_instance_valid(director) or
+            str(director.get("mode"))!="sector_battle" or
+            bool(director.get("match_ended"))):
+        return null
+    var pickup: Area3D=director.get_node_or_null(
+        "AuroraAWMWeaponPickup") as Area3D
+    if (not is_instance_valid(pickup) or pickup.collected or
+            pickup.is_queued_for_deletion() or
+            pickup.pickup_type!="weapon_awm"):
+        return null
+    return pickup
+
+
+func _live_local_cache_markers() -> Array[Vector2]:
+    if not is_instance_valid(player) or not is_instance_valid(director):
+        return []
+    return director.nearby_opponent_supply_points(
+        Vector2(player.global_position.x,player.global_position.z),70.0,6)
+
+
 func _draw() -> void:
     # See-through overlay: player can still see the live match behind it.
     draw_rect(Rect2(Vector2.ZERO,size),Color(.012,.033,.067,.60))
@@ -537,17 +561,32 @@ func _draw() -> void:
     # nearby names cover its pickup position and hide the last-mile target.
     # Reserve its occupied area so collision-aware POI labels move aside.
     var occupied: Array[Rect2]=[]
-    var sniper: Vector2=project(AWM_POSITION)
-    if rect.grow(-12).has_point(sniper):
-        draw_circle(sniper,9.0,Color(1,.61,.09))
-        draw_arc(sniper,13,0,TAU,32,Color(1,.85,.22),2.0)
-        occupied.append(Rect2(sniper-Vector2(13,13),Vector2(26,26)))
-        var name_rect:=Rect2(sniper+Vector2(13,1),Vector2(57,18))
-        if rect.grow(-8).encloses(name_rect):
-            draw_rect(name_rect,Color(.23,.105,.02,.94))
-            draw_string(font,name_rect.position+Vector2(6,14),"AWM",
-                HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(1,.95,.75))
-            occupied.append(name_rect)
+    var live_awm: Area3D=_live_awm_pickup()
+    if live_awm!=null:
+        var actual_weapon:=Vector2(
+            live_awm.global_position.x,live_awm.global_position.z)
+        var sniper: Vector2=project(actual_weapon)
+        if rect.grow(-12).has_point(sniper):
+            draw_circle(sniper,9.0,Color(1,.61,.09))
+            draw_arc(sniper,13,0,TAU,32,Color(1,.85,.22),2.0)
+            occupied.append(Rect2(sniper-Vector2(13,13),Vector2(26,26)))
+            var name_rect:=Rect2(sniper+Vector2(13,1),Vector2(57,18))
+            if rect.grow(-8).encloses(name_rect):
+                draw_rect(name_rect,Color(.23,.105,.02,.94))
+                draw_string(font,name_rect.position+Vector2(6,14),"AWM",
+                    HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(1,.95,.75))
+                occupied.append(name_rect)
+    # A compact square means physical, recoverable enemy supply within
+    # 70 metres of the player; do not plot every unobserved kill on the island.
+    # Maximum six icons is bounded for the 49-opponent mobile roster.
+    for cache_at in _live_local_cache_markers():
+        var cache_pixel: Vector2=project(cache_at)
+        if rect.grow(-12).has_point(cache_pixel):
+            var bounds:=Rect2(cache_pixel-Vector2(5,5),Vector2(10,10))
+            draw_rect(bounds,Color(.04,.19,.23,.94),true)
+            draw_rect(bounds,Color(.62,.97,.72),false,1.5)
+            draw_line(cache_pixel+Vector2(-2,0),
+                cache_pixel+Vector2(2,0),Color(.91,1,.86),1.2)
     # All real houses remain on the 256px terrain texture. Additional POI
     # names appear only after pinch/zoom, not all piled on the city centre.
     for i in range(LANDMARK_POSITIONS.size()):
