@@ -101,7 +101,7 @@ func _ready() -> void:
         lid_mesh.size=Vector3(.96,.075,.81)
         lid.mesh=lid_mesh
         lid.position.y=.26
-        lid.material_override=armor
+        lid.material_override=item.material_override
         _visual.add_child(lid)
     var source_gear: String=""
     var source_scale: float=.48
