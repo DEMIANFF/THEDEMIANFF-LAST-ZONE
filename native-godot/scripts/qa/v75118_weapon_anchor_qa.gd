@@ -42,8 +42,14 @@ func _verify() -> void:
         var model:=ground_grip.get_parent() as Node3D
         check(world_bounds(model).grow(.04).has_point(ground_grip.global_position),
             "world SCAR geometry is detached from its pickup anchor")
-        check(ground_grip.global_position.distance_to(pickup.global_position)<.3,
-            "world SCAR lies outside its collectible beacon")
+        # A ground-seated rifle has its grip below the old floating pod
+        # centre; test physical pickup reach and true mesh instead of an
+        # obsolete 30 cm centre tolerance.
+        var physical_grip_gap: float=ground_grip.global_position.distance_to(
+            pickup.global_position)
+        check(physical_grip_gap<.95 and
+            ground_grip.global_position.y>=pickup.global_position.y-.50,
+            "world SCAR lies outside its real 1.65m pickup radius")
     for kind in ["weapon_scar","weapon_mp40","weapon_kriss"]:
         check(combat.collect_sector_loot(kind),"weapon not collectible: "+kind)
     for frame in range(12):
