@@ -136,8 +136,13 @@ func _ready() -> void:
                 var weapon:=scene.instantiate() as Node3D
                 _visual.add_child(weapon)
                 WEAPON_VISUALS.calibrate_expansion(weapon,slot)
-                weapon.position.y+=.12
-                item.hide()
+                # Place the ACTUAL imported rifle on the real floor; the
+                # previous arbitrary +0.12 y offset left huge source-space
+                # SCAR models sideways or visually suspended above loot.
+                if _seat_ground_weapon(weapon):
+                    item.hide()
+                else:
+                    weapon.hide()
     var ring:=MeshInstance3D.new()
     ring.name="SupplyBeacon"
     var ring_mesh:=CylinderMesh.new()
@@ -234,6 +239,53 @@ func _add_ground_weapon_visual() -> bool:
     elif extent.y>extent.z:
         rifle.rotation.x=-PI*.5
     rifle.position.y=.10
+    if not _seat_ground_weapon(rifle):
+        rifle.queue_free()
+        return false
+    return true
+
+
+## Recalculate the real transformed mesh AABB in pickup-local metres.
+## Source GLBs have different units and axes; decorative Grip/Muzzle nodes
+## are deliberately excluded from visual geometry calculations.
+func _weapon_local_bounds(weapon: Node3D) -> AABB:
+    var minimum:=Vector3(INF,INF,INF)
+    var maximum:=Vector3(-INF,-INF,-INF)
+    var count: int=0
+    for element in weapon.find_children("*","MeshInstance3D",true,false):
+        var mesh: MeshInstance3D=element as MeshInstance3D
+        if mesh.mesh==null:
+            continue
+        count+=1
+        var box: AABB=mesh.get_aabb()
+        for corner in range(8):
+            var point: Vector3=_visual.to_local(
+                mesh.to_global(box.get_endpoint(corner)))
+            minimum=minimum.min(point)
+            maximum=maximum.max(point)
+    if count==0 or not minimum.is_finite() or not maximum.is_finite():
+        return AABB()
+    return AABB(minimum,maximum-minimum)
+
+
+## The loot collider stays centered 0.50 m above the physical support.
+## Position a genuine GLB with its bottom about 7.5 cm above that support,
+## and its horizontal centre inside the existing 1.65 m pickup trigger.
+## This changes display transforms only, not stored weapons or animations.
+func _seat_ground_weapon(weapon: Node3D) -> bool:
+    var bounds: AABB=_weapon_local_bounds(weapon)
+    if bounds.size.length_squared()<.0001:
+        return false
+    # Some imports arrive with a vertical long axis; lay the rifle along
+    # the existing XZ ground plane before positioning it. No source assets
+    # are overwritten, and the held gun's calibrated transform is untouched.
+    var horizontal: float=maxf(bounds.size.x,bounds.size.z)
+    if bounds.size.y>horizontal*1.10:
+        weapon.rotate_x(PI*.5)
+        bounds=_weapon_local_bounds(weapon)
+    var center: Vector3=bounds.get_center()
+    weapon.position+=Vector3(-center.x,-.425-bounds.position.y,-center.z)
+    weapon.set_meta("aurora_ground_weapon",true)
     return true
 
 
@@ -248,7 +300,7 @@ func _process(delta: float) -> void:
     # Collected enemy caches must look physically supported, not float or
     # rotate through the floor. Keep the old animated visual for normal
     # world pickups, whose position/collision/collection are unchanged.
-    if not from_opponent:
+    if not from_opponent and not pickup_type.begins_with("weapon_"):
         _phase+=delta
         _visual.position.y=sin(_phase*2.6)*.045
         _visual.rotation.y+=delta*.95
