@@ -57,8 +57,10 @@ func _verify() -> void:
     check(root.get_visible_rect().encloses(entry.get_global_rect()),
         "catalogue entry clipped on Motorola 964x434")
     entry.emit_signal("pressed")
-    check(not menu._page.visible and overlay.visible,
-        "legacy store purchase controls remain behind active skin drawer")
+    check(not menu._page.visible and overlay.visible and
+        menu._lobby_menu_backplate!=null and
+        not menu._lobby_menu_backplate.visible,
+        "hidden legacy store still paints a blank right-side glass card")
     check(overlay.visible and
         overlay.get_node_or_null("AuroraSkinGalleryPanel")!=null,
         "catalogue button does not show native interactive shop")
@@ -114,8 +116,9 @@ func _verify() -> void:
         "Ember card fabricates ownership or bypasses real price gating")
     menu._select_tab("INVENTARIO")
     check(not entry.visible and not overlay.visible and
-        menu._page.visible and menu._equipment_selector.visible,
-        "closing catalogue on tab switch did not restore inventory page")
+        menu._page.visible and menu._equipment_selector.visible and
+        menu._lobby_menu_backplate.visible,
+        "leaving shop did not restore both original page and side backplate")
     menu._select_tab("TIENDA")
     entry.emit_signal("pressed")
     check(not menu._page.visible,
@@ -125,11 +128,13 @@ func _verify() -> void:
         "store catalogue cannot be dismissed by a physical touch target")
     if exit!=null:
         exit.emit_signal("pressed")
-    check(not overlay.visible and menu._page.visible and menu.stage=="lobby",
-        "closing shop must restore legacy store without a purchase or match")
+    check(not overlay.visible and menu._page.visible and
+        menu._lobby_menu_backplate.visible and menu.stage=="lobby",
+        "closing shop must restore legacy panel and backdrop without purchase")
     menu._welcome()
-    check(not overlay.visible and menu._page.visible,
-        "shop popup or hidden page persists into authentication screen")
+    check(not overlay.visible and menu._page.visible and
+        not menu._lobby_menu_backplate.visible,
+        "shop popup, hidden page or visible lobby backdrop leaks into auth")
     var persistent=LEDGER.new(PATH)
     check(str(persistent.cosmetic_state()["equipped"])=="aurora_base" and
         (persistent.cosmetic_state()["owned"] as Array).has("aurora_glacier") and
