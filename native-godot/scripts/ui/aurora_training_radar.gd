@@ -1,5 +1,6 @@
 extends Control
 const TERRAIN_SCALE=preload("res://scripts/world/island_terrain.gd")
+const AIRDROP=preload("res://scripts/match/airdrop_sequence.gd")
 ## Training: real opponent positions. Battle Royale: NO omniscient opponent
 ## positions; only short-lived acoustic pings from actual enemy gunshots.
 ## All current/future storm circles continue using authoritative zone geometry.
@@ -248,6 +249,30 @@ func _process(delta: float) -> void:
         queue_redraw()
 
 
+## World-space aircraft line projected through the SAME radar orientation
+## and terrain range as the zone rings. Only visible while physically flying,
+## never a decorative line in training or an already-landed BR.
+func aircraft_route_pixels() -> PackedVector2Array:
+    var points:=PackedVector2Array()
+    if (not _battle_mode or not is_instance_valid(player) or
+            not is_instance_valid(_sector_director)):
+        return points
+    var flight: Node3D=_sector_director.get("_flight") as Node3D
+    if flight==null or str(flight.get("phase"))!="aircraft":
+        return points
+    var center: Vector2=Vector2(size.x*.5,size.y*.55)
+    var radius: float=minf(size.x*.45,size.y*.43)
+    var world_range: float=_world_range()
+    if radius<1.0 or world_range<=.001:
+        return points
+    var yaw: float=float(player.get("_yaw")) if rotate_with_camera else 0.0
+    var listener:=Vector2(player.global_position.x,player.global_position.z)
+    for z in [AIRDROP.ROUTE_START_Z,AIRDROP.ROUTE_END_Z]:
+        var relative: Vector2=(Vector2(0.0,z)-listener).rotated(-yaw)
+        points.append(center+relative*(radius/world_range))
+    return points
+
+
 func _draw() -> void:
     var rect: Rect2=Rect2(Vector2.ZERO,size)
     draw_rect(rect,Color(.025,.09,.13,.77))
@@ -260,6 +285,13 @@ func _draw() -> void:
     var yaw: float=float(player.get("_yaw")) if rotate_with_camera else 0.0
     var world_range: float=_world_range()
     _draw_terrain_disc(center,radius,world_range,yaw)
+    # The route is a real aircraft flight segment; the full tactical map
+    # already uses these same endpoints. Do not add an extra map button.
+    var flight_line: PackedVector2Array=aircraft_route_pixels()
+    if flight_line.size()==2:
+        draw_line(flight_line[0],flight_line[1],
+            Color(1.0,.82,.34,.92),2.4,true)
+        draw_circle(flight_line[1],3.0,Color(1.0,.78,.26,.96))
     draw_arc(center,radius,0,TAU,52,Color(.41,.89,.95,.86),1.9,true)
     draw_arc(center,radius*.5,0,TAU,52,Color(.75,.91,.92,.27),1.0,true)
     draw_line(center+Vector2(-radius,0),center+Vector2(radius,0),Color(.28,.50,.55,.32),1.0)
