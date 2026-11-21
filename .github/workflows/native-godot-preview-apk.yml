@@ -278,6 +278,12 @@ jobs:
             test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-armory-${weapon}.png"
           done
           echo "AURORA_ARMORY_MOTOROLA_VIEWPORT_CAPTURE PASS models=4"
+          # Additional real UI captures, not artwork or mockups.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_inventory_operator_qa.gd
+          for screen in inventory operator-lila; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_GEAR_OPERATOR_CAPTURE PASS resolution=964x434 screens=2"
           xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_zone_map_qa.gd
           for screen in minimap-zones tactical-zones; do
             test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
@@ -303,6 +309,8 @@ jobs:
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-login.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-lobby.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-armory-*.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-inventory.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-operator-*.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-minimap-zones.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-tactical-zones.png
           retention-days: 30
