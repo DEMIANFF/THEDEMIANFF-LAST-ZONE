@@ -486,6 +486,14 @@ func _draw_clipped_zone_outline(world_center: Vector2,world_radius: float,
     _draw_clipped_map_line(ring,rect,tint,line_width)
 
 
+## UI-safe touch instructions share the map pane with the physical
+## scale bar. Nothing is printed over the gameplay buttons below the map.
+func _map_footer_rect(rect: Rect2) -> Rect2:
+    return Rect2(
+        Vector2(rect.position.x+96.0,rect.end.y-25.0),
+        Vector2(maxf(28.0,rect.size.x-109.0),19.0))
+
+
 func _draw() -> void:
     # See-through overlay: player can still see the live match behind it.
     draw_rect(Rect2(Vector2.ZERO,size),Color(.012,.033,.067,.60))
@@ -644,9 +652,7 @@ func _draw() -> void:
     # The old instructions at 97% viewport height overlapped mobile HUD
     # hints below the map. Keep guidance INSIDE the map's lower border,
     # to the right of the (independently drawn) actual 100 m scale bar.
-    var help_rect:=Rect2(
-        Vector2(rect.position.x+96.0,rect.end.y-25.0),
-        Vector2(maxf(28.0,rect.size.x-109.0),19.0))
+    var help_rect: Rect2=_map_footer_rect(rect)
     draw_rect(help_rect,Color(.012,.037,.057,.88))
     draw_string(font,help_rect.position+Vector2(7.0,14.0),
         "TOCA MARCA · ARRASTRA · PELLIZCA",
