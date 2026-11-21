@@ -41,7 +41,7 @@ func _capture() -> void:
         bot.set_physics_process(false)
     await physics_frame
     director.begin_aircraft_phase()
-    var line: PackedVector2Array=radar.aircraft_route_pixels()
+    var line: PackedVector2Array=(radar.call("aircraft_route_pixels") as PackedVector2Array)
     if (not radar.visible or line.size()!=2 or
             radar.get("map_texture")==null or
             director.mode!="aircraft"):
