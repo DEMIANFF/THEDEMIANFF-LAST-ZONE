@@ -29,7 +29,14 @@ if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
   # it uses project autoload AuroraLobbyMusic, which is not registered in
   # standalone check-only mode. The real Boot scene is instantiated in
   # v75127/v75128 frontend QA and the Xvfb visual capture instead.
+  # Check direct dependencies first: main.gd preloads native_hud.gd.
+  # Otherwise an HUD syntax regression is only reported as an opaque
+  # 'Could not preload resource script' at main.gd:6.
   for source in \
+    scripts/ui/native_hud.gd \
+    scripts/combat/aurora_grenade.gd \
+    scripts/ai/aurora_bot.gd \
+    scripts/combat/training_combat.gd \
     scripts/match/sector_director.gd \
     scripts/main.gd \
     scripts/ui/aurora_tactical_map.gd \
@@ -53,7 +60,6 @@ if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
     scripts/qa/capture_motorola_live_loot_map_qa.gd \
     scripts/qa/capture_motorola_late_loot_qa.gd \
     scripts/ui/aurora_training_radar.gd \
-    scripts/ui/native_hud.gd \
     scripts/combat/aurora_weapon_families.gd \
     scripts/combat/aurora_equipment_families.gd \
     scripts/qa/v75132_skin_gallery_qa.gd \
