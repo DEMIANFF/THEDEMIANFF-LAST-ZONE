@@ -525,9 +525,16 @@ func set_air_stage(value: String) -> void:
         pad.visible=value!="aircraft"
     if _reticle:
         _reticle.visible=not airborne
-    for indicator in [_weapon,_ammo,_eliminations_label,_health_label,_health_meter,_training_radar]:
+    for indicator in [_weapon,_ammo,_eliminations_label,_health_label,_health_meter]:
         if indicator:
             indicator.visible=not airborne
+    # A plane without a visible minimap has no discoverable way to choose
+    # a landing destination. Keep the SAME real radar + hidden touch target
+    # available in flight, freefall and parachute; hide combat controls.
+    if _training_radar:
+        _training_radar.visible=true
+    if _map_button:
+        _map_button.disabled=false
     if _jump_button:
         _jump_button.text="SALTAR DEL AVIÓN" if value=="aircraft" else "PARACAÍDAS" if value=="freefall" else "SALTAR"
         _jump_button.custom_minimum_size=Vector2(140,58) if airborne else Vector2.ZERO
@@ -538,8 +545,28 @@ func set_air_stage(value: String) -> void:
     if _status and airborne:
         _status.text="AURORA / "+("RUTA AÉREA" if value=="aircraft" else "CAÍDA LIBRE" if value=="freefall" else "ATERRIZAJE")
     _layout()
+    if _battle_status and airborne and value!="aircraft":
+        _battle_status.text=(
+            "CAÍDA LIBRE / ABRE PARACAÍDAS" if value=="freefall"
+            else "PARACAÍDAS / PREPARA ATERRIZAJE")
     if _hint and airborne:
-        _hint.text="CONTROLA LA CÁMARA" if value=="aircraft" else "JOYSTICK PARA DIRIGIR"
+        _hint.text=(
+            "TOCA EL MINIMAPA PARA VER LA RUTA" if value=="aircraft"
+            else "JOYSTICK PARA DIRIGIR · MINIMAPA ACTIVO")
+
+
+## The aircraft HUD uses the live 13-second flight timer, not a fake
+## pre-rendered progress bar. Throttled from the real physics sequence at
+## 4 Hz so it does not churn strings on a 120 Hz mobile display.
+func set_aircraft_route_progress(seconds_elapsed: float,
+        flight_duration: float) -> void:
+    if air_stage!="aircraft" or _battle_status==null:
+        return
+    var total: float=maxf(.01,flight_duration)
+    var fraction: float=clampf(seconds_elapsed/total,0.0,1.0)
+    var remaining: int=ceili(maxf(0.0,total-seconds_elapsed))
+    _battle_status.text="VUELO AURORA  |  SALTO EN %ds  |  RUTA %d%%"%[
+        remaining,roundi(fraction*100.0)]
 
 
 func _battle_down() -> void:
