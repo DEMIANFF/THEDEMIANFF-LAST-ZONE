@@ -37,7 +37,9 @@ func _capture() -> void:
     player.set_physics_process(false)
     for bot in combat._targets:
         bot.set_physics_process(false)
-    var at:=Vector2(12.0,-12.0)
+    # Deterministic, physically accessible field loot; avoid the coastal
+    # house floor at (12,-12) which blocks line-of-sight collection.
+    var at:=Vector2(8.0,-22.0)
     var rival: CharacterBody3D=combat._targets[0]
     rival.global_position=Vector3(at.x,
         terrain.height_at(at.x,at.y)+2.0,at.y)
@@ -46,8 +48,8 @@ func _capture() -> void:
     if not rival.take_training_damage(999.0,player):
         _fail("physical rival elimination failed")
         return
-    player.global_position=Vector3(12.0,
-        terrain.height_at(12.0,-12.0)+1.5,-5.0)
+    player.global_position=Vector3(at.x,
+        terrain.height_at(at.x,at.y)+1.5,at.y+7.0)
     map.set("_follow_player",false)
     map.set("zoom",2.0)
     map.set("pan",Vector2(8,6))
