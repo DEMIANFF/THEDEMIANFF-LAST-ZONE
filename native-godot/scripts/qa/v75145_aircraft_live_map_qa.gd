@@ -37,6 +37,34 @@ func _verify() -> void:
         str(flight.get("phase"))=="aircraft" and
         player.air_mode=="aircraft",
         "real aircraft did not begin in physical Main scene")
+    # The built-in Aurora transport is a real moving mesh, not a static
+    # concept image or a six-blade propeller orbiting the entire airframe.
+    var aircraft: Node3D=player.get_node("AuroraTransportAircraft")
+    check(aircraft!=null and aircraft.top_level,
+        "flying transport mesh is not present in the live scene")
+    var imported: Node3D=aircraft.get_node_or_null("AuroraC17UserVisual")
+    for sign in [-1,1]:
+        var side: float=float(sign)
+        for blade in range(3):
+            var rotor: MeshInstance3D=aircraft.get_node_or_null(
+                "AuroraPropeller%d_%d"%[sign,blade]) as MeshInstance3D
+            check(rotor!=null and rotor.mesh is ArrayMesh and
+                rotor.position.distance_to(
+                    Vector3(side*2.03,-.31,-1.14))<.002,
+                "fallback rotor is not mounted on its engine hub")
+            if rotor!=null and imported==null:
+                var angle_before: float=rotor.rotation.z
+                flight.call("_advance_visible_propellers",.1)
+                check(absf(rotor.rotation.z-angle_before)>.3,
+                    "aircraft propeller is visibly static during flight")
+    for name in ["AuroraPortNavigation","AuroraStarboardNavigation",
+            "AuroraTailNavigation"]:
+        var nav_light: MeshInstance3D=aircraft.get_node_or_null(
+            name) as MeshInstance3D
+        check(nav_light!=null and
+            nav_light.material_override is StandardMaterial3D and
+            (nav_light.material_override as StandardMaterial3D).emission_enabled,
+            "missing cheap emissive navigation light "+name)
     check(str(hud.get("air_stage"))=="aircraft" and radar.visible and
         button.visible and not button.disabled and button.text=="",
         "in-air minimap remains hidden or has a separate MAPA label")
