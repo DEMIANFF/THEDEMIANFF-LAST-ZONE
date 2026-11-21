@@ -38,15 +38,19 @@ func _verify() -> void:
     for bot in combat._targets:
         bot.set_physics_process(false)
     await physics_frame
+    # The scene defaults to the internal nine-person training fixture.
+    # Exercise the actual single public 50-participant BR configuration.
+    combat.set_encounter_size(combat.CLASSIC_BR_PARTICIPANTS)
     director.start_sector_battle()
     director.set_process(false)
     combat.set_process(false)
     player.set_physics_process(false)
     for bot in combat._targets:
         bot.set_physics_process(false)
-    check(combat._targets.size()>=17 and MATCH.MAX_OPPONENT_DROPS==12,
-        "50-participant real round or bounded cache budget missing")
-    if combat._targets.size()<17:
+    check(combat.encounter_size==50 and combat._targets.size()==49 and
+        MATCH.MAX_OPPONENT_DROPS==12,
+        "actual 50-participant physical roster or cache budget missing")
+    if combat._targets.size()!=49:
         quit(1)
         return
 
