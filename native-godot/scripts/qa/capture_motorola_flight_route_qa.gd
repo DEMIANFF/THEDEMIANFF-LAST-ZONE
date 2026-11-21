@@ -58,6 +58,10 @@ func _capture() -> void:
         push_error("V75145_FLIGHT_CAPTURE cannot open tactical map via minimap")
         quit(5)
         return
+    # Choose the SAME real landing target from the full map, so each of
+    # the four engine screenshots contains the live waypoint and the
+    # operator's dynamic, camera-relative distance during descent.
+    full_map.call("mark",Vector2(26.0,-18.0))
     for i in range(10):
         await process_frame
     if not await _snapshot("aircraft-tactical-route",tag):
@@ -67,6 +71,11 @@ func _capture() -> void:
     if full_map.visible:
         push_error("V75145_FLIGHT_CAPTURE cannot close tactical route")
         quit(7)
+        return
+    var heading: Label=hud.get("_hint") as Label
+    if heading==null or not heading.text.contains("OBJETIVO"):
+        push_error("V75146_FLIGHT_CAPTURE selected map destination not on live HUD")
+        quit(12)
         return
     # The exact same live aircraft is now jumped from; never swap to a
     # screenshot-only freefall or fake canopy just for the evidence.
@@ -95,9 +104,10 @@ func _capture() -> void:
     if not await _snapshot("parachute-live-hud",tag):
         quit(11)
         return
+    full_map.call("_clear_waypoint")
     game.queue_free()
     await process_frame
-    print("V75145_FLIGHT_CAPTURE PASS aircraft=real "+
+    print("V75146_FLIGHT_CAPTURE PASS true_landing_waypoint=1 "+
         "route=actual_154m radar=touchable 964x434 screenshots=4 "+
         "freefall=real parachute=real motorola_physical_certification=NO")
     quit(0)
