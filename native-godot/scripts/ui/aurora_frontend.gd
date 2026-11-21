@@ -2024,8 +2024,8 @@ func _close_mode_gallery() -> void:
 
 
 func _choose_mode_gallery(mode: String) -> void:
-    if stage!="lobby" or _selected_tab!="JUGAR" or (
-            not is_instance_valid(_mode_gallery_overlay)) or
+    if (stage!="lobby" or _selected_tab!="JUGAR" or
+            not is_instance_valid(_mode_gallery_overlay) or
             not _mode_gallery_overlay.visible):
         return
     var options: Array[String]=["classic","ranked","training"]
