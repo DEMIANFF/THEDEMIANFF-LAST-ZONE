@@ -2091,16 +2091,20 @@ func _build_skin_gallery() -> void:
 
     var shade:=ColorRect.new()
     shade.name="SkinGalleryBackdrop"
-    shade.color=Color(.005,.014,.027,.56)
+    # Keep Lila's actual 3D model visible during outfit inspection.
+    # A heavy fullscreen scrim made the character disappear on Motorola.
+    shade.color=Color(.005,.014,.027,.22)
     shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     shade.mouse_filter=Control.MOUSE_FILTER_STOP
     _shop_gallery_overlay.add_child(shade)
 
-    # Right-hand panel leaves the real original 3D Lila preview uncovered.
+    # Left drawer covers the sidebar, not the center-stage real 3D Lila
+    # preview at 964x434. This deliberately avoids the operator portrait
+    # (the previous right drawer obscured most of Lila's body).
     var panel:=PanelContainer.new()
     panel.name="AuroraSkinGalleryPanel"
-    panel.anchor_left=.43
-    panel.anchor_right=.96
+    panel.anchor_left=.018
+    panel.anchor_right=.393
     panel.anchor_top=.095
     panel.anchor_bottom=.91
     var panel_style:=StyleBoxFlat.new()
