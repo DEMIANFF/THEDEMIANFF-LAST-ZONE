@@ -56,6 +56,9 @@ const COMBAT_EVENT_DURATION: float=4.5
 var _hint: Label
 var _hit_timer: float = 0.0
 var _fps_clock: float = 0.0
+# Direction/remaining-distance text derives from the same map waypoint.
+# Throttle to 4Hz to avoid UI reallocations in 120Hz flight rendering.
+var _airdrop_guidance_clock: float=0.0
 var _ads: bool = false
 var _run_latched: bool = false
 var _run_button: Button
@@ -402,7 +405,8 @@ func _ready() -> void:
     _map_overlay.visible=false
     root.add_child(_map_overlay)
     _map_overlay.connect("waypoint_changed",func(point: Vector2):
-        _training_radar.call("set_waypoint",point))
+        _training_radar.call("set_waypoint",point)
+        _refresh_airdrop_waypoint_guidance())
     _training_radar.call("set_waypoint",_map_overlay.get("waypoint"))
     apply_ui_settings()
     get_viewport().size_changed.connect(_layout)
@@ -549,10 +553,34 @@ func set_air_stage(value: String) -> void:
         _battle_status.text=(
             "CAÍDA LIBRE / ABRE PARACAÍDAS" if value=="freefall"
             else "PARACAÍDAS / PREPARA ATERRIZAJE")
-    if _hint and airborne:
+    _airdrop_guidance_clock=0.0
+    if airborne:
+        _refresh_airdrop_waypoint_guidance()
+
+
+## Read the live, persisted tactical waypoint instead of drawing a fictitious
+## compass bearing. When it is cleared the flight instructions return at once.
+func _refresh_airdrop_waypoint_guidance() -> void:
+    if air_stage=="ground" or _hint==null or _training_radar==null:
+        return
+    var state: Dictionary=_training_radar.call("landing_waypoint_guidance")
+    if state.is_empty():
         _hint.text=(
-            "TOCA EL MINIMAPA PARA VER LA RUTA" if value=="aircraft"
+            "TOCA EL MINIMAPA PARA VER LA RUTA" if air_stage=="aircraft"
             else "JOYSTICK PARA DIRIGIR · MINIMAPA ACTIVO")
+        return
+    var distance: float=float(state.get("distance_m",0.0))
+    var relative: float=float(state.get("relative_degrees",0.0))
+    var bearing: String="AL FRENTE"
+    if distance<12.0:
+        bearing="DESTINO CERCA"
+    elif absf(relative)>=150.0:
+        bearing="DETRÁS"
+    elif relative>=22.0:
+        bearing="A LA DERECHA"
+    elif relative<=-22.0:
+        bearing="A LA IZQUIERDA"
+    _hint.text="OBJETIVO %d m · %s"%[roundi(distance),bearing]
 
 
 ## The aircraft HUD uses the live 13-second flight timer, not a fake
@@ -1015,6 +1043,11 @@ func _process(delta: float) -> void:
             _incoming_hint.text=""
     if _damage_flash and _damage_flash.color.a>0:
         _damage_flash.color.a=maxf(0.0,_damage_flash.color.a-delta*.38)
+    if air_stage!="ground":
+        _airdrop_guidance_clock-=delta
+        if _airdrop_guidance_clock<=0.0:
+            _airdrop_guidance_clock=.25
+            _refresh_airdrop_waypoint_guidance()
     _fps_clock-=delta
     if _fps_clock<=0:
         _fps_clock=.6
