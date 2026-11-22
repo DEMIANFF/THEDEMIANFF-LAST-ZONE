@@ -34,7 +34,8 @@ func _verify() -> void:
         GRENADE.FUSE_SECONDS>GRENADE.AUDIBLE_FUSE_START_SECONDS and
         GRENADE.AUDIBLE_FUSE_INTERVAL_SECONDS>=.2,
         "training started with a fictitious grenade warning")
-    # The live lobby selects one 50-fighter BR roster, also in QA.
+    # The public lobby selects a single 50-player classic roster.
+    # A standalone QA scene must use the SAME gameplay contract.
     combat.set_encounter_size(50)
     director.start_sector_battle()
     director.set_process(false)
