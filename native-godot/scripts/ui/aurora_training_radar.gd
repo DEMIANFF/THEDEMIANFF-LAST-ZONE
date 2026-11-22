@@ -96,6 +96,21 @@ func nearby_physical_vehicles() -> Array[Vector2]:
         Vector2(player.global_position.x,player.global_position.z),65.0,2)
 
 
+## At most three REAL physics projectiles, visible only in an active BR
+## and only inside 32 m of the player. Same data source as the large map.
+func nearby_live_grenade_hazards() -> Array:
+    if (not _battle_mode or not is_instance_valid(player) or
+            player.royale_eliminated or not is_instance_valid(_sector_director)
+            or str(_sector_director.get("mode"))!="sector_battle" or
+            bool(_sector_director.get("match_ended"))):
+        return []
+    var battle: Node3D=_sector_director.get("combat") as Node3D
+    if battle==null:
+        return []
+    return battle.call("nearby_live_grenade_hazards",
+        Vector2(player.global_position.x,player.global_position.z),32.0,3)
+
+
 func set_battle_mode(enabled: bool) -> void:
     _battle_mode=enabled
     clear_gunfire()
@@ -390,6 +405,16 @@ func _draw() -> void:
                 or kind.begins_with("backpack") else Color(1.0,.83,.33))
             draw_circle(dot,3.3,tint)
             draw_arc(dot,5.0,0,TAU,16,Color(.02,.12,.17,.95),1.0)
+        # A grenade danger icon is grounded in a live, fuse-burning
+        # Node3D. It is never an enemy wallhack or a persistent map ping.
+        for hazard in nearby_live_grenade_hazards():
+            var relative: Vector2=(hazard["at"] as Vector2)-physical_listener
+            var dot: Vector2=center+relative.rotated(-yaw)*(
+                radius/world_range)
+            if dot.distance_to(center)>radius-8.0:
+                continue
+            draw_circle(dot,5.2,Color(1.0,.24,.14,.94))
+            draw_arc(dot,8.2,0,TAU,22,Color(1.0,.72,.34,.94),1.7)
         for at in nearby_physical_vehicles():
             var relative: Vector2=at-physical_listener
             var dot: Vector2=center+relative.rotated(-yaw)*(

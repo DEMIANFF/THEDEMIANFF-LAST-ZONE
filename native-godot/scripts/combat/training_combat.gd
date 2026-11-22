@@ -772,6 +772,35 @@ func throw_grenade() -> bool:
     return true
 
 
+## The same active physical projectiles feed the minimap and full tactical
+## map. Only three real thrown grenades exist at once. The API deliberately
+## excludes spent, cancelled, stale, queued and remotely located objects.
+## This reveals NO coordinates of living enemies and uses no physics rays.
+func nearby_live_grenade_hazards(observer: Vector2,
+        maximum_meters: float=32.0,maximum_markers: int=3) -> Array[Dictionary]:
+    var active: Array[Dictionary]=[]
+    if (not sector_battle_active or not is_instance_valid(operator) or
+            operator.royale_eliminated or not observer.is_finite() or
+            maximum_meters<=0.0 or maximum_markers<=0):
+        return active
+    var range_sq: float=pow(clampf(maximum_meters,0.0,32.0),2.0)
+    var limit: int=clampi(maximum_markers,0,MAX_GRENADES)
+    for grenade in _grenades:
+        if (not is_instance_valid(grenade) or grenade.is_queued_for_deletion()
+                or bool(grenade.get("_spent"))):
+            continue
+        var seconds: float=float(grenade.get("_remaining"))
+        if not is_finite(seconds) or seconds<=0.0:
+            continue
+        var point:=Vector2(grenade.global_position.x,
+            grenade.global_position.z)
+        if point.distance_squared_to(observer)<=range_sq:
+            active.append({"at":point,"seconds_left":seconds})
+            if active.size()>=limit:
+                break
+    return active
+
+
 ## Once every .25s only while a REAL fuse burns: 49 in-memory
 ## squared-distance checks, no spatial queries, meshes, sounds or paths.
 func _on_grenade_audible_fuse(at: Vector3,remaining: float) -> void:
@@ -785,7 +814,7 @@ func _on_grenade_audible_fuse(at: Vector3,remaining: float) -> void:
     if (is_instance_valid(operator) and
             not operator.royale_eliminated and
             operator.global_position.distance_squared_to(at)<8.0*8.0):
-        hud.show_real_grenade_warning(remaining)
+        hud.show_real_grenade_warning(remaining,at)
         grenade_fuse_close.emit(remaining)
 
 

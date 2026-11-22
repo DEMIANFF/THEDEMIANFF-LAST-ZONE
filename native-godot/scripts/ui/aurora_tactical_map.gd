@@ -521,6 +521,21 @@ func _live_world_resources() -> Array[Dictionary]:
         Vector2(player.global_position.x,player.global_position.z),65.0,8)
 
 
+## The full tactical map only plots the same finite real grenade
+## projectiles as the circular minimap. The map does not expose enemies.
+func _live_active_grenades() -> Array:
+    if (not is_instance_valid(player) or player.royale_eliminated or
+            not is_instance_valid(director) or
+            str(director.get("mode"))!="sector_battle" or
+            bool(director.get("match_ended"))):
+        return []
+    var battle: Node3D=director.get("combat") as Node3D
+    if battle==null:
+        return []
+    return battle.call("nearby_live_grenade_hazards",
+        Vector2(player.global_position.x,player.global_position.z),32.0,3)
+
+
 func _live_vehicles() -> Array[Vector2]:
     if (not is_instance_valid(player) or not is_instance_valid(director) or
             player.royale_eliminated):
@@ -608,6 +623,15 @@ func _draw() -> void:
             else Color(1.0,.82,.35))
         draw_circle(pixel,5.0,tint)
         draw_arc(pixel,7.0,0,TAU,18,Color(.02,.11,.14,.94),1.1)
+    # Temporary red hazard markers follow actual fuse-burning projectiles.
+    # They are clipped to the cartography pane, never drawn over HUD buttons.
+    for hazard in _live_active_grenades():
+        var pixel: Vector2=project(hazard["at"] as Vector2)
+        if rect.grow(-11).has_point(pixel):
+            draw_circle(pixel,7.0,Color(.95,.22,.12,.92))
+            draw_arc(pixel,10.0,0,TAU,24,Color(1.0,.74,.34),1.8)
+            draw_string(font,pixel+Vector2(-2.5,4.0),"!",
+                HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color(1.0,.99,.87))
     # Cars are displayed only when their actual original source, four
     # physics wheels and mesh have been instantiated in the match.
     for vehicle_at in _live_vehicles():
