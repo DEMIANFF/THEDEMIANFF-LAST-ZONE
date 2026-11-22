@@ -149,7 +149,9 @@ func _ready() -> void:
         "scope_4x":options.multiplier("scope_4x"),
         "scope_8x":options.multiplier("scope_8x")
     }
-    _camera_collision_shape.radius=.20
+    # Conservative near-plane proxy: the old 20 cm probe could slip
+    # through the actual .43 m crystal facets at an oblique camera angle.
+    _camera_collision_shape.radius=.30
     _camera_collision_query.shape=_camera_collision_shape
     _camera_collision_query.exclude=[get_rid()]
     _camera_collision_query.collision_mask=1
@@ -350,21 +352,34 @@ func _physics_process(delta: float) -> void:
         # Probe the PREFERRED shoulder, not only the currently relocated
         # camera. Otherwise moving to a free centerline clears the probe and
         # immediately forces the camera into the wall again (oscillation).
-        var preferred_clearance: float=_collision_safe_camera_distance(desired_distance,preferred_shoulder)
+        var preferred_clearance: float=_collision_safe_camera_distance(
+            desired_distance,preferred_shoulder)
         var shoulder_target: float=preferred_shoulder
-        if preferred_clearance<1.60 and desired_distance>1.60:
-            var centered: float=_collision_safe_camera_distance(desired_distance,0.0)
-            if centered>preferred_clearance+.32:
+        # The old test picked the centre as soon as it was slightly
+        # clearer, WITHOUT checking a completely free opposite shoulder.
+        # On the player's phone this could force the camera to sit in a
+        # blue ice pillar while Lila disappeared below 1.50 m distance.
+        if preferred_clearance<desired_distance-.35 and desired_distance>1.60:
+            var center_clearance: float=_collision_safe_camera_distance(
+                desired_distance,0.0)
+            var far_shoulder: float=-.22 if _ads_active else -.38
+            var opposite_clearance: float=_collision_safe_camera_distance(
+                desired_distance,far_shoulder)
+            var best_clearance: float=preferred_clearance
+            if center_clearance>best_clearance+.25:
+                best_clearance=center_clearance
                 shoulder_target=0.0
-            else:
-                var opposite: float=_collision_safe_camera_distance(desired_distance,-.22)
-                if opposite>preferred_clearance+.64:
-                    shoulder_target=-.22
+            if opposite_clearance>best_clearance+.25:
+                shoulder_target=far_shoulder
+        # Transition quickly AWAY from nearby crystals; return to the
+        # normal right shoulder smoothly when no object obstructs view.
+        var shoulder_speed: float=22.0 if preferred_clearance<1.60 else 11.0
         _camera.position.x=lerpf(_camera.position.x,shoulder_target,
-            1.0-exp(-delta*11.0))
-        var safe_distance: float=preferred_clearance
-        if absf(_camera.position.x-preferred_shoulder)>.008:
-            safe_distance=_collision_safe_camera_distance(desired_distance,_camera.position.x)
+            1.0-exp(-delta*shoulder_speed))
+        # Recheck the CURRENT moving camera axis, never the unoccupied
+        # target axis; collision remains authoritative during transitions.
+        var safe_distance: float=_collision_safe_camera_distance(
+            desired_distance,_camera.position.x)
         # Contract immediately to stay outside collisions; expand with
         # controlled smoothing so opening a door never snaps the viewpoint.
         _camera.position.z=minf(safe_distance,
