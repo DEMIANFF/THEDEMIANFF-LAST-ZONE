@@ -1733,7 +1733,7 @@ func _ensure_lobby_navigation() -> void:
     # Continuous lower glass rail: the old five floating rectangles visually
     # cut the stage floor and lacked the clean baseline of the reference.
     var footer_plate:=_make_glass_panel(
-        Color(.007,.015,.028,.91),Color(.19,.66,.86,.70),4)
+        Color(.007,.015,.028,.82),Color(.19,.66,.86,.58),4)
     footer_plate.name="AuroraPremiumFooterGlass"
     footer_plate.anchor_left=.011
     footer_plate.anchor_right=.989
@@ -1757,7 +1757,7 @@ func _ensure_lobby_navigation() -> void:
     _lobby_nav.visible=false
     _banner=Label.new()
     _banner.name="AuroraOperationBanner"
-    _banner.text="╱  JUEGUE"
+    _banner.text="╱  OPERACIONES"
     _banner.anchor_left=.028
     _banner.anchor_right=.211
     _banner.anchor_top=.169
@@ -2384,7 +2384,7 @@ func _refresh_skin_gallery() -> void:
 
 func _style_aurora_tab(button: Button,tint: Color) -> void:
     var normal:=StyleBoxFlat.new()
-    normal.bg_color=Color(.012,.028,.049,.88)
+    normal.bg_color=Color(.014,.030,.054,.83)
     normal.border_color=tint.darkened(.22)
     normal.set_border_width_all(1)
     normal.set_corner_radius_all(6)
@@ -3449,7 +3449,7 @@ func _build_preview() -> void:
     # Soft sky fill keeps the lilac hair and cool fabric readable under
     # the warm portrait key and blue edge light.
     env.ambient_light_color=Color(.63,.74,.93)
-    env.ambient_light_energy=.57
+    env.ambient_light_energy=.52
     env.ambient_light_sky_contribution=0.0
     env.fog_enabled=true
     env.fog_light_color=Color(.17,.27,.43)
@@ -3461,20 +3461,20 @@ func _build_preview() -> void:
     key.name="AuroraPortraitKey"
     key.rotation_degrees=Vector3(-40,31,0)
     key.light_color=Color(1.0,.94,.89)
-    key.light_energy=1.20
+    key.light_energy=1.04
     stage3d.add_child(key)
     var rim:=DirectionalLight3D.new()
     rim.name="AuroraPortraitRim"
     rim.rotation_degrees=Vector3(-22,-138,0)
     rim.light_color=Color(.51,.69,1.0)
-    rim.light_energy=.85
+    rim.light_energy=.68
     stage3d.add_child(rim)
     # Keep the operator's contact shadow in the lobby's small positional atlas.
     var portrait_spot:=SpotLight3D.new()
     portrait_spot.name="AuroraPortraitSpot"
     portrait_spot.position=Vector3(-1.04,2.68,1.45)
     portrait_spot.light_color=Color(1.0,.89,.78)
-    portrait_spot.light_energy=.41
+    portrait_spot.light_energy=.34
     portrait_spot.spot_range=4.25
     portrait_spot.spot_angle=37.0
     portrait_spot.light_cull_mask=PORTRAIT_LIGHT_LAYER

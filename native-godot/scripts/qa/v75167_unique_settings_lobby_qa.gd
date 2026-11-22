@@ -26,6 +26,22 @@ func _verify() -> void:
     check(front.stage=="lobby" and front._game==null and
         front._preview_avatar!=null,
         "cannot simplify UI by replacing 3D Lila with a fake")
+    var portrait_mesh: MeshInstance3D=front._preview_avatar.find_child(
+        "Lila_Aurora_Mesh",true,false) as MeshInstance3D
+    var portrait_material: ShaderMaterial=(portrait_mesh.material_override
+        as ShaderMaterial) if portrait_mesh!=null else null
+    check(portrait_material!=null and
+        portrait_material.shader.code.contains("portrait_exposure") and
+        portrait_material.shader.code.contains("source_albedo"),
+        "Lila lost her original textured 3D PBR portrait")
+    var world: Node3D=front._preview_container.get_node(
+        "PreviewViewport/AuroraCharacterStage")
+    var key: DirectionalLight3D=world.get_node("AuroraPortraitKey")
+    var ambient: WorldEnvironment=world.get_node("AuroraAirfieldAtmosphere")
+    check(key.light_energy<=1.10 and
+        ambient.environment.ambient_light_energy<=.55,
+        "portrait lighting still washes out original operator texture")
+
     check(front.find_child("CameraSettings",true,false)==null and
         front.find_child("EditHUDEntry",true,false)==null and
         front.find_child("MobileSettingsScroll",true,false)==null and
