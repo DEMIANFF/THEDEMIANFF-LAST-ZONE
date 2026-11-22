@@ -189,6 +189,11 @@ func _zoom_at_point(factor: float,screen_point: Vector2) -> void:
 
 func _follow() -> void:
     _follow_player=true
+    # Follow is an explicit LOCAL navigation request. When the island is
+    # at 1x overview, terrain-boundary clamping forces the pan to (0,0):
+    # the prior implementation claimed to follow Lila while leaving her
+    # far away from the map centre. Restore a readable neighbourhood zoom.
+    zoom=maxf(zoom,2.4)
     if is_instance_valid(player):
         pan=Vector2(player.global_position.x,player.global_position.z)
     _clamp_pan_to_terrain()
