@@ -54,10 +54,10 @@ func verify() -> void:
         two.value=135.0
         eight.value=60.0
     var saved: RefCounted=PLAYER_SETTINGS.new()
-    check(is_equal_approx(saved.multiplier("general"),1.65) and
-        is_equal_approx(saved.multiplier("ads"),.80) and
-        is_equal_approx(saved.multiplier("scope_2x"),1.35) and
-        is_equal_approx(saved.multiplier("scope_8x"),.60),
+    check(is_equal_approx(float(saved.call("multiplier","general")),1.65) and
+        is_equal_approx(float(saved.call("multiplier","ads")),.80) and
+        is_equal_approx(float(saved.call("multiplier","scope_2x")),1.35) and
+        is_equal_approx(float(saved.call("multiplier","scope_8x")),.60),
         "visible slider changes did not persist actual camera sensitivity")
     modal.call("_show_category","PANTALLA")
     var graphics: OptionButton=modal.find_child("GraphicsSelector",true,false) as OptionButton
@@ -66,7 +66,7 @@ func verify() -> void:
     if graphics!=null:
         graphics.select(0)
         graphics.item_selected.emit(0)
-    check(Engine.max_fps==30 and PLAYER_SETTINGS.new().fps_limit()==30,
+    check(Engine.max_fps==30 and int(PLAYER_SETTINGS.new().call("fps_limit"))==30,
         "graphics FPS setting not applied/persisted")
     modal.call("_close")
     check(front._settings_modal==null and not paused,
