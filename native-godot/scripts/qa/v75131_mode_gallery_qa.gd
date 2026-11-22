@@ -60,7 +60,10 @@ func _verify() -> void:
     check(right.visible and front._selected_match_mode=="classic",
         "Battle Royale selector not restored on return to play screen")
     front._welcome()
-    check((not is_instance_valid(right) or not right.visible) and
+    # _welcome() detaches and queues the old right-side OptionButton.
+    # A queued Control can retain visible=true until frame teardown;
+    # is_visible_in_tree() is the correct end-user visibility assertion.
+    check((not is_instance_valid(right) or not right.is_visible_in_tree()) and
         front._mode_gallery_entry==null,
         "mode selector/duplicate control leaks into login screen")
     front.queue_free()
