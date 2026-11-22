@@ -23,9 +23,13 @@ func _verify() -> void:
     root.add_child(phone)
     var tactical: Control=MAP.new()
     phone.add_child(tactical)
-    var actor:=CharacterBody3D.new()
-    root.add_child(actor)
+    # Real operator from the playable match, not a bare CharacterBody3D:
+    # the tactical overlay reads player air/health state while drawing.
+    var game: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
+    root.add_child(game)
+    var actor: CharacterBody3D=game.get_node("Operator")
     tactical.set("player",actor)
+    tactical.set("_follow_player",false)
     await process_frame
     check(tactical.size.distance_to(phone.size)<1.0,
         "real cartographic overlay failed to fill Motorola reference canvas")
@@ -83,7 +87,7 @@ func _verify() -> void:
         east,Rect2(Vector2.ZERO,Vector2(8,8)))
     check(tiny.is_empty(),"undersized map invented a callout")
     phone.queue_free()
-    actor.queue_free()
+    game.queue_free()
     await process_frame
     if not failed:
         print("V75157_MAP_EDGE_GUIDANCE PASS viewport=964x434 "+
