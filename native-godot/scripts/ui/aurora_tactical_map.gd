@@ -249,10 +249,12 @@ func _gui_input(event: InputEvent) -> void:
             var previous: Vector2=_touches[drag.index]
             var old_positions: Array=_touches.values()
             var old_separation: float=0.0
+            var previous_mid: Vector2=Vector2.ZERO
             if old_positions.size()==2:
                 var old_a: Vector2=old_positions[0]
                 var old_b: Vector2=old_positions[1]
                 old_separation=old_a.distance_to(old_b)
+                previous_mid=(old_a+old_b)*.5
             _touches[drag.index]=drag.position
             if _touches.size()==2:
                 var fingers: Array=_touches.values()
@@ -262,7 +264,6 @@ func _gui_input(event: InputEvent) -> void:
                 # Translation follows the fingers, not the player. The
                 # subsequent anchored zoom retains the point under the
                 # midpoint of the pinch without dragging off the island.
-                var previous_mid: Vector2=(old_a+old_b)*.5
                 var current_mid: Vector2=(first+second)*.5
                 pan-=(current_mid-previous_mid)*_meters_per_pixel(rect)
                 _follow_player=false
