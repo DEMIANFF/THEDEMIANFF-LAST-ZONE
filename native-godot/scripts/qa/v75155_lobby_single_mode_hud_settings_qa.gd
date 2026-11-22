@@ -90,7 +90,8 @@ func _verify() -> void:
     check(slots!=null and slots.get_item_count()==4 and
         edit!=null and edit.is_visible_in_tree(),
         "HUD's four saved presets and real editor are not inside AJUSTES")
-    check(modal.hud_editor_requested.get_connections().size()==1,
+    check(modal.is_connected("hud_editor_requested",
+        Callable(front,"_settings_edit_hud")),
         "settings HUD action has no lobby return-context handler")
     modal.call("_close")
     check(front._settings_modal==null and not paused and
