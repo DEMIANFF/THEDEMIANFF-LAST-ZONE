@@ -26,11 +26,19 @@ func _verify() -> void:
     root.add_child(front)
     await front.wait_for_startup()
     front._show_lobby()
-    front._select_tab("AJUSTES")
-    check(front._settings_panel.visible,"settings tab not visible in lobby")
-    var editor_entry: Button=front._settings_panel.get_node_or_null("EditHUDEntry") as Button
-    check(editor_entry!=null and editor_entry.visible and not editor_entry.disabled,
-        "real HUD editor button not accessible from lobby settings")
+    front._top_settings_button.pressed.emit()
+    var modal: CanvasLayer=front._settings_modal
+    check(modal!=null and
+        modal.find_child("SettingsWindow",true,false)!=null,
+        "one native settings window is not accessible from the gear")
+    if modal==null:
+        front.queue_free()
+        quit(1)
+        return
+    var editor_entry: Button=modal.find_child("EditCurrentHud",true,false) as Button
+    check(editor_entry!=null and editor_entry.is_visible_in_tree() and
+        not editor_entry.disabled,
+        "HUD personalization button not accessible within settings")
     var portrait: Node3D=front._preview_avatar
     check(portrait!=null and is_instance_valid(portrait),
         "3D operator preview did not load")
@@ -48,7 +56,8 @@ func _verify() -> void:
         front._surface.has_node("LobbySidebarBackplate"),
         "Aurora lobby background panels missing")
 
-    front._launch_hud_editor()
+    if editor_entry!=null:
+        editor_entry.pressed.emit()
     for i in range(16):
         await process_frame
     check(front.stage=="training" and front._game!=null,

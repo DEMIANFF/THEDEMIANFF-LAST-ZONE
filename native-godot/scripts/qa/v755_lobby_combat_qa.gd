@@ -19,17 +19,30 @@ func verify() -> void:
     front._show_lobby()
     await process_frame
     check(front.stage=="lobby","lobby not displayed")
-    check(front._lobby_nav!=null and front._lobby_nav.get_child_count()==9,
-        "merged objectives navigation tabs missing")
+    check(front._lobby_nav!=null and front._lobby_nav.get_child_count()==0 and
+        front._left_shortcuts.get_child_count()==6 and
+        front._bottom_navigation.get_child_count()==5,
+        "real six-shortcut rail and five-action footer are incomplete")
     check(front._preview_container.visible,"character 3D preview hidden")
     check(front._surface.has_node("OriginalAuroraCoast"),"Aurora background missing")
     check(front._page.find_child("BattleButton",true,false)!=null,"BR launch missing")
     check(front._page.find_child("TrainingButton",true,false)!=null,"training launch missing")
-    for tab in ["JUGAR","PERSONAJE","ARMAS","OBJETIVOS","TIENDA","PASE","SOCIAL","CUENTA","AJUSTES"]:
+    for tab in ["JUGAR","PERSONAJE","ARMAS","OBJETIVOS","TIENDA","PASE","SOCIAL","CUENTA"]:
         front._select_tab(tab)
         check(front._info.text.length()>15,"empty tab "+tab)
-        check(front._settings_panel.visible==(tab=="AJUSTES"),"incorrect setting panel visibility "+tab)
-    check(front._info.text.find("Sensibilidad")>=0,"camera setting disclosure")
+    front._top_settings_button.pressed.emit()
+    var settings: CanvasLayer=front._settings_modal
+    check(settings!=null and
+        settings.find_child("HUDPresetSelector",true,false)!=null,
+        "only native settings modal did not expose HUD layouts")
+    if settings!=null:
+        settings.call("_show_subcategory","SENSIBILIDAD")
+        check(settings.find_child("Sensitivity_general",true,false)!=null and
+            settings.find_child("Sensitivity_ads",true,false)!=null,
+            "general/ADS camera sliders missing in canonical settings")
+        settings.call("_close")
+    check(front._settings_modal==null and not paused,
+        "closing settings did not resume the 3D lobby")
     front._select_tab("JUGAR")
     for resolution in [Vector2i(1024,768),Vector2i(1280,720),Vector2i(2712,1220)]:
         root.size=resolution

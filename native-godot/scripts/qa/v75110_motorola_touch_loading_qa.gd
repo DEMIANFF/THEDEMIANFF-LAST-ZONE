@@ -58,9 +58,11 @@ func _verify() -> void:
     safe=root.get_visible_rect()
 
     # These header buttons were only ~32px high in V75.109 at 434px height.
-    for button in [front._top_account_button,front._top_settings_button,
-            front._top_social_button]:
+    for button in [front._top_account_button,front._top_settings_button]:
         _check_target(button,safe,44.0)
+    check(not front._top_social_button.is_visible_in_tree() and
+        front._bottom_navigation.get_node_or_null("BottomSOCIAL")!=null,
+        "obsolete header SOCIAL is interactable or footer SOCIAL missing")
     check(front._left_shortcuts.get_child_count()==6,
         "six functional Aurora commerce shortcuts are missing")
     var previous_bottom: float=-1.0

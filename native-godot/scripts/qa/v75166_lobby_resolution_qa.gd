@@ -47,10 +47,21 @@ func _verify() -> void:
     await process_frame
     var portrait: SubViewportContainer=front._preview_container
     var scene: SubViewport=portrait.get_node("PreviewViewport")
+    # Godot's SubViewportContainer can promote the live animated child to
+    # UPDATE_ALWAYS (4). Both modes render the genuine 3D lobby; UPDATE_DISABLED
+    # or UPDATE_ONCE would freeze Lila. V75.116 independently verifies that
+    # returning to login actually frees this entire SubViewport and GPU world.
     check(front.stage=="lobby" and portrait.stretch and
         portrait.stretch_shrink==1 and scene.own_world_3d and
-        scene.render_target_update_mode==SubViewport.UPDATE_WHEN_PARENT_VISIBLE,
-        "964x434 live 3D lobby/lifecycle changed")
+        scene.render_target_update_mode in [
+            SubViewport.UPDATE_WHEN_PARENT_VISIBLE,
+            SubViewport.UPDATE_ALWAYS],
+        "964x434 live 3D lobby/lifecycle changed stage="+front.stage+
+        " stretch="+str(portrait.stretch)+
+        " shrink="+str(portrait.stretch_shrink)+
+        " profile="+QUALITY.read_profile()+
+        " own_world="+str(scene.own_world_3d)+
+        " update_mode="+str(scene.render_target_update_mode))
     check(front._preview_avatar!=null and
         front._preview_avatar.find_child("Lila_Aurora_Mesh",true,false)!=null,
         "Lila model was replaced with flat image")

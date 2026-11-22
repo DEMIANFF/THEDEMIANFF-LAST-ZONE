@@ -1,4 +1,6 @@
 extends SceneTree
+const RESOLUTION=preload("res://scripts/ui/aurora_lobby_resolution.gd")
+const QUALITY=preload("res://scripts/render/aurora_render_budget.gd")
 
 var failed: bool=false
 
@@ -95,8 +97,13 @@ func _verify() -> void:
             not battle.intersects(front._match_mode_selector.get_global_rect()) and
             not battle.intersects(front._bottom_navigation.get_global_rect()),
             "overlapping match controls at "+str(size))
-        _check(viewport.size.x*viewport.size.y<=550000,
-            "lobby render target exceeded its previous pixel budget")
+        var profile: String=QUALITY.read_profile()
+        var budget: float=float(RESOLUTION.PIXEL_BUDGETS.get(profile,1550000.0))
+        _check(front._preview_container.stretch_shrink==
+            RESOLUTION.shrink_for_size(safe.size,profile) and
+            float(viewport.size.x*viewport.size.y)<=budget+5000.0,
+            "lobby 3D exceeds selected quality profile "+profile+
+            " at "+str(size)+", target "+str(viewport.size))
 
     var freed_world: WeakRef=weakref(viewport)
     front._welcome()

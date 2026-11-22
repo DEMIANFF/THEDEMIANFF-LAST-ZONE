@@ -1,4 +1,6 @@
 extends SceneTree
+const RESOLUTION=preload("res://scripts/ui/aurora_lobby_resolution.gd")
+const QUALITY=preload("res://scripts/render/aurora_render_budget.gd")
 ## V75.109 native user-facing composition, NOT a screenshot overlay.
 ## Verify actual panel stacking, tap targets, real resource loading,
 ## live Battle Royale action and clean entry/lobby lifecycle.
@@ -80,9 +82,14 @@ func _verify() -> void:
         "3D Base Aurora is still a disconnected portrait window")
     var active_viewport: SubViewport=front._preview_container.get_node(
         "PreviewViewport") as SubViewport
+    var render_profile: String=QUALITY.read_profile()
+    var budget: float=float(RESOLUTION.PIXEL_BUDGETS.get(render_profile,1550000.0))
     check(active_viewport!=null and
-        active_viewport.size.x*active_viewport.size.y<=550000,
-        "3D backdrop rendered above mobile safe VRAM resolution")
+        front._preview_container.stretch_shrink==
+            RESOLUTION.shrink_for_size(safe.size,render_profile) and
+        float(active_viewport.size.x*active_viewport.size.y)<=budget+5000.0,
+        "3D backdrop exceeded selected profile budget: "+render_profile+
+        " viewport="+str(active_viewport.size))
     var main_card: Control=front._play_match_card
     check(main_card.get_index()>front._preview_container.get_index() and
         front._social_panel.get_index()>front._preview_container.get_index() and

@@ -27,9 +27,11 @@ func _verify() -> void:
     front._show_lobby()
     await process_frame
     check(front._selected_tab=="JUGAR","initial tab must be JUGAR")
-    check(front._lobby_nav.get_child_count()==9,"9 navigation entries expected")
-    check(front._lobby_nav.get_child(0).name=="TabJUGAR",
-        "JUGAR must be top-level primary action")
+    check(front._lobby_nav.get_child_count()==0,
+        "obsolete nine hidden navigation entries reappeared")
+    check(front._bottom_navigation.get_child_count()==5 and
+        front._bottom_navigation.get_child(0).name=="BottomJUGAR",
+        "real JUGAR action must be first in the active footer")
     check(front._battle_entry.visible and not front._training_entry.visible,
         "classic must be ready on initial lobby")
     check(front._lobby_section_title.text.contains("BATTLE ROYALE"),
