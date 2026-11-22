@@ -103,6 +103,17 @@ func _verify() -> void:
             hud.call("_refresh_heading")
             check(compass.text==str(entry["text"]),
                 "top HUD reports east/west opposite to real Godot camera")
+    # The actual 3D HUD heading must respond without waiting for the
+    # old 600 ms FPS readout refresh; this uses the live HUD _process().
+    if compass!=null:
+        player.set("_yaw",-PI*.5)
+        hud.set("_heading_clock",0.01)
+        hud.set("_fps_clock",0.50)
+        hud.call("_process",0.09)
+        check(compass.text=="E  090°" and
+            float(hud.get("_heading_clock"))>.07 and
+            float(hud.get("_fps_clock"))>.35,
+            "real compass still waits for the sluggish FPS clock")
     # Directional grenade warnings use the SAME world-space camera signs.
     var warning: Label=hud.get("_real_grenade_warning_label") as Label
     check(warning!=null,"physical grenade warning label was lost")
@@ -221,5 +232,5 @@ func _verify() -> void:
             "north_up=1 local_80m=1 zone_245m_stable=1 "+
             "air_range=145 canopy_range=110 compass=1 motion_redraw=1 "+
             "exact_nearby_waypoint=1 distant_edge_marker=1 "+
-            "hud_cardinal=4 grenade_camera_bearings=3")
+            "hud_cardinal=4 grenade_camera_bearings=3 heading_80ms=1")
     quit(1 if failed else 0)
