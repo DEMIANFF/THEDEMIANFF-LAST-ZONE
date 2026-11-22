@@ -453,6 +453,8 @@ func _advance_awm_bolt(delta: float) -> void:
 func _cancel_awm_bolt() -> void:
     _awm_bolt_pending=false
     _awm_bolt_remaining=0.0
+    if _weapon_visuals:
+        _weapon_visuals.cancel_awm_mechanical_cycle()
 
 
 func _shoot() -> void:
@@ -482,6 +484,8 @@ func _shoot() -> void:
     if weapon_index==WEAPONS.AWM:
         _awm_bolt_remaining=AWM_BOLT_CUE_SECONDS
         _awm_bolt_pending=true
+        if _weapon_visuals:
+            _weapon_visuals.begin_awm_mechanical_cycle()
     _sync_hud()
     operator.apply_recoil(WEAPONS.ENTRIES[weapon_index]["recoil"])
     operator.play_weapon_action("fire",.24 if weapon_index==1 else .13)
