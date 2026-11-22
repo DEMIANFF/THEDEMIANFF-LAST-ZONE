@@ -433,6 +433,23 @@ func _draw_zone_in_local_disc(world_center: Vector2,world_radius: float,
         previous=current
 
 
+## Never shrink an in-range destination by 10 px: its ground
+## coordinate must align with the terrain and every physical loot icon.
+## Only out-of-range marks clamp to the circular bezel as direction cues.
+func _waypoint_marker(center: Vector2,radius: float,
+        world_range: float) -> Dictionary:
+    if not _waypoint.is_finite() or not is_instance_valid(player) or (
+            radius<=11.0 or world_range<=0.0):
+        return {}
+    var exact: Vector2=_world_to_radar(_waypoint,
+        center,radius,world_range)
+    var relative: Vector2=exact-center
+    var outside: bool=relative.length()>radius-11.0
+    var player_at:=Vector2(player.global_position.x,player.global_position.z)
+    return {"at":center+relative.limit_length(radius-11.0),
+        "outside":outside,"distance_m":player_at.distance_to(_waypoint)}
+
+
 func _draw_navigation_compass(center: Vector2,radius: float,
         world_range: float) -> void:
     var yaw: float=_radar_yaw()
@@ -504,20 +521,26 @@ func _draw() -> void:
         _draw_zone_in_local_disc(_next_zone_center,_next_zone_radius,
             center,radius,world_range,Color(.99,.79,.37,.85),1.6)
     if _waypoint.is_finite():
-        var position: Vector2=Vector2(player.global_position.x,player.global_position.z)
-        var waypoint_delta: Vector2=(_waypoint-position).rotated(yaw)
-        # Keep the real target INSIDE the circular terrain bezel, even
-        # when far away; it must not overlap the invisible map touch area
-        # or adjacent controls on 964x434 phone screens.
-        var dot: Vector2=center+waypoint_delta.limit_length(world_range)*(
-            (radius-10.0)/world_range)
-        if _battle_mode:
-            # Ground combat keeps a subtler real navigation line too;
-            # arrival/heading remains attached to the physical destination.
-            var opacity: float=.56 if player.air_mode!="ground" else .29
-            draw_line(center,dot,Color(1.0,.71,.16,opacity),1.5,true)
-        draw_circle(dot,5.3,Color(1.0,.73,.15))
-        draw_arc(dot,8.0,0,TAU,28,Color(1.0,.90,.42),1.6)
+        var waypoint_icon: Dictionary=_waypoint_marker(
+            center,radius,world_range)
+        if not waypoint_icon.is_empty():
+            var dot: Vector2=waypoint_icon["at"]
+            if _battle_mode:
+                var opacity: float=.56 if player.air_mode!="ground" else .29
+                draw_line(center,dot,Color(1.0,.71,.16,opacity),1.5,true)
+            if bool(waypoint_icon["outside"]):
+                # Point outward to a REAL marked destination beyond 80m,
+                # never draw it at an invented in-range terrain coordinate.
+                var bearing: Vector2=(dot-center).normalized()
+                var wing:=Vector2(-bearing.y,bearing.x)
+                var arrow:=PackedVector2Array([
+                    dot+bearing*5.0,
+                    dot-bearing*6.0+wing*4.0,
+                    dot-bearing*6.0-wing*4.0])
+                draw_colored_polygon(arrow,Color(1.0,.82,.31))
+            else:
+                draw_circle(dot,5.3,Color(1.0,.73,.15))
+                draw_arc(dot,8.0,0,TAU,28,Color(1.0,.90,.42),1.6)
     if _battle_mode:
         # Resource dots use real Area3D collision items, not a second
         # simulated loot map. Yellow=ammo, red=medical, blue=equipment.
