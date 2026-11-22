@@ -81,6 +81,16 @@ func _ready() -> void:
     # Remove the redundant row to give the remaining buttons touch-safe height.
 
 
+func _notification(what: int) -> void:
+    if what==NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():
+        # Closing the tactical overlay can interrupt an active Android
+        # gesture. Never carry stale touch IDs into the next map opening.
+        _touches.clear()
+        _touch_starts.clear()
+        _drag_touch=-1
+        _touch_gesture_multitouch=false
+
+
 func _action(title: String,handler: Callable) -> void:
     var btn:=Button.new()
     btn.name="MapAction"+str(_control_panel.get_child_count())
