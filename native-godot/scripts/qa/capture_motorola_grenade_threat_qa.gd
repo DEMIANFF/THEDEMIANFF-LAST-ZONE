@@ -36,6 +36,9 @@ func _capture() -> void:
     for rival in combat._targets:
         rival.set_physics_process(false)
     await physics_frame
+    # The public lobby selects a single 50-player classic roster.
+    # A standalone QA scene must use the SAME gameplay contract.
+    combat.set_encounter_size(50)
     director.start_sector_battle()
     director.set_process(false)
     combat.set_process(false)
