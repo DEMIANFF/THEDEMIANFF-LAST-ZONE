@@ -244,6 +244,8 @@ func _ready() -> void:
     _real_grenade_warning_label=_text(root,"",.36,.215,15,
         Color(1.0,.61,.30),HORIZONTAL_ALIGNMENT_CENTER)
     _real_grenade_warning_label.name="LivePhysicalGrenadeThreat"
+    # Keep directional distance and countdown legible on 964x434.
+    _real_grenade_warning_label.add_theme_font_size_override("font_size",12)
     _real_grenade_warning_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _real_grenade_warning_label.visible=false
     _combat_feed_label=_text(root,"",.35,.185,12,Color(.91,.96,.99),HORIZONTAL_ALIGNMENT_RIGHT)
@@ -1145,12 +1147,33 @@ func _process(delta: float) -> void:
 
 ## Short-lived warning only if an actual, physically moving grenade is
 ## near the player's CharacterBody3D. It does not reveal enemy locations.
-func show_real_grenade_warning(seconds_left: float) -> void:
+func show_real_grenade_warning(seconds_left: float,
+        at: Vector3=Vector3(INF,INF,INF)) -> void:
     if _real_grenade_warning_label==null or air_stage!="ground":
         return
+    # Use the exact physical fuse position and the actual player's camera.
+    # A zero-argument HUD-only call remains possible for older UI tests.
+    var location: String=""
+    var actor: CharacterBody3D=(
+        _training_radar.get("player") as CharacterBody3D
+        if _training_radar!=null else null)
+    if at.is_finite() and is_instance_valid(actor):
+        var delta:=Vector2(at.x-actor.global_position.x,
+            at.z-actor.global_position.z)
+        var angle: float=rad_to_deg(atan2(delta.x,-delta.y))
+        var relative: float=wrapf(
+            angle-rad_to_deg(float(actor.get("_yaw"))),-180.0,180.0)
+        var bearing: String="FRENTE"
+        if absf(relative)>=155.0:
+            bearing="DETRAS"
+        elif relative>=25.0:
+            bearing="DER"
+        elif relative<=-25.0:
+            bearing="IZQ"
+        location=" / %dm %s"%[roundi(delta.length()),bearing]
     _real_grenade_warning_left=.42
-    _real_grenade_warning_label.text="GRANADA CERCANA · %.1f s"%(
-        maxf(0.0,seconds_left))
+    _real_grenade_warning_label.text="GRANADA CERCANA%s / %.1fs"%[
+        location,maxf(0.0,seconds_left)]
     _real_grenade_warning_label.visible=true
 
 

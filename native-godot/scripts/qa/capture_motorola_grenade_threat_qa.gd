@@ -54,6 +54,8 @@ func _capture() -> void:
     combat.add_child(grenade)
     grenade.global_position=player.global_position+Vector3(2.0,.2,0.0)
     grenade.excluded=player.get_rid()
+    # Capture the same projectile array queried in live gameplay maps.
+    combat._grenades.append(grenade)
     grenade.velocity=Vector3.ZERO
     grenade.set_physics_process(false)
     grenade.audible_fuse.connect(combat._on_grenade_audible_fuse)
@@ -72,6 +74,29 @@ func _capture() -> void:
     if not await _screen("real-grenade-fuse-warning",tag):
         quit(4)
         return
+    var radar: Control=hud.get_node(
+        "AuroraTacticalOverlay/AuroraTrainingRadar")
+    var map: Control=hud.get_node(
+        "AuroraTacticalOverlay/AuroraFullTacticalMap")
+    if (radar.call("nearby_live_grenade_hazards") as Array).size()!=1:
+        push_error("V75150_CAPTURE missing physical minimap grenade")
+        quit(7)
+        return
+    if not await _screen("real-grenade-minimap",tag):
+        quit(8)
+        return
+    hud.get_node("AuroraTacticalOverlay/MAPA").button_down.emit()
+    if (not map.visible or
+            (map.call("_live_active_grenades") as Array).size()!=1):
+        push_error("V75150_CAPTURE grenade did not appear on tactical map")
+        quit(9)
+        return
+    for i in range(3):
+        await process_frame
+    if not await _screen("real-grenade-tactical-map",tag):
+        quit(10)
+        return
+    map.get_node("MapActions/MapAction0").pressed.emit()
     grenade._remaining=.01
     grenade._physics_process(.03)
     var ring: MeshInstance3D=combat.get_node_or_null(
@@ -87,6 +112,6 @@ func _capture() -> void:
         return
     game.queue_free()
     await process_frame
-    print("V75148_GRENADE_CAPTURE PASS 964x434 screenshots=2 "+
+    print("V75150_GRENADE_CAPTURE PASS 964x434 screenshots=4 "+
         "grenade_real=1 AI_damage=1 shockwave_real=1 mobile_hardware=NO")
     quit(0)
