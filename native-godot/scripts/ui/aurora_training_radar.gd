@@ -236,9 +236,9 @@ func _refresh_zone_label() -> void:
         _zone_label.text=caption
 
 
-## A fixed 130 m radar made the 245 m opening circle disappear. Fit both
-## real rings around the player (including moving centres), with a 10% margin.
-## No fabricated zone position or independent hazard simulation.
+## Legacy whole-ring coverage diagnostic for the full overview; the
+## navigable combat radar has its OWN stable local detail range so the
+## actual map does not shrink when a distant safe zone is 245 m wide.
 func _world_range() -> float:
     if not _zone_enabled or not is_instance_valid(player):
         return 60.0
@@ -406,6 +406,70 @@ func aircraft_route_pixels() -> PackedVector2Array:
     return points
 
 
+## Only draw safe-zone boundary segments that really intersect the
+## local circular radar. The rest stays on the full tactical map; a
+## distant 245 m ring may never wash over a tiny 80 m combat minimap.
+func _draw_zone_in_local_disc(world_center: Vector2,world_radius: float,
+        center: Vector2,radius: float,world_range: float,
+        tint: Color,width: float) -> void:
+    if world_radius<=0.0 or radius<=2.0 or world_range<=0.0:
+        return
+    var projected: Vector2=_world_to_radar(
+        world_center,center,radius,world_range)
+    var projected_radius: float=world_radius*radius/world_range
+    var center_distance: float=projected.distance_to(center)
+    var clip_radius: float=radius-2.0
+    if center_distance>projected_radius+clip_radius or (
+            projected_radius>center_distance+clip_radius):
+        return
+    var segments: int=clampi(ceili(TAU*projected_radius/4.5),72,192)
+    var previous: Vector2=projected+Vector2(projected_radius,0.0)
+    for i in range(1,segments+1):
+        var angle: float=TAU*float(i)/float(segments)
+        var current: Vector2=projected+Vector2.from_angle(angle)*projected_radius
+        if (previous.distance_squared_to(center)<=clip_radius*clip_radius and
+                current.distance_squared_to(center)<=clip_radius*clip_radius):
+            draw_line(previous,current,tint,width,true)
+        previous=current
+
+
+func _draw_navigation_compass(center: Vector2,radius: float,
+        world_range: float) -> void:
+    var yaw: float=_radar_yaw()
+    var font: Font=get_theme_default_font()
+    var labels: Array[String]=["N","E","S","O"]
+    var world_axes: Array[Vector2]=[
+        Vector2.UP,Vector2.RIGHT,Vector2.DOWN,Vector2.LEFT]
+    for i in range(world_axes.size()):
+        var offset: Vector2=world_axes[i].rotated(yaw)*(radius-13.0)
+        var color: Color=Color(1.0,.79,.35) if i==0 else Color(.80,.92,.97)
+        draw_string(font,center+offset+Vector2(-4,4),labels[i],
+            HORIZONTAL_ALIGNMENT_LEFT,-1,11,color)
+    # Contrast helps the player's actual centre survive snowy map tiles.
+    draw_circle(center,9.0,Color(.017,.058,.08,.98))
+    draw_arc(center,9.8,0,TAU,24,Color(.80,.97,1.0,.94),1.4,true)
+    var facing: Vector2=_player_screen_forward()
+    var lateral:=Vector2(-facing.y,facing.x)
+    var tip:=PackedVector2Array([
+        center+facing*12.0,
+        center-facing*6.0+lateral*5.5,
+        center-facing*6.0-lateral*5.5])
+    draw_colored_polygon(tip,Color(1.0,1.0,.95))
+    # Camera and body may face different directions. This GOLD tail uses
+    # real movement velocity (including strafing) so a RIGHT swipe or
+    # joystick move never masquerades as forward motion on the compass.
+    if is_instance_valid(player):
+        var movement:=Vector2(player.velocity.x,player.velocity.z)
+        if movement.length_squared()>1.44:
+            var heading: Vector2=movement.normalized().rotated(yaw)
+            draw_line(center+heading*12.0,center+heading*22.0,
+                Color(1.0,.69,.16),2.5,true)
+            draw_circle(center+heading*23.0,2.8,Color(1.0,.82,.33))
+    draw_string(font,Vector2(7.0,size.y-6.0),
+        "RADIO %d m"%roundi(world_range),
+        HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color(.96,.98,.93))
+
+
 func _draw() -> void:
     var rect: Rect2=Rect2(Vector2.ZERO,size)
     draw_rect(rect,Color(.025,.09,.13,.77))
@@ -429,26 +493,16 @@ func _draw() -> void:
     draw_arc(center,radius*.5,0,TAU,52,Color(.75,.91,.92,.27),1.0,true)
     draw_line(center+Vector2(-radius,0),center+Vector2(radius,0),Color(.28,.50,.55,.32),1.0)
     draw_line(center+Vector2(0,-radius),center+Vector2(0,radius),Color(.28,.50,.55,.32),1.0)
-    var arrow:=PackedVector2Array([center+Vector2(0,-8),center+Vector2(-5,6),center+Vector2(5,6)])
-    draw_colored_polygon(arrow,Color(.75,.99,1.0))
+    # Compass/player pointer are drawn LAST so world icons cannot obscure
+    # the actual actor location or the movement direction.
     if _zone_enabled:
-        var offset: Vector2=_zone_world_center-Vector2(player.global_position.x,player.global_position.z)
-        var screen_position: Vector2=center+offset.rotated(yaw)*(radius/world_range)
-        var mapped_radius: float=_zone_radius*radius/world_range
-        draw_arc(screen_position,mapped_radius,0,TAU,72,Color(.42,.97,1.0,.91),2.7,true)
+        _draw_zone_in_local_disc(_zone_world_center,_zone_radius,
+            center,radius,world_range,Color(.42,.97,1.0,.91),2.7)
     if _next_zone_enabled:
-        # A subtle planned-ring marker is essential when the safe-zone
-        # center moves; the player sees WHERE to rotate, not a random
-        # unseen moving hazard. The marker uses exact geometry, not fake
-        # target coordinates or a second selectable match option.
-        var next_offset: Vector2=_next_zone_center-Vector2(
-            player.global_position.x,player.global_position.z)
-        var next_position: Vector2=center+next_offset.rotated(yaw)*(
-            radius/world_range)
-        var planned_radius: float=_next_zone_radius*radius/world_range
-        draw_arc(next_position,maxf(.4,planned_radius),0,TAU,60,
-            Color(.99,.79,.37,.85),1.6,true)
-        draw_circle(next_position,2.0,Color(.99,.79,.37,.8))
+        # The next ring is physical zone geometry, not an independently
+        # scaled circle that obscures the local buildings or player.
+        _draw_zone_in_local_disc(_next_zone_center,_next_zone_radius,
+            center,radius,world_range,Color(.99,.79,.37,.85),1.6)
     if _waypoint.is_finite():
         var position: Vector2=Vector2(player.global_position.x,player.global_position.z)
         var waypoint_delta: Vector2=(_waypoint-position).rotated(yaw)
@@ -528,6 +582,7 @@ func _draw() -> void:
             draw_arc(dot,7.0,0,TAU,22,Color(1.0,.53,.25,alpha),1.8,true)
             draw_circle(dot,2.5,Color(1.0,.65,.34,alpha*.9))
         return
+    _draw_navigation_compass(center,radius,world_range)
     for bot in opponents:
         if not is_instance_valid(bot) or not bot.visible:
             continue
