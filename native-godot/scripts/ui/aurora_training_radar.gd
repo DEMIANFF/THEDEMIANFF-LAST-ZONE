@@ -178,10 +178,12 @@ func landing_waypoint_guidance() -> Dictionary:
     var distance: float=delta.length()
     var camera_degrees: float=rad_to_deg(float(player.get("_yaw")))
     var world_bearing: float=rad_to_deg(atan2(delta.x,-delta.y))
+    # Godot +Y camera yaw turns its forward -Z toward WEST. A destination
+    # world-bearing east (+90) is directly ahead when camera yaw is -90.
     return {
         "world":_waypoint,
         "distance_m":distance,
-        "relative_degrees":wrapf(world_bearing-camera_degrees,-180.0,180.0)
+        "relative_degrees":wrapf(world_bearing+camera_degrees,-180.0,180.0)
     }
 
 
@@ -363,8 +365,22 @@ func _process(delta: float) -> void:
         else:
             _gunfire_pings[i]=ping
     _tick+=delta
-    if _tick>=.2:
-        _tick=0
+    # At rest retain the original 5 Hz redraw budget. While moving or
+    # turning, repaint up to 25 Hz to avoid 200 ms map input latency.
+    var moving: bool=false
+    if is_instance_valid(player):
+        var where:=Vector2(player.global_position.x,player.global_position.z)
+        var heading: float=_radar_yaw()
+        moving=(where.distance_squared_to(_last_radar_position)>.16 or
+            not is_finite(_last_radar_yaw) or
+            absf(angle_difference(_last_radar_yaw,heading))>.025)
+        if (_tick>=.20 or (moving and _tick>=.04)):
+            _last_radar_position=where
+            _last_radar_yaw=heading
+            _tick=0.0
+            queue_redraw()
+    elif _tick>=.20:
+        _tick=0.0
         queue_redraw()
 
 
@@ -384,11 +400,9 @@ func aircraft_route_pixels() -> PackedVector2Array:
     var world_range: float=_detail_range()
     if radius<1.0 or world_range<=.001:
         return points
-    var yaw: float=_radar_yaw()
-    var listener:=Vector2(player.global_position.x,player.global_position.z)
     for z in [AIRDROP.ROUTE_START_Z,AIRDROP.ROUTE_END_Z]:
-        var relative: Vector2=(Vector2(0.0,z)-listener).rotated(-yaw)
-        points.append(center+relative*(radius/world_range))
+        points.append(_world_to_radar(Vector2(0.0,z),
+            center,radius,world_range))
     return points
 
 
@@ -419,7 +433,7 @@ func _draw() -> void:
     draw_colored_polygon(arrow,Color(.75,.99,1.0))
     if _zone_enabled:
         var offset: Vector2=_zone_world_center-Vector2(player.global_position.x,player.global_position.z)
-        var screen_position: Vector2=center+offset.rotated(-yaw)*(radius/world_range)
+        var screen_position: Vector2=center+offset.rotated(yaw)*(radius/world_range)
         var mapped_radius: float=_zone_radius*radius/world_range
         draw_arc(screen_position,mapped_radius,0,TAU,72,Color(.42,.97,1.0,.91),2.7,true)
     if _next_zone_enabled:
@@ -429,7 +443,7 @@ func _draw() -> void:
         # target coordinates or a second selectable match option.
         var next_offset: Vector2=_next_zone_center-Vector2(
             player.global_position.x,player.global_position.z)
-        var next_position: Vector2=center+next_offset.rotated(-yaw)*(
+        var next_position: Vector2=center+next_offset.rotated(yaw)*(
             radius/world_range)
         var planned_radius: float=_next_zone_radius*radius/world_range
         draw_arc(next_position,maxf(.4,planned_radius),0,TAU,60,
@@ -437,7 +451,7 @@ func _draw() -> void:
         draw_circle(next_position,2.0,Color(.99,.79,.37,.8))
     if _waypoint.is_finite():
         var position: Vector2=Vector2(player.global_position.x,player.global_position.z)
-        var waypoint_delta: Vector2=(_waypoint-position).rotated(-yaw)
+        var waypoint_delta: Vector2=(_waypoint-position).rotated(yaw)
         # Keep the real target INSIDE the circular terrain bezel, even
         # when far away; it must not overlap the invisible map touch area
         # or adjacent controls on 964x434 phone screens.
@@ -457,7 +471,7 @@ func _draw() -> void:
             player.global_position.x,player.global_position.z)
         for resource in nearby_physical_resources():
             var relative: Vector2=(resource["at"] as Vector2)-physical_listener
-            var dot: Vector2=center+relative.rotated(-yaw)*(
+            var dot: Vector2=center+relative.rotated(yaw)*(
                 radius/world_range)
             if dot.distance_to(center)>radius-6.0:
                 continue
@@ -472,7 +486,7 @@ func _draw() -> void:
         # Node3D. It is never an enemy wallhack or a persistent map ping.
         for hazard in nearby_live_grenade_hazards():
             var relative: Vector2=(hazard["at"] as Vector2)-physical_listener
-            var dot: Vector2=center+relative.rotated(-yaw)*(
+            var dot: Vector2=center+relative.rotated(yaw)*(
                 radius/world_range)
             if dot.distance_to(center)>radius-8.0:
                 continue
@@ -480,7 +494,7 @@ func _draw() -> void:
             draw_arc(dot,8.2,0,TAU,22,Color(1.0,.72,.34,.94),1.7)
         for at in nearby_physical_vehicles():
             var relative: Vector2=at-physical_listener
-            var dot: Vector2=center+relative.rotated(-yaw)*(
+            var dot: Vector2=center+relative.rotated(yaw)*(
                 radius/world_range)
             if dot.distance_to(center)>radius-7.0:
                 continue
@@ -493,7 +507,7 @@ func _draw() -> void:
             player.global_position.x,player.global_position.z)
         for cache_at in _nearby_supply_markers():
             var relative: Vector2=cache_at-listener
-            var dot: Vector2=center+relative.rotated(-yaw)*(
+            var dot: Vector2=center+relative.rotated(yaw)*(
                 radius/world_range)
             if dot.distance_to(center)>radius-6.0:
                 continue
@@ -508,7 +522,7 @@ func _draw() -> void:
                 player.global_position.x,player.global_position.z)
             if relative.length_squared()>GUNFIRE_HEARING_RANGE*GUNFIRE_HEARING_RANGE:
                 continue
-            var dot: Vector2=center+relative.rotated(-yaw)*(radius/world_range)
+            var dot: Vector2=center+relative.rotated(yaw)*(radius/world_range)
             var alpha: float=clampf(float(ping["remaining"])/
                 GUNFIRE_PING_SECONDS,0.0,1.0)
             draw_arc(dot,7.0,0,TAU,22,Color(1.0,.53,.25,alpha),1.8,true)
@@ -521,6 +535,6 @@ func _draw() -> void:
                               bot.global_position.z-player.global_position.z)
         if relative.length()>world_range:
             continue
-        var dot: Vector2=center+relative.rotated(-yaw)*(radius/world_range)
+        var dot: Vector2=center+relative.rotated(yaw)*(radius/world_range)
         draw_circle(dot,5.3,Color(.98,.41,.27))
         draw_arc(dot,8.0,0,TAU,12,Color(1.0,.80,.63,.6),1.0)
