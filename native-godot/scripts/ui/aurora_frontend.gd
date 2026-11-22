@@ -3577,6 +3577,30 @@ func _build_preview() -> void:
     metal.roughness=.58
     podium.material_override=metal
     stage3d.add_child(podium)
+    # Original 3D podium illumination — the supplied reference has
+    # concentric cyan/violet light, not a flat painted circle. These are
+    # two tiny unshadowed static ring meshes, lobby-only and GPU-cheap.
+    for ring_index in range(2):
+        var ring:=MeshInstance3D.new()
+        ring.name="AuroraPortraitPodiumRing"+str(ring_index)
+        var torus:=TorusMesh.new()
+        torus.inner_radius=.695 if ring_index==0 else .790
+        torus.outer_radius=.725 if ring_index==0 else .816
+        torus.rings=24
+        torus.ring_segments=10
+        ring.mesh=torus
+        ring.position.y=.002 if ring_index==0 else -.031
+        var glow:=StandardMaterial3D.new()
+        glow.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+        glow.albedo_color=(Color(.09,.83,1.0) if ring_index==0
+            else Color(.48,.33,.96))
+        glow.emission_enabled=true
+        glow.emission=glow.albedo_color
+        glow.emission_energy_multiplier=2.1 if ring_index==0 else 1.35
+        glow.roughness=.35
+        ring.material_override=glow
+        ring.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+        stage3d.add_child(ring)
 
     if ResourceLoader.exists("res://assets/characters/lila_aurora.glb"):
         var source:=load("res://assets/characters/lila_aurora.glb") as PackedScene
