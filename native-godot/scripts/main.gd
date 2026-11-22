@@ -13,6 +13,7 @@ const AURORA_AUDIO=preload("res://scripts/audio/aurora_audio.gd")
 const TRACE=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 const RENDER_BUDGET=preload("res://scripts/render/aurora_render_budget.gd")
+const MICRO_SURFACE=preload("res://scripts/render/aurora_micro_surface.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
@@ -68,7 +69,15 @@ func _ready() -> void:
     var sea_material := StandardMaterial3D.new()
     sea_material.albedo_color = Color(0.045, 0.25, 0.31)
     sea_material.metallic = 0.11
-    sea_material.roughness = 0.23
+    sea_material.roughness = 0.26
+    # Same opaque depth-writing plane: no expensive refraction, screen grabs
+    # or third-party water image. Original 128px seamless ripples add tangible
+    # glints on Vulkan Mobile without spawning transparent particles.
+    sea_material.normal_enabled=true
+    sea_material.normal_texture=MICRO_SURFACE.texture(true)
+    sea_material.normal_scale=.30
+    sea_material.uv1_scale=Vector3(45.0,45.0,1.0)
+    sea_material.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
     sea_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
     # Opaque water writes depth and avoids 910x910m alpha overdraw on Mali.
     sea_material.emission_enabled = true
@@ -156,6 +165,9 @@ func _ready() -> void:
     add_child(match_director)
     match_director.aircraft_audio_changed.connect(sound.set_aircraft_audio)
     hud.set_tactical_map_sources(operator,island,match_director)
+    # Scene-wide quality is applied only AFTER the sun, the real world,
+    # native camera and instanced forest exist. No fake UI or second renderer.
+    render_budget.configure_scene(self)
     TRACE.checkpoint("active","scene_load",operator,"main_scene_ready")
 
 
@@ -176,6 +188,15 @@ func _set_up_lighting() -> void:
     world_env.background_mode=Environment.BG_SKY
     world_env.sky=sky
     world_env.ambient_light_energy = 0.82
+    # Light non-volumetric distance fog adds aerial perspective across the
+    # 675m playable island; the governor disables it in FLUIDEZ or when
+    # prolonged render-limited FPS requires the lowest fidelity setting.
+    # Mobile depth fog needs no voxel volumes or desktop Forward+ features.
+    world_env.fog_enabled=true
+    world_env.fog_light_color=Color(.40,.56,.68)
+    world_env.fog_density=.00165
+    world_env.fog_sky_affect=.16
+    world_env.fog_aerial_perspective=.23
     environment_node.environment = world_env
     add_child(environment_node)
 
@@ -184,5 +205,10 @@ func _set_up_lighting() -> void:
     sun.rotation = Vector3(-0.89, -0.42, 0.0)
     sun.light_color=Color(.92,.97,1.0)
     sun.light_energy = 1.25
-    sun.shadow_enabled = false  # Enabled selectively after real-device benchmark.
+    # Shadows use only TWO near-camera cascades within 64m when the
+    # player explicitly selects CLARIDAD on Vulkan Mobile.
+    # AUTO/FLUIDEZ never force full-world mobile shadow maps.
+    sun.directional_shadow_max_distance=64.0
+    sun.directional_shadow_mode=DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+    sun.shadow_enabled=false
     add_child(sun)

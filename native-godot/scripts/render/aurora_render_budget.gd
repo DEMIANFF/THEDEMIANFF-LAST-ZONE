@@ -31,6 +31,13 @@ var _sample_clock: float=0.0
 var _low_samples: int=0
 var _good_samples: int=0
 var _startup_time: float=0.0
+var _sun: DirectionalLight3D
+var _environment: WorldEnvironment
+var _nature: Node3D
+var shadow_detail_enabled: bool=false
+var fog_detail_enabled: bool=false
+var layered_foliage_enabled: bool=true
+var aa_detail: String="NONE"
 
 
 static func read_profile() -> String:
@@ -101,6 +108,58 @@ static func classify_bottleneck(fps: float,target: float,
     return "RENDER_OR_DRIVER"
 
 
+## Mobile renderer supports MSAA; Compatibility does not. The player
+## never pays the cost of near-sun shadow maps on AUTO/FLUIDEZ by default.
+## Synthetic inputs test the decision without claiming actual Motorola FPS.
+static func quality_flags(preset: String,scale: float,
+        method: String) -> Dictionary:
+    var lowest: bool=(preset=="FLUIDEZ" or
+        (preset=="AUTO" and scale<.86))
+    var clarity: bool=preset=="CLARIDAD"
+    var msaa: bool=clarity and method=="mobile"
+    return {
+        "msaa":msaa,
+        "fxaa":not msaa and not lowest,
+        "sun_shadow":clarity and method=="mobile",
+        "fog":not lowest,
+        "foliage":not lowest
+    }
+
+
+func configure_scene(game: Node3D) -> void:
+    # Called after the REAL scene and MultiMeshes are instantiated, without
+    # rescanning the tree or allocating resources in each physics frame.
+    _sun=game.get_node_or_null("ArcticSun") as DirectionalLight3D
+    _environment=game.get_node_or_null("AuroraAtmosphere") as WorldEnvironment
+    _nature=game.get_node_or_null("AuroraNature") as Node3D
+    _apply_scene_quality()
+
+
+func _apply_scene_quality() -> void:
+    if not is_instance_valid(_environment) or not is_instance_valid(_sun):
+        return
+    var flags: Dictionary=quality_flags(
+        profile,current_scale,RenderingServer.get_current_rendering_method())
+    var viewport: Viewport=get_viewport()
+    if viewport!=null:
+        viewport.msaa_3d=(
+            Viewport.MSAA_2X if bool(flags["msaa"]) else
+            Viewport.MSAA_DISABLED)
+        viewport.screen_space_aa=(
+            Viewport.SCREEN_SPACE_AA_FXAA if bool(flags["fxaa"]) else
+            Viewport.SCREEN_SPACE_AA_DISABLED)
+    shadow_detail_enabled=bool(flags["sun_shadow"])
+    fog_detail_enabled=bool(flags["fog"])
+    layered_foliage_enabled=bool(flags["foliage"])
+    aa_detail=("MSAA_2X" if bool(flags["msaa"]) else
+        "FXAA" if bool(flags["fxaa"]) else "OFF")
+    _sun.shadow_enabled=shadow_detail_enabled
+    if _environment.environment!=null:
+        _environment.environment.fog_enabled=fog_detail_enabled
+    if is_instance_valid(_nature):
+        _nature.call("set_visual_detail",layered_foliage_enabled)
+
+
 func _ready() -> void:
     name="AuroraRenderBudget"
     _startup_time=Time.get_ticks_msec()*.001
@@ -117,6 +176,7 @@ func _apply_scale(next: float) -> void:
         return
     viewport.scaling_3d_mode=Viewport.SCALING_3D_MODE_BILINEAR
     viewport.scaling_3d_scale=current_scale
+    _apply_scene_quality()
 
 
 func select_profile(value: String) -> Error:
@@ -188,6 +248,8 @@ func _exit_tree() -> void:
     var viewport: Viewport=get_viewport()
     if viewport!=null:
         viewport.scaling_3d_scale=1.0
+        viewport.msaa_3d=Viewport.MSAA_DISABLED
+        viewport.screen_space_aa=Viewport.SCREEN_SPACE_AA_DISABLED
 
 
 func snapshot() -> Dictionary:
@@ -202,5 +264,9 @@ func snapshot() -> Dictionary:
         "cpu_ms":last_cpu_ms,
         "frame_ms":last_frame_ms,
         "bottleneck":last_bottleneck,
-        "adjustments":changes
+        "adjustments":changes,
+        "sun_shadows":shadow_detail_enabled,
+        "depth_fog":fog_detail_enabled,
+        "pine_detail":layered_foliage_enabled,
+        "antialiasing":aa_detail
     }

@@ -8,6 +8,12 @@ var terrain: StaticBody3D
 # unreliable even when the scene was populated correctly.
 var pine_positions: Array[Vector3]=[]
 var ice_positions: Array[Vector3]=[]
+# The far forest stays in a single GPU MultiMesh per material in BOTH modes.
+# Quality changes swap a shared mesh (one draw call), never scatter or physics.
+var _pine_crowns: MultiMeshInstance3D
+var _low_crown_mesh: Mesh
+var _high_crown_mesh: Mesh
+var detailed_foliage: bool=true
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
 const PINE_TARGET: int = 162
 const ICE_TARGET: int = 88
@@ -67,22 +73,26 @@ func _add_trees() -> void:
     material_bark.roughness=.93
     bark.material=material_bark
 
-    var crown:=CylinderMesh.new()
-    crown.top_radius=.05
-    crown.bottom_radius=1.34
-    crown.height=5.0
-    crown.radial_segments=7
-    crown.rings=1
     var foliage:=StandardMaterial3D.new()
-    foliage.albedo_color=Color(.065,.23,.27)
-    foliage.roughness=.87
+    foliage.albedo_color=Color(.055,.22,.25)
+    foliage.roughness=.89
     foliage.emission_enabled=true
-    foliage.emission=Color(.025,.21,.23)
-    foliage.emission_energy_multiplier=.18
-    crown.material=foliage
+    foliage.emission=Color(.019,.145,.167)
+    foliage.emission_energy_multiplier=.13
+    _low_crown_mesh=CylinderMesh.new()
+    var simple: CylinderMesh=_low_crown_mesh as CylinderMesh
+    simple.top_radius=.06
+    simple.bottom_radius=1.33
+    simple.height=5.0
+    simple.radial_segments=7
+    simple.rings=1
+    simple.material=foliage
+    _high_crown_mesh=_build_layered_crown(foliage)
 
     _instance_mesh("AuroraPineTrunks",bark,locations,rotations,sizes,1.35)
-    _instance_mesh("AuroraPineCrowns",crown,locations,rotations,sizes,4.0)
+    _instance_mesh("AuroraPineCrowns",_high_crown_mesh,locations,
+        rotations,sizes,4.0)
+    _pine_crowns=get_node_or_null("AuroraPineCrowns") as MultiMeshInstance3D
 
     # Solid trunks in reachable sector: player and bots cannot pass through
     # nearby trees. Distant scatter remains cheap non-collision scenery.
@@ -113,6 +123,38 @@ func _add_trees() -> void:
         body.add_child(collider)
         add_child(body)
         solid+=1
+
+
+## Each genuine multi-layered pine has three distinct needle tiers, with
+## shared triangles across every instance: no extra draw call per tree.
+## The cheap single-cone version remains available on low/slow phones.
+static func _build_layered_crown(material: Material) -> ArrayMesh:
+    var builder:=SurfaceTool.new()
+    builder.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for tier in [
+        Vector3(-.78,1.41,3.05),
+        Vector3(.23,1.08,2.85),
+        Vector3(1.12,.75,2.45)
+    ]:
+        var leaves:=CylinderMesh.new()
+        leaves.top_radius=.035
+        leaves.bottom_radius=tier.y
+        leaves.height=tier.z
+        leaves.radial_segments=9
+        leaves.rings=1
+        builder.append_from(leaves,0,
+            Transform3D(Basis(),Vector3(0,tier.x,0)))
+    var merged: ArrayMesh=builder.commit()
+    if merged!=null and merged.get_surface_count()>0:
+        merged.surface_set_material(0,material)
+    return merged
+
+
+func set_visual_detail(high: bool) -> void:
+    detailed_foliage=high
+    if _pine_crowns!=null and _pine_crowns.multimesh!=null:
+        _pine_crowns.multimesh.mesh=(
+            _high_crown_mesh if high else _low_crown_mesh)
 
 
 func _add_ice_spires() -> void:
