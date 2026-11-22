@@ -7,6 +7,7 @@ const ACCELERATION: float = 16.0
 const GRAVITY: float = 17.5
 const LOOK_SENSITIVITY: float = 0.0032
 const ANIMATION_CONTROLLER=preload("res://scripts/player/operator_animation.gd")
+const GROUND_CONTACT=preload("res://scripts/player/aurora_operator_contact_shadow.gd")
 const BACKPACK_VISUAL=preload("res://scripts/player/aurora_backpack_visual.gd")
 const LOCAL_PLAYER_RECORDS=preload("res://scripts/persistence/offline_match_records.gd")
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
@@ -90,6 +91,7 @@ var _move_axis: Vector2 = Vector2.ZERO
 var _camera_pivot: Node3D
 var _camera: Camera3D
 var _avatar: Node3D
+var _ground_contact: MeshInstance3D
 var _animation_controller: Node
 var _landing_seconds: float=0.0
 var _footstep_distance: float=0.0
@@ -193,6 +195,10 @@ func _ready() -> void:
     _camera_pivot.add_child(camera)
     _camera = camera
     _camera_pivot.rotation.x = _pitch
+    # An independent, physical, two-triangle contact decal. No extra skeletal
+    # bones, no fake geometry on Lila, no impact on actual raycasts or loot.
+    _ground_contact=GROUND_CONTACT.new() as MeshInstance3D
+    add_child(_ground_contact)
 
     var operator_scene: PackedScene = approved_operator_scene
     if operator_scene == null and ResourceLoader.exists("res://assets/characters/lila_aurora.glb"):
@@ -223,6 +229,15 @@ func _ready() -> void:
     # *not* in the Android render/physics transition during freefall.
     _create_parachute()
     _parachute_visual.visible=false
+
+
+func _process(_delta: float) -> void:
+    # Draw only when physics confirms contact. Flight, high zoom, riding a car,
+    # elimination and the lobby never create a misleading floating footprint.
+    if _ground_contact!=null:
+        _ground_contact.visible=(air_mode=="ground" and is_on_floor() and
+            not royale_eliminated and not round_finished and
+            not (_vehicle_ride!=null and is_instance_valid(_vehicle_ride)))
 
 
 func _physics_process(delta: float) -> void:

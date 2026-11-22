@@ -27,6 +27,8 @@ static func apply_to_operator(visual: Node3D,skin: String) -> bool:
     altered.shader=FABRIC_SHADER
     altered.set_shader_parameter("source_albedo",source.albedo_texture)
     altered.set_shader_parameter("source_roughness",source.roughness)
+    altered.set_shader_parameter("source_metallic",source.metallic)
+    altered.set_shader_parameter("source_specular",0.5)
     altered.set_shader_parameter("fabric_shadow",palette[0])
     altered.set_shader_parameter("fabric_mid",palette[1])
     altered.set_shader_parameter("fabric_light",palette[2])
