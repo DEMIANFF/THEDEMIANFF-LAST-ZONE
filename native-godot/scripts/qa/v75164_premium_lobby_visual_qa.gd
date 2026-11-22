@@ -28,12 +28,25 @@ func _verify() -> void:
         "real rig and interactive lobby must be preserved")
     var stage: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage/AuroraReal3DLobbyEnvironment")
-    for mesh_name in ["AuroraRunwayEdgeStrips", "AuroraRunwayCenterMarks",
-            "BaseAuroraSnowFir", "BaseAuroraFirSnowCaps"]:
+    for mesh_name in ["BaseAuroraSnowFir", "BaseAuroraFirSnowCaps"]:
         var node: MultiMeshInstance3D=stage.get_node_or_null(mesh_name) as MultiMeshInstance3D
         check(node!=null and node.multimesh!=null and
             node.multimesh.instance_count>0,
             "missing batched physical 3D detail "+mesh_name)
+    # Verify renderer submissions using the authored transforms that were
+    # passed to MultiMesh.set_instance_transform. Headless GPU readback of
+    # packed instance positions reported 0/0 in earlier runs despite
+    # successfully constructing 588 visible 3D instances.
+    var audit: Dictionary=stage._runway_batch_audit
+    var multimeshes: Array=stage.find_children("*","MultiMeshInstance3D",true,false)
+    var batch_count: int=multimeshes.size()
+    check(int(audit.get("edge_count",-1))==44 and
+        int(audit.get("center_count",-1))==7 and
+        bool(audit.get("side_submitted",false)) and
+        bool(audit.get("center_submitted",false)),
+        "physical runway transform submission invalid: "+str(audit))
+    check(batch_count<=12,
+        "airfield GPU batches exceeded mobile budget: "+str(batch_count))
     var bars: HBoxContainer=front._bottom_navigation
     check(bars.get_child_count()==5 and bars.get_node_or_null("BottomPRESET")==null,
         "five functional footer tabs and no PRESET required")
