@@ -28,12 +28,25 @@ func _verify() -> void:
         "real rig and interactive lobby must be preserved")
     var stage: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage/AuroraReal3DLobbyEnvironment")
-    for mesh_name in ["AuroraRunwayEdgeStrips", "AuroraRunwayCenterMarks",
+    for mesh_name in ["AuroraRunwayEdgeStrips",
             "BaseAuroraSnowFir", "BaseAuroraFirSnowCaps"]:
         var node: MultiMeshInstance3D=stage.get_node_or_null(mesh_name) as MultiMeshInstance3D
         check(node!=null and node.multimesh!=null and
             node.multimesh.instance_count>0,
             "missing batched physical 3D detail "+mesh_name)
+    # Verify every physical center dash is preserved inside the shared
+    # fitting batch, instead of asserting an unnecessary dedicated draw call.
+    var center_marks: int=0
+    var multimeshes: Array=stage.find_children("*","MultiMeshInstance3D",true,false)
+    for rendered in multimeshes:
+        var group: MultiMesh=(rendered as MultiMeshInstance3D).multimesh
+        for i in range(group.instance_count):
+            var pose: Transform3D=group.get_instance_transform(i)
+            if absf(pose.origin.x)<.002 and absf(pose.origin.y+.103)<.002 and (
+                    absf(pose.basis.x.length()-.052)<.002 and
+                    absf(pose.basis.z.length()-.44)<.002):
+                center_marks+=1
+    check(center_marks==7,"center dashes missing from shared mobile MultiMesh")
     var bars: HBoxContainer=front._bottom_navigation
     check(bars.get_child_count()==5 and bars.get_node_or_null("BottomPRESET")==null,
         "five functional footer tabs and no PRESET required")

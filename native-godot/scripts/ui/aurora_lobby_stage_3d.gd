@@ -94,7 +94,9 @@ func _build_apron() -> void:
 ## runway still uses the original pavement shader, not a transparent overlay.
 func _runway_accents() -> void:
     var edge_transforms: Array[Transform3D]=[]
-    var center_transforms: Array[Transform3D]=[]
+    # Center dashes share the existing IceTrim MultiMesh materials. Creating
+    # an extra MultiMesh for only seven tiny markers exceeded the mobile
+    # airfield's 12-batch QA contract.
     for i in range(22):
         var z: float=3.0-float(i)*.91
         for side in [-1.0,1.0]:
@@ -102,11 +104,8 @@ func _runway_accents() -> void:
                 Basis.from_scale(Vector3(.024,.014,.48)),
                 Vector3(side*2.45,-.103,z)))
         if i%3==0 and i>2:
-            center_transforms.append(Transform3D(
-                Basis.from_scale(Vector3(.052,.012,.44)),
-                Vector3(0.0,-.103,z)))
+            _fitting(Vector3(0.0,-.103,z),Vector3(.052,.012,.44),_ice_trim)
     _instances("AuroraRunwayEdgeStrips",_cube,_signal_cyan,edge_transforms)
-    _instances("AuroraRunwayCenterMarks",_cube,_ice_trim,center_transforms)
 
 
 ## Original modular production art, integrated in the live 3D viewport.

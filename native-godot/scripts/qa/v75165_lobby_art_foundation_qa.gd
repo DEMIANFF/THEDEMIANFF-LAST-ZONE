@@ -42,8 +42,11 @@ func _verify() -> void:
     for mesh in fittings:
         var inst: MultiMeshInstance3D=mesh as MultiMeshInstance3D
         total_instances+=inst.multimesh.instance_count
+    print("V75165_LOBBY_BATCHES count=",fittings.size(),
+        " instances=",total_instances)
     check(fittings.size()<=12 and total_instances>=230,
-        "physical roof/drain/facade geometry did not stay batched")
+        "physical roof/drain/facade geometry exceeded 12 GPU batches: "+
+        str(fittings.size())+" / instances "+str(total_instances))
     check(stage.get_node_or_null("HangarRoofSlopeL")!=null and
         stage.get_node_or_null("HangarRoofSlopeR")!=null and
         stage.get_node_or_null("AuroraRadarRotatingHead")!=null,
