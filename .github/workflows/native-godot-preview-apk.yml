@@ -329,6 +329,13 @@ jobs:
             test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
           done
           echo "AURORA_REAL_GRENADE_CAPTURE PASS viewport=964x434 screenshots=4"
+          # AWM exported original bolt, lever and knob move in real Main.tscn.
+          # These are software-rendered engine screenshots, not hardware QA.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_awm_bolt_qa.gd
+          for screen in real-awm-bolt-open real-awm-bolt-closed; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_AWM_BOLT_CAPTURE PASS real_glb_part_animation=1 viewport=964x434 screenshots=2"
       # Preserve real in-engine screenshots even if a later APK gate fails.
       # This lets the Motorola UI redesign be reviewed before installation.
       - uses: actions/upload-artifact@v6
@@ -366,6 +373,8 @@ jobs:
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-ground-navigation.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-grenade-fuse-warning.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-grenade-blast.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-awm-bolt-open.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-awm-bolt-closed.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-grenade-minimap.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-grenade-tactical-map.png
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-live-supplies-map.png

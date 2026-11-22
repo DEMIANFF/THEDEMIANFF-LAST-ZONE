@@ -56,6 +56,7 @@ if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
     scripts/qa/v75149_grenade_fuse_sfx_qa.gd \
     scripts/qa/v75150_real_grenade_map_qa.gd \
     scripts/qa/v75151_real_awm_bolt_qa.gd \
+    scripts/qa/capture_motorola_awm_bolt_qa.gd \
     scripts/qa/capture_motorola_grenade_threat_qa.gd \
     scripts/qa/capture_motorola_integrated_br_intel_qa.gd \
     scripts/qa/capture_motorola_flight_route_qa.gd \
