@@ -58,6 +58,9 @@ const COMBAT_EVENT_DURATION: float=4.5
 var _hint: Label
 var _hit_timer: float = 0.0
 var _fps_clock: float = 0.0
+# Navigation heading must not wait for the unrelated 600ms FPS counter.
+# Only update Label.text if the actual compass bearing has changed.
+var _heading_clock: float=0.0
 # Direction/remaining-distance text derives from the same map waypoint.
 # Throttle to 4Hz to avoid UI reallocations in 120Hz flight rendering.
 var _airdrop_guidance_clock: float=0.0
@@ -1134,12 +1137,15 @@ func _process(delta: float) -> void:
         if _airdrop_guidance_clock<=0.0:
             _airdrop_guidance_clock=.25
             _refresh_airdrop_waypoint_guidance()
+    _heading_clock-=delta
+    if _heading_clock<=0.0:
+        _heading_clock=.08
+        _refresh_heading()
     _fps_clock-=delta
     if _fps_clock<=0:
         _fps_clock=.6
         if _fps:
             _fps.text=str(Engine.get_frames_per_second())+" FPS"
-        _refresh_heading()
     if _hit_timer>0:
         _hit_timer=maxf(0,_hit_timer-delta)
         if _hit_timer==0 and _hit:
@@ -1161,8 +1167,10 @@ func show_real_grenade_warning(seconds_left: float,
         var delta:=Vector2(at.x-actor.global_position.x,
             at.z-actor.global_position.z)
         var angle: float=rad_to_deg(atan2(delta.x,-delta.y))
+        # Godot +yaw points WEST in world-space; actual compass-right
+        # relative bearing adds camera yaw instead of subtracting it.
         var relative: float=wrapf(
-            angle-rad_to_deg(float(actor.get("_yaw"))),-180.0,180.0)
+            angle+rad_to_deg(float(actor.get("_yaw"))),-180.0,180.0)
         var bearing: String="FRENTE"
         if absf(relative)>=155.0:
             bearing="DETRAS"
@@ -1191,11 +1199,14 @@ func _refresh_heading() -> void:
     if actor==null or not is_instance_valid(actor):
         _compass.text="AURORA  •  N"
         return
-    # Third-person yaw is clockwise from the world -Z heading.
-    var degrees: int=posmod(int(round(rad_to_deg(float(actor.get("_yaw"))))),360)
+    # Positive Godot Y yaw turns a -Z-facing camera toward WEST.
+    # Compass headings increase clockwise N->E, hence invert yaw.
+    var degrees: int=posmod(int(round(-rad_to_deg(float(actor.get("_yaw"))))),360)
     var names: Array[String]=["N","NE","E","SE","S","SO","O","NO"]
     var quadrant: int=int(round(float(degrees)/45.0))%8
-    _compass.text=names[quadrant]+"  %03d°"%degrees
+    var title: String=names[quadrant]+"  %03d°"%degrees
+    if _compass.text!=title:
+        _compass.text=title
 
 
 func _place(control: Control, rect: Rect2) -> void:

@@ -62,6 +62,22 @@ func _verify() -> void:
         absf(float((radar.call("landing_waypoint_guidance") as Dictionary)[
             "relative_degrees"])-90.0)<.1,
         "true east waypoint has incorrect camera-relative direction")
+    # A -90 degree Godot yaw physically looks EAST, so this target must
+    # move to the centre/front of BOTH the compass and landing guidance.
+    player.set("_yaw",-PI*.5)
+    hud.call("_refresh_airdrop_waypoint_guidance")
+    var east_ahead: Dictionary=radar.call("landing_waypoint_guidance")
+    check(absf(float(east_ahead["relative_degrees"]))<.1 and
+        hint.text.contains("AL FRENTE"),
+        "actual east-facing camera sees an eastern destination sideways")
+    # +90 Godot yaw looks WEST, so the same eastern target is behind us.
+    player.set("_yaw",PI*.5)
+    hud.call("_refresh_airdrop_waypoint_guidance")
+    var east_behind: Dictionary=radar.call("landing_waypoint_guidance")
+    check(absf(absf(float(east_behind["relative_degrees"]))-180.0)<.1,
+        "actual west-facing camera still sees eastern destination ahead")
+    player.set("_yaw",0.0)
+    hud.call("_refresh_airdrop_waypoint_guidance")
     map.call("mark",Vector2(-40.0,76.0))
     check(hint.text.contains("A LA IZQUIERDA") and
         absf(float((radar.call("landing_waypoint_guidance") as Dictionary)[

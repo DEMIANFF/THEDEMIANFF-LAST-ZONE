@@ -31,6 +31,13 @@ const MINIMAP_CACHE_RANGE: float=50.0
 var _sector_director: Node3D
 var _battle_mode: bool=false
 var _gunfire_pings: Array[Dictionary]=[]
+# Radar is anchored to the physical operator, not the widening zone ring.
+# Cached pose allows responsive navigation while idle frames stay cheap.
+const GROUND_DETAIL_METRES: float=80.0
+const CANOPY_DETAIL_METRES: float=110.0
+const AIRCRAFT_DETAIL_METRES: float=145.0
+var _last_radar_position: Vector2=Vector2(INF,INF)
+var _last_radar_yaw: float=INF
 
 
 func _ready() -> void:
@@ -171,10 +178,12 @@ func landing_waypoint_guidance() -> Dictionary:
     var distance: float=delta.length()
     var camera_degrees: float=rad_to_deg(float(player.get("_yaw")))
     var world_bearing: float=rad_to_deg(atan2(delta.x,-delta.y))
+    # Godot +Y camera yaw turns its forward -Z toward WEST. A destination
+    # world-bearing east (+90) is directly ahead when camera yaw is -90.
     return {
         "world":_waypoint,
         "distance_m":distance,
-        "relative_degrees":wrapf(world_bearing-camera_degrees,-180.0,180.0)
+        "relative_degrees":wrapf(world_bearing+camera_degrees,-180.0,180.0)
     }
 
 
@@ -227,9 +236,9 @@ func _refresh_zone_label() -> void:
         _zone_label.text=caption
 
 
-## A fixed 130 m radar made the 245 m opening circle disappear. Fit both
-## real rings around the player (including moving centres), with a 10% margin.
-## No fabricated zone position or independent hazard simulation.
+## Legacy whole-ring coverage diagnostic for the full overview; the
+## navigable combat radar has its OWN stable local detail range so the
+## actual map does not shrink when a distant safe zone is 245 m wide.
 func _world_range() -> float:
     if not _zone_enabled or not is_instance_valid(player):
         return 60.0
@@ -257,6 +266,62 @@ func ring_coverage() -> Dictionary:
 ## Exact world-to-texture pixel projection shared by camera-up radar and
 ## rotating view. The source is Aurora's physical heightfield, never a
 ## screenshot or a manually moved second map.
+## A local navigation scale must not fluctuate from 80 to 350 metres
+## when a remote ring changes size. The full tactical map remains the
+## authoritative whole-island overview; this is the player-centred radar.
+func _detail_range() -> float:
+    if not is_instance_valid(player):
+        return GROUND_DETAIL_METRES
+    match str(player.get("air_mode")):
+        "aircraft", "freefall":
+            return AIRCRAFT_DETAIL_METRES
+        "parachute":
+            return CANOPY_DETAIL_METRES
+    return GROUND_DETAIL_METRES
+
+
+func _radar_center() -> Vector2:
+    return size*.5
+
+
+func _radar_radius() -> float:
+    return minf(size.x*.45,size.y*.43)
+
+
+func _radar_yaw() -> float:
+    if not is_instance_valid(player) or not rotate_with_camera:
+        return 0.0
+    return float(player.get("_yaw"))
+
+
+## Godot's positive yaw turns the forward (-Z) camera to world WEST.
+## To keep camera-forward at screen TOP, world X/Z deltas must rotate by
+## +yaw, NOT -yaw. One transform serves the terrain, compass and loot.
+func _world_to_radar(at: Vector2,center: Vector2,
+        radius: float,world_range: float) -> Vector2:
+    if not is_instance_valid(player) or radius<=0.0 or world_range<=0.0:
+        return center
+    var listener:=Vector2(player.global_position.x,player.global_position.z)
+    return center+(at-listener).rotated(_radar_yaw())*(radius/world_range)
+
+
+func _radar_to_world(pixel: Vector2,center: Vector2,
+        radius: float,world_range: float) -> Vector2:
+    if not is_instance_valid(player) or radius<=0.0 or world_range<=0.0:
+        return Vector2(INF,INF)
+    var listener:=Vector2(player.global_position.x,player.global_position.z)
+    return listener+(pixel-center).rotated(-_radar_yaw())*(
+        world_range/radius)
+
+
+func _player_screen_forward() -> Vector2:
+    if not is_instance_valid(player):
+        return Vector2.UP
+    var yaw: float=float(player.get("_yaw"))
+    var physical_forward:=Vector2(-sin(yaw),-cos(yaw))
+    return physical_forward.rotated(_radar_yaw()).normalized()
+
+
 func _terrain_uv(world: Vector2) -> Vector2:
     # CanvasItem.draw_polygon uses normalized [0,1] texture UVs, not
     # pixel coordinates. Values outside this range represent ocean/off-island
@@ -283,7 +348,7 @@ func _draw_terrain_disc(center: Vector2,screen_radius: float,
         var radial: Vector2=Vector2.from_angle(
             TAU*float(i)/float(MAP_DISC_SIDES))*screen_radius
         points.append(center+radial)
-        var terrain_at: Vector2=world+radial.rotated(yaw)*(
+        var terrain_at: Vector2=world+radial.rotated(-yaw)*(
             world_range/screen_radius)
         uvs.append(_terrain_uv(terrain_at))
     draw_polygon(points,PackedColorArray([Color(1,1,1,.85)]),uvs,map_texture)
@@ -300,8 +365,22 @@ func _process(delta: float) -> void:
         else:
             _gunfire_pings[i]=ping
     _tick+=delta
-    if _tick>=.2:
-        _tick=0
+    # At rest retain the original 5 Hz redraw budget. While moving or
+    # turning, repaint up to 25 Hz to avoid 200 ms map input latency.
+    var moving: bool=false
+    if is_instance_valid(player):
+        var where:=Vector2(player.global_position.x,player.global_position.z)
+        var heading: float=_radar_yaw()
+        moving=(where.distance_squared_to(_last_radar_position)>.16 or
+            not is_finite(_last_radar_yaw) or
+            absf(angle_difference(_last_radar_yaw,heading))>.025)
+        if (_tick>=.20 or (moving and _tick>=.04)):
+            _last_radar_position=where
+            _last_radar_yaw=heading
+            _tick=0.0
+            queue_redraw()
+    elif _tick>=.20:
+        _tick=0.0
         queue_redraw()
 
 
@@ -316,30 +395,109 @@ func aircraft_route_pixels() -> PackedVector2Array:
     var flight: Node3D=_sector_director.get("_flight") as Node3D
     if flight==null or str(flight.get("phase"))!="aircraft":
         return points
-    var center: Vector2=Vector2(size.x*.5,size.y*.55)
-    var radius: float=minf(size.x*.45,size.y*.43)
-    var world_range: float=_world_range()
+    var center: Vector2=_radar_center()
+    var radius: float=_radar_radius()
+    var world_range: float=_detail_range()
     if radius<1.0 or world_range<=.001:
         return points
-    var yaw: float=float(player.get("_yaw")) if rotate_with_camera else 0.0
-    var listener:=Vector2(player.global_position.x,player.global_position.z)
     for z in [AIRDROP.ROUTE_START_Z,AIRDROP.ROUTE_END_Z]:
-        var relative: Vector2=(Vector2(0.0,z)-listener).rotated(-yaw)
-        points.append(center+relative*(radius/world_range))
+        points.append(_world_to_radar(Vector2(0.0,z),
+            center,radius,world_range))
     return points
+
+
+## Only draw safe-zone boundary segments that really intersect the
+## local circular radar. The rest stays on the full tactical map; a
+## distant 245 m ring may never wash over a tiny 80 m combat minimap.
+func _draw_zone_in_local_disc(world_center: Vector2,world_radius: float,
+        center: Vector2,radius: float,world_range: float,
+        tint: Color,width: float) -> void:
+    if world_radius<=0.0 or radius<=2.0 or world_range<=0.0:
+        return
+    var projected: Vector2=_world_to_radar(
+        world_center,center,radius,world_range)
+    var projected_radius: float=world_radius*radius/world_range
+    var center_distance: float=projected.distance_to(center)
+    var clip_radius: float=radius-2.0
+    if center_distance>projected_radius+clip_radius or (
+            projected_radius>center_distance+clip_radius):
+        return
+    var segments: int=clampi(ceili(TAU*projected_radius/4.5),72,192)
+    var previous: Vector2=projected+Vector2(projected_radius,0.0)
+    for i in range(1,segments+1):
+        var angle: float=TAU*float(i)/float(segments)
+        var current: Vector2=projected+Vector2.from_angle(angle)*projected_radius
+        if (previous.distance_squared_to(center)<=clip_radius*clip_radius and
+                current.distance_squared_to(center)<=clip_radius*clip_radius):
+            draw_line(previous,current,tint,width,true)
+        previous=current
+
+
+## Never shrink an in-range destination by 10 px: its ground
+## coordinate must align with the terrain and every physical loot icon.
+## Only out-of-range marks clamp to the circular bezel as direction cues.
+func _waypoint_marker(center: Vector2,radius: float,
+        world_range: float) -> Dictionary:
+    if not _waypoint.is_finite() or not is_instance_valid(player) or (
+            radius<=11.0 or world_range<=0.0):
+        return {}
+    var exact: Vector2=_world_to_radar(_waypoint,
+        center,radius,world_range)
+    var relative: Vector2=exact-center
+    var outside: bool=relative.length()>radius-11.0
+    var player_at:=Vector2(player.global_position.x,player.global_position.z)
+    return {"at":center+relative.limit_length(radius-11.0),
+        "outside":outside,"distance_m":player_at.distance_to(_waypoint)}
+
+
+func _draw_navigation_compass(center: Vector2,radius: float,
+        world_range: float) -> void:
+    var yaw: float=_radar_yaw()
+    var font: Font=get_theme_default_font()
+    var labels: Array[String]=["N","E","S","O"]
+    var world_axes: Array[Vector2]=[
+        Vector2.UP,Vector2.RIGHT,Vector2.DOWN,Vector2.LEFT]
+    for i in range(world_axes.size()):
+        var offset: Vector2=world_axes[i].rotated(yaw)*(radius-13.0)
+        var color: Color=Color(1.0,.79,.35) if i==0 else Color(.80,.92,.97)
+        draw_string(font,center+offset+Vector2(-4,4),labels[i],
+            HORIZONTAL_ALIGNMENT_LEFT,-1,11,color)
+    # Contrast helps the player's actual centre survive snowy map tiles.
+    draw_circle(center,9.0,Color(.017,.058,.08,.98))
+    draw_arc(center,9.8,0,TAU,24,Color(.80,.97,1.0,.94),1.4,true)
+    var facing: Vector2=_player_screen_forward()
+    var lateral:=Vector2(-facing.y,facing.x)
+    var tip:=PackedVector2Array([
+        center+facing*12.0,
+        center-facing*6.0+lateral*5.5,
+        center-facing*6.0-lateral*5.5])
+    draw_colored_polygon(tip,Color(1.0,1.0,.95))
+    # Camera and body may face different directions. This GOLD tail uses
+    # real movement velocity (including strafing) so a RIGHT swipe or
+    # joystick move never masquerades as forward motion on the compass.
+    if is_instance_valid(player):
+        var movement:=Vector2(player.velocity.x,player.velocity.z)
+        if movement.length_squared()>1.44:
+            var heading: Vector2=movement.normalized().rotated(yaw)
+            draw_line(center+heading*12.0,center+heading*22.0,
+                Color(1.0,.69,.16),2.5,true)
+            draw_circle(center+heading*23.0,2.8,Color(1.0,.82,.33))
+    draw_string(font,Vector2(7.0,size.y-6.0),
+        "RADIO %d m"%roundi(world_range),
+        HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color(.96,.98,.93))
 
 
 func _draw() -> void:
     var rect: Rect2=Rect2(Vector2.ZERO,size)
     draw_rect(rect,Color(.025,.09,.13,.77))
     draw_rect(rect,Color(.30,.73,.81,.85),false,1.6)
-    var center: Vector2=Vector2(size.x*.5,size.y*.55)
-    var radius: float=minf(size.x*.45,size.y*.43)
+    var center: Vector2=_radar_center()
+    var radius: float=_radar_radius()
     if player==null or not is_instance_valid(player):
         draw_arc(center,radius,0,TAU,52,Color(.34,.67,.72,.62),1.2,true)
         return
-    var yaw: float=float(player.get("_yaw")) if rotate_with_camera else 0.0
-    var world_range: float=_world_range()
+    var yaw: float=_radar_yaw()
+    var world_range: float=_detail_range()
     _draw_terrain_disc(center,radius,world_range,yaw)
     # The route is a real aircraft flight segment; the full tactical map
     # already uses these same endpoints. Do not add an extra map button.
@@ -352,41 +510,37 @@ func _draw() -> void:
     draw_arc(center,radius*.5,0,TAU,52,Color(.75,.91,.92,.27),1.0,true)
     draw_line(center+Vector2(-radius,0),center+Vector2(radius,0),Color(.28,.50,.55,.32),1.0)
     draw_line(center+Vector2(0,-radius),center+Vector2(0,radius),Color(.28,.50,.55,.32),1.0)
-    var arrow:=PackedVector2Array([center+Vector2(0,-8),center+Vector2(-5,6),center+Vector2(5,6)])
-    draw_colored_polygon(arrow,Color(.75,.99,1.0))
+    # Compass/player pointer are drawn LAST so world icons cannot obscure
+    # the actual actor location or the movement direction.
     if _zone_enabled:
-        var offset: Vector2=_zone_world_center-Vector2(player.global_position.x,player.global_position.z)
-        var screen_position: Vector2=center+offset.rotated(-yaw)*(radius/world_range)
-        var mapped_radius: float=_zone_radius*radius/world_range
-        draw_arc(screen_position,mapped_radius,0,TAU,72,Color(.42,.97,1.0,.91),2.7,true)
+        _draw_zone_in_local_disc(_zone_world_center,_zone_radius,
+            center,radius,world_range,Color(.42,.97,1.0,.91),2.7)
     if _next_zone_enabled:
-        # A subtle planned-ring marker is essential when the safe-zone
-        # center moves; the player sees WHERE to rotate, not a random
-        # unseen moving hazard. The marker uses exact geometry, not fake
-        # target coordinates or a second selectable match option.
-        var next_offset: Vector2=_next_zone_center-Vector2(
-            player.global_position.x,player.global_position.z)
-        var next_position: Vector2=center+next_offset.rotated(-yaw)*(
-            radius/world_range)
-        var planned_radius: float=_next_zone_radius*radius/world_range
-        draw_arc(next_position,maxf(.4,planned_radius),0,TAU,60,
-            Color(.99,.79,.37,.85),1.6,true)
-        draw_circle(next_position,2.0,Color(.99,.79,.37,.8))
+        # The next ring is physical zone geometry, not an independently
+        # scaled circle that obscures the local buildings or player.
+        _draw_zone_in_local_disc(_next_zone_center,_next_zone_radius,
+            center,radius,world_range,Color(.99,.79,.37,.85),1.6)
     if _waypoint.is_finite():
-        var position: Vector2=Vector2(player.global_position.x,player.global_position.z)
-        var waypoint_delta: Vector2=(_waypoint-position).rotated(-yaw)
-        # Keep the real target INSIDE the circular terrain bezel, even
-        # when far away; it must not overlap the invisible map touch area
-        # or adjacent controls on 964x434 phone screens.
-        var dot: Vector2=center+waypoint_delta.limit_length(world_range)*(
-            (radius-10.0)/world_range)
-        if _battle_mode:
-            # Ground combat keeps a subtler real navigation line too;
-            # arrival/heading remains attached to the physical destination.
-            var opacity: float=.56 if player.air_mode!="ground" else .29
-            draw_line(center,dot,Color(1.0,.71,.16,opacity),1.5,true)
-        draw_circle(dot,5.3,Color(1.0,.73,.15))
-        draw_arc(dot,8.0,0,TAU,28,Color(1.0,.90,.42),1.6)
+        var waypoint_icon: Dictionary=_waypoint_marker(
+            center,radius,world_range)
+        if not waypoint_icon.is_empty():
+            var dot: Vector2=waypoint_icon["at"]
+            if _battle_mode:
+                var opacity: float=.56 if player.air_mode!="ground" else .29
+                draw_line(center,dot,Color(1.0,.71,.16,opacity),1.5,true)
+            if bool(waypoint_icon["outside"]):
+                # Point outward to a REAL marked destination beyond 80m,
+                # never draw it at an invented in-range terrain coordinate.
+                var bearing: Vector2=(dot-center).normalized()
+                var wing:=Vector2(-bearing.y,bearing.x)
+                var arrow:=PackedVector2Array([
+                    dot+bearing*5.0,
+                    dot-bearing*6.0+wing*4.0,
+                    dot-bearing*6.0-wing*4.0])
+                draw_colored_polygon(arrow,Color(1.0,.82,.31))
+            else:
+                draw_circle(dot,5.3,Color(1.0,.73,.15))
+                draw_arc(dot,8.0,0,TAU,28,Color(1.0,.90,.42),1.6)
     if _battle_mode:
         # Resource dots use real Area3D collision items, not a second
         # simulated loot map. Yellow=ammo, red=medical, blue=equipment.
@@ -394,7 +548,7 @@ func _draw() -> void:
             player.global_position.x,player.global_position.z)
         for resource in nearby_physical_resources():
             var relative: Vector2=(resource["at"] as Vector2)-physical_listener
-            var dot: Vector2=center+relative.rotated(-yaw)*(
+            var dot: Vector2=center+relative.rotated(yaw)*(
                 radius/world_range)
             if dot.distance_to(center)>radius-6.0:
                 continue
@@ -409,7 +563,7 @@ func _draw() -> void:
         # Node3D. It is never an enemy wallhack or a persistent map ping.
         for hazard in nearby_live_grenade_hazards():
             var relative: Vector2=(hazard["at"] as Vector2)-physical_listener
-            var dot: Vector2=center+relative.rotated(-yaw)*(
+            var dot: Vector2=center+relative.rotated(yaw)*(
                 radius/world_range)
             if dot.distance_to(center)>radius-8.0:
                 continue
@@ -417,7 +571,7 @@ func _draw() -> void:
             draw_arc(dot,8.2,0,TAU,22,Color(1.0,.72,.34,.94),1.7)
         for at in nearby_physical_vehicles():
             var relative: Vector2=at-physical_listener
-            var dot: Vector2=center+relative.rotated(-yaw)*(
+            var dot: Vector2=center+relative.rotated(yaw)*(
                 radius/world_range)
             if dot.distance_to(center)>radius-7.0:
                 continue
@@ -430,7 +584,7 @@ func _draw() -> void:
             player.global_position.x,player.global_position.z)
         for cache_at in _nearby_supply_markers():
             var relative: Vector2=cache_at-listener
-            var dot: Vector2=center+relative.rotated(-yaw)*(
+            var dot: Vector2=center+relative.rotated(yaw)*(
                 radius/world_range)
             if dot.distance_to(center)>radius-6.0:
                 continue
@@ -445,11 +599,12 @@ func _draw() -> void:
                 player.global_position.x,player.global_position.z)
             if relative.length_squared()>GUNFIRE_HEARING_RANGE*GUNFIRE_HEARING_RANGE:
                 continue
-            var dot: Vector2=center+relative.rotated(-yaw)*(radius/world_range)
+            var dot: Vector2=center+relative.rotated(yaw)*(radius/world_range)
             var alpha: float=clampf(float(ping["remaining"])/
                 GUNFIRE_PING_SECONDS,0.0,1.0)
             draw_arc(dot,7.0,0,TAU,22,Color(1.0,.53,.25,alpha),1.8,true)
             draw_circle(dot,2.5,Color(1.0,.65,.34,alpha*.9))
+        _draw_navigation_compass(center,radius,world_range)
         return
     for bot in opponents:
         if not is_instance_valid(bot) or not bot.visible:
@@ -458,6 +613,7 @@ func _draw() -> void:
                               bot.global_position.z-player.global_position.z)
         if relative.length()>world_range:
             continue
-        var dot: Vector2=center+relative.rotated(-yaw)*(radius/world_range)
+        var dot: Vector2=center+relative.rotated(yaw)*(radius/world_range)
         draw_circle(dot,5.3,Color(.98,.41,.27))
         draw_arc(dot,8.0,0,TAU,12,Color(1.0,.80,.63,.6),1.0)
+    _draw_navigation_compass(center,radius,world_range)

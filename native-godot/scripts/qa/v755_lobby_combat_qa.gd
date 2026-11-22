@@ -49,12 +49,27 @@ func verify() -> void:
     var hud=game.get_node("TrainingHUD")
     var player=game.get_node("Operator")
     check(hud._training_radar.get("player")==player,"minimap lacks real player")
+    # Godot's positive Y rotation turns the -Z-forward camera WEST,
+    # whereas compass bearings increase clockwise from north. A real
+    # east-facing camera uses yaw -90 degrees; southwest uses +135.
+    player.set("_yaw",deg_to_rad(-90.0))
+    hud._refresh_heading()
+    check(hud._compass.text.begins_with("E  090"),
+        "actual east-facing heading mismatch "+hud._compass.text)
+    player.set("_yaw",deg_to_rad(135.0))
+    hud._refresh_heading()
+    check(hud._compass.text.begins_with("SO  225"),
+        "actual southwest-facing heading mismatch "+hud._compass.text)
+    # Recheck the complementary headings, never accepting an east/west
+    # reversal merely to satisfy an old UI snapshot.
     player.set("_yaw",deg_to_rad(90.0))
     hud._refresh_heading()
-    check(hud._compass.text.begins_with("E  090"),"east heading mismatch "+hud._compass.text)
-    player.set("_yaw",deg_to_rad(225.0))
+    check(hud._compass.text.begins_with("O  270"),
+        "actual west-facing heading mismatch "+hud._compass.text)
+    player.set("_yaw",deg_to_rad(-135.0))
     hud._refresh_heading()
-    check(hud._compass.text.begins_with("SO  225"),"southwest heading mismatch "+hud._compass.text)
+    check(hud._compass.text.begins_with("SE  135"),
+        "actual southeast-facing heading mismatch "+hud._compass.text)
     hud.set_air_stage("aircraft")
     check(not hud._reticle.visible,"reticle visible on aircraft")
     hud.set_air_stage("ground")

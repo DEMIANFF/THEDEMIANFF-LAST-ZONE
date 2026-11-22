@@ -85,10 +85,17 @@ func _verify() -> void:
         and warning.text.contains("DER") and
         warning.text.contains("4m"),
         "real, north-facing camera did not get right-side warning")
-    player.set("_yaw",PI*.5)
+    # A Godot -90 degree yaw faces world EAST (+X), so this same real
+    # projectile must now be ahead, not on the right. Positive +90 yaw
+    # faces WEST and must correctly put the projectile behind us.
+    player.set("_yaw",-PI*.5)
     hud.show_real_grenade_warning(.6,grenade.global_position)
     check(warning.text.contains("FRENTE"),
-        "camera yaw does not rotate grenade direction")
+        "east-facing physical camera fails to put eastern grenade ahead")
+    player.set("_yaw",PI*.5)
+    hud.show_real_grenade_warning(.6,grenade.global_position)
+    check(warning.text.contains("DETRAS"),
+        "west-facing physical camera fails to put eastern grenade behind")
     player.set("_yaw",0.0)
     grenade.global_position=player.global_position+Vector3(-4,.4,0)
     hud.show_real_grenade_warning(.6,grenade.global_position)
