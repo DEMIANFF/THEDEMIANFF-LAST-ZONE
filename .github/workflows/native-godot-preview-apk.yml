@@ -304,7 +304,10 @@ jobs:
           # Actual loot map at Motorola phone aspect, desktop GL evidence only.
           xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_live_loot_map_qa.gd
           test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-live-loot-map.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-waypoint-offscreen.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-player-offscreen.png"
           echo "AURORA_LIVE_LOOT_MAP_CAPTURE PASS 964x434 actual_weapon=1 real_cache=1"
+          echo "AURORA_MAP_EDGE_VISUAL_CAPTURE PASS 964x434 screenshots=2 real_player_awm=1"
           # True scene with two real post-kill ammo caches, 50-fighter BR.
           xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_live_loot_minimap_qa.gd
           test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-live-loot-minimap.png"
