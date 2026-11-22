@@ -63,8 +63,14 @@ func _verify() -> void:
         absf((capsule.shape as CapsuleShape3D).height-1.82)<.01,
         "visual upgrade changed the stable player physics collider")
     var camera: Camera3D=player.get_view_camera()
-    check(camera!=null and camera.position.z>3.9,
-        "new visual displaced the third-person camera toward Lila")
+    # V75.154 intentionally moves the shoulder camera from 4.6 to 3.8 m.
+    # Retain an actual ground-camera/physics assertion instead of the
+    # obsolete >3.9m check which wrongly marked the improvement as broken.
+    const CAMERA=preload("res://scripts/player/third_person_operator.gd")
+    check(camera!=null and
+        absf(camera.position.z-CAMERA.GROUND_CAMERA_DISTANCE)<.05 and
+        camera.position.z>3.5 and camera.near>=.079,
+        "mobile camera no longer matches the collision-safe 3D operator")
     check(player._animation_controller!=null and
         player._animation_controller.tree.active,
         "Aurora upper-body/locomotion AnimationTree disconnected")
