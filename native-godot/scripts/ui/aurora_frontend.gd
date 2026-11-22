@@ -340,11 +340,11 @@ func _label(value: String, font_size: int=24) -> Label:
 
 func _style_primary_action(button: Button) -> void:
     var style:=StyleBoxFlat.new()
-    style.bg_color=Color(.98,.69,.12)
+    style.bg_color=Color(.99,.72,.13)
     style.border_color=Color(1,.90,.47)
     style.set_border_width_all(2)
     style.set_corner_radius_all(7)
-    style.shadow_color=Color(.82,.42,.10,.50)
+    style.shadow_color=Color(.82,.42,.10,.32)
     style.shadow_size=5
     var hover:=style.duplicate() as StyleBoxFlat
     hover.bg_color=Color(1.0,.82,.27)
@@ -1093,11 +1093,11 @@ func _show_lobby() -> void:
             _apply_preview_skin(str(
                 _offline_records.cosmetic_state()["equipped"]))
     _clear_page()
-    _lobby_section_title=_label("BATTLE ROYALE",34)
+    _lobby_section_title=_label("BATTLE ROYALE",30)
     _lobby_section_title.add_theme_font_override("font",DISPLAY_FONT)
     _lobby_section_title.name="LobbySectionTitle"
     _lobby_section_title.add_theme_color_override("font_color",Color(.96,.96,.88))
-    _lobby_section_hint=_label("BASE AURORA  ·  50 PARTICIPANTES",18)
+    _lobby_section_hint=_label("BASE AURORA  ·  50 PARTICIPANTES",16)
     _lobby_section_hint.name="LobbySectionHint"
     _lobby_section_hint.add_theme_color_override("font_color",Color(.57,.84,.94))
     _lobby_mode_heading=_label("MODALIDAD DE PARTIDA",13)
@@ -1110,7 +1110,7 @@ func _show_lobby() -> void:
     _match_mode_selector.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _match_mode_selector.fit_to_longest_item=false
     _match_mode_selector.clip_text=true
-    _match_mode_selector.add_theme_font_size_override("font_size",21)
+    _match_mode_selector.add_theme_font_size_override("font_size",18)
     _match_mode_selector.add_item("CLÁSICO · IA LOCAL",0)
     _match_mode_selector.add_item("CLASIFICATORIA",1)
     _match_mode_selector.add_item("ENTRENAMIENTO · LOCAL",2)
@@ -1125,7 +1125,7 @@ func _show_lobby() -> void:
     _battle_entry.name="BattleButton"
     _battle_entry.custom_minimum_size.y=79
     _battle_entry.add_theme_font_override("font",DISPLAY_FONT)
-    _battle_entry.add_theme_font_size_override("font_size",29)
+    _battle_entry.add_theme_font_size_override("font_size",27)
     _style_primary_action(_battle_entry)
     _lobby_play_modes.add_child(_battle_entry)
     _training_entry=_button("INICIAR ENTRENAMIENTO",Callable(self,"_launch").bind(false),0)
@@ -1701,7 +1701,7 @@ func _ensure_lobby_navigation() -> void:
     # the artwork. Previous backplates were inserted BEHIND the SVG,
     # which made UI illegible despite having valid gameplay actions.
     _header_glass=_make_glass_panel(
-        Color(.009,.019,.039,.96),Color(.31,.56,.69,.66),9)
+        Color(.009,.020,.036,.89),Color(.31,.59,.69,.62),9)
     _header_glass.name="AuroraOperationalHeader"
     _header_glass.anchor_left=.018
     _header_glass.anchor_right=.982
@@ -1721,14 +1721,14 @@ func _ensure_lobby_navigation() -> void:
     brand_slash.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _header_glass.add_child(brand_slash)
     _profile_strip=_make_header_label(
-        "LocalProfileStrip",.101,.313,26)
+        "LocalProfileStrip",.101,.313,23)
     _profile_strip.add_theme_font_override("font",DISPLAY_FONT)
     _stats_strip=_make_header_label(
         "LocalStatisticsStrip",.323,.557,19)
     _currency_strip=_make_header_label(
         "LocalCurrencyStrip",.567,.736,19)
     var backplate:=_make_glass_panel(
-        Color(.008,.017,.034,.95),Color(.25,.65,.86,.84),10)
+        Color(.008,.018,.032,.75),Color(.25,.65,.86,.57),10)
     backplate.name="LobbyMenuBackplate"
     _lobby_menu_backplate=backplate
     backplate.anchor_left=.712
@@ -1739,7 +1739,7 @@ func _ensure_lobby_navigation() -> void:
     _surface.move_child(backplate,_page.get_index())
     _lobby_backplates.append(backplate)
     var navplate:=_make_glass_panel(
-        Color(.006,.016,.032,.94),Color(.27,.67,.84,.82),10)
+        Color(.006,.016,.032,.68),Color(.27,.67,.84,.58),10)
     navplate.name="LobbySidebarBackplate"
     navplate.anchor_left=.017
     navplate.anchor_right=.208
@@ -1751,7 +1751,7 @@ func _ensure_lobby_navigation() -> void:
     # Continuous lower glass rail: the old five floating rectangles visually
     # cut the stage floor and lacked the clean baseline of the reference.
     var footer_plate:=_make_glass_panel(
-        Color(.007,.015,.028,.96),Color(.19,.66,.86,.80),4)
+        Color(.007,.015,.028,.91),Color(.19,.66,.86,.70),4)
     footer_plate.name="AuroraPremiumFooterGlass"
     footer_plate.anchor_left=.011
     footer_plate.anchor_right=.989
@@ -1861,7 +1861,7 @@ func _ensure_lobby_navigation() -> void:
         button.custom_minimum_size=Vector2(0,40)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         button.add_theme_font_override("font",DISPLAY_FONT)
-        button.add_theme_font_size_override("font_size",22)
+        button.add_theme_font_size_override("font_size",19)
         _style_aurora_tab(button,Color(.35,.70,.91))
         button.size_flags_vertical=Control.SIZE_EXPAND_FILL
         _left_shortcuts.add_child(button)
@@ -1889,7 +1889,7 @@ func _ensure_lobby_navigation() -> void:
         button.custom_minimum_size=Vector2(0,30)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         button.add_theme_font_override("font",DISPLAY_FONT)
-        button.add_theme_font_size_override("font_size",23)
+        button.add_theme_font_size_override("font_size",20)
         # The selected tab is styled after _select_tab(), never hard-code a
         # permanent golden JUGAR button on other screens like ARMAS.
         _style_aurora_tab(button,Color(.30,.63,.83))
@@ -1908,6 +1908,10 @@ func _ensure_lobby_navigation() -> void:
     social_style.set_corner_radius_all(9)
     social_style.shadow_color=Color(.01,.02,.04,.40)
     social_style.shadow_size=4
+    social_style.content_margin_left=5
+    social_style.content_margin_right=5
+    social_style.content_margin_top=3
+    social_style.content_margin_bottom=3
     _social_panel.add_theme_stylebox_override("panel",social_style)
     _surface.add_child(_social_panel)
     var social_content:=VBoxContainer.new()
@@ -1925,7 +1929,7 @@ func _ensure_lobby_navigation() -> void:
     _social_status_label.name="ActualFriendsStatus"
     _social_status_label.text="Sin amigos conectados · Online pendiente"
     _social_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _social_status_label.add_theme_font_size_override("font_size",16)
+    _social_status_label.add_theme_font_size_override("font_size",14)
     _social_status_label.custom_minimum_size.y=26
     _social_status_label.add_theme_color_override("font_color",Color(.75,.8,.85))
     social_content.add_child(_social_status_label)
@@ -1966,7 +1970,7 @@ func _ensure_lobby_navigation() -> void:
     social_open.custom_minimum_size=Vector2(0,45)
     social_open.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     social_open.add_theme_font_override("font",DISPLAY_FONT)
-    social_open.add_theme_font_size_override("font_size",19)
+    social_open.add_theme_font_size_override("font_size",17)
     _style_aurora_tab(social_open,Color(.40,.65,.86))
     social_content.add_child(social_open)
 
@@ -2015,7 +2019,7 @@ func _ensure_lobby_navigation() -> void:
     intel_text.text="PUERTO AURORA  /  SOLO LOCAL\n50 PARTICIPANTES  ·  ZONA: 4 FASES"
     intel_text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     intel_text.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
-    intel_text.add_theme_font_size_override("font_size",17)
+    intel_text.add_theme_font_size_override("font_size",14)
     intel_text.add_theme_color_override(
         "font_color",Color(.82,.91,.94))
     intel_text.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -2421,11 +2425,12 @@ func _refresh_skin_gallery() -> void:
 
 func _style_aurora_tab(button: Button,tint: Color) -> void:
     var normal:=StyleBoxFlat.new()
-    normal.bg_color=Color(.016,.029,.051,.87)
-    normal.border_color=tint.darkened(.28)
+    normal.bg_color=Color(.012,.028,.049,.88)
+    normal.border_color=tint.darkened(.22)
     normal.set_border_width_all(1)
-    normal.border_width_left=3
-    normal.set_corner_radius_all(4)
+    normal.set_corner_radius_all(6)
+    normal.shadow_color=Color(.015,.045,.080,.23)
+    normal.shadow_size=2
     var hover:=normal.duplicate() as StyleBoxFlat
     hover.bg_color=Color(.072,.12,.19,.98)
     var pressed:=hover.duplicate() as StyleBoxFlat
@@ -2435,6 +2440,9 @@ func _style_aurora_tab(button: Button,tint: Color) -> void:
     button.add_theme_stylebox_override("pressed",pressed)
     button.add_theme_color_override("font_color",Color(.95,.95,1))
     button.add_theme_color_override("font_hover_color",Color(1,.88,.64))
+    button.add_theme_color_override("font_pressed_color",Color(1,.93,.77))
+    button.add_theme_color_override("icon_normal_color",Color(.91,.96,1.0))
+    button.add_theme_color_override("icon_hover_color",Color(1.0,.98,.84))
 
 
 ## Bottom navigation indicates the currently open module, not a persistent
@@ -3483,11 +3491,11 @@ func _build_preview() -> void:
     # Soft sky fill keeps the lilac hair and cool fabric readable under
     # the warm portrait key and blue edge light.
     env.ambient_light_color=Color(.63,.74,.93)
-    env.ambient_light_energy=.43
+    env.ambient_light_energy=.57
     env.ambient_light_sky_contribution=0.0
     env.fog_enabled=true
     env.fog_light_color=Color(.17,.27,.43)
-    env.fog_density=.008
+    env.fog_density=.0045
     env.fog_sky_affect=0.0
     ambient.environment=env
     stage3d.add_child(ambient)
@@ -3495,13 +3503,13 @@ func _build_preview() -> void:
     key.name="AuroraPortraitKey"
     key.rotation_degrees=Vector3(-40,31,0)
     key.light_color=Color(1.0,.94,.89)
-    key.light_energy=1.04
+    key.light_energy=1.20
     stage3d.add_child(key)
     var rim:=DirectionalLight3D.new()
     rim.name="AuroraPortraitRim"
     rim.rotation_degrees=Vector3(-22,-138,0)
     rim.light_color=Color(.51,.69,1.0)
-    rim.light_energy=.71
+    rim.light_energy=.85
     stage3d.add_child(rim)
     # Keep the operator's contact shadow in the lobby's small positional atlas.
     var portrait_spot:=SpotLight3D.new()
