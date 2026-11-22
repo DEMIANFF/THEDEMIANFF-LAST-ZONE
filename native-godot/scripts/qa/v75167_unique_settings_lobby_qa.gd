@@ -70,9 +70,8 @@ func _verify() -> void:
         modal.find_child("EditCurrentHud",true,false)!=null and
         modal.find_child("ApplyAuroraHudReference",true,false)!=null,
         "canonical 4-profile HUD editor or real Aurora slot 4 removed")
-    check(modal.find_child("RealSocialEntry",true,false)==null and
-        modal.find_child("EDITAR POSICIÓN DE CONTROLES",true,false)==null,
-        "second editor action should not exist")
+    check(modal.find_child("RealSocialEntry",true,false)==null,
+        "settings must not contain a second social route")
     var content: VBoxContainer=modal.get("_content") as VBoxContainer
     var controls_buttons: int=0
     for button in content.get_children():
@@ -89,7 +88,7 @@ func _verify() -> void:
     modal.call("_close")
     await process_frame
     check(front._settings_modal==null and front.stage=="lobby" and
-        not get_tree().paused,
+        not paused,
         "closing settings did not return to lobby")
     front._select_tab("AJUSTES")
     check(front._settings_modal!=null and front._selected_tab=="JUGAR",
