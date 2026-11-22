@@ -50,7 +50,12 @@ func _verify() -> void:
     check(front.stage=="lobby" and portrait.stretch and
         portrait.stretch_shrink==1 and scene.own_world_3d and
         scene.render_target_update_mode==SubViewport.UPDATE_WHEN_PARENT_VISIBLE,
-        "964x434 live 3D lobby/lifecycle changed")
+        "964x434 live 3D lobby/lifecycle changed stage="+front.stage+
+        " stretch="+str(portrait.stretch)+
+        " shrink="+str(portrait.stretch_shrink)+
+        " profile="+QUALITY.read_profile()+
+        " own_world="+str(scene.own_world_3d)+
+        " update_mode="+str(scene.render_target_update_mode))
     check(front._preview_avatar!=null and
         front._preview_avatar.find_child("Lila_Aurora_Mesh",true,false)!=null,
         "Lila model was replaced with flat image")

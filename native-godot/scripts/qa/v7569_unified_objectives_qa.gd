@@ -35,12 +35,15 @@ func _verify() -> void:
     front._show_lobby()
     await process_frame
     front._offline_records=RECORDS.new(QA_PATH)
-    check(front._lobby_nav.get_child_count()==9,
-        "consolidated objectives must remain under one tab while JUGAR is first")
-    check(front._lobby_nav.get_node_or_null("TabOBJETIVOS")!=null and
-        front._lobby_nav.get_node_or_null("TabEVENTOS")==null and
-        front._lobby_nav.get_node_or_null("TabMISIONES")==null,
-        "events or missions not grouped under one objectives entry")
+    check(front._lobby_nav.get_child_count()==0 and
+        front._bottom_navigation.get_child_count()==5 and
+        front._bottom_navigation.get_node_or_null("BottomJUGAR")!=null,
+        "hidden duplicate nav buttons reappeared or JUGAR footer missing")
+    check(front._left_shortcuts.get_child_count()==6 and
+        front._left_shortcuts.get_node_or_null("QuickEVENTS")!=null and
+        front._left_shortcuts.get_node_or_null("QuickMISSIONS")!=null and
+        front._left_shortcuts.get_node_or_null("QuickACHIEVEMENTS")!=null,
+        "live objective categories were lost from commerce rail")
     front._select_tab("OBJETIVOS")
     var options: OptionButton=front._objective_selector
     check(options!=null and options.is_visible_in_tree() and

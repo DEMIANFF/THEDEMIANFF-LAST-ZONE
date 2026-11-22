@@ -57,10 +57,14 @@ func _verify() -> void:
         "Training displays Classic-only controls")
 
     front._select_tab("AJUSTES")
-    check(front._settings_panel.visible and not selector.visible,
-        "Settings does not make room for full controls on a small screen")
+    var modal: CanvasLayer=front._settings_modal
+    check(modal!=null and front._selected_tab=="JUGAR" and
+        modal.find_child("EditCurrentHud",true,false)!=null,
+        "the single native settings overlay lost working HUD controls")
+    if modal!=null:
+        modal.call("_close")
     front._select_tab("CUENTA")
-    check(not front._settings_panel.visible and not selector.visible and
+    check(front._settings_modal==null and not selector.visible and
         front._name_entry.visible,
         "account identity editor did not replace match controls")
     check(front._info.text.contains("Google") and

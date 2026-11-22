@@ -85,7 +85,7 @@ func _verify() -> void:
 
     front._open_settings()
     var settings: CanvasLayer=front._settings_modal
-    check(settings!=null and settings._category_buttons.size()==6,
+    check(settings!=null and settings._category_buttons.size()==4,
         "native settings navigation incomplete")
     if settings!=null:
         var screen: Button=settings._category_buttons["PANTALLA"] as Button
