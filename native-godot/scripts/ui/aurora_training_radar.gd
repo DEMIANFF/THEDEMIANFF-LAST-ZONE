@@ -31,6 +31,13 @@ const MINIMAP_CACHE_RANGE: float=50.0
 var _sector_director: Node3D
 var _battle_mode: bool=false
 var _gunfire_pings: Array[Dictionary]=[]
+# Radar is anchored to the physical operator, not the widening zone ring.
+# Cached pose allows responsive navigation while idle frames stay cheap.
+const GROUND_DETAIL_METRES: float=80.0
+const CANOPY_DETAIL_METRES: float=110.0
+const AIRCRAFT_DETAIL_METRES: float=145.0
+var _last_radar_position: Vector2=Vector2(INF,INF)
+var _last_radar_yaw: float=INF
 
 
 func _ready() -> void:
@@ -257,6 +264,62 @@ func ring_coverage() -> Dictionary:
 ## Exact world-to-texture pixel projection shared by camera-up radar and
 ## rotating view. The source is Aurora's physical heightfield, never a
 ## screenshot or a manually moved second map.
+## A local navigation scale must not fluctuate from 80 to 350 metres
+## when a remote ring changes size. The full tactical map remains the
+## authoritative whole-island overview; this is the player-centred radar.
+func _detail_range() -> float:
+    if not is_instance_valid(player):
+        return GROUND_DETAIL_METRES
+    match str(player.get("air_mode")):
+        "aircraft", "freefall":
+            return AIRCRAFT_DETAIL_METRES
+        "parachute":
+            return CANOPY_DETAIL_METRES
+    return GROUND_DETAIL_METRES
+
+
+func _radar_center() -> Vector2:
+    return size*.5
+
+
+func _radar_radius() -> float:
+    return minf(size.x*.45,size.y*.43)
+
+
+func _radar_yaw() -> float:
+    if not is_instance_valid(player) or not rotate_with_camera:
+        return 0.0
+    return float(player.get("_yaw"))
+
+
+## Godot's positive yaw turns the forward (-Z) camera to world WEST.
+## To keep camera-forward at screen TOP, world X/Z deltas must rotate by
+## +yaw, NOT -yaw. One transform serves the terrain, compass and loot.
+func _world_to_radar(at: Vector2,center: Vector2,
+        radius: float,world_range: float) -> Vector2:
+    if not is_instance_valid(player) or radius<=0.0 or world_range<=0.0:
+        return center
+    var listener:=Vector2(player.global_position.x,player.global_position.z)
+    return center+(at-listener).rotated(_radar_yaw())*(radius/world_range)
+
+
+func _radar_to_world(pixel: Vector2,center: Vector2,
+        radius: float,world_range: float) -> Vector2:
+    if not is_instance_valid(player) or radius<=0.0 or world_range<=0.0:
+        return Vector2(INF,INF)
+    var listener:=Vector2(player.global_position.x,player.global_position.z)
+    return listener+(pixel-center).rotated(-_radar_yaw())*(
+        world_range/radius)
+
+
+func _player_screen_forward() -> Vector2:
+    if not is_instance_valid(player):
+        return Vector2.UP
+    var yaw: float=float(player.get("_yaw"))
+    var physical_forward:=Vector2(-sin(yaw),-cos(yaw))
+    return physical_forward.rotated(_radar_yaw()).normalized()
+
+
 func _terrain_uv(world: Vector2) -> Vector2:
     # CanvasItem.draw_polygon uses normalized [0,1] texture UVs, not
     # pixel coordinates. Values outside this range represent ocean/off-island
@@ -283,7 +346,7 @@ func _draw_terrain_disc(center: Vector2,screen_radius: float,
         var radial: Vector2=Vector2.from_angle(
             TAU*float(i)/float(MAP_DISC_SIDES))*screen_radius
         points.append(center+radial)
-        var terrain_at: Vector2=world+radial.rotated(yaw)*(
+        var terrain_at: Vector2=world+radial.rotated(-yaw)*(
             world_range/screen_radius)
         uvs.append(_terrain_uv(terrain_at))
     draw_polygon(points,PackedColorArray([Color(1,1,1,.85)]),uvs,map_texture)
@@ -316,12 +379,12 @@ func aircraft_route_pixels() -> PackedVector2Array:
     var flight: Node3D=_sector_director.get("_flight") as Node3D
     if flight==null or str(flight.get("phase"))!="aircraft":
         return points
-    var center: Vector2=Vector2(size.x*.5,size.y*.55)
-    var radius: float=minf(size.x*.45,size.y*.43)
-    var world_range: float=_world_range()
+    var center: Vector2=_radar_center()
+    var radius: float=_radar_radius()
+    var world_range: float=_detail_range()
     if radius<1.0 or world_range<=.001:
         return points
-    var yaw: float=float(player.get("_yaw")) if rotate_with_camera else 0.0
+    var yaw: float=_radar_yaw()
     var listener:=Vector2(player.global_position.x,player.global_position.z)
     for z in [AIRDROP.ROUTE_START_Z,AIRDROP.ROUTE_END_Z]:
         var relative: Vector2=(Vector2(0.0,z)-listener).rotated(-yaw)
@@ -333,13 +396,13 @@ func _draw() -> void:
     var rect: Rect2=Rect2(Vector2.ZERO,size)
     draw_rect(rect,Color(.025,.09,.13,.77))
     draw_rect(rect,Color(.30,.73,.81,.85),false,1.6)
-    var center: Vector2=Vector2(size.x*.5,size.y*.55)
-    var radius: float=minf(size.x*.45,size.y*.43)
+    var center: Vector2=_radar_center()
+    var radius: float=_radar_radius()
     if player==null or not is_instance_valid(player):
         draw_arc(center,radius,0,TAU,52,Color(.34,.67,.72,.62),1.2,true)
         return
-    var yaw: float=float(player.get("_yaw")) if rotate_with_camera else 0.0
-    var world_range: float=_world_range()
+    var yaw: float=_radar_yaw()
+    var world_range: float=_detail_range()
     _draw_terrain_disc(center,radius,world_range,yaw)
     # The route is a real aircraft flight segment; the full tactical map
     # already uses these same endpoints. Do not add an extra map button.
