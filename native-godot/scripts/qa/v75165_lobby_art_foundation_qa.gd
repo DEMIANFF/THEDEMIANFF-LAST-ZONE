@@ -47,6 +47,13 @@ func _verify() -> void:
     check(fittings.size()<=12 and total_instances>=230,
         "physical roof/drain/facade geometry exceeded 12 GPU batches: "+
         str(fittings.size())+" / instances "+str(total_instances))
+    var marks: Dictionary=stage._runway_batch_audit
+    check(int(marks.get("edge_count",-1))==44 and
+        int(marks.get("center_count",-1))==7 and
+        bool(marks.get("side_submitted",false)) and
+        bool(marks.get("center_submitted",false)),
+        "runway markings must be physically uploaded into material batches: "+
+        str(marks))
     check(stage.get_node_or_null("HangarRoofSlopeL")!=null and
         stage.get_node_or_null("HangarRoofSlopeR")!=null and
         stage.get_node_or_null("AuroraRadarRotatingHead")!=null,

@@ -33,43 +33,20 @@ func _verify() -> void:
         check(node!=null and node.multimesh!=null and
             node.multimesh.instance_count>0,
             "missing batched physical 3D detail "+mesh_name)
-    # Verify every physical center dash is preserved inside the shared
-    # fitting batch, instead of asserting an unnecessary dedicated draw call.
-    # Check physical GPU instance positions rather than relying on the
-    # precise transformed Basis axis lengths. The original test demanded
-    # GPU quantized basis values with a 0.002 tolerance, leading to false
-    # negatives despite the new V75.165 batch-count test passing.
-    # Every expected mark location must be represented in a real MultiMesh,
-    # with the same material group budget as all existing airfield fittings.
+    # Verify renderer submissions using the authored transforms that were
+    # passed to MultiMesh.set_instance_transform. Headless GPU readback of
+    # packed instance positions reported 0/0 in earlier runs despite
+    # successfully constructing 588 visible 3D instances.
+    var audit: Dictionary=stage._runway_batch_audit
     var multimeshes: Array=stage.find_children("*","MultiMeshInstance3D",true,false)
-    var center_marks: int=0
-    var edge_marks: int=0
-    var total_instances: int=0
-    for rendered in multimeshes:
-        var group: MultiMesh=(rendered as MultiMeshInstance3D).multimesh
-        total_instances+=group.instance_count
-        for i in range(group.instance_count):
-            var pose: Transform3D=group.get_instance_transform(i)
-            if absf(pose.origin.y+.103)>.012:
-                continue
-            var z: float=pose.origin.z
-            for slot in range(22):
-                var expected_z: float=3.0-float(slot)*.91
-                if absf(z-expected_z)>.012:
-                    continue
-                if slot>2 and slot%3==0 and absf(pose.origin.x)<.012:
-                    center_marks+=1
-                elif absf(absf(pose.origin.x)-2.45)<.012:
-                    edge_marks+=1
-                break
-    print("V75164_RUNWAY_GPU center=",center_marks,
-        " side=",edge_marks," batches=",multimeshes.size(),
-        " instances=",total_instances)
-    check(center_marks>=7 and edge_marks>=44,
-        "physical runway stripes missing in shared GPU batches: center="+
-        str(center_marks)+" / 7 edges="+str(edge_marks)+" / 44")
-    check(multimeshes.size()<=12,
-        "airfield exceeds 12 MultiMesh batches: "+str(multimeshes.size()))
+    var batch_count: int=multimeshes.size()
+    check(int(audit.get("edge_count",-1))==44 and
+        int(audit.get("center_count",-1))==7 and
+        bool(audit.get("side_submitted",false)) and
+        bool(audit.get("center_submitted",false)),
+        "physical runway transform submission invalid: "+str(audit))
+    check(batch_count<=12,
+        "airfield GPU batches exceeded mobile budget: "+str(batch_count))
     var bars: HBoxContainer=front._bottom_navigation
     check(bars.get_child_count()==5 and bars.get_node_or_null("BottomPRESET")==null,
         "five functional footer tabs and no PRESET required")

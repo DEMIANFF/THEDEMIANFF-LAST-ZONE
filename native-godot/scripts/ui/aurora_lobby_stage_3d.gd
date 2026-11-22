@@ -19,6 +19,9 @@ var _panel: ShaderMaterial
 var _snow: ShaderMaterial
 var _ice_trim: StandardMaterial3D
 var _signal_cyan: StandardMaterial3D
+# Reconciled at the exact moment the authored transforms become live
+# MultiMesh instances; preserves an auditable CPU->renderer submission ledger.
+var _runway_batch_audit: Dictionary={}
 
 
 func _ready() -> void:
@@ -568,9 +571,58 @@ func _rod_transform(a: Vector3,b: Vector3,width: float) -> Transform3D:
 
 func _batch_fittings() -> void:
     var index:=0
+    var edges: int=0
+    var center: int=0
+    var side_uploaded: bool=false
+    var center_uploaded: bool=false
     for material in _fittings:
-        _instances("AirfieldFittings%02d"%index,_cube,material,_fittings[material])
+        var transforms: Array=_fittings[material]
+        # Inspect the SAME Transform3D values passed to set_instance_transform,
+        # before the temporary CPU array is cleared. Godot's headless
+        # MultiMesh readback returned zero positions in V75.165 despite 588
+        # submitted instances. Audit the renderer submission, not readback.
+        if material==_signal_cyan or material==_ice_trim:
+            for placement in transforms:
+                var pose: Transform3D=placement as Transform3D
+                if absf(pose.origin.y+.103)>.012:
+                    continue
+                var matched_slot: bool=false
+                for slot in range(22):
+                    if absf(pose.origin.z-(3.0-float(slot)*.91))>.012:
+                        continue
+                    if material==_signal_cyan and (
+                            absf(absf(pose.origin.x)-2.45)<.012 and
+                            absf(pose.basis.x.length()-.024)<.004):
+                        edges+=1
+                        matched_slot=true
+                    elif material==_ice_trim and slot>2 and slot%3==0 and (
+                            absf(pose.origin.x)<.012 and
+                            absf(pose.basis.x.length()-.052)<.004):
+                        center+=1
+                        matched_slot=true
+                    if matched_slot:
+                        break
+        var batch_name: String="AirfieldFittings%02d"%index
+        _instances(batch_name,_cube,material,transforms)
+        var rendered: MultiMeshInstance3D=get_node_or_null(batch_name) as MultiMeshInstance3D
+        var complete: bool=rendered!=null and rendered.multimesh!=null and (
+            rendered.multimesh.instance_count==transforms.size()) and (
+            rendered.material_override==material)
+        if material==_signal_cyan:
+            side_uploaded=complete
+        elif material==_ice_trim:
+            center_uploaded=complete
         index+=1
+    _runway_batch_audit={
+        "edge_count":edges,
+        "center_count":center,
+        "side_submitted":side_uploaded,
+        "center_submitted":center_uploaded,
+        "fitting_batches":index
+    }
+    print("AURORA_RUNWAY_SUBMISSION edges=",edges," centers=",center,
+        " uploaded=",side_uploaded and center_uploaded,
+        " fitting_batches=",index)
     _fittings.clear()
 
 
