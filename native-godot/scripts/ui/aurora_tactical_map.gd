@@ -136,9 +136,9 @@ func _map_rect() -> Rect2:
     # A genuinely right-side square cartographic pane leaves the LEFT
     # third of the live battle visible on the user's 964x434 device.
     # Its right edge stays clear of the touch-safe actions at 78% width.
-    var height: float=size.y*.88
-    return Rect2(Vector2(size.x*.355,size.y*.065),
-        Vector2(minf(size.x*.405,height*1.025),height))
+    var square_side: float=minf(size.x*.405,size.y*.88)
+    return Rect2(Vector2(size.x*.355,
+        (size.y-square_side)*.5),Vector2.ONE*square_side)
 
 
 func _meters_per_pixel(rect: Rect2) -> float:
