@@ -92,15 +92,15 @@ func _verify() -> void:
         "physical third-person camera penetrated solid crystal mesh")
 
     # An active cover still stops bullets, bots and player collisions.
-    check(cover.is_active() and cover.collision_layer==1 and
+    check(bool(cover.call("is_active")) and cover.collision_layer==1 and
         cover.get_node_or_null("AuroraIceWallCollision")!=null,
         "camera fix deleted/disabled authoritative cover collision")
-    var hp: float=float(cover.health)
-    cover.take_damage(12.0)
-    check(absf(float(cover.health)-(hp-12.0))<.01,
+    var hp: float=float(cover.get("health"))
+    cover.call("take_damage",12.0)
+    check(absf(float(cover.get("health"))-(hp-12.0))<.01,
         "camera fix removed real destructible 220-HP barrier gameplay")
 
-    cover.take_damage(COVER.MAX_HEALTH)
+    cover.call("take_damage",COVER.MAX_HEALTH)
     await frames(70)
     check(not is_instance_valid(cover) and camera.position.x>.29 and
         camera.position.z>2.8 and actor._avatar.visible,
