@@ -26,11 +26,19 @@ func _touch(index: int,at: Vector2,pressed: bool) -> InputEventScreenTouch:
 
 func _verify() -> void:
     root.size=Vector2i(964,434)
+    # Godot's canvas_items stretch uses a 1280x720 logical viewport.
+    # Host the real tactical Control inside an explicit 964x434 phone
+    # canvas: this tests the target layout rather than assuming a raw
+    # SceneTree root's logical size equals its physical window size.
+    var phone_canvas:=Control.new()
+    phone_canvas.name="MotorolaMapViewport"
+    phone_canvas.size=Vector2(964,434)
+    root.add_child(phone_canvas)
     var tactical: Control=MAP.new()
-    root.add_child(tactical)
+    phone_canvas.add_child(tactical)
     await process_frame
-    check(tactical.size==Vector2(964,434),
-        "real tactical map did not occupy the Motorola viewport")
+    check(tactical.size.distance_to(phone_canvas.size)<1.0,
+        "real tactical map did not fill the 964x434 phone canvas")
     tactical.set("zoom",2.0)
     tactical.set("pan",Vector2.ZERO)
     tactical.set("_follow_player",true)
@@ -98,7 +106,7 @@ func _verify() -> void:
     var pan: Vector2=tactical.get("pan")
     check(float(tactical.get("zoom"))==1.0 and pan.length()<.01,
         "the clamped whole-island overview leaked outside terrain")
-    tactical.queue_free()
+    phone_canvas.queue_free()
     await process_frame
     if not failed:
         print("V75156_PINCH_ANCHOR PASS viewport=964x434 "+
