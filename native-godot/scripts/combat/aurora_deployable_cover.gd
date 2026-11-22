@@ -19,9 +19,14 @@ func _ready() -> void:
     var collider:=CollisionShape3D.new()
     collider.name="AuroraIceWallCollision"
     var shape:=BoxShape3D.new()
-    shape.size=Vector3(3.45,2.30,.62)
+    # V75.159: the five real 3D crystal spires extend to 2.58 m
+    # vertically and .43 m either side of their axis, while the old
+    # collider stopped at 2.32 m and only .31 m in depth. A camera
+    # could therefore enter VISIBLE blue ice that physics considered
+    # empty, obscuring Lila/the reticle. Match the actual render bounds.
+    shape.size=Vector3(3.50,2.70,.94)
     collider.shape=shape
-    collider.position.y=1.17
+    collider.position.y=1.35
     add_child(collider)
 
     # Five tapered hexagonal ice spires make an original Aurora silhouette.
