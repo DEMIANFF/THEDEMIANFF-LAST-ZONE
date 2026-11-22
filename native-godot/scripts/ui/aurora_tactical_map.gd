@@ -445,10 +445,13 @@ func _draw_landmark(at: Vector2,title: String,boxes: Array[Rect2],
     if not rect.grow(-7.0).has_point(p):
         return
     draw_circle(p,5.0,Color(1,.86,.48))
-    var label_width: float=float(title.length())*7.0+9.0
-    var label_size:=Vector2(label_width,18)
+    # Measure the actual glyph widths, not title.length(): Spanish
+    # accented names and longer place names must avoid other real POIs.
+    var label_width: float=ceilf(font.get_string_size(
+        title,HORIZONTAL_ALIGNMENT_LEFT,-1,13).x)+12.0
+    var label_size:=Vector2(label_width,21)
     var offsets: Array[Vector2]=[
-        Vector2(9,-21),Vector2(-label_width-9,-21),
+        Vector2(9,-24),Vector2(-label_width-9,-24),
         Vector2(9,3),Vector2(-label_width-9,3)]
     for displacement in offsets:
         var candidate:=Rect2(p+displacement,label_size)
@@ -462,8 +465,8 @@ func _draw_landmark(at: Vector2,title: String,boxes: Array[Rect2],
         if collision:
             continue
         draw_rect(candidate,Color(.016,.067,.094,.87))
-        draw_string(font,candidate.position+Vector2(5,14),title,
-            HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.97,.95,.83))
+        draw_string(font,candidate.position+Vector2(6,15),title,
+            HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color(.97,.95,.83))
         boxes.append(candidate)
         return
 
@@ -721,7 +724,7 @@ func _draw() -> void:
             if current_radius<2.0 else "%d"%roundi(current_radius))
         draw_string(font,legend_pos+Vector2(8,15),
             "ACTUAL %s m"%display_radius,
-            HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(.49,.96,1))
+            HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.49,.96,1))
         var planned: Dictionary=director.call("next_zone_preview")
         if bool(planned.get("active",false)):
             var planned_radius: float=float(planned["radius"])
@@ -729,11 +732,11 @@ func _draw() -> void:
                 if planned_radius<2.0 else "%d"%roundi(planned_radius))
             draw_string(font,legend_pos+Vector2(8,32),
                 "SIGUIENTE %s m"%planned_text,
-                HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(1,.83,.46))
+                HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(1,.83,.46))
         else:
             draw_string(font,legend_pos+Vector2(8,32),
                 "CIERRE FINAL",
-                HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(1,.83,.46))
+                HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(1,.83,.46))
     # Chart orientation and scale remain grounded in the real island metres.
     var scale_m: float=100.0
     var max_scale_width: float=maxf(14.0,rect.size.x-30.0)
