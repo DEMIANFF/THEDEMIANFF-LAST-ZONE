@@ -3594,9 +3594,9 @@ func _build_preview() -> void:
     var disk:=CylinderMesh.new()
     disk.top_radius=.77
     disk.bottom_radius=.82
-    disk.height=.048
+    disk.height=.074
     podium.mesh=disk
-    podium.position.y=-.037
+    podium.position.y=-.050
     podium.layers|=PORTRAIT_LIGHT_LAYER
     podium.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     var metal:=StandardMaterial3D.new()
@@ -3605,6 +3605,28 @@ func _build_preview() -> void:
     metal.roughness=.58
     podium.material_override=metal
     stage3d.add_child(podium)
+    # A second real machined metal tier gives the base visible thickness.
+    var plinth:=MeshInstance3D.new()
+    plinth.name="AuroraPortraitPodiumPlinth"
+    var plinth_mesh:=CylinderMesh.new()
+    plinth_mesh.top_radius=.81
+    plinth_mesh.bottom_radius=.875
+    plinth_mesh.height=.12
+    plinth_mesh.radial_segments=48
+    plinth.mesh=plinth_mesh
+    plinth.position.y=-.135
+    plinth.material_override=metal
+    plinth.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    stage3d.add_child(plinth)
+
+    # Reuse the same tiny 64px contact mask as the physical in-match
+    # operator, not a blurred screenshot or a second shadow map.
+    var contact: MeshInstance3D=preload(
+        "res://scripts/player/aurora_operator_contact_shadow.gd").new()
+    stage3d.add_child(contact)
+    contact.name="AuroraLobbyBootsContact"
+    contact.position.y=.005
+    contact.call("set_physical_contact",true)
     # Original 3D podium illumination — the supplied reference has
     # concentric cyan/violet light, not a flat painted circle. These are
     # two tiny unshadowed static ring meshes, lobby-only and GPU-cheap.

@@ -48,6 +48,13 @@ func _verify() -> void:
         stage.get_node_or_null("HangarRoofSlopeR")!=null and
         stage.get_node_or_null("AuroraRadarRotatingHead")!=null,
         "operational station geometry or animated radar disappeared")
+    var plinth: MeshInstance3D=scene.get_node_or_null(
+        "AuroraPortraitPodiumPlinth") as MeshInstance3D
+    var boots: MeshInstance3D=scene.get_node_or_null(
+        "AuroraLobbyBootsContact") as MeshInstance3D
+    check(plinth!=null and plinth.mesh is CylinderMesh and
+        boots!=null and boots.mesh is PlaneMesh and boots.visible,
+        "Lila podium lost physical volume or lightweight foot contact")
     var rig: Node3D=front._preview_avatar
     check(rig!=null and rig.find_child("Lila_Aurora_Mesh",true,false)!=null,
         "original skinned Lila rig must remain in playable lobby")
