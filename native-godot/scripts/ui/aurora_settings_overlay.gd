@@ -84,6 +84,9 @@ func _ready() -> void:
     for category in ["PARTIDA","PANTALLA","SONIDO","GRABACIÓN","NOTIFICACIÓN","CUENTA"]:
         var current: String=category
         var tab:=_make_button(sidebar,category,func(): _show_category(current))
+        if category=="PARTIDA":
+            tab.text="PARTIDA / HUD"
+            tab.tooltip_text="Configurar controles y los cuatro HUD guardados"
         tab.name="AuroraCategory"+current
         tab.tooltip_text="Abrir configuración de "+current.to_lower()
         _category_buttons[current]=tab
@@ -191,6 +194,7 @@ func _populate_subcategory() -> void:
     match _subcategory:
         "HUD":
             _heading("HUD / CUATRO DISEÑOS GUARDADOS")
+            _info("Ruta: AJUSTES ⚙ → PARTIDA / HUD → PERSONALIZAR HUD")
             _info("Selecciona un espacio y edita posiciones, tamaños y opacidad de los botones reales. El HUD 1 conserva tu diseño anterior.")
             var preset:=OptionButton.new()
             preset.name="HUDPresetSelector"

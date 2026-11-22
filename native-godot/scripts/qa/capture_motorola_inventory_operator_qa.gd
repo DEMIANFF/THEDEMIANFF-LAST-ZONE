@@ -35,23 +35,40 @@ func _capture() -> void:
     front._enter_local_lobby()
     for frame in range(12):
         await process_frame
-    # V75.131: verify the actual fullscreen native button gallery on the
-    # phone-aspect render, not a mocked illustration.
+    # V75.155: show the actual sole selector in the right-side BR panel.
+    # No modal gallery, PRESET footer, or centre-left floating MODOS button.
     front._select_tab("JUGAR")
-    front._open_mode_gallery()
-    if front._mode_gallery_overlay==null or (
-            not front._mode_gallery_overlay.visible):
-        push_error("V75131_CAPTURE mode gallery did not open")
+    if (front._match_mode_selector==null or
+            not front._match_mode_selector.visible or
+            front._mode_gallery_entry!=null or
+            front._mode_gallery_overlay!=null or
+            front._bottom_navigation.get_node_or_null("BottomPRESET")!=null):
+        push_error("V75155_CAPTURE redundant MODOS/PRESET still rendered")
         quit(6)
         return
     for frame in range(10):
         await process_frame
     front._layout_safe()
     await RenderingServer.frame_post_draw
-    if not _save("mode-gallery",tag):
+    if not _save("mode-selector",tag):
         quit(7)
         return
-    front._close_mode_gallery()
+    # Visual evidence for the real settings path and four editable HUD slots.
+    front._top_settings_button.emit_signal("pressed")
+    var modal: CanvasLayer=front._settings_modal
+    if (modal==null or
+            modal.find_child("HUDPresetSelector",true,false)==null or
+            modal.find_child("EditCurrentHud",true,false)==null):
+        push_error("V75155_CAPTURE HUD is not inside top-right AJUSTES")
+        quit(12)
+        return
+    for frame in range(8):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    if not _save("settings-hud",tag):
+        quit(13)
+        return
+    modal.call("_close")
     front._select_tab("TIENDA")
     front._open_skin_gallery()
     if front._shop_gallery_overlay==null or (
@@ -115,6 +132,6 @@ func _capture() -> void:
     for frame in range(7):
         await process_frame
     print("V75136_CAPTURE PASS resolution=964x434 "+
-        "local_objectives=1 skin_gallery=1 mode_gallery=1 "+
+        "local_objectives=1 skin_gallery=1 right_mode_selector=1 hud_in_settings=1 "+
         "inventory=1 lila=1 optional_ch02=source_dependent")
     quit(0)
