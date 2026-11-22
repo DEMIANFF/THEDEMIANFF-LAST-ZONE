@@ -48,6 +48,15 @@ var _awm_bolt_rest: Array[Vector3]=[]
 var _awm_mechanical_left: float=0.0
 var awm_bolt_visual_cycles: int=0
 
+# Additive visual response on the REAL held GLB. This never changes the
+# authoritative camera recoil, damage, muzzle physics or animation skeleton.
+const VISUAL_RECOIL_SECONDS: float=.155
+var _visual_recoil_left: float=0.0
+var _visual_recoil_model: Node3D
+var _visual_recoil_rest: Transform3D
+var _visual_recoil_amplitude: float=0.0
+var visual_recoil_events: int=0
+
 
 func attach_to_player(player: CharacterBody3D) -> void:
     operator=player
@@ -279,11 +288,83 @@ func cancel_awm_mechanical_cycle() -> void:
             _awm_bolt_meshes[i].position=_awm_bolt_rest[i]
 
 
+## A bounded kick/settle on the original skinned operator's held model.
+## Existing GeometryInstance3D meshes, scope, muzzle and hand markers are
+## transformed TOGETHER. No copied guns, extra animation rigs or emitters.
+static func visual_recoil_amplitude(slot: int) -> float:
+    if slot<0 or slot>=WEAPONS.ENTRIES.size() or slot==WEAPONS.KNIFE:
+        return 0.0
+    return clampf(float(WEAPONS.ENTRIES[slot]["recoil"])*1.5+.004,
+        .006,.04)
+
+
+func pulse_visual_recoil(slot: int) -> bool:
+    if (slot!=selected_weapon or medical_busy or flight_holster or
+            not is_instance_valid(operator) or
+            operator.get("air_mode")!="ground"):
+        return false
+    var model: Node3D=currently_equipped()
+    if not is_instance_valid(model) or not model.visible:
+        return false
+    # Burst fire starts from the same imported rest transform each round,
+    # never from an already kicked pose (which would drift the rifle).
+    cancel_visual_recoil()
+    _visual_recoil_model=model
+    _visual_recoil_rest=model.transform
+    _visual_recoil_amplitude=visual_recoil_amplitude(slot)
+    _visual_recoil_left=VISUAL_RECOIL_SECONDS
+    visual_recoil_events+=1
+    _apply_visual_recoil()
+    return true
+
+
+func _apply_visual_recoil() -> void:
+    if not is_instance_valid(_visual_recoil_model):
+        return
+    var weight: float=clampf(
+        _visual_recoil_left/VISUAL_RECOIL_SECONDS,0.0,1.0)
+    var amount: float=_visual_recoil_amplitude*weight*weight
+    # Small kick away from the hands (positive Z along barrel's rear)
+    # with a mild muzzle-rise rotation, in compensated mount metres.
+    var basis: Basis=_visual_recoil_rest.basis*Basis(
+        Vector3.RIGHT,-amount*.7)
+    var origin: Vector3=_visual_recoil_rest.origin+Vector3(
+        0.0,amount*.20,amount)
+    _visual_recoil_model.transform=Transform3D(basis,origin)
+
+
+func _advance_visual_recoil(delta: float) -> void:
+    if _visual_recoil_left<=0.0:
+        return
+    if (not is_instance_valid(_visual_recoil_model) or
+            _visual_recoil_model!=currently_equipped() or
+            medical_busy or flight_holster):
+        cancel_visual_recoil()
+        return
+    _visual_recoil_left=maxf(0.0,
+        _visual_recoil_left-maxf(delta,0.0))
+    if _visual_recoil_left<=0.0:
+        cancel_visual_recoil()
+    else:
+        _apply_visual_recoil()
+
+
+func cancel_visual_recoil() -> void:
+    if is_instance_valid(_visual_recoil_model):
+        _visual_recoil_model.transform=_visual_recoil_rest
+    _visual_recoil_left=0.0
+    _visual_recoil_model=null
+    _visual_recoil_amplitude=0.0
+
+
 func _process(_delta: float) -> void:
     _advance_awm_mechanical_cycle(_delta)
+    _advance_visual_recoil(_delta)
     if is_instance_valid(operator):
         var stow: bool=operator.get("air_mode") in ["freefall","parachute"]
         if flight_holster!=stow:
+            if stow:
+                cancel_visual_recoil()
             flight_holster=stow
             _sync_equipment_visibility()
     _align_mount_to_sight()
@@ -314,6 +395,7 @@ func _align_mount_to_sight(from_modifier: bool=false) -> void:
 ## When it is equipped, the default AR-7 moves to the spine holster.
 func set_awm_owned(owned: bool) -> void:
     if not owned:
+        cancel_visual_recoil()
         cancel_awm_mechanical_cycle()
     awm_owned=owned
     _sync_equipment_visibility()
@@ -321,6 +403,7 @@ func set_awm_owned(owned: bool) -> void:
 
 func set_medical_busy(active: bool) -> void:
     if active:
+        cancel_visual_recoil()
         cancel_awm_mechanical_cycle()
     medical_busy=active
     _sync_equipment_visibility()
@@ -484,7 +567,8 @@ static func calibrate_expansion(visual: Node3D,slot: int) -> void:
 ## Play the genuine imported weapon action on its own source skeleton.
 ## Lila's independently rigged upper body remains driven by operator_animation.
 ## Clips are never faked when the licensed source has not been staged.
-func play_source_action(slot: int,kind: String) -> bool:
+func play_source_action(slot: int,kind: String,
+        game_duration: float=0.0) -> bool:
     var animator: AnimationPlayer=_source_animation_players.get(slot) as AnimationPlayer
     if animator==null or not is_instance_valid(animator):
         return false
@@ -501,16 +585,34 @@ func play_source_action(slot: int,kind: String) -> bool:
     # those as distinct source clips). Keep all original clips intact.
     for name in names:
         if str(name).to_lower().ends_with("|"+keyword):
-            animator.play(name)
+            _start_original_clip(animator,name,kind,game_duration)
             return true
     for name in names:
         if str(name).to_lower().contains(keyword):
-            animator.play(name)
+            _start_original_clip(animator,name,kind,game_duration)
             return true
     return false
 
 
+## Fit an imported ORIGINAL reload animation to the actual finite ammo
+## timer; only if the source resource really has the clip. For the public
+## static SCAR/MP40 models, no fictitious skeletal clip is asserted.
+func _start_original_clip(animator: AnimationPlayer,clip: String,
+        kind: String,game_duration: float) -> void:
+    var playback_speed: float=1.0
+    if kind=="reload" and game_duration>.05:
+        var resource: Animation=animator.get_animation(clip)
+        if resource!=null and resource.length>.01:
+            playback_speed=clampf(resource.length/game_duration,.35,3.5)
+    animator.speed_scale=playback_speed
+    animator.play(clip)
+
+
 func clear_expansion() -> void:
+    cancel_visual_recoil()
+    for player_anim in _source_animation_players.values():
+        if is_instance_valid(player_anim):
+            (player_anim as AnimationPlayer).stop()
     _source_animation_players.clear()
     for visual: Node3D in _expansion.values()+_expansion_holsters.values():
         visual.hide()
@@ -567,6 +669,15 @@ func _sync_equipment_visibility() -> void:
 func equip(index: int) -> void:
     if index<WEAPONS.AR or (index>=WEAPONS.SCAR and not _expansion.has(index)):
         return
+    if selected_weapon!=index:
+        cancel_visual_recoil()
+        var inactive: AnimationPlayer=(
+            _source_animation_players.get(selected_weapon) as AnimationPlayer)
+        if is_instance_valid(inactive):
+            # A holstered imported SCAR should not consume CPU still
+            # playing a hidden reload/fire animation for each frame.
+            inactive.stop()
+            inactive.speed_scale=1.0
     if index!=WEAPONS.AWM:
         cancel_awm_mechanical_cycle()
     # Do not display a weapon that is neither owned nor available.
