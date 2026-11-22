@@ -30,15 +30,16 @@ func _verify() -> void:
     check(front.stage=="lobby" and front._selected_tab=="JUGAR",
         "offline entry did not open native Battle Royale lobby")
     check(front._left_shortcuts.get_child_count()==6 and
-        front._bottom_navigation.get_child_count()==6 and
+        front._bottom_navigation.get_child_count()==5 and
         front._bottom_navigation.has_node("BottomJUGAR"),
         "commerce rail and JUGAR return route must exist with full navigation")
     check(front._left_shortcuts.has_node("QuickTIENDA") and
-        front._left_shortcuts.has_node("QuickLUCK") and
+        front._left_shortcuts.has_node("QuickPASE") and
+        front._left_shortcuts.has_node("QuickJUGAR") and
         front._left_shortcuts.has_node("QuickEVENTS") and
         front._left_shortcuts.has_node("QuickMISSIONS") and
         front._left_shortcuts.has_node("QuickACHIEVEMENTS"),
-        "store, luck, events, missions, achievement controls missing")
+        "store, pass, battle, events, missions, achievement controls missing")
     check(front._social_panel.visible and
         front._social_status_label.text.contains("Sin amigos conectados"),
         "unavailable online social system was misrepresented")
@@ -66,10 +67,19 @@ func _verify() -> void:
     front._select_tab("INVENTARIO")
     check(front._info.text.contains("INVENTARIO EN PARTIDA"),
         "inventory module not wired to actual match equipment")
-    front._select_tab("PRESET")
-    check(front._settings_panel.visible and
-        front._settings_panel.find_child("EditHUDEntry",true,false)!=null,
-        "preset control should open working real HUD editor")
+    # V75.155: PRESET was removed from the public footer. The same four
+    # persistent HUD slots and editor now live under the TOP settings gear.
+    check(not front._bottom_navigation.has_node("BottomPRESET"),
+        "obsolete footer PRESET still crowds mobile lobby")
+    front._top_settings_button.emit_signal("pressed")
+    var modal: CanvasLayer=front._settings_modal
+    check(modal!=null and
+        modal.find_child("HUDPresetSelector",true,false)!=null and
+        modal.find_child("EditCurrentHud",true,false)!=null and
+        front.stage=="lobby" and front._game==null,
+        "HUD settings must be opened from the top gear, not a new match")
+    if modal!=null:
+        modal.call("_close")
     front._top_account_button.emit_signal("pressed")
     check(front._selected_tab=="CUENTA" and
         front._login_manage_button.is_visible_in_tree(),
@@ -97,6 +107,6 @@ func _verify() -> void:
     await process_frame
     if not failed:
         print("V7578_AURORA_LOBBY PASS login=entry_only local=playable "+
-            "left_rail=6 bottom_navigation=6 social=truthful companion=3d "+
+            "left_rail=6 bottom_navigation=5 hud_only_in_settings=1 social=truthful companion=3d "+
             "missions=journal hud=real account=no_fake_id motorola=964x434")
     quit(1 if failed else 0)
