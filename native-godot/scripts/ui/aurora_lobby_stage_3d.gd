@@ -53,6 +53,7 @@ func _ready() -> void:
     _crate(Vector3(-3.28,-.12,-5.95))
     _crate(Vector3(5.0,-.12,-8.55))
     _fir_line()
+    _architectural_finishes()
     _batch_fittings()
 
 
@@ -106,6 +107,82 @@ func _runway_accents() -> void:
                 Vector3(0.0,-.103,z)))
     _instances("AuroraRunwayEdgeStrips",_cube,_signal_cyan,edge_transforms)
     _instances("AuroraRunwayCenterMarks",_cube,_ice_trim,center_transforms)
+
+
+## Original modular production art, integrated in the live 3D viewport.
+## Reuses existing MultiMesh fitting groups instead of per-panel draw calls.
+## Battle physics, player collisions and map coordinates are unchanged.
+func _architectural_finishes() -> void:
+    _hangar_roof_structure(Vector3(2.65,-.08,-12.8))
+    _station_facade_detail(Vector3(-5.28,-.08,-9.0))
+    _runway_service_drainage()
+    _radar_mast_finishes(Vector3(-4.65,-.08,-11.65))
+
+
+func _hangar_roof_structure(at: Vector3) -> void:
+    # Load-bearing roof profiles and a continuous ridge cap.
+    for section in range(7):
+        var z: float=-2.53+float(section)*.85
+        for side in [-1.0,1.0]:
+            _bar(at+Vector3(side*3.23,2.24,z),
+                at+Vector3(0.0,3.19,z),.050,_steel)
+            _fitting(at+Vector3(side*3.27,2.18,z),
+                Vector3(.13,.10,.095),_concrete)
+    _fitting(at+Vector3(0.0,3.20,0.0),
+        Vector3(.12,.13,5.92),_ice_trim)
+    for side in [-1.0,1.0]:
+        _fitting(at+Vector3(side*3.35,2.22,.10),
+            Vector3(.082,.12,5.89),_steel)
+        _fitting(at+Vector3(side*2.23,1.46,2.96),
+            Vector3(.038,.090,.025),_amber)
+
+
+func _station_facade_detail(at: Vector3) -> void:
+    # Framed entrance, shelter, sill flashing and cast concrete foundation.
+    _fitting(at+Vector3(0.0,1.60,0.0),
+        Vector3(3.75,.064,3.53),_ice_trim)
+    for side in [-1.0,1.0]:
+        _fitting(at+Vector3(side*1.76,.67,1.64),
+            Vector3(.055,1.31,.064),_steel)
+        _fitting(at+Vector3(side*1.75,.16,0.0),
+            Vector3(.13,.27,3.42),_concrete)
+    for index in range(7):
+        var x: float=-1.56+float(index)*.52
+        _fitting(at+Vector3(x,1.36,1.74),
+            Vector3(.026,.14,.06),_steel)
+    _fitting(at+Vector3(.93,1.31,1.94),
+        Vector3(.99,.09,.55),_steel)
+    for side in [-1.0,1.0]:
+        _fitting(at+Vector3(.93+side*.48,1.15,1.99),
+            Vector3(.042,.32,.07),_steel)
+    _fitting(at+Vector3(-.96,.32,1.68),
+        Vector3(.40,.036,.13),_ice_trim)
+
+
+func _runway_service_drainage() -> void:
+    # Raised drainage fixtures and lateral road edge trim.
+    for side in [-1.0,1.0]:
+        _fitting(Vector3(side*2.73,-.095,-8.85),
+            Vector3(.14,.020,18.9),_steel)
+        for drain in range(9):
+            var z: float=1.0-float(drain)*2.17
+            _fitting(Vector3(side*2.89,-.083,z),
+                Vector3(.35,.018,.21),_concrete)
+            for groove in range(3):
+                _fitting(Vector3(side*2.89,-.070,z+
+                    (float(groove)-1.0)*.061),
+                    Vector3(.27,.012,.018),_steel)
+
+
+func _radar_mast_finishes(at: Vector3) -> void:
+    # Fixed structural mast trim; radar head remains physically animated.
+    for side in [-1.0,1.0]:
+        _fitting(at+Vector3(side*.79,1.72,0.0),
+            Vector3(.055,.08,1.45),_steel)
+    for i in range(6):
+        var angle: float=TAU*float(i)/6.0
+        _fitting(at+Vector3(cos(angle)*.76,2.43,
+            sin(angle)*.76),Vector3(.16,.07,.16),_ice_trim)
 
 
 func _build_hangar(at: Vector3) -> void:
