@@ -44,7 +44,9 @@ func _verify() -> void:
     player.global_position=pickup.global_position-Vector3.UP
     player.velocity=Vector3.ZERO
     await physics_frame
-    if not pickup.collected:
+    # Physical pickup may complete asynchronously on the physics tick and
+    # free its Area3D before this assertion gets control again.
+    if is_instance_valid(pickup) and not pickup.collected:
         pickup._collect(player)
 
     for slot in [WEAPONS.AR,WEAPONS.SCAR,WEAPONS.MP40,WEAPONS.AWM]:
