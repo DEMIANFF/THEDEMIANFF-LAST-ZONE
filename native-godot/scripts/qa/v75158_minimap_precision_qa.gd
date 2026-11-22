@@ -26,6 +26,7 @@ func _verify() -> void:
     var combat: Node3D=game.get_node("CombatRange")
     var director: Node3D=game.get_node("AuroraSectorMatch")
     var terrain: StaticBody3D=game.get_node("AuroraTerrain")
+    var hud: CanvasLayer=game.get_node("TrainingHUD")
     var radar: Control=game.get_node(
         "TrainingHUD/AuroraTacticalOverlay/AuroraTrainingRadar")
     for bot in combat._targets:
@@ -86,6 +87,40 @@ func _verify() -> void:
         var arrow: Vector2=radar.call("_player_screen_forward")
         check(arrow.distance_to(Vector2.UP)<.01,
             "camera-up player pointer is not pointing toward real view")
+
+    # The top HUD's cardinal compass must show actual world heading,
+    # not east when the Godot 3D camera is physically looking WEST.
+    var compass: Label=hud.get("_compass") as Label
+    check(compass!=null,"shared mobile HUD has no real heading label")
+    if compass!=null:
+        var headings: Array[Dictionary]=[
+            {"yaw":0.0,"text":"N  000°"},
+            {"yaw":-PI*.5,"text":"E  090°"},
+            {"yaw":PI*.5,"text":"O  270°"},
+            {"yaw":PI,"text":"S  180°"}]
+        for entry in headings:
+            player.set("_yaw",float(entry["yaw"]))
+            hud.call("_refresh_heading")
+            check(compass.text==str(entry["text"]),
+                "top HUD reports east/west opposite to real Godot camera")
+    # Directional grenade warnings use the SAME world-space camera signs.
+    var warning: Label=hud.get("_real_grenade_warning_label") as Label
+    check(warning!=null,"physical grenade warning label was lost")
+    if warning!=null:
+        var east_hazard: Vector3=player.global_position+Vector3(18,0,0)
+        player.set("_yaw",-PI*.5)
+        hud.call("show_real_grenade_warning",.8,east_hazard)
+        check(warning.text.contains("FRENTE"),
+            "east-facing camera considers an eastern grenade sideways")
+        player.set("_yaw",PI*.5)
+        hud.call("show_real_grenade_warning",.8,east_hazard)
+        check(warning.text.contains("DETRAS"),
+            "west-facing camera considers a rear eastern grenade ahead")
+        player.set("_yaw",0.0)
+        hud.call("show_real_grenade_warning",.8,east_hazard)
+        check(warning.text.contains("DER"),
+            "north-facing camera placed a right-side grenade to the left")
+        hud.call("clear_real_grenade_warning")
 
     # Explicit north-up option: no camera rotation of static world
     # landmarks, but the player arrow still shows real facing.
@@ -185,5 +220,6 @@ func _verify() -> void:
             "player_center=1 camera_yaw_4=1 world_roundtrip=1 "+
             "north_up=1 local_80m=1 zone_245m_stable=1 "+
             "air_range=145 canopy_range=110 compass=1 motion_redraw=1 "+
-            "exact_nearby_waypoint=1 distant_edge_marker=1")
+            "exact_nearby_waypoint=1 distant_edge_marker=1 "+
+            "hud_cardinal=4 grenade_camera_bearings=3")
     quit(1 if failed else 0)
