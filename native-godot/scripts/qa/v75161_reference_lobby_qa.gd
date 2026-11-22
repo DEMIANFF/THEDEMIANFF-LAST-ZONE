@@ -62,6 +62,16 @@ func _verify() -> void:
     check(front._preview_caption.visible and
         front._preview_caption.text.contains("LILA AURORA"),
         "native rotating operator no longer has original nameplate")
+    var real_stage: Node3D=front._preview_container.get_node(
+        "PreviewViewport/AuroraCharacterStage")
+    for index in range(2):
+        var ring: MeshInstance3D=real_stage.get_node_or_null(
+            "AuroraPortraitPodiumRing%d"%index) as MeshInstance3D
+        check(ring!=null and ring.mesh is TorusMesh and
+            ring.material_override is StandardMaterial3D and
+            (ring.material_override as StandardMaterial3D).emission_enabled,
+            "original Aurora 3D stage lost its physically luminous podium ring")
+
     var footer_plate: Panel=front.find_child(
         "AuroraPremiumFooterGlass",true,false) as Panel
     var nameplate: Panel=front.find_child(
