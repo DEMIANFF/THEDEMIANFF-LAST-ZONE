@@ -38,8 +38,13 @@ func _verify() -> void:
         check(surface.normal_enabled,"terrain normal mapping disabled")
         check(surface.normal_texture!=null,"glacial rock microtexture missing")
         if surface.normal_texture:
-            check(surface.normal_texture.get_width()==64,
-                "unexpected terrain normal texture memory budget")
+            # V75.162 replaces the old 64px sine texture with a
+            # 128x128 mipmapped RGB8 normal within a 64 KiB raw budget.
+            check(surface.normal_texture.get_width()==128 and
+                surface.normal_texture.get_height()==128 and
+                surface.normal_texture.get_width()*
+                    surface.normal_texture.get_height()<=16384,
+                "terrain detail exceeds the approved 128x128 mobile bound")
     var quarter=world.get_node("PuertoAuroraCoastalQuarter")
     for mat in [quarter._plaster,quarter._sandstone,quarter._paving]:
         check(mat!=null and mat.normal_enabled,
