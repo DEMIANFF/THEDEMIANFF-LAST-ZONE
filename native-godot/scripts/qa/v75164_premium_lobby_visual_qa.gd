@@ -29,8 +29,7 @@ func _verify() -> void:
     var stage: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage/AuroraReal3DLobbyEnvironment")
     for mesh_name in ["AuroraRunwayEdgeStrips", "AuroraRunwayCenterMarks",
-            "BaseAuroraFirBranches", "BaseAuroraFirSnowCaps",
-            "BaseAuroraFirTrunks"]:
+            "BaseAuroraSnowFir", "BaseAuroraFirSnowCaps"]:
         var node: MultiMeshInstance3D=stage.get_node_or_null(mesh_name) as MultiMeshInstance3D
         check(node!=null and node.multimesh!=null and
             node.multimesh.instance_count>0,

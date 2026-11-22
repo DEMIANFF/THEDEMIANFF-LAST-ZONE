@@ -19,7 +19,6 @@ var _panel: ShaderMaterial
 var _snow: ShaderMaterial
 var _ice_trim: StandardMaterial3D
 var _signal_cyan: StandardMaterial3D
-var _signal_violet: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -34,7 +33,6 @@ func _ready() -> void:
     _beacon=_lamp(Color(1.0,.27,.10),1.0)
     _ice_trim=_metal(Color(.45,.62,.75),.42,.34)
     _signal_cyan=_lamp(Color(.12,.80,.98),.74)
-    _signal_violet=_lamp(Color(.58,.29,.98),.52)
     _panel=ShaderMaterial.new()
     _panel.shader=PANEL_SURFACE
     _snow=ShaderMaterial.new()
@@ -181,7 +179,7 @@ func _build_hangar(at: Vector3) -> void:
         Vector3(2.72,.032,.051),_signal_cyan)
     for side in [-1.0,1.0]:
         _fitting(at+Vector3(side*3.12,2.11,front+.17),
-            Vector3(.038,.58,.05),_signal_violet)
+            Vector3(.038,.58,.05),_signal_cyan)
     for side in [-1.0,1.0]:
         var sconce:=at+Vector3(side*2.81,1.55,front+.18)
         _fitting(sconce,Vector3(.21,.23,.21),fascia)
@@ -316,7 +314,6 @@ func _fir_line() -> void:
     # tips and dark trunks. Each material remains one GPU MultiMesh batch.
     var foliage:=_metal(Color(.065,.145,.156),.02,.88)
     var frost:=_metal(Color(.62,.75,.83),.0,.87)
-    var trunk:=_metal(Color(.16,.16,.19),.0,.94)
     var branches:=CylinderMesh.new()
     branches.top_radius=.025
     branches.bottom_radius=.43
@@ -327,22 +324,15 @@ func _fir_line() -> void:
     cap.bottom_radius=.19
     cap.height=.17
     cap.radial_segments=9
-    var stem:=CylinderMesh.new()
-    stem.top_radius=.055
-    stem.bottom_radius=.075
-    stem.height=.64
-    stem.radial_segments=7
     var branch_transforms: Array[Transform3D]=[]
     var cap_transforms: Array[Transform3D]=[]
-    var stem_transforms: Array[Transform3D]=[]
     for side in [-1.0,1.0]:
         for i in range(9):
             var x: float=side*(4.5+float(i)*1.65)
             var z: float=-18.8-absf(sin(float(i)*.81+side))*3.1
             var scale_3d: float=.70+absf(sin(float(i)*1.83+side))*.7
-            stem_transforms.append(Transform3D(
-                Basis.from_scale(Vector3(scale_3d,scale_3d,scale_3d)),
-                Vector3(x,.30*scale_3d,z)))
+            _fitting(Vector3(x,.30*scale_3d,z),
+                Vector3(.11*scale_3d,.64*scale_3d,.11*scale_3d),_steel)
             for crown in range(3):
                 var part:=scale_3d*(1.0-float(crown)*.19)
                 var height: float=(.54+float(crown)*.40)*scale_3d
@@ -352,9 +342,8 @@ func _fir_line() -> void:
                 cap_transforms.append(Transform3D(
                     Basis.from_scale(Vector3(part,scale_3d,part)),
                     Vector3(x,height+.39*scale_3d,z)))
-    _instances("BaseAuroraFirBranches",branches,foliage,branch_transforms)
+    _instances("BaseAuroraSnowFir",branches,foliage,branch_transforms)
     _instances("BaseAuroraFirSnowCaps",cap,frost,cap_transforms)
-    _instances("BaseAuroraFirTrunks",stem,trunk,stem_transforms)
 
 func _snowbank(side: float) -> void:
     var shape:=SurfaceTool.new()
