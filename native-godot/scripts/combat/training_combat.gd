@@ -97,6 +97,8 @@ var medkits_remaining: int = 2
 var syringes_remaining: int=0
 var grenades_remaining: int=0
 var _grenades: Array[Node3D]=[]
+# Count only real AI reactions to the physical grenade fuse, no fake deaths.
+var grenade_evasion_alerts: int=0
 var _heal_remaining: float=0.0
 var _heal_duration: float=HEAL_APPLY_SECONDS
 var _healing_with_syringe: bool=false
@@ -760,11 +762,28 @@ func throw_grenade() -> bool:
     grenade.position=to_local(center+aim*.55)
     _grenades.append(grenade)
     grenade.detonated.connect(_on_grenade_detonated)
+    grenade.audible_fuse.connect(_on_grenade_audible_fuse)
     grenade.tree_exited.connect(func(): _grenades.erase(grenade),CONNECT_ONE_SHOT)
     add_child(grenade)
     grenades_remaining-=1
     _sync_hud()
     return true
+
+
+## Once every .25s only while a REAL fuse burns: 49 in-memory
+## squared-distance checks, no spatial queries, meshes, sounds or paths.
+func _on_grenade_audible_fuse(at: Vector3,remaining: float) -> void:
+    if (not sector_battle_active or not at.is_finite() or
+            not is_finite(remaining) or remaining<=0.0):
+        return
+    for rival in _targets:
+        if (is_instance_valid(rival) and rival.health>0.0 and
+                rival.warn_explosive(at,remaining)):
+            grenade_evasion_alerts+=1
+    if (is_instance_valid(operator) and
+            not operator.royale_eliminated and
+            operator.global_position.distance_squared_to(at)<8.0*8.0):
+        hud.show_real_grenade_warning(remaining)
 
 
 func _on_grenade_detonated(at: Vector3) -> void:
@@ -814,6 +833,30 @@ func _flash_grenade(at: Vector3) -> void:
     fade.tween_property(flash,"scale",Vector3.ONE*5.5,.24)
     fade.tween_property(light,"albedo_color:a",0.0,.24)
     fade.chain().tween_callback(flash.queue_free)
+    # A brief, ground-level torus communicates the genuine physical blast
+    # radius to mobile players. It has zero Light3D, shadows or particles.
+    var shock:=MeshInstance3D.new()
+    shock.name="AuroraPhysicalBlastRing"
+    var torus:=TorusMesh.new()
+    torus.inner_radius=.80
+    torus.outer_radius=.96
+    torus.rings=8
+    torus.ring_segments=28
+    shock.mesh=torus
+    shock.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    var smoke:=StandardMaterial3D.new()
+    smoke.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    smoke.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+    smoke.albedo_color=Color(1.0,.72,.34,.60)
+    shock.material_override=smoke
+    add_child(shock)
+    shock.global_position=at+Vector3.UP*.06
+    shock.scale=Vector3(.14,.06,.14)
+    var ring_tween:=shock.create_tween().set_parallel()
+    ring_tween.tween_property(shock,"scale",
+        Vector3.ONE*BLAST_RADIUS,.28)
+    ring_tween.tween_property(smoke,"albedo_color:a",0.0,.28)
+    ring_tween.chain().tween_callback(shock.queue_free)
 
 
 func _clear_grenades() -> void:
@@ -825,6 +868,7 @@ func _clear_grenades() -> void:
 
 
 func end_sector_battle() -> void:
+    hud.clear_real_grenade_warning()
     _auto_reload_queued=false
     _close_training_armory()
     _cancel_healing()
@@ -850,6 +894,8 @@ func end_sector_battle() -> void:
 
 
 func begin_sector_battle(from_real_airdrop: bool=false) -> void:
+    grenade_evasion_alerts=0
+    hud.clear_real_grenade_warning()
     _auto_reload_queued=false
     _close_training_armory()
     _cancel_healing()

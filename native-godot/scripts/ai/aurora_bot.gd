@@ -64,6 +64,9 @@ const FIRE_PRESENTATION_SECONDS: float=.26
 # 14 or fewer already-allocated rigs carry one reusable unlit flash each.
 const REAL_MUZZLE_FLASH_SECONDS: float=.09
 const MAX_MUZZLE_TRACER_OFFSET: float=4.5
+# The AI reacts to a physically heard grenade only inside this radius.
+const GRENADE_HEARING_RADIUS: float=10.5
+const GRENADE_ESCAPE_METERS: float=8.5
 
 var navigation: Node3D
 var behavior: String="patrol"
@@ -76,6 +79,9 @@ var vision_rays_total: int=0
 var _magazine: int=MAGAZINE_CAPACITY
 var weapon_slot: int=WEAPONS.AR
 var _reload_remaining: float=0.0
+var _grenade_evasion_left: float=0.0
+var _grenade_last_at: Vector3=Vector3(INF,INF,INF)
+var grenade_dodges: int=0
 var _field_medkits: int=FIELD_MEDKIT_CAPACITY
 var _heal_remaining: float=0.0
 var _heal_cooldown: float=0.0
@@ -580,6 +586,7 @@ func _physics_process(dt: float) -> void:
         if _dead_time<=0:
             _respawn()
         return
+    _grenade_evasion_left=maxf(0.0,_grenade_evasion_left-dt)
     _impact_reaction_remaining=maxf(0.0,_impact_reaction_remaining-dt)
     _weapon_action_remaining=maxf(0.0,_weapon_action_remaining-dt)
     if _muzzle_flash_remaining>0.0:
@@ -611,8 +618,8 @@ func _physics_process(dt: float) -> void:
         if _sense_clock<=0.0:
             _sense_clock=.22+float(get_instance_id()%5)*.025
             _sense_player()
-        if (_target_visible or (sector_battle and
-                should_escape_current_zone(global_position,
+        if (_target_visible or _grenade_evasion_left>0.0 or
+                (sector_battle and should_escape_current_zone(global_position,
                     safe_center,safe_radius))):
             _interrupt_field_heal()
     # Medicines are a real timed, interruptible action on CharacterBody3D.
@@ -636,7 +643,7 @@ func _physics_process(dt: float) -> void:
 
     # Heal only out of immediate sight and inside the real safe ring;
     # taking damage, resuming fire or entering zone hazard interrupts it.
-    if _should_field_heal():
+    if _grenade_evasion_left<=0.0 and _should_field_heal():
         _begin_field_heal()
         return
     # Reload a nearly empty physical magazine while hidden from opponents;
@@ -713,6 +720,17 @@ func _physics_process(dt: float) -> void:
         destination=safe_zone_destination(global_position,
             safe_center,safe_radius)
         target_speed=WALK_SPEED
+    # One nearby physical fuse may temporarily override pursuit, flanking
+    # and planned zone rotations; imminent real storm still takes priority.
+    if (_grenade_evasion_left>0.0 and _grenade_last_at.is_finite() and
+            not escaping_storm):
+        var retreat: Vector3=global_position-_grenade_last_at
+        retreat.y=0.0
+        if retreat.length_squared()<.01:
+            retreat=Vector3(_avoid_side,0.0,0.0)
+        destination=global_position+retreat.normalized()*GRENADE_ESCAPE_METERS
+        behavior="grenade_escape"
+        target_speed=CHASE_SPEED
     # Immediate storm threat always overrides the next-phase rotation.
     # Scale the margin with the ring: the old fixed four-metre buffer
     # marked EVERY bot as escaping forever when the ring was 0.75m wide.
@@ -899,6 +917,34 @@ func hear_gunshot(at: Vector3, originator: Node3D) -> void:
     heard_shots+=1
 
 
+## Hearing a nearby live fuse is not omniscient grenade awareness.
+## Return true for a newly warned real opponent; event budget is tracked
+## separately from physical deaths, ammo, and incoming hit reactions.
+func warn_explosive(at: Vector3,seconds_left: float) -> bool:
+    if (not sector_battle or health<=0.0 or
+            _airdrop_stage in ["waiting","descending"] or
+            not at.is_finite() or not is_finite(seconds_left) or
+            seconds_left<=0.0 or
+            global_position.distance_squared_to(at)>
+                GRENADE_HEARING_RADIUS*GRENADE_HEARING_RADIUS):
+        return false
+    var new_warning: bool=_grenade_evasion_left<=0.0
+    _grenade_last_at=at
+    _grenade_evasion_left=maxf(_grenade_evasion_left,
+        minf(1.0,seconds_left+.18))
+    if _heal_remaining>0.0:
+        _interrupt_field_heal()
+    # Existing route planner remains authoritative, with its own
+    # staggered budget; flee from the real grenade, not from the player.
+    _route_clock=minf(_route_clock,.045+
+        float(get_instance_id()%ROUTE_REPLAN_BUCKETS)*.012)
+    if new_warning:
+        _route.clear()
+        _route_goal=Vector3(INF,INF,INF)
+        grenade_dodges+=1
+    return new_warning
+
+
 func configure_sector_battle(actors: Array[CharacterBody3D],
         preserve_airdrop: bool=false) -> void:
     _reset_death_presentation()
@@ -927,6 +973,9 @@ func configure_sector_battle(actors: Array[CharacterBody3D],
     _attack_clock=1.3
     _magazine=_loadout_capacity()
     _reload_remaining=0.0
+    _grenade_evasion_left=0.0
+    _grenade_last_at=Vector3(INF,INF,INF)
+    grenade_dodges=0
     _field_medkits=FIELD_MEDKIT_CAPACITY
     _heal_remaining=0.0
     _heal_cooldown=0.0
@@ -1212,6 +1261,8 @@ func _reset_death_presentation() -> void:
 func _respawn() -> void:
     if not respawn_enabled:
         return
+    _grenade_evasion_left=0.0
+    _grenade_last_at=Vector3(INF,INF,INF)
     _reset_death_presentation()
     muzzle_flashes_shown=0
     weapon_actions_shown=0
