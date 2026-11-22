@@ -2,6 +2,7 @@ extends StaticBody3D
 ## Irregular continuous archipelago elevation. Not a cube, grid of houses or square island.
 const CELLS: int = 144
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
+const MICRO_SURFACE=preload("res://scripts/render/aurora_micro_surface.gd")
 const HALF_EXTENT: float = 337.5
 const HEIGHT_STEP: float = (HALF_EXTENT * 2.0) / float(CELLS)
 
@@ -174,21 +175,9 @@ func residential_pad_height(x: float,z: float) -> float:
     return RESIDENTIAL.PAD_HEIGHT if RESIDENTIAL.grading_weight(x,z)>=.999 else height_at(x,z)
 
 func _terrain_micro_normal() -> ImageTexture:
-    # Original low-memory 64x64 detail map. Snow is almost smooth while
-    # glacial rock gets modest microstructure from vertex-color slope masks.
-    # No parallax or expensive triplanar sampling on Motorola GPUs.
-    const SIZE: int=64
-    var image:=Image.create(SIZE,SIZE,false,Image.FORMAT_RGB8)
-    for py in range(SIZE):
-        for px in range(SIZE):
-            var angle_x: float=float(px)*TAU/float(SIZE)
-            var angle_y: float=float(py)*TAU/float(SIZE)
-            var nx: float=.09*sin(angle_x*4.0+cos(angle_y*2.0)*.7)
-            var ny: float=.09*cos(angle_y*4.0+sin(angle_x*3.0)*.7)
-            var normal:=Vector3(nx,ny,1.0).normalized()
-            image.set_pixel(px,py,Color(normal.x*.5+.5,
-                normal.y*.5+.5,normal.z*.5+.5))
-    return ImageTexture.create_from_image(image)
+    # Stable mipmapped terrain detail on the existing physical ArrayMesh.
+    # This changes shading only and preserves every collider/loot height.
+    return MICRO_SURFACE.texture(false)
 
 
 func _ready() -> void:
