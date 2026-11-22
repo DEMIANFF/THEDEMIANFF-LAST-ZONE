@@ -608,11 +608,22 @@ func _start_original_clip(animator: AnimationPlayer,clip: String,
     animator.play(clip)
 
 
-func clear_expansion() -> void:
+## One lifecycle reset for the actual mounted weapon and all authored
+## private GLB clips. Scene end, elimination and new-round setup use exactly
+## this same path, so no 3D recoil, bolt or sped-up reload survives a match.
+func reset_action_state() -> void:
     cancel_visual_recoil()
+    cancel_awm_mechanical_cycle()
+    set_mp40_reload_progress(0.0)
     for player_anim in _source_animation_players.values():
         if is_instance_valid(player_anim):
-            (player_anim as AnimationPlayer).stop()
+            var native_player: AnimationPlayer=player_anim as AnimationPlayer
+            native_player.stop()
+            native_player.speed_scale=1.0
+
+
+func clear_expansion() -> void:
+    reset_action_state()
     _source_animation_players.clear()
     for visual: Node3D in _expansion.values()+_expansion_holsters.values():
         visual.hide()

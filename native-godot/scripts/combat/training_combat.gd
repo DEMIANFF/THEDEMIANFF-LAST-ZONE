@@ -263,12 +263,17 @@ func _on_fire_released() -> void:
 
 
 func _on_weapon() -> void:
+    # Never try to equip an uncollected AWM when the player only owns AR-7.
+    # The list contains historical save-slot IDs, not all available guns.
+    if not operator.can_act() or weapon_owned.size()<2:
+        return
     for step in range(1,weapon_owned.size()):
         var next: int=(weapon_index+step)%weapon_owned.size()
         if weapon_owned[next]:
             _equip_inventory_weapon(next)
             return
-    _equip_inventory_weapon(WEAPONS.AWM)
+    # Exactly one owned slot: keep the physical gun and its ammunition.
+    # Do not call _equip_inventory_weapon on a nonexistent fallback.
 
 
 ## Both the quick-switch button and actual inventory use this same
@@ -915,6 +920,8 @@ func end_sector_battle() -> void:
     _cancel_healing()
     _cancel_awm_bolt()
     _clear_reload()
+    if _weapon_visuals:
+        _weapon_visuals.reset_action_state()
     for i in range(_bot_tracers.size()):
         _bot_tracer_lifetimes[i]=0.0
         _bot_tracers[i].visible=false
@@ -942,6 +949,8 @@ func begin_sector_battle(from_real_airdrop: bool=false) -> void:
     _cancel_healing()
     _cancel_awm_bolt()
     _clear_reload()
+    if _weapon_visuals:
+        _weapon_visuals.reset_action_state()
     _clear_cover()
     _clear_grenades()
     sector_battle_active=true
