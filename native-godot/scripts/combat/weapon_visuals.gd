@@ -38,6 +38,15 @@ var _skeleton: Skeleton3D
 var _right_hand_id: int=-1
 var _support_ik: SkeletonModifier3D
 var _support_anchors: Dictionary={}
+# Animated pieces of the ACTUAL authored AWM model (build_awm.py).
+# Never fake an AWM bolt when the corresponding source meshes are absent.
+const AWM_BOLT_MESH_NAMES: Array[String]=[
+    "steel bolt stem","raised bolt lever","bolt actuator knob"]
+const AWM_MECHANICAL_SECONDS: float=.50
+var _awm_bolt_meshes: Array[MeshInstance3D]=[]
+var _awm_bolt_rest: Array[Vector3]=[]
+var _awm_mechanical_left: float=0.0
+var awm_bolt_visual_cycles: int=0
 
 
 func attach_to_player(player: CharacterBody3D) -> void:
@@ -127,6 +136,7 @@ func attach_to_player(player: CharacterBody3D) -> void:
 
     ak=_load_visual(AK_PATH,"AK74TacticalVisual",mount)
     awm=_load_visual(AWM_PATH,"AWMPrecisionRifleVisual",mount)
+    _index_awm_mechanical_parts()
     if back_mount:
         back_ak=_load_visual(AK_PATH,"AK74BackHolsterVisual",back_mount)
         back_awm=_load_visual(AWM_PATH,"AWMBackHolsterVisual",back_mount)
@@ -200,7 +210,77 @@ func _load_visual(path: String, display_name: String,
     return visual
 
 
+## Find the ORIGINAL separate bolt pieces in the exported 3D GLB.
+## This index is built exactly once, instead of traversing 40+ mesh
+## objects or allocating frame-by-frame during an Android firefight.
+func _index_awm_mechanical_parts() -> void:
+    _awm_bolt_meshes.clear()
+    _awm_bolt_rest.clear()
+    if not is_instance_valid(awm):
+        return
+    for original_name in AWM_BOLT_MESH_NAMES:
+        var part_found: MeshInstance3D=null
+        for node in awm.find_children("*","MeshInstance3D",true,false):
+            var part: MeshInstance3D=node as MeshInstance3D
+            var label: String=part.name.to_lower().replace("_"," ")
+            if label.contains(original_name):
+                part_found=part
+                break
+        if part_found!=null:
+            _awm_bolt_meshes.append(part_found)
+            _awm_bolt_rest.append(part_found.position)
+    if _awm_bolt_meshes.size()!=AWM_BOLT_MESH_NAMES.size():
+        _awm_bolt_meshes.clear()
+        _awm_bolt_rest.clear()
+        push_warning("AWM imported model has no individually animated bolt meshes")
+
+
+## The visual cycle is driven by the real AWM round, independent of the
+## existing 280ms bolt SOUND and 500ms authoritative firing cadence.
+## Each GLB part moves along the existing receiver then returns to the
+## original resting vertex transform, without adding separate fake meshes.
+func begin_awm_mechanical_cycle() -> bool:
+    if (not is_instance_valid(awm) or not awm_owned or
+            selected_weapon!=WEAPONS.AWM or medical_busy or flight_holster or
+            _awm_bolt_meshes.size()!=AWM_BOLT_MESH_NAMES.size()):
+        return false
+    cancel_awm_mechanical_cycle()
+    _awm_mechanical_left=AWM_MECHANICAL_SECONDS
+    awm_bolt_visual_cycles+=1
+    return true
+
+
+func _advance_awm_mechanical_cycle(delta: float) -> void:
+    if _awm_mechanical_left<=0.0:
+        return
+    if (not is_instance_valid(awm) or medical_busy or flight_holster or
+            selected_weapon!=WEAPONS.AWM):
+        cancel_awm_mechanical_cycle()
+        return
+    _awm_mechanical_left=maxf(0.0,
+        _awm_mechanical_left-maxf(0.0,delta))
+    var t: float=1.0-_awm_mechanical_left/AWM_MECHANICAL_SECONDS
+    # Unlock, slide rearward, close and relock. All three objects are
+    # within the physical metal receiver; no stock, barrel or optic moves.
+    var open: float=smoothstep(.08,.35,t)*(1.0-smoothstep(.55,.94,t))
+    for i in range(_awm_bolt_meshes.size()):
+        var part: MeshInstance3D=_awm_bolt_meshes[i]
+        if is_instance_valid(part):
+            part.position=_awm_bolt_rest[i]+Vector3(
+                0.0,.012*open if i>0 else .0,.068*open)
+    if _awm_mechanical_left<=0.0:
+        cancel_awm_mechanical_cycle()
+
+
+func cancel_awm_mechanical_cycle() -> void:
+    _awm_mechanical_left=0.0
+    for i in range(_awm_bolt_meshes.size()):
+        if is_instance_valid(_awm_bolt_meshes[i]):
+            _awm_bolt_meshes[i].position=_awm_bolt_rest[i]
+
+
 func _process(_delta: float) -> void:
+    _advance_awm_mechanical_cycle(_delta)
     if is_instance_valid(operator):
         var stow: bool=operator.get("air_mode") in ["freefall","parachute"]
         if flight_holster!=stow:
@@ -233,11 +313,15 @@ func _align_mount_to_sight(from_modifier: bool=false) -> void:
 ## The AWM is visible on Lila's back ONLY after its world pickup.
 ## When it is equipped, the default AR-7 moves to the spine holster.
 func set_awm_owned(owned: bool) -> void:
+    if not owned:
+        cancel_awm_mechanical_cycle()
     awm_owned=owned
     _sync_equipment_visibility()
 
 
 func set_medical_busy(active: bool) -> void:
+    if active:
+        cancel_awm_mechanical_cycle()
     medical_busy=active
     _sync_equipment_visibility()
 
@@ -483,6 +567,8 @@ func _sync_equipment_visibility() -> void:
 func equip(index: int) -> void:
     if index<WEAPONS.AR or (index>=WEAPONS.SCAR and not _expansion.has(index)):
         return
+    if index!=WEAPONS.AWM:
+        cancel_awm_mechanical_cycle()
     # Do not display a weapon that is neither owned nor available.
     selected_weapon=index if index!=WEAPONS.AWM or awm_owned else WEAPONS.AR
     _sync_equipment_visibility()
