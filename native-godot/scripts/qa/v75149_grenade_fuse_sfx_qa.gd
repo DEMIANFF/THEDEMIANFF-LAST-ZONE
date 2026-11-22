@@ -42,6 +42,8 @@ func _verify() -> void:
         sound._samples.has("awm_bolt") and sound._samples.has("grenade"),
         "new warning stole the original blast or firearm audio slots")
 
+    # The live lobby selects one 50-fighter BR roster, also in QA.
+    combat.set_encounter_size(50)
     director.start_sector_battle()
     director.set_process(false)
     combat.set_process(false)

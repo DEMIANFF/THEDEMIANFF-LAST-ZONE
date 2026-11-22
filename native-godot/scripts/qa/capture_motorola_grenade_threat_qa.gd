@@ -36,6 +36,8 @@ func _capture() -> void:
     for rival in combat._targets:
         rival.set_physics_process(false)
     await physics_frame
+    # The live lobby selects one 50-fighter BR roster, also in QA.
+    combat.set_encounter_size(50)
     director.start_sector_battle()
     director.set_process(false)
     combat.set_process(false)
