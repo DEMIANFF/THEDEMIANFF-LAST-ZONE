@@ -70,11 +70,18 @@ func _verify() -> void:
     var b: Vector2=center+Vector2(40,0)
     tactical.call("_gui_input",_touch(0,a,true))
     tactical.call("_gui_input",_touch(1,b,true))
+    # The world coordinate at the original pinch midpoint must remain
+    # beneath the translated midpoint even as the map changes scale.
+    var world_under_pinch: Vector2=tactical.call("unproject",(a+b)*.5)
     var drag:=InputEventScreenDrag.new()
     drag.index=0
     drag.position=a+Vector2(-12,4)
     drag.relative=Vector2(-12,4)
     tactical.call("_gui_input",drag)
+    var moved_midpoint: Vector2=(drag.position+b)*.5
+    var world_after_pinch: Vector2=tactical.call("unproject",moved_midpoint)
+    check(world_after_pinch.distance_to(world_under_pinch)<.1,
+        "two-finger translation/zoom shifted the terrain under the fingers")
     check(float(tactical.get("zoom"))>2.0 and
         not bool(tactical.get("_follow_player")),
         "physical two-finger zoom snapped to player or ignored the scale")
