@@ -84,8 +84,8 @@ func _capture() -> void:
     map.call("_follow")
     map.queue_redraw()
     await frames(12)
-    if TACTICAL_MAP.MAP_SAMPLES!=512 or
-            not (map.get("_terrain_texture") is ImageTexture):
+    if (TACTICAL_MAP.MAP_SAMPLES!=512 or
+            not (map.get("_terrain_texture") is ImageTexture)):
         _fail("the actual physical map texture was not built")
         return
     var local_ok: bool=await _save("right-side-urban-map",tag)
