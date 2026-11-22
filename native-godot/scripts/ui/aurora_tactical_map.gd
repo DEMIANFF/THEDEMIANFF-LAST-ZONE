@@ -379,7 +379,9 @@ func _paint_house(image: Image,heights: PackedFloat32Array,
                 continue
             var in_metres: Vector2=(Vector2(float(px),float(pz))-
                 middle)/scale
-            var local: Vector2=in_metres.rotated(-yaw)
+            # 3D +Y rotation corresponds to a negative screen X/Z
+            # rotation. Its inverse must be +yaw in our 2D local basis.
+            var local: Vector2=in_metres.rotated(yaw)
             if absf(local.x)>span.x*.5+.7 or absf(local.y)>span.y*.5+.7:
                 continue
             var border: bool=absf(local.x)>=span.x*.5-.9 or (
@@ -403,6 +405,50 @@ func _paint_plaza(image: Image,at: Vector2,span: Vector2) -> void:
             var edge: bool=abs(dx)>=half_x-1 or abs(dz)>=half_z-1
             image.set_pixel(x,z,Color(.23,.31,.33) if edge else
                 Color(.52,.55,.52))
+
+
+## Vector overlays preserve straight walls, proper roof angles and sharp
+## outlines at 8x zoom, where enlarging even a 512px raster looks pixelated.
+## Draw only completely in-pane geometry; never paint over the live world/HUD.
+func _draw_vector_roof(world_center: Vector2,span: Vector2,yaw: float,
+        tint: Color,clip: Rect2) -> void:
+    var half: Vector2=span*.5
+    var local_corners:=PackedVector2Array([
+        Vector2(-half.x,-half.y),Vector2(half.x,-half.y),
+        Vector2(half.x,half.y),Vector2(-half.x,half.y)])
+    var screen_corners:=PackedVector2Array()
+    var min_at:=Vector2(INF,INF)
+    var max_at:=Vector2(-INF,-INF)
+    for corner in local_corners:
+        var pixel: Vector2=project(world_center+corner.rotated(-yaw))
+        screen_corners.append(pixel)
+        min_at=min_at.min(pixel)
+        max_at=max_at.max(pixel)
+    if not clip.grow(-4.0).encloses(
+            Rect2(min_at,max_at-min_at)):
+        return
+    draw_colored_polygon(screen_corners,tint)
+    var border: PackedVector2Array=screen_corners.duplicate()
+    border.append(screen_corners[0])
+    draw_polyline(border,Color(.06,.16,.19,.95),2.0,true)
+    var ridge_front: Vector2=project(world_center+
+        Vector2(0,-half.y*.88).rotated(-yaw))
+    var ridge_back: Vector2=project(world_center+
+        Vector2(0,half.y*.88).rotated(-yaw))
+    draw_line(ridge_front,ridge_back,Color(.22,.34,.38,.85),1.2,true)
+
+
+func _draw_vector_roofs(clip: Rect2) -> void:
+    if zoom<2.0:
+        return
+    for entry in MAP_FOOTPRINTS.DISTRICT_BUILDINGS:
+        _draw_vector_roof(entry["at"],entry["size"],0.0,
+            Color(.72,.84,.86,.97),clip)
+    for i in range(RESIDENTIAL.SITES.size()):
+        var site: Vector4=RESIDENTIAL.SITES[i]
+        _draw_vector_roof(Vector2(site.x,site.y),
+            Vector2(site.z,site.w),RESIDENTIAL.YAWS[i],
+            Color(.84,.78,.69,.98),clip)
 
 
 func _paint_cargo(image: Image,at: Vector2) -> void:
@@ -475,9 +521,8 @@ func _ensure_terrain_texture() -> void:
         var site: Vector4=RESIDENTIAL.SITES[i]
         _paint_house(image,heights,Vector2(site.x,site.y),
             Vector2(site.z,site.w),sea,RESIDENTIAL.YAWS[i])
-    for historic in TERRAIN_SCALE.LEGACY_LOTS:
-        _paint_house(image,heights,Vector2(historic.x,historic.y),
-            Vector2(historic.z,historic.w),sea)
+    # LEGACY_LOTS are the SAME four district structures already painted
+    # from DISTRICT_BUILDINGS; don't draw a duplicate roof pass.
     for at in MAP_FOOTPRINTS.FREIGHT_CACHES:
         _paint_cargo(image,at)
     _terrain_texture=ImageTexture.create_from_image(image)
@@ -745,6 +790,7 @@ func _draw() -> void:
         _draw_path([entry["from"],entry["to"]],
             Color(.76,.77,.67,.93),clampf(
                 float(entry["width"])/_meters_per_pixel(rect),1.4,8.0))
+    _draw_vector_roofs(rect)
     for n in range(-4,5):
         var grid_x: float=float(n)*50.0
         var a:=project(Vector2(grid_x,-WORLD_HALF))
