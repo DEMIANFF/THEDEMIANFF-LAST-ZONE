@@ -56,9 +56,9 @@ var _visual_recoil_model: Node3D
 var _visual_recoil_rest: Transform3D
 var _visual_recoil_amplitude: float=0.0
 var visual_recoil_events: int=0
-# The muzzle is a targeting/ballistics socket, not a moving cosmetic mesh.
-# Compensate its local transform while the original GLB visually recoils:
-# bullets must still leave the undisturbed barrel rest pose.
+# The projectile origin is independent of the rendered recoil displacement.
+# Keep the real muzzle socket anchored to the pre-kick model pose, while
+# allowing the gun meshes to animate in Lila's hands.
 var _visual_recoil_muzzle: Node3D
 var _visual_recoil_muzzle_local_rest: Transform3D
 var _visual_recoil_muzzle_in_model_rest: Transform3D
@@ -343,9 +343,8 @@ func _apply_visual_recoil() -> void:
     var origin: Vector3=_visual_recoil_rest.origin+Vector3(
         0.0,amount*.20,amount)
     _visual_recoil_model.transform=Transform3D(basis,origin)
-    # Move the rendered gun but NOT the projectile/aim socket. This socket
-    # remains at its original model-rest position relative to Lila's hand.
-    # It still follows moving/aiming hands because the mount parent is live.
+    # Compensate only the invisible ballistic marker, not the imported GLB.
+    # Its parent transform still follows the current hand and sight direction.
     var holder: Node3D=_visual_recoil_model.get_parent_node_3d()
     if is_instance_valid(_visual_recoil_muzzle) and is_instance_valid(holder):
         _visual_recoil_muzzle.global_transform=(
@@ -373,8 +372,6 @@ func cancel_visual_recoil() -> void:
     if is_instance_valid(_visual_recoil_model):
         _visual_recoil_model.transform=_visual_recoil_rest
     if is_instance_valid(_visual_recoil_muzzle):
-        # Restore the authored marker's untouched transform so future
-        # animation, weapon swaps and the next round cannot inherit an offset.
         _visual_recoil_muzzle.transform=_visual_recoil_muzzle_local_rest
     _visual_recoil_left=0.0
     _visual_recoil_model=null
@@ -633,11 +630,22 @@ func _start_original_clip(animator: AnimationPlayer,clip: String,
     animator.play(clip)
 
 
-func clear_expansion() -> void:
+## One lifecycle reset for the actual mounted weapon and all authored
+## private GLB clips. Scene end, elimination and new-round setup use exactly
+## this same path, so no 3D recoil, bolt or sped-up reload survives a match.
+func reset_action_state() -> void:
     cancel_visual_recoil()
+    cancel_awm_mechanical_cycle()
+    set_mp40_reload_progress(0.0)
     for player_anim in _source_animation_players.values():
         if is_instance_valid(player_anim):
-            (player_anim as AnimationPlayer).stop()
+            var native_player: AnimationPlayer=player_anim as AnimationPlayer
+            native_player.stop()
+            native_player.speed_scale=1.0
+
+
+func clear_expansion() -> void:
+    reset_action_state()
     _source_animation_players.clear()
     for visual: Node3D in _expansion.values()+_expansion_holsters.values():
         visual.hide()
