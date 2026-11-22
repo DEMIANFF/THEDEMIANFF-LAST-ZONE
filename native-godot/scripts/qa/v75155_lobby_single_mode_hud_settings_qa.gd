@@ -59,10 +59,10 @@ func _verify() -> void:
     check(rail.get_child_count()==6,
         "clean Aurora left rail no longer has six actual menu actions")
     var arena: Button=rail.get_node_or_null("QuickJUGAR") as Button
-    var pass: Button=rail.get_node_or_null("QuickPASE") as Button
-    check(arena!=null and pass!=null and
+    var pass_button: Button=rail.get_node_or_null("QuickPASE") as Button
+    check(arena!=null and pass_button!=null and
         arena.text.contains("SALA DE BATALLA") and
-        pass.text.contains("PASE ROYALE"),
+        pass_button.text.contains("PASE ROYALE"),
         "left menu does not match the approved Aurora composition")
     front._select_tab("INVENTARIO")
     arena.emit_signal("pressed")
