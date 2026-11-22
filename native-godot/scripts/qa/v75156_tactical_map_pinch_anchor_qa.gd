@@ -34,7 +34,8 @@ func _verify() -> void:
     tactical.set("zoom",2.0)
     tactical.set("pan",Vector2.ZERO)
     tactical.set("_follow_player",true)
-    var center: Vector2=(tactical.call("_map_rect") as Rect2).get_center()
+    var canvas_rect: Rect2=tactical.call("_map_rect")
+    var center: Vector2=canvas_rect.get_center()
     var pointer: Vector2=center+Vector2(55,-23)
     var before: Vector2=tactical.call("unproject",pointer)
     tactical.call("_zoom_at_point",1.35,pointer)
@@ -72,8 +73,8 @@ func _verify() -> void:
     tactical.call("_gui_input",_touch(0,drag.position,false))
     tactical.call("_gui_input",_touch(1,b,false))
     var untouched_waypoint: Vector2=tactical.get("waypoint")
-    check(not untouched_waypoint.is_finite() and
-        (tactical.get("_touches") as Dictionary).is_empty(),
+    var touches: Dictionary=tactical.get("_touches")
+    check(not untouched_waypoint.is_finite() and touches.is_empty(),
         "pinch release placed an unwanted marker or left touches captured")
 
     # At whole-island zoom no pan may expose repeated terrain tiles.
