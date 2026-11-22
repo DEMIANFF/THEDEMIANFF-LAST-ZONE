@@ -581,8 +581,8 @@ func _draw() -> void:
                 GUNFIRE_PING_SECONDS,0.0,1.0)
             draw_arc(dot,7.0,0,TAU,22,Color(1.0,.53,.25,alpha),1.8,true)
             draw_circle(dot,2.5,Color(1.0,.65,.34,alpha*.9))
+        _draw_navigation_compass(center,radius,world_range)
         return
-    _draw_navigation_compass(center,radius,world_range)
     for bot in opponents:
         if not is_instance_valid(bot) or not bot.visible:
             continue
@@ -593,3 +593,4 @@ func _draw() -> void:
         var dot: Vector2=center+relative.rotated(yaw)*(radius/world_range)
         draw_circle(dot,5.3,Color(.98,.41,.27))
         draw_arc(dot,8.0,0,TAU,12,Color(1.0,.80,.63,.6),1.0)
+    _draw_navigation_compass(center,radius,world_range)
