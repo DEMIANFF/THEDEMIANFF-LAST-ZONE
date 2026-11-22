@@ -81,12 +81,11 @@ func _ready() -> void:
     sidebar.custom_minimum_size.x=181
     sidebar.add_theme_constant_override("separation",6)
     columns.add_child(sidebar)
-    for category in ["PARTIDA","PANTALLA","SONIDO","GRABACIÓN","NOTIFICACIÓN","CUENTA"]:
+    for category in ["PARTIDA","PANTALLA","SONIDO","CUENTA"]:
         var current: String=category
         var tab:=_make_button(sidebar,category,func(): _show_category(current))
         if category=="PARTIDA":
-            tab.text="PARTIDA / HUD"
-            tab.tooltip_text="Configurar controles y los cuatro HUD guardados"
+            tab.text="HUD / CONTROLES"
         tab.name="AuroraCategory"+current
         tab.tooltip_text="Abrir configuración de "+current.to_lower()
         _category_buttons[current]=tab
@@ -165,7 +164,7 @@ func _show_category(category: String) -> void:
             var sections:=HBoxContainer.new()
             sections.add_theme_constant_override("separation",4)
             _content.add_child(sections)
-            for tab in ["HUD","CONTROLES","INFORMACIÓN","SENSIBILIDAD","VIBRACIÓN"]:
+            for tab in ["HUD","SENSIBILIDAD","VIBRACIÓN","INFORMACIÓN"]:
                 var selected: String=tab
                 var btn:=_make_button(sections,tab,func(): _show_subcategory(selected))
                 btn.custom_minimum_size=Vector2(100,42)
@@ -174,19 +173,14 @@ func _show_category(category: String) -> void:
             _screen_page()
         "SONIDO":
             _sound_page()
-        "GRABACIÓN":
-            _heading("GRABACIÓN")
-            _info("La grabación de partidas requiere integración Android. En esta compilación no hay grabador interno; utiliza la grabación de pantalla del dispositivo.")
-        "NOTIFICACIÓN":
-            _heading("NOTIFICACIONES LOCALES")
-            _info("Los avisos de daño, munición y zona siguen activos durante el combate. Las notificaciones de amistades y eventos online no están disponibles en este modo offline.")
-            _toggle("Mostrar contador de FPS","show_fps",true)
         "CUENTA":
             _account_page()
 
 
 func _show_subcategory(tab: String) -> void:
-    _subcategory=tab
+    # Older internal calls still reach the canonical HUD editor, but no
+    # duplicate CONTROLES tab or second button is displayed.
+    _subcategory="HUD" if tab=="CONTROLES" else tab
     _show_category("PARTIDA")
 
 
@@ -194,8 +188,7 @@ func _populate_subcategory() -> void:
     match _subcategory:
         "HUD":
             _heading("HUD / CUATRO DISEÑOS GUARDADOS")
-            _info("Ruta: AJUSTES ⚙ → PARTIDA / HUD → PERSONALIZAR HUD")
-            _info("Selecciona un espacio y edita posiciones, tamaños y opacidad de los botones reales. El HUD 1 conserva tu diseño anterior.")
+            _info("Elige un HUD y personaliza posición, tamaño y opacidad. Tus cuatro diseños se guardan por separado.")
             var preset:=OptionButton.new()
             preset.name="HUDPresetSelector"
             for index in range(1,5):
@@ -210,10 +203,6 @@ func _populate_subcategory() -> void:
             var edit:=_make_button(_content,"PERSONALIZAR HUD",func(): hud_editor_requested.emit())
             edit.name="EditCurrentHud"
             _info("Al cerrar el editor vuelves exactamente al lobby, entrenamiento o partida desde donde lo abriste.")
-        "CONTROLES":
-            _heading("CONTROLES TÁCTILES REALES")
-            _info("Joystick analógico izquierdo · correr alternable · arrastrar para disparar y apuntar · salto, agacharse, recarga, mochila y barrera. El editor permite mover cada botón y guardar su escala.")
-            _make_button(_content,"EDITAR POSICIÓN DE CONTROLES",func(): hud_editor_requested.emit())
         "INFORMACIÓN":
             _heading("INFORMACIÓN DE PARTIDA")
             if context_game!=null:
@@ -340,10 +329,9 @@ func _screen_page() -> void:
             _status.text="ERROR al guardar FPS")
     _content.add_child(graphics)
     _heading("CALIDAD DE RENDER 3D / MOTOROLA")
-    _info("AUTO reduce coste de render cuando caen los FPS sin saturación CPU. "
-        +"Respeta la tasa física de 60/90/120 Hz. "
-        +"La cámara, controles y HUD mantienen resolución nativa. "
-        +"Para 20/30 rivales prueba primero EQUILIBRADO.")
+    _info("AUTO ajusta el render 3D según la carga gráfica. "
+        +"El HUD conserva resolución nativa y el límite de FPS no garantiza "
+        +"el rendimiento medido en partidas locales de 50 participantes.")
     var quality:=OptionButton.new()
     quality.name="AuroraRenderQuality"
     for profile in RENDER_BUDGET.PROFILES:

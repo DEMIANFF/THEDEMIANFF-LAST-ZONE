@@ -2,7 +2,6 @@ extends Control
 ## Original Aurora front-end. Free Fire is UX reference ONLY; no copied layout,
 ## assets or proprietary game branding. Incomplete service tabs say so.
 const SAFE_SCREEN=preload("res://scripts/ui/safe_screen.gd")
-const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const LOBBY_STAGE=preload("res://scripts/ui/aurora_lobby_stage_3d.gd")
@@ -35,18 +34,7 @@ const PORTRAIT_LIGHT_LAYER: int=2
 signal startup_finished
 @export_file("*.tscn") var game_scene_path: String=GAME_PATH
 
-var _settings_panel: VBoxContainer
-var _settings_content: VBoxContainer
-var _settings_status: Label
-var _scope_sliders: Dictionary={}
 var _mobile_options: RefCounted
-var _look_slider: HSlider
-var _ads_slider: HSlider
-var _sfx_slider: HSlider
-var _ambience_slider: HSlider
-var _graphics_selector: OptionButton
-var _preferences: RefCounted
-var _save_timer: Timer
 var stage: String = "startup"
 var _surface: Control
 var _arctic_art: TextureRect
@@ -185,16 +173,10 @@ var _launch_serial: int=0
 
 func _ready() -> void:
     name = "AuroraFront"
-    _preferences=CAMERA_PREFERENCES.new()
     _mobile_options=PLAYER_SETTINGS.new()
     _player_name=LOCAL_PLAYER_NAME.new()
     # Frame cap is a runtime option; imported texture compression remains a build-time choice.
     Engine.max_fps=_mobile_options.fps_limit()
-    _save_timer=Timer.new()
-    _save_timer.one_shot=true
-    _save_timer.wait_time=.4
-    _save_timer.timeout.connect(_save_preferences)
-    add_child(_save_timer)
     _login_timer=Timer.new()
     _login_timer.name="NativeAuthPolling"
     _login_timer.wait_time=1.2
@@ -321,9 +303,6 @@ func _preview_input(event: InputEvent) -> void:
 
 
 func _clear_page() -> void:
-    if not _save_timer.is_stopped():
-        _save_preferences()
-    _settings_panel=null
     for node in _page.get_children():
         _page.remove_child(node)
         node.queue_free()
@@ -1072,7 +1051,8 @@ func _show_lobby() -> void:
         _page.visible=true
     _top_account_button.visible=true
     _top_settings_button.visible=true
-    _top_social_button.visible=true
+    # Footer SOCIAL is the one navigation entry; hide the duplicate header action.
+    _top_social_button.visible=false
     _banner.visible=true
     # Mode/participant status already occupies the right BR card.
     # Eliminate the tiny duplicate strip next to Lila's platform.
@@ -1405,7 +1385,7 @@ func _show_lobby() -> void:
     _info.add_theme_color_override("font_color",Color(.86,.96,1))
     _info.custom_minimum_size.x=255
     _lobby_detail_scroll.add_child(_info)
-    _build_settings()
+    # Only AuroraRealSettings owns HUD, sensitivity, FPS, and audio.
     _select_tab(_selected_tab)
 
 
@@ -1770,24 +1750,10 @@ func _ensure_lobby_navigation() -> void:
     _lobby_nav.anchor_bottom=.93
     _lobby_nav.add_theme_constant_override("separation",4)
     _surface.add_child(_lobby_nav)
-    # A prominent JUGAR entry is always first. Remaining modules have
-    # permanent locations, rather than being buried under overlapping UI.
-    for tab in ["JUGAR","PERSONAJE","ARMAS","OBJETIVOS","TIENDA","PASE","SOCIAL","CUENTA","AJUSTES"]:
-        var tab_name: String=tab
-        var button:=_button(tab_name,Callable(self,"_select_tab").bind(tab_name),154)
-        button.name="Tab"+tab_name
-        var compact: bool=_surface.size.y<620.0
-        button.custom_minimum_size=Vector2(154,31 if compact else 42)
-        button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-        button.add_theme_font_size_override("font_size",13 if compact else 17)
-        if tab=="JUGAR":
-            _style_primary_action(button)
-        _lobby_nav.add_child(button)
-
-    # The previous nine-tab rail remains as the gameplay routing contract,
-    # but its redundant giant buttons are hidden. Use the explicit Aurora
-    # commerce rail + bottom arsenal shortcuts instead, as in the supplied
-    # mobile reference, WITHOUT claiming unavailable online purchases.
+    # The old nine-button navigation was hidden but still allocated nine
+    # duplicate buttons, icons and callbacks on every lobby entry. Retain
+    # only the zero-cost container for old layout callers; the functional
+    # six commerce + five footer buttons are now the sole navigation.
     _lobby_nav.visible=false
     _banner=Label.new()
     _banner.name="AuroraOperationBanner"
@@ -1904,8 +1870,8 @@ func _ensure_lobby_navigation() -> void:
     _social_panel.anchor_top=.159
     _social_panel.anchor_bottom=.407
     var social_style:=StyleBoxFlat.new()
-    social_style.bg_color=Color(.006,.021,.038,.98)
-    social_style.border_color=Color(.29,.74,.83)
+    social_style.bg_color=Color(.008,.022,.042,.84)
+    social_style.border_color=Color(.29,.74,.83,.68)
     social_style.set_border_width_all(1)
     social_style.set_corner_radius_all(9)
     social_style.shadow_color=Color(.01,.02,.04,.40)
@@ -1966,15 +1932,6 @@ func _ensure_lobby_navigation() -> void:
         number.mouse_filter=Control.MOUSE_FILTER_IGNORE
         slot.add_child(number)
         squad_slots.add_child(slot)
-    var social_open:=_button("GESTIONAR SOCIAL / CLAN",
-        Callable(self,"_select_tab").bind("SOCIAL"),0)
-    social_open.name="RealSocialEntry"
-    social_open.custom_minimum_size=Vector2(0,45)
-    social_open.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    social_open.add_theme_font_override("font",DISPLAY_FONT)
-    social_open.add_theme_font_size_override("font_size",17)
-    _style_aurora_tab(social_open,Color(.40,.65,.86))
-    social_content.add_child(social_open)
 
     _play_match_card=PanelContainer.new()
     _play_match_card.name="BattleRoyaleModeCard"
@@ -1984,12 +1941,12 @@ func _ensure_lobby_navigation() -> void:
     _play_match_card.anchor_bottom=.869
     _play_match_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
     var match_card_style:=StyleBoxFlat.new()
-    match_card_style.bg_color=Color(.008,.016,.030,.98)
+    match_card_style.bg_color=Color(.008,.020,.038,.88)
     match_card_style.border_color=Color(1.0,.71,.19)
     match_card_style.set_border_width_all(2)
     match_card_style.set_corner_radius_all(11)
-    match_card_style.shadow_color=Color(.75,.43,.11,.37)
-    match_card_style.shadow_size=6
+    match_card_style.shadow_color=Color(.75,.43,.11,.22)
+    match_card_style.shadow_size=3
     _play_match_card.add_theme_stylebox_override("panel",match_card_style)
     _surface.add_child(_play_match_card)
     _surface.move_child(_play_match_card,_page.get_index())
@@ -2491,15 +2448,14 @@ func _open_lobby_category(tab: String,objective: String="") -> void:
 
 
 func _select_tab(tab: String) -> void:
-    # Old saved PRESET navigation requests now open the canonical settings
-    # window; PRESET is not a separate visible lobby tab anymore.
-    if tab=="PRESET":
+    # Legacy PRESET and AJUSTES routes both open one canonical overlay.
+    # Neither creates another HUD/CONTROLES settings panel in the lobby.
+    if tab in ["PRESET","AJUSTES"]:
         _open_settings()
         return
     _selected_tab=tab
     if stage!="lobby" or _info==null:
         return
-    _settings_panel.visible=tab=="AJUSTES"
     if tab!="JUGAR":
         _close_mode_gallery()
     if tab!="TIENDA":
@@ -3865,171 +3821,3 @@ func _layout_safe() -> void:
                 button.add_theme_font_size_override(
                     "font_size",12 if compact else 18)
 
-
-func _build_settings() -> void:
-    _settings_panel=VBoxContainer.new()
-    _settings_panel.name="CameraSettings"
-    _settings_panel.add_theme_constant_override("separation",4)
-    _page.add_child(_settings_panel)
-    var hud_edit_button:=_button("EDITAR CONTROLES / HUD",
-        Callable(self,"_launch_hud_editor"),235)
-    hud_edit_button.name="EditHUDEntry"
-    hud_edit_button.custom_minimum_size.y=40
-    hud_edit_button.add_theme_font_size_override("font_size",14)
-    _settings_panel.add_child(hud_edit_button)
-    var settings_entry:=_button("AJUSTES COMPLETOS",
-        Callable(self,"_open_settings"),235)
-    settings_entry.name="FullSettingsEntry"
-    settings_entry.custom_minimum_size.y=39
-    _settings_panel.add_child(settings_entry)
-    # A scrollable control section avoids hiding mobile HUD buttons or running
-    # past the screen edge when a phone uses 16:9 or a taller aspect ratio.
-    var settings_scroll:=ScrollContainer.new()
-    settings_scroll.name="MobileSettingsScroll"
-    settings_scroll.custom_minimum_size=Vector2(0,170)
-    settings_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
-    _settings_panel.add_child(settings_scroll)
-    _settings_content=VBoxContainer.new()
-    _settings_content.add_theme_constant_override("separation",3)
-    _settings_content.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    settings_scroll.add_child(_settings_content)
-    _look_slider=_sensitivity_slider("Giro panorámico",_preferences.look)
-    _ads_slider=_sensitivity_slider("Miras ADS",_preferences.ads)
-    _scope_sliders.clear()
-    var scope_labels: Dictionary={
-        "red_dot":"Punto rojo",
-        "scope_2x":"Mira 2x",
-        "scope_4x":"Mira 4x",
-        "scope_8x":"AWM 8x"
-    }
-    for key in ["red_dot","scope_2x","scope_4x","scope_8x"]:
-        _scope_sliders[key]=_scope_slider(str(scope_labels[key]),
-            float(_mobile_options.sensitivity[key]))
-    var audio_cfg:=ConfigFile.new()
-    audio_cfg.load("user://aurora_audio.cfg")
-    _sfx_slider=_volume_slider("Efectos",float(audio_cfg.get_value("audio","effects",.75)))
-    _ambience_slider=_volume_slider("Ambiente",float(audio_cfg.get_value("audio","ambience",.55)))
-    var graphics_row:=HBoxContainer.new()
-    _settings_content.add_child(graphics_row)
-    var graphics_label:=Label.new()
-    graphics_label.text="Límite de FPS"
-    graphics_label.custom_minimum_size.x=145
-    graphics_row.add_child(graphics_label)
-    _graphics_selector=OptionButton.new()
-    _graphics_selector.name="GraphicsPresetFPS"
-    _graphics_selector.add_item("Baja / 30 FPS")
-    _graphics_selector.add_item("Media / 45 FPS")
-    _graphics_selector.add_item("Alta / 60 FPS")
-    _graphics_selector.add_item("Ultra / 90 FPS")
-    _graphics_selector.add_item("Extrema / 120 FPS")
-    _graphics_selector.select(PLAYER_SETTINGS.GRAPHICS_PRESETS.find(
-        _mobile_options.graphics_preset))
-    _graphics_selector.custom_minimum_size=Vector2(112,37)
-    _graphics_selector.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    _graphics_selector.item_selected.connect(func(_selected: int): _save_timer.start())
-    graphics_row.add_child(_graphics_selector)
-    var refresh_label:=Label.new()
-    refresh_label.name="ActualScreenRefreshRate"
-    var hz: float=DisplayServer.screen_get_refresh_rate()
-    refresh_label.text="Pantalla %.0f Hz"%hz if hz>0.0 else "Hz no detectados"
-    refresh_label.clip_text=true
-    refresh_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    refresh_label.add_theme_font_size_override("font_size",12)
-    _settings_content.add_child(refresh_label)
-    _settings_status=Label.new()
-    _settings_status.text="Ajustes recuperados del respaldo" if _preferences.recovered or _mobile_options.recovered else "Se guardan en este dispositivo"
-    _settings_status.add_theme_font_size_override("font_size",14)
-    _settings_panel.add_child(_settings_status)
-    _settings_panel.visible=false
-
-
-func _sensitivity_slider(title: String,value: float) -> HSlider:
-    var row:=HBoxContainer.new()
-    _settings_content.add_child(row)
-    var label:=Label.new()
-    label.custom_minimum_size.x=145
-    label.text=title+"  %.2fx"%value
-    row.add_child(label)
-    var slider:=HSlider.new()
-    slider.min_value=.35
-    slider.max_value=2.0
-    slider.step=.05
-    slider.value=value
-    slider.custom_minimum_size=Vector2(112,37)
-    slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    row.add_child(slider)
-    slider.value_changed.connect(func(next: float):
-        label.text=title+"  %.2fx"%next
-        _save_timer.start())
-    return slider
-
-
-func _scope_slider(title: String,value: float) -> HSlider:
-    var row:=HBoxContainer.new()
-    _settings_content.add_child(row)
-    var label:=Label.new()
-    label.custom_minimum_size.x=145
-    label.text=title+"  %d"%roundi(value)
-    row.add_child(label)
-    var slider:=HSlider.new()
-    slider.min_value=0.0
-    slider.max_value=200.0
-    slider.step=1.0
-    slider.value=value
-    slider.custom_minimum_size=Vector2(112,37)
-    slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    row.add_child(slider)
-    slider.value_changed.connect(func(next: float):
-        label.text=title+"  %d"%roundi(next)
-        _save_timer.start())
-    return slider
-
-
-func _volume_slider(title: String,level: float) -> HSlider:
-    var row:=HBoxContainer.new()
-    _settings_content.add_child(row)
-    var label:=Label.new()
-    label.custom_minimum_size.x=145
-    label.text=title+"  %d%%"%roundi(level*100.0)
-    row.add_child(label)
-    var slider:=HSlider.new()
-    slider.min_value=0.0
-    slider.max_value=1.0
-    slider.step=.05
-    slider.value=level
-    slider.custom_minimum_size=Vector2(112,37)
-    slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    row.add_child(slider)
-    slider.value_changed.connect(func(next: float):
-        label.text=title+"  %d%%"%roundi(next*100.0)
-        _save_timer.start())
-    return slider
-
-
-func _save_preferences() -> void:
-    _save_timer.stop()
-    if not is_instance_valid(_look_slider) or not is_instance_valid(_ads_slider):
-        return
-    var result: Error=_preferences.save(_look_slider.value,_ads_slider.value)
-    var scope_values: Dictionary={
-        "general":_look_slider.value*100.0,
-        "ads":_ads_slider.value*100.0
-    }
-    for key in _scope_sliders:
-        if is_instance_valid(_scope_sliders[key]):
-            scope_values[key]=_scope_sliders[key].value
-    var scope_result: Error=_mobile_options.save_sensitivity(scope_values)
-    var graphics_result: Error=ERR_INVALID_PARAMETER
-    if is_instance_valid(_graphics_selector):
-        var preset_names: Array[String]=PLAYER_SETTINGS.GRAPHICS_PRESETS
-        var selected_index: int=_graphics_selector.selected
-        if selected_index>=0 and selected_index<preset_names.size():
-            graphics_result=_mobile_options.save_graphics(preset_names[selected_index])
-            if graphics_result==OK:
-                Engine.max_fps=_mobile_options.fps_limit()
-    var audio_cfg:=ConfigFile.new()
-    audio_cfg.load("user://aurora_audio.cfg")
-    audio_cfg.set_value("audio","effects",_sfx_slider.value)
-    audio_cfg.set_value("audio","ambience",_ambience_slider.value)
-    var audio_result: Error=audio_cfg.save("user://aurora_audio.cfg")
-    _settings_status.text="Ajustes guardados" if result==OK and scope_result==OK and graphics_result==OK and audio_result==OK else "No se pudieron guardar todos los ajustes"
