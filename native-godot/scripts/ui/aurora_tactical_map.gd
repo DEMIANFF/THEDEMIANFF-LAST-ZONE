@@ -528,6 +528,60 @@ func _draw_clipped_zone_outline(world_center: Vector2,world_radius: float,
 
 ## UI-safe touch instructions share the map pane with the physical
 ## scale bar. Nothing is printed over the gameplay buttons below the map.
+## Keep the actual player and chosen waypoint navigable after pinch-pan.
+## This is a pointer to their real off-screen world coordinates, NOT a
+## replacement or relocated marker. No enemies are revealed by this helper.
+func _edge_map_anchor(world_at: Vector2,safe_rect: Rect2) -> Dictionary:
+    var pixel: Vector2=project(world_at)
+    if not pixel.is_finite() or safe_rect.size.x<=20.0 or safe_rect.size.y<=20.0:
+        return {}
+    if safe_rect.has_point(pixel):
+        return {"inside":true,"at":pixel,"direction":Vector2.ZERO}
+    var inset: Rect2=safe_rect.grow(-7.0)
+    var center: Vector2=inset.get_center()
+    var delta: Vector2=pixel-center
+    var fraction_x: float=INF
+    var fraction_y: float=INF
+    if absf(delta.x)>.0001:
+        fraction_x=((inset.end.x if delta.x>0.0 else inset.position.x)
+            -center.x)/delta.x
+    if absf(delta.y)>.0001:
+        fraction_y=((inset.end.y if delta.y>0.0 else inset.position.y)
+            -center.y)/delta.y
+    var fraction: float=minf(fraction_x,fraction_y)
+    if not is_finite(fraction):
+        return {}
+    return {"inside":false,"at":center+delta*fraction,
+        "direction":delta.normalized()}
+
+
+func _draw_edge_map_marker(world_at: Vector2,safe_rect: Rect2,
+        tint: Color,legend: String,font: Font) -> void:
+    var marker: Dictionary=_edge_map_anchor(world_at,safe_rect)
+    if marker.is_empty() or bool(marker["inside"]):
+        return
+    var at: Vector2=marker["at"]
+    var direction: Vector2=marker["direction"]
+    var tangent:=Vector2(-direction.y,direction.x)
+    var triangle:=PackedVector2Array([
+        at+direction*6.0,
+        at-direction*7.0+tangent*5.5,
+        at-direction*7.0-tangent*5.5])
+    draw_colored_polygon(triangle,tint)
+    # The label remains wholly in the cartography pane; the live world and
+    # adjacent HUD controls must never receive an overhanging callout.
+    var label_width: float=float(legend.length())*7.0+7.0
+    var origin:=Vector2(
+        clampf(at.x-direction.x*23.0-label_width*.5,
+            safe_rect.position.x+4.0,safe_rect.end.x-label_width-4.0),
+        clampf(at.y-direction.y*23.0+5.0,
+            safe_rect.position.y+16.0,safe_rect.end.y-5.0))
+    draw_rect(Rect2(origin-Vector2(3.0,12.0),
+        Vector2(label_width+4.0,16.0)),Color(.018,.045,.072,.90))
+    draw_string(font,origin,legend,HORIZONTAL_ALIGNMENT_LEFT,
+        -1,12,tint)
+
+
 func _map_footer_rect(rect: Rect2) -> Rect2:
     return Rect2(
         Vector2(rect.position.x+96.0,rect.end.y-25.0),
@@ -723,22 +777,25 @@ func _draw() -> void:
                 if rect.grow(-9.0).has_point(plane_dot):
                     draw_circle(plane_dot,8.0,Color(1,.84,.19))
     if is_instance_valid(player):
-        var p: Vector2=project(Vector2(
-            player.global_position.x,player.global_position.z))
-        # Pan/zoom must not move player/waypoint icons over gameplay HUD.
+        var player_world:=Vector2(
+            player.global_position.x,player.global_position.z)
+        var p: Vector2=project(player_world)
+        # A manual map pan must not make the player's reference vanish.
+        # Draw a real-position edge arrow only when off-screen.
         var safe_rect: Rect2=rect.grow(-14.0)
         if safe_rect.has_point(p):
             draw_circle(p,7.5,Color(.96,.99,1))
             draw_arc(p,11,0,TAU,30,Color(.06,.87,.98),2.0)
+        else:
+            _draw_edge_map_marker(player_world,safe_rect,
+                Color(.43,.96,1.0),"JUGADOR",font)
         if waypoint.is_finite():
             var target: Vector2=project(waypoint)
             _draw_clipped_map_line(PackedVector2Array([p,target]),
                 rect,Color(1,.76,.22,.8),2.0)
+            var meters: int=roundi(player_world.distance_to(waypoint))
             if safe_rect.has_point(target):
                 draw_circle(target,8.0,Color(1,.62,.13))
-                var meters: int=roundi(Vector2(
-                    player.global_position.x,
-                    player.global_position.z).distance_to(waypoint))
                 var label: String=str(meters)+" m"
                 var width: float=float(label.length())*9.0
                 var label_x: float=clampf(target.x+10.0,
@@ -747,6 +804,9 @@ func _draw() -> void:
                     rect.position.y+16.0,rect.end.y-7.0)
                 draw_string(font,Vector2(label_x,label_y),label,
                     HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color(1.0,.86,.48))
+            else:
+                _draw_edge_map_marker(waypoint,safe_rect,
+                    Color(1.0,.82,.30),"MARCA %d m"%meters,font)
     draw_rect(rect,Color(.38,.83,.94),false,2.0)
     if is_instance_valid(director) and (
             str(director.get("mode"))=="sector_battle" and
