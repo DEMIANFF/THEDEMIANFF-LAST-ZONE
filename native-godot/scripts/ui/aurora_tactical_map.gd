@@ -6,6 +6,7 @@ signal waypoint_changed(world_point: Vector2)
 const FLIGHT=preload("res://scripts/match/airdrop_sequence.gd")
 const TERRAIN_SCALE=preload("res://scripts/world/island_terrain.gd")
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
+const MAP_FOOTPRINTS=preload("res://scripts/world/aurora_map_footprints.gd")
 const WORLD_HALF: float=TERRAIN_SCALE.HALF_EXTENT
 const ZONE_CENTER: Vector2=Vector2(0,-24)
 const POINTS: Array[Vector2]=[
@@ -20,7 +21,7 @@ const NAMES: Array[String]=[
     "FRONTERA ESTE","SUR HELADO","VALLE OESTE","PASO NORTE"]
 const SAVE_PATH: String="user://aurora_map_waypoint.cfg"
 const AWM_POSITION: Vector2=Vector2(8,24)
-const MAP_SAMPLES: int=256
+const MAP_SAMPLES: int=512
 const LANDMARK_POSITIONS: Array[Vector2]=[
     Vector2(18,-8),Vector2(-19,-29),Vector2(46,-36),
     Vector2(-48,22),Vector2(5,53),Vector2(-54,56),
@@ -37,7 +38,7 @@ var player: CharacterBody3D
 var terrain: StaticBody3D
 var director: Node3D
 var waypoint: Vector2=Vector2(INF,INF)
-var zoom: float=1.0
+var zoom: float=2.4
 var pan: Vector2=Vector2.ZERO
 var _drag_touch: int=-1
 var _last_pointer: Vector2
@@ -124,7 +125,7 @@ func _process(dt: float) -> void:
         return
     _redraw_seconds-=dt
     if _redraw_seconds<=0.0:
-        _redraw_seconds=.20
+        _redraw_seconds=.08 if _follow_player and is_instance_valid(player) and player.velocity.length_squared()>1.0 else .16
         if _follow_player and is_instance_valid(player):
             pan=Vector2(player.global_position.x,player.global_position.z)
         _clamp_pan_to_terrain()
@@ -132,9 +133,12 @@ func _process(dt: float) -> void:
 
 
 func _map_rect() -> Rect2:
-    var height: float=size.y*.88
-    return Rect2(Vector2(size.x*.255,size.y*.065),
-        Vector2(minf(size.x*.505,height*1.16),height))
+    # A genuinely right-side square cartographic pane leaves the LEFT
+    # third of the live battle visible on the user's 964x434 device.
+    # Its right edge stays clear of the touch-safe actions at 78% width.
+    var square_side: float=minf(size.x*.405,size.y*.88)
+    return Rect2(Vector2(size.x*.355,
+        (size.y-square_side)*.5),Vector2.ONE*square_side)
 
 
 func _meters_per_pixel(rect: Rect2) -> float:
@@ -185,6 +189,11 @@ func _zoom_at_point(factor: float,screen_point: Vector2) -> void:
 
 func _follow() -> void:
     _follow_player=true
+    # Follow is an explicit LOCAL navigation request. When the island is
+    # at 1x overview, terrain-boundary clamping forces the pan to (0,0):
+    # the prior implementation claimed to follow Lila while leaving her
+    # far away from the map centre. Restore a readable neighbourhood zoom.
+    zoom=maxf(zoom,2.4)
     if is_instance_valid(player):
         pan=Vector2(player.global_position.x,player.global_position.z)
     _clamp_pan_to_terrain()
@@ -325,47 +334,135 @@ func _terrain_pixel(at: Vector2) -> Vector2:
     return (at+Vector2.ONE*WORLD_HALF)*float(MAP_SAMPLES)/(WORLD_HALF*2.0)
 
 
+## The physical 3D district road uses the exact same source width and
+## coordinates as the raster footprint. Scale is metres, not decorative dots.
 func _paint_road(image: Image,heights: PackedFloat32Array,
-        points: Array[Vector2],sea: float) -> void:
-    # The original navigable-sector connections are painted ONCE into the
-    # shared heightfield image: they also appear in the small minimap.
-    # No 3D geometry, collision or new per-frame allocations.
+        points: Array[Vector2],width_m: float,sea: float) -> void:
+    var pixels_per_metre: float=float(MAP_SAMPLES)/(WORLD_HALF*2.0)
+    var radius_px: int=maxi(1,ceili(width_m*.5*pixels_per_metre))
     for segment in range(points.size()-1):
         var first: Vector2=_terrain_pixel(points[segment])
         var last: Vector2=_terrain_pixel(points[segment+1])
         var steps: int=maxi(1,ceili(first.distance_to(last)*1.5))
         for n in range(steps+1):
             var p: Vector2=first.lerp(last,float(n)/float(steps))
-            for dz in range(-2,3):
-                for dx in range(-2,3):
+            for dz in range(-radius_px-1,radius_px+2):
+                for dx in range(-radius_px-1,radius_px+2):
+                    if Vector2(float(dx),float(dz)).length()>float(radius_px)+.5:
+                        continue
                     var px: int=roundi(p.x)+dx
                     var pz: int=roundi(p.y)+dz
                     if px<0 or pz<0 or px>=MAP_SAMPLES or pz>=MAP_SAMPLES:
                         continue
                     if heights[pz*MAP_SAMPLES+px]<=sea+.75:
                         continue
-                    var edge: bool=abs(dx)==2 or abs(dz)==2
-                    image.set_pixel(px,pz,Color(.19,.24,.25) if edge else
-                        Color(.81,.74,.56))
+                    var edge: bool=Vector2(float(dx),float(dz)).length()>float(radius_px)-.7
+                    image.set_pixel(px,pz,Color(.23,.29,.32) if edge else
+                        Color(.62,.61,.52))
 
 
+## Each roof footprint uses its ACTUAL in-world dimensions and Y rotation.
+## A center ridge and clear dark outline stay legible after 8x local zoom.
 func _paint_house(image: Image,heights: PackedFloat32Array,
-        center: Vector2,span: Vector2,sea: float) -> void:
-    # Use actual house footprint coordinates, not fictional copied icons.
-    var point: Vector2=_terrain_pixel(center)
-    var half_width: int=maxi(2,roundi(span.x*MAP_SAMPLES/(WORLD_HALF*4.0)))
-    var half_depth: int=maxi(2,roundi(span.y*MAP_SAMPLES/(WORLD_HALF*4.0)))
-    for dz in range(-half_depth-1,half_depth+2):
-        for dx in range(-half_width-1,half_width+2):
-            var px: int=roundi(point.x)+dx
-            var pz: int=roundi(point.y)+dz
+        site: Vector2,span: Vector2,sea: float,yaw: float=0.0) -> void:
+    var middle: Vector2=_terrain_pixel(site)
+    var scale: float=float(MAP_SAMPLES)/(WORLD_HALF*2.0)
+    var diameter: float=span.length()*.5*scale+3.0
+    var search: int=ceili(diameter)
+    for dz in range(-search,search+1):
+        for dx in range(-search,search+1):
+            var px: int=roundi(middle.x)+dx
+            var pz: int=roundi(middle.y)+dz
             if px<0 or pz<0 or px>=MAP_SAMPLES or pz>=MAP_SAMPLES:
                 continue
             if heights[pz*MAP_SAMPLES+px]<=sea+.30:
                 continue
-            var edge: bool=abs(dx)>half_width or abs(dz)>half_depth
-            image.set_pixel(px,pz,Color(.09,.16,.19) if edge else
-                Color(.79,.84,.81))
+            var in_metres: Vector2=(Vector2(float(px),float(pz))-
+                middle)/scale
+            # 3D +Y rotation corresponds to a negative screen X/Z
+            # rotation. Its inverse must be +yaw in our 2D local basis.
+            var local: Vector2=in_metres.rotated(yaw)
+            if absf(local.x)>span.x*.5+.7 or absf(local.y)>span.y*.5+.7:
+                continue
+            var border: bool=absf(local.x)>=span.x*.5-.9 or (
+                absf(local.y)>=span.y*.5-.9)
+            var ridge: bool=absf(local.x)<=.65
+            image.set_pixel(px,pz,Color(.085,.13,.17) if border else
+                Color(.59,.65,.68) if ridge else Color(.77,.83,.81))
+
+
+func _paint_plaza(image: Image,at: Vector2,span: Vector2) -> void:
+    var point: Vector2=_terrain_pixel(at)
+    var scale: float=float(MAP_SAMPLES)/(WORLD_HALF*2.0)
+    var half_x: int=ceili(span.x*.5*scale)
+    var half_z: int=ceili(span.y*.5*scale)
+    for dz in range(-half_z,half_z+1):
+        for dx in range(-half_x,half_x+1):
+            var x: int=roundi(point.x)+dx
+            var z: int=roundi(point.y)+dz
+            if x<0 or z<0 or x>=MAP_SAMPLES or z>=MAP_SAMPLES:
+                continue
+            var edge: bool=abs(dx)>=half_x-1 or abs(dz)>=half_z-1
+            image.set_pixel(x,z,Color(.23,.31,.33) if edge else
+                Color(.52,.55,.52))
+
+
+## Vector overlays preserve straight walls, proper roof angles and sharp
+## outlines at 8x zoom, where enlarging even a 512px raster looks pixelated.
+## Draw only completely in-pane geometry; never paint over the live world/HUD.
+func _draw_vector_roof(world_center: Vector2,span: Vector2,yaw: float,
+        tint: Color,clip: Rect2) -> void:
+    var half: Vector2=span*.5
+    var local_corners:=PackedVector2Array([
+        Vector2(-half.x,-half.y),Vector2(half.x,-half.y),
+        Vector2(half.x,half.y),Vector2(-half.x,half.y)])
+    var screen_corners:=PackedVector2Array()
+    var min_at:=Vector2(INF,INF)
+    var max_at:=Vector2(-INF,-INF)
+    for corner in local_corners:
+        var pixel: Vector2=project(world_center+corner.rotated(-yaw))
+        screen_corners.append(pixel)
+        min_at=min_at.min(pixel)
+        max_at=max_at.max(pixel)
+    if not clip.grow(-4.0).encloses(
+            Rect2(min_at,max_at-min_at)):
+        return
+    draw_colored_polygon(screen_corners,tint)
+    var border: PackedVector2Array=screen_corners.duplicate()
+    border.append(screen_corners[0])
+    draw_polyline(border,Color(.06,.16,.19,.95),2.0,true)
+    var ridge_front: Vector2=project(world_center+
+        Vector2(0,-half.y*.88).rotated(-yaw))
+    var ridge_back: Vector2=project(world_center+
+        Vector2(0,half.y*.88).rotated(-yaw))
+    draw_line(ridge_front,ridge_back,Color(.22,.34,.38,.85),1.2,true)
+
+
+func _draw_vector_roofs(clip: Rect2) -> void:
+    if zoom<2.0:
+        return
+    for entry in MAP_FOOTPRINTS.DISTRICT_BUILDINGS:
+        _draw_vector_roof(entry["at"],entry["size"],0.0,
+            Color(.72,.84,.86,.97),clip)
+    for i in range(RESIDENTIAL.SITES.size()):
+        var site: Vector4=RESIDENTIAL.SITES[i]
+        _draw_vector_roof(Vector2(site.x,site.y),
+            Vector2(site.z,site.w),RESIDENTIAL.YAWS[i],
+            Color(.84,.78,.69,.98),clip)
+
+
+func _paint_cargo(image: Image,at: Vector2) -> void:
+    var point: Vector2=_terrain_pixel(at)
+    var radius: int=2
+    for dz in range(-radius,radius+1):
+        for dx in range(-radius,radius+1):
+            var px: int=roundi(point.x)+dx
+            var pz: int=roundi(point.y)+dz
+            if px<0 or pz<0 or px>=MAP_SAMPLES or pz>=MAP_SAMPLES:
+                continue
+            var edge: bool=abs(dx)==radius or abs(dz)==radius
+            image.set_pixel(px,pz,Color(.14,.22,.26) if edge else
+                Color(.75,.59,.35))
 
 
 func _ensure_terrain_texture() -> void:
@@ -411,19 +508,23 @@ func _ensure_terrain_texture() -> void:
                 if floori(h/8.0)!=floori(west/8.0) or floori(h/8.0)!=floori(north/8.0):
                     color=color.darkened(.20)
             image.set_pixel(x,z,color)
-    _paint_road(image,heights,[Vector2(-48,22),Vector2(-26,2),
-        Vector2(4,4),Vector2(26,20),Vector2(48,41),Vector2(68,48)],sea)
-    _paint_road(image,heights,[Vector2(-55,60),Vector2(-22,66),
-        Vector2(5,50),Vector2(19,43),Vector2(43,41),Vector2(68,48)],sea)
-    _paint_road(image,heights,[Vector2(4,4),Vector2(18,-8),
-        Vector2(46,-36),Vector2(53,-61)],sea)
+    # The plaza, building and road outlines originate from the SAME 3D
+    # placement lists, so a painted roof or lane has a real physical source.
+    for entry in MAP_FOOTPRINTS.DISTRICT_ROADS:
+        _paint_road(image,heights,[entry["from"],entry["to"]],
+            float(entry["width"]),sea)
+    for plaza in MAP_FOOTPRINTS.COASTAL_PLAZAS:
+        _paint_plaza(image,plaza["center"],plaza["size"])
+    for entry in MAP_FOOTPRINTS.DISTRICT_BUILDINGS:
+        _paint_house(image,heights,entry["at"],entry["size"],sea)
     for i in range(RESIDENTIAL.SITES.size()):
         var site: Vector4=RESIDENTIAL.SITES[i]
         _paint_house(image,heights,Vector2(site.x,site.y),
-            Vector2(site.z,site.w),sea)
-    for historic in TERRAIN_SCALE.LEGACY_LOTS:
-        _paint_house(image,heights,Vector2(historic.x,historic.y),
-            Vector2(historic.z,historic.w),sea)
+            Vector2(site.z,site.w),sea,RESIDENTIAL.YAWS[i])
+    # LEGACY_LOTS are the SAME four district structures already painted
+    # from DISTRICT_BUILDINGS; don't draw a duplicate roof pass.
+    for at in MAP_FOOTPRINTS.FREIGHT_CACHES:
+        _paint_cargo(image,at)
     _terrain_texture=ImageTexture.create_from_image(image)
 
 ## Every overlay feature is clipped to the cartography pane. The live world
@@ -645,9 +746,34 @@ func _live_local_cache_markers() -> Array[Vector2]:
         Vector2(player.global_position.x,player.global_position.z),70.0,6)
 
 
+## In Godot -Z is north; positive player yaw turns world-west.
+## Unlike the camera-up minimap, this north-up tactical pane rotates the
+## actual player arrow, not the whole island texture.
+func _map_player_forward() -> Vector2:
+    if not is_instance_valid(player):
+        return Vector2.UP
+    var yaw: float=float(player.get("_yaw"))
+    return Vector2(-sin(yaw),-cos(yaw)).normalized()
+
+
+func _draw_live_player_arrow(screen_point: Vector2) -> void:
+    var direction: Vector2=_map_player_forward()
+    var side: Vector2=Vector2(-direction.y,direction.x)
+    draw_circle(screen_point,13.0,Color(.015,.073,.10,.91))
+    draw_arc(screen_point,13.0,0,TAU,32,Color(.12,.90,.98,.98),1.9,true)
+    var nose: PackedVector2Array=PackedVector2Array([
+        screen_point+direction*12.5,
+        screen_point-direction*7.0+side*6.3,
+        screen_point-direction*7.0-side*6.3])
+    draw_colored_polygon(nose,Color(.99,1.0,1.0))
+    draw_line(screen_point+direction*8.0,
+        screen_point+direction*18.0,Color(1.0,.74,.22,.95),2.0,true)
+
+
 func _draw() -> void:
     # See-through overlay: player can still see the live match behind it.
-    draw_rect(Rect2(Vector2.ZERO,size),Color(.012,.033,.067,.60))
+    # Keep the left-side live scene unobstructed while the opaque map is open.
+    draw_rect(Rect2(Vector2.ZERO,size),Color(.012,.033,.067,.14))
     var rect: Rect2=_map_rect()
     draw_rect(rect,Color(.025,.14,.24),true)
     _ensure_terrain_texture()
@@ -658,16 +784,13 @@ func _draw() -> void:
             (pan.y+WORLD_HALF)*MAP_SAMPLES/(WORLD_HALF*2.0)-src_span*.5)
         draw_texture_rect_region(_terrain_texture,rect,
             Rect2(src_origin,Vector2.ONE*src_span))
-    # The roads connect real named districts, not fictional map screenshots.
-    _draw_path([Vector2(-48,22),Vector2(-26,2),Vector2(4,4),
-        Vector2(26,20),Vector2(48,41),Vector2(68,48)],
-        Color(.76,.66,.44,.8),5.0)
-    _draw_path([Vector2(-55,60),Vector2(-22,66),Vector2(5,50),
-        Vector2(19,43),Vector2(43,41),Vector2(68,48)],
-        Color(.73,.69,.49,.80),4.0)
-    _draw_path([Vector2(4,4),Vector2(18,-8),
-        Vector2(46,-36),Vector2(53,-61)],
-        Color(.71,.60,.43,.70),3.0)
+    # Crisp road overlays use the same real path vertices as the 3D
+    # walkable district; remove prior routes drawn across nonexistent lanes.
+    for entry in MAP_FOOTPRINTS.DISTRICT_ROADS:
+        _draw_path([entry["from"],entry["to"]],
+            Color(.76,.77,.67,.93),clampf(
+                float(entry["width"])/_meters_per_pixel(rect),1.4,8.0))
+    _draw_vector_roofs(rect)
     for n in range(-4,5):
         var grid_x: float=float(n)*50.0
         var a:=project(Vector2(grid_x,-WORLD_HALF))
@@ -784,8 +907,9 @@ func _draw() -> void:
         # Draw a real-position edge arrow only when off-screen.
         var safe_rect: Rect2=rect.grow(-14.0)
         if safe_rect.has_point(p):
-            draw_circle(p,7.5,Color(.96,.99,1))
-            draw_arc(p,11,0,TAU,30,Color(.06,.87,.98),2.0)
+            _draw_live_player_arrow(p)
+            # The actual camera yaw sets the north-up world bearing; a
+            # directionless circle could not guide the player through houses.
         else:
             _draw_edge_map_marker(player_world,safe_rect,
                 Color(.43,.96,1.0),"JUGADOR",font)

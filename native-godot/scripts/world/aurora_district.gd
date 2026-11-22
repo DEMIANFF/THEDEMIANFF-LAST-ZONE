@@ -1,5 +1,6 @@
 extends Node3D
 const RENDER_BATCHER=preload("res://scripts/world/aurora_static_mesh_batcher.gd")
+const MAP_FOOTPRINTS=preload("res://scripts/world/aurora_map_footprints.gd")
 ## Puerto Aurora: original modular architecture with open doors, windows, angled roofs,
 ## service gantries, integrated collision and a low-draw-call landscape dressing.
 ## The box shapes represent real structural panels, not placeholder block houses.
@@ -33,17 +34,18 @@ func _ready() -> void:
     beacon.emission_energy_multiplier = 1.4
     prop_metal = _material(Color(0.44, 0.52, 0.54), 0.5, 0.56)
 
-    _make_building(Vector2(18.0, -8.0), "CENTRO DE EXPLORACION", 16.0, 12.0, 6.4, false)
-    _make_building(Vector2(-19.0, -29.0), "TALLER HELIOS", 14.0, 11.0, 5.8, true)
-    _make_building(Vector2(46.0, -36.0), "ESTACION METEOROLOGICA", 11.0, 10.0, 5.4, false)
-    _make_building(Vector2(-48.0, 22.0), "PUESTO VORTEX", 12.0, 12.0, 6.0, true)
-    _make_path(Vector2(0, 4), Vector2(18, -8), 4.8)
-    _make_path(Vector2(18, -8), Vector2(-19, -29), 3.6)
-    _make_path(Vector2(18, -8), Vector2(46, -36), 3.5)
-    _make_path(Vector2(-19, -29), Vector2(-48, 22), 3.0)
+    # One physical source drives both actual instanced buildings/roads and
+    # the cartographic footprints. The map cannot drift from the 3D island.
+    for site in MAP_FOOTPRINTS.DISTRICT_BUILDINGS:
+        var dimensions: Vector2=site["size"]
+        _make_building(site["at"],str(site["name"]),dimensions.x,
+            dimensions.y,float(site["height"]),bool(site["heavy"]))
+    for connection in MAP_FOOTPRINTS.DISTRICT_ROADS:
+        _make_path(connection["from"],connection["to"],
+            float(connection["width"]))
     _make_beacon(Vector2(-4.0, -2.0), 8.5)
     _make_beacon(Vector2(39.0, -18.0), 7.0)
-    for at in [Vector2(4,-24),Vector2(32,-22),Vector2(-32,-8),Vector2(-8,-48),Vector2(40,8),Vector2(-35,35)]:
+    for at in MAP_FOOTPRINTS.COVER_BLOCKS:
         _make_cover(at)
     _make_rock_field()
     _make_sign(Vector2(1.5, -16), "PUERTO AURORA", "SECTOR 01 / EXPLORACION")

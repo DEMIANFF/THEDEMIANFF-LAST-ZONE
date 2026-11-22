@@ -4,6 +4,7 @@ extends Node3D
 ## Materials and tile/arch meshes are authored here, not third-party branding.
 
 const RESIDENTIAL=preload("res://scripts/world/coastal_residential_layout.gd")
+const MAP_FOOTPRINTS=preload("res://scripts/world/aurora_map_footprints.gd")
 const RENDER_BATCHER=preload("res://scripts/world/aurora_static_mesh_batcher.gd")
 const HOUSE_COUNT: int=8
 var terrain: StaticBody3D
@@ -40,11 +41,10 @@ func _ready() -> void:
         var site: Vector4=RESIDENTIAL.SITES[seed]
         _villa(Vector2(site.x,site.y),site.z,site.w,
             RESIDENTIAL.YAWS[seed],seed)
-    _plaza(Vector2(20,28),Vector2(64,25))
-    _plaza(Vector2(2,60),Vector2(65,12))
-    # Western pedestrian lane: triangulated to the same terrain grid,
-    # with real cover/navigation points from its adjacent residences.
-    _plaza(Vector2(-31,31),Vector2(48,11))
+    # Plazas, walkable roads and cargo placements come from the same
+    # geometry the tactical map and camera-centred minimap render.
+    for plaza in MAP_FOOTPRINTS.COASTAL_PLAZAS:
+        _plaza(plaza["center"],plaza["size"])
     _planter(Vector2(2,26),1.65)
     _planter(Vector2(29,26),1.50)
     _planter(Vector2(49,26),1.85)
@@ -55,8 +55,8 @@ func _ready() -> void:
     _palm(Vector2(57,13),0.9)
     _palm(Vector2(-57,24),1.08)
     _palm(Vector2(80,31),1.0)
-    _freight_cache(Vector2(13,13),0)
-    _freight_cache(Vector2(38,12),1)
+    for i in range(MAP_FOOTPRINTS.FREIGHT_CACHES.size()):
+        _freight_cache(MAP_FOOTPRINTS.FREIGHT_CACHES[i],i)
     print("AURORA_COASTAL_QUARTER houses=",buildings_built,
         " doors=",accessible_entries," roof_tiles=",tile_instances,
         " solids=",collision_bodies," cargo_caches=",cargo_caches_built,
