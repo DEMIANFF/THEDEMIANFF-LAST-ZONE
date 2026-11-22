@@ -26,8 +26,8 @@ func _verify() -> void:
     check(radar.clip_contents,
         "245m zone arcs leak outside the phone minimap and obscure HUD")
     check(map.get("_terrain_texture") is ImageTexture and
-        (map.get("_terrain_texture") as ImageTexture).get_width()==256,
-        "actual 256px relief/roads/house cartography never generated")
+        (map.get("_terrain_texture") as ImageTexture).get_width()==512,
+        "detailed 512px physical-road and building cartography not generated")
     check(radar.get("map_texture")==map.get("_terrain_texture"),
         "minimap not using same physical Aurora cartography as tactical map")
     check(terrain.height_at(18.0,-8.0)>terrain.sea_level,
@@ -65,6 +65,6 @@ func _verify() -> void:
                         portrait.global_transform.basis.y))<.14,
                         "weapon appears raised/diagonal: "+str(slot))
     if not failed:
-        print("V75127_CARTOGRAPHY_ARMORY PASS terrain=256 roads=3 "+
+        print("V75127_CARTOGRAPHY_ARMORY PASS terrain=512 roads=4 "+
             "real_houses=12 clipped_minimap=1 real_models=4 level_pose=1")
     quit(1 if failed else 0)
