@@ -83,7 +83,11 @@ func _capture() -> void:
         player.global_position.z)
     map.call("mark",target_world)
     map.set("zoom",8.0)
-    map.set("pan",player_world)
+    # The stretched canvas may be 1280x720 logical pixels even when the
+    # captured phone window is 964x434; add a 15 m margin so the chosen
+    # marker is genuinely outside either viewport without losing player.
+    var route_axis: Vector2=(target_world-player_world).normalized()
+    map.set("pan",player_world-route_axis*15.0)
     map.set("_follow_player",false)
     map.call("_clamp_pan_to_terrain")
     var safe: Rect2=(map.call("_map_rect") as Rect2).grow(-14.0)
@@ -102,7 +106,7 @@ func _capture() -> void:
         _fail("could not save offscreen waypoint engine evidence")
         return
 
-    map.set("pan",target_world)
+    map.set("pan",target_world+route_axis*15.0)
     map.call("_clamp_pan_to_terrain")
     var player_edge: Dictionary=map.call(
         "_edge_map_anchor",player_world,safe)
