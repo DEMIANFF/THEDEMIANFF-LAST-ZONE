@@ -1161,8 +1161,10 @@ func show_real_grenade_warning(seconds_left: float,
         var delta:=Vector2(at.x-actor.global_position.x,
             at.z-actor.global_position.z)
         var angle: float=rad_to_deg(atan2(delta.x,-delta.y))
+        # Godot +yaw points WEST in world-space; actual compass-right
+        # relative bearing adds camera yaw instead of subtracting it.
         var relative: float=wrapf(
-            angle-rad_to_deg(float(actor.get("_yaw"))),-180.0,180.0)
+            angle+rad_to_deg(float(actor.get("_yaw"))),-180.0,180.0)
         var bearing: String="FRENTE"
         if absf(relative)>=155.0:
             bearing="DETRAS"
@@ -1191,8 +1193,9 @@ func _refresh_heading() -> void:
     if actor==null or not is_instance_valid(actor):
         _compass.text="AURORA  •  N"
         return
-    # Third-person yaw is clockwise from the world -Z heading.
-    var degrees: int=posmod(int(round(rad_to_deg(float(actor.get("_yaw"))))),360)
+    # Positive Godot Y yaw turns a -Z-facing camera toward WEST.
+    # Compass headings increase clockwise N->E, hence invert yaw.
+    var degrees: int=posmod(int(round(-rad_to_deg(float(actor.get("_yaw"))))),360)
     var names: Array[String]=["N","NE","E","SE","S","SO","O","NO"]
     var quadrant: int=int(round(float(degrees)/45.0))%8
     _compass.text=names[quadrant]+"  %03d°"%degrees
