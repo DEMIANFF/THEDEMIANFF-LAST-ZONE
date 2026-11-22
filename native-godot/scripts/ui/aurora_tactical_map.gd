@@ -81,6 +81,16 @@ func _ready() -> void:
     # Remove the redundant row to give the remaining buttons touch-safe height.
 
 
+func _notification(what: int) -> void:
+    if what==NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():
+        # Closing the tactical overlay can interrupt an active Android
+        # gesture. Never carry stale touch IDs into the next map opening.
+        _touches.clear()
+        _touch_starts.clear()
+        _drag_touch=-1
+        _touch_gesture_multitouch=false
+
+
 func _action(title: String,handler: Callable) -> void:
     var btn:=Button.new()
     btn.name="MapAction"+str(_control_panel.get_child_count())
@@ -151,7 +161,24 @@ func _clamp_pan_to_terrain() -> void:
 
 
 func _zoom_at(factor: float) -> void:
+    # The toolbar zooms around the cartographic centre. It preserves
+    # SEGUIR mode, unlike an explicit exploratory touch/pinch gesture.
     zoom=clampf(zoom*factor,1.0,8.0)
+    _clamp_pan_to_terrain()
+    queue_redraw()
+
+
+func _zoom_at_point(factor: float,screen_point: Vector2) -> void:
+    # Preserve the world coordinate underneath the two fingers or mouse
+    # pointer, avoiding the map jumping to a different district on zoom.
+    var rect: Rect2=_map_rect()
+    if not rect.has_point(screen_point) or not is_finite(factor) or factor<=0.0:
+        return
+    var grounded_anchor: Vector2=unproject(screen_point)
+    zoom=clampf(zoom*factor,1.0,8.0)
+    pan=grounded_anchor-(screen_point-rect.get_center())*_meters_per_pixel(rect)
+    _follow_player=false
+    # Clamp only if holding the anchor would expose off-island pixels.
     _clamp_pan_to_terrain()
     queue_redraw()
 
@@ -232,18 +259,28 @@ func _gui_input(event: InputEvent) -> void:
             var previous: Vector2=_touches[drag.index]
             var old_positions: Array=_touches.values()
             var old_separation: float=0.0
+            var previous_mid: Vector2=Vector2.ZERO
             if old_positions.size()==2:
                 var old_a: Vector2=old_positions[0]
                 var old_b: Vector2=old_positions[1]
                 old_separation=old_a.distance_to(old_b)
+                previous_mid=(old_a+old_b)*.5
             _touches[drag.index]=drag.position
             if _touches.size()==2:
                 var fingers: Array=_touches.values()
                 var first: Vector2=fingers[0]
                 var second: Vector2=fingers[1]
                 var separation: float=first.distance_to(second)
+                # Translation follows the fingers, not the player. The
+                # subsequent anchored zoom retains the point under the
+                # midpoint of the pinch without dragging off the island.
+                var current_mid: Vector2=(first+second)*.5
+                pan-=(current_mid-previous_mid)*_meters_per_pixel(rect)
+                _follow_player=false
                 if separation>15.0 and old_separation>15.0:
-                    zoom=clampf(zoom*separation/old_separation,1.0,8.0)
+                    var inset: Rect2=rect.grow(-1.0)
+                    _zoom_at_point(separation/old_separation,
+                        current_mid.clamp(inset.position,inset.end))
             else:
                 pan-=drag.relative*_meters_per_pixel(rect)
                 _follow_player=false
@@ -264,10 +301,10 @@ func _gui_input(event: InputEvent) -> void:
                 accept_event()
         elif rect.has_point(mouse.position):
             if mouse.button_index==MOUSE_BUTTON_WHEEL_UP and mouse.pressed:
-                _zoom_at(1.25)
+                _zoom_at_point(1.25,mouse.position)
                 accept_event()
             elif mouse.button_index==MOUSE_BUTTON_WHEEL_DOWN and mouse.pressed:
-                _zoom_at(.8)
+                _zoom_at_point(.8,mouse.position)
                 accept_event()
             elif mouse.button_index==MOUSE_BUTTON_LEFT and mouse.pressed:
                 _drag_touch=0
