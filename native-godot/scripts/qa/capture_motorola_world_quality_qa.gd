@@ -57,8 +57,8 @@ func _capture() -> void:
     player.set_physics_process(false)
     for bot in combat._targets:
         bot.set_physics_process(false)
-    if combat._targets.size()!=49 or
-            terrain.get_node_or_null("ContinuousIslandSurface")==null:
+    if (combat._targets.size()!=49 or
+            terrain.get_node_or_null("ContinuousIslandSurface")==null):
         _fail("screenshot replaced real fifty-fighter Battle Royale island")
         return
     # Actual 3D coastal cliff with forest, open water and playable collider.
@@ -70,9 +70,9 @@ func _capture() -> void:
     player.set("_desired_yaw",-.40)
     player.set("_pitch",-.14)
     player.set("_desired_pitch",-.14)
-    if budget.call("select_profile","CLARIDAD")!=OK or
+    if (budget.call("select_profile","CLARIDAD")!=OK or
             not bool(nature.get("detailed_foliage")) or
-            not trees.multimesh.mesh is ArrayMesh:
+            not (trees.multimesh.mesh is ArrayMesh)):
         _fail("clarity is not rendering real original layered tree crowns")
         return
     await frames(20)
@@ -80,9 +80,9 @@ func _capture() -> void:
     if not clear_ok:
         _fail("could not capture real higher-detail quality scene")
         return
-    if budget.call("select_profile","FLUIDEZ")!=OK or
+    if (budget.call("select_profile","FLUIDEZ")!=OK or
             bool(nature.get("detailed_foliage")) or
-            not trees.multimesh.mesh is CylinderMesh:
+            not (trees.multimesh.mesh is CylinderMesh)):
         _fail("performance mode did not switch the genuine distant forest LOD")
         return
     await frames(20)
