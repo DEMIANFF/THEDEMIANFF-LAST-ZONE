@@ -82,6 +82,11 @@ func _capture() -> void:
     # the camera-up minimap; the second frame rotates Lila's real camera
     # -90 degrees (looking EAST). These are not fabricated map pictures.
     radar.set("rotate_with_camera",true)
+    var camera_pivot: Node3D=player.get_node_or_null("CameraPivot") as Node3D
+    if camera_pivot==null:
+        _fail("physical operator camera pivot missing from minimap fixture")
+        return
+    camera_pivot.rotation.y=wrapf(-player.rotation.y,-PI,PI)
     player.set("_yaw",0.0)
     player.set("_desired_yaw",0.0)
     player.velocity=Vector3(4,0,0)
@@ -95,6 +100,8 @@ func _capture() -> void:
         return
     player.set("_yaw",-PI*.5)
     player.set("_desired_yaw",-PI*.5)
+    # The 3D camera and map now share the SAME world yaw in screenshots.
+    camera_pivot.rotation.y=wrapf(-PI*.5-player.rotation.y,-PI,PI)
     radar.queue_redraw()
     for frame in range(7):
         await process_frame
