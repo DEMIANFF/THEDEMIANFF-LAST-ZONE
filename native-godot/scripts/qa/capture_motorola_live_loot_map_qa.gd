@@ -100,8 +100,7 @@ func _capture() -> void:
     for frame in range(6):
         await process_frame
     await RenderingServer.frame_post_draw
-    var target_path: String="res://out/aurora-"+tag+
-        "-motorola-waypoint-offscreen.png"
+    var target_path: String="res://out/aurora-%s-motorola-waypoint-offscreen.png"%tag
     if root.get_texture().get_image().save_png(target_path)!=OK:
         _fail("could not save offscreen waypoint engine evidence")
         return
@@ -117,8 +116,7 @@ func _capture() -> void:
     for frame in range(6):
         await process_frame
     await RenderingServer.frame_post_draw
-    var player_path: String="res://out/aurora-"+tag+
-        "-motorola-player-offscreen.png"
+    var player_path: String="res://out/aurora-%s-motorola-player-offscreen.png"%tag
     if root.get_texture().get_image().save_png(player_path)!=OK:
         _fail("could not save offscreen player engine evidence")
         return
