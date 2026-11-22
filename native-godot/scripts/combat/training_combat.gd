@@ -404,6 +404,8 @@ func _on_reload() -> void:
     # Swapping magazines supersedes any remaining sniper bolt sound.
     _auto_reload_queued=false
     _cancel_awm_bolt()
+    if _weapon_visuals:
+        _weapon_visuals.cancel_visual_recoil()
     reload_timer=WEAPONS.ENTRIES[weapon_index]["reload"]
     _reload_duration=reload_timer
     _reload_ui_clock=0.0
@@ -411,7 +413,8 @@ func _on_reload() -> void:
     hud.set_reload_state(true,reload_timer,_reload_duration)
     operator.play_weapon_action("reload",reload_timer)
     if _weapon_visuals:
-        _weapon_visuals.play_source_action(weapon_index,"reload")
+        _weapon_visuals.play_source_action(
+            weapon_index,"reload",reload_timer)
     reload_started.emit()
     hud.impact("RECARGANDO")
 
@@ -488,6 +491,8 @@ func _shoot() -> void:
             _weapon_visuals.begin_awm_mechanical_cycle()
     _sync_hud()
     operator.apply_recoil(WEAPONS.ENTRIES[weapon_index]["recoil"])
+    if _weapon_visuals:
+        _weapon_visuals.pulse_visual_recoil(weapon_index)
     operator.play_weapon_action("fire",.24 if weapon_index==1 else .13)
     if _weapon_visuals:
         _weapon_visuals.play_source_action(weapon_index,"fire")
