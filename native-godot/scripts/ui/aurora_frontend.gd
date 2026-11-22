@@ -1058,13 +1058,13 @@ func _show_lobby() -> void:
         _shop_gallery_overlay.visible=false
     if is_instance_valid(_page):
         _page.visible=true
-    if is_instance_valid(_mode_gallery_entry):
-        _mode_gallery_entry.visible=_selected_tab=="JUGAR"
     _top_account_button.visible=true
     _top_settings_button.visible=true
     _top_social_button.visible=true
     _banner.visible=true
-    _lobby_status_ribbon.visible=true
+    # Mode/participant status already occupies the right BR card.
+    # Eliminate the tiny duplicate strip next to Lila's platform.
+    _lobby_status_ribbon.visible=false
     # Three independently clipped headers keep the original brand legible
     # without the coin balance covering Lila, the player record or the emblem.
     _profile_strip.visible=true
@@ -1094,7 +1094,8 @@ func _show_lobby() -> void:
     _lobby_mode_heading.add_theme_color_override("font_color",Color(.96,.77,.38))
     _match_mode_selector=OptionButton.new()
     _match_mode_selector.name="MatchModeSelector"
-    _match_mode_selector.accessibility_name="Modalidad de partida"
+    _match_mode_selector.accessibility_name="Modalidad de partida · selector único"
+    _match_mode_selector.tooltip_text="Seleccionar modo de juego (solo aquí)"
     _match_mode_selector.custom_minimum_size.y=52
     _match_mode_selector.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _match_mode_selector.fit_to_longest_item=false
@@ -1652,7 +1653,7 @@ func _sync_lobby_match_mode() -> void:
     _equipment_selector.visible=_selected_tab=="INVENTARIO"
     _equipment_category_selector.visible=_selected_tab=="INVENTARIO"
     _lobby_mode_status.visible=show_modes and _selected_match_mode=="ranked"
-    _lobby_detail_scroll.visible=not show_modes and _selected_tab not in ["AJUSTES","PRESET"]
+    _lobby_detail_scroll.visible=not show_modes and _selected_tab!="AJUSTES"
     match _selected_match_mode:
         "classic":
             _lobby_mode_status.text="BR CLÁSICO LOCAL · 50 PARTICIPANTES (1 JUGADOR + 49 IA).\nSin clasificación online."
@@ -1805,8 +1806,9 @@ func _ensure_lobby_navigation() -> void:
     _surface.add_child(_left_shortcuts)
     var quick_items: Array[Array]=[
         ["▣ TIENDA","TIENDA",""],
-        ["✦ LUCK ROYALE","LUCK",""],
-        ["♛ PASE DE BATALLA","PASE",""],
+        ["♛ PASE ROYALE","PASE",""],
+        # Opens the existing right-side BR panel; never another selector.
+        ["⚔ SALA DE BATALLA","JUGAR",""],
         ["▤ EVENTOS","OBJETIVOS","events"],
         ["☷ MISIONES","OBJETIVOS","missions"],
         ["★ LOGROS","OBJETIVOS","achievements"]
@@ -1837,7 +1839,7 @@ func _ensure_lobby_navigation() -> void:
     for item in [
         ["JUGAR","JUGAR"],["INVENTARIO","INVENTARIO"],
         ["ARMAS","ARMAS"],["PERSONAJES","PERSONAJE"],
-        ["PRESET","PRESET"],["SOCIAL","SOCIAL"]
+        ["SOCIAL","SOCIAL"]
     ]:
         var target: String=str(item[1])
         var button:=_button(str(item[0]),
@@ -1997,8 +1999,8 @@ func _ensure_lobby_navigation() -> void:
     _top_settings_button.anchor_top=.025
     _top_settings_button.anchor_bottom=.131
     _top_settings_button.add_theme_font_size_override("font_size",24)
-    _top_settings_button.tooltip_text="Ajustes"
-    _top_settings_button.accessibility_name="Ajustes"
+    _top_settings_button.tooltip_text="AJUSTES · controles, HUD y sensibilidad"
+    _top_settings_button.accessibility_name="Ajustes de partida y editor HUD"
     _style_aurora_tab(_top_settings_button,Color(.53,.39,.87))
     _surface.add_child(_top_settings_button)
     _top_social_button=_button("♙",
@@ -2014,7 +2016,8 @@ func _ensure_lobby_navigation() -> void:
     _top_social_button.accessibility_name="Escuadra y amistades"
     _style_aurora_tab(_top_social_button,Color(.53,.39,.87))
     _surface.add_child(_top_social_button)
-    _build_mode_gallery()
+    # There is only ONE mode selector, inside the right Battle Royale card.
+    # Do not instantiate the obsolete floating "MODOS" card or overlay.
     _build_skin_gallery()
 
 
@@ -2430,12 +2433,15 @@ func _open_lobby_category(tab: String,objective: String="") -> void:
 
 
 func _select_tab(tab: String) -> void:
+    # Old saved PRESET navigation requests now open the canonical settings
+    # window; PRESET is not a separate visible lobby tab anymore.
+    if tab=="PRESET":
+        _open_settings()
+        return
     _selected_tab=tab
     if stage!="lobby" or _info==null:
         return
-    _settings_panel.visible=tab in ["AJUSTES","PRESET"]
-    if is_instance_valid(_mode_gallery_entry):
-        _mode_gallery_entry.visible=tab=="JUGAR"
+    _settings_panel.visible=tab=="AJUSTES"
     if tab!="JUGAR":
         _close_mode_gallery()
     if tab!="TIENDA":
@@ -2468,18 +2474,18 @@ func _select_tab(tab: String) -> void:
         _lobby_section_title.text=(
             "BATTLE ROYALE" if tab=="JUGAR"
             else "MI CUENTA" if tab=="CUENTA"
-            else "CONFIGURACIÓN" if tab in ["AJUSTES","PRESET"]
+            else "CONFIGURACIÓN" if tab=="AJUSTES"
             else "EVENTOS / MISIONES / LOGROS" if tab=="OBJETIVOS"
             else tab)
         _lobby_section_hint.text=(
             "BASE AURORA · 50 PARTICIPANTES" if tab=="JUGAR"
             else "PERFIL / RESPALDO / ACCESO" if tab=="CUENTA"
-            else "CONTROLES / SENSIBILIDAD / HUD" if tab in ["AJUSTES","PRESET"]
+            else "CONTROLES / SENSIBILIDAD / HUD" if tab=="AJUSTES"
             else "BASE AURORA · CENTRO DE OPERACIONES")
     match tab:
         "JUGAR":
             _info.text="BR CLÁSICO · 50 PARTICIPANTES\n1 operador y 49 rivales IA. Pulsa INICIAR para desplegarte.\nCLASIFICATORIA ONLINE: pendiente de servidor."
-        "AJUSTES","PRESET":
+        "AJUSTES":
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
             var stats: Dictionary=_offline_records.snapshot()

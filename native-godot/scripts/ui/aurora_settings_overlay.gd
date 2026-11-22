@@ -84,6 +84,9 @@ func _ready() -> void:
     for category in ["PARTIDA","PANTALLA","SONIDO","GRABACIÓN","NOTIFICACIÓN","CUENTA"]:
         var current: String=category
         var tab:=_make_button(sidebar,category,func(): _show_category(current))
+        if category=="PARTIDA":
+            tab.text="PARTIDA / HUD"
+            tab.tooltip_text="Configurar controles y los cuatro HUD guardados"
         tab.name="AuroraCategory"+current
         tab.tooltip_text="Abrir configuración de "+current.to_lower()
         _category_buttons[current]=tab
@@ -191,6 +194,7 @@ func _populate_subcategory() -> void:
     match _subcategory:
         "HUD":
             _heading("HUD / CUATRO DISEÑOS GUARDADOS")
+            _info("Ruta: AJUSTES ⚙ → PARTIDA / HUD → PERSONALIZAR HUD")
             _info("Selecciona un espacio y edita posiciones, tamaños y opacidad de los botones reales. El HUD 1 conserva tu diseño anterior.")
             var preset:=OptionButton.new()
             preset.name="HUDPresetSelector"
@@ -219,7 +223,28 @@ func _populate_subcategory() -> void:
                     _info("Radio zona: "+str(roundi(float(director.get("radius"))))+" m")
             else:
                 _info("Lobby: ningún combate iniciado. El editor de HUD no registra partidas ni consumos.")
-            _info("Modo offline · 1 jugador y 8 bots. No se muestran escuadras online simuladas.")
+            # Do not repeat the obsolete V75.20 8-bot training count.
+            # Classic BR has 1 human + 49 real offline IA at match start;
+            # training is separate and must not claim a 50-body roster.
+            var in_br: bool=false
+            var current_fighters: int=0
+            if context_game!=null:
+                var match_director: Node3D=context_game.get_node_or_null(
+                    "AuroraSectorMatch")
+                in_br=(match_director!=null and
+                    str(match_director.get("mode"))=="sector_battle")
+                if in_br:
+                    var battle: Node3D=context_game.get_node_or_null(
+                        "CombatRange")
+                    if battle!=null:
+                        current_fighters=int(battle.call(
+                            "active_fighter_count"))
+            if context_game==null:
+                _info("CLÁSICO LOCAL: 50 PARTICIPANTES al comenzar (1 jugador + 49 IA). Entrenamiento separado. No hay escuadras online simuladas.")
+            elif in_br:
+                _info("BR CLÁSICO LOCAL: 50 PARTICIPANTES al comenzar (1 jugador + 49 IA). Supervivientes actuales: %d. Sin emparejamiento online."%current_fighters)
+            else:
+                _info("ENTRENAMIENTO LOCAL: controles y disparo de prueba. No es una partida clasificatoria ni un servidor online.")
         "SENSIBILIDAD":
             _heading("SENSIBILIDAD DE CÁMARA Y MIRAS")
             for item in [

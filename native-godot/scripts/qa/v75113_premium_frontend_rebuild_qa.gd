@@ -99,10 +99,16 @@ func _verify() -> void:
         front._preview_container.visible and
         front._preview_avatar!=null,
         "full-sized native Godot 3D Lila preview was replaced")
-    check(front._lobby_status_ribbon.visible and
-        front._lobby_status_ribbon.name=="AuroraLiveOperationRibbon",
-        "battle preparation identity missing")
-    _within_screen(front._lobby_status_ribbon,"operation ribbon")
+    # V75.155: the right-side Battle Royale card is the sole source of
+    # match/mode information. The old status ribbon was intentionally removed
+    # from Lila's stage rather than replaced with a cosmetic duplicate.
+    check(front._lobby_status_ribbon.name=="AuroraLiveOperationRibbon" and
+        not front._lobby_status_ribbon.is_visible_in_tree(),
+        "obsolete operation ribbon still obscures the operator")
+    check(front._match_mode_selector.is_visible_in_tree() and
+        front._mode_gallery_entry==null and
+        front._mode_gallery_overlay==null,
+        "the real right-side mode selector must replace duplicate mode UI")
     _within_screen(front._play_match_card,"battle card")
     _within_screen(front._social_panel,"local squad")
     check(front._lobby_compact_intel.is_visible_in_tree() and

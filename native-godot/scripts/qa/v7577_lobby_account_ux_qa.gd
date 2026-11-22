@@ -34,11 +34,16 @@ func _verify() -> void:
         "classic must be ready on initial lobby")
     check(front._lobby_section_title.text.contains("BATTLE ROYALE"),
         "lobby lacks Battle Royale mode card heading")
+    # V75.155 retains six commerce shortcuts and five footer actions.
+    # PRESET moved exclusively under the top-right settings gear.
+    var play_footer: Button=front._bottom_navigation.get_node_or_null(
+        "BottomJUGAR") as Button
     check(front._left_shortcuts.get_child_count()==6 and
-        front._bottom_navigation.get_child_count()==6 and
-        front._bottom_navigation.get_node_or_null("BottomJUGAR")!=null and
+        front._bottom_navigation.get_child_count()==5 and
+        front._bottom_navigation.get_node_or_null("BottomPRESET")==null and
+        play_footer!=null and play_footer.is_visible_in_tree() and
         front._social_panel.visible,
-        "reference navigation must provide a visible route back to JUGAR")
+        "real five-button footer must offer a visible return to JUGAR")
     check(front._preview_container.find_child("AuroraSentinelCompanion",true,false)!=null,
         "live Base Aurora sentinel companion missing")
 
@@ -77,10 +82,14 @@ func _verify() -> void:
     check(front._info.text.contains("SIN CONEXIÓN") and
         not bool(BRIDGE.status().get("ready",true)),
         "blocked device showed a fake Firebase connection")
-    front._select_tab("JUGAR")
-    check(front._battle_entry.visible and
+    # Follow the user-facing button instead of calling a private helper.
+    # Account must return to the live match panel without losing the roster.
+    play_footer.pressed.emit()
+    await process_frame
+    check(front._selected_tab=="JUGAR" and front._battle_entry.visible and
+        front._match_mode_selector.visible and
         not front._auth_google_button.visible and not front._auth_guest_button.visible,
-        "JUGAR actions did not recover after Account")
+        "visible JUGAR footer did not restore the live Battle Royale panel")
     front._welcome()
     await process_frame
     check(front._login_google_button.visible and front._login_guest_button.visible,

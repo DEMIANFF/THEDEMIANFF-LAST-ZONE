@@ -1,108 +1,75 @@
 extends SceneTree
-## V75.131 - Real user-interactive mode selection on the original lobby.
-## Do not mock ranked, online squads, paid rewards or match entitlements.
+## V75.131 regression updated for the actual, single RIGHT-HAND OptionButton
+## instead of the removed center-left MODOS shortcut and modal gallery.
+## Ranking remains gated; training and 50-participant classic remain real.
 var failed: bool=false
-
-
-func check(ok: bool,message: String) -> void:
-    if not ok:
-        failed=true
-        push_error("V75131_MODE_GALLERY "+message)
-
 
 func _initialize() -> void:
     call_deferred("_verify")
 
+func check(ok: bool,message: String) -> void:
+    if not ok:
+        failed=true
+        push_error("V75131_MODE_SELECTOR "+message)
+
+func select_mode(front: Control,index: int) -> void:
+    var right: OptionButton=front._match_mode_selector
+    right.select(index)
+    right.item_selected.emit(index)
 
 func _verify() -> void:
+    root.size=Vector2i(964,434)
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
     await front.wait_for_startup()
     front._show_lobby()
-    var entry: Button=front._mode_gallery_entry
-    var overlay: Control=front._mode_gallery_overlay
-    var cards: Dictionary=front._mode_gallery_cards
-    check(entry!=null and overlay!=null and cards.size()==3,
-        "mode entry, 3 original cards or overlay missing")
-    if entry==null or overlay==null or cards.size()!=3:
-        quit(1)
-        return
-    check(entry.visible and not overlay.visible and
-        front._selected_match_mode=="classic",
-        "default local Classic lobby obscured by mode gallery")
-    # Check actual hit targets remain on-screen on the Edge 60 Fusion.
-    root.size=Vector2i(964,434)
-    await process_frame
     await process_frame
     front._layout_safe()
-    check(root.get_visible_rect().encloses(entry.get_global_rect()),
-        "mode gallery entry off-screen on 964x434 Motorola landscape")
-    entry.emit_signal("pressed")
-    check(overlay.visible,"tapping MODOS did not open a working gallery")
-    var panel: PanelContainer=overlay.get_node("ModeGalleryPanel") as PanelContainer
-    check(panel!=null and
-        root.get_visible_rect().encloses(panel.get_global_rect()),
-        "3-card mode selector clipped by phone safe layout")
-    await process_frame
-    await process_frame
-    var modal_exit: Button=panel.find_child(
-        "CloseModeGallery",true,false) as Button
-    check(modal_exit!=null and modal_exit.is_visible_in_tree() and
-        modal_exit.custom_minimum_size.y>=72.0 and
-        modal_exit.get_global_rect().size.y>=40.0,
-        "mode gallery close target too small for Motorola touch controls")
-    check(cards["classic"] is Button and cards["training"] is Button and
-        cards["ranked"] is Button,
-        "mode choices are not interactive native buttons")
-    check(bool((cards["classic"] as Button).get_meta(
-        "aurora_selected_mode",false)),
-        "Classic card did not display the actual active mode")
-    # A blocked mode is DISCOVERABLE but cannot load AI-only ranked combat.
-    (cards["ranked"] as Button).emit_signal("pressed")
-    check(not overlay.visible and front._selected_match_mode=="ranked" and
-        front._match_mode_selector.selected==1 and
+    var right: OptionButton=front._match_mode_selector
+    check(right!=null and right.get_item_count()==3 and right.visible and
+        right.selected==0 and front._selected_match_mode=="classic",
+        "main Battle Royale card has no working Classic/Ranked/Training picker")
+    check(front._mode_gallery_entry==null and
+        front._mode_gallery_overlay==null and
+        front.find_child("AuroraModeGalleryEntry",true,false)==null,
+        "obsolete floating MODOS button or full-screen duplicate remains")
+    check(right.get_global_rect().position.x>
+        front._surface.global_position.x+front._surface.size.x*.68,
+        "mode selector was moved out of the right-side Battle Royale card")
+    select_mode(front,1)
+    check(front._selected_match_mode=="ranked" and
         front._lobby_mode_status.text.contains("BLOQUEADA") and
         not front._battle_entry.visible and not front._training_entry.visible,
-        "ranked card incorrectly starts or disguises a local match")
+        "blocked ranked match was presented as an actual online game")
     front._launch(true)
     check(front.stage=="lobby" and front._game==null,
-        "ranked mode gallery bypassed real backend gate")
-
-    entry.emit_signal("pressed")
-    check(overlay.visible,"cannot reopen mode gallery from locked ranked")
-    (cards["training"] as Button).emit_signal("pressed")
-    check(not overlay.visible and front._selected_match_mode=="training" and
-        front._match_mode_selector.selected==2 and
+        "ranked mode bypassed server-authoritative matchmaking gate")
+    select_mode(front,2)
+    check(front._selected_match_mode=="training" and
         front._training_entry.visible and not front._battle_entry.visible,
-        "Training card is not linked to actual local training action")
-    entry.emit_signal("pressed")
-    (cards["classic"] as Button).emit_signal("pressed")
+        "real local training lost the only right-side mode control")
+    select_mode(front,0)
     check(front._selected_match_mode=="classic" and
         front._battle_entry.visible and not front._training_entry.visible and
         front._lobby_mode_status.text.contains("50 PARTICIPANTES"),
-        "Classic card failed to restore local 50-fighter mode")
-    entry.emit_signal("pressed")
+        "right-hand selector failed to restore Classic with 49 AI")
     front._select_tab("INVENTARIO")
-    check(not entry.visible and not overlay.visible and
-        front._equipment_selector.visible,
-        "gallery leaked into equipment screen")
-    front._open_mode_gallery()
-    check(not overlay.visible,"gallery can open from a non-play tab")
+    check(not right.visible and front._equipment_selector.visible,
+        "right-hand BR picker leaked into inventory screen")
     front._select_tab("JUGAR")
-    entry.emit_signal("pressed")
-    check(overlay.visible,"gallery cannot reopen after leaving inventory")
-    var close: Button=panel.find_child("CloseModeGallery",true,false) as Button
-    check(close!=null,"mode gallery cannot be dismissed")
-    if close!=null:
-        close.emit_signal("pressed")
-    check(not overlay.visible and front.stage=="lobby",
-        "mode gallery close changed match state or failed to dismiss")
+    check(right.visible and front._selected_match_mode=="classic",
+        "Battle Royale selector not restored on return to play screen")
     front._welcome()
-    check(not entry.visible and not overlay.visible,
-        "mode entry or popup leaks onto authentication screen")
+    # _welcome() detaches and queues the old right-side OptionButton.
+    # A queued Control can retain visible=true until frame teardown;
+    # is_visible_in_tree() is the correct end-user visibility assertion.
+    check((not is_instance_valid(right) or not right.is_visible_in_tree()) and
+        front._mode_gallery_entry==null,
+        "mode selector/duplicate control leaks into login screen")
     front.queue_free()
     await process_frame
     if not failed:
-        print("V75131_MODE_GALLERY PASS cards=3 classic=50 training=local "+
-            "ranked=gated viewport=964x434 account=hidden")
+        print("V75131_MODE_SELECTOR PASS 964x434 right_side_only=1 "+
+            "classic50=1 training_local=1 ranked_server_gated=1 "+
+            "no_floating_modos=1 inventory_no_mode=1")
     quit(1 if failed else 0)
