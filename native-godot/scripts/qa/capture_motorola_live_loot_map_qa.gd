@@ -70,6 +70,57 @@ func _capture() -> void:
     if image.save_png(path)!=OK:
         _fail("could not save actual engine screenshot")
         return
+    # V75.157: two extra pictures show offscreen arrows in the REAL
+    # full tactical map, with the player and an existing 3D AWM pickup.
+    # This is engine-rendered UI evidence, not an artist's mockup.
+    var real_awm: Area3D=map.call("_live_awm_pickup") as Area3D
+    if not is_instance_valid(real_awm):
+        _fail("real AWM vanished before edge marker capture")
+        return
+    var target_world:=Vector2(real_awm.global_position.x,
+        real_awm.global_position.z)
+    var player_world:=Vector2(player.global_position.x,
+        player.global_position.z)
+    map.call("mark",target_world)
+    map.set("zoom",8.0)
+    map.set("pan",player_world)
+    map.set("_follow_player",false)
+    map.call("_clamp_pan_to_terrain")
+    var safe: Rect2=(map.call("_map_rect") as Rect2).grow(-14.0)
+    var target_edge: Dictionary=map.call(
+        "_edge_map_anchor",target_world,safe)
+    if target_edge.is_empty() or bool(target_edge["inside"]):
+        _fail("live AWM waypoint did not become a clipped edge direction")
+        return
+    map.queue_redraw()
+    for frame in range(6):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    var target_path: String="res://out/aurora-"+tag+
+        "-motorola-waypoint-offscreen.png"
+    if root.get_texture().get_image().save_png(target_path)!=OK:
+        _fail("could not save offscreen waypoint engine evidence")
+        return
+
+    map.set("pan",target_world)
+    map.call("_clamp_pan_to_terrain")
+    var player_edge: Dictionary=map.call(
+        "_edge_map_anchor",player_world,safe)
+    if player_edge.is_empty() or bool(player_edge["inside"]):
+        _fail("real player did not become an edge marker after map pan")
+        return
+    map.queue_redraw()
+    for frame in range(6):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    var player_path: String="res://out/aurora-"+tag+
+        "-motorola-player-offscreen.png"
+    if root.get_texture().get_image().save_png(player_path)!=OK:
+        _fail("could not save offscreen player engine evidence")
+        return
+    map.call("_clear_waypoint")
+    print("V75157_MAP_EDGE_CAPTURE PASS 964x434 real_awm_mark=1 "+
+        "world_position_edge=1 world_player_edge=1 screenshots=2")
     print("V75141_LIVE_LOOT_MAP_CAPTURE PASS 964x434 "+
         "real_awm=1 real_bot_kill=1 real_ammo=7 local_cache=1 "+
         "no_fake_icons=1 file="+path)
