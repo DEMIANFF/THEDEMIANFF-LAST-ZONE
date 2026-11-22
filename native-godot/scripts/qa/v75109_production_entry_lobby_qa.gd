@@ -53,8 +53,13 @@ func _verify() -> void:
     check(not front._entry_glass.visible and
         not front._entry_mission_caption.visible,
         "entry glass overlays Battle Royale UI")
-    check(front._lobby_backplates.size()==3,
-        "operational header, menu and commerce panels missing")
+    # V75.161 retains all three legacy real panels AND adds an actual
+    # operator nameplate and footer glass backing. The old equality ==3
+    # rejected a more complete lobby despite all controls working.
+    check(front._lobby_backplates.size()==5 and
+        front.find_child("AuroraPremiumFooterGlass",true,false)!=null and
+        front.find_child("AuroraOperatorNameplate",true,false)!=null,
+        "premium operational header/side panels/nameplate/footer missing")
     for panel in front._lobby_backplates:
         check(panel.is_visible_in_tree() and
             panel.get_index()>art.get_index(),
