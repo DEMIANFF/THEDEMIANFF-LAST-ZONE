@@ -74,7 +74,8 @@ func _capture() -> void:
             actor._avatar.visible and bool(cover.call("is_active"))):
         _fail("actual Aurora cover still obstructs the operator camera")
         return
-    if not await _screenshot(tag,"right-cover-left-camera"):
+    var wall_frame: bool=await _screenshot(tag,"right-cover-left-camera")
+    if not wall_frame:
         _fail("cannot save real near-blue-wall recovery screenshot")
         return
     cover.call("take_damage",COVER.MAX_HEALTH)
@@ -83,7 +84,8 @@ func _capture() -> void:
             camera.position.z>2.8 and actor._avatar.visible):
         _fail("real third-person framing did not recover after cover broke")
         return
-    if not await _screenshot(tag,"cover-cleared-camera"):
+    var open_frame: bool=await _screenshot(tag,"cover-cleared-camera")
+    if not open_frame:
         _fail("cannot save free-camera recovery screenshot")
         return
     print("V75159_REAL_CAMERA_CAPTURE PASS viewport=964x434 "+
