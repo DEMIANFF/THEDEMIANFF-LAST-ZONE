@@ -93,19 +93,16 @@ func _build_apron() -> void:
 ## Luminous but inexpensive road markings use two GPU batches. The painted
 ## runway still uses the original pavement shader, not a transparent overlay.
 func _runway_accents() -> void:
-    var edge_transforms: Array[Transform3D]=[]
-    # Center dashes share the existing IceTrim MultiMesh materials. Creating
-    # an extra MultiMesh for only seven tiny markers exceeded the mobile
-    # airfield's 12-batch QA contract.
+    # Cyan edges and pale center dashes share existing GPU batches.
+    # Separate tiny batches exceeded the airfield's 12-batch mobile budget.
     for i in range(22):
         var z: float=3.0-float(i)*.91
         for side in [-1.0,1.0]:
-            edge_transforms.append(Transform3D(
-                Basis.from_scale(Vector3(.024,.014,.48)),
-                Vector3(side*2.45,-.103,z)))
+            _fitting(Vector3(side*2.45,-.103,z),
+                Vector3(.024,.014,.48),_signal_cyan)
         if i%3==0 and i>2:
-            _fitting(Vector3(0.0,-.103,z),Vector3(.052,.012,.44),_ice_trim)
-    _instances("AuroraRunwayEdgeStrips",_cube,_signal_cyan,edge_transforms)
+            _fitting(Vector3(0.0,-.103,z),
+                Vector3(.052,.012,.44),_ice_trim)
 
 
 ## Original modular production art, integrated in the live 3D viewport.
@@ -375,7 +372,8 @@ func _watchtower(at: Vector3) -> void:
     _solid("WatchtowerCabin",at+Vector3(0,3.63,0),Vector3(1.18,.68,1.17),_panel)
     _fitting(at+Vector3(0,3.69,.60),Vector3(.90,.28,.035),_glass)
     _fitting(at+Vector3(0,4.04,0),Vector3(1.41,.12,1.42),_steel)
-    _fitting(at+Vector3(0,4.21,0),Vector3(.12,.15,.12),_beacon)
+    # Share amber warning light material; avoid a one-beacon GPU batch.
+    _fitting(at+Vector3(0,4.21,0),Vector3(.12,.15,.12),_amber)
 
 
 func _crate(at: Vector3) -> void:

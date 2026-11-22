@@ -28,8 +28,7 @@ func _verify() -> void:
         "real rig and interactive lobby must be preserved")
     var stage: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage/AuroraReal3DLobbyEnvironment")
-    for mesh_name in ["AuroraRunwayEdgeStrips",
-            "BaseAuroraSnowFir", "BaseAuroraFirSnowCaps"]:
+    for mesh_name in ["BaseAuroraSnowFir", "BaseAuroraFirSnowCaps"]:
         var node: MultiMeshInstance3D=stage.get_node_or_null(mesh_name) as MultiMeshInstance3D
         check(node!=null and node.multimesh!=null and
             node.multimesh.instance_count>0,
@@ -37,6 +36,7 @@ func _verify() -> void:
     # Verify every physical center dash is preserved inside the shared
     # fitting batch, instead of asserting an unnecessary dedicated draw call.
     var center_marks: int=0
+    var edge_marks: int=0
     var multimeshes: Array=stage.find_children("*","MultiMeshInstance3D",true,false)
     for rendered in multimeshes:
         var group: MultiMesh=(rendered as MultiMeshInstance3D).multimesh
@@ -46,7 +46,15 @@ func _verify() -> void:
                     absf(pose.basis.x.length()-.052)<.002 and
                     absf(pose.basis.z.length()-.44)<.002):
                 center_marks+=1
-    check(center_marks==7,"center dashes missing from shared mobile MultiMesh")
+            if absf(absf(pose.origin.x)-2.45)<.002 and (
+                    absf(pose.origin.y+.103)<.002 and
+                    absf(pose.basis.x.length()-.024)<.002 and
+                    absf(pose.basis.z.length()-.48)<.002):
+                edge_marks+=1
+    check(center_marks==7 and edge_marks==44,
+        "physical runway stripes disappeared from shared GPU batches")
+    check(multimeshes.size()<=12,
+        "airfield exceeds 12 MultiMesh batches: "+str(multimeshes.size()))
     var bars: HBoxContainer=front._bottom_navigation
     check(bars.get_child_count()==5 and bars.get_node_or_null("BottomPRESET")==null,
         "five functional footer tabs and no PRESET required")
