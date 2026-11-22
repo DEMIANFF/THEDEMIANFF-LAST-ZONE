@@ -41,8 +41,12 @@ func _verify() -> void:
     # uses a wider lens. Test the real on-screen rig, not an obsolete
     # numeric camera setting.
     var avatar: Node3D=front._preview_avatar
-    require(avatar!=null and camera.current and camera.position.z<=3.2,
-        "Real Lila and the active lobby camera must remain available")
+    # The user reference places the entire operator ABOVE a unified
+    # touch row. V75.161 deliberately moves the camera to 3.58m, which
+    # the rigorous projected head/feet screen-bound check below verifies.
+    require(avatar!=null and camera.current and
+        camera.position.z>=2.8 and camera.position.z<=3.85,
+        "real Lila/camera lost safe portrait framing distance")
     var top: float=INF
     var bottom: float=-INF
     var projected_corners: int=0
