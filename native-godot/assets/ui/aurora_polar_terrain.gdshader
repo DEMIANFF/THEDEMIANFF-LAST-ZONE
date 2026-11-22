@@ -22,8 +22,9 @@ void fragment() {
     float coverage = smoothstep(0.42, 0.83, up * 0.62 + COLOR.r * 0.48
         + gully * 0.24 - layers * 0.13);
     vec3 rock = mix(shale.rgb, slate.rgb, layers * 0.45 + gully * 0.28);
-    vec3 frost = mix(snow_blue.rgb, snow_lit.rgb, up * 0.51 + layers * 0.20);
+    float crystalline = 0.5 + 0.5 * sin(pos.x * 7.1 + pos.z * 9.6 + layers * 3.7);
+    vec3 frost = mix(snow_blue.rgb, snow_lit.rgb, up * 0.51 + layers * 0.20 + crystalline * 0.09);
     ALBEDO = mix(rock, frost, coverage);
-    ROUGHNESS = mix(0.92, 0.81, coverage);
+    ROUGHNESS = mix(0.94, 0.77 + crystalline * 0.07, coverage);
     METALLIC = 0.0;
 }

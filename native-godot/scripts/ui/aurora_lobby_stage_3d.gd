@@ -17,6 +17,8 @@ var _amber: StandardMaterial3D
 var _glass: StandardMaterial3D
 var _panel: ShaderMaterial
 var _snow: ShaderMaterial
+var _ice_trim: StandardMaterial3D
+var _signal_cyan: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -29,6 +31,8 @@ func _ready() -> void:
     _amber=_lamp(Color(1.0,.63,.28),.94)
     _glass=_lamp(Color(.88,.54,.24),.70)
     _beacon=_lamp(Color(1.0,.27,.10),1.0)
+    _ice_trim=_metal(Color(.45,.62,.75),.42,.34)
+    _signal_cyan=_lamp(Color(.12,.80,.98),.74)
     _panel=ShaderMaterial.new()
     _panel.shader=PANEL_SURFACE
     _snow=ShaderMaterial.new()
@@ -40,6 +44,7 @@ func _ready() -> void:
     _curtain(0)
     _curtain(1)
     _build_apron()
+    _runway_accents()
     _build_hangar(Vector3(2.65,-.08,-12.8))
     _build_station(Vector3(-5.28,-.08,-9.0))
     _build_radar(Vector3(-4.65,-.08,-11.65))
@@ -82,6 +87,25 @@ func _build_apron() -> void:
             _fitting(rail_post,Vector3(.066,.81,.069),_steel)
         for rail_y in [.37,.69]:
             _fitting(Vector3(side*6.65,rail_y,-9.55),Vector3(.058,.050,10.45),_steel)
+
+
+## Luminous but inexpensive road markings use two GPU batches. The painted
+## runway still uses the original pavement shader, not a transparent overlay.
+func _runway_accents() -> void:
+    var edge_transforms: Array[Transform3D]=[]
+    var center_transforms: Array[Transform3D]=[]
+    for i in range(22):
+        var z: float=3.0-float(i)*.91
+        for side in [-1.0,1.0]:
+            edge_transforms.append(Transform3D(
+                Basis.from_scale(Vector3(.024,.014,.48)),
+                Vector3(side*2.45,-.103,z)))
+        if i%3==0 and i>2:
+            center_transforms.append(Transform3D(
+                Basis.from_scale(Vector3(.052,.012,.44)),
+                Vector3(0.0,-.103,z)))
+    _instances("AuroraRunwayEdgeStrips",_cube,_signal_cyan,edge_transforms)
+    _instances("AuroraRunwayCenterMarks",_cube,_ice_trim,center_transforms)
 
 
 func _build_hangar(at: Vector3) -> void:
@@ -149,6 +173,13 @@ func _build_hangar(at: Vector3) -> void:
     signpost.modulate=Color(.81,.89,.96)
     signpost.position=at+Vector3(0,2.37,front+.092)
     add_child(signpost)
+    # Inset facade signage and perimeter light rails give the building a
+    # legible silhouette without additional dynamic lights or draw calls.
+    _fitting(at+Vector3(0,2.61,front+.18),
+        Vector3(2.72,.032,.051),_signal_cyan)
+    for side in [-1.0,1.0]:
+        _fitting(at+Vector3(side*3.12,2.11,front+.17),
+            Vector3(.038,.58,.05),_signal_cyan)
     for side in [-1.0,1.0]:
         var sconce:=at+Vector3(side*2.81,1.55,front+.18)
         _fitting(sconce,Vector3(.21,.23,.21),fascia)
@@ -279,25 +310,40 @@ func _crate(at: Vector3) -> void:
 
 
 func _fir_line() -> void:
-    var foliage:=_metal(Color(.105,.162,.205),.0,.93)
-    var cone:=CylinderMesh.new()
-    cone.top_radius=.045
-    cone.bottom_radius=.37
-    cone.height=.88
-    cone.radial_segments=7
-    var transforms: Array[Transform3D]=[]
+    # Three genuine conifer branch levels per tree, plus slim snow-capped
+    # tips and dark trunks. Each material remains one GPU MultiMesh batch.
+    var foliage:=_metal(Color(.065,.145,.156),.02,.88)
+    var frost:=_metal(Color(.62,.75,.83),.0,.87)
+    var branches:=CylinderMesh.new()
+    branches.top_radius=.025
+    branches.bottom_radius=.43
+    branches.height=.94
+    branches.radial_segments=9
+    var cap:=CylinderMesh.new()
+    cap.top_radius=.016
+    cap.bottom_radius=.19
+    cap.height=.17
+    cap.radial_segments=9
+    var branch_transforms: Array[Transform3D]=[]
+    var cap_transforms: Array[Transform3D]=[]
     for side in [-1.0,1.0]:
         for i in range(9):
             var x: float=side*(4.5+float(i)*1.65)
             var z: float=-18.8-absf(sin(float(i)*.81+side))*3.1
             var scale_3d: float=.70+absf(sin(float(i)*1.83+side))*.7
+            _fitting(Vector3(x,.30*scale_3d,z),
+                Vector3(.11*scale_3d,.64*scale_3d,.11*scale_3d),_steel)
             for crown in range(3):
                 var part:=scale_3d*(1.0-float(crown)*.19)
-                var basis:=Basis.from_scale(Vector3(part,scale_3d,part))
-                transforms.append(Transform3D(basis,Vector3(x,
-                    (.54+float(crown)*.40)*scale_3d,z)))
-    _instances("BaseAuroraSnowFir",cone,foliage,transforms)
-
+                var height: float=(.54+float(crown)*.40)*scale_3d
+                branch_transforms.append(Transform3D(
+                    Basis.from_scale(Vector3(part,scale_3d,part)),
+                    Vector3(x,height,z)))
+                cap_transforms.append(Transform3D(
+                    Basis.from_scale(Vector3(part,scale_3d,part)),
+                    Vector3(x,height+.39*scale_3d,z)))
+    _instances("BaseAuroraSnowFir",branches,foliage,branch_transforms)
+    _instances("BaseAuroraFirSnowCaps",cap,frost,cap_transforms)
 
 func _snowbank(side: float) -> void:
     var shape:=SurfaceTool.new()

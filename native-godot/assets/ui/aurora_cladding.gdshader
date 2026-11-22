@@ -22,4 +22,7 @@ void fragment() {
     ALBEDO = mix(seam.rgb, steel.rgb, (0.38 + rib * 0.56) * weathering + stain * 0.11);
     METALLIC = 0.43;
     ROUGHNESS = 0.78 - 0.22 * rib;
+    SPECULAR = 0.35 + 0.12 * rib;
+    NORMAL_MAP = vec3(0.5 + 0.07 * sin(pitch * 6.283185), 0.5, 1.0);
+    NORMAL_MAP_DEPTH = 0.21;
 }
