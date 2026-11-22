@@ -25,6 +25,7 @@ const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 const FLIGHT_SAFETY_MODE=preload("res://scripts/persistence/flight_safety_mode.gd")
 const DISPLAY_FONT=preload("res://assets/ui/fonts/BarlowCondensed-Bold.ttf")
+const LOBBY_ICON_ATLAS=preload("res://assets/ui/aurora_lobby_navigation.svg")
 const AIRFIELD_SKY=preload("res://assets/ui/aurora_night_sky.gdshader")
 const LOBBY_OPERATOR_SURFACE=preload("res://assets/characters/lila_lobby_surface.gdshader")
 const PORTRAIT_LIGHT_LAYER: int=2
@@ -385,6 +386,15 @@ func _button(value: String, callback: Callable, width: float=260.0) -> Button:
     button.add_theme_stylebox_override("pressed",pressed)
     button.pressed.connect(callback)
     return button
+
+
+## Twelve original outline icons share one tiny imported SVG texture.
+## Atlas regions prevent repeated texture uploads in the Android lobby.
+func _reference_lobby_icon(index: int) -> Texture2D:
+    var tile:=AtlasTexture.new()
+    tile.atlas=LOBBY_ICON_ATLAS
+    tile.region=Rect2(0.0,float(clampi(index,0,11))*32.0,32.0,32.0)
+    return tile
 
 
 func _make_glass_panel(bg: Color,border: Color,rounding: int=12) -> Panel:
@@ -1829,13 +1839,13 @@ func _ensure_lobby_navigation() -> void:
     _left_shortcuts.add_theme_constant_override("separation",3)
     _surface.add_child(_left_shortcuts)
     var quick_items: Array[Array]=[
-        ["▣ TIENDA","TIENDA",""],
-        ["♛ PASE ROYALE","PASE",""],
+        ["TIENDA","TIENDA","",5],
+        ["PASE ROYALE","PASE","",6],
         # Opens the existing right-side BR panel; never another selector.
-        ["⚔ SALA DE BATALLA","JUGAR",""],
-        ["▤ EVENTOS","OBJETIVOS","events"],
-        ["☷ MISIONES","OBJETIVOS","missions"],
-        ["★ LOGROS","OBJETIVOS","achievements"]
+        ["SALA DE BATALLA","JUGAR","",7],
+        ["EVENTOS","OBJETIVOS","events",8],
+        ["MISIONES","OBJETIVOS","missions",9],
+        ["LOGROS","OBJETIVOS","achievements",10]
     ]
     for item in quick_items:
         var label: String=str(item[0])
@@ -1845,6 +1855,9 @@ func _ensure_lobby_navigation() -> void:
             target,objective),160)
         button.name="Quick"+(objective.to_upper() if not objective.is_empty()
             else target)
+        button.icon=_reference_lobby_icon(int(item[3]))
+        button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
+        button.add_theme_constant_override("h_separation",5)
         button.custom_minimum_size=Vector2(0,40)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         button.add_theme_font_override("font",DISPLAY_FONT)
@@ -1862,14 +1875,17 @@ func _ensure_lobby_navigation() -> void:
     _bottom_navigation.add_theme_constant_override("separation",7)
     _surface.add_child(_bottom_navigation)
     for item in [
-        ["JUGAR","JUGAR"],["INVENTARIO","INVENTARIO"],
-        ["ARMAS","ARMAS"],["PERSONAJES","PERSONAJE"],
-        ["SOCIAL","SOCIAL"]
+        ["JUGAR","JUGAR",0],["INVENTARIO","INVENTARIO",1],
+        ["ARMAS","ARMAS",2],["PERSONAJES","PERSONAJE",3],
+        ["SOCIAL","SOCIAL",4]
     ]:
         var target: String=str(item[1])
         var button:=_button(str(item[0]),
             Callable(self,"_select_tab").bind(target),0)
         button.name="Bottom"+target
+        button.icon=_reference_lobby_icon(int(item[2]))
+        button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
+        button.add_theme_constant_override("h_separation",7)
         button.custom_minimum_size=Vector2(0,30)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         button.add_theme_font_override("font",DISPLAY_FONT)
@@ -2018,8 +2034,10 @@ func _ensure_lobby_navigation() -> void:
     _top_account_button.add_theme_font_size_override("font_size",16)
     _style_aurora_tab(_top_account_button,Color(.53,.39,.87))
     _surface.add_child(_top_account_button)
-    _top_settings_button=_button("⚙",
+    _top_settings_button=_button("",
         Callable(self,"_open_settings"),0)
+    _top_settings_button.icon=_reference_lobby_icon(11)
+    _top_settings_button.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _top_settings_button.name="TopSettings"
     _top_settings_button.custom_minimum_size=Vector2.ZERO
     _top_settings_button.anchor_left=.920
@@ -2031,8 +2049,10 @@ func _ensure_lobby_navigation() -> void:
     _top_settings_button.accessibility_name="Ajustes de partida y editor HUD"
     _style_aurora_tab(_top_settings_button,Color(.53,.39,.87))
     _surface.add_child(_top_settings_button)
-    _top_social_button=_button("♙",
+    _top_social_button=_button("",
         Callable(self,"_select_tab").bind("SOCIAL"),0)
+    _top_social_button.icon=_reference_lobby_icon(4)
+    _top_social_button.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _top_social_button.name="TopSocial"
     _top_social_button.custom_minimum_size=Vector2.ZERO
     _top_social_button.anchor_left=.747
@@ -3649,7 +3669,9 @@ func _build_preview() -> void:
     _lobby_backplates.append(nameplate)
     _surface.add_child(caption)
     _preview_caption=caption
-    _gesture_button=_button("GESTO  ▶",_play_lobby_gesture,0)
+    _gesture_button=_button("GESTO",_play_lobby_gesture,0)
+    _gesture_button.icon=_reference_lobby_icon(3)
+    _gesture_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
     _gesture_button.name="LilaLobbyGesture"
     _gesture_button.custom_minimum_size=Vector2.ZERO
     _gesture_button.anchor_left=.635
