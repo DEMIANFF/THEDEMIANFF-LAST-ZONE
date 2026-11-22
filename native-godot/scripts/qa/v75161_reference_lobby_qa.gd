@@ -43,6 +43,16 @@ func _verify() -> void:
         footer.get_node_or_null("BottomPERSONAJE")!=null and
         footer.get_node_or_null("BottomSOCIAL")!=null,
         "footer is not exactly JUGAR/INVENTARIO/ARMAS/PERSONAJES/SOCIAL")
+    # Real SVG tile atlas is imported by Godot and bound to the
+    # functional native Buttons; no font-specific emoji boxes.
+    for icon_button in footer.get_children():
+        var nav_button: Button=icon_button as Button
+        check(nav_button!=null and nav_button.icon is AtlasTexture,
+            "footer icon is a missing-glyph character, not imported vector art")
+    for icon_button in rail.get_children():
+        var nav_button: Button=icon_button as Button
+        check(nav_button!=null and nav_button.icon is AtlasTexture,
+            "commerce icon is not connected to original SVG atlas")
     check(rail!=null and rail.get_child_count()==6 and
         rail.get_node_or_null("QuickTIENDA")!=null and
         rail.get_node_or_null("QuickPASE")!=null and
@@ -126,6 +136,8 @@ func _verify() -> void:
     var account: Button=front._top_account_button
     var gear: Button=front._top_settings_button
     var top_social: Button=front._top_social_button
+    check(gear.icon is AtlasTexture and top_social.icon is AtlasTexture,
+        "top control buttons did not receive actual vector icons")
     check(not profile.get_global_rect().intersects(stats.get_global_rect()) and
         not stats.get_global_rect().intersects(currency.get_global_rect()) and
         not currency.get_global_rect().intersects(top_social.get_global_rect()) and
