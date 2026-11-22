@@ -101,6 +101,32 @@ func _verify() -> void:
     player.set("_yaw",0.0)
     player.set("_desired_yaw",0.0)
 
+    # Nearby tactical waypoint must have EXACTLY the same map pixel
+    # as terrain/loot (no false 10px shrink). Remote marks receive an
+    # edge arrow at the physical radar bezel instead of a fake position.
+    var close_waypoint: Vector2=origin+Vector2(20.0,0.0)
+    radar.set_waypoint(close_waypoint)
+    var near_marker: Dictionary=radar.call("_waypoint_marker",
+        center,radius,range_m)
+    var exact_waypoint: Vector2=radar.call("_world_to_radar",
+        close_waypoint,center,radius,range_m)
+    var nearby_dot: Vector2=near_marker.get("at",Vector2.INF)
+    check(not bool(near_marker.get("outside",true)) and
+        nearby_dot.distance_to(exact_waypoint)<.001,
+        "nearby waypoint is shifted relative to the REAL world terrain")
+    radar.set_waypoint(origin+Vector2(300.0,0.0))
+    var far_marker: Dictionary=radar.call("_waypoint_marker",
+        center,radius,range_m)
+    var distant_dot: Vector2=far_marker.get("at",Vector2.ZERO)
+    check(bool(far_marker.get("outside",false)) and
+        absf(distant_dot.distance_to(center)-(radius-11.0))<.01 and
+        float(far_marker.get("distance_m",0.0))>250.0,
+        "remote target pretends to be inside the 80m minimap range")
+    radar.set_waypoint(Vector2(INF,INF))
+    check((radar.call("_waypoint_marker",
+        center,radius,range_m) as Dictionary).is_empty(),
+        "cleared waypoint continues to draw a false target")
+
     # A safe zone of 245m must not shrink 80m neighbourhood navigation
     # or make 5m of actual movement imperceptible.
     radar.set_zone(SECTOR.CENTER,SECTOR.INITIAL_RADIUS)
@@ -158,5 +184,6 @@ func _verify() -> void:
         print("V75158_MINIMAP_PRECISION PASS 964x434 real_joystick_right=1 "+
             "player_center=1 camera_yaw_4=1 world_roundtrip=1 "+
             "north_up=1 local_80m=1 zone_245m_stable=1 "+
-            "air_range=145 canopy_range=110 compass=1 motion_redraw=1")
+            "air_range=145 canopy_range=110 compass=1 motion_redraw=1 "+
+            "exact_nearby_waypoint=1 distant_edge_marker=1")
     quit(1 if failed else 0)
