@@ -77,6 +77,20 @@ func _verify() -> void:
     check(not untouched_waypoint.is_finite() and touches.is_empty(),
         "pinch release placed an unwanted marker or left touches captured")
 
+    # Interrupt a physical touch by closing the tactical overlay.
+    # A new map opening must not inherit ghost touch indices.
+    tactical.call("_gui_input",_touch(0,center,true))
+    var active: Dictionary=tactical.get("_touches")
+    check(active.size()==1,
+        "the native map never began the new one-finger gesture")
+    tactical.visible=false
+    await process_frame
+    var released: Dictionary=tactical.get("_touches")
+    check(released.is_empty() and int(tactical.get("_drag_touch"))==-1,
+        "closing map retained a captured touch and corrupted reopening")
+    tactical.visible=true
+    await process_frame
+
     # At whole-island zoom no pan may expose repeated terrain tiles.
     tactical.set("zoom",1.0)
     tactical.set("pan",Vector2(32,20))
