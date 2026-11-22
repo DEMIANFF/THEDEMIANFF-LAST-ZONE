@@ -38,7 +38,9 @@ func _verify() -> void:
     player.global_position=pickup.global_position-Vector3.UP
     player.velocity=Vector3.ZERO
     await physics_frame
-    if not pickup.collected:
+    # Physics may auto-collect and queue_free() the Area3D while we await.
+    # The real inventory/visible AWM assertions below still verify pickup.
+    if is_instance_valid(pickup) and not pickup.collected:
         pickup._collect(player)
     combat._equip_inventory_weapon(WEAPONS.AWM)
     var gun: Node3D=combat._weapon_visuals
