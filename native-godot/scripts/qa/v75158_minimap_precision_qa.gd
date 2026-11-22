@@ -41,7 +41,8 @@ func _verify() -> void:
     player.set("_yaw",0.0)
     player.set("_desired_yaw",0.0)
     radar.set("rotate_with_camera",true)
-    radar.set_sources(player,[])
+    check(radar.get("player")==player,
+        "actual Main.tscn radar is not attached to the playable operator")
     var center: Vector2=radar.call("_radar_center")
     var radius: float=radar.call("_radar_radius")
     var range_m: float=radar.call("_detail_range")
