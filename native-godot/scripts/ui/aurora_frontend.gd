@@ -6,6 +6,8 @@ const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.g
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const LOBBY_BACKDROP=preload("res://scripts/ui/aurora_lobby_backdrop.gd")
 const LOBBY_STAGE=preload("res://scripts/ui/aurora_lobby_stage_3d.gd")
+const LOBBY_RESOLUTION=preload("res://scripts/ui/aurora_lobby_resolution.gd")
+const RENDER_QUALITY=preload("res://scripts/render/aurora_render_budget.gd")
 const LOBBY_COMPANION=preload("res://scripts/ui/aurora_robot_companion.gd")
 const GAME_PATH: String="res://scenes/Main.tscn"
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
@@ -3841,13 +3843,17 @@ func _layout_safe() -> void:
             overline.visible=not compact_entry
         if diagnostics!=null:
             diagnostics.visible=not compact_entry
-    # SubViewportContainer with stretch=true OWNS its SubViewport.size.
-    # Never write the child's size manually: Godot ignores that write and
-    # warns every frame. Use stretch_shrink to cap the physical pixel count
-    # while keeping the full-bleed stage scaled to the screen aspect.
+    # V75.166: keep the operator/hangar rendered at native resolution
+    # through 1280x720 on the normal profile. The previous hardcoded
+    # 520k-pixel limit reduced the 3D image to 640x360, then magnified it,
+    # producing blur in real 1280x720 GitHub capture evidence.
+    # SubViewportContainer (stretch=true) owns SubViewport.size; changing
+    # the child's size directly is unsafe and creates warning spam.
+    # Only the 3D viewport is scaled; actual buttons/text stay native.
     if _preview_container!=null and is_instance_valid(_preview_container):
-        var pixel_count: float=maxf(1.0,safe.size.x*safe.size.y)
-        var shrink: int=clampi(ceili(sqrt(pixel_count/520000.0)),1,4)
+        var quality: String=RENDER_QUALITY.read_profile()
+        var shrink: int=LOBBY_RESOLUTION.shrink_for_size(
+            safe.size,quality)
         if _preview_container.stretch_shrink!=shrink:
             _preview_container.stretch_shrink=shrink
     # Nine tabs must fit a 434px-tall Motorola landscape viewport.
