@@ -77,6 +77,36 @@ func _capture() -> void:
     if image.save_png(path)!=OK:
         _fail("cannot save true Godot scene screenshot")
         return
+    # V75.158: capture the actual 50-fighter Godot HUD twice. The
+    # northern frame shows a real EASTWARD joystick movement arrow on
+    # the camera-up minimap; the second frame rotates Lila's real camera
+    # -90 degrees (looking EAST). These are not fabricated map pictures.
+    radar.set("rotate_with_camera",true)
+    player.set("_yaw",0.0)
+    player.set("_desired_yaw",0.0)
+    player.velocity=Vector3(4,0,0)
+    radar.queue_redraw()
+    for frame in range(7):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    var north_path: String="res://out/aurora-%s-motorola-minimap-north-right.png"%tag
+    if root.get_texture().get_image().save_png(north_path)!=OK:
+        _fail("cannot save north-facing real movement minimap")
+        return
+    player.set("_yaw",-PI*.5)
+    player.set("_desired_yaw",-PI*.5)
+    radar.queue_redraw()
+    for frame in range(7):
+        await process_frame
+    await RenderingServer.frame_post_draw
+    var east_path: String="res://out/aurora-%s-motorola-minimap-east-rotation.png"%tag
+    if root.get_texture().get_image().save_png(east_path)!=OK:
+        _fail("cannot save east-facing rotated minimap")
+        return
+    print("V75158_MINIMAP_CAPTURE PASS 964x434 player_center=1 "+
+        "north_camera_right_movement=1 yaw_east_north_compass=1 "+
+        "actual_50_fighter_scene=1 screenshots=2")
+    player.velocity=Vector3.ZERO
     print("V75142_MINIMAP_CAPTURE PASS 964x434 roster=50 "+
         "200hp=1 real_deaths=2 real_ammo_caches=2 minimap_icons=2 "+
         "no_fake_enemies=1 device_test=NO file="+path)
