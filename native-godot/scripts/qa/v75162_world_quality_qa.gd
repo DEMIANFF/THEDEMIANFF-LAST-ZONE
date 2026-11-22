@@ -72,12 +72,12 @@ func _verify() -> void:
     var combat: Node3D=game.get_node("CombatRange")
     check(material!=null and material.normal_enabled and
         material.normal_texture!=null and
-        material.normal_texture.get_size()==Vector2i(128,128) and
+        material.normal_texture.get_size()==Vector2(128,128) and
         material.vertex_color_use_as_albedo,
         "terrain lost physical color blend or mipmapped snow/rock shading")
     check(sea_mat!=null and sea_mat.normal_enabled and
         sea_mat.normal_texture!=null and
-        sea_mat.normal_texture.get_size()==Vector2i(128,128) and
+        sea_mat.normal_texture.get_size()==Vector2(128,128) and
         sea_mat.transparency==BaseMaterial3D.TRANSPARENCY_DISABLED and
         sea_mat.uv1_scale.x>=40.0,
         "water waves became full-screen transparency/refraction or lack normals")
