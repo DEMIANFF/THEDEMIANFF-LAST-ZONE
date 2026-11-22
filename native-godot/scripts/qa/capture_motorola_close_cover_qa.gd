@@ -71,13 +71,13 @@ func _capture() -> void:
         actor.global_position.z+1.85)
     await frames(45)
     if not (camera.position.x<-.18 and camera.position.z>2.0 and
-            actor._avatar.visible and cover.is_active()):
+            actor._avatar.visible and bool(cover.call("is_active"))):
         _fail("actual Aurora cover still obstructs the operator camera")
         return
     if not await _screenshot(tag,"right-cover-left-camera"):
         _fail("cannot save real near-blue-wall recovery screenshot")
         return
-    cover.take_damage(COVER.MAX_HEALTH)
+    cover.call("take_damage",COVER.MAX_HEALTH)
     await frames(72)
     if not (camera.position.x>.29 and
             camera.position.z>2.8 and actor._avatar.visible):
