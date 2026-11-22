@@ -9,6 +9,8 @@ signal healed
 signal bot_shot(world_position: Vector3)
 signal bot_foot_contact(world_position: Vector3,running: bool,on_stone: bool)
 signal grenade_detonated(world_position: Vector3)
+# Only the actual thrown grenade and the nearby operator can trigger sound.
+signal grenade_fuse_close(seconds_left: float)
 const GRENADE = preload("res://scripts/combat/aurora_grenade.gd")
 const MAX_GRENADES: int=3
 const BLAST_RADIUS: float=6.5
@@ -784,6 +786,7 @@ func _on_grenade_audible_fuse(at: Vector3,remaining: float) -> void:
             not operator.royale_eliminated and
             operator.global_position.distance_squared_to(at)<8.0*8.0):
         hud.show_real_grenade_warning(remaining)
+        grenade_fuse_close.emit(remaining)
 
 
 func _on_grenade_detonated(at: Vector3) -> void:

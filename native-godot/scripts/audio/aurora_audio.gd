@@ -67,6 +67,8 @@ func _ready() -> void:
         "foot_snow":.27,
         "heal":.54,
         "jump":.22,
+        # One short, original PCM beep reused by the existing 8-voice pool.
+        "grenade_fuse":.12,
         "ui":.14,
         "wind":4.0
     }
@@ -405,6 +407,12 @@ func _render(kind: String,duration: float) -> AudioStreamWAV:
                 value+=.10*middle*sin(PI*progress)
             "jump":
                 value=.19*low*exp(-t*14.0)+.14*sin(TAU*(160.0-100.0*t)*t)*exp(-t*16.0)
+            "grenade_fuse":
+                # A distinct, pre-rendered 120ms alert; no procedural DSP
+                # work, AudioStreamGenerator or allocations during gameplay.
+                var envelope: float=sin(PI*progress)
+                value=.26*sin(TAU*(780.0*t+110.0*t*t))*envelope
+                value+=.075*high*exp(-t*34.0)
             "grenade":
                 value=.73*high*exp(-t*44.0)+.7*low*exp(-t*4.0)
                 value+=.40*sin(TAU*(43.0*t+1.8*sin(t*2.0)))*exp(-t*4.1)
