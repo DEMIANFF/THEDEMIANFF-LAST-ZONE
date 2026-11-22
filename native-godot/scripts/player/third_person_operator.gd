@@ -128,6 +128,11 @@ var _protection_visual: Node3D
 var _backpack_visual: Node3D
 
 
+# Framing-only values: do not change collision capsule, Lila's scale,
+# movement, reticle ballistics, aircraft or parachute camera contracts.
+const GROUND_CAMERA_DISTANCE: float=3.80
+const ADS_CAMERA_DISTANCE: float=3.15
+
 func _ready() -> void:
     canopy_diagnostic_mode=FLIGHT_SAFETY_MODE.current_mode()
     _ensure_keyboard_actions()
@@ -173,7 +178,8 @@ func _ready() -> void:
 
     var camera := Camera3D.new()
     camera.name = "ThirdPersonCamera"
-    camera.position = Vector3(0.4, 0.18, 4.6)
+    # Actual V75.151 964x434 captures showed an undersized player silhouette.
+    camera.position = Vector3(.38, .18, GROUND_CAMERA_DISTANCE)
     camera.fov = 74.0
     # The island fits inside 450m each axis; 680m covers the diagonal
     # flight views while rejecting invisible far geometry. A safe 8cm
@@ -333,11 +339,13 @@ func _physics_process(delta: float) -> void:
             grounded_impact.emit(_on_stone_footing())
 
     if _camera:
-        # Running widens visibility slightly; ADS FOV remains exclusive and
-        # camera distance does not move closer to Lila or hide enemies.
+        # Slightly closer physical shoulder framing retains peripheral vision;
+        # ADS and 8x scope use their own distances and FOV.
         var desired_fov: float = clampf(74.0 / _ads_zoom, 9.0, 74.0) if _ads_active else (77.0 if run_fast and move_strength>.25 else 74.0)
         _camera.fov = lerpf(_camera.fov, desired_fov, 1.0 - exp(-delta * 11.0))
-        var desired_distance: float = 1.15 if _ads_active and _ads_zoom >= 6.0 else 3.65 if _ads_active else 4.6
+        var desired_distance: float=(1.15 if _ads_active and _ads_zoom>=6.0
+            else ADS_CAMERA_DISTANCE if _ads_active
+            else GROUND_CAMERA_DISTANCE)
         var preferred_shoulder: float=.16 if _ads_active and _ads_zoom>=6.0 else .38
         # Probe the PREFERRED shoulder, not only the currently relocated
         # camera. Otherwise moving to a free centerline clears the probe and
