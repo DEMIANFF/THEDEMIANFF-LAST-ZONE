@@ -496,6 +496,10 @@ func _toggle_map() -> void:
         return
     _map_overlay.visible=not _map_overlay.visible
     if _map_overlay.visible:
+        # Opening the map by tapping the real minimap must show the actual
+        # player neighbourhood, not the stale remote point from the last
+        # pan/zoom. Keep waypoint and physical safe-zone state untouched.
+        _map_overlay.call("_follow")
         _map_overlay.queue_redraw()
 
 
