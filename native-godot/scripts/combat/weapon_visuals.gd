@@ -56,6 +56,12 @@ var _visual_recoil_model: Node3D
 var _visual_recoil_rest: Transform3D
 var _visual_recoil_amplitude: float=0.0
 var visual_recoil_events: int=0
+# The muzzle is a targeting/ballistics socket, not a moving cosmetic mesh.
+# Compensate its local transform while the original GLB visually recoils:
+# bullets must still leave the undisturbed barrel rest pose.
+var _visual_recoil_muzzle: Node3D
+var _visual_recoil_muzzle_local_rest: Transform3D
+var _visual_recoil_muzzle_in_model_rest: Transform3D
 
 
 func attach_to_player(player: CharacterBody3D) -> void:
@@ -311,6 +317,12 @@ func pulse_visual_recoil(slot: int) -> bool:
     cancel_visual_recoil()
     _visual_recoil_model=model
     _visual_recoil_rest=model.transform
+    _visual_recoil_muzzle=model.find_child("Muzzle",true,false) as Node3D
+    if is_instance_valid(_visual_recoil_muzzle):
+        _visual_recoil_muzzle_local_rest=_visual_recoil_muzzle.transform
+        _visual_recoil_muzzle_in_model_rest=(
+            model.global_transform.affine_inverse() *
+            _visual_recoil_muzzle.global_transform)
     _visual_recoil_amplitude=visual_recoil_amplitude(slot)
     _visual_recoil_left=VISUAL_RECOIL_SECONDS
     visual_recoil_events+=1
@@ -331,6 +343,14 @@ func _apply_visual_recoil() -> void:
     var origin: Vector3=_visual_recoil_rest.origin+Vector3(
         0.0,amount*.20,amount)
     _visual_recoil_model.transform=Transform3D(basis,origin)
+    # Move the rendered gun but NOT the projectile/aim socket. This socket
+    # remains at its original model-rest position relative to Lila's hand.
+    # It still follows moving/aiming hands because the mount parent is live.
+    var holder: Node3D=_visual_recoil_model.get_parent_node_3d()
+    if is_instance_valid(_visual_recoil_muzzle) and is_instance_valid(holder):
+        _visual_recoil_muzzle.global_transform=(
+            holder.global_transform * _visual_recoil_rest *
+            _visual_recoil_muzzle_in_model_rest)
 
 
 func _advance_visual_recoil(delta: float) -> void:
@@ -352,8 +372,13 @@ func _advance_visual_recoil(delta: float) -> void:
 func cancel_visual_recoil() -> void:
     if is_instance_valid(_visual_recoil_model):
         _visual_recoil_model.transform=_visual_recoil_rest
+    if is_instance_valid(_visual_recoil_muzzle):
+        # Restore the authored marker's untouched transform so future
+        # animation, weapon swaps and the next round cannot inherit an offset.
+        _visual_recoil_muzzle.transform=_visual_recoil_muzzle_local_rest
     _visual_recoil_left=0.0
     _visual_recoil_model=null
+    _visual_recoil_muzzle=null
     _visual_recoil_amplitude=0.0
 
 
