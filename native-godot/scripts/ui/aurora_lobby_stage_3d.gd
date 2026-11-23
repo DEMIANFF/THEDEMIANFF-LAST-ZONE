@@ -116,6 +116,9 @@ func _architectural_finishes() -> void:
     _station_facade_detail(Vector3(-5.28,-.08,-9.0))
     _runway_service_drainage()
     _radar_mast_finishes(Vector3(-4.65,-.08,-11.65))
+    _hangar_service_architecture(Vector3(2.65,-.08,-12.8))
+    _station_access_architecture(Vector3(-5.28,-.08,-9.0))
+    _runway_wayfinding_installation()
 
 
 func _hangar_roof_structure(at: Vector3) -> void:
@@ -182,6 +185,118 @@ func _radar_mast_finishes(at: Vector3) -> void:
         var angle: float=TAU*float(i)/6.0
         _fitting(at+Vector3(cos(angle)*.76,2.43,
             sin(angle)*.76),Vector3(.16,.07,.16),_ice_trim)
+
+
+## Actual modular industrial surfaces: shutter relief, roof ventilation,
+## insulated service access and welded gantry details. All fittings share
+## existing _steel/_concrete/_ice_trim/_signal_cyan MultiMesh groups.
+## No transparent photo planes, new dynamic lights or collider alterations.
+func _hangar_service_architecture(at: Vector3) -> void:
+    var front: float=5.65*.5
+    # A proper sectional freight shutter reads as an industrial aperture
+    # instead of one enormous featureless gray box.
+    for band in range(4):
+        var y: float=.28+float(band)*.304
+        _fitting(at+Vector3(0,y,front+.095),
+            Vector3(4.31,.029,.039),_ice_trim)
+    for side in [-1.0,1.0]:
+        # Recessed personnel doors at both ends of the hangar facade.
+        var entry_x: float=side*2.82
+        _fitting(at+Vector3(entry_x,.61,front+.105),
+            Vector3(.51,1.23,.058),_steel)
+        _fitting(at+Vector3(entry_x,.64,front+.153),
+            Vector3(.40,1.09,.028),_panel)
+        for trim in [-1.0,1.0]:
+            _fitting(at+Vector3(entry_x+trim*.232,.64,front+.175),
+                Vector3(.027,1.28,.040),_ice_trim)
+        _fitting(at+Vector3(entry_x,.17,front+.17),
+            Vector3(.53,.065,.20),_concrete)
+        _fitting(at+Vector3(entry_x-side*.11,.77,front+.185),
+            Vector3(.030,.11,.035),_amber)
+        # The eave has continuous gutters and visible mounting brackets
+        # instead of the previous flat roof/block joint.
+        _fitting(at+Vector3(side*3.29,2.21,0.0),
+            Vector3(.16,.074,5.90),_steel)
+        for support in range(5):
+            _fitting(at+Vector3(side*3.31,2.13,-2.30+float(support)*1.15),
+                Vector3(.098,.22,.085),_concrete)
+        # Visible louver packs in the exterior hangar wall.
+        for vent in range(4):
+            var z: float=-1.73+float(vent)*1.10
+            _fitting(at+Vector3(side*3.35,1.63,z),
+                Vector3(.045,.47,.62),_concrete)
+            for blade in range(3):
+                _fitting(at+Vector3(side*3.405,1.47+float(blade)*.13,z),
+                    Vector3(.034,.035,.49),_steel)
+    # Roof exhausts have actual volume/occluding silhouette. A single
+    # support mesh per exhaust avoids an extra material group.
+    for vent in range(2):
+        var side: float=-1.0 if vent==0 else 1.0
+        var z: float=-1.28+float(vent)*1.86
+        var center: Vector3=at+Vector3(side*1.47,2.96,z)
+        _solid("AuroraHangarRoofExhaust"+str(vent),center,
+            Vector3(.55,.42,.65),_steel)
+        _fitting(center+Vector3(0,.25,0),
+            Vector3(.66,.10,.74),_ice_trim)
+        for blade in range(3):
+            _fitting(center+Vector3(0,.13,-.19+float(blade)*.19),
+                Vector3(.46,.045,.040),_concrete)
+
+
+func _station_access_architecture(at: Vector3) -> void:
+    # Real stepped service access below the existing framed entrance.
+    # Integrates into existing station footprint; no new colliders.
+    for step in range(3):
+        var depth: float=float(step)
+        _fitting(at+Vector3(.93,-.015+depth*.058,2.31-depth*.15),
+            Vector3(1.14,.13+depth*.10,.29),_concrete)
+    _solid("AuroraStationEntryCanopy",
+        at+Vector3(.93,1.51,1.92),
+        Vector3(1.29,.10,.82),_steel)
+    for side in [-1.0,1.0]:
+        _fitting(at+Vector3(.93+side*.56,1.23,2.22),
+            Vector3(.048,.55,.054),_ice_trim)
+        _fitting(at+Vector3(.93+side*.53,1.48,2.26),
+            Vector3(.075,.10,.18),_steel)
+    _fitting(at+Vector3(.93,1.46,2.325),
+        Vector3(1.02,.028,.035),_signal_cyan)
+    # Utility conduits and raised ventilation on the station roof are
+    # built once and batched. No fake glow textures or extra lights.
+    _fitting(at+Vector3(-.91,1.74,-.53),
+        Vector3(.78,.29,.67),_steel)
+    _fitting(at+Vector3(-.91,1.91,-.53),
+        Vector3(.85,.045,.74),_ice_trim)
+    for fin in range(5):
+        _fitting(at+Vector3(-1.20+float(fin)*.145,1.79,-.13),
+            Vector3(.056,.19,.040),_concrete)
+    for side in [-1.0,1.0]:
+        _fitting(at+Vector3(side*1.69,.42,-.18),
+            Vector3(.073,.78,2.84),_steel)
+
+
+func _runway_wayfinding_installation() -> void:
+    # Paired shoulder signs sit outside the center sight line and the
+    # operator podium. Their cyan borders borrow the existing airfield
+    # emissive batch; these are genuine 3D fixtures, not a UI overlay.
+    for side in [-1.0,1.0]:
+        for index in range(2):
+            var z: float=-4.65-float(index)*4.80
+            var x: float=side*3.36
+            _fitting(Vector3(x,.22,z),
+                Vector3(.055,.64,.056),_steel)
+            _fitting(Vector3(x,.52,z),
+                Vector3(.62,.34,.048),_concrete)
+            _fitting(Vector3(x,.52,z+.031),
+                Vector3(.54,.26,.027),_steel)
+            _fitting(Vector3(x,.686,z+.047),
+                Vector3(.65,.030,.027),_signal_cyan)
+            _fitting(Vector3(x,.354,z+.047),
+                Vector3(.65,.030,.027),_ice_trim)
+    # A short continuous concrete base makes the cargo edge plausible
+    # without obscuring the live runway center markings.
+    for side in [-1.0,1.0]:
+        _fitting(Vector3(side*3.54,-.105,-8.10),
+            Vector3(.23,.14,1.65),_concrete)
 
 
 func _build_hangar(at: Vector3) -> void:

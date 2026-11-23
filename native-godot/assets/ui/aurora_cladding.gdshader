@@ -19,10 +19,24 @@ void fragment() {
     float stain = 0.5 + 0.23 * sin(lateral * 9.0 + sin(world_position.y * 1.8))
         + 0.12 * cos(lateral * 23.1 - world_position.y * 0.93);
     float weathering = smoothstep(0.0, 0.43, world_position.y);
-    ALBEDO = mix(seam.rgb, steel.rgb, (0.38 + rib * 0.56) * weathering + stain * 0.11);
-    METALLIC = 0.43;
-    ROUGHNESS = 0.78 - 0.22 * rib;
-    SPECULAR = 0.35 + 0.12 * rib;
-    NORMAL_MAP = vec3(0.5 + 0.07 * sin(pitch * 6.283185), 0.5, 1.0);
-    NORMAL_MAP_DEPTH = 0.21;
+    // Storm-borne mineral staining and panel oxidation are deterministic
+    // WORLD-SPACE variations. No texture uploads or extra material passes.
+    vec2 weather_cell = floor(world_position.xz * 1.4 +
+        vec2(world_position.y * 0.31, world_position.y * 0.17));
+    float oxidation = fract(sin(dot(weather_cell, vec2(127.1, 311.7))) * 43758.5453);
+    oxidation = smoothstep(0.56, 0.91, oxidation) *
+        (1.0 - smoothstep(0.15, 1.40, world_position.y));
+    float vertical_streak = 0.5 + 0.5 *
+        sin(lateral * 3.7 + sin(world_position.y * 2.1) * 0.24);
+    vec3 cold_steel = mix(seam.rgb, steel.rgb,
+        (0.37 + rib * 0.52) * weathering + stain * 0.13);
+    cold_steel *= 1.0 - oxidation * 0.12 -
+        vertical_streak * (1.0 - rib) * 0.045;
+    ALBEDO = cold_steel;
+    METALLIC = 0.43 - oxidation * 0.08;
+    ROUGHNESS = clamp(0.81 - 0.19 * rib + oxidation * 0.12, 0.50, 0.96);
+    SPECULAR = 0.32 + 0.11 * rib;
+    NORMAL_MAP = vec3(0.5 + 0.063 * sin(pitch * 6.283185),
+        0.5 + vertical_streak * 0.013, 1.0);
+    NORMAL_MAP_DEPTH = 0.20;
 }
