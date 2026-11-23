@@ -373,14 +373,14 @@ func _screen_page() -> void:
         if not changed:
             return
         var value: float=scale_slider.value/100.0
-        var result: Error=RENDER_BUDGET.save_custom_scale(value)
+        var budget: Node=context_game.get_node_or_null(
+            "AuroraRenderBudget") if context_game!=null else null
+        var result: Error=(
+            budget.call("select_custom_scale",value)
+            if budget!=null else RENDER_BUDGET.save_custom_scale(value))
         if result!=OK:
             _status.text="ERROR al guardar escala 3D"
             return
-        if context_game!=null:
-            var budget: Node=context_game.get_node_or_null("AuroraRenderBudget")
-            if budget:
-                budget.call("select_custom_scale",value)
         quality.select(RENDER_BUDGET.PROFILES.find("PERSONALIZADO"))
         _status.text="Escala 3D guardada: %d%% · HUD intacto"%roundi(
             RENDER_BUDGET.read_custom_scale()*100.0))
