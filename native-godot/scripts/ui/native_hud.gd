@@ -107,6 +107,7 @@ var _inventory_awm: Button
 const EXPANSION_WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 var _inventory_expansion_buttons: Dictionary={}
 var _inventory_expansion_row: HFlowContainer
+var _inventory_medkit: Button
 var _inventory_syringe: Button
 var _inventory_grenade: Button
 signal grenade_requested
@@ -469,9 +470,18 @@ func _ready() -> void:
             inventory_equip_requested.emit(slot))
         _inventory_expansion_row.add_child(equip_button)
         _inventory_expansion_buttons[slot]=equip_button
+    _inventory_medkit=Button.new()
+    _inventory_medkit.name="UseMedkitInventory"
+    _inventory_medkit.visible=false
+    _inventory_medkit.custom_minimum_size=Vector2(0,40)
+    _inventory_medkit.pressed.connect(func():
+        _inventory_panel.hide()
+        heal_pressed.emit())
+    contents.add_child(_inventory_medkit)
     _inventory_syringe=Button.new()
     _inventory_syringe.name="UseSyringe"
     _inventory_syringe.visible=false
+    _inventory_syringe.custom_minimum_size=Vector2(0,40)
     _inventory_syringe.pressed.connect(func():
         _inventory_panel.hide()
         syringe_pressed.emit())
@@ -479,6 +489,7 @@ func _ready() -> void:
     _inventory_grenade=Button.new()
     _inventory_grenade.name="ThrowGrenade"
     _inventory_grenade.visible=false
+    _inventory_grenade.custom_minimum_size=Vector2(0,40)
     _inventory_grenade.pressed.connect(func():
         _inventory_panel.hide()
         grenade_requested.emit())
@@ -1009,6 +1020,9 @@ func set_inventory_snapshot(items: Dictionary) -> void:
                     counts["loaded"],counts["reserve"]]
             equip_button.disabled=int(items.get("active_weapon",0))==slot
     _inventory_expansion_row.visible=not additions.is_empty()
+    var medkits: int=maxi(0,int(items.get("medkits",0)))
+    _inventory_medkit.visible=medkits>0
+    _inventory_medkit.text="USAR BOTIQUÍN ×%d"%medkits
     var syringes: int=int(items.get("syringes",0))
     _inventory_syringe.visible=syringes>0
     _inventory_syringe.text="USAR JERINGA ×%d"%syringes
