@@ -514,11 +514,11 @@ func _build_entry_shell() -> void:
 func _build_loading_overlay() -> void:
     _loading_overlay=ColorRect.new()
     _loading_overlay.name="AuroraLoadingOverlay"
-    _loading_overlay.color=Color(.006,.015,.033,.24)
+    _loading_overlay.color=Color(.006,.015,.033,.16)
     _loading_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _surface.add_child(_loading_overlay)
     _loading_surface_plate=_make_glass_panel(
-        Color(.012,.023,.045,.93),Color(.39,.58,.72,.63),9)
+        Color(.012,.023,.045,.75),Color(.39,.58,.72,.47),9)
     _loading_surface_plate.name="AuroraLoadingConsolePlate"
     _loading_surface_plate.anchor_left=.18
     _loading_surface_plate.anchor_right=.82
@@ -552,9 +552,9 @@ func _build_loading_overlay() -> void:
     _loading_emblem.texture=_brand_logo.texture
     _loading_emblem.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
     _loading_emblem.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-    _loading_emblem.custom_minimum_size=Vector2(0,87)
+    _loading_emblem.custom_minimum_size=Vector2(0,100)
     branding.add_child(_loading_emblem)
-    _add_entry_wordmark(branding,78,41)
+    _add_entry_wordmark(branding,61,31)
 
     var content:=VBoxContainer.new()
     _loading_actions=content
@@ -568,21 +568,21 @@ func _build_loading_overlay() -> void:
     _loading_title=Label.new()
     _loading_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _loading_title.add_theme_font_override("font",DISPLAY_FONT)
-    _loading_title.add_theme_font_size_override("font_size",30)
+    _loading_title.add_theme_font_size_override("font_size",24)
     _loading_title.add_theme_color_override(
         "font_color",Color(.98,.95,.86))
     content.add_child(_loading_title)
     _loading_detail=Label.new()
     _loading_detail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _loading_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _loading_detail.add_theme_font_size_override("font_size",20)
+    _loading_detail.add_theme_font_size_override("font_size",16)
     _loading_detail.add_theme_color_override(
         "font_color",Color(.75,.86,.93))
     content.add_child(_loading_detail)
     _loading_meter=ProgressBar.new()
     _loading_meter.name="WorldLoadProgress"
-    _loading_meter.custom_minimum_size=Vector2(275,25)
-    _loading_meter.add_theme_font_size_override("font_size",18)
+    _loading_meter.custom_minimum_size=Vector2(275,16)
+    _loading_meter.add_theme_font_size_override("font_size",14)
     var track:=StyleBoxFlat.new()
     track.bg_color=Color(.017,.030,.059)
     track.border_color=Color(.33,.68,.83)
@@ -608,7 +608,7 @@ func _build_loading_overlay() -> void:
 
 
 func _layout_loading_actions() -> void:
-    var top: float=.656 if _loading_retry.visible or _loading_cancel.visible else .743
+    var top: float=.656 if _loading_retry.visible or _loading_cancel.visible else .722
     _loading_surface_plate.anchor_top=top
     _loading_accent_stripe.anchor_top=top
     _loading_accent_stripe.anchor_bottom=top+.004
@@ -789,10 +789,12 @@ func _welcome() -> void:
     _page.anchor_bottom=.903
     _page.add_theme_constant_override("separation",6)
     _brand_logo.visible=true
-    _brand_logo.anchor_left=.916
-    _brand_logo.anchor_right=.963
-    _brand_logo.anchor_top=.028
-    _brand_logo.anchor_bottom=.109
+    # Intro emblem belongs beside Aurora's cinematic title, not as a
+    # tiny detached badge floating in the far-right sign-in buttons.
+    _brand_logo.anchor_left=.061
+    _brand_logo.anchor_right=.157
+    _brand_logo.anchor_top=.105
+    _brand_logo.anchor_bottom=.296
     _clear_page()
     _add_entry_wordmark(_page)
     var entry_overline:=_label("ACCESO",16)
