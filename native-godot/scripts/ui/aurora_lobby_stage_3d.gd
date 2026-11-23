@@ -550,9 +550,15 @@ func _snowbank(side: float) -> void:
             for vertex in face:
                 shape.set_color(Color(.92,.92,.92))
                 shape.add_vertex(vertex)
-    shape.generate_normals()
+    # Merge identical grid positions BEFORE normal generation so slope
+    # normals are averaged across adjacent faces instead of each triangle
+    # receiving its own hard facet. Same geometry and same draw call.
     shape.index()
-    _mesh("PlowedSnowbank",shape.commit(),_snow)
+    shape.generate_normals()
+    # Distinct persistent node names prevent Godot from silently renaming
+    # the second bank to an @MeshInstance3D sibling. Real geometry unchanged.
+    _mesh("PlowedSnowbankRight" if side>0.0 else "PlowedSnowbankLeft",
+        shape.commit(),_snow)
 
 
 func _bank_point(side: float,row: int,column: int) -> Vector3:
@@ -578,8 +584,11 @@ func _mountain_range(title: String,z: float,amplitude: float,width: float,
                 var snowline:=smoothstep(amplitude*.17,amplitude*.68,vertex.y)
                 shape.set_color(Color(snowline,snowline,snowline))
                 shape.add_vertex(vertex)
-    shape.generate_normals()
+    # Index first, then average normals across neighboring triangles.
+    # Before V75.170 the opposite order hard-coded a faceted snow skyline.
+    # This changes lighting continuity only: no new meshes or triangles.
     shape.index()
+    shape.generate_normals()
     _mesh(title,shape.commit(),_snow)
 
 
