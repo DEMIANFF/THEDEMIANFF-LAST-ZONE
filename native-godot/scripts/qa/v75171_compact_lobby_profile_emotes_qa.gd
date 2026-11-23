@@ -2,7 +2,6 @@ extends SceneTree
 ## V75.171 real Motorola lobby reference: video-guided workflow, NOT
 ## screenshot-based fake controls. Tests official player-facing navigation,
 ## local profile ledger, native authentication rules and actual Lila emotes.
-const FRONT=preload("res://scripts/ui/aurora_frontend.gd")
 const BRIDGE=preload("res://scripts/persistence/aurora_firebase_bridge.gd")
 var failed: bool=false
 
@@ -32,16 +31,20 @@ func _verify() -> void:
         "actual Google, Guest and Offline actions missing from first login")
     check(not bool(BRIDGE.session_state().get("authenticated",false)),
         "desktop/headless session must not fabricate authenticated Firebase")
-    check(FRONT._can_resume_native_session(
-        {"authenticated":true,"pending":false},true,false) and
-        FRONT._can_resume_native_session(
-        {"authenticated":true,"pending":false},false,true) and
-        not FRONT._can_resume_native_session(
-        {"authenticated":true,"pending":true},true,false) and
-        not FRONT._can_resume_native_session(
-        {"authenticated":false,"pending":false},true,true) and
-        not FRONT._can_resume_native_session(
-        {"authenticated":true,"pending":false},false,false),
+    # Load the frontend script after the real Godot scene/autoload context
+    # is initialized. A top-level preload fails --check-only because the
+    # lobby music autoload is not registered in that isolated parse stage.
+    var session_policy: Script=load("res://scripts/ui/aurora_frontend.gd")
+    check(bool(session_policy.call("_can_resume_native_session",
+        {"authenticated":true,"pending":false},true,false)) and
+        bool(session_policy.call("_can_resume_native_session",
+        {"authenticated":true,"pending":false},false,true)) and
+        not bool(session_policy.call("_can_resume_native_session",
+        {"authenticated":true,"pending":true},true,false)) and
+        not bool(session_policy.call("_can_resume_native_session",
+        {"authenticated":false,"pending":false},true,true)) and
+        not bool(session_policy.call("_can_resume_native_session",
+        {"authenticated":true,"pending":false},false,false)),
         "auth auto-resume must require an existing confirmed SDK session "+
         "and either startup or an actual user sign-in; never fake login")
     front._enter_local_lobby()
