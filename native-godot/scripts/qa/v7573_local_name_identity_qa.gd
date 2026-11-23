@@ -62,7 +62,8 @@ func _verify() -> void:
     boot._name_entry.text="AURORA_2026"
     boot._save_player_name()
     check(LOCAL_NAME.new(QA_PATH).display_name=="AURORA_2026" and
-        boot._stats_strip.text.contains("AURORA_2026") and
+        boot._top_account_button.text.contains("AURORA_2026") and
+        not boot._stats_strip.visible and
         boot._info.text.contains("NOMBRE: AURORA_2026"),
         "saving from lobby did not persist and refresh the real nickname")
     boot._name_entry.text="ADMIN"

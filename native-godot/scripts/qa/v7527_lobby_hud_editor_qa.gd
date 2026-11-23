@@ -52,9 +52,11 @@ func _verify() -> void:
         front._process(.25)
         check(absf(angle_difference(before_y,portrait.rotation.y))>.02,
             "live animated 3D lobby portrait stopped rotating")
-    check(front._surface.has_node("LobbyMenuBackplate") and
-        front._surface.has_node("LobbySidebarBackplate"),
-        "Aurora lobby background panels missing")
+    check(front._surface.has_node("AuroraOperationalHeader") and
+        front._surface.has_node("LobbySidebarBackplate") and
+        front._surface.has_node("AuroraPremiumFooterGlass") and
+        not front._surface.has_node("LobbyMenuBackplate"),
+        "real header/sidebar/footer missing or discarded black rail returned")
 
     if editor_entry!=null:
         editor_entry.pressed.emit()

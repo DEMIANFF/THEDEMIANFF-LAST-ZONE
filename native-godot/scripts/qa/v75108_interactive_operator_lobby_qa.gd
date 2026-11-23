@@ -69,9 +69,12 @@ func _verify() -> void:
         front._emote_wheel.find_child(
             "AuroraAvailableCharacterEmote",true,false)!=null,
         "tapping Lila did not open real selectable emotes")
-    var close: Button=front._emote_wheel.get_node(
-        "CloseCharacterEmotes") as Button
-    close.pressed.emit()
+    var close: Button=front._emote_wheel.find_child(
+        "CloseCharacterEmotes",true,false) as Button
+    check(close!=null and close.is_visible_in_tree(),
+        "emote selector close action not reachable")
+    if close!=null:
+        close.pressed.emit()
     check(not front._emote_wheel.visible,
         "emote selection has no closing interaction")
     var saved_skin: Dictionary=front._offline_records.cosmetic_state().duplicate(true)
