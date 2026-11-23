@@ -26,12 +26,12 @@ func _verify() -> void:
     check(front.stage=="lobby" and
         front.find_child("OfflineEncounterSize",true,false)==null,
         "the old 9/20/30/50 test-size dropdown remains in the lobby")
-    check(front._lobby_section_hint.text.contains("50 PARTICIPANTES") and
-        front._lobby_mode_caption.visible and
-        front._lobby_mode_caption.text.contains("49 IA") and
+    check(not front._lobby_section_hint.visible and
+        not front._lobby_mode_caption.visible and
+        front._match_mode_selector.get_item_text(0)=="CLÁSICO" and
         front._battle_entry.text=="INICIAR" and
         front._battle_entry.is_visible_in_tree(),
-        "live Battle Royale launch does not present a single 50-fighter mode")
+        "the real 50-fighter roster must launch without duplicate labels")
     front._select_tab("CUENTA")
     front._select_tab("JUGAR")
     check(front.find_child("OfflineEncounterSize",true,false)==null,

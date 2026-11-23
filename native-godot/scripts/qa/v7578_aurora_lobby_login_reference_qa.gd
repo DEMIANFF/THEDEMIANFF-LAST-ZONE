@@ -29,19 +29,19 @@ func _verify() -> void:
     await process_frame
     check(front.stage=="lobby" and front._selected_tab=="JUGAR",
         "offline entry did not open native Battle Royale lobby")
-    check(front._left_shortcuts.get_child_count()==6 and
+    check(front._left_shortcuts.get_child_count()==5 and
         front._bottom_navigation.get_child_count()==5 and
         front._bottom_navigation.has_node("BottomJUGAR"),
         "commerce rail and JUGAR return route must exist with full navigation")
     check(front._left_shortcuts.has_node("QuickTIENDA") and
         front._left_shortcuts.has_node("QuickPASE") and
-        front._left_shortcuts.has_node("QuickJUGAR") and
+        not front._left_shortcuts.has_node("QuickJUGAR") and
         front._left_shortcuts.has_node("QuickEVENTS") and
         front._left_shortcuts.has_node("QuickMISSIONS") and
         front._left_shortcuts.has_node("QuickACHIEVEMENTS"),
-        "store, pass, battle, events, missions, achievement controls missing")
+        "store, pass, events, missions or achievements missing; no second JUGAR")
     check(front._social_panel.visible and
-        front._social_status_label.text.contains("Sin amigos conectados"),
+        front._social_status_label.text.contains("SIN AMIGOS"),
         "unavailable online social system was misrepresented")
     check(front._play_match_card.visible and
         front._battle_entry.text=="INICIAR" and front._battle_entry.visible,
@@ -81,11 +81,19 @@ func _verify() -> void:
     if modal!=null:
         modal.call("_close")
     front._top_account_button.emit_signal("pressed")
+    check(front._profile_overlay.is_visible_in_tree() and
+        front._profile_stat_labels.size()==3,
+        "top-left profile did not open real match-ledger stats")
+    var open_account: Button=front._profile_overlay.find_child(
+        "ManageProfileAccount",true,false) as Button
+    check(open_account!=null,"profile has no real account/backup route")
+    if open_account!=null:
+        open_account.pressed.emit()
     check(front._selected_tab=="CUENTA" and
         front._login_manage_button.is_visible_in_tree(),
-        "top account shortcut did not reach account settings")
+        "player profile did not reach native account settings")
     check(front._info.text.contains("ID OFICIAL: PENDIENTE"),
-        "unverified identity was fabricated")
+        "unverified account identity was fabricated")
     for resolution in [Vector2i(964,434),Vector2i(960,540),
             Vector2i(1280,720),Vector2i(2712,1220)]:
         root.size=resolution
@@ -107,6 +115,6 @@ func _verify() -> void:
     await process_frame
     if not failed:
         print("V7578_AURORA_LOBBY PASS login=entry_only local=playable "+
-            "left_rail=6 bottom_navigation=5 hud_only_in_settings=1 social=truthful companion=3d "+
+            "left_rail=5 bottom_navigation=5 hud_only_in_settings=1 social=truthful companion=3d "+
             "missions=journal hud=real account=no_fake_id motorola=964x434")
     quit(1 if failed else 0)
