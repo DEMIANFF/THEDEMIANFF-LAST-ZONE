@@ -49,6 +49,8 @@ jobs:
           fi
       - name: Test official Godot Android Gradle resource layout without credentials
         run: python3 -m unittest discover -s native-godot/tools -p 'test_firebase_gradle_trial.py' -v
+      - name: Verify restored Firebase Auth session and true logout source contract
+        run: python3 -m unittest discover -s native-godot/tools -p 'test_native_auth_restore.py' -v
       - name: Test Firebase offline-progress callables (no deployment)
         run: |
           node --version

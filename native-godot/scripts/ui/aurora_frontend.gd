@@ -133,6 +133,7 @@ var _login_pending_provider: String=""
 var _login_waiting_provider: String=""
 var _login_timer: Timer
 var _login_manage_button: Button
+var _login_signout_button: Button
 var _bottom_navigation: HBoxContainer
 var _left_shortcuts: VBoxContainer
 var _social_panel: PanelContainer
@@ -1254,6 +1255,13 @@ func _show_lobby() -> void:
     _login_manage_button.custom_minimum_size.y=33
     _login_manage_button.add_theme_font_size_override("font_size",12)
     _page.add_child(_login_manage_button)
+    _login_signout_button=_button("CERRAR SESIÓN",
+        Callable(self,"_sign_out_native_session"),255)
+    _login_signout_button.name="RealFirebaseSignOut"
+    _login_signout_button.custom_minimum_size.y=35
+    _login_signout_button.add_theme_font_size_override("font_size",13)
+    _page.add_child(_login_signout_button)
+    _login_signout_button.visible=false
     # Local profile edit never overwrites the cloud account or invents an ID.
     _name_entry=LineEdit.new()
     _name_entry.name="LocalPlayerNameEntry"
@@ -1547,6 +1555,21 @@ func _start_native_auth(provider: String) -> void:
     _info.text+="La confirmación es asíncrona. Pulsa Verificar Firebase / App Check para consultar la sesión y el ID real."
 
 
+func _sign_out_native_session() -> void:
+    if stage!="lobby" or _selected_tab!="CUENTA":
+        return
+    var result: Dictionary=FIREBASE_BRIDGE.request_sign_out()
+    if not bool(result.get("signed_out",false)):
+        _info.text="NO SE PUDO CERRAR SESIÓN\n"+str(
+            result.get("reason","sin confirmación del SDK"))
+        _sync_lobby_match_mode()
+        return
+    # The official Firebase provider is actually logged out. Keep the
+    # local match journal intact; changing accounts cannot erase progress.
+    _auto_resume_on_entry=false
+    _welcome()
+
+
 func _on_objective_category_selected(index: int) -> void:
     if _objective_selector==null:
         return
@@ -1666,6 +1689,8 @@ func _sync_lobby_match_mode() -> void:
     _firebase_check_button.visible=show_name
     _account_connection_label.visible=show_name
     _login_manage_button.visible=show_name
+    _login_signout_button.visible=(show_name and bool(
+        FIREBASE_BRIDGE.session_state().get("authenticated",false)))
     # Login providers belong only to the dedicated entry/account-change UI.
     _auth_guest_button.visible=false
     _auth_google_button.visible=false
