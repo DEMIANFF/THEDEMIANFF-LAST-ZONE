@@ -846,8 +846,13 @@ func _poll_bootstrap() -> void:
     var status:=ResourceLoader.load_threaded_get_status(game_scene_path,progress)
     match status:
         ResourceLoader.THREAD_LOAD_IN_PROGRESS:
-            if not progress.is_empty():
-                _loading_meter.value=maxf(_loading_meter.value,float(progress[0])*100.0)
+            if not progress.is_empty() and is_finite(float(progress[0])):
+                # Report ONLY the actual threaded ResourceLoader status.
+                # World instantiation has separate indeterminate feedback.
+                var ratio: float=clampf(float(progress[0]),0.0,1.0)
+                _loading_meter.value=maxf(_loading_meter.value,ratio*100.0)
+                _loading_detail.text="RECURSOS LOCALES: %d%%"%roundi(
+                    _loading_meter.value)
         ResourceLoader.THREAD_LOAD_LOADED:
             _game_scene=ResourceLoader.load_threaded_get(game_scene_path) as PackedScene
             if _game_scene==null or not _game_scene.can_instantiate():
