@@ -39,7 +39,7 @@ func _verify() -> void:
         front._bottom_navigation.get_child_count()==5 and
         front._bottom_navigation.get_node_or_null("BottomJUGAR")!=null,
         "hidden duplicate nav buttons reappeared or JUGAR footer missing")
-    check(front._left_shortcuts.get_child_count()==6 and
+    check(front._left_shortcuts.get_child_count()==5 and
         front._left_shortcuts.get_node_or_null("QuickEVENTS")!=null and
         front._left_shortcuts.get_node_or_null("QuickMISSIONS")!=null and
         front._left_shortcuts.get_node_or_null("QuickACHIEVEMENTS")!=null,

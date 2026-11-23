@@ -31,17 +31,25 @@ func _verify() -> void:
     if avatar==null:
         quit(1)
         return
-    var gesture: Button=front._gesture_button
-    check(gesture!=null and gesture.is_visible_in_tree(),
-        "touch-accessible 3D gesture button missing")
+    var wheel: PanelContainer=front._emote_wheel
+    check(front._gesture_button==null and wheel!=null and
+        wheel.find_child("AuroraAvailableCharacterEmote",true,false)!=null,
+        "real tap-to-emote selector replaced with obsolete GESTO button")
     var animator:=avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
     check(animator!=null,"rigged Lila animation player absent")
     if animator!=null:
         check(animator.has_animation("aurora_lobby/Motion"),
             "lobby clip was not retargeted to real Lila skeleton")
-        gesture.pressed.emit()
+        front._toggle_character_emotes()
+        var emote: Button=wheel.find_child(
+            "AuroraAvailableCharacterEmote",true,false) as Button
+        check(wheel.visible and emote!=null,
+            "tapping character did not open actual emotes")
+        if emote!=null:
+            emote.pressed.emit()
         check(animator.current_animation==&"aurora_lobby/Motion" and
-            animator.is_playing(),"button did not play the real skeleton")
+            animator.is_playing() and not wheel.visible,
+            "selected emote did not play genuine Lila rig animation")
         animator.stop()
         animator.play("AuroraIdle")
 

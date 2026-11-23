@@ -136,9 +136,13 @@ func _verify() -> void:
             "ActualMatchStats",true,false)!=null,
         "actual match-ledger profile cannot be opened top-left")
     if front._profile_overlay!=null:
-        front._profile_overlay.get_node(
-            "RealPlayerProfilePanel/VerifiedPlayerData/"+
-            "HBoxContainer/CloseRealProfile").pressed.emit()
+        var close_profile: Button=front._profile_overlay.find_child(
+            "CloseRealProfile",true,false) as Button
+        check(close_profile!=null,"profile close action missing")
+        if close_profile!=null:
+            close_profile.pressed.emit()
+        check(not front._profile_overlay.visible,
+            "profile overlay did not return to live 3D lobby")
 
     # This invokes the actual navigation; inactive pages cannot falsely
     # leave INICIAR over an armory, or manufacture online squad members.

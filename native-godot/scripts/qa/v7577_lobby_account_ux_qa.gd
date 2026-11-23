@@ -34,13 +34,15 @@ func _verify() -> void:
         "real JUGAR action must be first in the active footer")
     check(front._battle_entry.visible and not front._training_entry.visible,
         "classic must be ready on initial lobby")
-    check(front._lobby_section_title.text.contains("BATTLE ROYALE"),
-        "lobby lacks Battle Royale mode card heading")
-    # V75.155 retains six commerce shortcuts and five footer actions.
+    check(not front._lobby_section_title.visible and
+        front._match_mode_selector.get_item_text(0)=="CLÁSICO" and
+        front._battle_entry.text=="INICIAR",
+        "new minimal game-mode panel lost its single CLÁSICO/INICIAR action")
+    # V75.171 retains five genuine commerce shortcuts and five footer actions.
     # PRESET moved exclusively under the top-right settings gear.
     var play_footer: Button=front._bottom_navigation.get_node_or_null(
         "BottomJUGAR") as Button
-    check(front._left_shortcuts.get_child_count()==6 and
+    check(front._left_shortcuts.get_child_count()==5 and
         front._bottom_navigation.get_child_count()==5 and
         front._bottom_navigation.get_node_or_null("BottomPRESET")==null and
         play_footer!=null and play_footer.is_visible_in_tree() and

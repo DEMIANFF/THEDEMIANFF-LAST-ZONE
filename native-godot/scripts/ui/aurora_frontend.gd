@@ -916,6 +916,16 @@ func _begin_welcome_auth(provider: String) -> void:
     _poll_login_state()
 
 
+## This policy can be regression-tested off-device. The caller supplies
+## session_state() from the real native Firebase bridge, which fails closed
+## when App Check, Android plugin, provider or server identity are invalid.
+static func _can_resume_native_session(session: Dictionary,from_startup: bool,
+        initiated_login: bool) -> bool:
+    return bool(session.get("authenticated",false)) and not bool(
+        session.get("pending",false)) and (
+        from_startup or initiated_login)
+
+
 func _poll_login_state() -> void:
     if stage!="welcome" or _login_status_label==null or not is_instance_valid(_login_status_label):
         return
@@ -951,8 +961,8 @@ func _poll_login_state() -> void:
         # Restored Google/guest login goes straight into the REAL lobby,
         # and a player who just authenticated need not press CONTINUAR.
         # Manual Gestionar acceso leaves the provider chooser accessible.
-        if (_auto_resume_on_entry or not _login_waiting_provider.is_empty()) and (
-                not bool(session.get("pending",false))):
+        if _can_resume_native_session(session,_auto_resume_on_entry,
+                not _login_waiting_provider.is_empty()):
             _auto_resume_on_entry=false
             _login_waiting_provider=""
             call_deferred("_show_lobby")
