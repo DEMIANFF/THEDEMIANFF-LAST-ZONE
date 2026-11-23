@@ -36,6 +36,35 @@ func _verify() -> void:
         check(part!=null and part.mesh is BoxMesh and
             part.material_override is StandardMaterial3D,
             "missing actual mesh for physically detailed facility: "+name)
+    # Inspect the same live companion next to Lila. Batch real surface
+    # geometry; do not replace the robot with a billboard or 40 draw calls.
+    var sentinel: Node3D=world.get_node_or_null(
+        "AuroraSentinelCompanion") as Node3D
+    check(sentinel!=null,"Aurora Sentinel companion disappeared")
+    if sentinel!=null:
+        var sentinel_batches: Array=sentinel.find_children(
+            "*","MultiMeshInstance3D",true,false)
+        var robot_instances: int=0
+        var curved_surface: bool=false
+        for node in sentinel_batches:
+            var robot_batch: MultiMeshInstance3D=node as MultiMeshInstance3D
+            check(robot_batch.multimesh!=null and
+                robot_batch.material_override!=null,
+                "sentinel lost an actual material-backed GPU batch")
+            if robot_batch.multimesh!=null:
+                robot_instances+=robot_batch.multimesh.instance_count
+                curved_surface=curved_surface or (
+                    robot_batch.multimesh.mesh is SphereMesh)
+        var tail: Node3D=sentinel.get_node_or_null(
+            "CompanionTailPivot") as Node3D
+        check(sentinel_batches.size()>=6 and sentinel_batches.size()<=9 and
+            robot_instances>=34 and robot_instances<=65 and curved_surface,
+            "sentinel detail must use low-budget rounded MultiMeshes")
+        check(tail!=null and tail.get_node_or_null("TailLink")!=null and
+            tail.get_node_or_null("TailLight")!=null,
+            "sentinel animated tail and light lost physical 3D meshes")
+        check(sentinel.find_children("*","OmniLight3D",true,false).is_empty(),
+            "sentinel cannot add expensive independent lights")
     var batches: Array=stage.find_children("*","MultiMeshInstance3D",true,false)
     var fittings: int=0
     var new_material_batches: int=0
@@ -78,5 +107,5 @@ func _verify() -> void:
     if not failed:
         print("V75168_ARCHITECTURE PASS genuine_facilities=3 "+
             "runway_marks=51 batches<=12 details_batched=1 "+
-            "Lila_skinned=1 HUD_single=1 mobile_vram_released=1")
+            "Lila_skinned=1 sentinel_batched=1 HUD_single=1 mobile_vram_released=1")
     quit(1 if failed else 0)
