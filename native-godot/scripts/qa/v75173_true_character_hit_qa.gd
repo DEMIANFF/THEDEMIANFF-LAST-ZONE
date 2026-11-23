@@ -38,6 +38,9 @@ func _verify() -> void:
     check(front.stage=="lobby" and front._preview_avatar!=null,
         "actual Aurora GLB not instantiated")
     var actual: Rect2=front._portrait_character_hit_rect()
+    print("V75174_LILA_HIT_DEBUG canvas=",front._preview_container.size,
+        " viewport=",front._preview_container.get_node("PreviewViewport").size,
+        " rect=",actual," window=",root.size)
     check(actual.has_area() and
         actual.size.x<float(front._preview_container.size.x)*.27,
         "touch envelope not bounded by character geometry")
@@ -45,9 +48,16 @@ func _verify() -> void:
         "real character is not visible at a useful hit-test size")
     check(front._preview_hit_character(actual.get_center()),
         "center of original Lila mesh did not select her")
-    for background_point in [
-        Vector2(265,194),Vector2(738,200),Vector2(78,240),
-        Vector2(910,245)]:
+    # Test physical 964x434 target fractions mapped into the actual
+    # SubViewportContainer's local GUI coordinates. Godot canvas_items
+    # may provide a different logical canvas on a mobile-sized window.
+    for normalized_point in [
+        Vector2(265.0/964.0,194.0/434.0),
+        Vector2(738.0/964.0,200.0/434.0),
+        Vector2(78.0/964.0,240.0/434.0),
+        Vector2(910.0/964.0,245.0/434.0)]:
+        var background_point: Vector2=(
+            normalized_point*front._preview_container.size)
         check(not front._preview_hit_character(background_point),
             "tap on scenery was mistaken for Lila: "+str(background_point))
         _mouse_tap(front,background_point)
