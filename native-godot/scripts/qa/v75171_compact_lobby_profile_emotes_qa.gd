@@ -102,7 +102,12 @@ func _verify() -> void:
     var press:=InputEventMouseButton.new()
     press.button_index=MOUSE_BUTTON_LEFT
     press.pressed=true
-    press.position=Vector2(445,202)
+    var real_bounds: Rect2=front._portrait_character_hit_rect()
+    check(real_bounds.has_area() and
+        front._preview_hit_character(real_bounds.get_center()) and
+        not front._preview_hit_character(Vector2(260,200)),
+        "only the real operator should be selectable, not the hangar")
+    press.position=real_bounds.get_center()
     front._preview_input(press)
     press.pressed=false
     front._preview_input(press)

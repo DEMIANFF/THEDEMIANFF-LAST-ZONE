@@ -47,11 +47,32 @@ func _capture() -> void:
     if not _save("lobby"):
         quit(3)
         return
+    # Capture the actual native profile overlay and emotes with Lila
+    # underneath. Prior artifacts never showed these requested features.
+    front._top_account_button.pressed.emit()
+    await RenderingServer.frame_post_draw
+    if not _save("player-profile"):
+        quit(4)
+        return
+    front._close_player_profile()
+    var lila_rect: Rect2=front._portrait_character_hit_rect()
+    if not lila_rect.has_area() or not front._preview_hit_character(
+            lila_rect.get_center()):
+        push_error("V75173_MOTOROLA_CAPTURE true Lila 3D tap target missing")
+        quit(5)
+        return
+    front._toggle_character_emotes()
+    await RenderingServer.frame_post_draw
+    if not _save("character-emotes"):
+        quit(6)
+        return
+    front._close_character_emotes()
     front._welcome()
     front.queue_free()
     # Retire the 3D render target and its sky before asking the driver to exit.
     for frame in range(12):
         await RenderingServer.frame_post_draw
     print("V75113_MOTOROLA_CAPTURE PASS real_godot=1 "+
-        "screens=loading,login,lobby native_vulkan_phone=not_tested")
+        "screens=loading,login,lobby,player-profile,character-emotes "+
+        "native_vulkan_phone=not_tested")
     quit(0)

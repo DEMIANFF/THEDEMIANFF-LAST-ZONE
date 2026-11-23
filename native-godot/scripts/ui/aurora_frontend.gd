@@ -332,12 +332,70 @@ func _preview_input(event: InputEvent) -> void:
         _preview_resume_spin=2.2
 
 
+## The old broad 27%-68% region also opened EMOTES when tapping the
+## hangar, podium or Sentinel. Build a precise on-demand 2D silhouette
+## envelope from Lila's actual transformed MeshInstance3D bounds instead.
+## This runs only on touch-release, not every frame. No physics, colliders,
+## new render targets or fabricated animation resources are required.
+func _portrait_character_hit_rect() -> Rect2:
+    if _preview_container==null or _preview_avatar==null or (
+            not is_instance_valid(_preview_avatar) or
+            not _preview_avatar.is_visible_in_tree()):
+        return Rect2()
+    var viewport: SubViewport=_preview_container.get_node_or_null(
+        "PreviewViewport") as SubViewport
+    if viewport==null or viewport.size.x<=0 or viewport.size.y<=0:
+        return Rect2()
+    var camera: Camera3D=viewport.get_node_or_null(
+        "AuroraCharacterStage/LobbyPortraitCamera") as Camera3D
+    if camera==null:
+        return Rect2()
+    var low:=Vector2(INF,INF)
+    var high:=Vector2(-INF,-INF)
+    var seen: int=0
+    for node in _preview_avatar.find_children(
+            "*","MeshInstance3D",true,false):
+        var mesh: MeshInstance3D=node as MeshInstance3D
+        if mesh.mesh==null or not mesh.is_visible_in_tree():
+            continue
+        var bounds: AABB=mesh.get_aabb()
+        for corner in range(8):
+            var world: Vector3=mesh.to_global(bounds.get_endpoint(corner))
+            if camera.is_position_behind(world):
+                continue
+            var screen: Vector2=camera.unproject_position(world)
+            if not screen.is_finite():
+                continue
+            low=low.min(screen)
+            high=high.max(screen)
+            seen+=1
+    if seen<2 or high.x<=low.x or high.y<=low.y:
+        return Rect2()
+    # Godot SubViewportContainer may stretch/shrink the render target for
+    # Mobile/Vulkan. Convert projected viewport pixels back to LOCAL
+    # gui_input pixels, preserving the same result on phone and desktop.
+    var canvas: Vector2=_preview_container.size
+    var scale:=Vector2(
+        canvas.x/float(viewport.size.x),canvas.y/float(viewport.size.y))
+    low*=scale
+    high*=scale
+    var touch_margin: float=clampf(canvas.y*.038,9.0,22.0)
+    var rect:=Rect2(low-Vector2.ONE*touch_margin,
+        high-low+Vector2.ONE*touch_margin*2.0)
+    # Never let hair/mesh import outliers make half the hangar clickable.
+    var max_width: float=canvas.x*.245
+    if rect.size.x>max_width:
+        rect.position.x+= (rect.size.x-max_width)*.5
+        rect.size.x=max_width
+    return rect
+
+
 func _preview_hit_character(point: Vector2) -> bool:
-    if _preview_container==null or _selected_tab not in ["JUGAR","PERSONAJE"]:
+    if stage!="lobby" or _preview_container==null or (
+            _selected_tab not in ["JUGAR","PERSONAJE"]):
         return false
-    var dimensions: Vector2=_preview_container.size
-    return point.x>=dimensions.x*.27 and point.x<=dimensions.x*.68 and (
-        point.y>=dimensions.y*.17 and point.y<=dimensions.y*.81)
+    var silhouette: Rect2=_portrait_character_hit_rect()
+    return silhouette.has_area() and silhouette.has_point(point)
 
 
 func _toggle_character_emotes() -> void:
@@ -1809,7 +1867,7 @@ func _ensure_lobby_navigation() -> void:
         "LocalStatisticsStrip",.562,.563,1)
     _stats_strip.visible=false
     _currency_strip=_make_header_label(
-        "LocalCurrencyStrip",.575,.865,17)
+        "LocalCurrencyStrip",.575,.865,20)
     # Both the squad and the compact mode card carry their own glass.
     # The older full-height black rail was covering the hangar for no
     # functional reason; remove it entirely instead of hiding it with alpha.
@@ -1922,7 +1980,7 @@ func _ensure_lobby_navigation() -> void:
         button.custom_minimum_size=Vector2(0,40)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         button.add_theme_font_override("font",DISPLAY_FONT)
-        button.add_theme_font_size_override("font_size",19)
+        button.add_theme_font_size_override("font_size",22)
         _style_aurora_tab(button,Color(.35,.70,.91))
         button.size_flags_vertical=Control.SIZE_EXPAND_FILL
         _left_shortcuts.add_child(button)
@@ -1950,7 +2008,7 @@ func _ensure_lobby_navigation() -> void:
         button.custom_minimum_size=Vector2(0,30)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         button.add_theme_font_override("font",DISPLAY_FONT)
-        button.add_theme_font_size_override("font_size",20)
+        button.add_theme_font_size_override("font_size",22)
         # The selected tab is styled after _select_tab(), never hard-code a
         # permanent golden JUGAR button on other screens like ARMAS.
         _style_aurora_tab(button,Color(.30,.63,.83))
@@ -1983,15 +2041,15 @@ func _ensure_lobby_navigation() -> void:
     social_title.text="ESCUADRA"
     social_title.name="FriendsHeading"
     social_title.add_theme_font_override("font",DISPLAY_FONT)
-    social_title.add_theme_font_size_override("font_size",17)
+    social_title.add_theme_font_size_override("font_size",19)
     social_title.add_theme_color_override("font_color",Color(.9,.85,1))
     social_content.add_child(social_title)
     _social_status_label=Label.new()
     _social_status_label.name="ActualFriendsStatus"
     _social_status_label.text="LOCAL · SIN AMIGOS EN LÍNEA"
     _social_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _social_status_label.add_theme_font_size_override("font_size",11)
-    _social_status_label.custom_minimum_size.y=14
+    _social_status_label.add_theme_font_size_override("font_size",13)
+    _social_status_label.custom_minimum_size.y=16
     _social_status_label.add_theme_color_override("font_color",Color(.75,.8,.85))
     social_content.add_child(_social_status_label)
     var squad_slots:=HBoxContainer.new()
@@ -2018,7 +2076,7 @@ func _ensure_lobby_navigation() -> void:
         number.text="%02d %s"%[i+1,"LOCAL" if i==0 else "—"]
         number.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
         number.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
-        number.add_theme_font_size_override("font_size",13)
+        number.add_theme_font_size_override("font_size",15)
         number.add_theme_color_override(
             "font_color",Color(.92,.95,1) if i==0 else
             Color(.54,.64,.74))
@@ -2087,7 +2145,7 @@ func _ensure_lobby_navigation() -> void:
     _top_account_button.anchor_right=.264
     _top_account_button.anchor_top=.025
     _top_account_button.anchor_bottom=.131
-    _top_account_button.add_theme_font_size_override("font_size",16)
+    _top_account_button.add_theme_font_size_override("font_size",20)
     _top_account_button.tooltip_text="Abrir perfil y estadísticas de partidas reales"
     _top_account_button.accessibility_name="Abrir perfil de jugador"
     _style_aurora_tab(_top_account_button,Color(.53,.39,.87))
