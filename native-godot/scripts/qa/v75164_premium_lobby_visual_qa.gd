@@ -53,10 +53,15 @@ func _verify() -> void:
     var left: VBoxContainer=front._left_shortcuts
     check(left.get_child_count()==5 and left.get_node_or_null("QuickJUGAR")==null,
         "five functional left shortcuts required; no duplicate JUGAR")
-    check((left.get_child(0) as Button).get_theme_font_size("font_size")<=19,
-        "left commerce hierarchy did not become more compact")
-    check((bars.get_child(0) as Button).get_theme_font_size("font_size")<=20,
-        "footer typography was not refined")
+    # V75.173 deliberately increased real Motorola text to 22px. This
+    # historical compactness assertion must protect legibility instead of
+    # failing the current approved five/five layout for larger fonts.
+    var commerce_font: int=(left.get_child(0) as Button).get_theme_font_size("font_size")
+    var footer_font: int=(bars.get_child(0) as Button).get_theme_font_size("font_size")
+    check(commerce_font>=20 and commerce_font<=25,
+        "five commerce shortcuts must remain readable in mobile landscape")
+    check(footer_font>=20 and footer_font<=25,
+        "five footer actions must remain readable in mobile landscape")
     check(front._match_mode_selector.is_visible_in_tree() and
         front._mode_gallery_entry==null and front._mode_gallery_overlay==null,
         "one BR selector at right only")
