@@ -2,7 +2,8 @@ extends SceneTree
 ## V75.174: actual menu + 3D-only resolution persistence. This test
 ## does not claim a Motorola FPS improvement or synthetic mobile touch.
 const RENDER=preload("res://scripts/render/aurora_render_budget.gd")
-const SETTINGS=preload("res://scripts/ui/aurora_settings_overlay.gd")
+## Load settings when the active project autoloads are registered, not in
+## isolated --check-only mode (AuroraLobbyMusic is not available there).
 const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
 var failed: bool=false
 
@@ -45,7 +46,15 @@ func _verify() -> void:
         "AUTO preset erased the independent custom scale")
 
     var preset: int=HUD_LAYOUT.selected_preset()
-    var overlay: CanvasLayer=SETTINGS.new()
+    var settings_script: GDScript=load(
+        "res://scripts/ui/aurora_settings_overlay.gd") as GDScript
+    check(settings_script!=null,
+        "native settings overlay failed to load with project autoloads")
+    if settings_script==null:
+        budget.queue_free()
+        quit(1)
+        return
+    var overlay: CanvasLayer=settings_script.new()
     root.add_child(overlay)
     overlay.call("_show_category","PANTALLA")
     var slider: HSlider=overlay.find_child(
