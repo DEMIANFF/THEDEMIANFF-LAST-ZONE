@@ -65,17 +65,14 @@ func _verify() -> void:
     for title in ["AuroraSnowPeak","AuroraSnowPeakMiddle",
             "AuroraSnowPeakHorizon"]:
         _verify_mesh(stage.get_node_or_null(title) as MeshInstance3D,title)
-    # Godot renames the second sibling with an internal @-prefix when
-    # both meshes are authored as "PlowedSnowbank". Match their actual
-    # MeshInstance3D identity regardless of the engine's unique name.
-    # Retain the strict requirement for TWO geometrically real shoulders.
+    # Side-specific stable names also let QA verify geometry and handedness.
     var snowbanks: Array=[]
-    for child in stage.find_children("*","MeshInstance3D",true,false):
-        if str(child.name).contains("PlowedSnowbank"):
-            snowbanks.append(child)
-    check(snowbanks.size()==2,
-        "two physical runway shoulders required; detected="+
-        str(snowbanks.map(func(node): return str(node.name))))
+    for side_name in ["PlowedSnowbankLeft","PlowedSnowbankRight"]:
+        var bank: MeshInstance3D=stage.get_node_or_null(side_name) as MeshInstance3D
+        check(bank!=null,"real physical runway shoulder missing: "+side_name)
+        if bank!=null:
+            snowbanks.append(bank)
+    check(snowbanks.size()==2,"both independently named runway shoulders required")
     for i in range(snowbanks.size()):
         _verify_mesh(snowbanks[i] as MeshInstance3D,
             "PlowedSnowbank"+str(i))

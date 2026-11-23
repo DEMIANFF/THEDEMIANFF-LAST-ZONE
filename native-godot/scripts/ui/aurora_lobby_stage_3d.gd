@@ -555,7 +555,10 @@ func _snowbank(side: float) -> void:
     # receiving its own hard facet. Same geometry and same draw call.
     shape.index()
     shape.generate_normals()
-    _mesh("PlowedSnowbank",shape.commit(),_snow)
+    # Distinct persistent node names prevent Godot from silently renaming
+    # the second bank to an @MeshInstance3D sibling. Real geometry unchanged.
+    _mesh("PlowedSnowbankRight" if side>0.0 else "PlowedSnowbankLeft",
+        shape.commit(),_snow)
 
 
 func _bank_point(side: float,row: int,column: int) -> Vector3:
