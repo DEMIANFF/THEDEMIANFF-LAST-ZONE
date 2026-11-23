@@ -1800,17 +1800,10 @@ func _ensure_lobby_navigation() -> void:
     _stats_strip.visible=false
     _currency_strip=_make_header_label(
         "LocalCurrencyStrip",.575,.865,17)
-    var backplate:=_make_glass_panel(
-        Color(.008,.018,.032,.75),Color(.25,.65,.86,.57),10)
-    backplate.name="LobbyMenuBackplate"
-    _lobby_menu_backplate=backplate
-    backplate.anchor_left=.712
-    backplate.anchor_right=.981
-    backplate.anchor_top=.154
-    backplate.anchor_bottom=.867
-    _surface.add_child(backplate)
-    _surface.move_child(backplate,_page.get_index())
-    _lobby_backplates.append(backplate)
+    # Both the squad and the compact mode card carry their own glass.
+    # The older full-height black rail was covering the hangar for no
+    # functional reason; remove it entirely instead of hiding it with alpha.
+    _lobby_menu_backplate=null
     var navplate:=_make_glass_panel(
         Color(.006,.016,.032,.68),Color(.27,.67,.84,.58),10)
     navplate.name="LobbySidebarBackplate"
@@ -3908,7 +3901,8 @@ func _build_preview() -> void:
     wheel_style.bg_color=Color(.008,.020,.043,.93)
     wheel_style.border_color=Color(.27,.84,.94,.83)
     wheel_style.set_border_width_all(2)
-    wheel_style.set_corner_radius_all(22)
+    # Circular chooser, not a new permanent button over the operator.
+    wheel_style.set_corner_radius_all(76)
     wheel_style.content_margin_left=14
     wheel_style.content_margin_right=14
     wheel_style.content_margin_top=9

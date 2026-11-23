@@ -60,6 +60,9 @@ func _verify() -> void:
         mode.get_item_text(1)=="CLASIFICATORIA" and
         mode.get_item_text(2)=="ENTRENAMIENTO",
         "selector must display only three clean player-facing modes")
+    check(front._lobby_menu_backplate==null and
+        front.find_child("LobbyMenuBackplate",true,false)==null,
+        "full-height opaque menu rail still obscures real Aurora geometry")
     check(not front._lobby_section_title.visible and
         not front._lobby_section_hint.visible and
         not front._lobby_mode_caption.visible and
