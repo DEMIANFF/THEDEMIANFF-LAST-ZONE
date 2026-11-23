@@ -85,9 +85,11 @@ func _verify() -> void:
         front.get_node_or_null("OfflineEncounterSize")==null and
         front.find_child("OfflineEncounterSize",true,false)==null,
         "engineering roster selector leaked into user-facing BR lobby")
-    check(front._lobby_section_hint.text.contains("50 PARTICIPANTES") and
-        front._lobby_mode_caption.text.contains("49 IA"),
-        "lobby does not present one fixed 50-fighter Battle Royale")
+    check(front._match_mode_selector.get_item_text(0)=="CLÁSICO" and
+        not front._lobby_section_hint.visible and
+        not front._lobby_mode_caption.visible and
+        front._lobby_mode_status.text.contains("50 PARTICIPANTES"),
+        "classic backend remains fixed at 50 with no redundant lobby labels")
     var preview: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage/AuroraReal3DLobbyEnvironment")
     check(preview!=null and preview.find_children("*","MeshInstance3D",true,false).size()>22
