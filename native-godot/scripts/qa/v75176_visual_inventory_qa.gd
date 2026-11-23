@@ -29,8 +29,13 @@ func _verify() -> void:
     var base: Dictionary=combat.inventory_snapshot()
     check(HUD.inventory_tile_text("backpack",base).contains("SIN EQUIPAR"),
         "fresh round received a phantom backpack")
-    check(HUD.inventory_tile_text("awm",base).contains("SIN RECOGER"),
-        "uncollected AWM incorrectly shown as owned")
+    # Training starts with both reference rifles; BR resets ownership
+    # when its actual round begins. Test the TRUE snapshot, not a fake
+    # assumption that training must already have an empty AWM slot.
+    var awm_owned: bool=bool(base.get("awm_owned",false))
+    check(HUD.inventory_tile_text("awm",base).contains(
+        "DISPONIBLE" if awm_owned else "SIN RECOGER"),
+        "AWM ownership display differs from actual TrainingCombat snapshot")
     combat.sector_battle_active=true
     check(combat.collect_sector_loot("backpack_2"),
         "actual physical tier-2 backpack pickup failed")
@@ -53,8 +58,10 @@ func _verify() -> void:
         "loot statistics missing confirmed world pickups")
     check(hud._inventory_ar.disabled and hud._inventory_ar.text.contains("EN MANOS"),
         "active AR cannot be identified in live inventory")
-    check(hud._inventory_awm.disabled,
-        "uncollected sniper must not be usable in the backpack")
+    check(hud._inventory_awm.disabled==(
+        not bool(inventory.get("awm_owned",false)) or
+        int(inventory.get("active_weapon",-1))==1),
+        "AWM action enabled state differs from actual weapon ownership")
     check(hud._inventory_medkit.visible and hud._inventory_grenade.visible,
         "physically collected medical and grenade actions not available")
     hud.set_air_stage("ground")
