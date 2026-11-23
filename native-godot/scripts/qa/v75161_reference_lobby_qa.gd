@@ -53,14 +53,14 @@ func _verify() -> void:
         var nav_button: Button=icon_button as Button
         check(nav_button!=null and nav_button.icon is AtlasTexture,
             "commerce icon is not connected to original SVG atlas")
-    check(rail!=null and rail.get_child_count()==6 and
+    check(rail!=null and rail.get_child_count()==5 and
         rail.get_node_or_null("QuickTIENDA")!=null and
         rail.get_node_or_null("QuickPASE")!=null and
-        rail.get_node_or_null("QuickJUGAR")!=null and
+        rail.get_node_or_null("QuickJUGAR")==null and
         rail.get_node_or_null("QuickEVENTS")!=null and
         rail.get_node_or_null("QuickMISSIONS")!=null and
         rail.get_node_or_null("QuickACHIEVEMENTS")!=null,
-        "reference commerce left rail missing or includes duplicate MODOS")
+        "five original left shortcuts only; JUGAR belongs to footer")
     check(mode!=null and mode.is_visible_in_tree() and
         front._mode_gallery_entry==null and
         front._mode_gallery_overlay==null and
@@ -69,9 +69,10 @@ func _verify() -> void:
     check(squad.is_visible_in_tree() and
         squad.get_node("SocialContent/AuroraFourMemberSquad").get_child_count()==4,
         "four-slot LOCAL squad panel missing")
-    check(front._preview_caption.visible and
-        front._preview_caption.text.contains("LILA AURORA"),
-        "native rotating operator no longer has original nameplate")
+    check(not front._preview_caption.visible and
+        front._gesture_button==null and front._emote_wheel!=null and
+        not front._emote_wheel.visible,
+        "operator should have direct tap-emotes and no bottom nameplate")
     var real_stage: Node3D=front._preview_container.get_node(
         "PreviewViewport/AuroraCharacterStage")
     for index in range(2):
@@ -88,32 +89,17 @@ func _verify() -> void:
         "AuroraOperatorNameplate",true,false) as Panel
     var slash: ColorRect=front.find_child(
         "AuroraBrandSlash",true,false) as ColorRect
-    check(footer_plate!=null and nameplate!=null and slash!=null and
-        footer_plate.visible and nameplate.visible and slash.visible,
-        "premium bottom glass, cyan brand and Lila controls weren't instantiated")
-    if footer_plate!=null and nameplate!=null:
+    check(footer_plate!=null and nameplate==null and slash!=null and
+        footer_plate.visible and slash.visible,
+        "five-button glass/footer damaged or obsolete nameplate restored")
+    if footer_plate!=null:
         check(footer_plate.get_global_rect().encloses(
-            footer.get_global_rect()) and
-            nameplate.get_global_rect().encloses(
-            front._preview_caption.get_global_rect()),
-            "native five-button footer or nameplate escapes its real glass panel")
-    # Mobile controls should be in ONE row, outside the 3D character's feet
-    # and on the same functional overlay, not on a secondary fake screenshot.
-    var control_buttons: Array=front._operator_controls
-    var gesture: Button=front._gesture_button
-    check(control_buttons.size()>=3 and gesture!=null,
-        "real operator turn/frame/gesture controls missing")
-    var name_rect: Rect2=front._preview_caption.get_global_rect()
-    for control in control_buttons:
-        if (control as Button).name=="AuroraMalePreviewSelector":
-            continue
-        var button: Button=control as Button
-        var action_rect: Rect2=button.get_global_rect()
-        check(not action_rect.intersects(name_rect) and
-            absf(action_rect.get_center().y-name_rect.get_center().y)<22,
-            "operator control overlaps central nameplate or sits in another row")
-    check(not gesture.get_global_rect().intersects(name_rect),
-        "gesture button obscures Lila's actual nameplate")
+            footer.get_global_rect()),
+            "native footer escapes its genuine glass backing")
+    check(front._operator_controls.is_empty() and
+        front._emote_wheel.find_child(
+            "AuroraAvailableCharacterEmote",true,false)!=null,
+        "obsolete VISTA/arrows remain or original animated emote missing")
 
     # Match card must remain visually separate from team panel and footer.
     var panel_rect: Rect2=battle.get_global_rect()
@@ -122,12 +108,11 @@ func _verify() -> void:
         not panel_rect.intersects(footer.get_global_rect()) and
         not squad_rect.intersects(footer.get_global_rect()),
         "battle/squad/footer panels overlap the phone layout")
-    var facts: Control=front._lobby_compact_intel
     check(panel_rect.encloses(start.get_global_rect()) and
         panel_rect.encloses(mode.get_global_rect()) and
-        panel_rect.encloses(facts.get_global_rect()) and
-        not facts.get_global_rect().intersects(start.get_global_rect()),
-        "match selector, start or physical match facts escape golden BR card")
+        not front._lobby_compact_intel.visible and
+        not front._lobby_match_facts.visible,
+        "one selector/INICIAR only; no repeated 50-player/AI/zone panels")
 
     # Top identity and account buttons must remain separate from each other.
     var profile: Label=front._profile_strip
@@ -138,12 +123,22 @@ func _verify() -> void:
     var top_social: Button=front._top_social_button
     check(gear.icon is AtlasTexture and top_social.icon is AtlasTexture,
         "top control buttons did not receive actual vector icons")
-    check(not profile.get_global_rect().intersects(stats.get_global_rect()) and
-        not stats.get_global_rect().intersects(currency.get_global_rect()) and
-        not currency.get_global_rect().intersects(top_social.get_global_rect()) and
-        not top_social.get_global_rect().intersects(account.get_global_rect()) and
+    check(not stats.visible and not top_social.visible and
+        not account.get_global_rect().intersects(profile.get_global_rect()) and
+        not profile.get_global_rect().intersects(currency.get_global_rect()) and
+        not currency.get_global_rect().intersects(gear.get_global_rect()) and
         not account.get_global_rect().intersects(gear.get_global_rect()),
-        "brand, true player stats, coins or native account/gear overlaps")
+        "profile-left, brand, validated coins or gear overlap")
+    account.pressed.emit()
+    check(front._profile_overlay!=null and
+        front._profile_overlay.is_visible_in_tree() and
+        front._profile_overlay.find_child(
+            "ActualMatchStats",true,false)!=null,
+        "actual match-ledger profile cannot be opened top-left")
+    if front._profile_overlay!=null:
+        front._profile_overlay.get_node(
+            "RealPlayerProfilePanel/VerifiedPlayerData/"+
+            "HBoxContainer/CloseRealProfile").pressed.emit()
 
     # This invokes the actual navigation; inactive pages cannot falsely
     # leave INICIAR over an armory, or manufacture online squad members.
