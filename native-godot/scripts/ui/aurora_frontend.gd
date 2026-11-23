@@ -357,7 +357,6 @@ func _close_character_emotes() -> void:
 func _play_selected_character_emote() -> void:
     _close_character_emotes()
     _play_lobby_gesture()
-        _preview_container.accept_event()
 
 
 func _clear_page() -> void:
