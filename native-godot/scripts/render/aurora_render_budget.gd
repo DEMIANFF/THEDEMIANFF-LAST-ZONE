@@ -7,7 +7,7 @@ extends Node
 ## blurring pixels. Quality returns with long recovery hysteresis.
 
 const OPTIONS_FILE: String="user://aurora_render_quality.cfg"
-const PROFILES: Array[String]=["AUTO","CLARIDAD","EQUILIBRADO","FLUIDEZ"]
+const PROFILES: Array[String]=["AUTO","CLARIDAD","EQUILIBRADO","FLUIDEZ","PERSONALIZADO"]
 const STEPS: Array[float]=[.78,.86,.94,1.0]
 const SAMPLE_INTERVAL: float=.75
 const BAD_SAMPLES: int=9
@@ -52,7 +52,29 @@ static func save_profile(value: String) -> Error:
     if not PROFILES.has(value):
         return ERR_INVALID_PARAMETER
     var cfg:=ConfigFile.new()
+    cfg.load(OPTIONS_FILE)
     cfg.set_value("render","preset",value)
+    return cfg.save(OPTIONS_FILE)
+
+
+## Persist independent 3D resolution, never the 2D canvas/HUD scale.
+static func read_custom_scale() -> float:
+    var cfg:=ConfigFile.new()
+    if cfg.load(OPTIONS_FILE)!=OK:
+        return .85
+    var raw: Variant=cfg.get_value("render","custom_scale",.85)
+    if not (raw is float or raw is int) or not is_finite(float(raw)):
+        return .85
+    return clampf(float(raw),.65,1.0)
+
+
+static func save_custom_scale(value: float) -> Error:
+    if not is_finite(value) or value<.65 or value>1.0:
+        return ERR_INVALID_PARAMETER
+    var cfg:=ConfigFile.new()
+    cfg.load(OPTIONS_FILE)
+    cfg.set_value("render","preset","PERSONALIZADO")
+    cfg.set_value("render","custom_scale",snappedf(value,.05))
     return cfg.save(OPTIONS_FILE)
 
 
@@ -64,6 +86,8 @@ static func preferred_scale(preset: String) -> float:
             return .90
         "FLUIDEZ":
             return .78
+        "PERSONALIZADO":
+            return read_custom_scale()
         _:
             return .94
 
@@ -114,7 +138,8 @@ static func classify_bottleneck(fps: float,target: float,
 static func quality_flags(preset: String,scale: float,
         method: String) -> Dictionary:
     var lowest: bool=(preset=="FLUIDEZ" or
-        (preset=="AUTO" and scale<.86))
+        (preset=="AUTO" and scale<.86) or
+        (preset=="PERSONALIZADO" and scale<.80))
     var clarity: bool=preset=="CLARIDAD"
     var msaa: bool=clarity and method=="mobile"
     return {
@@ -170,7 +195,7 @@ func _ready() -> void:
 
 
 func _apply_scale(next: float) -> void:
-    current_scale=clampf(next,.78,1.0)
+    current_scale=clampf(next,.65,1.0)
     var viewport: Viewport=get_viewport()
     if viewport==null:
         return
@@ -187,6 +212,19 @@ func select_profile(value: String) -> Error:
     _low_samples=0
     _good_samples=0
     _apply_scale(preferred_scale(profile))
+    return OK
+
+
+## Called on slider release so Android does not write a config per touch event.
+## Changes only the 3D viewport; the persisted four HUD layouts stay intact.
+func select_custom_scale(value: float) -> Error:
+    var result: Error=save_custom_scale(value)
+    if result!=OK:
+        return result
+    profile="PERSONALIZADO"
+    _low_samples=0
+    _good_samples=0
+    _apply_scale(read_custom_scale())
     return OK
 
 
