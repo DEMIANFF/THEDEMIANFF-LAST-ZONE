@@ -349,6 +349,42 @@ func _screen_page() -> void:
                 budget.call("select_profile",selected)
         _status.text="Calidad 3D: "+selected)
     _content.add_child(quality)
+    _heading("ESCALA DE RESOLUCIÓN 3D")
+    _info("Ajuste manual para el mundo 3D de la partida. "
+        +"No cambia el tamaño del HUD ni mueve tus cuatro diseños guardados. "
+        +"Elige entre 65% y 100%; aplicar una escala menor no garantiza más FPS.")
+    var scale_label:=Label.new()
+    scale_label.name="AuroraCustom3DScaleValue"
+    scale_label.text="ESCALA 3D %d%%"%roundi(
+        RENDER_BUDGET.read_custom_scale()*100.0)
+    _content.add_child(scale_label)
+    var scale_slider:=HSlider.new()
+    scale_slider.name="AuroraCustom3DScale"
+    scale_slider.min_value=65.0
+    scale_slider.max_value=100.0
+    scale_slider.step=5.0
+    scale_slider.value=RENDER_BUDGET.read_custom_scale()*100.0
+    scale_slider.custom_minimum_size=Vector2(230,40)
+    scale_slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    scale_slider.value_changed.connect(func(value: float):
+        scale_label.text="ESCALA 3D %d%%"%roundi(value))
+    # Save on drag release: no per-frame ConfigFile writes on Android.
+    scale_slider.drag_ended.connect(func(changed: bool):
+        if not changed:
+            return
+        var value: float=scale_slider.value/100.0
+        var result: Error=RENDER_BUDGET.save_custom_scale(value)
+        if result!=OK:
+            _status.text="ERROR al guardar escala 3D"
+            return
+        if context_game!=null:
+            var budget: Node=context_game.get_node_or_null("AuroraRenderBudget")
+            if budget:
+                budget.call("select_custom_scale",value)
+        quality.select(RENDER_BUDGET.PROFILES.find("PERSONALIZADO"))
+        _status.text="Escala 3D guardada: %d%% · HUD intacto"%roundi(
+            RENDER_BUDGET.read_custom_scale()*100.0))
+    _content.add_child(scale_slider)
     _toggle("Mostrar FPS en partida","show_fps",true)
     _toggle("Minimapa giratorio","radar_rotation",true)
     _info("Texturas HD y efectos avanzados dependen de perfiles de exportación específicos; no se activan filtros inexistentes con este menú.")
