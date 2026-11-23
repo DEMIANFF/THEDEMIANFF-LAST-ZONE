@@ -57,9 +57,12 @@ func _verify() -> void:
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
     await front.wait_for_startup()
+    # A startup resume *attempt* is expected; it is not an authenticated
+    # account. Without an Android SDK the real welcome screen stays visible.
     check(front.stage=="welcome" and
-        not front._auto_resume_on_entry,
-        "headless client cannot pretend to have Firebase credentials")
+        front._auto_resume_on_entry and
+        front._login_waiting_provider.is_empty(),
+        "initial startup must offer sign-in while allowing a real restore")
     # Fresh Google/Guest sign-in can be authenticated while server identity
     # is pending. Keep intent across poll cycles; do not clear it early.
     front._login_waiting_provider="google"
