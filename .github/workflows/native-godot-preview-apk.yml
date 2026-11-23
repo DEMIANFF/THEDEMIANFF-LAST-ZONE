@@ -382,7 +382,7 @@ jobs:
       # This lets the Motorola UI redesign be reviewed before installation.
       - uses: actions/upload-artifact@v6
         with:
-          name: THEDEMIAN-V75.163-LILA-MOTOROLA-PREVIEW
+          name: THEDEMIAN-${{ env.AURORA_CAPTURE_TAG }}-GODOT-VISUAL-QA
           path: |
             native-godot/out/aurora-v75-19-welcome.png
             native-godot/out/aurora-v75-19-lobby.png
