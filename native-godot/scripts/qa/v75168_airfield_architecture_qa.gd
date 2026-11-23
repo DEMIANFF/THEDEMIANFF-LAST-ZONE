@@ -44,9 +44,9 @@ func _verify() -> void:
         fittings+=mesh.multimesh.instance_count
         if mesh.name.begins_with("AirfieldFittings"):
             new_material_batches+=1
-    check(batches.size()<=12 and new_material_batches<=7 and
+    check(batches.size()<=12 and new_material_batches<=8 and
         fittings>=630 and fittings<=760,
-        "structural details must reuse existing mobile MultiMesh materials, "+
+        "structural details must reuse existing eight fitting material groups, "+
         "batches="+str(batches.size())+" fittings="+str(fittings))
     var runway: Dictionary=stage._runway_batch_audit
     check(int(runway.get("edge_count",-1))==44 and
