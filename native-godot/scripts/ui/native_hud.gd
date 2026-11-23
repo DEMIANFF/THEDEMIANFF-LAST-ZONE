@@ -98,11 +98,16 @@ var _settings_button: Button
 var _inventory_button: Button
 var _inventory_panel: PanelContainer
 var _inventory_label: Label
+var _inventory_close: Button
+var _inventory_scroll: ScrollContainer
+var _inventory_tiles: Dictionary={}
+var _inventory_metrics: Label
 var _inventory_ar: Button
 var _inventory_awm: Button
 const EXPANSION_WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 var _inventory_expansion_buttons: Dictionary={}
 var _inventory_expansion_row: HFlowContainer
+var _inventory_medkit: Button
 var _inventory_syringe: Button
 var _inventory_grenade: Button
 signal grenade_requested
@@ -356,17 +361,83 @@ func _ready() -> void:
     inventory_skin.set_corner_radius_all(10)
     _inventory_panel.add_theme_stylebox_override("panel",inventory_skin)
     root.add_child(_inventory_panel)
+    # The old 290x169 card clipped weapon buttons, syringe and grenades.
+    # Fixed header + scrolling content keep touch targets reachable on 964x434.
+    var inventory_shell:=VBoxContainer.new()
+    inventory_shell.name="AuroraInventoryShell"
+    inventory_shell.add_theme_constant_override("separation",4)
+    _inventory_panel.add_child(inventory_shell)
+    var inventory_header:=HBoxContainer.new()
+    inventory_header.name="AuroraInventoryHeader"
+    inventory_header.add_theme_constant_override("separation",6)
+    inventory_shell.add_child(inventory_header)
     _inventory_label=Label.new()
     _inventory_label.name="RealInventoryContents"
-    _inventory_label.add_theme_font_size_override("font_size",13)
-    _inventory_label.add_theme_color_override("font_color",Color(.87,.96,.98))
-    _inventory_label.text="INVENTARIO / SIN PARTIDA"
+    _inventory_label.add_theme_font_size_override("font_size",17)
+    _inventory_label.add_theme_color_override("font_color",Color(1.0,.87,.55))
+    _inventory_label.text="EQUIPO AURORA / SIN PARTIDA"
+    _inventory_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _inventory_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    inventory_header.add_child(_inventory_label)
+    _inventory_close=Button.new()
+    _inventory_close.name="CloseRealInventory"
+    _inventory_close.text="CERRAR"
+    _inventory_close.custom_minimum_size=Vector2(74,39)
+    _inventory_close.pressed.connect(func(): _inventory_panel.hide())
+    inventory_header.add_child(_inventory_close)
+    _inventory_scroll=ScrollContainer.new()
+    _inventory_scroll.name="RealInventoryScroll"
+    _inventory_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+    _inventory_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
+    _inventory_scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _inventory_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
+    _inventory_scroll.custom_minimum_size=Vector2(0,145)
+    inventory_shell.add_child(_inventory_scroll)
     var contents:=VBoxContainer.new()
     contents.name="InventoryActions"
-    contents.add_theme_constant_override("separation",5)
-    _inventory_panel.add_child(contents)
-    contents.add_child(_inventory_label)
+    contents.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    contents.add_theme_constant_override("separation",6)
+    _inventory_scroll.add_child(contents)
+    var grid:=GridContainer.new()
+    grid.name="RealInventoryEquipmentGrid"
+    grid.columns=2
+    grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    grid.add_theme_constant_override("h_separation",5)
+    grid.add_theme_constant_override("v_separation",5)
+    contents.add_child(grid)
+    for key in ["ar","awm","backpack","armor","supplies","tactical"]:
+        var slot:=PanelContainer.new()
+        slot.name="InventoryTile_"+key
+        slot.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        var skin:=StyleBoxFlat.new()
+        skin.bg_color=Color(.055,.112,.15,.92)
+        skin.border_color=Color(.24,.48,.56,.82)
+        skin.set_border_width_all(1)
+        skin.set_corner_radius_all(5)
+        skin.content_margin_left=6
+        skin.content_margin_right=6
+        skin.content_margin_top=4
+        skin.content_margin_bottom=4
+        slot.add_theme_stylebox_override("panel",skin)
+        grid.add_child(slot)
+        var caption:=Label.new()
+        caption.name="InventoryValue_"+key
+        caption.custom_minimum_size=Vector2(136,40)
+        caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+        caption.add_theme_font_size_override("font_size",13)
+        caption.add_theme_color_override("font_color",Color(.89,.96,.99))
+        caption.text="SIN DATOS"
+        caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
+        slot.add_child(caption)
+        _inventory_tiles[key]=caption
+    _inventory_metrics=Label.new()
+    _inventory_metrics.name="RealInventoryCombatMetrics"
+    _inventory_metrics.text="RECOGIDOS 0 · DAÑO 0 · PRECISIÓN 0%"
+    _inventory_metrics.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    _inventory_metrics.add_theme_font_size_override("font_size",12)
+    _inventory_metrics.add_theme_color_override("font_color",Color(.7,.85,.9))
+    _inventory_metrics.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    contents.add_child(_inventory_metrics)
     var selectors:=HBoxContainer.new()
     selectors.name="InventoryWeaponSelectors"
     selectors.add_theme_constant_override("separation",8)
@@ -375,13 +446,17 @@ func _ready() -> void:
     _inventory_ar.name="EquipAR"
     _inventory_ar.text="EQUIPAR AR-7"
     _inventory_ar.custom_minimum_size=Vector2(125,35)
-    _inventory_ar.pressed.connect(func(): inventory_equip_requested.emit(0))
+    _inventory_ar.pressed.connect(func():
+        _inventory_panel.hide()
+        inventory_equip_requested.emit(0))
     selectors.add_child(_inventory_ar)
     _inventory_awm=Button.new()
     _inventory_awm.name="EquipAWM"
     _inventory_awm.text="EQUIPAR AWM"
     _inventory_awm.custom_minimum_size=Vector2(125,35)
-    _inventory_awm.pressed.connect(func(): inventory_equip_requested.emit(1))
+    _inventory_awm.pressed.connect(func():
+        _inventory_panel.hide()
+        inventory_equip_requested.emit(1))
     selectors.add_child(_inventory_awm)
     _inventory_expansion_row=HFlowContainer.new()
     _inventory_expansion_row.visible=false
@@ -390,12 +465,23 @@ func _ready() -> void:
         var equip_button:=Button.new()
         equip_button.name="Equip"+str(EXPANSION_WEAPONS.ENTRIES[slot]["short"])
         equip_button.custom_minimum_size=Vector2(125,35)
-        equip_button.pressed.connect(func(): inventory_equip_requested.emit(slot))
+        equip_button.pressed.connect(func():
+            _inventory_panel.hide()
+            inventory_equip_requested.emit(slot))
         _inventory_expansion_row.add_child(equip_button)
         _inventory_expansion_buttons[slot]=equip_button
+    _inventory_medkit=Button.new()
+    _inventory_medkit.name="UseMedkitInventory"
+    _inventory_medkit.visible=false
+    _inventory_medkit.custom_minimum_size=Vector2(0,40)
+    _inventory_medkit.pressed.connect(func():
+        _inventory_panel.hide()
+        heal_pressed.emit())
+    contents.add_child(_inventory_medkit)
     _inventory_syringe=Button.new()
     _inventory_syringe.name="UseSyringe"
     _inventory_syringe.visible=false
+    _inventory_syringe.custom_minimum_size=Vector2(0,40)
     _inventory_syringe.pressed.connect(func():
         _inventory_panel.hide()
         syringe_pressed.emit())
@@ -403,6 +489,7 @@ func _ready() -> void:
     _inventory_grenade=Button.new()
     _inventory_grenade.name="ThrowGrenade"
     _inventory_grenade.visible=false
+    _inventory_grenade.custom_minimum_size=Vector2(0,40)
     _inventory_grenade.pressed.connect(func():
         _inventory_panel.hide()
         grenade_requested.emit())
@@ -862,15 +949,64 @@ func _toggle_inventory() -> void:
     if air_stage!="ground" or _inventory_button.disabled:
         return
     _inventory_panel.visible=not _inventory_panel.visible
+    if _inventory_panel.visible and _inventory_scroll!=null:
+        _inventory_scroll.scroll_vertical=0
+        if _map_overlay!=null:
+            _map_overlay.visible=false
+
+
+## Only paints data from TrainingCombat.inventory_snapshot() after actual
+## physical loot or weapon actions; never creates items or money in the HUD.
+static func inventory_tile_text(key: String,items: Dictionary) -> String:
+    match key:
+        "ar":
+            return "AR-7 / %d + %d\n%s"%[
+                int(items.get("ar_loaded",0)),int(items.get("ar_reserve",0)),
+                "DISPONIBLE" if bool(items.get("ar_owned",false)) else "NO RECOGIDA"]
+        "awm":
+            return "AWM / %d + %d\n%s"%[
+                int(items.get("awm_loaded",0)),int(items.get("awm_reserve",0)),
+                "DISPONIBLE" if bool(items.get("awm_owned",false)) else "SIN RECOGER"]
+        "backpack":
+            var level: int=clampi(int(items.get("backpack",0)),0,3)
+            return "MOCHILA\n"+(
+                "NIVEL %d"%level if level>0 else "SIN EQUIPAR")
+        "armor":
+            var vest: int=maxi(0,int(items.get("vest_level",0)))
+            var helmet: int=maxi(0,int(items.get("helmet_level",0)))
+            return "CHALECO N%d %d\nCASCO N%d %d"%[
+                vest,int(items.get("armor",0)),
+                helmet,int(items.get("helmet",0))]
+        "supplies":
+            return "BOTIQUINES %d\nJERINGAS %d"%[
+                int(items.get("medkits",0)),int(items.get("syringes",0))]
+        "tactical":
+            return "GRANADAS %d\nBARRERAS %d"%[
+                int(items.get("grenades",0)),int(items.get("covers",0))]
+        _:
+            return "SIN DATOS"
 
 
 func set_inventory_snapshot(items: Dictionary) -> void:
     if _inventory_label==null:
         return
+    for key in _inventory_tiles:
+        (_inventory_tiles[key] as Label).text=inventory_tile_text(str(key),items)
+    if _inventory_metrics!=null:
+        _inventory_metrics.text=(
+            "BOTÍN %d · DAÑO %d · PRECISIÓN %d%% · CABEZA %d"%[
+                int(items.get("loot_collected",0)),int(items.get("damage_dealt",0)),
+                int(items.get("accuracy",0)),int(items.get("headshots",0))])
     if _inventory_ar:
-        _inventory_ar.disabled=not bool(items.get("ar_owned",false))
+        _inventory_ar.disabled=not bool(items.get("ar_owned",false)) or (
+            int(items.get("active_weapon",-1))==0)
+        _inventory_ar.text="AR-7 / EN MANOS" if int(
+            items.get("active_weapon",-1))==0 else "EQUIPAR AR-7"
     if _inventory_awm:
-        _inventory_awm.disabled=not bool(items.get("awm_owned",false))
+        _inventory_awm.disabled=not bool(items.get("awm_owned",false)) or (
+            int(items.get("active_weapon",-1))==1)
+        _inventory_awm.text="AWM / EN MANOS" if int(
+            items.get("active_weapon",-1))==1 else "EQUIPAR AWM"
     var additions: Dictionary=items.get("additions",{})
     for slot: int in _inventory_expansion_buttons:
         var equip_button: Button=_inventory_expansion_buttons[slot]
@@ -884,33 +1020,20 @@ func set_inventory_snapshot(items: Dictionary) -> void:
                     counts["loaded"],counts["reserve"]]
             equip_button.disabled=int(items.get("active_weapon",0))==slot
     _inventory_expansion_row.visible=not additions.is_empty()
+    var medkits: int=maxi(0,int(items.get("medkits",0)))
+    _inventory_medkit.visible=medkits>0
+    _inventory_medkit.text="USAR BOTIQUÍN ×%d"%medkits
     var syringes: int=int(items.get("syringes",0))
     _inventory_syringe.visible=syringes>0
     _inventory_syringe.text="USAR JERINGA ×%d"%syringes
     var grenades: int=int(items.get("grenades",0))
     _inventory_grenade.visible=grenades>0
     _inventory_grenade.text="LANZAR GRANADA ×%d"%grenades
-    var ar: String="AR-7 %d/%d (max %d)"%[
-        int(items.get("ar_loaded",0)),int(items.get("ar_reserve",0)),
-        int(items.get("ar_capacity",0))]
-    var awm: String="AWM %d/%d (max %d)"%[
-        int(items.get("awm_loaded",0)),int(items.get("awm_reserve",0)),
-        int(items.get("awm_capacity",0))] if bool(items.get("awm_owned",false)) else "AWM: ENCUENTRA EL ARMA"
-    _inventory_label.text=(
-        "EQUIPO AURORA / %s\n"%("MOCHILA NIVEL 1" if int(items.get("backpack",0))>0 else "SIN MOCHILA")
-        +ar+"\n"+awm+"\n"
-        +"CHALECO %d/%d | BOTIQUINES %d | BARRERAS %d"%[
-            int(items.get("armor",0)),25*int(items.get("vest_level",0)) if int(items.get("vest_level",0))>0 else 75,
-            int(items.get("medkits",0)),
-            int(items.get("covers",0))]
-        +"\nRECOGIDOS: %d | DAÑO: %d | PRECISIÓN: %d%%"%[
-            int(items.get("loot_collected",0)),int(items.get("damage_dealt",0)),
-            int(items.get("accuracy",0))]
-        +"\nTIROS A LA CABEZA: %d"%int(items.get("headshots",0)))
-    var helmet: int=int(items.get("helmet_level",0))
-    if helmet>0:
-        _inventory_label.text+="\nCASCO N%d %d/%d"%[
-            helmet,int(items.get("helmet",0)),15*helmet]
+    var backpack: int=clampi(int(items.get("backpack",0)),0,3)
+    _inventory_label.text="EQUIPO AURORA / "+(
+        "MOCHILA NIVEL %d"%backpack if backpack>0 else "SIN MOCHILA")
+    if _inventory_button!=null:
+        _inventory_button.text="MOCHILA N%d"%backpack if backpack>0 else "EQUIPO"
 
 
 func set_medkit_count(count: int) -> void:
@@ -1244,7 +1367,14 @@ func _layout() -> void:
     _place(_exit_button,Rect2(origin+Vector2(w-107,108),Vector2(78,78)))
     _place(_settings_button,Rect2(origin+Vector2(w-194,108),Vector2(78,78)))
     _place(_inventory_button,Rect2(origin+Vector2(w-281,108),Vector2(78,78)))
-    _place(_inventory_panel,Rect2(origin+Vector2(w-410,164),Vector2(290,169)))
+    # A usable equipment panel with scrollable weapon choices; reserve
+    # >40px from bottom on narrow phones and never clip the close control.
+    var bag_w: float=minf(408.0,maxf(300.0,w*.435))
+    var bag_h: float=minf(300.0,maxf(180.0,h*.66))
+    var bag_x: float=maxf(4.0,w-bag_w-18.0)
+    var bag_y: float=maxf(4.0,minf(h-bag_h-10.0,147.0))
+    _place(_inventory_panel,Rect2(
+        origin+Vector2(bag_x,bag_y),Vector2(bag_w,bag_h)))
     _place(_incoming_hint,Rect2(origin+Vector2(w*.5-144,109),Vector2(288,28)))
     _place(_hit_confirm_label,Rect2(origin+Vector2(w*.5+65,h*.35),Vector2(132,28)))
     _place(_zone_warning_label,Rect2(origin+Vector2(w*.5-160,139),Vector2(320,28)))

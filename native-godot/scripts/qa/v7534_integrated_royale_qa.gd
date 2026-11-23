@@ -79,9 +79,11 @@ func _verify() -> void:
     var panel: PanelContainer=hud.get_node(
         "AuroraTacticalOverlay/RealMatchInventory")
     hud._toggle_inventory()
-    check(panel.visible and hud._inventory_label.text.contains("CHALECO") and
-        hud._inventory_label.text.contains("AWM"),
-        "touch bag does not render real combat equipment values")
+    check(panel.visible and
+        hud._inventory_tiles["armor"].text.contains("CHALECO") and
+        hud._inventory_tiles["awm"].text.contains("AWM") and
+        hud._inventory_tiles["backpack"].text.contains("NIVEL 1"),
+        "touch bag does not render genuine combat equipment tiles")
     hud._toggle_inventory()
     check(not panel.visible,"inventory panel cannot close")
 
