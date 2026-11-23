@@ -378,9 +378,13 @@ func _portrait_character_hit_rect() -> Rect2:
         return Rect2()
     # Screen-space body capsule envelope: narrow enough to exclude robot
     # and airfield, broad enough for head, torso and mobile finger padding.
+    var projected_height: float=absf(feet.y-head.y)
+    # The imported operator's shoulders are far narrower than her height;
+    # 21% of the *entire canvas height* was admitting right-side scenery.
+    # Size the finger-safe torso region from the PROJECTED operator height.
     var half_width: float=clampf(
-        canvas.y*.21,48.0,canvas.x*.12)
-    var margin: float=clampf(canvas.y*.027,8.0,15.0)
+        projected_height*.19,25.0,canvas.x*.085)
+    var margin: float=clampf(projected_height*.035,6.0,12.0)
     var top: float=minf(head.y,feet.y)-margin
     var bottom: float=maxf(head.y,feet.y)+margin
     var rect:=Rect2(
