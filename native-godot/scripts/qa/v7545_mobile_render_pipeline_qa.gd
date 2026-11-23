@@ -112,8 +112,10 @@ func _verify() -> void:
     root.add_child(settings)
     settings.call("_show_category","PANTALLA")
     var option:=settings.find_child("AuroraRenderQuality",true,false) as OptionButton
-    check(option!=null and option.get_item_count()==4,
-        "real screen settings missing 4 actual render modes")
+    # V75.174 adds a truthful fifth profile for user-selected 3D scale.
+    check(option!=null and option.get_item_count()==RENDER.PROFILES.size() and
+        option.get_item_text(option.get_item_count()-1)=="PERSONALIZADO",
+        "real screen settings must expose all existing and manual modes")
     settings.queue_free()
     await process_frame
     # Keep the following exported/headless QA at reproducible AUTO default.
