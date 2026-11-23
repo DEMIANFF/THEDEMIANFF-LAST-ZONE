@@ -30,6 +30,32 @@ const LOBBY_ICON_ATLAS=preload("res://assets/ui/aurora_lobby_navigation.svg")
 const AIRFIELD_SKY=preload("res://assets/ui/aurora_night_sky.gdshader")
 const LOBBY_OPERATOR_SURFACE=preload("res://assets/characters/lila_lobby_surface.gdshader")
 const PORTRAIT_LIGHT_LAYER: int=2
+# Original Aurora hints. No copyrighted in-game tips, false lobby rewards,
+# fake network status or simulated progress bar increments.
+const LOADING_TIPS: Dictionary={
+    "startup":[
+        "Consejo Aurora: calibra la sensibilidad antes de combatir.",
+        "El minimapa se puede tocar para abrir el mapa táctico.",
+        "Los ajustes gráficos modifican el render 3D, no tu HUD."
+    ],
+    "battle":[
+        "Busca casco, chaleco y botiquines antes del primer cierre.",
+        "La zona segura se contrae en cuatro fases durante el combate.",
+        "Planifica tu aterrizaje: evita la zona abierta sin cobertura.",
+        "Los suministros que recojas afectan tu inventario real."
+    ],
+    "training":[
+        "Practica el retroceso y el cambio de armas en entrenamiento.",
+        "Ajusta la sensibilidad de cada mira desde Configuración.",
+        "Prueba distintas distancias y coberturas antes del BR."
+    ],
+    "hud_editor":[
+        "Arrastra los controles y ajusta su tamaño y transparencia.",
+        "Tu diseño HUD se guarda sin alterar la cuenta del jugador.",
+        "Al guardar desde el lobby, regresarás al lobby."
+    ]
+}
+const LOADING_TIP_INTERVAL: float=6.0
 
 signal startup_finished
 @export_file("*.tscn") var game_scene_path: String=GAME_PATH
@@ -174,6 +200,10 @@ var _loading_overlay: ColorRect
 var _loading_title: Label
 var _loading_detail: Label
 var _loading_meter: ProgressBar
+var _loading_tip_label: Label
+var _loading_tip_context: String="startup"
+var _loading_tip_index: int=0
+var _loading_tip_clock: float=0.0
 var _loading_retry: Button
 var _loading_cancel: Button
 var _loading_fade: Tween
@@ -251,6 +281,9 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+    if _loading_overlay!=null and _loading_overlay.visible and (
+            stage=="startup" or stage=="loading"):
+        _tick_loading_tip(delta)
     if stage=="startup":
         _poll_bootstrap()
         return
@@ -576,6 +609,9 @@ func _build_loading_overlay() -> void:
     _loading_overlay=ColorRect.new()
     _loading_overlay.name="AuroraLoadingOverlay"
     _loading_overlay.color=Color(.006,.015,.033,.16)
+    # Actual modal input blocker; a one-shot set_input_as_handled() does not
+    # stop future taps on underlying navigation or the 3D avatar.
+    _loading_overlay.mouse_filter=Control.MOUSE_FILTER_STOP
     _loading_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _surface.add_child(_loading_overlay)
     _loading_surface_plate=_make_glass_panel(
@@ -593,6 +629,7 @@ func _build_loading_overlay() -> void:
     _loading_accent_stripe.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _loading_overlay.add_child(_loading_accent_stripe)
     var hero:=CenterContainer.new()
+    hero.name="AuroraLoadingBrandHero"
     hero.anchor_right=1
     hero.anchor_top=.115
     # Keep brand and real resource progress in different layers.
@@ -655,6 +692,22 @@ func _build_loading_overlay() -> void:
     fill.set_corner_radius_all(4)
     _loading_meter.add_theme_stylebox_override("fill",fill)
     content.add_child(_loading_meter)
+    # Separate advice layer: the loading actions keep their existing 44px+
+    # phone touch targets even when CANCEL and RETRY are displayed.
+    _loading_tip_label=Label.new()
+    _loading_tip_label.name="AuroraLoadingAdvice"
+    _loading_tip_label.anchor_left=.115
+    _loading_tip_label.anchor_right=.885
+    _loading_tip_label.anchor_top=.632
+    _loading_tip_label.anchor_bottom=.706
+    _loading_tip_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _loading_tip_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+    _loading_tip_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    _loading_tip_label.add_theme_font_size_override("font_size",14)
+    _loading_tip_label.add_theme_color_override(
+        "font_color",Color(.86,.93,.97))
+    _loading_tip_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _loading_overlay.add_child(_loading_tip_label)
     _loading_retry=_button("REINTENTAR",_start_bootstrap,190)
     _loading_retry.custom_minimum_size.y=68
     _loading_retry.size_flags_horizontal=Control.SIZE_SHRINK_CENTER
@@ -674,6 +727,44 @@ func _layout_loading_actions() -> void:
     _loading_accent_stripe.anchor_top=top
     _loading_accent_stripe.anchor_bottom=top+.004
     _loading_actions.anchor_top=top+.014
+    # The advice line does not steal room from the loading meter/cancel
+    # buttons on 964x434. Compress only the title artwork above it.
+    var hero: Control=_loading_overlay.get_node_or_null(
+        "AuroraLoadingBrandHero") as Control
+    if hero!=null:
+        hero.anchor_bottom=.550 if _loading_retry.visible or (
+            _loading_cancel.visible) else .607
+    if _loading_tip_label!=null:
+        _loading_tip_label.anchor_top=.562 if _loading_retry.visible or (
+            _loading_cancel.visible) else .632
+        _loading_tip_label.anchor_bottom=.643 if _loading_retry.visible or (
+            _loading_cancel.visible) else .706
+
+
+static func loading_tip_for(context: String,index: int) -> String:
+    var tips: Array=LOADING_TIPS.get(context,LOADING_TIPS["startup"])
+    if tips.is_empty():
+        return ""
+    return str(tips[posmod(index,tips.size())])
+
+
+func _set_loading_tip_context(context: String) -> void:
+    _loading_tip_context=context if LOADING_TIPS.has(context) else "startup"
+    _loading_tip_index=0
+    _loading_tip_clock=0.0
+    if _loading_tip_label!=null:
+        _loading_tip_label.text=loading_tip_for(_loading_tip_context,0)
+
+
+func _tick_loading_tip(delta: float) -> void:
+    if not is_finite(delta) or delta<=0.0 or _loading_tip_label==null:
+        return
+    _loading_tip_clock+=minf(delta,1.0)
+    if _loading_tip_clock>=LOADING_TIP_INTERVAL:
+        _loading_tip_clock=fmod(_loading_tip_clock,LOADING_TIP_INTERVAL)
+        _loading_tip_index+=1
+        _loading_tip_label.text=loading_tip_for(
+            _loading_tip_context,_loading_tip_index)
 
 
 func _add_entry_wordmark(container: VBoxContainer,title_size:=54,subtitle_size:=32) -> void:
@@ -704,6 +795,7 @@ func _show_loading(title: String,detail: String,pending: bool=false) -> void:
     _loading_meter.indeterminate=pending
     _loading_meter.show_percentage=not pending
     _loading_meter.value=0
+    _set_loading_tip_context("startup" if stage=="startup" else "battle")
     if _loading_fade and _loading_fade.is_valid():
         _loading_fade.kill()
     _loading_overlay.show()
@@ -3391,6 +3483,9 @@ func _launch(battle: bool) -> void:
     _release_preview()
     _clear_page()
     _show_loading("PREPARANDO PUERTO AURORA","Montando terreno, operador y controles…",true)
+    _set_loading_tip_context(
+        "hud_editor" if _hud_editor_requested else
+        "battle" if battle else "training")
     _loading_cancel.show()
     _launch_serial+=1
     call_deferred("_activate_game",battle,_launch_serial)
@@ -3409,6 +3504,7 @@ func _activate_game(battle: bool,serial: int) -> void:
         "frontend_scene_instantiate_before",
         "mode="+("battle" if battle else "training"))
     _loading_cancel.hide()
+    _loading_detail.text="Instanciando escena real: terreno, IA, operador y HUD…"
     _game=_game_scene.instantiate() as Node3D
     _game.name="ActiveAuroraGame"
     FLIGHT_DIAGNOSTICS.checkpoint("active","scene_load",null,
