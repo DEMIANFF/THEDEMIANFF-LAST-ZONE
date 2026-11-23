@@ -63,7 +63,7 @@ func _verify() -> void:
     check(not front._top_social_button.is_visible_in_tree() and
         front._bottom_navigation.get_node_or_null("BottomSOCIAL")!=null,
         "obsolete header SOCIAL is interactable or footer SOCIAL missing")
-    check(front._left_shortcuts.get_child_count()==6,
+    check(front._left_shortcuts.get_child_count()==5,
         "six functional Aurora commerce shortcuts are missing")
     var previous_bottom: float=-1.0
     for node in front._left_shortcuts.get_children():

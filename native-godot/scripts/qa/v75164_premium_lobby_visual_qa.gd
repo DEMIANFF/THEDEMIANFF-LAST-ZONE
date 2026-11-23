@@ -51,8 +51,8 @@ func _verify() -> void:
     check(bars.get_child_count()==5 and bars.get_node_or_null("BottomPRESET")==null,
         "five functional footer tabs and no PRESET required")
     var left: VBoxContainer=front._left_shortcuts
-    check(left.get_child_count()==6 and left.get_node_or_null("QuickJUGAR")!=null,
-        "six live left rail actions required")
+    check(left.get_child_count()==5 and left.get_node_or_null("QuickJUGAR")==null,
+        "five functional left shortcuts required; no duplicate JUGAR")
     check((left.get_child(0) as Button).get_theme_font_size("font_size")<=19,
         "left commerce hierarchy did not become more compact")
     check((bars.get_child(0) as Button).get_theme_font_size("font_size")<=20,

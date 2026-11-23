@@ -111,16 +111,15 @@ func _verify() -> void:
         "the real right-side mode selector must replace duplicate mode UI")
     _within_screen(front._play_match_card,"battle card")
     _within_screen(front._social_panel,"local squad")
-    check(front._lobby_compact_intel.is_visible_in_tree() and
-        not front._lobby_match_facts.visible,
-        "compact match facts should fill the lower phone card only")
-    check((front._lobby_compact_intel.get_node(
-        "CompactBattleInformation") as Label).text.contains("PUERTO AURORA"),
-        "compact briefing is not grounded in actual local map")
-    _within_screen(front._lobby_compact_intel,"compact match information")
-    check(not front._lobby_compact_intel.get_global_rect().intersects(
-        front._battle_entry.get_global_rect()),
-        "compact match intel obscures the functional INICIAR button")
+    check(not front._lobby_compact_intel.visible and
+        not front._lobby_match_facts.visible and
+        not front._lobby_section_title.visible and
+        not front._lobby_section_hint.visible,
+        "duplicate BR text/50-player tiles still cover the compact match card")
+    check(front._match_mode_selector.get_item_text(0)=="CLÁSICO" and
+        front._match_mode_selector.get_item_text(1)=="CLASIFICATORIA" and
+        front._match_mode_selector.get_item_text(2)=="ENTRENAMIENTO",
+        "the user-approved three simple modes were not adopted")
     for action in front._left_shortcuts.get_children():
         check((action as Button).get_theme_font_size("font_size")>=14,
             "left premium menu labels are unreadably small")
@@ -176,9 +175,9 @@ func _verify() -> void:
     await process_frame
     front._layout_safe()
     await process_frame
-    check(front._lobby_match_facts.visible and
+    check(not front._lobby_match_facts.visible and
         not front._lobby_compact_intel.visible,
-        "spacious lobby did not swap to its three factual match tiles")
+        "desktop lobby reintroduced redundant 50/zone/AI tiles")
     for mode in range(front._match_mode_selector.item_count):
         front._match_mode_selector.select(mode)
         front._match_mode_selector.item_selected.emit(mode)
@@ -195,9 +194,9 @@ func _verify() -> void:
     await process_frame
     front._layout_safe()
     await process_frame
-    check(front._lobby_compact_intel.visible and
+    check(not front._lobby_compact_intel.visible and
         not front._lobby_match_facts.visible,
-        "compact phone did not restore its truthful battle briefing")
+        "phone lobby reintroduced redundant match briefing")
     front._welcome()
     await process_frame
     check(front.stage=="welcome" and
