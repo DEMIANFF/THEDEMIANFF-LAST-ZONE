@@ -332,11 +332,12 @@ func _preview_input(event: InputEvent) -> void:
         _preview_resume_spin=2.2
 
 
-## The old broad 27%-68% region also opened EMOTES when tapping the
-## hangar, podium or Sentinel. Build a precise on-demand 2D silhouette
-## envelope from Lila's actual transformed MeshInstance3D bounds instead.
-## This runs only on touch-release, not every frame. No physics, colliders,
-## new render targets or fabricated animation resources are required.
+## The imported skinned GLB has bind-pose AABBs, not the character's
+## rendered silhouette. Those old bounds can project onto the hangar/right
+## rail despite Lila actually standing at the center of the portrait.
+## Use her authored 1.96m preview frame (see _fit_avatar_for_preview)
+## and the live portrait camera instead; only run when a tap is released.
+## This deliberately excludes the podium, companion and distant scenery.
 func _portrait_character_hit_rect() -> Rect2:
     if _preview_container==null or _preview_avatar==null or (
             not is_instance_valid(_preview_avatar) or
@@ -350,44 +351,46 @@ func _portrait_character_hit_rect() -> Rect2:
         "AuroraCharacterStage/LobbyPortraitCamera") as Camera3D
     if camera==null:
         return Rect2()
-    var low:=Vector2(INF,INF)
-    var high:=Vector2(-INF,-INF)
-    var seen: int=0
-    for node in _preview_avatar.find_children(
-            "*","MeshInstance3D",true,false):
-        var mesh: MeshInstance3D=node as MeshInstance3D
-        if mesh.mesh==null or not mesh.is_visible_in_tree():
-            continue
-        var bounds: AABB=mesh.get_aabb()
-        for corner in range(8):
-            var world: Vector3=mesh.to_global(bounds.get_endpoint(corner))
-            if camera.is_position_behind(world):
-                continue
-            var screen: Vector2=camera.unproject_position(world)
-            if not screen.is_finite():
-                continue
-            low=low.min(screen)
-            high=high.max(screen)
-            seen+=1
-    if seen<2 or high.x<=low.x or high.y<=low.y:
+    # Never use stage or Sentinel meshes as a proxy for Lila.
+    var body: MeshInstance3D=_preview_avatar.find_child(
+        "Lila_Aurora_Mesh",true,false) as MeshInstance3D
+    if body==null or body.mesh==null or not body.is_visible_in_tree():
         return Rect2()
-    # Godot SubViewportContainer may stretch/shrink the render target for
-    # Mobile/Vulkan. Convert projected viewport pixels back to LOCAL
-    # gui_input pixels, preserving the same result on phone and desktop.
+    var center_world:=Vector3(
+        _preview_avatar.global_position.x,0.98,
+        _preview_avatar.global_position.z)
+    var head_world:=Vector3(center_world.x,1.87,center_world.z)
+    var feet_world:=Vector3(center_world.x,0.10,center_world.z)
+    if camera.is_position_behind(center_world) or (
+            camera.is_position_behind(head_world) or
+            camera.is_position_behind(feet_world)):
+        return Rect2()
     var canvas: Vector2=_preview_container.size
+    if canvas.x<=0.0 or canvas.y<=0.0:
+        return Rect2()
     var scale:=Vector2(
-        canvas.x/float(viewport.size.x),canvas.y/float(viewport.size.y))
-    low*=scale
-    high*=scale
-    var touch_margin: float=clampf(canvas.y*.038,9.0,22.0)
-    var rect:=Rect2(low-Vector2.ONE*touch_margin,
-        high-low+Vector2.ONE*touch_margin*2.0)
-    # Never let hair/mesh import outliers make half the hangar clickable.
-    var max_width: float=canvas.x*.245
-    if rect.size.x>max_width:
-        rect.position.x+= (rect.size.x-max_width)*.5
-        rect.size.x=max_width
-    return rect
+        canvas.x/float(viewport.size.x),
+        canvas.y/float(viewport.size.y))
+    var center: Vector2=camera.unproject_position(center_world)*scale
+    var head: Vector2=camera.unproject_position(head_world)*scale
+    var feet: Vector2=camera.unproject_position(feet_world)*scale
+    if not center.is_finite() or not head.is_finite() or not feet.is_finite():
+        return Rect2()
+    # Screen-space body capsule envelope: narrow enough to exclude robot
+    # and airfield, broad enough for head, torso and mobile finger padding.
+    var projected_height: float=absf(feet.y-head.y)
+    # The imported operator's shoulders are far narrower than her height;
+    # 21% of the *entire canvas height* was admitting right-side scenery.
+    # Size the finger-safe torso region from the PROJECTED operator height.
+    var half_width: float=clampf(
+        projected_height*.19,25.0,canvas.x*.085)
+    var margin: float=clampf(projected_height*.035,6.0,12.0)
+    var top: float=minf(head.y,feet.y)-margin
+    var bottom: float=maxf(head.y,feet.y)+margin
+    var rect:=Rect2(
+        Vector2(center.x-half_width,top),
+        Vector2(half_width*2.0,bottom-top))
+    return rect.intersection(Rect2(Vector2.ZERO,canvas))
 
 
 func _preview_hit_character(point: Vector2) -> bool:

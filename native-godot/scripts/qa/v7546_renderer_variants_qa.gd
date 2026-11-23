@@ -28,8 +28,8 @@ func _verify() -> void:
         "Godot ETC2/ASTC platform texture compression must remain enabled")
     check(int(Engine.physics_ticks_per_second)==60,
         "camera, movement, fall and bot physics are still validated at 60 Hz")
-    check(RENDER.PROFILES==["AUTO","CLARIDAD","EQUILIBRADO","FLUIDEZ"],
-        "render governor profile compatibility was changed unexpectedly")
+    check(RENDER.PROFILES==["AUTO","CLARIDAD","EQUILIBRADO","FLUIDEZ","PERSONALIZADO"],
+        "original four profiles and new manual mode must remain available")
 
     # Verify we record TRUE runtime backend. A headless GPU might return a
     # dummy renderer; no assertion claims Vulkan is active on Motorola here.
@@ -62,5 +62,5 @@ func _verify() -> void:
     if not failed:
         print("V7546_RENDER_AB PASS requested_mobile=",requested_mobile,
             " desktop_gl=1 hardware_runtime_not_claimed=1 ",
-            "match_20fps_reported=1 quality_profiles=4 physics_60=1")
+            "match_20fps_reported=1 quality_profiles=5 physics_60=1")
     quit(1 if failed else 0)
