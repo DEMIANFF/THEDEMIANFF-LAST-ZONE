@@ -928,6 +928,19 @@ static func _can_resume_native_session(session: Dictionary,from_startup: bool,
         from_startup or initiated_login)
 
 
+## Isolated so QA checks pending->confirmed transitions using a fake
+## Dictionary without spoofing the real Firebase SDK. Runtime always calls
+## this with the actual getSessionState() from the Android plugin.
+func _resume_native_session_if_ready(session: Dictionary) -> bool:
+    if not _can_resume_native_session(session,_auto_resume_on_entry,
+            not _login_waiting_provider.is_empty()):
+        return false
+    _auto_resume_on_entry=false
+    _login_waiting_provider=""
+    call_deferred("_show_lobby")
+    return true
+
+
 func _poll_login_state() -> void:
     if stage!="welcome" or _login_status_label==null or not is_instance_valid(_login_status_label):
         return
@@ -953,21 +966,16 @@ func _poll_login_state() -> void:
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
     var enter: Button=_login_local_button
     if bool(session.get("authenticated",false)):
-        _login_waiting_provider=""
         if bool(session.get("identity_confirmed",false)):
             _login_status_label.text="SESIÓN CONFIRMADA · ID "+str(session.get("official_id",""))
         else:
             _login_status_label.text="CUENTA AUTENTICADA · ID PENDIENTE DEL SERVIDOR"
         if enter!=null:
             enter.text="CONTINUAR AL LOBBY"
-        # Restored Google/guest login goes straight into the REAL lobby,
-        # and a player who just authenticated need not press CONTINUAR.
-        # Manual Gestionar acceso leaves the provider chooser accessible.
-        if _can_resume_native_session(session,_auto_resume_on_entry,
-                not _login_waiting_provider.is_empty()):
-            _auto_resume_on_entry=false
-            _login_waiting_provider=""
-            call_deferred("_show_lobby")
+        # Preserve the explicit sign-in intent WHILE Firebase/App Check is
+        # resolving. V75.171 accidentally cleared _login_waiting_provider
+        # before checking it, so fresh Google/Guest login could never enter.
+        _resume_native_session_if_ready(session)
         return
     if enter!=null:
         enter.text="JUGAR SIN CONEXIÓN"
@@ -1102,7 +1110,9 @@ func _show_lobby() -> void:
     _page.anchor_left=.735
     _page.anchor_right=.961
     _page.anchor_top=.386
-    _page.anchor_bottom=.763
+    # The original .763 reserved 160+ empty pixels below INICIAR.
+    # Fit the ONE mode selector and its actual play button instead.
+    _page.anchor_bottom=.562
     _page.add_theme_constant_override("separation",2)
     # The same live SubViewport is now the whole winter hangar
     # behind the menus. Side bars are native UI placed ABOVE it; never
@@ -1151,7 +1161,7 @@ func _show_lobby() -> void:
     _profile_strip.text="THEDEMIAN: LAST ZONE"
     _stats_strip.visible=false
     _currency_strip.visible=true
-    _currency_strip.text="MONEDAS %d\nDIAMANTES · SIN DATOS"%int(
+    _currency_strip.text="MONEDAS %d\nDIAMANTES —"%int(
         stats.get("local_coins",0))
     _currency_strip.tooltip_text=(
         "No existe un saldo premium confirmado; no se inventan diamantes.")
@@ -1793,7 +1803,7 @@ func _ensure_lobby_navigation() -> void:
     brand_slash.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _header_glass.add_child(brand_slash)
     _profile_strip=_make_header_label(
-        "LocalProfileStrip",.342,.562,20)
+        "LocalProfileStrip",.278,.562,20)
     _profile_strip.add_theme_font_override("font",DISPLAY_FONT)
     _stats_strip=_make_header_label(
         "LocalStatisticsStrip",.562,.563,1)
@@ -2021,7 +2031,7 @@ func _ensure_lobby_navigation() -> void:
     _play_match_card.anchor_left=.718
     _play_match_card.anchor_right=.977
     _play_match_card.anchor_top=.351
-    _play_match_card.anchor_bottom=.794
+    _play_match_card.anchor_bottom=.580
     _play_match_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
     var match_card_style:=StyleBoxFlat.new()
     match_card_style.bg_color=Color(.008,.020,.038,.88)
@@ -2074,7 +2084,7 @@ func _ensure_lobby_navigation() -> void:
     _top_account_button.name="TopAccount"
     _top_account_button.custom_minimum_size=Vector2.ZERO
     _top_account_button.anchor_left=.099
-    _top_account_button.anchor_right=.326
+    _top_account_button.anchor_right=.264
     _top_account_button.anchor_top=.025
     _top_account_button.anchor_bottom=.131
     _top_account_button.add_theme_font_size_override("font_size",16)
@@ -2713,7 +2723,7 @@ func _select_tab(tab: String) -> void:
     _page.anchor_left=.735
     _page.anchor_right=.961
     _page.anchor_top=.386 if tab=="JUGAR" else .183
-    _page.anchor_bottom=.763 if tab=="JUGAR" else .860
+    _page.anchor_bottom=.562 if tab=="JUGAR" else .860
     for button in _lobby_nav.get_children():
         if button is Button:
             var selected: bool=button.name=="Tab"+tab
@@ -4005,6 +4015,13 @@ func _layout_safe() -> void:
     _surface.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     _surface.position=safe.position
     _surface.size=safe.size
+    # Small landscape canvases require room for the real 49px selector
+    # and 65px INICIAR; keep both interactive controls inside the card.
+    if stage=="lobby" and is_instance_valid(_play_match_card):
+        var short_canvas: bool=safe.size.y<560.0
+        _play_match_card.anchor_bottom=.710 if short_canvas else .580
+        if _selected_tab=="JUGAR":
+            _page.anchor_bottom=.687 if short_canvas else .562
     # Adapt original LZ emblem to usable screen height: large desktop hero
     # but never clip the live progress/actions in 434px Motorola landscape.
     if _loading_emblem!=null and is_instance_valid(_loading_emblem):
