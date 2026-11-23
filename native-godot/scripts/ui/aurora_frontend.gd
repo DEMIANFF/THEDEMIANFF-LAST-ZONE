@@ -262,7 +262,8 @@ func _process(delta: float) -> void:
     if subject==null or not is_instance_valid(subject):
         return
     _preview_resume_spin=maxf(0.0,_preview_resume_spin-delta)
-    if _preview_resume_spin<=0.0 and _preview_touch<0 and not _preview_mouse_drag:
+    if _preview_resume_spin<=0.0 and _preview_touch<0 and not _preview_mouse_drag and (
+            _emote_wheel==null or not _emote_wheel.visible):
         subject.rotation.y=wrapf(subject.rotation.y+delta*.18,-PI,PI)
 
 
@@ -281,15 +282,24 @@ func _preview_input(event: InputEvent) -> void:
         var touch:=event as InputEventScreenTouch
         if touch.pressed and not touch.canceled and _preview_touch<0:
             _preview_touch=touch.index
+            _preview_press_origin=touch.position
             _preview_drag_last=touch.position
+            _preview_tap_dragged=false
             _preview_resume_spin=2.2
             _preview_container.accept_event()
         elif touch.index==_preview_touch and (not touch.pressed or touch.canceled):
+            var is_tap: bool=(not touch.canceled and not _preview_tap_dragged and
+                touch.position.distance_to(_preview_press_origin)<14.0)
             _preview_touch=-1
+            if is_tap and _preview_hit_character(touch.position):
+                _toggle_character_emotes()
             _preview_container.accept_event()
     elif event is InputEventScreenDrag:
         var drag:=event as InputEventScreenDrag
         if drag.index==_preview_touch:
+            if drag.position.distance_to(_preview_press_origin)>12.0:
+                _preview_tap_dragged=true
+                _close_character_emotes()
             subject.rotation.y=wrapf(
                 subject.rotation.y+drag.relative.x*.008,-PI,PI)
             _preview_drag_last=drag.position
@@ -298,16 +308,54 @@ func _preview_input(event: InputEvent) -> void:
     elif event is InputEventMouseButton:
         var mouse:=event as InputEventMouseButton
         if mouse.button_index==MOUSE_BUTTON_LEFT:
+            var point: Vector2=mouse.position
+            if mouse.pressed:
+                _preview_press_origin=point
+                _preview_tap_dragged=false
+            elif not _preview_tap_dragged and (
+                    point.distance_to(_preview_press_origin)<14.0) and (
+                    _preview_hit_character(point)):
+                _toggle_character_emotes()
             _preview_mouse_drag=mouse.pressed
-            _preview_drag_last=mouse.position
+            _preview_drag_last=point
             _preview_resume_spin=2.2
             _preview_container.accept_event()
     elif event is InputEventMouseMotion and _preview_mouse_drag:
         var motion:=event as InputEventMouseMotion
+        if motion.position.distance_to(_preview_press_origin)>12.0:
+            _preview_tap_dragged=true
+            _close_character_emotes()
         subject.rotation.y=wrapf(
             subject.rotation.y+motion.relative.x*.008,-PI,PI)
         _preview_drag_last=motion.position
         _preview_resume_spin=2.2
+
+
+func _preview_hit_character(point: Vector2) -> bool:
+    if _preview_container==null or _selected_tab not in ["JUGAR","PERSONAJE"]:
+        return false
+    var dimensions: Vector2=_preview_container.size
+    return point.x>=dimensions.x*.27 and point.x<=dimensions.x*.68 and (
+        point.y>=dimensions.y*.17 and point.y<=dimensions.y*.81)
+
+
+func _toggle_character_emotes() -> void:
+    if _emote_wheel==null or not is_instance_valid(_emote_wheel):
+        return
+    if _preview_male_active:
+        return
+    _emote_wheel.visible=not _emote_wheel.visible
+    _preview_resume_spin=4.0
+
+
+func _close_character_emotes() -> void:
+    if _emote_wheel!=null and is_instance_valid(_emote_wheel):
+        _emote_wheel.hide()
+
+
+func _play_selected_character_emote() -> void:
+    _close_character_emotes()
+    _play_lobby_gesture()
         _preview_container.accept_event()
 
 
@@ -1391,18 +1439,24 @@ func _show_lobby() -> void:
 
 
 func _update_identity_strip(stats: Dictionary) -> void:
-    if _stats_strip==null or _player_name==null:
+    if _player_name==null:
         return
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
-    if bool(session.get("identity_confirmed",false)):
-        var server_name: String=str(session.get("display_name",""))
-        _stats_strip.text="%s\nID %s · CUENTA"%[
-            server_name if not server_name.is_empty() else "NOMBRE PENDIENTE",
-            str(session.get("official_id",""))]
-    else:
-        _stats_strip.text="%s\nLOCAL · %d P · %d V"%[
-            _player_name.display_name,int(stats.get("played",0)),
-            int(stats.get("wins",0))]
+    var confirmed: bool=bool(session.get("identity_confirmed",false))
+    var player_name: String=(str(session.get("display_name",""))
+        if confirmed else _player_name.display_name)
+    if player_name.is_empty():
+        player_name=_player_name.display_name
+    # V75.171: the original "OPERADOR LOCAL 0 P 0 V" floating text is
+    # replaced by ONE actionable profile at the far left of the header.
+    if _top_account_button!=null and is_instance_valid(_top_account_button):
+        _top_account_button.text=player_name
+        _top_account_button.tooltip_text="ABRIR PERFIL · "+(
+            "ID "+str(session.get("official_id","")) if confirmed
+            else "partidas locales verificadas")
+    if _stats_strip!=null:
+        _stats_strip.text=""
+        _stats_strip.visible=false
 
 
 func _save_player_name() -> void:
@@ -2441,6 +2495,156 @@ func _style_bottom_navigation_active(tab: String) -> void:
         button.modulate=Color.WHITE if active else Color(.84,.88,.94)
 
 
+## Real offline performance and optionally server-confirmed identity.
+## Accessible at top LEFT. No invented battle rank, UID, premium balance or
+## pretend online friends are displayed.
+func _build_player_profile() -> void:
+    if _profile_overlay!=null and is_instance_valid(_profile_overlay):
+        return
+    _profile_overlay=Control.new()
+    _profile_overlay.name="AuroraVerifiedProfileOverlay"
+    _profile_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    _profile_overlay.mouse_filter=Control.MOUSE_FILTER_STOP
+    _surface.add_child(_profile_overlay)
+    var scrim:=ColorRect.new()
+    scrim.name="ProfileScrim"
+    scrim.color=Color(.005,.012,.033,.85)
+    scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    scrim.mouse_filter=Control.MOUSE_FILTER_STOP
+    _profile_overlay.add_child(scrim)
+    var panel:=PanelContainer.new()
+    panel.name="RealPlayerProfilePanel"
+    panel.anchor_left=.145
+    panel.anchor_right=.855
+    panel.anchor_top=.130
+    panel.anchor_bottom=.862
+    var style:=StyleBoxFlat.new()
+    style.bg_color=Color(.015,.029,.057,.98)
+    style.border_color=Color(.36,.78,.93,.88)
+    style.set_border_width_all(2)
+    style.set_corner_radius_all(12)
+    style.content_margin_left=18
+    style.content_margin_right=18
+    style.content_margin_top=11
+    style.content_margin_bottom=12
+    panel.add_theme_stylebox_override("panel",style)
+    _profile_overlay.add_child(panel)
+    var column:=VBoxContainer.new()
+    column.name="VerifiedPlayerData"
+    column.add_theme_constant_override("separation",5)
+    panel.add_child(column)
+    var titlebar:=HBoxContainer.new()
+    column.add_child(titlebar)
+    var title:=Label.new()
+    title.text="MI PERFIL"
+    title.name="RealProfileTitle"
+    title.add_theme_font_override("font",DISPLAY_FONT)
+    title.add_theme_font_size_override("font_size",26)
+    title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    titlebar.add_child(title)
+    var close:=_button("CERRAR",Callable(self,"_close_player_profile"),0)
+    close.name="CloseRealProfile"
+    close.custom_minimum_size=Vector2(125,35)
+    titlebar.add_child(close)
+    _profile_name_label=Label.new()
+    _profile_name_label.name="VerifiedProfileName"
+    _profile_name_label.add_theme_font_override("font",DISPLAY_FONT)
+    _profile_name_label.add_theme_font_size_override("font_size",23)
+    column.add_child(_profile_name_label)
+    _profile_id_label=Label.new()
+    _profile_id_label.name="VerifiedProfileId"
+    _profile_id_label.add_theme_font_size_override("font_size",14)
+    _profile_id_label.add_theme_color_override(
+        "font_color",Color(.67,.86,.98))
+    column.add_child(_profile_id_label)
+    var stats:=HBoxContainer.new()
+    stats.name="ActualMatchStats"
+    stats.add_theme_constant_override("separation",8)
+    column.add_child(stats)
+    for name in ["PARTIDAS","VICTORIAS","ELIMINACIONES"]:
+        var tile:=PanelContainer.new()
+        tile.name="RealStat"+name
+        tile.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        tile.custom_minimum_size.y=68
+        var tile_style:=StyleBoxFlat.new()
+        tile_style.bg_color=Color(.051,.094,.144,.83)
+        tile_style.border_color=Color(.22,.56,.70,.58)
+        tile_style.set_border_width_all(1)
+        tile_style.set_corner_radius_all(7)
+        tile.add_theme_stylebox_override("panel",tile_style)
+        stats.add_child(tile)
+        var tile_column:=VBoxContainer.new()
+        tile.add_child(tile_column)
+        var value:=Label.new()
+        value.name="StatValue"
+        value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+        value.add_theme_font_size_override("font_size",23)
+        value.add_theme_color_override(
+            "font_color",Color(1.0,.79,.32))
+        tile_column.add_child(value)
+        _profile_stat_labels.append(value)
+        var caption:=Label.new()
+        caption.text=name
+        caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+        caption.add_theme_font_size_override("font_size",13)
+        tile_column.add_child(caption)
+    _profile_session_label=Label.new()
+    _profile_session_label.name="VerifiedProfileConnection"
+    _profile_session_label.add_theme_font_size_override("font_size",14)
+    _profile_session_label.add_theme_color_override(
+        "font_color",Color(.65,.83,.92))
+    column.add_child(_profile_session_label)
+    var action:=_button("CUENTA Y RESPALDO",
+        Callable(self,"_open_profile_account"),0)
+    action.name="ManageProfileAccount"
+    action.custom_minimum_size.y=37
+    action.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _style_aurora_tab(action,Color(.40,.78,.90))
+    column.add_child(action)
+    _profile_overlay.hide()
+
+
+func _refresh_player_profile() -> void:
+    if _profile_overlay==null or _offline_records==null:
+        return
+    var saved: Dictionary=_offline_records.snapshot()
+    var session: Dictionary=FIREBASE_BRIDGE.session_state()
+    var confirmed: bool=bool(session.get("identity_confirmed",false))
+    var display: String=str(session.get("display_name","")) if confirmed else ""
+    if display.is_empty():
+        display=_player_name.display_name
+    _profile_name_label.text=display
+    _profile_id_label.text=("ID %s · IDENTIDAD CONFIRMADA"%[
+        str(session.get("official_id",""))] if confirmed
+        else "PERFIL LOCAL · SIN ID EN LÍNEA CONFIRMADO")
+    var values: Array[int]=[
+        int(saved.get("played",0)),int(saved.get("wins",0)),
+        int(saved.get("kills",0))]
+    for i in range(mini(_profile_stat_labels.size(),values.size())):
+        _profile_stat_labels[i].text=str(values[i])
+    _profile_session_label.text=(
+        "Sesión autenticada: "+str(session.get("provider","")).to_upper()
+        if bool(session.get("authenticated",false)) else
+        "Progreso local verificado en este dispositivo")
+
+
+func _open_player_profile() -> void:
+    if stage!="lobby" or _profile_overlay==null:
+        return
+    _refresh_player_profile()
+    _profile_overlay.show()
+
+
+func _close_player_profile() -> void:
+    if _profile_overlay!=null:
+        _profile_overlay.hide()
+
+
+func _open_profile_account() -> void:
+    _close_player_profile()
+    _select_tab("CUENTA")
+
+
 func _open_lobby_category(tab: String,objective: String="") -> void:
     if not objective.is_empty():
         _objective_page=objective
@@ -3211,6 +3415,9 @@ func _release_preview() -> void:
     if _gesture_button!=null and is_instance_valid(_gesture_button):
         _gesture_button.queue_free()
     _gesture_button=null
+    if _emote_wheel!=null and is_instance_valid(_emote_wheel):
+        _emote_wheel.queue_free()
+    _emote_wheel=null
     _preview_zoomed=false
     _preview_skin_applied=""
     _preview_male_active=false
@@ -3222,6 +3429,7 @@ func _release_preview() -> void:
     _preview_avatar=null
     _preview_touch=-1
     _preview_mouse_drag=false
+    _preview_tap_dragged=false
     _preview_resume_spin=0.0
 
 
@@ -3647,59 +3855,55 @@ func _build_preview() -> void:
     caption.add_theme_color_override("font_color",Color(.75,.88,.97))
     caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
     caption.visible=false
-    var nameplate:=_make_glass_panel(
-        Color(.009,.020,.039,.96),Color(.46,.77,.93,.88),7)
-    nameplate.name="AuroraOperatorNameplate"
-    nameplate.anchor_left=.335
-    nameplate.anchor_right=.551
-    nameplate.anchor_top=.769
-    nameplate.anchor_bottom=.850
-    _surface.add_child(nameplate)
-    _lobby_backplates.append(nameplate)
+    # No dedicated GESTO, arrows or VISTA controls. The character is
+    # already rotated by a swipe and a tap opens the true in-engine emote.
+    # Existing animation remains the only selectable action until more
+    # authored, licensed emote clips are available.
     _surface.add_child(caption)
     _preview_caption=caption
-    _gesture_button=_button("GESTO",_play_lobby_gesture,0)
-    _gesture_button.icon=_reference_lobby_icon(3)
-    _gesture_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
-    _gesture_button.name="LilaLobbyGesture"
-    _gesture_button.custom_minimum_size=Vector2.ZERO
-    _gesture_button.anchor_left=.635
-    _gesture_button.anchor_right=.711
-    # At 964x434 these real touch targets are >40px high, not tiny labels.
-    _gesture_button.anchor_top=.769
-    _gesture_button.anchor_bottom=.849
-    _gesture_button.add_theme_font_override("font",DISPLAY_FONT)
-    _gesture_button.add_theme_font_size_override("font_size",18)
-    _style_aurora_tab(_gesture_button,Color(.53,.77,.93))
-    _gesture_button.tooltip_text="Reproducir gesto animado de Lila"
-    _gesture_button.accessibility_name=_gesture_button.tooltip_text
-    _gesture_button.visible=false
-    _surface.add_child(_gesture_button)
-    # Dedicated accessible controls supplement swipe rotation. Each control
-    # acts on the actual 3D Lila rig/camera, never a background illustration.
-    for item in [
-        ["LilaTurnLeft","◀",Callable(self,"_rotate_operator").bind(-1.0),
-            .223,.272,"Girar a Lila a la izquierda"],
-        ["LilaTurnRight","▶",Callable(self,"_rotate_operator").bind(1.0),
-            .279,.328,"Girar a Lila a la derecha"],
-        ["LilaCameraFrame","VISTA",Callable(self,"_toggle_operator_frame"),
-            .559,.628,"Alternar encuadre de Lila"]
-    ]:
-        var action: Button=_button(str(item[1]),item[2],0)
-        action.name=str(item[0])
-        action.custom_minimum_size=Vector2.ZERO
-        action.anchor_left=float(item[3])
-        action.anchor_right=float(item[4])
-        action.anchor_top=.769
-        action.anchor_bottom=.849
-        action.add_theme_font_override("font",DISPLAY_FONT)
-        action.add_theme_font_size_override("font_size",19)
-        action.tooltip_text=str(item[5])
-        action.accessibility_name=action.tooltip_text
-        _style_aurora_tab(action,Color(.53,.77,.93))
-        action.visible=false
-        _surface.add_child(action)
-        _operator_controls.append(action)
+    _emote_wheel=PanelContainer.new()
+    _emote_wheel.name="AuroraCharacterEmoteWheel"
+    _emote_wheel.anchor_left=.338
+    _emote_wheel.anchor_right=.605
+    _emote_wheel.anchor_top=.315
+    _emote_wheel.anchor_bottom=.725
+    _emote_wheel.mouse_filter=Control.MOUSE_FILTER_STOP
+    var wheel_style:=StyleBoxFlat.new()
+    wheel_style.bg_color=Color(.008,.020,.043,.93)
+    wheel_style.border_color=Color(.27,.84,.94,.83)
+    wheel_style.set_border_width_all(2)
+    wheel_style.set_corner_radius_all(22)
+    wheel_style.content_margin_left=14
+    wheel_style.content_margin_right=14
+    wheel_style.content_margin_top=9
+    wheel_style.content_margin_bottom=9
+    _emote_wheel.add_theme_stylebox_override("panel",wheel_style)
+    _surface.add_child(_emote_wheel)
+    var wheel_content:=VBoxContainer.new()
+    wheel_content.add_theme_constant_override("separation",8)
+    _emote_wheel.add_child(wheel_content)
+    var heading:=Label.new()
+    heading.name="EmoteHeading"
+    heading.text="EMOTES"
+    heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    heading.add_theme_font_override("font",DISPLAY_FONT)
+    heading.add_theme_font_size_override("font_size",22)
+    wheel_content.add_child(heading)
+    var emote:=_button("MOVIMIENTO AURORA",
+        Callable(self,"_play_selected_character_emote"),0)
+    emote.name="AuroraAvailableCharacterEmote"
+    emote.custom_minimum_size.y=42
+    emote.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _style_primary_action(emote)
+    wheel_content.add_child(emote)
+    var close_emote:=_button("CERRAR",
+        Callable(self,"_close_character_emotes"),0)
+    close_emote.name="CloseCharacterEmotes"
+    close_emote.custom_minimum_size.y=37
+    close_emote.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _style_aurora_tab(close_emote,Color(.35,.75,.88))
+    wheel_content.add_child(close_emote)
+    _emote_wheel.hide()
     if MALE_PREVIEW.source_available():
         # Private-source male selector occupies the gap between rotate/frame
         # and gesture. It is absent from APKs without a checked male GLB.
