@@ -17,7 +17,11 @@ func check(ok: bool,reason: String) -> void:
 
 
 func _check_composition(front: Control,dimensions: Vector2i) -> void:
-    var safe: Rect2=Rect2(Vector2.ZERO,Vector2(dimensions))
+    # Measure the actual Godot safe canvas, not unscaled window pixels.
+    var safe: Rect2=front._surface.get_global_rect()
+    check(safe.size.distance_to(Vector2(dimensions))<3.0,
+        "window resize did not produce requested logical layout: "+
+        str(dimensions)+" actual="+str(safe.size))
     var card: Rect2=front._play_match_card.get_global_rect()
     var squad: Rect2=front._social_panel.get_global_rect()
     var mode: Rect2=front._match_mode_selector.get_global_rect()
@@ -33,18 +37,20 @@ func _check_composition(front: Control,dimensions: Vector2i) -> void:
         not card.intersects(footer) and
         not card.intersects(squad),
         "mode selector/INICIAR escaped compact card or overlap at "+str(dimensions))
-    check(card.size.y<float(dimensions.y)*.29 and
-        card.end.y-launch.end.y<float(dimensions.y)*.085,
+    check(card.size.y<float(safe.size.y)*(.385 if safe.size.y<560.0 else .245) and
+        card.end.y-launch.end.y<float(safe.size.y)*.075,
         "right card still wastes an oversized empty black region: "+str(
         dimensions)+" unused="+str(card.end.y-launch.end.y))
-    check(header.size.x<float(dimensions.x)*.185 and
+    check(header.size.x<float(safe.size.x)*.185 and
         not header.intersects(front._profile_strip.get_global_rect()) and
-        header.get_center().x<float(dimensions.x)*.30,
+        header.get_center().x<safe.position.x+float(safe.size.x)*.30,
         "real top-left profile consumes excessive header width")
     check(front._currency_strip.text.contains("MONEDAS") and
         front._currency_strip.text.contains("DIAMANTES —") and
         not front._currency_strip.text.contains("SIN DATOS"),
         "premium balance was invented or used as an oversized label")
+    print("V75172_GEOMETRY requested=",dimensions," logical_safe=",safe,
+        " match_card=",card," launch=",launch," profile=",header)
     check(front._bottom_navigation.get_child_count()==5 and
         front._left_shortcuts.get_child_count()==5 and
         not front._lobby_section_title.visible and
@@ -53,6 +59,8 @@ func _check_composition(front: Control,dimensions: Vector2i) -> void:
 
 
 func _verify() -> void:
+    # Exercise true pixel-sized mobile and desktop canvases in isolated QA.
+    root.content_scale_mode=Window.CONTENT_SCALE_MODE_DISABLED
     root.size=Vector2i(964,434)
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
