@@ -26,8 +26,9 @@ func _verify() -> void:
     check(not front._training_entry.visible,
         "Training must not obscure the Classic start button")
     check(front.find_child("OfflineEncounterSize",true,false)==null and
-        front._lobby_section_hint.text.contains("50 PARTICIPANTES"),
-        "only one fixed Battle Royale size should be visible")
+        not front._lobby_section_hint.visible and
+        selector.get_item_text(0)=="CLÁSICO",
+        "fixed 50-player roster must not require duplicate lobby text")
     check(front._lobby_detail_scroll is ScrollContainer,
         "long lobby information is not scrollable on mobile")
 
@@ -83,8 +84,9 @@ func _verify() -> void:
     selector.select(0)
     front._on_match_mode_selected(0)
     check(front._lobby_mode_status.text.contains("50 PARTICIPANTES") and
-        front._lobby_mode_caption.visible,
-        "Classic mode no longer identifies its single 50-fighter roster")
+        not front._lobby_mode_caption.visible and
+        front._battle_entry.visible,
+        "internal 50-fighter contract must survive compact selector-only UI")
     for size in [Vector2i(960,540),Vector2i(1280,720)]:
         root.size=size
         await process_frame

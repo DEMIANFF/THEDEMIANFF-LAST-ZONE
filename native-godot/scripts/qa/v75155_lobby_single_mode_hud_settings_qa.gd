@@ -39,9 +39,10 @@ func _verify() -> void:
         front._surface.global_position.x+front._surface.size.x*.68,
         "BR selector overlaps the operator or left-side main navigation")
     check(front._battle_entry.visible and
-        front._lobby_mode_caption.visible and
+        not front._lobby_mode_caption.visible and
+        not front._lobby_match_facts.visible and
         front._selected_match_mode=="classic",
-        "real 50-participant classic BR card was removed")
+        "playable classic BR should have one compact selector and INICIAR")
 
     var footer: HBoxContainer=front._bottom_navigation
     check(footer.get_child_count()==5 and
@@ -56,18 +57,14 @@ func _verify() -> void:
     check(not front._lobby_status_ribbon.visible,
         "extra local-mode ribbon still crowds the bottom of Lila")
     var rail: VBoxContainer=front._left_shortcuts
-    check(rail.get_child_count()==6,
-        "clean Aurora left rail no longer has six actual menu actions")
-    var arena: Button=rail.get_node_or_null("QuickJUGAR") as Button
-    var pass_button: Button=rail.get_node_or_null("QuickPASE") as Button
-    check(arena!=null and pass_button!=null and
-        arena.text.contains("SALA DE BATALLA") and
-        pass_button.text.contains("PASE ROYALE"),
-        "left menu does not match the approved Aurora composition")
+    check(rail.get_child_count()==5 and
+        rail.get_node_or_null("QuickJUGAR")==null and
+        rail.get_node_or_null("QuickPASE")!=null,
+        "left rail must have five genuine actions and no duplicated JUGAR")
     front._select_tab("INVENTARIO")
-    arena.emit_signal("pressed")
+    footer.get_node("BottomJUGAR").pressed.emit()
     check(front._selected_tab=="JUGAR" and right.visible,
-        "SALA DE BATALLA opened a redundant MODOS modal")
+        "only the active footer JUGAR should reopen the right-side BR card")
 
     # The already-existing 4-slot persisted HUD editor must be reached by
     # the actual TOP gear, not a second PRESET footer, and not start a match.

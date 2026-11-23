@@ -70,12 +70,15 @@ func _verify() -> void:
             extents.y<=viewport_height*.89,
             "operator projects into header or bottom rail at "+
             str(dimensions)+": "+str(extents)+" / "+str(viewport_height))
-    front._operator_controls[2].pressed.emit()
+    check(front._operator_controls.is_empty() and
+        not front._preview_caption.visible and front._emote_wheel!=null,
+        "obsolete button nameplate or arrow controls returned")
+    front._toggle_operator_frame()
     await create_timer(.38).timeout
     check(front._preview_zoomed and absf(camera.fov-45.0)<.3 and
         camera.position.y>1.43,
         "portrait framing did not move lens above operator's face")
-    front._operator_controls[2].pressed.emit()
+    front._toggle_operator_frame()
     await create_timer(.38).timeout
     check(not front._preview_zoomed and absf(camera.fov-54.0)<.3 and
         absf(camera.position.y-1.18)<.03,

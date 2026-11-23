@@ -14,6 +14,7 @@ static func contract() -> Dictionary:
         "guest_method":"beginGuestSignIn",
         "google_method":"beginGoogleSignIn",
         "session_method":"getSessionState",
+        "signout_method":"signOut",
         "requires_gradle":true,
         "requires_app_check":true
     }
@@ -136,3 +137,21 @@ static func session_state() -> Dictionary:
         "pending":payload.get("pending")==true,
         "reason":str(payload.get("reason","identity_pending"))
     }
+
+
+## Real Firebase Auth sign-out is allowed even if App Check cannot refresh,
+## because local sign-out must work offline. Never pretend a provider was
+## disconnected: verify the Java SDK's getSessionState after calling it.
+static func request_sign_out() -> Dictionary:
+    if not OS.has_feature("android") or not Engine.has_singleton(PLUGIN_NAME):
+        return {"signed_out":false,"reason":"android_plugin_missing"}
+    var native: Object=Engine.get_singleton(PLUGIN_NAME)
+    if not native.has_method("has_java_method") or not bool(
+            native.call("has_java_method",&"signOut")):
+        return {"signed_out":false,"reason":"native_signout_unavailable"}
+    native.call("signOut")
+    var raw: Variant=native.call("getSessionState")
+    var payload: Variant=JSON.parse_string(raw) if raw is String else null
+    if payload is Dictionary and payload.get("authenticated")==false:
+        return {"signed_out":true,"reason":"native_session_closed"}
+    return {"signed_out":false,"reason":"native_session_still_active"}

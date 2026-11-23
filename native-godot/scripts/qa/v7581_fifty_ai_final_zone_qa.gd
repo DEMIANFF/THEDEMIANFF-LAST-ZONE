@@ -30,8 +30,10 @@ func _verify() -> void:
     menu._enter_local_lobby()
     await process_frame
     check(menu.find_child("OfflineEncounterSize",true,false)==null and
-        menu._lobby_section_hint.text.contains("50 PARTICIPANTES"),
-        "user-facing lobby must expose only the fixed 50-person BR")
+        not menu._lobby_section_hint.visible and
+        menu._match_mode_selector.get_item_text(0)=="CLÁSICO" and
+        menu._battle_entry.text=="INICIAR",
+        "fixed 50-player BR must remain playable without duplicate labels")
     menu.queue_free()
     await process_frame
     var game: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()

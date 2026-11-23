@@ -1,6 +1,6 @@
 extends SceneTree
-## V75.108: touch actions change real 3D operator and camera, not screenshots.
-## Cosmetic sampling is never a purchase. Accept only real lobby scene.
+## V75.171: real touch rotation, character-tap emote, account and cosmetic
+## workflows. No separate turn arrows, VISTA, GESTO or operator nameplate.
 var failed: bool=false
 
 
@@ -8,10 +8,10 @@ func _initialize() -> void:
     call_deferred("_verify")
 
 
-func check(ok: bool,problem: String) -> void:
+func check(ok: bool,reason: String) -> void:
     if not ok:
         failed=true
-        push_error("V75108_OPERATOR_LOBBY "+problem)
+        push_error("V75108_OPERATOR_LOBBY "+reason)
 
 
 func _verify() -> void:
@@ -19,79 +19,96 @@ func _verify() -> void:
     var front: Control=(load("res://scenes/Boot.tscn") as PackedScene).instantiate()
     root.add_child(front)
     await front.wait_for_startup()
-    check(front.stage=="welcome","login not separated from lobby")
+    check(front.stage=="welcome","login is not separate from the lobby")
     front._enter_local_lobby()
     await process_frame
+    front._layout_safe()
     var avatar: Node3D=front._preview_avatar
-    check(avatar!=null and front._game==null,"real Lila preview is missing")
+    check(avatar!=null and front._game==null and
+        front._preview_container!=null,
+        "live skinned Lila 3D preview missing")
     if avatar==null:
         quit(1)
         return
     var camera: Camera3D=front._preview_container.get_node_or_null(
         "PreviewViewport/AuroraCharacterStage/LobbyPortraitCamera") as Camera3D
-    check(camera!=null,"actual Godot 3D portrait camera missing")
-    check(front._operator_controls.size()==3,
-        "touch-accessible rotation and camera controls missing")
-    var safe: Rect2=root.get_visible_rect()
-    for button in front._operator_controls:
-        check(button.is_visible_in_tree() and
-            safe.grow(2).encloses(button.get_global_rect()),
-            "operator control clipped: "+button.name)
-        check(button.get_global_rect().size.y>=40.0,
-            "operator touch target is smaller than 40 px: "+button.name)
-    var before_angle: float=avatar.rotation.y
-    front._operator_controls[1].pressed.emit()
-    await create_timer(.40).timeout
-    check(absf(angle_difference(before_angle,avatar.rotation.y))>.20,
-        "right rotation did not turn actual skinned Lila")
-    front._operator_controls[0].pressed.emit()
-    await create_timer(.40).timeout
-    check(absf(angle_difference(before_angle,avatar.rotation.y))<.12,
-        "left turn did not restore starting direction")
-    front._operator_controls[2].pressed.emit()
-    await create_timer(.38).timeout
-    check(front._preview_zoomed and camera!=null and absf(camera.fov-45.0)<.3 and
-        camera.position.y>1.43,
-        "framing control did not animate actual 3D camera")
-    front._operator_controls[2].pressed.emit()
-    await create_timer(.38).timeout
-    check(not front._preview_zoomed and absf(camera.fov-54.0)<.3 and
-        absf(camera.position.y-1.18)<.03,
-        "framing control did not restore full-body view")
+    check(camera!=null,"actual portrait camera missing")
+    check(front._gesture_button==null and
+        front._operator_controls.is_empty() and
+        not front._preview_caption.visible,
+        "obsolete arrows, VISTA, GESTO or nameplate still block character")
 
-    var state_before: Dictionary=front._offline_records.cosmetic_state().duplicate(true)
+    var original: float=avatar.rotation.y
+    var press:=InputEventMouseButton.new()
+    press.button_index=MOUSE_BUTTON_LEFT
+    press.pressed=true
+    press.position=Vector2(445,200)
+    front._preview_input(press)
+    var drag:=InputEventMouseMotion.new()
+    drag.position=Vector2(525,200)
+    drag.relative=Vector2(80,0)
+    front._preview_input(drag)
+    var release:=InputEventMouseButton.new()
+    release.button_index=MOUSE_BUTTON_LEFT
+    release.pressed=false
+    release.position=Vector2(525,200)
+    front._preview_input(release)
+    check(absf(angle_difference(original,avatar.rotation.y))>.35,
+        "swiping did not rotate the actual character")
+    check(not front._emote_wheel.visible,
+        "dragging the character accidentally opened the emote wheel")
+
+    var tap:=InputEventMouseButton.new()
+    tap.button_index=MOUSE_BUTTON_LEFT
+    tap.position=Vector2(447,206)
+    tap.pressed=true
+    front._preview_input(tap)
+    tap.pressed=false
+    front._preview_input(tap)
+    check(front._emote_wheel.visible and
+        front._emote_wheel.find_child(
+            "AuroraAvailableCharacterEmote",true,false)!=null,
+        "tapping Lila did not open real selectable emotes")
+    var close: Button=front._emote_wheel.find_child(
+        "CloseCharacterEmotes",true,false) as Button
+    check(close!=null and close.is_visible_in_tree(),
+        "emote selector close action not reachable")
+    if close!=null:
+        close.pressed.emit()
+    check(not front._emote_wheel.visible,
+        "emote selection has no closing interaction")
+    var saved_skin: Dictionary=front._offline_records.cosmetic_state().duplicate(true)
     front._select_tab("PERSONAJE")
     check(front._shop_selector.is_visible_in_tree() and
-        not front._shop_buy_button.visible and
-        front._info.text.contains("VISTA 3D"),
-        "Personajes must allow visual outfit testing without a purchase button")
+        not front._shop_buy_button.visible,
+        "genuine character skin selection was removed")
     front._on_shop_skin_selected(2)
-    check(front._preview_skin_applied=="aurora_ember",
-        "character preview did not change Lila original mesh material")
-    check(state_before==front._offline_records.cosmetic_state(),
-        "visual character selection incorrectly modified wallet or ownership")
+    check(front._preview_skin_applied=="aurora_ember" and
+        saved_skin==front._offline_records.cosmetic_state(),
+        "3D skin preview incorrectly spent currency or changed entitlement")
     front._select_tab("JUGAR")
-    check(front._preview_skin_applied==str(state_before["equipped"]) and
+    check(front._preview_skin_applied==str(saved_skin["equipped"]) and
         front._battle_entry.visible and front._social_panel.visible,
-        "leaving character preview lost outfit or the actual BR entry")
+        "return to BR lost equipped skin or match access")
     front._select_tab("TIENDA")
     check(front._shop_selector.visible and front._shop_buy_button.visible,
-        "real local store is no longer accessible")
+        "local store disappeared during lobby cleanup")
     front._select_tab("JUGAR")
 
     front._welcome()
     await process_frame
-    check(front._operator_controls.is_empty() and not front._preview_zoomed and
-        front._preview_avatar==null,
-        "logout did not release 3D controls and framing state")
+    check(front._preview_avatar==null and front._emote_wheel==null and
+        front._operator_controls.is_empty(),
+        "leaving lobby leaked the skinned rig or emote UI")
     front._enter_local_lobby()
     await process_frame
-    check(front._operator_controls.size()==3 and
-        front._preview_avatar!=null and front._game==null,
-        "returning to the lobby did not rebuild interactive operator")
+    check(front._preview_avatar!=null and front._emote_wheel!=null and
+        not front._emote_wheel.visible and front._game==null,
+        "lobby return did not reconstruct real tap-to-emote preview")
     front.queue_free()
     await process_frame
     if not failed:
-        print("V75108_OPERATOR_LOBBY PASS rotation=3d framing=3d "+
-            "character_skins=read_only logout_release=1 BR_access=1")
+        print("V75108_OPERATOR_LOBBY PASS swipe=actual_rotation "+
+            "tap=emote_panel no_arrows=1 skins=real_readonly "+
+            "lobby_release=1 BR_playable=1")
     quit(1 if failed else 0)

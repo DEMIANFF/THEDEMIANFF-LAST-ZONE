@@ -71,6 +71,15 @@ var _armory_inspection_backdrop: Node3D
 var _armory_matte_material: StandardMaterial3D
 var _preview_caption: Label
 var _gesture_button: Button
+var _emote_wheel: PanelContainer
+var _preview_press_origin: Vector2=Vector2.ZERO
+var _preview_tap_dragged: bool=false
+var _auto_resume_on_entry: bool=false
+var _profile_overlay: Control
+var _profile_name_label: Label
+var _profile_id_label: Label
+var _profile_session_label: Label
+var _profile_stat_labels: Array[Label]=[]
 var _operator_controls: Array[Button]=[]
 var _preview_zoomed: bool=false
 var _preview_frame_tween: Tween
@@ -124,6 +133,7 @@ var _login_pending_provider: String=""
 var _login_waiting_provider: String=""
 var _login_timer: Timer
 var _login_manage_button: Button
+var _login_signout_button: Button
 var _bottom_navigation: HBoxContainer
 var _left_shortcuts: VBoxContainer
 var _social_panel: PanelContainer
@@ -253,7 +263,8 @@ func _process(delta: float) -> void:
     if subject==null or not is_instance_valid(subject):
         return
     _preview_resume_spin=maxf(0.0,_preview_resume_spin-delta)
-    if _preview_resume_spin<=0.0 and _preview_touch<0 and not _preview_mouse_drag:
+    if _preview_resume_spin<=0.0 and _preview_touch<0 and not _preview_mouse_drag and (
+            _emote_wheel==null or not _emote_wheel.visible):
         subject.rotation.y=wrapf(subject.rotation.y+delta*.18,-PI,PI)
 
 
@@ -272,15 +283,24 @@ func _preview_input(event: InputEvent) -> void:
         var touch:=event as InputEventScreenTouch
         if touch.pressed and not touch.canceled and _preview_touch<0:
             _preview_touch=touch.index
+            _preview_press_origin=touch.position
             _preview_drag_last=touch.position
+            _preview_tap_dragged=false
             _preview_resume_spin=2.2
             _preview_container.accept_event()
         elif touch.index==_preview_touch and (not touch.pressed or touch.canceled):
+            var is_tap: bool=(not touch.canceled and not _preview_tap_dragged and
+                touch.position.distance_to(_preview_press_origin)<14.0)
             _preview_touch=-1
+            if is_tap and _preview_hit_character(touch.position):
+                _toggle_character_emotes()
             _preview_container.accept_event()
     elif event is InputEventScreenDrag:
         var drag:=event as InputEventScreenDrag
         if drag.index==_preview_touch:
+            if drag.position.distance_to(_preview_press_origin)>12.0:
+                _preview_tap_dragged=true
+                _close_character_emotes()
             subject.rotation.y=wrapf(
                 subject.rotation.y+drag.relative.x*.008,-PI,PI)
             _preview_drag_last=drag.position
@@ -289,17 +309,54 @@ func _preview_input(event: InputEvent) -> void:
     elif event is InputEventMouseButton:
         var mouse:=event as InputEventMouseButton
         if mouse.button_index==MOUSE_BUTTON_LEFT:
+            var point: Vector2=mouse.position
+            if mouse.pressed:
+                _preview_press_origin=point
+                _preview_tap_dragged=false
+            elif not _preview_tap_dragged and (
+                    point.distance_to(_preview_press_origin)<14.0) and (
+                    _preview_hit_character(point)):
+                _toggle_character_emotes()
             _preview_mouse_drag=mouse.pressed
-            _preview_drag_last=mouse.position
+            _preview_drag_last=point
             _preview_resume_spin=2.2
             _preview_container.accept_event()
     elif event is InputEventMouseMotion and _preview_mouse_drag:
         var motion:=event as InputEventMouseMotion
+        if motion.position.distance_to(_preview_press_origin)>12.0:
+            _preview_tap_dragged=true
+            _close_character_emotes()
         subject.rotation.y=wrapf(
             subject.rotation.y+motion.relative.x*.008,-PI,PI)
         _preview_drag_last=motion.position
         _preview_resume_spin=2.2
-        _preview_container.accept_event()
+
+
+func _preview_hit_character(point: Vector2) -> bool:
+    if _preview_container==null or _selected_tab not in ["JUGAR","PERSONAJE"]:
+        return false
+    var dimensions: Vector2=_preview_container.size
+    return point.x>=dimensions.x*.27 and point.x<=dimensions.x*.68 and (
+        point.y>=dimensions.y*.17 and point.y<=dimensions.y*.81)
+
+
+func _toggle_character_emotes() -> void:
+    if _emote_wheel==null or not is_instance_valid(_emote_wheel):
+        return
+    if _preview_male_active:
+        return
+    _emote_wheel.visible=not _emote_wheel.visible
+    _preview_resume_spin=4.0
+
+
+func _close_character_emotes() -> void:
+    if _emote_wheel!=null and is_instance_valid(_emote_wheel):
+        _emote_wheel.hide()
+
+
+func _play_selected_character_emote() -> void:
+    _close_character_emotes()
+    _play_lobby_gesture()
 
 
 func _clear_page() -> void:
@@ -457,11 +514,11 @@ func _build_entry_shell() -> void:
 func _build_loading_overlay() -> void:
     _loading_overlay=ColorRect.new()
     _loading_overlay.name="AuroraLoadingOverlay"
-    _loading_overlay.color=Color(.006,.015,.033,.24)
+    _loading_overlay.color=Color(.006,.015,.033,.16)
     _loading_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _surface.add_child(_loading_overlay)
     _loading_surface_plate=_make_glass_panel(
-        Color(.012,.023,.045,.93),Color(.39,.58,.72,.63),9)
+        Color(.012,.023,.045,.75),Color(.39,.58,.72,.47),9)
     _loading_surface_plate.name="AuroraLoadingConsolePlate"
     _loading_surface_plate.anchor_left=.18
     _loading_surface_plate.anchor_right=.82
@@ -495,9 +552,9 @@ func _build_loading_overlay() -> void:
     _loading_emblem.texture=_brand_logo.texture
     _loading_emblem.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
     _loading_emblem.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-    _loading_emblem.custom_minimum_size=Vector2(0,87)
+    _loading_emblem.custom_minimum_size=Vector2(0,100)
     branding.add_child(_loading_emblem)
-    _add_entry_wordmark(branding,78,41)
+    _add_entry_wordmark(branding,61,31)
 
     var content:=VBoxContainer.new()
     _loading_actions=content
@@ -511,21 +568,21 @@ func _build_loading_overlay() -> void:
     _loading_title=Label.new()
     _loading_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _loading_title.add_theme_font_override("font",DISPLAY_FONT)
-    _loading_title.add_theme_font_size_override("font_size",30)
+    _loading_title.add_theme_font_size_override("font_size",24)
     _loading_title.add_theme_color_override(
         "font_color",Color(.98,.95,.86))
     content.add_child(_loading_title)
     _loading_detail=Label.new()
     _loading_detail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _loading_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _loading_detail.add_theme_font_size_override("font_size",20)
+    _loading_detail.add_theme_font_size_override("font_size",16)
     _loading_detail.add_theme_color_override(
         "font_color",Color(.75,.86,.93))
     content.add_child(_loading_detail)
     _loading_meter=ProgressBar.new()
     _loading_meter.name="WorldLoadProgress"
-    _loading_meter.custom_minimum_size=Vector2(275,25)
-    _loading_meter.add_theme_font_size_override("font_size",18)
+    _loading_meter.custom_minimum_size=Vector2(275,16)
+    _loading_meter.add_theme_font_size_override("font_size",14)
     var track:=StyleBoxFlat.new()
     track.bg_color=Color(.017,.030,.059)
     track.border_color=Color(.33,.68,.83)
@@ -551,7 +608,7 @@ func _build_loading_overlay() -> void:
 
 
 func _layout_loading_actions() -> void:
-    var top: float=.656 if _loading_retry.visible or _loading_cancel.visible else .743
+    var top: float=.656 if _loading_retry.visible or _loading_cancel.visible else .722
     _loading_surface_plate.anchor_top=top
     _loading_accent_stripe.anchor_top=top
     _loading_accent_stripe.anchor_bottom=top+.004
@@ -644,6 +701,9 @@ func _poll_bootstrap() -> void:
                 _startup_failed()
                 return
             _loading_meter.value=100
+            # Auto-resume only a VALID retained native session after the
+            # resource loader reaches 100%; never create a new guest
+            # account or simulate Google authentication at startup.
             _welcome()
             startup_finished.emit()
         _:
@@ -667,7 +727,12 @@ func _welcome() -> void:
     # Authentication is an ENTRY flow, never a row of permanent lobby badges.
     # This screen offers actual Firebase providers and a clearly separate
     # LOCAL offline choice. It never labels an unverified ID as official.
+    _auto_resume_on_entry=(stage=="startup")
     stage="welcome"
+    if _profile_overlay!=null:
+        _profile_overlay.hide()
+    if _emote_wheel!=null:
+        _emote_wheel.hide()
     _arctic_art.show()
     _stop_loading_heartbeat()
     _loading_overlay.hide()
@@ -724,10 +789,12 @@ func _welcome() -> void:
     _page.anchor_bottom=.903
     _page.add_theme_constant_override("separation",6)
     _brand_logo.visible=true
-    _brand_logo.anchor_left=.916
-    _brand_logo.anchor_right=.963
-    _brand_logo.anchor_top=.028
-    _brand_logo.anchor_bottom=.109
+    # Intro emblem belongs beside Aurora's cinematic title, not as a
+    # tiny detached badge floating in the far-right sign-in buttons.
+    _brand_logo.anchor_left=.061
+    _brand_logo.anchor_right=.157
+    _brand_logo.anchor_top=.105
+    _brand_logo.anchor_bottom=.296
     _clear_page()
     _add_entry_wordmark(_page)
     var entry_overline:=_label("ACCESO",16)
@@ -847,7 +914,18 @@ func _begin_welcome_auth(provider: String) -> void:
     if stage!="welcome" or provider not in ["google","guest"] or not _login_waiting_provider.is_empty():
         return
     _login_pending_provider=provider
+    _auto_resume_on_entry=false
     _poll_login_state()
+
+
+## This policy can be regression-tested off-device. The caller supplies
+## session_state() from the real native Firebase bridge, which fails closed
+## when App Check, Android plugin, provider or server identity are invalid.
+static func _can_resume_native_session(session: Dictionary,from_startup: bool,
+        initiated_login: bool) -> bool:
+    return bool(session.get("authenticated",false)) and not bool(
+        session.get("pending",false)) and (
+        from_startup or initiated_login)
 
 
 func _poll_login_state() -> void:
@@ -882,6 +960,14 @@ func _poll_login_state() -> void:
             _login_status_label.text="CUENTA AUTENTICADA · ID PENDIENTE DEL SERVIDOR"
         if enter!=null:
             enter.text="CONTINUAR AL LOBBY"
+        # Restored Google/guest login goes straight into the REAL lobby,
+        # and a player who just authenticated need not press CONTINUAR.
+        # Manual Gestionar acceso leaves the provider chooser accessible.
+        if _can_resume_native_session(session,_auto_resume_on_entry,
+                not _login_waiting_provider.is_empty()):
+            _auto_resume_on_entry=false
+            _login_waiting_provider=""
+            call_deferred("_show_lobby")
         return
     if enter!=null:
         enter.text="JUGAR SIN CONEXIÓN"
@@ -1013,10 +1099,10 @@ func _show_lobby() -> void:
     _brand_logo.anchor_bottom=.117
     # Base Aurora: large real 3D operator at centre; separate commerce,
     # social/match card, full-width top and bottom navigation layers.
-    _page.anchor_left=.728
-    _page.anchor_right=.965
-    _page.anchor_top=.442
-    _page.anchor_bottom=.860
+    _page.anchor_left=.735
+    _page.anchor_right=.961
+    _page.anchor_top=.386
+    _page.anchor_bottom=.763
     _page.add_theme_constant_override("separation",2)
     # The same live SubViewport is now the whole winter hangar
     # behind the menus. Side bars are native UI placed ABOVE it; never
@@ -1026,16 +1112,18 @@ func _show_lobby() -> void:
     _preview_container.anchor_top=0.0
     _preview_container.anchor_bottom=1.0
     _preview_container.visible=true
-    _preview_caption.visible=true
+    # Swiping the character already rotates her. The old left/right/
+    # VISTA/GESTO/nameplate strip obscured the character's boots.
+    # Tap Lila to open the REAL emote menu instead.
+    _preview_caption.visible=false
     if _gesture_button!=null and is_instance_valid(_gesture_button):
-        _gesture_button.visible=true
+        _gesture_button.visible=false
     for action in _operator_controls:
         if is_instance_valid(action):
-            action.visible=true
-    _preview_caption.anchor_left=.341
-    _preview_caption.anchor_right=.548
-    _preview_caption.anchor_top=.777
-    _preview_caption.anchor_bottom=.847
+            action.visible=(action.name=="AuroraMalePreviewSelector" and
+                _selected_tab=="PERSONAJE")
+    if _emote_wheel!=null:
+        _emote_wheel.hide()
     _ensure_lobby_navigation()
     for plate in _lobby_backplates:
         if is_instance_valid(plate):
@@ -1061,11 +1149,15 @@ func _show_lobby() -> void:
     # without the coin balance covering Lila, the player record or the emblem.
     _profile_strip.visible=true
     _profile_strip.text="THEDEMIAN: LAST ZONE"
-    _stats_strip.visible=true
-    _update_identity_strip(stats)
+    _stats_strip.visible=false
     _currency_strip.visible=true
-    _currency_strip.text="MONEDAS %d\nDIAMANTES —"%int(
+    _currency_strip.text="MONEDAS %d\nDIAMANTES · SIN DATOS"%int(
         stats.get("local_coins",0))
+    _currency_strip.tooltip_text=(
+        "No existe un saldo premium confirmado; no se inventan diamantes.")
+    _update_identity_strip(stats)
+    if _profile_overlay!=null:
+        _profile_overlay.hide()
     _preview_touch=-1
     _preview_mouse_drag=false
     _preview_resume_spin=2.0
@@ -1075,11 +1167,11 @@ func _show_lobby() -> void:
             _apply_preview_skin(str(
                 _offline_records.cosmetic_state()["equipped"]))
     _clear_page()
-    _lobby_section_title=_label("BATTLE ROYALE",30)
+    _lobby_section_title=_label("",23)
     _lobby_section_title.add_theme_font_override("font",DISPLAY_FONT)
     _lobby_section_title.name="LobbySectionTitle"
     _lobby_section_title.add_theme_color_override("font_color",Color(.96,.96,.88))
-    _lobby_section_hint=_label("BASE AURORA  ·  50 PARTICIPANTES",16)
+    _lobby_section_hint=_label("",13)
     _lobby_section_hint.name="LobbySectionHint"
     _lobby_section_hint.add_theme_color_override("font_color",Color(.57,.84,.94))
     _lobby_mode_heading=_label("MODALIDAD DE PARTIDA",13)
@@ -1093,9 +1185,9 @@ func _show_lobby() -> void:
     _match_mode_selector.fit_to_longest_item=false
     _match_mode_selector.clip_text=true
     _match_mode_selector.add_theme_font_size_override("font_size",18)
-    _match_mode_selector.add_item("CLÁSICO · IA LOCAL",0)
+    _match_mode_selector.add_item("CLÁSICO",0)
     _match_mode_selector.add_item("CLASIFICATORIA",1)
-    _match_mode_selector.add_item("ENTRENAMIENTO · LOCAL",2)
+    _match_mode_selector.add_item("ENTRENAMIENTO",2)
     _match_mode_selector.select(["classic","ranked","training"].find(_selected_match_mode))
     _match_mode_selector.item_selected.connect(_on_match_mode_selected)
     _page.add_child(_match_mode_selector)
@@ -1105,18 +1197,18 @@ func _show_lobby() -> void:
     _battle_entry=_button("INICIAR",Callable(self,"_launch").bind(true),0)
     _battle_entry.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _battle_entry.name="BattleButton"
-    _battle_entry.custom_minimum_size.y=79
+    _battle_entry.custom_minimum_size.y=65
     _battle_entry.add_theme_font_override("font",DISPLAY_FONT)
     _battle_entry.add_theme_font_size_override("font_size",27)
     _style_primary_action(_battle_entry)
     _lobby_play_modes.add_child(_battle_entry)
-    _training_entry=_button("INICIAR ENTRENAMIENTO",Callable(self,"_launch").bind(false),0)
+    _training_entry=_button("INICIAR",Callable(self,"_launch").bind(false),0)
     _training_entry.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _training_entry.name="TrainingButton"
-    _training_entry.custom_minimum_size.y=71
+    _training_entry.custom_minimum_size.y=65
     _style_primary_action(_training_entry)
     _lobby_play_modes.add_child(_training_entry)
-    _lobby_mode_caption=_label("1 OPERADOR · 49 IA",17)
+    _lobby_mode_caption=_label("",12)
     _lobby_mode_caption.add_theme_color_override("font_color",Color(.88,.86,.68))
     # Three real match facts occupy the previously empty desktop card, while
     # staying hidden on the Edge 60 Fusion's compact landscape viewport.
@@ -1124,41 +1216,10 @@ func _show_lobby() -> void:
     _lobby_match_facts.name="AuroraMatchOperationalFacts"
     _lobby_match_facts.add_theme_constant_override("separation",4)
     _page.add_child(_lobby_match_facts)
-    for entry in [
-        ["50","PARTICIPANTES"],
-        ["04","FASES ZONA"],
-        ["IA","LOCAL"]
-    ]:
-        var fact:=PanelContainer.new()
-        fact.name="Fact"+str(_lobby_match_facts.get_child_count()+1)
-        fact.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-        fact.custom_minimum_size.y=38
-        var fact_style:=StyleBoxFlat.new()
-        fact_style.bg_color=Color(.037,.065,.087,.96)
-        fact_style.border_color=Color(.26,.53,.61,.72)
-        fact_style.set_border_width_all(1)
-        fact_style.set_corner_radius_all(5)
-        fact_style.content_margin_left=4
-        fact_style.content_margin_right=4
-        fact.add_theme_stylebox_override("panel",fact_style)
-        var column:=VBoxContainer.new()
-        column.add_theme_constant_override("separation",1)
-        fact.add_child(column)
-        var value:=Label.new()
-        value.text=str(entry[0])
-        value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-        value.add_theme_font_size_override("font_size",14)
-        value.add_theme_color_override(
-            "font_color",Color(.98,.79,.43))
-        column.add_child(value)
-        var title:=Label.new()
-        title.text=str(entry[1])
-        title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-        title.add_theme_font_size_override("font_size",11)
-        title.add_theme_color_override(
-            "font_color",Color(.74,.85,.91))
-        column.add_child(title)
-        _lobby_match_facts.add_child(fact)
+    # V75.171: no duplicate 50-player/zone/AI tiles below INICIAR.
+    # Keep the lightweight empty container for legacy script references;
+    # the backend's 50-player rules remain unchanged.
+    _lobby_match_facts.visible=false
     _lobby_mode_status=_label("",12)
     _lobby_mode_status.name="ModeAvailability"
     # Account actions are now ABOVE the editable local name. Both providers
@@ -1193,6 +1254,13 @@ func _show_lobby() -> void:
     _login_manage_button.custom_minimum_size.y=33
     _login_manage_button.add_theme_font_size_override("font_size",12)
     _page.add_child(_login_manage_button)
+    _login_signout_button=_button("CERRAR SESIÓN",
+        Callable(self,"_sign_out_native_session"),255)
+    _login_signout_button.name="RealFirebaseSignOut"
+    _login_signout_button.custom_minimum_size.y=35
+    _login_signout_button.add_theme_font_size_override("font_size",13)
+    _page.add_child(_login_signout_button)
+    _login_signout_button.visible=false
     # Local profile edit never overwrites the cloud account or invents an ID.
     _name_entry=LineEdit.new()
     _name_entry.name="LocalPlayerNameEntry"
@@ -1390,18 +1458,24 @@ func _show_lobby() -> void:
 
 
 func _update_identity_strip(stats: Dictionary) -> void:
-    if _stats_strip==null or _player_name==null:
+    if _player_name==null:
         return
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
-    if bool(session.get("identity_confirmed",false)):
-        var server_name: String=str(session.get("display_name",""))
-        _stats_strip.text="%s\nID %s · CUENTA"%[
-            server_name if not server_name.is_empty() else "NOMBRE PENDIENTE",
-            str(session.get("official_id",""))]
-    else:
-        _stats_strip.text="%s\nLOCAL · %d P · %d V"%[
-            _player_name.display_name,int(stats.get("played",0)),
-            int(stats.get("wins",0))]
+    var confirmed: bool=bool(session.get("identity_confirmed",false))
+    var player_name: String=(str(session.get("display_name",""))
+        if confirmed else _player_name.display_name)
+    if player_name.is_empty():
+        player_name=_player_name.display_name
+    # V75.171: the original "OPERADOR LOCAL 0 P 0 V" floating text is
+    # replaced by ONE actionable profile at the far left of the header.
+    if _top_account_button!=null and is_instance_valid(_top_account_button):
+        _top_account_button.text=player_name
+        _top_account_button.tooltip_text="ABRIR PERFIL · "+(
+            "ID "+str(session.get("official_id","")) if confirmed
+            else "partidas locales verificadas")
+    if _stats_strip!=null:
+        _stats_strip.text=""
+        _stats_strip.visible=false
 
 
 func _save_player_name() -> void:
@@ -1478,6 +1552,21 @@ func _start_native_auth(provider: String) -> void:
     _info.text="SOLICITUD DE ACCESO ENVIADA\n"
     _info.text+="Proveedor: %s\n"%provider
     _info.text+="La confirmación es asíncrona. Pulsa Verificar Firebase / App Check para consultar la sesión y el ID real."
+
+
+func _sign_out_native_session() -> void:
+    if stage!="lobby" or _selected_tab!="CUENTA":
+        return
+    var result: Dictionary=FIREBASE_BRIDGE.request_sign_out()
+    if not bool(result.get("signed_out",false)):
+        _info.text="NO SE PUDO CERRAR SESIÓN\n"+str(
+            result.get("reason","sin confirmación del SDK"))
+        _sync_lobby_match_mode()
+        return
+    # The official Firebase provider is actually logged out. Keep the
+    # local match journal intact; changing accounts cannot erase progress.
+    _auto_resume_on_entry=false
+    _welcome()
 
 
 func _on_objective_category_selected(index: int) -> void:
@@ -1599,6 +1688,8 @@ func _sync_lobby_match_mode() -> void:
     _firebase_check_button.visible=show_name
     _account_connection_label.visible=show_name
     _login_manage_button.visible=show_name
+    _login_signout_button.visible=(show_name and bool(
+        FIREBASE_BRIDGE.session_state().get("authenticated",false)))
     # Login providers belong only to the dedicated entry/account-change UI.
     _auth_guest_button.visible=false
     _auth_google_button.visible=false
@@ -1621,17 +1712,16 @@ func _sync_lobby_match_mode() -> void:
         _objectives_progress_panel.visible=(
             _selected_tab=="OBJETIVOS" and _objective_page!="events")
     _lobby_mode_heading.visible=false
+    _lobby_section_title.visible=not show_modes
+    _lobby_section_hint.visible=not show_modes
     _match_mode_selector.visible=show_modes
     _lobby_play_modes.visible=show_modes and _selected_match_mode!="ranked"
     _battle_entry.visible=show_modes and _selected_match_mode=="classic"
     _training_entry.visible=show_modes and _selected_match_mode=="training"
-    _lobby_mode_caption.visible=show_modes and _selected_match_mode=="classic"
-    _lobby_match_facts.visible=(show_modes and
-        _selected_match_mode=="classic" and _entry_should_show_briefing())
+    _lobby_mode_caption.visible=false
+    _lobby_match_facts.visible=false
     if _lobby_compact_intel!=null:
-        _lobby_compact_intel.visible=(show_modes and
-            _selected_match_mode=="classic" and
-            not _entry_should_show_briefing())
+        _lobby_compact_intel.visible=false
     _pass_progress.visible=_selected_tab=="PASE"
     _pass_claim_button.visible=_selected_tab=="PASE"
     _shop_selector.visible=_selected_tab in ["TIENDA","PERSONAJE"] and not (
@@ -1703,23 +1793,17 @@ func _ensure_lobby_navigation() -> void:
     brand_slash.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _header_glass.add_child(brand_slash)
     _profile_strip=_make_header_label(
-        "LocalProfileStrip",.101,.313,23)
+        "LocalProfileStrip",.342,.562,20)
     _profile_strip.add_theme_font_override("font",DISPLAY_FONT)
     _stats_strip=_make_header_label(
-        "LocalStatisticsStrip",.323,.557,19)
+        "LocalStatisticsStrip",.562,.563,1)
+    _stats_strip.visible=false
     _currency_strip=_make_header_label(
-        "LocalCurrencyStrip",.567,.736,19)
-    var backplate:=_make_glass_panel(
-        Color(.008,.018,.032,.75),Color(.25,.65,.86,.57),10)
-    backplate.name="LobbyMenuBackplate"
-    _lobby_menu_backplate=backplate
-    backplate.anchor_left=.712
-    backplate.anchor_right=.981
-    backplate.anchor_top=.154
-    backplate.anchor_bottom=.867
-    _surface.add_child(backplate)
-    _surface.move_child(backplate,_page.get_index())
-    _lobby_backplates.append(backplate)
+        "LocalCurrencyStrip",.575,.865,17)
+    # Both the squad and the compact mode card carry their own glass.
+    # The older full-height black rail was covering the hangar for no
+    # functional reason; remove it entirely instead of hiding it with alpha.
+    _lobby_menu_backplate=null
     var navplate:=_make_glass_panel(
         Color(.006,.016,.032,.68),Color(.27,.67,.84,.58),10)
     navplate.name="LobbySidebarBackplate"
@@ -1757,7 +1841,7 @@ func _ensure_lobby_navigation() -> void:
     _lobby_nav.visible=false
     _banner=Label.new()
     _banner.name="AuroraOperationBanner"
-    _banner.text="╱  OPERACIONES"
+    _banner.text="╱  AURORA"
     _banner.anchor_left=.028
     _banner.anchor_right=.211
     _banner.anchor_top=.169
@@ -1801,7 +1885,7 @@ func _ensure_lobby_navigation() -> void:
     _left_shortcuts.name="AuroraCommerceRail"
     _left_shortcuts.anchor_left=.025
     _left_shortcuts.anchor_right=.201
-    # Six 40px minimum tap targets + five 3px gaps fit in 964x434.
+    # Five 40px tap targets; no duplicate left JUGAR/MODOS action.
     _left_shortcuts.anchor_top=.265
     _left_shortcuts.anchor_bottom=.860
     _left_shortcuts.add_theme_constant_override("separation",3)
@@ -1809,8 +1893,7 @@ func _ensure_lobby_navigation() -> void:
     var quick_items: Array[Array]=[
         ["TIENDA","TIENDA","",5],
         ["PASE ROYALE","PASE","",6],
-        # Opens the existing right-side BR panel; never another selector.
-        ["SALA DE BATALLA","JUGAR","",7],
+        # JUGAR is already the primary footer action; no second shortcut.
         ["EVENTOS","OBJETIVOS","events",8],
         ["MISIONES","OBJETIVOS","missions",9],
         ["LOGROS","OBJETIVOS","achievements",10]
@@ -1867,8 +1950,8 @@ func _ensure_lobby_navigation() -> void:
     _social_panel.name="AuroraRealSocialPanel"
     _social_panel.anchor_left=.720
     _social_panel.anchor_right=.974
-    _social_panel.anchor_top=.159
-    _social_panel.anchor_bottom=.407
+    _social_panel.anchor_top=.158
+    _social_panel.anchor_bottom=.340
     var social_style:=StyleBoxFlat.new()
     social_style.bg_color=Color(.008,.022,.042,.84)
     social_style.border_color=Color(.29,.74,.83,.68)
@@ -1887,18 +1970,18 @@ func _ensure_lobby_navigation() -> void:
     social_content.add_theme_constant_override("separation",2)
     _social_panel.add_child(social_content)
     var social_title:=Label.new()
-    social_title.text="ESCUADRA   /   LOCAL"
+    social_title.text="ESCUADRA"
     social_title.name="FriendsHeading"
     social_title.add_theme_font_override("font",DISPLAY_FONT)
-    social_title.add_theme_font_size_override("font_size",21)
+    social_title.add_theme_font_size_override("font_size",17)
     social_title.add_theme_color_override("font_color",Color(.9,.85,1))
     social_content.add_child(social_title)
     _social_status_label=Label.new()
     _social_status_label.name="ActualFriendsStatus"
-    _social_status_label.text="Sin amigos conectados · Online pendiente"
+    _social_status_label.text="LOCAL · SIN AMIGOS EN LÍNEA"
     _social_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-    _social_status_label.add_theme_font_size_override("font_size",14)
-    _social_status_label.custom_minimum_size.y=26
+    _social_status_label.add_theme_font_size_override("font_size",11)
+    _social_status_label.custom_minimum_size.y=14
     _social_status_label.add_theme_color_override("font_color",Color(.75,.8,.85))
     social_content.add_child(_social_status_label)
     var squad_slots:=HBoxContainer.new()
@@ -1925,7 +2008,7 @@ func _ensure_lobby_navigation() -> void:
         number.text="%02d %s"%[i+1,"LOCAL" if i==0 else "—"]
         number.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
         number.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
-        number.add_theme_font_size_override("font_size",16)
+        number.add_theme_font_size_override("font_size",13)
         number.add_theme_color_override(
             "font_color",Color(.92,.95,1) if i==0 else
             Color(.54,.64,.74))
@@ -1937,8 +2020,8 @@ func _ensure_lobby_navigation() -> void:
     _play_match_card.name="BattleRoyaleModeCard"
     _play_match_card.anchor_left=.718
     _play_match_card.anchor_right=.977
-    _play_match_card.anchor_top=.415
-    _play_match_card.anchor_bottom=.869
+    _play_match_card.anchor_top=.351
+    _play_match_card.anchor_bottom=.794
     _play_match_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
     var match_card_style:=StyleBoxFlat.new()
     match_card_style.bg_color=Color(.008,.020,.038,.88)
@@ -1986,15 +2069,17 @@ func _ensure_lobby_navigation() -> void:
     _lobby_compact_intel.visible=false
     _surface.add_child(_lobby_compact_intel)
 
-    _top_account_button=_button("CUENTA",
-        Callable(self,"_select_tab").bind("CUENTA"),0)
+    _top_account_button=_button("PERFIL",
+        Callable(self,"_open_player_profile"),0)
     _top_account_button.name="TopAccount"
     _top_account_button.custom_minimum_size=Vector2.ZERO
-    _top_account_button.anchor_left=.818
-    _top_account_button.anchor_right=.910
+    _top_account_button.anchor_left=.099
+    _top_account_button.anchor_right=.326
     _top_account_button.anchor_top=.025
     _top_account_button.anchor_bottom=.131
     _top_account_button.add_theme_font_size_override("font_size",16)
+    _top_account_button.tooltip_text="Abrir perfil y estadísticas de partidas reales"
+    _top_account_button.accessibility_name="Abrir perfil de jugador"
     _style_aurora_tab(_top_account_button,Color(.53,.39,.87))
     _surface.add_child(_top_account_button)
     _top_settings_button=_button("",
@@ -2028,7 +2113,8 @@ func _ensure_lobby_navigation() -> void:
     _style_aurora_tab(_top_social_button,Color(.53,.39,.87))
     _surface.add_child(_top_social_button)
     # There is only ONE mode selector, inside the right Battle Royale card.
-    # Do not instantiate the obsolete floating "MODOS" card or overlay.
+    # Do not instantiate obsolete floating MODOS, PRESET or profile widgets.
+    _build_player_profile()
     _build_skin_gallery()
 
 
@@ -2438,6 +2524,156 @@ func _style_bottom_navigation_active(tab: String) -> void:
         button.modulate=Color.WHITE if active else Color(.84,.88,.94)
 
 
+## Real offline performance and optionally server-confirmed identity.
+## Accessible at top LEFT. No invented battle rank, UID, premium balance or
+## pretend online friends are displayed.
+func _build_player_profile() -> void:
+    if _profile_overlay!=null and is_instance_valid(_profile_overlay):
+        return
+    _profile_overlay=Control.new()
+    _profile_overlay.name="AuroraVerifiedProfileOverlay"
+    _profile_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    _profile_overlay.mouse_filter=Control.MOUSE_FILTER_STOP
+    _surface.add_child(_profile_overlay)
+    var scrim:=ColorRect.new()
+    scrim.name="ProfileScrim"
+    scrim.color=Color(.005,.012,.033,.85)
+    scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    scrim.mouse_filter=Control.MOUSE_FILTER_STOP
+    _profile_overlay.add_child(scrim)
+    var panel:=PanelContainer.new()
+    panel.name="RealPlayerProfilePanel"
+    panel.anchor_left=.145
+    panel.anchor_right=.855
+    panel.anchor_top=.130
+    panel.anchor_bottom=.862
+    var style:=StyleBoxFlat.new()
+    style.bg_color=Color(.015,.029,.057,.98)
+    style.border_color=Color(.36,.78,.93,.88)
+    style.set_border_width_all(2)
+    style.set_corner_radius_all(12)
+    style.content_margin_left=18
+    style.content_margin_right=18
+    style.content_margin_top=11
+    style.content_margin_bottom=12
+    panel.add_theme_stylebox_override("panel",style)
+    _profile_overlay.add_child(panel)
+    var column:=VBoxContainer.new()
+    column.name="VerifiedPlayerData"
+    column.add_theme_constant_override("separation",5)
+    panel.add_child(column)
+    var titlebar:=HBoxContainer.new()
+    column.add_child(titlebar)
+    var title:=Label.new()
+    title.text="MI PERFIL"
+    title.name="RealProfileTitle"
+    title.add_theme_font_override("font",DISPLAY_FONT)
+    title.add_theme_font_size_override("font_size",26)
+    title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    titlebar.add_child(title)
+    var close:=_button("CERRAR",Callable(self,"_close_player_profile"),0)
+    close.name="CloseRealProfile"
+    close.custom_minimum_size=Vector2(125,35)
+    titlebar.add_child(close)
+    _profile_name_label=Label.new()
+    _profile_name_label.name="VerifiedProfileName"
+    _profile_name_label.add_theme_font_override("font",DISPLAY_FONT)
+    _profile_name_label.add_theme_font_size_override("font_size",23)
+    column.add_child(_profile_name_label)
+    _profile_id_label=Label.new()
+    _profile_id_label.name="VerifiedProfileId"
+    _profile_id_label.add_theme_font_size_override("font_size",14)
+    _profile_id_label.add_theme_color_override(
+        "font_color",Color(.67,.86,.98))
+    column.add_child(_profile_id_label)
+    var stats:=HBoxContainer.new()
+    stats.name="ActualMatchStats"
+    stats.add_theme_constant_override("separation",8)
+    column.add_child(stats)
+    for name in ["PARTIDAS","VICTORIAS","ELIMINACIONES"]:
+        var tile:=PanelContainer.new()
+        tile.name="RealStat"+name
+        tile.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        tile.custom_minimum_size.y=68
+        var tile_style:=StyleBoxFlat.new()
+        tile_style.bg_color=Color(.051,.094,.144,.83)
+        tile_style.border_color=Color(.22,.56,.70,.58)
+        tile_style.set_border_width_all(1)
+        tile_style.set_corner_radius_all(7)
+        tile.add_theme_stylebox_override("panel",tile_style)
+        stats.add_child(tile)
+        var tile_column:=VBoxContainer.new()
+        tile.add_child(tile_column)
+        var value:=Label.new()
+        value.name="StatValue"
+        value.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+        value.add_theme_font_size_override("font_size",23)
+        value.add_theme_color_override(
+            "font_color",Color(1.0,.79,.32))
+        tile_column.add_child(value)
+        _profile_stat_labels.append(value)
+        var caption:=Label.new()
+        caption.text=name
+        caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+        caption.add_theme_font_size_override("font_size",13)
+        tile_column.add_child(caption)
+    _profile_session_label=Label.new()
+    _profile_session_label.name="VerifiedProfileConnection"
+    _profile_session_label.add_theme_font_size_override("font_size",14)
+    _profile_session_label.add_theme_color_override(
+        "font_color",Color(.65,.83,.92))
+    column.add_child(_profile_session_label)
+    var action:=_button("CUENTA Y RESPALDO",
+        Callable(self,"_open_profile_account"),0)
+    action.name="ManageProfileAccount"
+    action.custom_minimum_size.y=37
+    action.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _style_aurora_tab(action,Color(.40,.78,.90))
+    column.add_child(action)
+    _profile_overlay.hide()
+
+
+func _refresh_player_profile() -> void:
+    if _profile_overlay==null or _offline_records==null:
+        return
+    var saved: Dictionary=_offline_records.snapshot()
+    var session: Dictionary=FIREBASE_BRIDGE.session_state()
+    var confirmed: bool=bool(session.get("identity_confirmed",false))
+    var display: String=str(session.get("display_name","")) if confirmed else ""
+    if display.is_empty():
+        display=_player_name.display_name
+    _profile_name_label.text=display
+    _profile_id_label.text=("ID %s · IDENTIDAD CONFIRMADA"%[
+        str(session.get("official_id",""))] if confirmed
+        else "PERFIL LOCAL · SIN ID EN LÍNEA CONFIRMADO")
+    var values: Array[int]=[
+        int(saved.get("played",0)),int(saved.get("wins",0)),
+        int(saved.get("kills",0))]
+    for i in range(mini(_profile_stat_labels.size(),values.size())):
+        _profile_stat_labels[i].text=str(values[i])
+    _profile_session_label.text=(
+        "Sesión autenticada: "+str(session.get("provider","")).to_upper()
+        if bool(session.get("authenticated",false)) else
+        "Progreso local verificado en este dispositivo")
+
+
+func _open_player_profile() -> void:
+    if stage!="lobby" or _profile_overlay==null:
+        return
+    _refresh_player_profile()
+    _profile_overlay.show()
+
+
+func _close_player_profile() -> void:
+    if _profile_overlay!=null:
+        _profile_overlay.hide()
+
+
+func _open_profile_account() -> void:
+    _close_player_profile()
+    _select_tab("CUENTA")
+
+
 func _open_lobby_category(tab: String,objective: String="") -> void:
     if not objective.is_empty():
         _objective_page=objective
@@ -2473,26 +2709,24 @@ func _select_tab(tab: String) -> void:
     if _play_match_card!=null:
         _play_match_card.visible=tab=="JUGAR"
     if _lobby_compact_intel!=null:
-        _lobby_compact_intel.visible=(tab=="JUGAR" and
-            _selected_match_mode=="classic" and
-            not _entry_should_show_briefing())
-    _page.anchor_left=.732
-    _page.anchor_right=.963
-    _page.anchor_top=.442 if tab=="JUGAR" else .183
-    _page.anchor_bottom=.860
+        _lobby_compact_intel.visible=false
+    _page.anchor_left=.735
+    _page.anchor_right=.961
+    _page.anchor_top=.386 if tab=="JUGAR" else .183
+    _page.anchor_bottom=.763 if tab=="JUGAR" else .860
     for button in _lobby_nav.get_children():
         if button is Button:
             var selected: bool=button.name=="Tab"+tab
             button.modulate=Color(1,1,1) if selected else Color(.76,.82,.89)
     if _lobby_section_title!=null:
         _lobby_section_title.text=(
-            "BATTLE ROYALE" if tab=="JUGAR"
+            "" if tab=="JUGAR"
             else "MI CUENTA" if tab=="CUENTA"
             else "CONFIGURACIÓN" if tab=="AJUSTES"
             else "EVENTOS / MISIONES / LOGROS" if tab=="OBJETIVOS"
             else tab)
         _lobby_section_hint.text=(
-            "BASE AURORA · 50 PARTICIPANTES" if tab=="JUGAR"
+            "" if tab=="JUGAR"
             else "PERFIL / RESPALDO / ACCESO" if tab=="CUENTA"
             else "CONTROLES / SENSIBILIDAD / HUD" if tab=="AJUSTES"
             else "BASE AURORA · CENTRO DE OPERACIONES")
@@ -3210,6 +3444,9 @@ func _release_preview() -> void:
     if _gesture_button!=null and is_instance_valid(_gesture_button):
         _gesture_button.queue_free()
     _gesture_button=null
+    if _emote_wheel!=null and is_instance_valid(_emote_wheel):
+        _emote_wheel.queue_free()
+    _emote_wheel=null
     _preview_zoomed=false
     _preview_skin_applied=""
     _preview_male_active=false
@@ -3221,6 +3458,7 @@ func _release_preview() -> void:
     _preview_avatar=null
     _preview_touch=-1
     _preview_mouse_drag=false
+    _preview_tap_dragged=false
     _preview_resume_spin=0.0
 
 
@@ -3646,59 +3884,56 @@ func _build_preview() -> void:
     caption.add_theme_color_override("font_color",Color(.75,.88,.97))
     caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
     caption.visible=false
-    var nameplate:=_make_glass_panel(
-        Color(.009,.020,.039,.96),Color(.46,.77,.93,.88),7)
-    nameplate.name="AuroraOperatorNameplate"
-    nameplate.anchor_left=.335
-    nameplate.anchor_right=.551
-    nameplate.anchor_top=.769
-    nameplate.anchor_bottom=.850
-    _surface.add_child(nameplate)
-    _lobby_backplates.append(nameplate)
+    # No dedicated GESTO, arrows or VISTA controls. The character is
+    # already rotated by a swipe and a tap opens the true in-engine emote.
+    # Existing animation remains the only selectable action until more
+    # authored, licensed emote clips are available.
     _surface.add_child(caption)
     _preview_caption=caption
-    _gesture_button=_button("GESTO",_play_lobby_gesture,0)
-    _gesture_button.icon=_reference_lobby_icon(3)
-    _gesture_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
-    _gesture_button.name="LilaLobbyGesture"
-    _gesture_button.custom_minimum_size=Vector2.ZERO
-    _gesture_button.anchor_left=.635
-    _gesture_button.anchor_right=.711
-    # At 964x434 these real touch targets are >40px high, not tiny labels.
-    _gesture_button.anchor_top=.769
-    _gesture_button.anchor_bottom=.849
-    _gesture_button.add_theme_font_override("font",DISPLAY_FONT)
-    _gesture_button.add_theme_font_size_override("font_size",18)
-    _style_aurora_tab(_gesture_button,Color(.53,.77,.93))
-    _gesture_button.tooltip_text="Reproducir gesto animado de Lila"
-    _gesture_button.accessibility_name=_gesture_button.tooltip_text
-    _gesture_button.visible=false
-    _surface.add_child(_gesture_button)
-    # Dedicated accessible controls supplement swipe rotation. Each control
-    # acts on the actual 3D Lila rig/camera, never a background illustration.
-    for item in [
-        ["LilaTurnLeft","◀",Callable(self,"_rotate_operator").bind(-1.0),
-            .223,.272,"Girar a Lila a la izquierda"],
-        ["LilaTurnRight","▶",Callable(self,"_rotate_operator").bind(1.0),
-            .279,.328,"Girar a Lila a la derecha"],
-        ["LilaCameraFrame","VISTA",Callable(self,"_toggle_operator_frame"),
-            .559,.628,"Alternar encuadre de Lila"]
-    ]:
-        var action: Button=_button(str(item[1]),item[2],0)
-        action.name=str(item[0])
-        action.custom_minimum_size=Vector2.ZERO
-        action.anchor_left=float(item[3])
-        action.anchor_right=float(item[4])
-        action.anchor_top=.769
-        action.anchor_bottom=.849
-        action.add_theme_font_override("font",DISPLAY_FONT)
-        action.add_theme_font_size_override("font_size",19)
-        action.tooltip_text=str(item[5])
-        action.accessibility_name=action.tooltip_text
-        _style_aurora_tab(action,Color(.53,.77,.93))
-        action.visible=false
-        _surface.add_child(action)
-        _operator_controls.append(action)
+    _emote_wheel=PanelContainer.new()
+    _emote_wheel.name="AuroraCharacterEmoteWheel"
+    _emote_wheel.anchor_left=.338
+    _emote_wheel.anchor_right=.605
+    _emote_wheel.anchor_top=.315
+    _emote_wheel.anchor_bottom=.725
+    _emote_wheel.mouse_filter=Control.MOUSE_FILTER_STOP
+    var wheel_style:=StyleBoxFlat.new()
+    wheel_style.bg_color=Color(.008,.020,.043,.93)
+    wheel_style.border_color=Color(.27,.84,.94,.83)
+    wheel_style.set_border_width_all(2)
+    # Circular chooser, not a new permanent button over the operator.
+    wheel_style.set_corner_radius_all(76)
+    wheel_style.content_margin_left=14
+    wheel_style.content_margin_right=14
+    wheel_style.content_margin_top=9
+    wheel_style.content_margin_bottom=9
+    _emote_wheel.add_theme_stylebox_override("panel",wheel_style)
+    _surface.add_child(_emote_wheel)
+    var wheel_content:=VBoxContainer.new()
+    wheel_content.add_theme_constant_override("separation",8)
+    _emote_wheel.add_child(wheel_content)
+    var heading:=Label.new()
+    heading.name="EmoteHeading"
+    heading.text="EMOTES"
+    heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    heading.add_theme_font_override("font",DISPLAY_FONT)
+    heading.add_theme_font_size_override("font_size",22)
+    wheel_content.add_child(heading)
+    var emote:=_button("MOVIMIENTO AURORA",
+        Callable(self,"_play_selected_character_emote"),0)
+    emote.name="AuroraAvailableCharacterEmote"
+    emote.custom_minimum_size.y=42
+    emote.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _style_primary_action(emote)
+    wheel_content.add_child(emote)
+    var close_emote:=_button("CERRAR",
+        Callable(self,"_close_character_emotes"),0)
+    close_emote.name="CloseCharacterEmotes"
+    close_emote.custom_minimum_size.y=37
+    close_emote.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _style_aurora_tab(close_emote,Color(.35,.75,.88))
+    wheel_content.add_child(close_emote)
+    _emote_wheel.hide()
     if MALE_PREVIEW.source_available():
         # Private-source male selector occupies the gap between rotate/frame
         # and gesture. It is absent from APKs without a checked male GLB.
@@ -3777,13 +4012,10 @@ func _layout_safe() -> void:
             safe.size.y*.16,69.0,122.0)
     if stage=="lobby" and _lobby_match_facts!=null and is_instance_valid(
             _lobby_match_facts):
-        _lobby_match_facts.visible=(_selected_tab=="JUGAR" and
-            _selected_match_mode=="classic" and _entry_should_show_briefing())
+        _lobby_match_facts.visible=false
     if stage=="lobby" and _lobby_compact_intel!=null and is_instance_valid(
             _lobby_compact_intel):
-        _lobby_compact_intel.visible=(_selected_tab=="JUGAR" and
-            _selected_match_mode=="classic" and
-            not _entry_should_show_briefing())
+        _lobby_compact_intel.visible=false
     if stage=="welcome" and _entry_info_panel!=null and is_instance_valid(
             _entry_info_panel):
         _entry_info_panel.visible=_entry_should_show_briefing()

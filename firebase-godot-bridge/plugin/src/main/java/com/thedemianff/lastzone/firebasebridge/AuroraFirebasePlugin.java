@@ -61,6 +61,9 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
     private String officialPlayerId = "";
     private String accountName = "";
     private String provider = "none";
+    // One automatic identity recovery per Firebase Auth UID per process.
+    // Retry requires an explicit login request; never flood callables.
+    private String restoredAccountUid = "";
 
     public AuroraFirebasePlugin(Godot godot) {
         super(godot);
@@ -181,9 +184,10 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
      */
     @UsedByGodot
     public String getSessionState() {
-        isTransportReady();
+        boolean ready = isTransportReady();
         FirebaseUser current = configured ? FirebaseAuth.getInstance().getCurrentUser() : null;
         String uid = current == null ? "" : current.getUid();
+        boolean restoreExistingIdentity = false;
         synchronized (stateLock) {
             if (!uid.equals(activeUid)) {
                 activeUid = uid;
@@ -191,6 +195,20 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                 accountName = "";
                 provider = current == null ? "none" : current.isAnonymous() ? "guest" : "google";
             }
+            // FirebaseAuth persists its own real Google/Guest user. After
+            // App Check is ready, fetch the server ID/profile once; never
+            // call signInAnonymously on startup or fabricate a UID.
+            if (ready && current != null && officialPlayerId.isEmpty()
+                    && !uid.equals(restoredAccountUid)
+                    && authBusy.compareAndSet(false, true)) {
+                restoredAccountUid = uid;
+                restoreExistingIdentity = true;
+            }
+        }
+        if (restoreExistingIdentity) {
+            resolveServerIdentity(current);
+        }
+        synchronized (stateLock) {
             try {
                 JSONObject out = new JSONObject();
                 out.put("authenticated", current != null);
@@ -205,6 +223,33 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
             } catch (JSONException invalidJson) {
                 return "{\"authenticated\":false,\"identity_confirmed\":false}";
             }
+        }
+    }
+
+    /** Actual Firebase logout; no credentials are copied into Godot. */
+    @UsedByGodot
+    public void signOut() {
+        ensureInitialized();
+        if (!configured) {
+            setError("firebase_not_initialized");
+            return;
+        }
+        if (authBusy.get()) {
+            setError("auth_request_pending");
+            return;
+        }
+        try {
+            FirebaseAuth.getInstance().signOut();
+            synchronized (stateLock) {
+                activeUid = "";
+                restoredAccountUid = "";
+                officialPlayerId = "";
+                accountName = "";
+                provider = "none";
+                lastError = "none";
+            }
+        } catch (RuntimeException problem) {
+            setError("firebase_logout_failed");
         }
     }
 

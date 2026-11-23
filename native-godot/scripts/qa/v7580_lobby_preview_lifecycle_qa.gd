@@ -31,8 +31,15 @@ func _verify() -> void:
         "entering lobby did not load real Lila model")
     var first_id: int=front._preview_container.get_instance_id()
     front._top_account_button.emit_signal("pressed")
+    require(front._profile_overlay.is_visible_in_tree(),
+        "top-left profile did not open the real match statistics")
+    var manage: Button=front._profile_overlay.find_child(
+        "ManageProfileAccount",true,false) as Button
+    require(manage!=null,"profile cannot open account/backup settings")
+    if manage!=null:
+        manage.pressed.emit()
     require(front._selected_tab=="CUENTA",
-        "account shortcut cannot reach account management")
+        "profile account action did not reach account management")
     front._login_manage_button.emit_signal("pressed")
     await process_frame
     require(front.stage=="welcome",

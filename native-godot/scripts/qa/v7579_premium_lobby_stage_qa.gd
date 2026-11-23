@@ -77,7 +77,8 @@ func _verify() -> void:
         front._battle_entry.visible,
         "prominent working Battle Royale INICIAR is missing")
     require(front._social_panel.visible and
-        front._social_status_label.text.contains("Sin amigos conectados"),
+        front._social_status_label.text.contains("SIN AMIGOS") and
+        front._social_status_label.text.contains("LOCAL"),
         "squad panel has fabricated online status")
     require(front._currency_strip.text.contains("MONEDAS") and
         front._currency_strip.text.contains("DIAMANTES"),

@@ -1,0 +1,53 @@
+name: Aurora native Firebase session recovery (compile-only QA)
+
+on:
+  push:
+    branches:
+      - codex/v75-171-clean-lobby-emotes-session-resume
+    paths:
+      - 'firebase-godot-bridge/**'
+      - 'native-godot/scripts/persistence/aurora_firebase_bridge.gd'
+      - 'native-godot/scripts/ui/aurora_frontend.gd'
+      - 'native-godot/tools/test_native_auth_restore.py'
+      - '.github/workflows/native-firebase-session-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurora-native-firebase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-auth-compile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+      - name: Install real Android API 36 SDK for Godot Firebase AAR
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" >/dev/null
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: '8.13'
+      - name: Validate FirebaseAuth restore and sign-out source contracts
+        run: python3 -m unittest discover -s native-godot/tools -p 'test_native_auth_restore.py' -v
+      - name: Compile actual Godot 4.7.2 Android Firebase Java plugin
+        run: gradle -p firebase-godot-bridge :plugin:compileDebugJavaWithJavac --no-daemon --console plain
+      - name: Verify compiled plugin class and exposed real methods
+        run: |
+          set -euo pipefail
+          CLASS="firebase-godot-bridge/plugin/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/thedemianff/lastzone/firebasebridge/AuroraFirebasePlugin.class"
+          test -s "$CLASS"
+          javap -public "$CLASS" | grep -F 'getSessionState()'
+          javap -public "$CLASS" | grep -F 'signOut()'
+          javap -public "$CLASS" | grep -F 'beginGuestSignIn()'
+          javap -public "$CLASS" | grep -F 'beginGoogleSignIn()'
+          echo AURORA_FIREBASE_RESTORE_COMPILE_PASS true_android_plugin=1 auth_methods=4 tokens_exported=0
