@@ -60,7 +60,13 @@ func _verify() -> void:
 
     var tap:=InputEventMouseButton.new()
     tap.button_index=MOUSE_BUTTON_LEFT
-    tap.position=Vector2(447,206)
+    var silhouette: Rect2=front._portrait_character_hit_rect()
+    check(silhouette.has_area(),
+        "3D Lila must project into an actual nonempty touch silhouette")
+    check(front._preview_hit_character(silhouette.get_center()) and
+        not front._preview_hit_character(Vector2(275,180)),
+        "tap target reaches the real rig but not the hangar background")
+    tap.position=silhouette.get_center()
     tap.pressed=true
     front._preview_input(tap)
     tap.pressed=false
