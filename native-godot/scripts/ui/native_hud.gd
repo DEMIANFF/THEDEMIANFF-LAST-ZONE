@@ -1032,6 +1032,8 @@ func set_inventory_snapshot(items: Dictionary) -> void:
     var backpack: int=clampi(int(items.get("backpack",0)),0,3)
     _inventory_label.text="EQUIPO AURORA / "+(
         "MOCHILA NIVEL %d"%backpack if backpack>0 else "SIN MOCHILA")
+    if _inventory_button!=null:
+        _inventory_button.text="MOCHILA N%d"%backpack if backpack>0 else "EQUIPO"
 
 
 func set_medkit_count(count: int) -> void:
