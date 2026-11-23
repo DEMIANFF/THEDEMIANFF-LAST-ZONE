@@ -59,10 +59,12 @@ func _ready() -> void:
             Vector3(side*.158,1.255,.48),Vector3(.115,.29,.12),ear_angle)
         _part("Violet",_unit_box,violet,
             Vector3(side*.157,1.268,.558),Vector3(.043,.16,.025),ear_angle)
-        _part("Cyan",_unit_round,cyan,
+        _part("CyanEyes",_unit_round,cyan,
             Vector3(side*.125,1.075,.705),Vector3(.079,.052,.036))
         _part("ArmorShell",_unit_round,armor,
             Vector3(side*.265,.67,.23),Vector3(.21,.25,.28))
+        _part("ArmorPanels",_unit_box,armor,
+            Vector3(side*.325,.725,-.065),Vector3(.042,.15,.33))
         _part("Violet",_unit_box,violet,
             Vector3(side*.259,.76,-.17),Vector3(.032,.055,.38))
         for front in [-1.0,1.0]:
@@ -76,6 +78,8 @@ func _ready() -> void:
                 Vector3(side*.257,.22,z+.045),Vector3(.18,.17,.17))
             _part("ArmorShell",_unit_round,armor,
                 Vector3(side*.26,.10,z+.095),Vector3(.22,.15,.30))
+            _part("Rubber",_unit_round,rubber,
+                Vector3(side*.26,.055,z+.14),Vector3(.178,.048,.205))
             _part("Cyan",_unit_box,cyan,
                 Vector3(side*.257,.13,z+.235),Vector3(.125,.023,.022))
 
@@ -119,7 +123,13 @@ func _part(group: String,mesh: Mesh,material: Material,
         at: Vector3,dimensions: Vector3,rotation:=Basis.IDENTITY) -> void:
     if not _batches.has(group):
         _batches[group]={"mesh":mesh,"material":material,"poses":[]}
-    var poses: Array=_batches[group]["poses"]
+    var batch: Dictionary=_batches[group]
+    # Never silently render rounded parts as boxes when sharing a material.
+    # Each batch must reference ONE mesh topology and ONE material.
+    if batch["mesh"] != mesh or batch["material"] != material:
+        push_error("Aurora Sentinel incompatible mesh/material batch: "+group)
+        return
+    var poses: Array=batch["poses"]
     poses.append(Transform3D(rotation*Basis.from_scale(dimensions),at))
 
 
