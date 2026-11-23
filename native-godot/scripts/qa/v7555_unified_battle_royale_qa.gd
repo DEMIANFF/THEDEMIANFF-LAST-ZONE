@@ -89,18 +89,19 @@ func _verify() -> void:
         director.get_loot_remaining()==loot_before_awm-1,
         "world AWM pickup failed to enter inventory or leave physical world")
     hud._toggle_inventory()
-    check(panel.visible and panel.get_node_or_null(
-        "InventoryActions/InventoryWeaponSelectors/EquipAR")!=null,
-        "inventory weapon actions not reachable from real touch panel")
+    check(panel.visible and panel.find_child("EquipAR",true,false)!=null and
+        hud._inventory_scroll!=null and hud._inventory_tiles.size()==6,
+        "scrollable inventory actions and six real equipment tiles unavailable")
     hud._inventory_awm.pressed.emit()
     check(combat.weapon_index==1 and
-        int(combat.inventory_snapshot()["active_weapon"])==1,
-        "inventory cannot equip physically collected AWM")
+        int(combat.inventory_snapshot()["active_weapon"])==1 and
+        not panel.visible,
+        "collected AWM not equipped or inventory failed to close")
     hud._inventory_ar.pressed.emit()
     check(combat.weapon_index==0 and
-        int(combat.inventory_snapshot()["active_weapon"])==0,
-        "inventory cannot return to AR-7 through same equipment path")
-    hud._toggle_inventory()
+        int(combat.inventory_snapshot()["active_weapon"])==0 and
+        not panel.visible,
+        "inventory cannot return to AR-7 or close after equip")
 
     # Supply events must instantiate collectable Area3D caches, never
     # grant inventory remotely or repeat endlessly each frame.
@@ -140,8 +141,9 @@ func _verify() -> void:
         combat.loot_collected>=2 and
         director.get_loot_remaining()==before_world_count-1,
         "phase medkit did not enter real inventory or leave the world")
-    check(hud._inventory_label.text.contains("RECOGIDOS:"),
-        "HUD does not display verified physical pickups")
+    check(hud._inventory_metrics.text.contains(
+        "BOTÍN %d"%combat.loot_collected),
+        "visual HUD does not display confirmed physical pickups")
 
     # Defeat panel uses the genuine local roster. Records are already
     # committed through the existing atomic player-profile ledger.
