@@ -99,6 +99,7 @@ var _settings_button: Button
 var _inventory_button: Button
 var _supply_locker_button: Button
 var _supply_locker_caption: Label
+var _supply_locker_progress: ProgressBar
 var _supply_allowed: bool=false
 var _inventory_panel: PanelContainer
 var _inventory_label: Label
@@ -352,6 +353,16 @@ func _ready() -> void:
     _supply_locker_button.name="AuroraPhysicalSupplyInteraction"
     _supply_locker_button.disabled=true
     _supply_locker_button.visible=false
+    _supply_locker_progress=ProgressBar.new()
+    _supply_locker_progress.name="AuroraPhysicalLockerSearchProgress"
+    _supply_locker_progress.position=Vector2(5,57)
+    _supply_locker_progress.size=Vector2(125,7)
+    _supply_locker_progress.max_value=100.0
+    _supply_locker_progress.value=0.0
+    _supply_locker_progress.show_percentage=false
+    _supply_locker_progress.visible=false
+    _supply_locker_progress.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _supply_locker_button.add_child(_supply_locker_progress)
     _supply_locker_caption=_text(
         root,"",.42,.49,14,Color(.98,.87,.58),
         HORIZONTAL_ALIGNMENT_CENTER)
@@ -1013,6 +1024,10 @@ static func inventory_tile_text(key: String,items: Dictionary) -> String:
 ## The button never bypasses world occlusion, distance or round state.
 func set_supply_interaction(caption: String,allowed: bool) -> void:
     _supply_allowed=allowed
+    # A search in progress remains visible but the button cannot be
+    # pressed again. The director owns the timer and interruption logic.
+    if _supply_locker_progress!=null and _supply_locker_progress.visible:
+        return
     if _supply_locker_button==null or _supply_locker_caption==null:
         return
     var show: bool=allowed and air_stage=="ground" and (
@@ -1023,6 +1038,25 @@ func set_supply_interaction(caption: String,allowed: bool) -> void:
     _supply_locker_caption.visible=show
     if show:
         _supply_locker_caption.text=caption
+
+
+## No synthetic percentage: caller passes progress from the actual
+## uninterrupted on-foot search timer in the physics loop.
+func set_supply_search_progress(progress: float,active: bool) -> void:
+    if _supply_locker_progress==null:
+        return
+    _supply_locker_progress.visible=active
+    _supply_locker_progress.value=clampf(progress,0.0,1.0)*100.0
+    if active:
+        _supply_locker_button.show()
+        _supply_locker_button.disabled=true
+        _supply_locker_button.text="ABRIENDO..."
+        _supply_locker_caption.show()
+        _supply_locker_caption.text="SAQUEO EN CURSO"
+    else:
+        _supply_locker_button.text="ABRIR DEPÓSITO"
+        _supply_locker_button.hide()
+        _supply_locker_caption.hide()
 
 
 func set_inventory_snapshot(items: Dictionary) -> void:
