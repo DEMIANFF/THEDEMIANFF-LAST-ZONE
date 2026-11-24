@@ -1458,7 +1458,10 @@ func _has_line_of_fire(foe: CharacterBody3D) -> bool:
 ## The raycast physics/damage origin remains the same gameplay muzzle;
 ## only the pooled visual tracer may start at this animated rifle muzzle.
 func _show_real_muzzle_flash() -> void:
-    if health<=0.0 or not is_instance_valid(_enemy_muzzle_flash):
+    # The far actor keeps the same weapon mesh but not 49 simultaneous
+    # muzzle VFX; only a leased near animator may display this flash.
+    if (_rig==null or health<=0.0 or
+            not is_instance_valid(_enemy_muzzle_flash)):
         return
     _enemy_muzzle_flash.visible=true
     _muzzle_flash_remaining=REAL_MUZZLE_FLASH_SECONDS
@@ -1466,7 +1469,8 @@ func _show_real_muzzle_flash() -> void:
 
 
 func _visible_trace_origin(physics_origin: Vector3) -> Vector3:
-    if health<=0.0 or not is_instance_valid(_enemy_muzzle_flash):
+    if (_rig==null or health<=0.0 or
+            not is_instance_valid(_enemy_muzzle_flash)):
         return physics_origin
     var rifle_point: Vector3=_enemy_muzzle_flash.global_position
     if (not rifle_point.is_finite() or
