@@ -69,9 +69,11 @@ func _verify() -> void:
         chosen_near._set_full_visual(true)
         check(chosen_near._rig!=null and chosen_distant._rig==null,
             "a close combatant did not displace a distant detail mesh")
-        check(chosen_distant._lod_body!=null and
-            chosen_distant._lod_body.visible,
-            "far combatant vanished instead of retaining real low LOD")
+        check(chosen_distant._lod_rig!=null and
+            chosen_distant._lod_rig.visible and
+            chosen_distant._lod_rig.find_child(
+                "Skeleton3D",true,false)!=null,
+            "far combatant lost original visual on detail demotion")
         check(get_nodes_in_group(BOT.DETAILED_ENEMY_GROUP).size()==cap_before,
             "visual reprioritization exceeded rig allocation budget")
         check(chosen_distant.get_node_or_null("OpponentCollider") is CollisionShape3D
@@ -81,6 +83,6 @@ func _verify() -> void:
     await process_frame
     if not failed:
         print("V7584_AI_RIG_PRIORITY PASS roster=50 "+
-            "near_enemy=animated far_enemy=visible_lod "+
+            "near_enemy=animated far_enemy=same_original_mesh "+
             "dynamic_rig_swap=actual maximum=14")
     quit(1 if failed else 0)
