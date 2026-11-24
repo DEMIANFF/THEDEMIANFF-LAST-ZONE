@@ -110,6 +110,15 @@ func _verify() -> void:
         "unobstructed on-foot world interaction cannot find the real locker")
 
     director._refresh_supply_interaction()
+    print("V75177_UI_APPROACH stage=",hud.air_stage,
+        " target=",director._nearest_supply_locker(),
+        " searching=",director._search_locker,
+        " button=",hud._supply_locker_button.visible,
+        " disabled=",hud._supply_locker_button.disabled,
+        " caption=",hud._supply_locker_caption.text,
+        " progress=",hud._supply_locker_progress.visible,
+        " map=",hud._map_overlay.visible,
+        " backpack=",hud._inventory_panel.visible)
     check(hud._supply_locker_button.visible and
         not hud._supply_locker_button.disabled and
         hud._supply_locker_caption.text.contains("DEPÓSITO"),
@@ -142,6 +151,10 @@ func _verify() -> void:
     # even if a vehicle has a separate contextual action nearby.
     await physics_frame
     director._refresh_supply_interaction()
+    print("V75177_UI_RETRY searching=",director._search_locker,
+        " button=",hud._supply_locker_button.visible,
+        " disabled=",hud._supply_locker_button.disabled,
+        " progress=",hud._supply_locker_progress.visible)
     check(hud._supply_locker_button.visible and
         not hud._supply_locker_button.disabled,
         "interrupted search did not reenable the same physical crate")
