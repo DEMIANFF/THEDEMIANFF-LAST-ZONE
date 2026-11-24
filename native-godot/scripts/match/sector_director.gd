@@ -1040,7 +1040,13 @@ func _on_opponent_eliminated(victim: CharacterBody3D,killer: Node3D) -> void:
         return
     _dropped_opponents[victim_id]=true
     var position: Vector3=victim.global_position
-    if not position.is_finite() or is_outside_zone(position):
+    if not position.is_finite():
+        return
+    if is_outside_zone(position):
+        # Outside the lethal ring, never mint pickable inventory; leave
+        # honest death evidence for a recently visible opponent instead
+        # of making every distant storm casualty vanish without a trace.
+        _spawn_empty_opponent_marker(position,"FUERA DE ZONA")
         return
     # A previous 12-kill lifetime limit incorrectly suppressed every later
     # opponent drop, even if the player collected all prior supplies.
