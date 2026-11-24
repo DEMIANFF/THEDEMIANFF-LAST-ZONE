@@ -565,7 +565,10 @@ func _window_strip(side: float) -> ArrayMesh:
     drawing.begin(Mesh.PRIMITIVE_TRIANGLES)
     for i in range(5):
         var z: float=-1.79+float(i)*.73
-        var x: float=.605 if i<4 else .58
+        # Follow the ellipse exterior, not a chord inside the fuselage:
+        # at z=-1.8..+1.1 the transport's half-width is .60.. .70m.
+        # The old inset face would be hidden behind the hull mesh.
+        var x: float=.690 if i<4 else .665
         var y: float=.33 if i<4 else .31
         _quad(drawing,Vector3(side*x,y,z),
             Vector3(side*x,y,z+.38),
