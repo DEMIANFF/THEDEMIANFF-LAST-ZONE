@@ -297,6 +297,23 @@ func _build_craft() -> void:
     _piece("TailFin",_tail_fin(),Vector3.ZERO,Vector3.ZERO,stripe)
     _piece("AuroraAircraftStripe",_hull_stripe(),Vector3.ZERO,
         Vector3.ZERO,stripe)
+    # The fallback is the ACTUAL flight-visible model when the optional
+    # C17 asset is absent. Thick swept wings, real-sided hull windows,
+    # control panels and a closed 3D tail avoid the flat toy-aircraft look.
+    # All geometry is authored with SurfaceTool: no shader, no Light3D,
+    # no collision body and no external download on Android.
+    _piece("AuroraRearCargoRamp",_rear_cargo_ramp(),
+        Vector3.ZERO,Vector3.ZERO,shade)
+    for sign in [-1,1]:
+        var side: float=float(sign)
+        _piece("AuroraCabinWindows%d"%sign,_window_strip(side),
+            Vector3.ZERO,Vector3.ZERO,shade)
+        _piece("AuroraCockpitSideGlass%d"%sign,
+            _cockpit_side_glass(side),Vector3.ZERO,Vector3.ZERO,shade)
+        _piece("AuroraWingAileron%d"%sign,_wing_aileron(side),
+            Vector3.ZERO,Vector3.ZERO,stripe)
+        _piece("AuroraTailElevator%d"%sign,_tail_elevator(side),
+            Vector3.ZERO,Vector3.ZERO,shade)
 
     # Slanted dark cockpit glass and real engine nacelles.
     var glass_mesh:=_panel_mesh([
@@ -479,28 +496,122 @@ func _panel_mesh(vertices: Array[Vector3]) -> ArrayMesh:
     return drawing.commit()
 
 
+## Four-sided tapered sections. Each actual main wing and tailplane now
+## has a swept leading edge, closing side/tip faces and non-zero thickness;
+## the old four-vertex flat plane had no volume in silhouette or lighting.
+## At most 3 panels x 2 wings x 4 faces = 48 triangles, plus end caps.
 func _airfoil_pair(span: float,sweep: float,z: float) -> ArrayMesh:
     var drawing:=SurfaceTool.new()
     drawing.begin(Mesh.PRIMITIVE_TRIANGLES)
+    var stations: Array[Vector4]=[
+        Vector4(.45,z-.62,z+.68,.16),
+        Vector4(span*.40,z-.59+sweep*.37,z+.55+sweep*.37,.13),
+        Vector4(span*.73,z-.36+sweep*.75,z+.39+sweep*.75,.08),
+        Vector4(span,z-.20+sweep,z+.22+sweep,.035)]
     for sign in [-1,1]:
         var side: float=float(sign)
-        var vertices: Array[Vector3]=[
-            Vector3(.45*side,-.16,z-.58),
-            Vector3(span*side,-.05,z+sweep-.22),
-            Vector3(span*side,-.05,z+sweep+.25),
-            Vector3(.45*side,-.16,z+.69)]
-        _triangle(drawing,vertices[0],vertices[1],vertices[2])
-        _triangle(drawing,vertices[0],vertices[2],vertices[3])
-        _triangle(drawing,vertices[2],vertices[1],vertices[0])
-        _triangle(drawing,vertices[3],vertices[2],vertices[0])
+        for i in range(stations.size()-1):
+            var inner: Vector4=stations[i]
+            var outer: Vector4=stations[i+1]
+            var a:=Vector3(inner.x*side,-.14+inner.w,inner.y)
+            var b:=Vector3(inner.x*side,-.14+inner.w,inner.z)
+            var c:=Vector3(outer.x*side,-.14+outer.w,outer.y)
+            var d:=Vector3(outer.x*side,-.14+outer.w,outer.z)
+            var e:=Vector3(inner.x*side,-.14-inner.w,inner.y)
+            var f:=Vector3(inner.x*side,-.14-inner.w,inner.z)
+            var g:=Vector3(outer.x*side,-.14-outer.w,outer.y)
+            var h:=Vector3(outer.x*side,-.14-outer.w,outer.z)
+            _quad(drawing,a,c,d,b)  # Top aerodynamic skin
+            _quad(drawing,f,h,g,e)  # Underside
+            _quad(drawing,e,g,c,a)  # Actual swept leading edge
+            _quad(drawing,b,d,h,f)  # Trailing edge
+        var tip: Vector4=stations[stations.size()-1]
+        var top_a:=Vector3(tip.x*side,-.14+tip.w,tip.y)
+        var top_b:=Vector3(tip.x*side,-.14+tip.w,tip.z)
+        var low_a:=Vector3(tip.x*side,-.14-tip.w,tip.y)
+        var low_b:=Vector3(tip.x*side,-.14-tip.w,tip.z)
+        _quad(drawing,top_a,top_b,low_b,low_a)
     drawing.generate_normals()
     return drawing.commit()
 
 
+## Solid vertical stabilizer, not a double-sided transparent 2D poster.
 func _tail_fin() -> ArrayMesh:
+    var drawing:=SurfaceTool.new()
+    drawing.begin(Mesh.PRIMITIVE_TRIANGLES)
+    var profile: Array[Vector2]=[
+        Vector2(.16,2.23),Vector2(1.74,2.99),
+        Vector2(1.84,3.38),Vector2(.16,3.22)]
+    for i in range(profile.size()):
+        var a: Vector2=profile[i]
+        var b: Vector2=profile[(i+1)%profile.size()]
+        _quad(drawing,Vector3(-.065,a.x,a.y),
+            Vector3(.065,a.x,a.y),Vector3(.065,b.x,b.y),
+            Vector3(-.065,b.x,b.y))
+    _quad(drawing,Vector3(-.065,.16,2.23),
+        Vector3(-.065,1.74,2.99),Vector3(-.065,1.84,3.38),
+        Vector3(-.065,.16,3.22))
+    _quad(drawing,Vector3(.065,.16,3.22),
+        Vector3(.065,1.84,3.38),Vector3(.065,1.74,2.99),
+        Vector3(.065,.16,2.23))
+    drawing.generate_normals()
+    return drawing.commit()
+
+
+## Vertex-only detail of the original aircraft: single mesh per side
+## keeps cabin windows at two draw calls rather than one node per pane.
+func _window_strip(side: float) -> ArrayMesh:
+    var drawing:=SurfaceTool.new()
+    drawing.begin(Mesh.PRIMITIVE_TRIANGLES)
+    for i in range(5):
+        var z: float=-1.79+float(i)*.73
+        # Follow the ellipse exterior, not a chord inside the fuselage:
+        # at z=-1.8..+1.1 the transport's half-width is .60.. .70m.
+        # The old inset face would be hidden behind the hull mesh.
+        var x: float=.690 if i<4 else .665
+        var y: float=.33 if i<4 else .31
+        _quad(drawing,Vector3(side*x,y,z),
+            Vector3(side*x,y,z+.38),
+            Vector3(side*(x+.015),y+.17,z+.38),
+            Vector3(side*(x+.015),y+.17,z))
+    drawing.generate_normals()
+    return drawing.commit()
+
+
+func _cockpit_side_glass(side: float) -> ArrayMesh:
     return _panel_mesh([
-        Vector3(0,.2,2.25),Vector3(0,1.72,2.98),
-        Vector3(0,1.84,3.41),Vector3(0,.2,3.20)])
+        Vector3(side*.35,.36,-3.23),
+        Vector3(side*.46,.42,-2.95),
+        Vector3(side*.48,.60,-2.54),
+        Vector3(side*.43,.64,-2.64)])
+
+
+func _rear_cargo_ramp() -> ArrayMesh:
+    return _panel_mesh([
+        Vector3(-.26,-.23,3.02),Vector3(.26,-.23,3.02),
+        Vector3(.30,.16,3.13),Vector3(-.30,.16,3.13)])
+
+
+func _wing_aileron(side: float) -> ArrayMesh:
+    return _panel_mesh([
+        Vector3(side*3.76,-.065,.32),
+        Vector3(side*5.78,-.080,.68),
+        Vector3(side*5.76,-.080,.78),
+        Vector3(side*3.75,-.065,.49)])
+
+
+func _tail_elevator(side: float) -> ArrayMesh:
+    return _panel_mesh([
+        Vector3(side*1.20,-.08,2.60),
+        Vector3(side*2.35,-.085,2.88),
+        Vector3(side*2.33,-.085,2.98),
+        Vector3(side*1.20,-.08,2.75)])
+
+
+func _quad(tool: SurfaceTool,a: Vector3,b: Vector3,
+        c: Vector3,d: Vector3) -> void:
+    _triangle(tool,a,b,c)
+    _triangle(tool,a,c,d)
 
 
 func _hull_stripe() -> ArrayMesh:
