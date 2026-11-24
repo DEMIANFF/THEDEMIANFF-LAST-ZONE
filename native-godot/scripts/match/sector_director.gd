@@ -32,6 +32,12 @@ const MAX_PERF_SAMPLES: int=1800
 # A collected/deleted cache releases its GPU/physics slot so a later kill
 # can still drop the ammunition/medicine it genuinely carried.
 const MAX_OPPONENT_DROPS: int=12
+## Reserve the 12 physical-cache budget for loot the player can
+## realistically reach. A nearby NEW kill can reclaim one remote,
+## abandoned uncollected crate (>=95m away); near crates are protected.
+## A recycled crate is NEVER credited or transferred to the player.
+const DEATH_CACHE_RECYCLE_NEAR_METRES: float=38.0
+const DEATH_CACHE_RECYCLE_REMOTE_METRES: float=95.0
 # Two reconnaissance channels must remain distinct: acoustic bearings
 # are approximate; exact red markers require a REAL, current sight ray.
 # Only the nearest eight in camera FOV are raycast every 0.28s, capped
@@ -108,6 +114,7 @@ var _save_clock: float=0.0
 var _perf_clock: float=0.0
 var _perf_samples: Array[float]=[]
 var _opponent_drops_spawned: int=0
+var _remote_death_caches_retired: int=0
 var _dropped_opponents: Dictionary={}
 ## Lightweight visible evidence only when a real fallen rival has no
 ## collectible inventory or the mobile physics drop budget is saturated.
@@ -277,6 +284,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _perf_clock=0.0
     _perf_samples.clear()
     _opponent_drops_spawned=0
+    _remote_death_caches_retired=0
     _dropped_opponents.clear()
     _clear_empty_death_markers()
     lockers_opened=0
@@ -1056,6 +1064,36 @@ func _active_opponent_drop_count() -> int:
     return active
 
 
+## Priority-based 12-asset recycling: never erase a recoverable
+## nearby crate to "make room". The parent death handler validates the
+## new victim and inventory before calling this helper.
+func _recycle_remote_death_cache(new_death: Vector3) -> bool:
+    if (not is_instance_valid(player) or
+            not new_death.is_finite() or
+            player.global_position.distance_squared_to(new_death)>
+                DEATH_CACHE_RECYCLE_NEAR_METRES*
+                DEATH_CACHE_RECYCLE_NEAR_METRES):
+        return false
+    var best: Area3D=null
+    var furthest_sq: float=pow(DEATH_CACHE_RECYCLE_REMOTE_METRES,2.0)
+    for pickup in _loot:
+        if (not is_instance_valid(pickup) or
+                not pickup.from_opponent or pickup.collected or
+                pickup.is_queued_for_deletion()):
+            continue
+        var distance_sq: float=pickup.global_position.distance_squared_to(
+            player.global_position)
+        if distance_sq>furthest_sq:
+            furthest_sq=distance_sq
+            best=pickup
+    if best==null:
+        return false
+    _loot.erase(best)
+    best.queue_free()
+    _remote_death_caches_retired+=1
+    return true
+
+
 ## Loot is produced by an actual CharacterBody3D death, never by fake
 ## timers or respawn counters. One cache per victim per round; at most 12
 ## simultaneously live caches preserve the Motorola physics/draw budget.
@@ -1077,18 +1115,19 @@ func _on_opponent_eliminated(victim: CharacterBody3D,killer: Node3D) -> void:
         # of making every distant storm casualty vanish without a trace.
         _spawn_empty_opponent_marker(position,"FUERA DE ZONA")
         return
-    # A previous 12-kill lifetime limit incorrectly suppressed every later
-    # opponent drop, even if the player collected all prior supplies.
-    # Count currently active caches instead; never exceed 12 at once.
-    if _active_opponent_drop_count()>=MAX_OPPONENT_DROPS:
-        _spawn_empty_opponent_marker(position,"SIN ESPACIO PARA BOTÍN")
-        return
     var supply: Dictionary=opponent_inventory_reward(
         int(victim.get("_magazine")),int(victim.get("_field_medkits")),
         killer==player,_opponent_drops_spawned+1)
     if supply.is_empty():
         _spawn_empty_opponent_marker(position,"SIN OBJETOS")
         return  # No fictitious ammo or medkit on an exhausted rival.
+    # Never exceed 12 physical crates. But if the player wins a nearby
+    # fight, prioritize its REAL remaining ammo over a 95m-away,
+    # abandoned old cache. Do not delete any reachable local crates.
+    if (_active_opponent_drop_count()>=MAX_OPPONENT_DROPS and
+            not _recycle_remote_death_cache(position)):
+        _spawn_empty_opponent_marker(position,"SIN ESPACIO PARA BOTÍN")
+        return
     _opponent_drops_spawned+=1
     var kind: String=str(supply["kind"])
     var amount: int=int(supply["quantity"])
