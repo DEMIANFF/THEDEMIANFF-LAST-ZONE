@@ -739,6 +739,16 @@ func _live_vehicles() -> Array[Vector2]:
         Vector2(player.global_position.x,player.global_position.z),95.0,2)
 
 
+## Only nearby, real, unopened lockers on land. This is not an
+## omniscient map of enemy inventories or randomized future rewards.
+func _live_sealed_lockers() -> Array[Vector2]:
+    if (not is_instance_valid(player) or player.royale_eliminated or
+            not is_instance_valid(director)):
+        return []
+    return director.nearby_unopened_supply_lockers(
+        Vector2(player.global_position.x,player.global_position.z),85.0)
+
+
 func _live_local_cache_markers() -> Array[Vector2]:
     if not is_instance_valid(player) or not is_instance_valid(director):
         return []
@@ -849,6 +859,19 @@ func _draw() -> void:
             draw_arc(pixel,10.0,0,TAU,24,Color(1.0,.74,.34),1.8)
             draw_string(font,pixel+Vector2(-2.5,4.0),"!",
                 HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color(1.0,.99,.87))
+    # The new bronze diamond is an UNOPENED 3D locker within the local
+    # reconnaissance range. On opening, the same marker disappears and
+    # its individual physical pickups become visible using existing rules.
+    for locker_at in _live_sealed_lockers():
+        var locker_pixel: Vector2=project(locker_at)
+        if rect.grow(-12.0).has_point(locker_pixel):
+            var diamond:=PackedVector2Array([
+                locker_pixel+Vector2(0,-8),
+                locker_pixel+Vector2(8,0),
+                locker_pixel+Vector2(0,8),
+                locker_pixel+Vector2(-8,0)])
+            draw_colored_polygon(diamond,Color(.93,.57,.19,.95))
+            draw_circle(locker_pixel,2.5,Color(.07,.13,.18))
     # Cars are displayed only when their actual original source, four
     # physics wheels and mesh have been instantiated in the match.
     for vehicle_at in _live_vehicles():
