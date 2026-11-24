@@ -32,6 +32,21 @@ const MAX_PERF_SAMPLES: int=1800
 # A collected/deleted cache releases its GPU/physics slot so a later kill
 # can still drop the ammunition/medicine it genuinely carried.
 const MAX_OPPONENT_DROPS: int=12
+## Reserve the 12 physical-cache budget for loot the player can
+## realistically reach. A nearby NEW kill can reclaim one remote,
+## abandoned uncollected crate (>=95m away); near crates are protected.
+## A recycled crate is NEVER credited or transferred to the player.
+const DEATH_CACHE_RECYCLE_NEAR_METRES: float=38.0
+const DEATH_CACHE_RECYCLE_REMOTE_METRES: float=95.0
+# Two reconnaissance channels must remain distinct: acoustic bearings
+# are approximate; exact red markers require a REAL, current sight ray.
+# Only the nearest eight in camera FOV are raycast every 0.28s, capped
+# at six live map contacts for Mobile/Vulkan's 49 AI bodies.
+const VISUAL_CONTACT_RANGE: float=38.0
+const VISUAL_CONTACT_INTERVAL: float=.28
+const VISUAL_CONTACT_FOV_COS: float=.375
+const MAX_VISUAL_CONTACT_RAYS: int=8
+const MAX_VISUAL_CONTACTS: int=6
 const PHASE_COUNT: int=4
 const PHASE_SECONDS: float=SHRINK_DURATION/float(PHASE_COUNT)
 const PHASE_HOLD_SECONDS: float=24.0
@@ -99,12 +114,18 @@ var _save_clock: float=0.0
 var _perf_clock: float=0.0
 var _perf_samples: Array[float]=[]
 var _opponent_drops_spawned: int=0
+var _remote_death_caches_retired: int=0
 var _dropped_opponents: Dictionary={}
 ## Lightweight visible evidence only when a real fallen rival has no
 ## collectible inventory or the mobile physics drop budget is saturated.
 ## Never mint fictional ammo, coins or healing from an empty backpack.
 const MAX_EMPTY_DEATH_MARKERS: int=12
 var _empty_death_markers: Array[Node3D]=[]
+var _visual_contact_clock: float=0.0
+var _visible_enemy_actors: Array[Dictionary]=[]
+var _contact_observer: Vector3=Vector3(INF,INF,INF)
+var _contact_yaw: float=INF
+var _visual_contact_rays_last: int=0
 var _phase_supplies: Dictionary={}
 var _was_player_outside: bool=false
 var _zone_entries: int=0
@@ -150,6 +171,7 @@ func begin_aircraft_phase() -> void:
     # uses the SAME 50-person classic roster, without any difficulty menu.
     _remove_driveable_vehicles()
     _clear_supply_lockers()
+    _clear_visual_contacts()
     combat.set_encounter_size(COMBAT_ROSTER.CLASSIC_BR_PARTICIPANTS)
     combat.end_sector_battle()
     _rivals_departed=false
@@ -228,6 +250,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     # A repeatable elimination round, not an endless training target spawner.
     _remove_driveable_vehicles()
     _clear_supply_lockers()
+    _clear_visual_contacts()
     for old in _loot:
         if is_instance_valid(old):
             old.queue_free()
@@ -261,6 +284,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _perf_clock=0.0
     _perf_samples.clear()
     _opponent_drops_spawned=0
+    _remote_death_caches_retired=0
     _dropped_opponents.clear()
     _clear_empty_death_markers()
     lockers_opened=0
@@ -301,10 +325,15 @@ func _ready_for_round() -> bool:
 ## An idle-frame query can hit a locked PhysicsServer on Android.
 func _physics_process(delta: float) -> void:
     if mode!="sector_battle" or match_ended:
+        _clear_visual_contacts()
         _locker_press_pending=false
         if _search_locker!=null:
             _cancel_supply_search(false)
         return
+    _visual_contact_clock-=maxf(0.0,delta)
+    if _visual_contact_clock<=0.0:
+        _visual_contact_clock=VISUAL_CONTACT_INTERVAL
+        _scan_visible_enemy_contacts()
     _locker_scan_clock-=maxf(0.0,delta)
     if _locker_scan_clock<=0.0:
         _locker_scan_clock=.25
@@ -557,6 +586,7 @@ func _finish(victory: bool) -> void:
     _cancel_supply_search(false)
     hud.set_supply_interaction("",false)
     hud.clear_radar_gunfire()
+    _clear_visual_contacts()
     hud.set_zone_threat(false,0.0)
     # Rank and combat metrics must be captured BEFORE the atomic ledger
     # commit, not only drawn on a temporary results screen.
@@ -1034,6 +1064,36 @@ func _active_opponent_drop_count() -> int:
     return active
 
 
+## Priority-based 12-asset recycling: never erase a recoverable
+## nearby crate to "make room". The parent death handler validates the
+## new victim and inventory before calling this helper.
+func _recycle_remote_death_cache(new_death: Vector3) -> bool:
+    if (not is_instance_valid(player) or
+            not new_death.is_finite() or
+            player.global_position.distance_squared_to(new_death)>
+                DEATH_CACHE_RECYCLE_NEAR_METRES*
+                DEATH_CACHE_RECYCLE_NEAR_METRES):
+        return false
+    var best: Area3D=null
+    var furthest_sq: float=pow(DEATH_CACHE_RECYCLE_REMOTE_METRES,2.0)
+    for pickup in _loot:
+        if (not is_instance_valid(pickup) or
+                not pickup.from_opponent or pickup.collected or
+                pickup.is_queued_for_deletion()):
+            continue
+        var distance_sq: float=pickup.global_position.distance_squared_to(
+            player.global_position)
+        if distance_sq>furthest_sq:
+            furthest_sq=distance_sq
+            best=pickup
+    if best==null:
+        return false
+    _loot.erase(best)
+    best.queue_free()
+    _remote_death_caches_retired+=1
+    return true
+
+
 ## Loot is produced by an actual CharacterBody3D death, never by fake
 ## timers or respawn counters. One cache per victim per round; at most 12
 ## simultaneously live caches preserve the Motorola physics/draw budget.
@@ -1055,18 +1115,19 @@ func _on_opponent_eliminated(victim: CharacterBody3D,killer: Node3D) -> void:
         # of making every distant storm casualty vanish without a trace.
         _spawn_empty_opponent_marker(position,"FUERA DE ZONA")
         return
-    # A previous 12-kill lifetime limit incorrectly suppressed every later
-    # opponent drop, even if the player collected all prior supplies.
-    # Count currently active caches instead; never exceed 12 at once.
-    if _active_opponent_drop_count()>=MAX_OPPONENT_DROPS:
-        _spawn_empty_opponent_marker(position,"SIN ESPACIO PARA BOTÍN")
-        return
     var supply: Dictionary=opponent_inventory_reward(
         int(victim.get("_magazine")),int(victim.get("_field_medkits")),
         killer==player,_opponent_drops_spawned+1)
     if supply.is_empty():
         _spawn_empty_opponent_marker(position,"SIN OBJETOS")
         return  # No fictitious ammo or medkit on an exhausted rival.
+    # Never exceed 12 physical crates. But if the player wins a nearby
+    # fight, prioritize its REAL remaining ammo over a 95m-away,
+    # abandoned old cache. Do not delete any reachable local crates.
+    if (_active_opponent_drop_count()>=MAX_OPPONENT_DROPS and
+            not _recycle_remote_death_cache(position)):
+        _spawn_empty_opponent_marker(position,"SIN ESPACIO PARA BOTÍN")
+        return
     _opponent_drops_spawned+=1
     var kind: String=str(supply["kind"])
     var amount: int=int(supply["quantity"])
@@ -1167,6 +1228,120 @@ func nearby_opponent_supply_points(observer: Vector2,
             if points.size()>=limit:
                 break
     return points
+
+
+## Static geometry gate: only objects INSIDE the actual camera yaw/FOV and
+## physically within the specified range qualify for further LOS testing.
+## There is no free all-island detection, silent footstep wallhack or radar
+## "last seen" coordinate. Caller must still test against real geometry.
+static func could_see_enemy(origin: Vector3,yaw: float,
+        target: Vector3,range_m: float=VISUAL_CONTACT_RANGE) -> bool:
+    if (not origin.is_finite() or not target.is_finite() or
+            not is_finite(yaw) or not is_finite(range_m) or
+            range_m<=0.0 or range_m>VISUAL_CONTACT_RANGE):
+        return false
+    var delta: Vector2=Vector2(target.x-origin.x,target.z-origin.z)
+    var distance_sq: float=delta.length_squared()
+    if distance_sq<1.5*1.5 or distance_sq>range_m*range_m:
+        return false
+    if absf(target.y-origin.y)>9.0:
+        return false
+    var camera_forward:=Vector2(-sin(yaw),-cos(yaw))
+    return delta.normalized().dot(camera_forward)>=VISUAL_CONTACT_FOV_COS
+
+
+func _clear_visual_contacts() -> void:
+    if not _visible_enemy_actors.is_empty():
+        _visible_enemy_actors.clear()
+    _visual_contact_clock=0.0
+    _visual_contact_rays_last=0
+    _contact_observer=Vector3(INF,INF,INF)
+    _contact_yaw=INF
+
+
+## Scan is called ONLY in _physics_process. All 49 combat bodies continue
+## fighting, but just eight close visible FOV candidates consume raycasts.
+## Rendering never queries PhysicsServer from _draw() or idle UI input.
+func _scan_visible_enemy_contacts() -> void:
+    _visible_enemy_actors.clear()
+    _visual_contact_rays_last=0
+    if (mode!="sector_battle" or match_ended or
+            not is_instance_valid(player) or
+            player.royale_eliminated or player.round_finished or
+            player.air_mode!="ground" or player.vehicle_ride_active()):
+        return
+    var eye: Vector3=player.global_position+Vector3.UP*1.40
+    var yaw: float=float(player.get("_yaw"))
+    var candidates: Array[Dictionary]=[]
+    for rival in combat._targets:
+        if (not is_instance_valid(rival) or
+                rival.is_queued_for_deletion() or
+                not rival.is_visible_in_tree() or
+                float(rival.get("health"))<=0.0 or
+                str(rival.get("_airdrop_stage")) in ["waiting","descending"]):
+            continue
+        var target: Vector3=rival.global_position
+        if could_see_enemy(player.global_position,yaw,target):
+            candidates.append({
+                "actor":rival,
+                "distance_sq":eye.distance_squared_to(target)})
+    candidates.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
+        return float(a["distance_sq"])<float(b["distance_sq"]))
+    _contact_observer=player.global_position
+    _contact_yaw=yaw
+    for item in candidates:
+        if (_visual_contact_rays_last>=MAX_VISUAL_CONTACT_RAYS or
+                _visible_enemy_actors.size()>=MAX_VISUAL_CONTACTS):
+            break
+        var rival: CharacterBody3D=item["actor"] as CharacterBody3D
+        var chest: Vector3=rival.global_position+Vector3.UP*1.0
+        var ray:=PhysicsRayQueryParameters3D.create(eye,chest)
+        ray.exclude=[player.get_rid()]
+        _visual_contact_rays_last+=1
+        var hit: Dictionary=get_world_3d().direct_space_state.intersect_ray(ray)
+        if hit.get("collider")!=rival:
+            # A wall, vehicle, cover or another rival physically blocks
+            # the visual contact. Do not plot this actor on either map.
+            continue
+        _visible_enemy_actors.append({
+            "actor":rival,"at_scan":rival.global_position})
+
+
+## Read-only shared source for both minimap and full tactical map.
+## Invalidates as soon as a tracked enemy dies, moves substantially,
+## leaves view, the camera turns or the operator relocates.
+func visible_enemy_contacts(observer: Vector2,
+        scan_radius: float=VISUAL_CONTACT_RANGE) -> Array[Vector2]:
+    var found: Array[Vector2]=[]
+    if (mode!="sector_battle" or match_ended or
+            not is_instance_valid(player) or player.royale_eliminated or
+            player.air_mode!="ground" or
+            not observer.is_finite() or
+            scan_radius<=0.0 or
+            not _contact_observer.is_finite() or
+            not is_finite(_contact_yaw)):
+        return found
+    var current: Vector3=player.global_position
+    var actual:=Vector2(current.x,current.z)
+    if (observer.distance_squared_to(actual)>1.0 or
+            current.distance_squared_to(_contact_observer)>1.50*1.50 or
+            absf(angle_difference(float(player.get("_yaw")),
+                _contact_yaw))>.21):
+        return found
+    var max_distance_sq:=pow(minf(scan_radius,VISUAL_CONTACT_RANGE),2.0)
+    for entry in _visible_enemy_actors:
+        var actor: CharacterBody3D=entry["actor"] as CharacterBody3D
+        if (not is_instance_valid(actor) or
+                actor.is_queued_for_deletion() or
+                not actor.is_visible_in_tree() or
+                float(actor.get("health"))<=0.0 or
+                actor.global_position.distance_squared_to(
+                    entry["at_scan"] as Vector3)>1.65*1.65):
+            continue
+        var at:=Vector2(actor.global_position.x,actor.global_position.z)
+        if at.distance_squared_to(actual)<=max_distance_sq:
+            found.append(at)
+    return found
 
 
 ## Bounded ground-resource intelligence from physical Area3D pickups only.
