@@ -1,8 +1,8 @@
 extends Control
 const TERRAIN_SCALE=preload("res://scripts/world/island_terrain.gd")
 const AIRDROP=preload("res://scripts/match/airdrop_sequence.gd")
-## Training: real opponent positions. Battle Royale: NO omniscient opponent
-## positions; only short-lived acoustic pings from actual enemy gunshots.
+## Training: actual active practice bots. Battle Royale: only player-
+## visible, collision-verified enemies + distinct, approximate gunfire bearings.
 ## All current/future storm circles continue using authoritative zone geometry.
 
 var player: CharacterBody3D
@@ -85,6 +85,17 @@ func _nearby_supply_markers() -> Array[Vector2]:
 
 ## Read only nearby, uncollected real-world resources. Never invent cars
 ## when optional original Toyota/BMW model assets are not installed.
+## Live visual confirmations share ONE raycast-scanned director source
+## with the tactical map. A gunfire bearing is never a precise red enemy.
+func nearby_verified_enemies() -> Array[Vector2]:
+    if (not _battle_mode or not is_instance_valid(player) or
+            not is_instance_valid(_sector_director) or
+            player.royale_eliminated):
+        return []
+    return _sector_director.visible_enemy_contacts(
+        Vector2(player.global_position.x,player.global_position.z),38.0)
+
+
 func nearby_physical_resources() -> Array[Dictionary]:
     if (not _battle_mode or not is_instance_valid(player) or
             not is_instance_valid(_sector_director) or
@@ -606,6 +617,24 @@ func _draw() -> void:
             var bounds:=Rect2(dot-Vector2(3.5,3.5),Vector2(7,7))
             draw_rect(bounds,Color(.06,.23,.20,.94),true)
             draw_rect(bounds,Color(.64,.99,.73),false,1.1)
+        # Red contact triangles mean a currently alive enemy whose
+        # BODY was actually hit by a physics LOS ray from this camera FOV.
+        # In contrast, orange rim arcs below mean only a sound bearing.
+        # Never draw a precise position from old audio or stale bot data.
+        for enemy_at in nearby_verified_enemies():
+            var relative: Vector2=enemy_at-physical_listener
+            var dot: Vector2=center+relative.rotated(yaw)*(
+                radius/world_range)
+            if dot.distance_to(center)>radius-9.0:
+                continue
+            var triangle:=PackedVector2Array([
+                dot+Vector2(0,-7.0),
+                dot+Vector2(-5.1,4.8),
+                dot+Vector2(5.1,4.8)])
+            draw_colored_polygon(triangle,Color(1.0,.24,.29,.98))
+            draw_polyline(PackedVector2Array([
+                triangle[0],triangle[1],triangle[2],triangle[0]]),
+                Color(1.0,.90,.79,.96),1.1,true)
         # Acoustic contacts are SOUND BEARINGS, not precise enemy dots.
         # A shot's saved location becomes false as soon as the shooter
         # moves. Show the last audible direction on the radar rim instead
