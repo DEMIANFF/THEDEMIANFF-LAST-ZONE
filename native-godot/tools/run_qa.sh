@@ -34,6 +34,7 @@ if [ "${AURORA_QA_EXPORTED:-0}" != 1 ]; then
   # 'Could not preload resource script' at main.gd:6.
   for source in \
     scripts/match/aurora_supply_locker.gd \
+    scripts/ui/aurora_damage_compass.gd \
     scripts/qa/v75178_real_combat_presentation_qa.gd \
     scripts/qa/v75177_physical_supply_lockers_qa.gd \
     scripts/qa/v75176_visual_inventory_qa.gd \
