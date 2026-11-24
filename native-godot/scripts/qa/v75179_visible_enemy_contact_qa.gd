@@ -72,8 +72,8 @@ func _verify() -> void:
     check(int(director._visual_contact_rays_last)<=
         SECTOR.MAX_VISUAL_CONTACT_RAYS,
         "visual minimap exceeded its bounded mobile ray budget")
-    check(radar.nearby_verified_enemies()==contacts and
-        tactical._live_verified_enemies()==contacts,
+    check(radar.call("nearby_verified_enemies")==contacts and
+        tactical.call("_live_verified_enemies")==contacts,
         "minimap and tactical map disagree about real visual evidence")
 
     # A genuine StaticBody3D occluder removes the target from BOTH maps.
@@ -91,14 +91,14 @@ func _verify() -> void:
     await create_timer(.38).timeout
     await process_frame
     check(director.visible_enemy_contacts(observer).is_empty() and
-        radar.nearby_verified_enemies().is_empty() and
-        tactical._live_verified_enemies().is_empty(),
+        radar.call("nearby_verified_enemies").is_empty() and
+        tactical.call("_live_verified_enemies").is_empty(),
         "real physical wall failed to occlude precise red enemy markers")
     # A REAL shot behind the wall may still produce an orange sound arc,
     # but does not manufacture an exact red triangle on the enemy body.
-    radar.note_enemy_gunfire(rival.global_position)
-    check(radar._gunfire_pings.size()==1 and
-        radar.nearby_verified_enemies().is_empty(),
+    radar.call("note_enemy_gunfire",rival.global_position)
+    check((radar.get("_gunfire_pings") as Array).size()==1 and
+        radar.call("nearby_verified_enemies").is_empty(),
         "acoustic bearing was incorrectly interpreted as exact LOS")
     barrier.queue_free()
     await physics_frame
