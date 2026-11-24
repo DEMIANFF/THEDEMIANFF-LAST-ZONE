@@ -12,6 +12,7 @@ signal aim_pressed
 signal reload_pressed
 signal weapon_pressed
 signal inventory_equip_requested(slot: int)
+signal supply_locker_requested
 signal syringe_pressed
 signal run_pressed
 signal run_released
@@ -96,6 +97,9 @@ var _driving_vehicle: bool=false
 var _exit_button: Button
 var _settings_button: Button
 var _inventory_button: Button
+var _supply_locker_button: Button
+var _supply_locker_caption: Label
+var _supply_allowed: bool=false
 var _inventory_panel: PanelContainer
 var _inventory_label: Label
 var _inventory_close: Button
@@ -340,6 +344,20 @@ func _ready() -> void:
     _inventory_button=_button(root,"MOCHILA",.75,.255,105,46,
         Color(.17,.35,.41),_toggle_inventory)
     _inventory_button.disabled=true
+    # Context-sensitive world interaction, not a permanently visible
+    # decorative control. Director decides the true reachable/visible
+    # physical supply locker; the HUD never creates resources itself.
+    _supply_locker_button=_button(root,"ABRIR DEPÓSITO",.42,.53,138,61,
+        Color(.31,.43,.29),func(): supply_locker_requested.emit())
+    _supply_locker_button.name="AuroraPhysicalSupplyInteraction"
+    _supply_locker_button.disabled=true
+    _supply_locker_button.visible=false
+    _supply_locker_caption=_text(
+        root,"",.42,.49,14,Color(.98,.87,.58),
+        HORIZONTAL_ALIGNMENT_CENTER)
+    _supply_locker_caption.name="AuroraPhysicalSupplyCaption"
+    _supply_locker_caption.visible=false
+    _supply_locker_caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
     # The minimap itself is the ONLY opener, as in the reference footage.
     # Keep the legacy MAPA node solely for saved HUD preset compatibility:
     # it is an invisible touch target over the radar, not a second circle.
@@ -631,6 +649,7 @@ func set_air_stage(value: String) -> void:
     # Combat UI is irrelevant while riding the aircraft or descending.
     if _inventory_panel:
         _inventory_panel.visible=false
+    set_supply_interaction("",false)
     for name in ["DirectionalFirePad","MIRA","RECARGA","ARMA","AGACHAR","CURAR 2","CORRER","BARRERA 0","MOCHILA"]:
         var control: Control=overlay.get_node_or_null(name) as Control
         if control:
@@ -949,6 +968,9 @@ func _toggle_inventory() -> void:
     if air_stage!="ground" or _inventory_button.disabled:
         return
     _inventory_panel.visible=not _inventory_panel.visible
+    if _inventory_panel.visible and _supply_locker_button!=null:
+        _supply_locker_button.hide()
+        _supply_locker_caption.hide()
     if _inventory_panel.visible and _inventory_scroll!=null:
         _inventory_scroll.scroll_vertical=0
         if _map_overlay!=null:
@@ -985,6 +1007,22 @@ static func inventory_tile_text(key: String,items: Dictionary) -> String:
                 int(items.get("grenades",0)),int(items.get("covers",0))]
         _:
             return "SIN DATOS"
+
+
+## Render only interaction targets validated by the actual director.
+## The button never bypasses world occlusion, distance or round state.
+func set_supply_interaction(caption: String,allowed: bool) -> void:
+    _supply_allowed=allowed
+    if _supply_locker_button==null or _supply_locker_caption==null:
+        return
+    var show: bool=allowed and air_stage=="ground" and (
+        _inventory_panel==null or not _inventory_panel.visible) and (
+        _map_overlay==null or not _map_overlay.visible)
+    _supply_locker_button.visible=show
+    _supply_locker_button.disabled=not show
+    _supply_locker_caption.visible=show
+    if show:
+        _supply_locker_caption.text=caption
 
 
 func set_inventory_snapshot(items: Dictionary) -> void:
@@ -1367,6 +1405,10 @@ func _layout() -> void:
     _place(_exit_button,Rect2(origin+Vector2(w-107,108),Vector2(78,78)))
     _place(_settings_button,Rect2(origin+Vector2(w-194,108),Vector2(78,78)))
     _place(_inventory_button,Rect2(origin+Vector2(w-281,108),Vector2(78,78)))
+    _place(_supply_locker_button,Rect2(
+        origin+Vector2(w*.5-80,h-158),Vector2(135,67)))
+    _place(_supply_locker_caption,Rect2(
+        origin+Vector2(w*.5-105,h-187),Vector2(185,25)))
     # A usable equipment panel with scrollable weapon choices; reserve
     # >40px from bottom on narrow phones and never clip the close control.
     var bag_w: float=minf(408.0,maxf(300.0,w*.435))
@@ -1659,6 +1701,8 @@ func set_match_controls(enabled: bool) -> void:
         _inventory_button.disabled=not enabled or air_stage!="ground"
     if not enabled and _inventory_panel:
         _inventory_panel.visible=false
+    if not enabled:
+        set_supply_interaction("",false)
 
 
 func _notification(what: int) -> void:
