@@ -1,8 +1,8 @@
 extends SceneTree
-## V75.101: 49 actual physical BR rivals; bounded 14 nearby skinned
-## characters get the EXISTING rifle GLB attached to a genuine right
-## hand bone. Distant rivals retain their real colliders/AI without a
-## costly rifle mesh or invented remote position.
+## V75.101 + V75.183: 49 real physical BR rivals all have the SAME
+## authored skinned character and genuine hand-mounted weapon at every
+## distance. Only 14 actively ANIMATE their original GLBs; far skeletons
+## freeze in a consistent pose without changing their appearance.
 const BOT=preload("res://scripts/ai/aurora_bot.gd")
 const COMBAT=preload("res://scripts/combat/training_combat.gd")
 const RIFLE=preload("res://scripts/combat/weapon_visuals.gd")
@@ -74,21 +74,24 @@ func _verify() -> void:
         combat.active_fighter_count()==50,
         "attaching hand guns deleted a physical BR fighter")
     var attached: int=0
-    var low_poly: int=0
+    var static_original: int=0
     for rival in combat._targets:
         if rival._rig!=null:
             attached+=1
             _test_rifle(rival,"initial detailed opponent")
         else:
-            low_poly+=1
-            check(rival._enemy_hand_rifle==null and
-                rival._enemy_right_hand_socket==null and
-                rival._lod_body!=null and rival._lod_body.visible and
+            static_original+=1
+            var idle: AnimationPlayer=rival._lod_rig.find_child(
+                "AnimationPlayer",true,false) as AnimationPlayer
+            check(rival._lod_rig!=null and rival._lod_rig.visible and
+                is_instance_valid(rival._enemy_hand_rifle) and
+                is_instance_valid(rival._enemy_right_hand_socket) and
+                idle!=null and not idle.active and
                 rival.get_node_or_null("OpponentCollider") is CollisionShape3D,
-                "distant opponent acquired expensive weapon or lost body")
-    check(attached==8 and low_poly==41 and
+                "distant opponent must have SAME original body and held weapon")
+    check(attached==8 and static_original==41 and
         get_nodes_in_group(BOT.DETAILED_ENEMY_GROUP).size()==8,
-        "new hand weapons breached the original 8/41 mobile LOD split")
+        "new hand weapons broke the 8 animated/41 frozen-source split")
 
     var shooter: CharacterBody3D=combat._targets[0]
     var shot_before: int=shooter.shots_fired
@@ -110,21 +113,28 @@ func _verify() -> void:
         if rival.distance_lod and rival._rig==null:
             promoted=rival
             break
-    check(promoted!=null,"no genuine low-poly bot for weapon LOD promotion")
+    check(promoted!=null,"no original static rig for animation promotion")
     if promoted!=null:
         var before: int=get_nodes_in_group(
             BOT.DETAILED_ENEMY_GROUP).size()
+        var original: Node3D=promoted._lod_rig
+        var original_gun: Node3D=promoted._enemy_hand_rifle
         promoted._set_full_visual(true)
         check(get_nodes_in_group(BOT.DETAILED_ENEMY_GROUP).size()==before+1,
-            "promoting one physical opponent did not allocate one rig")
-        _test_rifle(promoted,"dynamic LOD promotion")
+            "promoting one physical opponent did not enable one animator")
+        check(promoted._rig==original and
+            promoted._enemy_hand_rifle==original_gun,
+            "promotion replaced original enemy identity or 3D weapon")
         promoted._set_full_visual(false)
+        var now_idle: AnimationPlayer=original.find_child(
+            "AnimationPlayer",true,false) as AnimationPlayer
         check(promoted._rig==null and
-            promoted._enemy_hand_rifle==null and
-            promoted._enemy_right_hand_socket==null and
-            promoted._lod_body.visible and
+            promoted._lod_rig==original and original.visible and
+            promoted._enemy_hand_rifle==original_gun and
+            is_instance_valid(promoted._enemy_right_hand_socket) and
+            now_idle!=null and not now_idle.active and
             get_nodes_in_group(BOT.DETAILED_ENEMY_GROUP).size()==before,
-            "LOD demotion leaked weapon/rig or removed live bot")
+            "demotion changed original 3D body/weapon or animation budget")
         check(promoted.health>0.0 and promoted.sector_battle and
             promoted.get_node_or_null("OpponentCollider") is CollisionShape3D,
             "freeing a detailed weapon also removed the opponent physics")
@@ -145,7 +155,7 @@ func _verify() -> void:
     if not failed:
         print("V75101_BOT_HAND_RIFLE PASS roster=50 "+
             "hand_socket=actual_bone original_AK_GLb=1 "+
-            "detailed_with_rifles=8 distant_without_extra_draw=41 "+
-            "shoot_and_reload=real low_poly_demote=clean "+
+            "detailed_with_rifles=8 distant_same_rifle=41 "+
+            "shoot_and_reload=real same_rig_demote=clean "+
             "dynamic_rig_cap=14 online=false motorola_fps=unmeasured")
     quit(1 if failed else 0)
