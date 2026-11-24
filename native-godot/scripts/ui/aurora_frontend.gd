@@ -4218,6 +4218,13 @@ func _layout_safe() -> void:
             # the visible gold-bordered BR card at 964x434 and 1280x720.
             var available: float=maxf(165.0,minf(250.0,
                 _play_match_card.size.x-38.0))
+            # The OptionButton is a separate child of Page; constraining
+            # only the INICIAR VBox left the selector wider than the gold
+            # card on compact 964x434 Android landscape.
+            if _match_mode_selector!=null and is_instance_valid(
+                    _match_mode_selector):
+                _match_mode_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+                _match_mode_selector.custom_minimum_size.x=available
             if _lobby_play_modes!=null and is_instance_valid(
                     _lobby_play_modes):
                 _lobby_play_modes.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
