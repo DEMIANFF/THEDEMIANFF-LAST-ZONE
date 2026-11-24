@@ -229,9 +229,8 @@ func _verify() -> void:
     if is_instance_valid(reward):
         player.global_position=reward.global_position-Vector3.UP*.5
         await physics_frame
-    # A physics_frame signal precedes physics callbacks; an idle-frame
-    # barrier ensures the queued interaction and collision changes finish.
-    await process_frame
+        # Wait until the physics body has finished its contact callbacks.
+        await process_frame
         if is_instance_valid(reward) and not reward.collected:
             reward._collect(player)
         check(int(combat.inventory_snapshot()["loot_collected"])>
