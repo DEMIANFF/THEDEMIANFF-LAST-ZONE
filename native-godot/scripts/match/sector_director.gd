@@ -74,6 +74,8 @@ const LOCKER_CONTENTS: Array=[
     ["backpack_2","syringe"],["weapon_scar","ammo_smg"]]
 var _supply_lockers: Array[StaticBody3D]=[]
 var lockers_opened: int=0
+var _locker_scan_clock: float=0.0
+var _locker_press_pending: bool=false
 var _driveable_cars: Array[AuroraDriveableVehicle]=[]
 var _vehicle_ui_clock: float=0.0
 var _zone_visual: Node3D
@@ -248,6 +250,8 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _opponent_drops_spawned=0
     _dropped_opponents.clear()
     lockers_opened=0
+    _locker_press_pending=false
+    _locker_scan_clock=0.0
     _phase_supplies.clear()
     _was_player_outside=false
     _zone_entries=0
@@ -277,6 +281,22 @@ func _ready_for_round() -> bool:
     return true
 
 
+## Raycasts must run on the physics thread. A GUI button only queues a
+## request; the next physics tick rechecks terrain, walls and distance.
+## An idle-frame query can hit a locked PhysicsServer on Android.
+func _physics_process(delta: float) -> void:
+    if mode!="sector_battle" or match_ended:
+        _locker_press_pending=false
+        return
+    _locker_scan_clock-=maxf(0.0,delta)
+    if _locker_scan_clock<=0.0:
+        _locker_scan_clock=.25
+        _refresh_supply_interaction()
+    if _locker_press_pending:
+        _locker_press_pending=false
+        _perform_supply_interact()
+
+
 func _process(delta: float) -> void:
     if mode=="aircraft":
         _stage_rival_airdrops(delta)
@@ -295,7 +315,6 @@ func _process(delta: float) -> void:
             hud.set_vehicle_context(false,true,ride.speed_kmh())
         else:
             hud.set_vehicle_context(_nearest_enterable_car()!=null,false,0.0)
-        _refresh_supply_interaction()
     elapsed += delta
     # Sample measured hardware FPS twice per second. Store only at the
     # actual match end, avoiding file writes during interactive combat.
@@ -629,6 +648,8 @@ func _on_real_vehicle_action() -> void:
 ## Limited to four fixed, authored caches per offline BR round. None is
 ## present in training, the aircraft or a completed match.
 func _clear_supply_lockers() -> void:
+    _locker_press_pending=false
+    _locker_scan_clock=0.0
     for locker in _supply_lockers:
         if is_instance_valid(locker):
             locker.queue_free()
@@ -738,6 +759,11 @@ func _refresh_supply_interaction() -> void:
 
 
 func _on_supply_interact() -> void:
+    if mode=="sector_battle" and not match_ended:
+        _locker_press_pending=true
+
+
+func _perform_supply_interact() -> void:
     var locker: StaticBody3D=_nearest_supply_locker()
     if locker==null:
         hud.set_supply_interaction("",false)
