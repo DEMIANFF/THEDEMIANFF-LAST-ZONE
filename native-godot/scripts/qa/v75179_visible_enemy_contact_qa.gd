@@ -96,6 +96,7 @@ func _verify() -> void:
         "real physical wall failed to occlude precise red enemy markers")
     # A REAL shot behind the wall may still produce an orange sound arc,
     # but does not manufacture an exact red triangle on the enemy body.
+    radar.call("clear_gunfire")
     radar.call("note_enemy_gunfire",rival.global_position)
     check((radar.get("_gunfire_pings") as Array).size()==1 and
         radar.call("nearby_verified_enemies").is_empty(),
