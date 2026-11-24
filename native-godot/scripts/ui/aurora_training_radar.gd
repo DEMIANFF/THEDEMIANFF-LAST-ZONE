@@ -626,7 +626,11 @@ func _draw() -> void:
         _draw_navigation_compass(center,radius,world_range)
         return
     for bot in opponents:
-        if not is_instance_valid(bot) or not bot.visible:
+        # Training radar may show live visible practice targets, never
+        # dead, hidden or pending-deletion nodes as false red contacts.
+        if (not is_instance_valid(bot) or bot.is_queued_for_deletion() or
+                not bot.is_visible_in_tree() or
+                float(bot.get("health"))<=0.0):
             continue
         var relative:=Vector2(bot.global_position.x-player.global_position.x,
                               bot.global_position.z-player.global_position.z)
