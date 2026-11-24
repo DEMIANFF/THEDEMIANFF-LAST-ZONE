@@ -88,13 +88,15 @@ func _verify() -> void:
     wall.name="LockerOcclusionQA"
     wall.collision_layer=1
     wall.collision_mask=0
+    # Parent it BEFORE global transforms: querying a detached Node3D
+    # produces Godot's "!is_inside_tree()" error in headless Android QA.
+    game.add_child(wall)
     wall.global_position=first.global_position+Vector3(.9,.55,0)
     var shape:=CollisionShape3D.new()
     var bounds:=BoxShape3D.new()
     bounds.size=Vector3(.22,3.0,3.0)
     shape.shape=bounds
     wall.add_child(shape)
-    game.add_child(wall)
     await physics_frame
     check(director._nearest_supply_locker()==null,
         "line-of-sight gate allowed opening through a physical wall")
@@ -136,7 +138,13 @@ func _verify() -> void:
     check(director._search_locker==null and not first.opened and
         director.get_loot_remaining()==pre_count,
         "movement failed to interrupt the search before opening")
+    # The interaction must be visible again after an interrupted search,
+    # even if a vehicle has a separate contextual action nearby.
+    await physics_frame
     director._refresh_supply_interaction()
+    check(hud._supply_locker_button.visible and
+        not hud._supply_locker_button.disabled,
+        "interrupted search did not reenable the same physical crate")
     await _tap(hud._supply_locker_button)
     await physics_frame
     check(director._search_locker==first and not first.opened,
