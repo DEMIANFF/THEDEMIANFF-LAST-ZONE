@@ -155,17 +155,18 @@ func _ready() -> void:
                     item.hide()
                 else:
                     weapon.hide()
-    var ring:=MeshInstance3D.new()
-    ring.name="SupplyBeacon"
-    var ring_mesh:=CylinderMesh.new()
-    ring_mesh.top_radius=.59
-    ring_mesh.bottom_radius=.59
-    ring_mesh.height=.055
-    ring_mesh.radial_segments=14
-    ring.mesh=ring_mesh
-    ring.position.y=-.41
-    ring.material_override=material
-    _visual.add_child(ring)
+    # Original circular beacons looked like floating prototype tokens.
+    # A small rectangular terrain-supported marker matches a gear case
+    # and costs just twelve triangles (no radial cylinder silhouette).
+    var beacon:=MeshInstance3D.new()
+    beacon.name="SupplyBeacon"
+    var plate:=BoxMesh.new()
+    plate.size=Vector3(.84,.045,.58)
+    beacon.mesh=plate
+    beacon.position.y=-.41
+    beacon.material_override=material
+    beacon.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    _visual.add_child(beacon)
     var floating_name:=Label3D.new()
     floating_name.name="SupplyLabel"
     match pickup_type:
