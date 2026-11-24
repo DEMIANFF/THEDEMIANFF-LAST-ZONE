@@ -1574,6 +1574,16 @@ func _show_lobby() -> void:
     _armory_list.item_selected.connect(_on_armory_slot_selected)
     _page.add_child(_armory_list)
     _refresh_armory_catalog()
+    # KRISS VECTOR already exists as slot 4 with a real 3D GLB. The
+    # narrow 118px scroll list obscures it behind older entries; give it
+    # a direct discoverable selector, without creating a new inventory ID.
+    var vector_entry:=Button.new()
+    vector_entry.name="AuroraInspectRealVector"
+    vector_entry.text="INSPECCIONAR KRISS VECTOR 3D"
+    vector_entry.custom_minimum_size=Vector2(245,38)
+    vector_entry.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    vector_entry.pressed.connect(_inspect_real_vector)
+    _page.add_child(vector_entry)
     _armory_test_button=_button("PROBAR EN ENTRENAMIENTO",_open_weapon_training,245)
     _armory_test_button.name="AuroraWeaponTrainingEntry"
     _armory_test_button.custom_minimum_size.y=32
@@ -2991,6 +3001,25 @@ func _refresh_armory_catalog() -> void:
         _armory_list.set_item_metadata(row,slot)
         if slot==_armory_selected_slot:
             _armory_list.select(row)
+
+
+## Real catalog slot 4: the imported 3D Vector can be previewed
+## from the lobby without pretending the weapon is purchased or owned.
+func _inspect_real_vector() -> void:
+    _armory_category=WEAPON_FAMILIES.SMG
+    _armory_selected_slot=WEAPON_CATALOG.KRISS
+    if _armory_category_selector!=null:
+        _armory_category_selector.select(_armory_category)
+    _refresh_armory_catalog()
+    if _armory_list!=null:
+        for row in range(_armory_list.item_count):
+            if int(_armory_list.get_item_metadata(row))==WEAPON_CATALOG.KRISS:
+                _armory_list.select(row)
+                _armory_list.ensure_current_is_visible()
+                break
+    if stage=="lobby" and _selected_tab=="ARMAS":
+        _update_armory_details()
+        _sync_armory_visual()
 
 
 func _on_armory_category_selected(index: int) -> void:
