@@ -94,6 +94,17 @@ func nearby_physical_resources() -> Array[Dictionary]:
         Vector2(player.global_position.x,player.global_position.z),48.0,5)
 
 
+## The local radar displays only actual sealed 3D caches still on the
+## ground and no cache locations after opening or when out of battle.
+func nearby_sealed_lockers() -> Array[Vector2]:
+    if (not _battle_mode or not is_instance_valid(player) or
+            not is_instance_valid(_sector_director) or
+            player.royale_eliminated):
+        return []
+    return _sector_director.nearby_unopened_supply_lockers(
+        Vector2(player.global_position.x,player.global_position.z),48.0)
+
+
 func nearby_physical_vehicles() -> Array[Vector2]:
     if (not _battle_mode or not is_instance_valid(player) or
             not is_instance_valid(_sector_director) or
@@ -559,6 +570,18 @@ func _draw() -> void:
                 or kind.begins_with("backpack") else Color(1.0,.83,.33))
             draw_circle(dot,3.3,tint)
             draw_arc(dot,5.0,0,TAU,16,Color(.02,.12,.17,.95),1.0)
+        # Interactable supply lockers use a distinct gold diamond; unlike
+        # individual pickups, these require an actual press and raycast.
+        for locker_at in nearby_sealed_lockers():
+            var relative: Vector2=locker_at-physical_listener
+            var dot: Vector2=center+relative.rotated(yaw)*(
+                radius/world_range)
+            if dot.distance_to(center)>radius-7.0:
+                continue
+            draw_colored_polygon(PackedVector2Array([
+                dot+Vector2(0,-5.5),dot+Vector2(5.5,0),
+                dot+Vector2(0,5.5),dot+Vector2(-5.5,0)]),
+                Color(.98,.67,.25,.96))
         # A grenade danger icon is grounded in a live, fuse-burning
         # Node3D. It is never an enemy wallhack or a persistent map ping.
         for hazard in nearby_live_grenade_hazards():
