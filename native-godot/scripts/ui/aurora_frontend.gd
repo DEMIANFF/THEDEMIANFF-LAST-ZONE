@@ -1584,6 +1584,8 @@ func _show_lobby() -> void:
     _armory_vector_entry.custom_minimum_size=Vector2(245,38)
     _armory_vector_entry.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _armory_vector_entry.pressed.connect(_inspect_real_vector)
+    # Born hidden: no one-frame flash over the INICIAR card on Android.
+    _armory_vector_entry.visible=false
     _page.add_child(_armory_vector_entry)
     _armory_test_button=_button("PROBAR EN ENTRENAMIENTO",_open_weapon_training,245)
     _armory_test_button.name="AuroraWeaponTrainingEntry"
