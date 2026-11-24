@@ -551,9 +551,11 @@ func _draw() -> void:
             center,radius,world_range)
         if not waypoint_icon.is_empty():
             var dot: Vector2=waypoint_icon["at"]
-            if _battle_mode:
-                var opacity: float=.56 if player.air_mode!="ground" else .29
-                draw_line(center,dot,Color(1.0,.71,.16,opacity),1.5,true)
+            # Navigation markers stay visible, but DO NOT draw the
+            # yellow tether from Lila to the waypoint. A moving player
+            # otherwise sees a misleading permanent trail across the
+            # terrain. The tactical map retains its separate planned
+            # route; the local radar shows only the destination marker.
             if bool(waypoint_icon["outside"]):
                 # Point outward to a REAL marked destination beyond 80m,
                 # never draw it at an invented in-range terrain coordinate.
