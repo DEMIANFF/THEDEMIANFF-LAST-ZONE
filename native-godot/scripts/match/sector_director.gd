@@ -1225,8 +1225,12 @@ func nearby_opponent_supply_points(observer: Vector2,
         var at:=Vector2(pickup.global_position.x,pickup.global_position.z)
         if at.distance_squared_to(observer)<=distance_sq:
             points.append(at)
-            if points.size()>=limit:
-                break
+    # An old remote kill must never hide a NEW, recoverable close cache
+    # just because it appears earlier in the object creation list.
+    points.sort_custom(func(a: Vector2,b: Vector2) -> bool:
+        return a.distance_squared_to(observer)<b.distance_squared_to(observer))
+    if points.size()>limit:
+        points.resize(limit)
     return points
 
 
@@ -1255,8 +1259,12 @@ func nearby_empty_death_crates(observer: Vector2,
             marker.global_position.z)
         if at.distance_squared_to(observer)<=radius_sq:
             found.append(at)
-            if found.size()>=limit:
-                break
+    # Prioritize the three nearest noncollectible shells, not the three
+    # oldest kills. Display only actual nearby physical marker locations.
+    found.sort_custom(func(a: Vector2,b: Vector2) -> bool:
+        return a.distance_squared_to(observer)<b.distance_squared_to(observer))
+    if found.size()>limit:
+        found.resize(limit)
     return found
 
 
@@ -1426,8 +1434,12 @@ func nearby_real_vehicles(observer: Vector2,
         var at:=Vector2(car.global_position.x,car.global_position.z)
         if at.distance_squared_to(observer)<=range_sq:
             found.append(at)
-            if found.size()>=limit:
-                break
+    # The two map icons must guide the player toward the closest REAL
+    # drivable cars when a district has several valid vehicle meshes.
+    found.sort_custom(func(a: Vector2,b: Vector2) -> bool:
+        return a.distance_squared_to(observer)<b.distance_squared_to(observer))
+    if found.size()>limit:
+        found.resize(limit)
     return found
 
 
