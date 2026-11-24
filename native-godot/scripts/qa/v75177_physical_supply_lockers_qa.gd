@@ -57,6 +57,7 @@ func _verify() -> void:
     var pre_count: int=director.get_loot_remaining()
     var before: Dictionary=combat.inventory_snapshot()
     director._on_supply_interact()
+    await physics_frame
     check(not first.opened and director.get_loot_remaining()==pre_count and
         director.lockers_opened==0,
         "remote interaction opens a cache without reaching it")
@@ -81,6 +82,7 @@ func _verify() -> void:
     check(director._nearest_supply_locker()==null,
         "line-of-sight gate allowed opening through a physical wall")
     director._on_supply_interact()
+    await physics_frame
     check(not first.opened and director.get_loot_remaining()==pre_count,
         "blocked press grants concealed supplies through a wall")
     wall.queue_free()
@@ -101,6 +103,7 @@ func _verify() -> void:
 
     # Input comes from the actual HUD signal, not a direct cheat API.
     hud._supply_locker_button.pressed.emit()
+    await physics_frame
     check(first.opened and director.lockers_opened==1,
         "mobile action did not open the physical authored locker")
     check(director.get_loot_remaining()==pre_count+contents.size(),
@@ -120,6 +123,7 @@ func _verify() -> void:
                 first_reward.world_spot.x,first_reward.world_spot.y))+.50),
             "opened locker loot floats or sinks below the island")
     director._on_supply_interact()
+    await physics_frame
     check(director.lockers_opened==1 and
         director.get_loot_remaining()==pre_count+contents.size(),
         "repeat button press duplicated physical rewards")
