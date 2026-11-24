@@ -10,6 +10,23 @@ func _initialize() -> void:
     call_deferred("_verify")
 
 
+## Route a real landscape touchscreen event through Godot GUI, not only
+## .pressed.emit() on an inert button.
+func _tap(button: Button) -> void:
+    var center: Vector2=button.get_global_transform_with_canvas()*(
+        button.size*.5)
+    var event:=InputEventScreenTouch.new()
+    event.index=0
+    event.position=root.get_final_transform()*center
+    event.pressed=true
+    Input.parse_input_event(event)
+    await process_frame
+    event=event.duplicate()
+    event.pressed=false
+    Input.parse_input_event(event)
+    await process_frame
+
+
 func check(ok: bool,message: String) -> void:
     if not ok:
         failed=true
@@ -101,41 +118,71 @@ func _verify() -> void:
         first_at in hud._training_radar.nearby_sealed_lockers(),
         "map/minimap do not share the same real world-locker source")
 
-    # Input comes from the actual HUD signal, not a direct cheat API.
-    hud._supply_locker_button.pressed.emit()
+    # Physical mobile tap starts a 1.25-second committed, interruptible
+    # action. Opening is not an instant menu reward.
+    await _tap(hud._supply_locker_button)
     await physics_frame
-    check(first.opened and director.lockers_opened==1,
-        "mobile action did not open the physical authored locker")
-    check(director.get_loot_remaining()==pre_count+contents.size(),
-        "opening locker did not create exact physical Area3D items")
+    check(director._search_locker==first and
+        not first.opened and director.lockers_opened==0 and
+        hud._supply_locker_progress.visible,
+        "touch did not begin a timed real-world supply search")
     check(combat.inventory_snapshot()==before,
-        "opening a box granted virtual loot before physical pickup")
+        "starting a search directly granted virtual inventory")
+    # Interrupt with movement before the channel finishes. The intact
+    # container must remain available for a new deliberate attempt.
+    player._move_axis=Vector2(1,0)
+    await physics_frame
+    player._move_axis=Vector2.ZERO
+    check(director._search_locker==null and not first.opened and
+        director.get_loot_remaining()==pre_count,
+        "movement failed to interrupt the search before opening")
+    director._refresh_supply_interaction()
+    await _tap(hud._supply_locker_button)
+    await physics_frame
+    check(director._search_locker==first and not first.opened,
+        "retry did not restart the intentional search channel")
+    await create_timer(director.LOCKER_SEARCH_SECONDS+.3).timeout
+    await process_frame
+    check(first.opened and director.lockers_opened==1 and
+        director._search_locker==null,
+        "completed guarded search did not open the physical locker")
+    var gained_loot: int=int(combat.inventory_snapshot()["loot_collected"])-(
+        int(before["loot_collected"]))
+    check(director.get_loot_remaining()-pre_count+gained_loot==
+        contents.size(),
+        "opened locker did not produce conserved physical Area3D contents")
     check(first_at not in director.nearby_unopened_supply_lockers(first_at),
         "opened locker still appears as a sealed cache on the map")
     var first_reward: Area3D=director.get_node_or_null(
         "AuroraLocker%dRealLoot1"%first.sector_id) as Area3D
-    check(first_reward!=null and not first_reward.collected and
-        first_reward.has_node("LootPickupRange"),
-        "real locker reward is not a collectible 3D world item")
-    if first_reward!=null:
-        check(is_equal_approx(first_reward.global_position.y,
+    var second_reward: Area3D=director.get_node_or_null(
+        "AuroraLocker%dRealLoot2"%first.sector_id) as Area3D
+    var reward: Area3D=first_reward if is_instance_valid(
+        first_reward) else second_reward
+    check(reward!=null or gained_loot==contents.size(),
+        "physical reward did not remain in world nor enter inventory on contact")
+    if is_instance_valid(reward):
+        check(not reward.collected and reward.has_node("LootPickupRange"),
+            "remaining locker content is not a real collectible 3D item")
+        check(is_equal_approx(reward.global_position.y,
             float(game.get_node("AuroraTerrain").height_at(
-                first_reward.world_spot.x,first_reward.world_spot.y))+.50),
+                reward.world_spot.x,reward.world_spot.y))+.50),
             "opened locker loot floats or sinks below the island")
     director._on_supply_interact()
     await physics_frame
     check(director.lockers_opened==1 and
-        director.get_loot_remaining()==pre_count+contents.size(),
-        "repeat button press duplicated physical rewards")
-
-    # Real pickup contacts reuse the same combat and inventory events.
-    if first_reward!=null:
-        player.global_position=first_reward.global_position-Vector3.UP*.5
+        director._search_locker==null,
+        "duplicate search incorrectly reopened the same physical cache")
+    # If there is a world item outside contact range, it must be obtained
+    # through the original real Area3D contact, not a UI cheat.
+    if is_instance_valid(reward):
+        player.global_position=reward.global_position-Vector3.UP*.5
         await physics_frame
-        if is_instance_valid(first_reward) and not first_reward.collected:
-            first_reward._collect(player)
-        check(combat.loot_collected==int(before["loot_collected"])+1,
-            "collected physical reward did not update combat inventory ledger")
+        if is_instance_valid(reward) and not reward.collected:
+            reward._collect(player)
+        check(int(combat.inventory_snapshot()["loot_collected"])>
+            int(before["loot_collected"]),
+            "a true physical reward contact did not update combat inventory")
     director.start_sector_battle()
     director.set_process(false)
     check(director.lockers_opened==0 and
