@@ -56,9 +56,9 @@ func _verify() -> void:
     check(hit_arc!=null,
         "real source-driven incoming-damage compass missing")
     if hit_arc!=null:
+        var player: CharacterBody3D=game.get_node("Operator")
         hud.show_incoming_fire(
-            game.get_node("Operator").global_position+Vector3(0,0,-5),
-            game.get_node("Operator"))
+            player.global_position+Vector3(0,0,-5),player)
         check(float(hit_arc.get("_remaining"))>0.0,
             "actual incoming muzzle direction did not illuminate HUD")
     var count: int=director.get_loot_remaining()
