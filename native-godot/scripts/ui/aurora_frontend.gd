@@ -4213,6 +4213,19 @@ func _layout_safe() -> void:
         _play_match_card.anchor_bottom=.710 if short_canvas else .580
         if _selected_tab=="JUGAR":
             _page.anchor_bottom=.687 if short_canvas else .562
+            # Godot's VBox may inherit the wider minimum width of an
+            # unrelated page child; keep the actual START action inside
+            # the visible gold-bordered BR card at 964x434 and 1280x720.
+            var available: float=maxf(165.0,minf(250.0,
+                _play_match_card.size.x-38.0))
+            if _lobby_play_modes!=null and is_instance_valid(
+                    _lobby_play_modes):
+                _lobby_play_modes.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+                _lobby_play_modes.custom_minimum_size.x=available
+                for action in [_battle_entry,_training_entry]:
+                    if is_instance_valid(action):
+                        action.custom_minimum_size.x=0.0
+                        action.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     # Adapt original LZ emblem to usable screen height: large desktop hero
     # but never clip the live progress/actions in 434px Motorola landscape.
     if _loading_emblem!=null and is_instance_valid(_loading_emblem):
