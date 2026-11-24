@@ -49,8 +49,13 @@ func _verify() -> void:
         check(terrain.height_at(at.x,at.y)>terrain.sea_level+.3,
             "bot spawned in the sea "+str(i))
         if i>=8:
-            check(bot.distance_lod and bot.get_node_or_null("DistantEnemyVisual")!=null,
-                "far mobile bot missing real physical LOD representation "+str(i))
+            var original: Node3D=bot.get_node_or_null("DistantOriginalEnemyRig") as Node3D
+            check(bot.distance_lod and original!=null and original.visible and
+                original==bot._lod_rig and
+                original.find_child("Skeleton3D",true,false)!=null and
+                original.find_children("*","MeshInstance3D",true,false).size()>0 and
+                bot.get_node_or_null("DistantEnemyVisual")==null,
+                "far mobile bot missing original skinned LOD representation "+str(i))
         for prior in positions:
             check(at.distance_to(prior)>2.0,
                 "two bots spawned on top of each other: "+str(i))
