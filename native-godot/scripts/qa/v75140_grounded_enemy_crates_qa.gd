@@ -92,8 +92,8 @@ func _verify() -> void:
             med_visual.get_node_or_null("OriginalAuroraGearPickup")==null,
             "opponent medkit cache retained a floating duplicate 3D prop")
 
-    # Ordinary world supplies continue to show their original hovering
-    # spherical identity; the new visual must apply only to rival death loot.
+    # V75.178 world supplies have visible gear-case silhouettes instead
+    # of prototype spheres. Collision/collection still use the same Area3D.
     var world: Area3D=director.get_node_or_null("AuroraLoot1") as Area3D
     check(world!=null and not world.from_opponent,
         "original world supply missing")
@@ -101,9 +101,9 @@ func _verify() -> void:
         var world_mesh: MeshInstance3D=world.get_node(
             "SupplyCacheVisual/AuroraSupplyPod") as MeshInstance3D
         var world_visual: Node3D=world.get_node("SupplyCacheVisual")
-        check(world_mesh.mesh is SphereMesh and
+        check(world_mesh.mesh is BoxMesh and
             world_visual.get_node_or_null("OpponentCacheBand")==null,
-            "world loot was accidentally converted to enemy crates")
+            "world ammo must be a gear case, not an opponent death crate")
         world._pickup_clock=10.0
         var world_angle: float=world_visual.rotation.y
         world._process(.7)
