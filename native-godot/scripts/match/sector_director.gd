@@ -681,11 +681,11 @@ func _spawn_supply_lockers() -> void:
         var chosen:=Vector2(INF,INF)
         # Reject unsafe terrain, existing houses and shoreline. All
         # alternative sites are deterministic for reproducible mobile QA.
-        for attempt in range(55):
+        for attempt in range(144):
             var at: Vector2=desired
             if attempt>0:
                 var angle: float=float(attempt)*2.399963+float(i)*.83
-                var offset: float=2.0+float(attempt%9)*1.5
+                var offset: float=2.0+float(attempt%21)*2.0
                 at+=Vector2.from_angle(angle)*offset
             if not combat._is_clear_spawn(at):
                 continue
@@ -763,9 +763,6 @@ func _nearest_supply_locker() -> StaticBody3D:
 
 func _refresh_supply_interaction() -> void:
     if _search_locker!=null:
-        return
-    if _nearest_enterable_car()!=null:
-        hud.set_supply_interaction("",false)
         return
     var closest: StaticBody3D=_nearest_supply_locker()
     if closest==null:
