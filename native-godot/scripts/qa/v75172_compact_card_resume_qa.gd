@@ -28,6 +28,13 @@ func _check_composition(front: Control,dimensions: Vector2i) -> void:
     var launch: Rect2=front._battle_entry.get_global_rect()
     var footer: Rect2=front._bottom_navigation.get_global_rect()
     var header: Rect2=front._top_account_button.get_global_rect()
+    print("V75178_CARD_GEOMETRY screen=",dimensions,
+        " card=",card," mode=",mode," launch=",launch,
+        " squad=",squad," footer=",footer,
+        " mode_inside=",card.grow(2).encloses(mode),
+        " launch_inside=",card.grow(2).encloses(launch),
+        " intersects_squad=",card.intersects(squad),
+        " intersects_footer=",card.intersects(footer))
     check(safe.grow(1).encloses(card) and
         safe.grow(1).encloses(squad) and
         safe.grow(1).encloses(header),

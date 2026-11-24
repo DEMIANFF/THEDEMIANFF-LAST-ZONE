@@ -52,12 +52,24 @@ func _ready() -> void:
         item.mesh=crate
         item.position.y=-.12
     else:
-        var mesh:=SphereMesh.new()
-        mesh.radius=.48
-        mesh.height=.82
-        mesh.radial_segments=12
-        mesh.rings=5
-        item.mesh=mesh
+        # A sphere is a detection collider, not a suitable game-world prop.
+        # Render the actual supply as a recognizable compact gear case:
+        # ammo box, medical case, armor carrier or grenades can be picked
+        # up using the unchanged Area3D distance/LOS system.
+        var case:=BoxMesh.new()
+        case.size=Vector3(.69,.38,.46)
+        if pickup_type.begins_with("backpack"):
+            case.size=Vector3(.54,.72,.35)
+        elif pickup_type.begins_with("vest") or pickup_type=="armor_plate":
+            case.size=Vector3(.70,.52,.22)
+        elif pickup_type.begins_with("helmet"):
+            case.size=Vector3(.48,.36,.43)
+        elif pickup_type=="grenade":
+            case.size=Vector3(.31,.39,.31)
+        elif pickup_type=="medkit" or pickup_type=="syringe":
+            case.size=Vector3(.56,.29,.38)
+        item.mesh=case
+        item.position.y=-.10
     var material:=StandardMaterial3D.new()
     material.metallic=.52
     material.roughness=.31
@@ -143,17 +155,18 @@ func _ready() -> void:
                     item.hide()
                 else:
                     weapon.hide()
-    var ring:=MeshInstance3D.new()
-    ring.name="SupplyBeacon"
-    var ring_mesh:=CylinderMesh.new()
-    ring_mesh.top_radius=.59
-    ring_mesh.bottom_radius=.59
-    ring_mesh.height=.055
-    ring_mesh.radial_segments=14
-    ring.mesh=ring_mesh
-    ring.position.y=-.41
-    ring.material_override=material
-    _visual.add_child(ring)
+    # Original circular beacons looked like floating prototype tokens.
+    # A small rectangular terrain-supported marker matches a gear case
+    # and costs just twelve triangles (no radial cylinder silhouette).
+    var beacon:=MeshInstance3D.new()
+    beacon.name="SupplyBeacon"
+    var plate:=BoxMesh.new()
+    plate.size=Vector3(.84,.045,.58)
+    beacon.mesh=plate
+    beacon.position.y=-.41
+    beacon.material_override=material
+    beacon.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    _visual.add_child(beacon)
     var floating_name:=Label3D.new()
     floating_name.name="SupplyLabel"
     match pickup_type:

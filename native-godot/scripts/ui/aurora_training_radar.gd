@@ -483,16 +483,8 @@ func _draw_navigation_compass(center: Vector2,radius: float,
         center-facing*6.0+lateral*5.5,
         center-facing*6.0-lateral*5.5])
     draw_colored_polygon(tip,Color(1.0,1.0,.95))
-    # Camera and body may face different directions. This GOLD tail uses
-    # real movement velocity (including strafing) so a RIGHT swipe or
-    # joystick move never masquerades as forward motion on the compass.
-    if is_instance_valid(player):
-        var movement:=Vector2(player.velocity.x,player.velocity.z)
-        if movement.length_squared()>1.44:
-            var heading: Vector2=movement.normalized().rotated(yaw)
-            draw_line(center+heading*12.0,center+heading*22.0,
-                Color(1.0,.69,.16),2.5,true)
-            draw_circle(center+heading*23.0,2.8,Color(1.0,.82,.33))
+    # Orientation is already given by the white player arrow. Do not
+    # draw an extra yellow motion trail over the moving minimap.
     draw_string(font,Vector2(7.0,size.y-6.0),
         "RADIO %d m"%roundi(world_range),
         HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color(.96,.98,.93))
@@ -614,23 +606,31 @@ func _draw() -> void:
             var bounds:=Rect2(dot-Vector2(3.5,3.5),Vector2(7,7))
             draw_rect(bounds,Color(.06,.23,.20,.94),true)
             draw_rect(bounds,Color(.64,.99,.73),false,1.1)
-        # In BR do NOT draw live bot locations directly. Only real
-        # audible gunshots may reveal their last-known positions.
+        # Acoustic contacts are SOUND BEARINGS, not precise enemy dots.
+        # A shot's saved location becomes false as soon as the shooter
+        # moves. Show the last audible direction on the radar rim instead
+        # of implying the bot is still at a fixed coordinate.
         for ping in _gunfire_pings:
             var last_heard: Vector2=ping["position"]
             var relative: Vector2=last_heard-Vector2(
                 player.global_position.x,player.global_position.z)
-            if relative.length_squared()>GUNFIRE_HEARING_RANGE*GUNFIRE_HEARING_RANGE:
-                continue
-            var dot: Vector2=center+relative.rotated(yaw)*(radius/world_range)
-            var alpha: float=clampf(float(ping["remaining"])/
-                GUNFIRE_PING_SECONDS,0.0,1.0)
-            draw_arc(dot,7.0,0,TAU,22,Color(1.0,.53,.25,alpha),1.8,true)
-            draw_circle(dot,2.5,Color(1.0,.65,.34,alpha*.9))
+            if (relative.length_squared()>.001 and
+                    relative.length_squared()<=
+                    GUNFIRE_HEARING_RANGE*GUNFIRE_HEARING_RANGE):
+                var heading: Vector2=relative.rotated(yaw).normalized()
+                var angle: float=heading.angle()
+                var alpha: float=clampf(float(ping["remaining"])/
+                    GUNFIRE_PING_SECONDS,0.0,1.0)
+                draw_arc(center,radius-4.0,angle-.13,angle+.13,9,
+                    Color(1.0,.46,.23,alpha),3.2,true)
         _draw_navigation_compass(center,radius,world_range)
         return
     for bot in opponents:
-        if not is_instance_valid(bot) or not bot.visible:
+        # Training radar may show live visible practice targets, never
+        # dead, hidden or pending-deletion nodes as false red contacts.
+        if (not is_instance_valid(bot) or bot.is_queued_for_deletion() or
+                not bot.is_visible_in_tree() or
+                float(bot.get("health"))<=0.0):
             continue
         var relative:=Vector2(bot.global_position.x-player.global_position.x,
                               bot.global_position.z-player.global_position.z)

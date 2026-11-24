@@ -29,6 +29,7 @@ const DIRECTIONAL_FIRE = preload("res://scripts/ui/directional_fire_pad.gd")
 const TACTICAL_RETICLE = preload("res://scripts/ui/scope_reticle.gd")
 const TRAINING_RADAR = preload("res://scripts/ui/aurora_training_radar.gd")
 const TACTICAL_MAP=preload("res://scripts/ui/aurora_tactical_map.gd")
+const DAMAGE_COMPASS=preload("res://scripts/ui/aurora_damage_compass.gd")
 const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
 const HUD_EDITOR=preload("res://scripts/ui/hud_edit_surface.gd")
 
@@ -39,6 +40,7 @@ var _fps: Label
 var _compass: Label
 var _hit: Label
 var _incoming_hint: Label
+var _damage_compass: Control
 var _incoming_timer: float=0.0
 var _health_label: Label
 var _armor_label: Label
@@ -141,6 +143,11 @@ func _ready() -> void:
     _damage_flash.mouse_filter=Control.MOUSE_FILTER_IGNORE
     _damage_flash.color=Color(.80,.12,.10,0.0)
     root.add_child(_damage_flash)
+    # UI-only, one unclickable CanvasItem. Actual incoming_fire events
+    # feed it a direction; there is no enemy tracking or aim assistance.
+    _damage_compass=DAMAGE_COMPASS.new()
+    _damage_compass.name="AuroraRealDamageDirection"
+    root.add_child(_damage_compass)
 
     var header := PanelContainer.new()
     header.name = "AuroraHeader"
@@ -1191,6 +1198,8 @@ func show_incoming_fire(at: Vector3,actor: CharacterBody3D) -> void:
     var forward: float=facing.dot(toward)
     var sector: String="FRENTE" if forward>.55 else "DETRÁS" if forward<-.55 else "DERECHA" if side>0.0 else "IZQUIERDA"
     _incoming_hint.text="DAÑO DESDE "+sector
+    if _damage_compass!=null:
+        _damage_compass.call("register_real_hit",Vector2(side,-forward))
     _incoming_timer=.95
 
 

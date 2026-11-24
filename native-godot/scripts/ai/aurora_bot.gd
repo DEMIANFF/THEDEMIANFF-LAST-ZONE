@@ -298,19 +298,74 @@ func set_match_spawn(at: Vector2) -> void:
     global_position=_anchor
 
 
+## One original, batched low-poly HUMAN silhouette rather than an
+## unidentifiable gray capsule/cube. Seven body pieces are merged into one
+## draw-call mesh to preserve the 49-player Vulkan Mobile LOD budget.
+static func _append_lod_cuboid(st: SurfaceTool,
+        center: Vector3,half: Vector3,tint: Color) -> void:
+    var faces: Array[PackedVector3Array]=[
+        PackedVector3Array([
+            Vector3(-1,-1,1),Vector3(1,-1,1),
+            Vector3(1,1,1),Vector3(-1,1,1)]),
+        PackedVector3Array([
+            Vector3(1,-1,-1),Vector3(-1,-1,-1),
+            Vector3(-1,1,-1),Vector3(1,1,-1)]),
+        PackedVector3Array([
+            Vector3(-1,-1,-1),Vector3(-1,-1,1),
+            Vector3(-1,1,1),Vector3(-1,1,-1)]),
+        PackedVector3Array([
+            Vector3(1,-1,1),Vector3(1,-1,-1),
+            Vector3(1,1,-1),Vector3(1,1,1)]),
+        PackedVector3Array([
+            Vector3(-1,1,1),Vector3(1,1,1),
+            Vector3(1,1,-1),Vector3(-1,1,-1)]),
+        PackedVector3Array([
+            Vector3(-1,-1,-1),Vector3(1,-1,-1),
+            Vector3(1,-1,1),Vector3(-1,-1,1)])]
+    var normals: Array[Vector3]=[
+        Vector3.BACK,Vector3.FORWARD,Vector3.LEFT,
+        Vector3.RIGHT,Vector3.UP,Vector3.DOWN]
+    for face_index in range(faces.size()):
+        var corners: PackedVector3Array=faces[face_index]
+        for index in [0,1,2,0,2,3]:
+            var v: Vector3=corners[index]
+            st.set_normal(normals[face_index])
+            st.set_color(tint)
+            st.add_vertex(center+Vector3(
+                v.x*half.x,v.y*half.y,v.z*half.z))
+
+
+static func build_low_detail_humanoid() -> ArrayMesh:
+    var st:=SurfaceTool.new()
+    st.begin(Mesh.PRIMITIVE_TRIANGLES)
+    # Head/neck, jacket/waist, two arms and two separated legs. Clearly
+    # different from a gray placeholder at third-person engagement ranges.
+    var uniform: Color=Color(.20,.45,.52)
+    var armor: Color=Color(.13,.30,.36)
+    var face: Color=Color(.68,.56,.43)
+    var trousers: Color=Color(.09,.21,.26)
+    # Vertex colors define the correct body-part silhouettes without
+    # assigning eight materials or spawning extra MeshInstance3D nodes.
+    _append_lod_cuboid(st,Vector3(0,1.62,0),Vector3(.155,.19,.15),face)
+    _append_lod_cuboid(st,Vector3(0,1.42,0),Vector3(.085,.065,.09),armor)
+    _append_lod_cuboid(st,Vector3(0,1.10,0),Vector3(.32,.35,.19),uniform)
+    _append_lod_cuboid(st,Vector3(0,.79,0),Vector3(.24,.13,.16),armor)
+    _append_lod_cuboid(st,Vector3(-.40,1.12,0),Vector3(.115,.34,.13),uniform)
+    _append_lod_cuboid(st,Vector3(.40,1.12,0),Vector3(.115,.34,.13),uniform)
+    _append_lod_cuboid(st,Vector3(-.145,.35,0),Vector3(.12,.34,.14),trousers)
+    _append_lod_cuboid(st,Vector3(.145,.35,0),Vector3(.12,.34,.14),trousers)
+    _append_lod_cuboid(st,Vector3(0,1.77,0),Vector3(.19,.07,.19),armor)
+    return st.commit()
+
+
 func _create_lod_visual() -> void:
     _lod_body=MeshInstance3D.new()
     _lod_body.name="DistantEnemyVisual"
-    var shape:=CapsuleMesh.new()
-    shape.radius=.33
-    shape.height=1.68
-    shape.radial_segments=8
-    shape.rings=4
-    _lod_body.mesh=shape
-    _lod_body.position.y=.87
+    _lod_body.mesh=build_low_detail_humanoid()
     var material:=StandardMaterial3D.new()
-    material.albedo_color=Color(.10,.23,.34)
-    material.roughness=.89
+    material.albedo_color=Color.WHITE
+    material.vertex_color_use_as_albedo=true
+    material.roughness=.84
     _lod_body.material_override=material
     _lod_body.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(_lod_body)

@@ -1574,6 +1574,16 @@ func _show_lobby() -> void:
     _armory_list.item_selected.connect(_on_armory_slot_selected)
     _page.add_child(_armory_list)
     _refresh_armory_catalog()
+    # KRISS VECTOR already exists as slot 4 with a real 3D GLB. The
+    # narrow 118px scroll list obscures it behind older entries; give it
+    # a direct discoverable selector, without creating a new inventory ID.
+    var vector_entry:=Button.new()
+    vector_entry.name="AuroraInspectRealVector"
+    vector_entry.text="INSPECCIONAR KRISS VECTOR 3D"
+    vector_entry.custom_minimum_size=Vector2(245,38)
+    vector_entry.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    vector_entry.pressed.connect(_inspect_real_vector)
+    _page.add_child(vector_entry)
     _armory_test_button=_button("PROBAR EN ENTRENAMIENTO",_open_weapon_training,245)
     _armory_test_button.name="AuroraWeaponTrainingEntry"
     _armory_test_button.custom_minimum_size.y=32
@@ -2993,6 +3003,25 @@ func _refresh_armory_catalog() -> void:
             _armory_list.select(row)
 
 
+## Real catalog slot 4: the imported 3D Vector can be previewed
+## from the lobby without pretending the weapon is purchased or owned.
+func _inspect_real_vector() -> void:
+    _armory_category=WEAPON_FAMILIES.SMG
+    _armory_selected_slot=WEAPON_CATALOG.KRISS
+    if _armory_category_selector!=null:
+        _armory_category_selector.select(_armory_category)
+    _refresh_armory_catalog()
+    if _armory_list!=null:
+        for row in range(_armory_list.item_count):
+            if int(_armory_list.get_item_metadata(row))==WEAPON_CATALOG.KRISS:
+                _armory_list.select(row)
+                _armory_list.ensure_current_is_visible()
+                break
+    if stage=="lobby" and _selected_tab=="ARMAS":
+        _update_armory_details()
+        _sync_armory_visual()
+
+
 func _on_armory_category_selected(index: int) -> void:
     if _armory_category_selector==null:
         return
@@ -4184,6 +4213,26 @@ func _layout_safe() -> void:
         _play_match_card.anchor_bottom=.710 if short_canvas else .580
         if _selected_tab=="JUGAR":
             _page.anchor_bottom=.687 if short_canvas else .562
+            # Godot's VBox may inherit the wider minimum width of an
+            # unrelated page child; keep the actual START action inside
+            # the visible gold-bordered BR card at 964x434 and 1280x720.
+            var available: float=maxf(165.0,minf(250.0,
+                _play_match_card.size.x-38.0))
+            # The OptionButton is a separate child of Page; constraining
+            # only the INICIAR VBox left the selector wider than the gold
+            # card on compact 964x434 Android landscape.
+            if _match_mode_selector!=null and is_instance_valid(
+                    _match_mode_selector):
+                _match_mode_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+                _match_mode_selector.custom_minimum_size.x=available
+            if _lobby_play_modes!=null and is_instance_valid(
+                    _lobby_play_modes):
+                _lobby_play_modes.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+                _lobby_play_modes.custom_minimum_size.x=available
+                for action in [_battle_entry,_training_entry]:
+                    if is_instance_valid(action):
+                        action.custom_minimum_size.x=0.0
+                        action.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     # Adapt original LZ emblem to usable screen height: large desktop hero
     # but never clip the live progress/actions in 434px Motorola landscape.
     if _loading_emblem!=null and is_instance_valid(_loading_emblem):

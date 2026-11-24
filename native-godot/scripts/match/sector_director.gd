@@ -100,6 +100,11 @@ var _perf_clock: float=0.0
 var _perf_samples: Array[float]=[]
 var _opponent_drops_spawned: int=0
 var _dropped_opponents: Dictionary={}
+## Lightweight visible evidence only when a real fallen rival has no
+## collectible inventory or the mobile physics drop budget is saturated.
+## Never mint fictional ammo, coins or healing from an empty backpack.
+const MAX_EMPTY_DEATH_MARKERS: int=12
+var _empty_death_markers: Array[Node3D]=[]
 var _phase_supplies: Dictionary={}
 var _was_player_outside: bool=false
 var _zone_entries: int=0
@@ -257,6 +262,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _perf_samples.clear()
     _opponent_drops_spawned=0
     _dropped_opponents.clear()
+    _clear_empty_death_markers()
     lockers_opened=0
     _locker_press_pending=false
     _locker_scan_clock=0.0
@@ -681,11 +687,11 @@ func _spawn_supply_lockers() -> void:
         var chosen:=Vector2(INF,INF)
         # Reject unsafe terrain, existing houses and shoreline. All
         # alternative sites are deterministic for reproducible mobile QA.
-        for attempt in range(55):
+        for attempt in range(144):
             var at: Vector2=desired
             if attempt>0:
                 var angle: float=float(attempt)*2.399963+float(i)*.83
-                var offset: float=2.0+float(attempt%9)*1.5
+                var offset: float=2.0+float(attempt%21)*2.0
                 at+=Vector2.from_angle(angle)*offset
             if not combat._is_clear_spawn(at):
                 continue
@@ -764,9 +770,6 @@ func _nearest_supply_locker() -> StaticBody3D:
 func _refresh_supply_interaction() -> void:
     if _search_locker!=null:
         return
-    if _nearest_enterable_car()!=null:
-        hud.set_supply_interaction("",false)
-        return
     var closest: StaticBody3D=_nearest_supply_locker()
     if closest==null:
         hud.set_supply_interaction("",false)
@@ -797,14 +800,21 @@ func _begin_supply_search() -> void:
 
 
 func _cancel_supply_search(notify: bool=true) -> void:
-    if _search_locker==null:
-        return
+    var had_search: bool=_search_locker!=null
     _search_locker=null
     _search_remaining=0.0
+    _locker_press_pending=false
     if hud!=null:
+        # Restore the button even if an interrupted/restarted round left
+        # its progress child visible while the director has no target.
         hud.set_supply_search_progress(0.0,false)
-        if notify:
+        if had_search and notify:
             hud.impact("SAQUEO INTERRUMPIDO")
+    if had_search and notify and mode=="sector_battle" and (
+            not match_ended):
+        # This runs on the physics tick. Revalidate line of sight now,
+        # rather than leaving ABRIENDO disabled until a later UI refresh.
+        _refresh_supply_interaction()
 
 
 func _tick_supply_search(delta: float) -> void:
@@ -970,6 +980,50 @@ static func opponent_inventory_reward(rounds_loaded: int,medkits_owned: int,
 ## The cumulative _opponent_drops_spawned counter is for unique node names
 ## and diagnostics; the GPU/physics cap applies ONLY to uncollected caches.
 ## Collection frees a cache via queue_free, so its slot is immediately reusable.
+## Only visual, noninteractable evidence of an actual elimination. No
+## Area3D, no body overlap, no pickups and a strict 12-mesh rolling cap.
+## A full combat encounter still has a death crate instead of no feedback.
+func _clear_empty_death_markers() -> void:
+    for marker in _empty_death_markers:
+        if is_instance_valid(marker):
+            marker.queue_free()
+    _empty_death_markers.clear()
+
+
+func _spawn_empty_opponent_marker(at: Vector3,reason: String) -> void:
+    if not at.is_finite() or mode!="sector_battle":
+        return
+    while _empty_death_markers.size()>=MAX_EMPTY_DEATH_MARKERS:
+        var oldest: Node3D=_empty_death_markers.pop_front()
+        if is_instance_valid(oldest):
+            oldest.queue_free()
+    var marker:=Node3D.new()
+    marker.name="AuroraEmptyEnemyCrate%d"%_dropped_opponents.size()
+    var floor_height: float=float(terrain.height_at(at.x,at.z))
+    marker.position=Vector3(at.x,floor_height+.37,at.z)
+    var box:=MeshInstance3D.new()
+    box.name="RealEliminationCrateShell"
+    var shape:=BoxMesh.new()
+    shape.size=Vector3(.82,.58,.65)
+    box.mesh=shape
+    var steel:=StandardMaterial3D.new()
+    steel.albedo_color=Color(.11,.20,.23)
+    steel.roughness=.73
+    box.material_override=steel
+    box.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    marker.add_child(box)
+    var label:=Label3D.new()
+    label.name="HonestEmptyLootLabel"
+    label.text=reason
+    label.font_size=29
+    label.pixel_size=.004
+    label.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+    label.position=Vector3(0,.66,0)
+    marker.add_child(label)
+    add_child(marker)
+    _empty_death_markers.append(marker)
+
+
 func _active_opponent_drop_count() -> int:
     var active: int=0
     for pickup in _loot:
@@ -993,18 +1047,26 @@ func _on_opponent_eliminated(victim: CharacterBody3D,killer: Node3D) -> void:
         return
     _dropped_opponents[victim_id]=true
     var position: Vector3=victim.global_position
-    if not position.is_finite() or is_outside_zone(position):
+    if not position.is_finite():
+        return
+    if is_outside_zone(position):
+        # Outside the lethal ring, never mint pickable inventory; leave
+        # honest death evidence for a recently visible opponent instead
+        # of making every distant storm casualty vanish without a trace.
+        _spawn_empty_opponent_marker(position,"FUERA DE ZONA")
         return
     # A previous 12-kill lifetime limit incorrectly suppressed every later
     # opponent drop, even if the player collected all prior supplies.
     # Count currently active caches instead; never exceed 12 at once.
     if _active_opponent_drop_count()>=MAX_OPPONENT_DROPS:
+        _spawn_empty_opponent_marker(position,"SIN ESPACIO PARA BOTÍN")
         return
     var supply: Dictionary=opponent_inventory_reward(
         int(victim.get("_magazine")),int(victim.get("_field_medkits")),
         killer==player,_opponent_drops_spawned+1)
     if supply.is_empty():
-        return  # A rival with no ammo/medkit cannot create fictitious loot.
+        _spawn_empty_opponent_marker(position,"SIN OBJETOS")
+        return  # No fictitious ammo or medkit on an exhausted rival.
     _opponent_drops_spawned+=1
     var kind: String=str(supply["kind"])
     var amount: int=int(supply["quantity"])

@@ -75,6 +75,9 @@ func _verify() -> void:
     var before: Dictionary=combat.inventory_snapshot()
     director._on_supply_interact()
     await physics_frame
+    # A physics_frame signal precedes physics callbacks; an idle-frame
+    # barrier ensures the queued interaction and collision changes finish.
+    await process_frame
     check(not first.opened and director.get_loot_remaining()==pre_count and
         director.lockers_opened==0,
         "remote interaction opens a cache without reaching it")
@@ -84,30 +87,53 @@ func _verify() -> void:
     player.global_position=player_at
     player.velocity=Vector3.ZERO
     await physics_frame
+    # A physics_frame signal precedes physics callbacks; an idle-frame
+    # barrier ensures the queued interaction and collision changes finish.
+    await process_frame
     var wall:=StaticBody3D.new()
     wall.name="LockerOcclusionQA"
     wall.collision_layer=1
     wall.collision_mask=0
+    # Parent it BEFORE global transforms: querying a detached Node3D
+    # produces Godot's "!is_inside_tree()" error in headless Android QA.
+    game.add_child(wall)
     wall.global_position=first.global_position+Vector3(.9,.55,0)
     var shape:=CollisionShape3D.new()
     var bounds:=BoxShape3D.new()
     bounds.size=Vector3(.22,3.0,3.0)
     shape.shape=bounds
     wall.add_child(shape)
-    game.add_child(wall)
     await physics_frame
+    # A physics_frame signal precedes physics callbacks; an idle-frame
+    # barrier ensures the queued interaction and collision changes finish.
+    await process_frame
     check(director._nearest_supply_locker()==null,
         "line-of-sight gate allowed opening through a physical wall")
     director._on_supply_interact()
     await physics_frame
+    # A physics_frame signal precedes physics callbacks; an idle-frame
+    # barrier ensures the queued interaction and collision changes finish.
+    await process_frame
     check(not first.opened and director.get_loot_remaining()==pre_count,
         "blocked press grants concealed supplies through a wall")
     wall.queue_free()
     await physics_frame
+    # A physics_frame signal precedes physics callbacks; an idle-frame
+    # barrier ensures the queued interaction and collision changes finish.
+    await process_frame
     check(director._nearest_supply_locker()==first,
         "unobstructed on-foot world interaction cannot find the real locker")
 
     director._refresh_supply_interaction()
+    print("V75177_UI_APPROACH stage=",hud.air_stage,
+        " target=",director._nearest_supply_locker(),
+        " searching=",director._search_locker,
+        " button=",hud._supply_locker_button.visible,
+        " disabled=",hud._supply_locker_button.disabled,
+        " caption=",hud._supply_locker_caption.text,
+        " progress=",hud._supply_locker_progress.visible,
+        " map=",hud._map_overlay.visible,
+        " backpack=",hud._inventory_panel.visible)
     check(hud._supply_locker_button.visible and
         not hud._supply_locker_button.disabled and
         hud._supply_locker_caption.text.contains("DEPÓSITO"),
@@ -122,6 +148,9 @@ func _verify() -> void:
     # action. Opening is not an instant menu reward.
     await _tap(hud._supply_locker_button)
     await physics_frame
+    # A physics_frame signal precedes physics callbacks; an idle-frame
+    # barrier ensures the queued interaction and collision changes finish.
+    await process_frame
     check(director._search_locker==first and
         not first.opened and director.lockers_opened==0 and
         hud._supply_locker_progress.visible,
@@ -132,13 +161,32 @@ func _verify() -> void:
     # container must remain available for a new deliberate attempt.
     player._move_axis=Vector2(1,0)
     await physics_frame
+    # A physics_frame signal precedes physics callbacks; an idle-frame
+    # barrier ensures the queued interaction and collision changes finish.
+    await process_frame
     player._move_axis=Vector2.ZERO
     check(director._search_locker==null and not first.opened and
         director.get_loot_remaining()==pre_count,
         "movement failed to interrupt the search before opening")
+    # The interaction must be visible again after an interrupted search,
+    # even if a vehicle has a separate contextual action nearby.
+    await physics_frame
+    # A physics_frame signal precedes physics callbacks; an idle-frame
+    # barrier ensures the queued interaction and collision changes finish.
+    await process_frame
     director._refresh_supply_interaction()
+    print("V75177_UI_RETRY searching=",director._search_locker,
+        " button=",hud._supply_locker_button.visible,
+        " disabled=",hud._supply_locker_button.disabled,
+        " progress=",hud._supply_locker_progress.visible)
+    check(hud._supply_locker_button.visible and
+        not hud._supply_locker_button.disabled,
+        "interrupted search did not reenable the same physical crate")
     await _tap(hud._supply_locker_button)
     await physics_frame
+    # A physics_frame signal precedes physics callbacks; an idle-frame
+    # barrier ensures the queued interaction and collision changes finish.
+    await process_frame
     check(director._search_locker==first and not first.opened,
         "retry did not restart the intentional search channel")
     await create_timer(director.LOCKER_SEARCH_SECONDS+.3).timeout
@@ -170,6 +218,9 @@ func _verify() -> void:
             "opened locker loot floats or sinks below the island")
     director._on_supply_interact()
     await physics_frame
+    # A physics_frame signal precedes physics callbacks; an idle-frame
+    # barrier ensures the queued interaction and collision changes finish.
+    await process_frame
     check(director.lockers_opened==1 and
         director._search_locker==null,
         "duplicate search incorrectly reopened the same physical cache")
@@ -178,6 +229,8 @@ func _verify() -> void:
     if is_instance_valid(reward):
         player.global_position=reward.global_position-Vector3.UP*.5
         await physics_frame
+        # Wait until the physics body has finished its contact callbacks.
+        await process_frame
         if is_instance_valid(reward) and not reward.collected:
             reward._collect(player)
         check(int(combat.inventory_snapshot()["loot_collected"])>
