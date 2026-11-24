@@ -116,7 +116,7 @@ func _verify() -> void:
         "real locker reward is not a collectible 3D world item")
     if first_reward!=null:
         check(is_equal_approx(first_reward.global_position.y,
-            float(game.get_node("AuroraIslandTerrain").height_at(
+            float(game.get_node("AuroraTerrain").height_at(
                 first_reward.world_spot.x,first_reward.world_spot.y))+.50),
             "opened locker loot floats or sinks below the island")
     director._on_supply_interact()
