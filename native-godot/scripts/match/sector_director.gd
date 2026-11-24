@@ -7,6 +7,7 @@ signal round_ended(victory: bool)
 signal aircraft_audio_changed(active: bool)
 
 const LOOT = preload("res://scripts/match/aurora_loot.gd")
+const SUPPLY_LOCKER=preload("res://scripts/match/aurora_supply_locker.gd")
 const ZONE_VISUAL = preload("res://scripts/match/aurora_zone_visual.gd")
 const DROP_SEQUENCE = preload("res://scripts/match/airdrop_sequence.gd")
 const COMBAT_ROSTER=preload("res://scripts/combat/training_combat.gd")
@@ -64,6 +65,15 @@ var zone_seconds_remaining: int=0
 var _damage_clock: float = 0.0
 var _ui_clock: float = 0.0
 var _loot: Array[Area3D] = []
+## New authored interactable 3D caches. Kept separate from Area3D pickups
+## because opening a locker is not equivalent to collecting its contents.
+const LOCKER_SITES: Array[Vector2]=[
+    Vector2(4,-26),Vector2(30,32),Vector2(-33,19),Vector2(20,-44)]
+const LOCKER_CONTENTS: Array=[
+    ["ammo_ar","medkit"],["vest_2","grenade"],
+    ["backpack_2","syringe"],["weapon_scar","ammo_smg"]]
+var _supply_lockers: Array[StaticBody3D]=[]
+var lockers_opened: int=0
 var _driveable_cars: Array[AuroraDriveableVehicle]=[]
 var _vehicle_ui_clock: float=0.0
 var _zone_visual: Node3D
@@ -106,6 +116,7 @@ func _ready() -> void:
     hud.jump_pressed.connect(_flight.request_jump_or_parachute)
     hud.start_battle_requested.connect(begin_aircraft_phase)
     hud.vehicle_action_requested.connect(_on_real_vehicle_action)
+    hud.supply_locker_requested.connect(_on_supply_interact)
     player.player_eliminated.connect(_on_player_eliminated)
     combat.bot_eliminated.connect(_on_opponent_eliminated)
     combat.bot_shot.connect(_on_rival_gunfire)
@@ -123,6 +134,7 @@ func begin_aircraft_phase() -> void:
     # Every player-accessible deployment (including Training HUD -> BR)
     # uses the SAME 50-person classic roster, without any difficulty menu.
     _remove_driveable_vehicles()
+    _clear_supply_lockers()
     combat.set_encounter_size(COMBAT_ROSTER.CLASSIC_BR_PARTICIPANTS)
     combat.end_sector_battle()
     _rivals_departed=false
@@ -200,6 +212,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     aircraft_audio_changed.emit(false)
     # A repeatable elimination round, not an endless training target spawner.
     _remove_driveable_vehicles()
+    _clear_supply_lockers()
     for old in _loot:
         if is_instance_valid(old):
             old.queue_free()
@@ -234,6 +247,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _perf_samples.clear()
     _opponent_drops_spawned=0
     _dropped_opponents.clear()
+    lockers_opened=0
     _phase_supplies.clear()
     _was_player_outside=false
     _zone_entries=0
@@ -248,6 +262,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     hud.reset_controls()
     hud.set_match_controls(true)
     _spawn_loot()
+    _spawn_supply_lockers()
     _spawn_authentic_vehicles()
     hud.set_battle_button("EN PARTIDA")
     hud.set_sector_state("BATALLA SECTOR",combat.active_fighter_count(),radius,0)
@@ -280,6 +295,7 @@ func _process(delta: float) -> void:
             hud.set_vehicle_context(false,true,ride.speed_kmh())
         else:
             hud.set_vehicle_context(_nearest_enterable_car()!=null,false,0.0)
+        _refresh_supply_interaction()
     elapsed += delta
     # Sample measured hardware FPS twice per second. Store only at the
     # actual match end, avoiding file writes during interactive combat.
@@ -500,6 +516,7 @@ func _finish(victory: bool) -> void:
     player.end_sector_battle()
     hud.reset_controls()
     hud.set_match_controls(false)
+    hud.set_supply_interaction("",false)
     hud.clear_radar_gunfire()
     hud.set_zone_threat(false,0.0)
     # Rank and combat metrics must be captured BEFORE the atomic ledger
@@ -607,6 +624,140 @@ func _on_real_vehicle_action() -> void:
     if nearby!=null and player.begin_vehicle_ride(nearby):
         hud.set_vehicle_context(false,true,nearby.speed_kmh())
         hud.impact("CONDUCCIÓN REAL / JOYSTICK: AVANZAR, GIRAR, RETROCEDER")
+
+
+## Limited to four fixed, authored caches per offline BR round. None is
+## present in training, the aircraft or a completed match.
+func _clear_supply_lockers() -> void:
+    for locker in _supply_lockers:
+        if is_instance_valid(locker):
+            locker.queue_free()
+    _supply_lockers.clear()
+    if hud!=null:
+        hud.set_supply_interaction("",false)
+
+
+func _spawn_supply_lockers() -> void:
+    if mode!="sector_battle" or match_ended:
+        return
+    for i in range(LOCKER_SITES.size()):
+        var desired: Vector2=LOCKER_SITES[i]
+        var chosen:=Vector2(INF,INF)
+        # Reject unsafe terrain, existing houses and shoreline. All
+        # alternative sites are deterministic for reproducible mobile QA.
+        for attempt in range(55):
+            var at: Vector2=desired
+            if attempt>0:
+                var angle: float=float(attempt)*2.399963+float(i)*.83
+                var offset: float=2.0+float(attempt%9)*1.5
+                at+=Vector2.from_angle(angle)*offset
+            if not combat._is_clear_spawn(at):
+                continue
+            var separated: bool=true
+            for other in _supply_lockers:
+                if is_instance_valid(other) and Vector2(
+                        other.global_position.x,other.global_position.z
+                        ).distance_squared_to(at)<12.0*12.0:
+                    separated=false
+                    break
+            if separated:
+                chosen=at
+                break
+        if not chosen.is_finite():
+            push_warning("Aurora no safe terrain for supply locker "+str(i+1))
+            continue
+        var locker=SUPPLY_LOCKER.new()
+        locker.name="AuroraSealedSupplyLocker%d"%(i+1)
+        locker.sector_id=i+1
+        locker.terrain=terrain
+        locker.site=chosen
+        locker.authored_contents.assign(LOCKER_CONTENTS[i])
+        add_child(locker)
+        _supply_lockers.append(locker)
+
+
+## A public query for the map UI exposes unopened physical cache positions,
+## not imaginary enemies or simulated reward counters.
+func nearby_unopened_supply_lockers(observer: Vector2,
+        scan_range: float=85.0) -> Array[Vector2]:
+    var result: Array[Vector2]=[]
+    if (mode!="sector_battle" or match_ended or
+            not observer.is_finite() or scan_range<=0.0):
+        return result
+    var square: float=pow(minf(scan_range,85.0),2.0)
+    for locker in _supply_lockers:
+        if (not is_instance_valid(locker) or locker.opened or
+                locker.is_queued_for_deletion()):
+            continue
+        var at:=Vector2(locker.global_position.x,locker.global_position.z)
+        if observer.distance_squared_to(at)<=square:
+            result.append(at)
+    return result
+
+
+## Physics-authoritative reachability is recalculated on EVERY press. A
+## stale touch target cannot open a crate through a wall or from a vehicle.
+func _nearest_supply_locker() -> StaticBody3D:
+    if (mode!="sector_battle" or match_ended or
+            player==null or not player.can_act() or
+            player.royale_eliminated or player.vehicle_ride_active()):
+        return null
+    var best: StaticBody3D=null
+    var best_distance: float=INF
+    for locker in _supply_lockers:
+        if (not is_instance_valid(locker) or locker.opened or
+                locker.is_queued_for_deletion() or
+                not SUPPLY_LOCKER.is_in_reach(
+                    player.global_position,locker.global_position)):
+            continue
+        var start: Vector3=player.global_position+Vector3.UP*1.2
+        var end: Vector3=locker.global_position+Vector3.UP*.3
+        var ray:=PhysicsRayQueryParameters3D.create(start,end,3,[
+            player.get_rid()])
+        var hit: Dictionary=get_world_3d().direct_space_state.intersect_ray(
+            ray)
+        if not hit.is_empty() and hit.get("collider")!=locker:
+            continue
+        var distance: float=start.distance_squared_to(end)
+        if distance<best_distance:
+            best_distance=distance
+            best=locker
+    return best
+
+
+func _refresh_supply_interaction() -> void:
+    if _nearest_enterable_car()!=null:
+        hud.set_supply_interaction("",false)
+        return
+    var closest: StaticBody3D=_nearest_supply_locker()
+    if closest==null:
+        hud.set_supply_interaction("",false)
+    else:
+        hud.set_supply_interaction(
+            "DEPÓSITO AURORA %02d"%int(closest.sector_id),true)
+
+
+func _on_supply_interact() -> void:
+    var locker: StaticBody3D=_nearest_supply_locker()
+    if locker==null:
+        hud.set_supply_interaction("",false)
+        return
+    # An old tap on an already-opened crate can never duplicate supplies.
+    var contents: Array=locker.open_and_release()
+    if contents.is_empty():
+        return
+    lockers_opened+=1
+    for i in range(contents.size()):
+        # New world pickups occupy reachable, terrain-supported positions
+        # alongside the physical crate. No direct combat.collect_sector_loot
+        # call, no instant wallet credit, and no imaginary online rewards.
+        var angle: float=.45+float(i)*2.68
+        var offset: Vector2=Vector2.from_angle(angle)*2.15
+        var target: Vector2=locker.site+offset
+        _make_pickup(target,str(contents[i]),
+            "AuroraLocker%dRealLoot%d"%[locker.sector_id,i+1])
+    hud.impact("DEPÓSITO ABIERTO · RECOGE LOS OBJETOS DEL SUELO")
+    hud.set_supply_interaction("",false)
 
 
 func _spawn_loot() -> void:
