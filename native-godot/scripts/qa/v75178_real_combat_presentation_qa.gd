@@ -46,6 +46,21 @@ func _verify() -> void:
         "SupplyCacheVisual/AuroraSupplyPod") as MeshInstance3D
     check(source!=null and source.mesh is BoxMesh,
         "world pickup remains a circular prototype")
+    var beacon: MeshInstance3D=real_supply.get_node_or_null(
+        "SupplyCacheVisual/SupplyBeacon") as MeshInstance3D
+    check(beacon!=null and beacon.mesh is BoxMesh,
+        "circular loot-floor cylinder survived equipment visual overhaul")
+    var hud: CanvasLayer=game.get_node("TrainingHUD")
+    var hit_arc: Control=hud.get_node_or_null(
+        "AuroraTacticalOverlay/AuroraRealDamageDirection") as Control
+    check(hit_arc!=null,
+        "real source-driven incoming-damage compass missing")
+    if hit_arc!=null:
+        hud.show_incoming_fire(
+            game.get_node("Operator").global_position+Vector3(0,0,-5),
+            game.get_node("Operator"))
+        check(float(hit_arc.get("_remaining"))>0.0,
+            "actual incoming muzzle direction did not illuminate HUD")
     var count: int=director.get_loot_remaining()
     director._spawn_empty_opponent_marker(Vector3(2,8,-12),"SIN OBJETOS")
     check(director._empty_death_markers.size()==1 and
