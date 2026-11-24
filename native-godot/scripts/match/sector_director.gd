@@ -76,6 +76,14 @@ var _supply_lockers: Array[StaticBody3D]=[]
 var lockers_opened: int=0
 var _locker_scan_clock: float=0.0
 var _locker_press_pending: bool=false
+const LOCKER_SEARCH_SECONDS: float=1.25
+const LOCKER_MOVE_TOLERANCE_SQ: float=.6*.6
+var _search_locker: StaticBody3D
+var _search_remaining: float=0.0
+var _search_anchor: Vector3=Vector3.ZERO
+var _search_health: float=0.0
+var _search_armor: float=0.0
+var _search_helmet: float=0.0
 var _driveable_cars: Array[AuroraDriveableVehicle]=[]
 var _vehicle_ui_clock: float=0.0
 var _zone_visual: Node3D
@@ -252,6 +260,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     lockers_opened=0
     _locker_press_pending=false
     _locker_scan_clock=0.0
+    _cancel_supply_search(false)
     _phase_supplies.clear()
     _was_player_outside=false
     _zone_entries=0
@@ -287,6 +296,8 @@ func _ready_for_round() -> bool:
 func _physics_process(delta: float) -> void:
     if mode!="sector_battle" or match_ended:
         _locker_press_pending=false
+        if _search_locker!=null:
+            _cancel_supply_search(false)
         return
     _locker_scan_clock-=maxf(0.0,delta)
     if _locker_scan_clock<=0.0:
@@ -294,7 +305,9 @@ func _physics_process(delta: float) -> void:
         _refresh_supply_interaction()
     if _locker_press_pending:
         _locker_press_pending=false
-        _perform_supply_interact()
+        _begin_supply_search()
+    if _search_locker!=null:
+        _tick_supply_search(delta)
 
 
 func _process(delta: float) -> void:
@@ -535,6 +548,7 @@ func _finish(victory: bool) -> void:
     player.end_sector_battle()
     hud.reset_controls()
     hud.set_match_controls(false)
+    _cancel_supply_search(false)
     hud.set_supply_interaction("",false)
     hud.clear_radar_gunfire()
     hud.set_zone_threat(false,0.0)
@@ -650,6 +664,7 @@ func _on_real_vehicle_action() -> void:
 func _clear_supply_lockers() -> void:
     _locker_press_pending=false
     _locker_scan_clock=0.0
+    _cancel_supply_search(false)
     for locker in _supply_lockers:
         if is_instance_valid(locker):
             locker.queue_free()
@@ -747,6 +762,8 @@ func _nearest_supply_locker() -> StaticBody3D:
 
 
 func _refresh_supply_interaction() -> void:
+    if _search_locker!=null:
+        return
     if _nearest_enterable_car()!=null:
         hud.set_supply_interaction("",false)
         return
@@ -759,31 +776,104 @@ func _refresh_supply_interaction() -> void:
 
 
 func _on_supply_interact() -> void:
-    if mode=="sector_battle" and not match_ended:
+    if mode=="sector_battle" and not match_ended and _search_locker==null:
         _locker_press_pending=true
 
 
-func _perform_supply_interact() -> void:
+func _begin_supply_search() -> void:
+    if _search_locker!=null:
+        return
     var locker: StaticBody3D=_nearest_supply_locker()
     if locker==null:
         hud.set_supply_interaction("",false)
         return
-    # An old tap on an already-opened crate can never duplicate supplies.
+    _search_locker=locker
+    _search_remaining=LOCKER_SEARCH_SECONDS
+    _search_anchor=player.global_position
+    _search_health=player.training_health
+    _search_armor=player.armor_points
+    _search_helmet=player.helmet_points
+    hud.set_supply_search_progress(0.0,true)
+
+
+func _cancel_supply_search(notify: bool=true) -> void:
+    if _search_locker==null:
+        return
+    _search_locker=null
+    _search_remaining=0.0
+    if hud!=null:
+        hud.set_supply_search_progress(0.0,false)
+        if notify:
+            hud.impact("SAQUEO INTERRUMPIDO")
+
+
+func _tick_supply_search(delta: float) -> void:
+    var locker: StaticBody3D=_search_locker
+    if locker==null:
+        return
+    # Real looting is risky: moving, being shot, healing, firing, reloading
+    # or getting into a vehicle cancels it without consuming the crate.
+    if (not is_instance_valid(locker) or locker.opened or
+            not player.can_act() or player.royale_eliminated or
+            player.vehicle_ride_active() or
+            not SUPPLY_LOCKER.is_in_reach(
+                player.global_position,locker.global_position) or
+            player.global_position.distance_squared_to(
+                _search_anchor)>LOCKER_MOVE_TOLERANCE_SQ or
+            player._move_axis.length_squared()>.01 or
+            player._sprint_touch or player.training_health<_search_health or
+            player.armor_points<_search_armor or
+            player.helmet_points<_search_helmet or
+            combat.trigger_held or combat.reload_timer>0.0 or
+            combat._heal_remaining>0.0):
+        _cancel_supply_search()
+        return
+    _search_remaining=maxf(0.0,_search_remaining-maxf(0.0,delta))
+    hud.set_supply_search_progress(
+        1.0-_search_remaining/LOCKER_SEARCH_SECONDS,true)
+    if _search_remaining>0.0:
+        return
+    # Revalidate line-of-sight at completion; standing near a crate behind
+    # walls is never enough to earn supplies.
+    if _nearest_supply_locker()!=locker:
+        _cancel_supply_search()
+        return
+    _search_locker=null
+    hud.set_supply_search_progress(0.0,false)
+    _complete_supply_search(locker)
+
+
+func _complete_supply_search(locker: StaticBody3D) -> void:
+    if not is_instance_valid(locker) or locker.opened:
+        return
+    # A completed search owns exactly one finite authored reward set.
     var contents: Array=locker.open_and_release()
     if contents.is_empty():
         return
     lockers_opened+=1
-    for i in range(contents.size()):
-        # New world pickups occupy reachable, terrain-supported positions
-        # alongside the physical crate. No direct combat.collect_sector_loot
-        # call, no instant wallet credit, and no imaginary online rewards.
-        var angle: float=.45+float(i)*2.68
-        var offset: Vector2=Vector2.from_angle(angle)*2.15
-        var target: Vector2=locker.site+offset
-        _make_pickup(target,str(contents[i]),
-            "AuroraLocker%dRealLoot%d"%[locker.sector_id,i+1])
+    # Physics callbacks must not add Area3D collision shapes directly:
+    # defer physical pickups to idle, once the physics space is unlocked.
+    call_deferred("_spawn_locker_rewards",
+        locker.sector_id,locker.site,contents)
     hud.impact("DEPÓSITO ABIERTO · RECOGE LOS OBJETOS DEL SUELO")
     hud.set_supply_interaction("",false)
+    var sound: Node=get_parent().get_node_or_null("AuroraSoundStage")
+    if sound!=null:
+        sound.call("play_event","ui",.86)
+
+
+func _spawn_locker_rewards(sector_id: int,site: Vector2,
+        contents: Array) -> void:
+    if mode!="sector_battle" or match_ended:
+        return
+    for i in range(contents.size()):
+        # Physics-supported, independently collectable loot is the ONLY
+        # path to combat inventory. Nothing is minted by the UI itself.
+        var angle: float=.45+float(i)*2.68
+        var offset: Vector2=Vector2.from_angle(angle)*2.15
+        var target: Vector2=site+offset
+        _make_pickup(target,str(contents[i]),
+            "AuroraLocker%dRealLoot%d"%[sector_id,i+1])
 
 
 func _spawn_loot() -> void:
