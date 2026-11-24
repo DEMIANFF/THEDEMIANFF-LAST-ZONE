@@ -68,15 +68,19 @@ func _verify() -> void:
         not physical_victim.is_physics_processing(),
         "eliminated physical enemy stayed visible or attacking indefinitely")
 
-    # LOD enemies must use their existing low-poly mesh, not generate a
-    # fresh high-poly rig for each death across 49 mobile combatants.
+    # V75.183: a far enemy dies using the SAME original source rig that
+    # it would have kept if we walked toward it. No fake cuboid corpse,
+    # no second skeleton and no expensive new animation lease on death.
     var distant: CharacterBody3D=combat._targets[21]
-    check(distant._lod_body!=null and distant._rig==null,
-        "distant enemy would allocate unbounded skeletal death meshes")
+    var distant_visual: Node3D=distant._lod_rig
+    check(distant_visual!=null and distant_visual.visible and
+        distant._rig==null and
+        distant_visual.find_child("Skeleton3D",true,false)!=null,
+        "distant rival should retain identical real GLB at death")
     check(distant.take_training_damage(500.0,player) and
         distant.visible and distant._death_tween!=null and
         combat.eliminations==2,
-        "low-poly rival has no physical death/collider-free reaction")
+        "original far rival lost physical death/collider-free reaction")
     # Restart during a still-running corpse reaction: it must not hide
     # a NEW live fighter later or retain the prior collapsed visual pose.
     director.start_sector_battle()
@@ -101,6 +105,6 @@ func _verify() -> void:
     if not failed:
         print("V7596_ELIMINATION_VISUAL PASS roster=50 "+
             "real_skeletal_hit=1 noncolliding_death=1 animation=.75s "+
-            "low_poly_death=1 dead_loot_immediate=1 restart=clean "+
+            "original_far_death=1 dead_loot_immediate=1 restart=clean "+
             "online=false motorola_fps=unmeasured")
     quit(1 if failed else 0)
