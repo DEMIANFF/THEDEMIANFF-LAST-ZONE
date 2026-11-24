@@ -306,10 +306,10 @@ func set_match_spawn(at: Vector2) -> void:
 func _create_lod_visual() -> void:
     if STARTUP_DIAG.without_enemy_rigs():
         return
-    const_source_guard()
+    _instantiate_original_distant_visual()
 
 
-func const_source_guard() -> void:
+func _instantiate_original_distant_visual() -> void:
     if not ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
         push_error("Aurora enemy source model unavailable; cannot show original appearance at distance")
         return
