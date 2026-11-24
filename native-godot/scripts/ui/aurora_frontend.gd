@@ -189,6 +189,7 @@ var _armory_selected_slot: int=0
 # A lobby catalogue choice changes the actual training armory order only.
 # Never grant an uncollected BR weapon or persist a fictitious entitlement.
 var _requested_training_weapon_slot: int=-1
+var _armory_vector_entry: Button
 var _armory_test_button: Button
 var _equipment_selector: OptionButton
 var _equipment_category_selector: OptionButton
@@ -1577,13 +1578,13 @@ func _show_lobby() -> void:
     # KRISS VECTOR already exists as slot 4 with a real 3D GLB. The
     # narrow 118px scroll list obscures it behind older entries; give it
     # a direct discoverable selector, without creating a new inventory ID.
-    var vector_entry:=Button.new()
-    vector_entry.name="AuroraInspectRealVector"
-    vector_entry.text="INSPECCIONAR KRISS VECTOR 3D"
-    vector_entry.custom_minimum_size=Vector2(245,38)
-    vector_entry.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    vector_entry.pressed.connect(_inspect_real_vector)
-    _page.add_child(vector_entry)
+    _armory_vector_entry=Button.new()
+    _armory_vector_entry.name="AuroraInspectRealVector"
+    _armory_vector_entry.text="INSPECCIONAR KRISS VECTOR 3D"
+    _armory_vector_entry.custom_minimum_size=Vector2(245,38)
+    _armory_vector_entry.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _armory_vector_entry.pressed.connect(_inspect_real_vector)
+    _page.add_child(_armory_vector_entry)
     _armory_test_button=_button("PROBAR EN ENTRENAMIENTO",_open_weapon_training,245)
     _armory_test_button.name="AuroraWeaponTrainingEntry"
     _armory_test_button.custom_minimum_size.y=32
@@ -1910,6 +1911,10 @@ func _sync_lobby_match_mode() -> void:
     _shop_equip_button.visible=_selected_tab=="TIENDA"
     _armory_list.visible=_selected_tab=="ARMAS"
     _armory_category_selector.visible=_selected_tab=="ARMAS"
+    # The standalone Vector shortcut belongs ONLY to ARMAS. It used to
+    # leak into JUGAR and cover the right BR start panel on 964x434.
+    if is_instance_valid(_armory_vector_entry):
+        _armory_vector_entry.visible=_selected_tab=="ARMAS"
     _armory_test_button.visible=_selected_tab=="ARMAS"
     _equipment_selector.visible=_selected_tab=="INVENTARIO"
     _equipment_category_selector.visible=_selected_tab=="INVENTARIO"
