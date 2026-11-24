@@ -62,13 +62,33 @@ func _verify() -> void:
     radar.set_waypoint(Vector2(18.0,-16.0))
     check(radar.landing_waypoint_guidance().has("world"),
         "the flight destination information was accidentally deleted")
-    var radar_source: String=FileAccess.get_file_as_string(
-        "res://scripts/ui/aurora_training_radar.gd")
-    check(not radar_source.contains("draw_line(flight_line[0]") and
-        not radar_source.contains("draw_circle(flight_line[1]") and
-        radar_source.contains(
-            "if _waypoint.is_finite() and player.air_mode!=\"aircraft\":"),
-        "yellow route endpoint/waypoint still renders over the flight minimap")
+    # Exercise the actual marker input used by _draw, including in an
+    # exported PCK where GDScript source text is not necessarily present.
+    check(radar.minimap_waypoint_marker().is_empty(),
+        "yellow destination marker still renders aboard aircraft")
+    # The route drawing itself stays out of the minimap. Audit source
+    # only when available; the runtime checks above and below always run.
+    var radar_path: String="res://scripts/ui/aurora_training_radar.gd"
+    if FileAccess.file_exists(radar_path):
+        var radar_source: String=FileAccess.get_file_as_string(radar_path)
+        if not radar_source.is_empty():
+            var draw_source: String=radar_source.get_slice("func _draw() -> void:",1)
+            check(not draw_source.contains("=aircraft_route_pixels()") and
+                not draw_source.contains("draw_line(flight_line[0]") and
+                not draw_source.contains("draw_circle(flight_line[1]"),
+                "yellow aircraft route returned to the local minimap")
+            check(draw_source.contains("waypoint_icon: Dictionary=minimap_waypoint_marker()"),
+                "minimap drawing bypasses the tested waypoint visibility gate")
+    var flight: Node3D=director.get("_flight") as Node3D
+    check(is_instance_valid(flight),"no live aircraft controller to test jump")
+    if is_instance_valid(flight):
+        flight.jump_from_aircraft()
+        check(player.air_mode=="freefall" and
+            radar.aircraft_route_pixels().is_empty(),
+            "actual jump failed to exit the aircraft navigation phase")
+        check(radar.landing_waypoint_guidance().get("world",Vector2(INF,INF))==
+            Vector2(18.0,-16.0) and not radar.minimap_waypoint_marker().is_empty(),
+            "stored destination did not become visible again after the real jump")
 
     combat.set_encounter_size(50)
     director.start_sector_battle()

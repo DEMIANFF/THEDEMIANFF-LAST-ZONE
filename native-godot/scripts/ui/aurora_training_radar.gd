@@ -484,6 +484,14 @@ func _waypoint_marker(center: Vector2,radius: float,
         "outside":outside,"distance_m":player_at.distance_to(_waypoint)}
 
 
+## Actual render input for the small minimap; independent of tactical map
+## navigation geometry. Keep the destination stored while aboard the plane.
+func minimap_waypoint_marker() -> Dictionary:
+    if not is_instance_valid(player) or player.air_mode=="aircraft":
+        return {}
+    return _waypoint_marker(_radar_center(),_radar_radius(),_detail_range())
+
+
 func _draw_navigation_compass(center: Vector2,radius: float,
         world_range: float) -> void:
     var yaw: float=_radar_yaw()
@@ -543,9 +551,8 @@ func _draw() -> void:
         # scaled circle that obscures the local buildings or player.
         _draw_zone_in_local_disc(_next_zone_center,_next_zone_radius,
             center,radius,world_range,Color(.99,.79,.37,.85),1.6)
-    if _waypoint.is_finite() and player.air_mode!="aircraft":
-        var waypoint_icon: Dictionary=_waypoint_marker(
-            center,radius,world_range)
+    if _waypoint.is_finite():
+        var waypoint_icon: Dictionary=minimap_waypoint_marker()
         if not waypoint_icon.is_empty():
             var dot: Vector2=waypoint_icon["at"]
             # Navigation markers stay visible, but DO NOT draw the
