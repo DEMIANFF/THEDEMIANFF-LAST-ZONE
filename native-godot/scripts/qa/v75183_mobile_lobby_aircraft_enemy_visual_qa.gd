@@ -90,7 +90,7 @@ func _verify() -> void:
         check(original!=null and original.visible and
             original.get_node_or_null("DistantEnemyVisual")==null and
             original.find_child("Skeleton3D",true,false)!=null and
-            original.find_child("MeshInstance3D",true,false)!=null,
+            original.find_children("*","MeshInstance3D",true,false).size()>0,
             "distant opponent still has a fake cuboid body instead of original GLB")
         var animator: AnimationPlayer=original.find_child(
             "AnimationPlayer",true,false) as AnimationPlayer
@@ -102,16 +102,16 @@ func _verify() -> void:
         "not all 41 original far opponents are rendered from source rig")
     if inherited!=null:
         var original_visual: Node3D=inherited._lod_rig
-        var original_mesh: MeshInstance3D=original_visual.find_child(
-            "*","MeshInstance3D",true,false) as MeshInstance3D
+        var original_mesh: MeshInstance3D=original_visual.find_children(
+            "*","MeshInstance3D",true,false)[0] as MeshInstance3D
         inherited.global_position=player.global_position+Vector3(1,0,0)
         inherited._set_full_visual(true)
         check(inherited._rig==original_visual and
             inherited._lod_rig==original_visual,
             "near enemy changed to a different model on promotion")
         inherited._set_full_visual(false)
-        var final_mesh: MeshInstance3D=original_visual.find_child(
-            "*","MeshInstance3D",true,false) as MeshInstance3D
+        var final_mesh: MeshInstance3D=original_visual.find_children(
+            "*","MeshInstance3D",true,false)[0] as MeshInstance3D
         var inactive: AnimationPlayer=original_visual.find_child(
             "AnimationPlayer",true,false) as AnimationPlayer
         check(inherited._rig==null and
