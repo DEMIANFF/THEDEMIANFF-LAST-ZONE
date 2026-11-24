@@ -1230,6 +1230,36 @@ func nearby_opponent_supply_points(observer: Vector2,
     return points
 
 
+## A visual "empty" death crate is not an Area3D item reward.
+## The radar must not paint it as a green, collectible supply box.
+## Return local evidence only (max three within 48m), without revealing
+## remote AI death sites all over the island or inventing available loot.
+func nearby_empty_death_crates(observer: Vector2,
+        scan_radius: float=48.0,max_markers: int=3) -> Array[Vector2]:
+    var found: Array[Vector2]=[]
+    if (mode!="sector_battle" or match_ended or
+            not is_instance_valid(player) or player.royale_eliminated or
+            not observer.is_finite()):
+        return found
+    var limit: int=clampi(max_markers,0,3)
+    var radius: float=clampf(scan_radius,0.0,48.0)
+    if radius<=0.0 or limit==0:
+        return found
+    var radius_sq: float=radius*radius
+    for marker in _empty_death_markers:
+        if (not is_instance_valid(marker) or
+                marker.is_queued_for_deletion() or
+                not marker.is_visible_in_tree()):
+            continue
+        var at:=Vector2(marker.global_position.x,
+            marker.global_position.z)
+        if at.distance_squared_to(observer)<=radius_sq:
+            found.append(at)
+            if found.size()>=limit:
+                break
+    return found
+
+
 ## Static geometry gate: only objects INSIDE the actual camera yaw/FOV and
 ## physically within the specified range qualify for further LOS testing.
 ## There is no free all-island detection, silent footstep wallhack or radar
