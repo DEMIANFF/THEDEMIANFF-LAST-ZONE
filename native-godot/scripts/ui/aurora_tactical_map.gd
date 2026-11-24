@@ -767,6 +767,16 @@ func _live_local_cache_markers() -> Array[Vector2]:
         Vector2(player.global_position.x,player.global_position.z),70.0,6)
 
 
+## Read visual corpse shells separately from recoverable physical
+## Area3D rewards. The full map does not fabricate remote death boxes.
+func _live_empty_death_crates() -> Array[Vector2]:
+    if (not is_instance_valid(player) or player.royale_eliminated or
+            not is_instance_valid(director)):
+        return []
+    return director.nearby_empty_death_crates(
+        Vector2(player.global_position.x,player.global_position.z),48.0,3)
+
+
 ## In Godot -Z is north; positive player yaw turns world-west.
 ## Unlike the camera-up minimap, this north-up tactical pane rotates the
 ## actual player arrow, not the whole island texture.
@@ -903,6 +913,17 @@ func _draw() -> void:
             draw_rect(bounds,Color(.62,.97,.72),false,1.5)
             draw_line(cache_pixel+Vector2(-2,0),
                 cache_pixel+Vector2(2,0),Color(.91,1,.86),1.2)
+    # A real noncollectible "SIN OBJETOS" death shell uses an X, never
+    # the same green supply icon as recoverable ammo or a health item.
+    for empty_at in _live_empty_death_crates():
+        var pixel: Vector2=project(empty_at)
+        if rect.grow(-10.0).has_point(pixel):
+            draw_rect(Rect2(pixel-Vector2(5,5),Vector2(10,10)),
+                Color(.28,.33,.36,.96),true)
+            draw_line(pixel+Vector2(-3.5,-3.5),pixel+Vector2(3.5,3.5),
+                Color(.89,.89,.84,.96),1.4,true)
+            draw_line(pixel+Vector2(-3.5,3.5),pixel+Vector2(3.5,-3.5),
+                Color(.89,.89,.84,.96),1.4,true)
     # The ONLY precise live red triangles are bodies physically verified
     # visible by the director's bounded per-physics sight queries.
     for enemy_at in _live_verified_enemies():

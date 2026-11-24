@@ -83,6 +83,18 @@ func _nearby_supply_markers() -> Array[Vector2]:
         MINIMAP_CACHE_RANGE,MAX_MINIMAP_CACHES)
 
 
+## Gray X = a real nearby rival corpse with NO collectible items.
+## Green square = actual physical ammo/medical Area3D. These are never
+## interchangeable; the source is the director's live 3D shell array.
+func nearby_empty_death_crates() -> Array[Vector2]:
+    if (not _battle_mode or not is_instance_valid(player) or
+            player.royale_eliminated or
+            not is_instance_valid(_sector_director)):
+        return []
+    return _sector_director.nearby_empty_death_crates(
+        Vector2(player.global_position.x,player.global_position.z),48.0,3)
+
+
 ## Read only nearby, uncollected real-world resources. Never invent cars
 ## when optional original Toyota/BMW model assets are not installed.
 ## Live visual confirmations share ONE raycast-scanned director source
@@ -617,6 +629,20 @@ func _draw() -> void:
             var bounds:=Rect2(dot-Vector2(3.5,3.5),Vector2(7,7))
             draw_rect(bounds,Color(.06,.23,.20,.94),true)
             draw_rect(bounds,Color(.64,.99,.73),false,1.1)
+        # The "SIN OBJETOS" shell really exists in the world but offers
+        # no supply. A dim cross avoids the old false green loot promise.
+        for empty_at in nearby_empty_death_crates():
+            var relative: Vector2=empty_at-physical_listener
+            var dot: Vector2=center+relative.rotated(yaw)*(
+                radius/world_range)
+            if dot.distance_to(center)>radius-8.0:
+                continue
+            draw_rect(Rect2(dot-Vector2(3.3,3.3),Vector2(6.6,6.6)),
+                Color(.32,.37,.40,.92),true)
+            draw_line(dot+Vector2(-2.5,-2.5),dot+Vector2(2.5,2.5),
+                Color(.84,.84,.80,.92),1.1,true)
+            draw_line(dot+Vector2(-2.5,2.5),dot+Vector2(2.5,-2.5),
+                Color(.84,.84,.80,.92),1.1,true)
         # Red contact triangles mean a currently alive enemy whose
         # BODY was actually hit by a physics LOS ray from this camera FOV.
         # In contrast, orange rim arcs below mean only a sound bearing.
