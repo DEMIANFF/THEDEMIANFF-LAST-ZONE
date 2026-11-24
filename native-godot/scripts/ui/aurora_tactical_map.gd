@@ -749,6 +749,17 @@ func _live_sealed_lockers() -> Array[Vector2]:
         Vector2(player.global_position.x,player.global_position.z),85.0)
 
 
+## Same collision-confirmed hostile contacts as the local minimap. This
+## reports real 3D bodies in the player's camera cone, within 38 metres.
+## No global bot coordinate feed, no stale audio-position red dots.
+func _live_verified_enemies() -> Array[Vector2]:
+    if (not is_instance_valid(player) or player.royale_eliminated or
+            not is_instance_valid(director)):
+        return []
+    return director.visible_enemy_contacts(
+        Vector2(player.global_position.x,player.global_position.z),38.0)
+
+
 func _live_local_cache_markers() -> Array[Vector2]:
     if not is_instance_valid(player) or not is_instance_valid(director):
         return []
@@ -892,6 +903,19 @@ func _draw() -> void:
             draw_rect(bounds,Color(.62,.97,.72),false,1.5)
             draw_line(cache_pixel+Vector2(-2,0),
                 cache_pixel+Vector2(2,0),Color(.91,1,.86),1.2)
+    # The ONLY precise live red triangles are bodies physically verified
+    # visible by the director's bounded per-physics sight queries.
+    for enemy_at in _live_verified_enemies():
+        var enemy_pixel: Vector2=project(enemy_at)
+        if rect.grow(-11).has_point(enemy_pixel):
+            var pointer:=PackedVector2Array([
+                enemy_pixel+Vector2(0,-7),
+                enemy_pixel+Vector2(-5,4),
+                enemy_pixel+Vector2(5,4)])
+            draw_colored_polygon(pointer,Color(1.0,.23,.28,.96))
+            draw_polyline(PackedVector2Array([
+                pointer[0],pointer[1],pointer[2],pointer[0]]),
+                Color(1.0,.84,.79,.93),1.1,true)
     # All real houses remain on the 256px terrain texture. Additional POI
     # names appear only after pinch/zoom, not all piled on the city centre.
     for i in range(LANDMARK_POSITIONS.size()):
