@@ -800,14 +800,21 @@ func _begin_supply_search() -> void:
 
 
 func _cancel_supply_search(notify: bool=true) -> void:
-    if _search_locker==null:
-        return
+    var had_search: bool=_search_locker!=null
     _search_locker=null
     _search_remaining=0.0
+    _locker_press_pending=false
     if hud!=null:
+        # Restore the button even if an interrupted/restarted round left
+        # its progress child visible while the director has no target.
         hud.set_supply_search_progress(0.0,false)
-        if notify:
+        if had_search and notify:
             hud.impact("SAQUEO INTERRUMPIDO")
+    if had_search and notify and mode=="sector_battle" and (
+            not match_ended):
+        # This runs on the physics tick. Revalidate line of sight now,
+        # rather than leaving ABRIENDO disabled until a later UI refresh.
+        _refresh_supply_interaction()
 
 
 func _tick_supply_search(delta: float) -> void:
