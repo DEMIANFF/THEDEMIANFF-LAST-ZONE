@@ -20,6 +20,7 @@ func _verify() -> void:
     check(BOT.FIELD_MEDKIT_HEALTH_THRESHOLD>=110.0 and
         BOT.FIELD_MEDKIT_HEALTH_THRESHOLD<=PLAYER.MAX_HEALTH*.60,
         "enemy tactical heal threshold not adapted to 200 HP")
+    root.size=Vector2i(964,434)
     var game: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
     root.add_child(game)
     var player: CharacterBody3D=game.get_node("Operator")
@@ -51,6 +52,31 @@ func _verify() -> void:
     player.receive_training_heal(100.0)
     check(player.training_health==200.0,
         "medical recovery exceeded 200 HP or is still capped at 100")
+    player._training_immunity=0.0
+    player.receive_training_hit(150.0,false,Vector3(3,2,5))
+    var fill: StyleBoxFlat=hud._health_meter.get_theme_stylebox("fill") as StyleBoxFlat
+    check(player.training_health==50.0 and hud._health_meter.value==50.0 and
+        fill!=null and fill.bg_color.r>.9 and fill.bg_color.g<.4,
+        "critical health meter does not reflect physical damage")
+    player.receive_training_heal(200.0)
+    check(player.equip_protection(false,2) and player.equip_protection(true,3),
+        "real vest and helmet could not be equipped")
+    check(hud._armor_meter.value==50.0 and hud._armor_meter.max_value==50.0 and
+        hud._helmet_meter.value==45.0 and hud._helmet_meter.max_value==45.0 and
+        hud._helmet_meter.visible,
+        "protection bars differ from actual equipped level capacities")
+    hud._layout()
+    check(root.get_visible_rect().encloses(hud._vitals_backdrop.get_global_rect()) and
+        hud._armor_meter.mouse_filter==Control.MOUSE_FILTER_IGNORE and
+        hud._helmet_meter.mouse_filter==Control.MOUSE_FILTER_IGNORE,
+        "vitals are clipped or intercept touch")
+    hud.set_air_stage("aircraft")
+    check(not hud._vitals_backdrop.visible and not hud._armor_meter.visible and
+        not hud._helmet_meter.visible and not hud._armor_label.visible,
+        "ground protection readouts leaked into the aircraft")
+    hud.set_air_stage("ground")
+    check(hud._vitals_backdrop.visible and hud._helmet_meter.visible,
+        "actual protection display failed to return on landing")
     var rival: CharacterBody3D=combat._targets[0]
     check(not rival.take_training_damage(140.0,player) and
         rival.health==60.0,
@@ -68,7 +94,9 @@ func _verify() -> void:
         "enemy medicine exceeded the new maximum")
     director.start_sector_battle()
     check(player.training_health==PLAYER.MAX_HEALTH and
-        combat._targets[0].health==BOT.MAX_HEALTH,
+        combat._targets[0].health==BOT.MAX_HEALTH and
+        hud._armor_meter.value==0.0 and hud._helmet_meter.value==0.0 and
+        not hud._helmet_meter.visible,
         "new round leaked wounds or reset to the old 100 HP")
     if not failed:
         print("V75125_HEALTH_BALANCE PASS player_hp=200 bot_hp=200 "+

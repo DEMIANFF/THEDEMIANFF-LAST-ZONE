@@ -94,6 +94,10 @@ var _ground_intel: Label
 var _ground_intel_clock: float=0.0
 var _eliminations_label: Label
 var _health_meter: ProgressBar
+var _armor_meter: ProgressBar
+var _helmet_meter: ProgressBar
+var _vitals_backdrop: Panel
+var _helmet_level_live: int=0
 var _damage_flash: ColorRect
 var _result_window: PanelContainer
 var _result_text: Label
@@ -217,6 +221,25 @@ func _ready() -> void:
     _health_meter.add_theme_stylebox_override("background",health_bg)
     _health_meter.add_theme_stylebox_override("fill",health_fill)
     root.add_child(_health_meter)
+    health_bg.set_corner_radius_all(4)
+    health_fill.set_corner_radius_all(4)
+    _vitals_backdrop=Panel.new()
+    _vitals_backdrop.name="AuroraVitalsBackdrop"
+    _vitals_backdrop.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    var vitals_skin:=StyleBoxFlat.new()
+    vitals_skin.bg_color=Color(.025,.045,.065,.68)
+    vitals_skin.border_color=Color(.65,.79,.87,.34)
+    vitals_skin.set_border_width_all(1)
+    vitals_skin.set_corner_radius_all(7)
+    _vitals_backdrop.add_theme_stylebox_override("panel",vitals_skin)
+    root.add_child(_vitals_backdrop)
+    root.move_child(_vitals_backdrop,_health_label.get_index())
+    _armor_meter=_make_vitals_meter(root,"PlayerVestMeter",75.0,Color(.30,.79,1.0,.96))
+    _helmet_meter=_make_vitals_meter(root,"PlayerHelmetMeter",45.0,Color(.85,.72,1.0,.96))
+    _helmet_meter.visible=false
+    _armor_label.add_theme_font_size_override("font_size",12)
+    _armor_label.clip_text=true
+    _armor_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _battle_button=_button(root,"INICIAR BR",.63,.035,139,52,Color(.25,.39,.49),_battle_down)
     _battle_status=_text(root,"ENTRENAMIENTO",.46,.125,15,Color(.98,.85,.61),HORIZONTAL_ALIGNMENT_CENTER)
     _ground_intel=_text(root,"",.38,.18,12,
@@ -723,9 +746,11 @@ func set_air_stage(value: String) -> void:
         pad.visible=value!="aircraft"
     if _reticle:
         _reticle.visible=not airborne
-    for indicator in [_weapon,_ammo,_eliminations_label,_health_label,_health_meter]:
+    for indicator in [_weapon,_ammo,_eliminations_label,_health_label,_health_meter,_armor_label,_armor_meter,_vitals_backdrop]:
         if indicator:
             indicator.visible=not airborne
+    if _helmet_meter:
+        _helmet_meter.visible=not airborne and _helmet_level_live>0
     # A plane without a visible minimap has no discoverable way to choose
     # a landing destination. Keep the SAME real radar + hidden touch target
     # available in flight, freefall and parachute; hide combat controls.
@@ -1302,12 +1327,39 @@ func set_crouch_state(active: bool) -> void:
         _crouch_button.text="LEVANTAR" if active else "AGACHAR"
 
 
+func _make_vitals_meter(root: Control,id: String,capacity: float,tint: Color) -> ProgressBar:
+    var meter:=ProgressBar.new()
+    meter.name=id
+    meter.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    meter.show_percentage=false
+    meter.max_value=capacity
+    meter.value=0.0
+    var track:=StyleBoxFlat.new()
+    track.bg_color=Color(.12,.18,.24,.92)
+    track.set_corner_radius_all(3)
+    var fill:=StyleBoxFlat.new()
+    fill.bg_color=tint
+    fill.set_corner_radius_all(3)
+    meter.add_theme_stylebox_override("background",track)
+    meter.add_theme_stylebox_override("fill",fill)
+    root.add_child(meter)
+    return meter
+
+
 func set_health(value: float) -> void:
+    var hp: float=clampf(value,0.0,PLAYER_HEALTH.MAX_HEALTH)
+    var critical: bool=hp<PLAYER_HEALTH.MAX_HEALTH*.30
+    var wounded: bool=hp<PLAYER_HEALTH.MAX_HEALTH*.60
     if _health_meter:
-        _health_meter.value=clampf(value,0.0,PLAYER_HEALTH.MAX_HEALTH)
+        _health_meter.value=hp
+        var fill: StyleBoxFlat=_health_meter.get_theme_stylebox("fill") as StyleBoxFlat
+        if fill!=null:
+            var tint: Color=Color(.98,.27,.27) if critical else Color(1.0,.72,.26) if wounded else Color(.32,.88,.64)
+            if fill.bg_color!=tint:
+                fill.bg_color=tint
     if _health_label:
-        _health_label.text="SALUD "+str(roundi(value))+" / "+str(roundi(PLAYER_HEALTH.MAX_HEALTH))
-        _health_label.add_theme_color_override("font_color",Color(.98,.45,.38) if value<PLAYER_HEALTH.MAX_HEALTH*.30 else Color(.71,.98,.82))
+        _health_label.text="SALUD "+str(roundi(hp))+" / "+str(roundi(PLAYER_HEALTH.MAX_HEALTH))
+        _health_label.add_theme_color_override("font_color",Color(.98,.45,.38) if critical else Color(1.0,.83,.46) if wounded else Color(.85,1.0,.92))
 
 
 func set_weapon(name: String,loaded: int,reserve: int) -> void:
@@ -1390,11 +1442,23 @@ func set_ammo_warning(loaded: int,reserve: int,capacity: int) -> void:
 
 
 func set_armor_status(armor: float,vest: int=0,helmet: float=0.0,helmet_level: int=0) -> void:
+    var limit: int=25*clampi(vest,1,3) if vest>0 else 75
+    var helmet_limit: int=15*clampi(helmet_level,1,3)
     if _armor_label!=null:
-        var limit: int=25*vest if vest>0 else 75
         _armor_label.text="ESCUDO %d / %d"%[clampi(roundi(armor),0,limit),limit]
         if helmet_level>0:
-            _armor_label.text+="  ·  CASCO N%d %d"%[helmet_level,roundi(helmet)]
+            _armor_label.text+="  ·  CASCO N%d %d"%[helmet_level,clampi(roundi(helmet),0,helmet_limit)]
+    if _armor_meter!=null:
+        _armor_meter.max_value=limit
+        _armor_meter.value=clampf(armor,0.0,limit)
+    if _helmet_meter!=null:
+        _helmet_meter.max_value=helmet_limit
+        _helmet_meter.value=clampf(helmet,0.0,helmet_limit) if helmet_level>0 else 0.0
+        _helmet_meter.visible=air_stage=="ground" and helmet_level>0
+    var changed: bool=_helmet_level_live!=helmet_level
+    _helmet_level_live=helmet_level
+    if changed and is_node_ready():
+        _layout_vitals(SAFE_SCREEN.rect(get_viewport()))
 
 
 ## This display follows a real kill-confirmed gameplay status; it creates
@@ -1576,6 +1640,21 @@ func _place(control: Control, rect: Rect2) -> void:
     control.size=rect.size
 
 
+## Read-only status cluster: never consumes combat touch or replaces HP.
+func _layout_vitals(safe: Rect2) -> void:
+    var w: float=safe.size.x
+    var h: float=safe.size.y
+    var at: Vector2=safe.position+Vector2(w*.5-124,h-123)
+    _place(_vitals_backdrop,Rect2(at,Vector2(248,81)))
+    _place(_armor_label,Rect2(at+Vector2(8,2),Vector2(232,20)))
+    var vest_width: float=114.0 if _helmet_level_live>0 else 232.0
+    _place(_armor_meter,Rect2(at+Vector2(8,24),Vector2(vest_width,7)))
+    _place(_helmet_meter,Rect2(at+Vector2(126,24),Vector2(114,7)))
+    _health_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _place(_health_label,Rect2(at+Vector2(8,34),Vector2(232,22)))
+    _place(_health_meter,Rect2(at+Vector2(8,60),Vector2(232,12)))
+
+
 func _layout() -> void:
     var root: Control=get_node("AuroraTacticalOverlay")
     var safe: Rect2=SAFE_SCREEN.rect(get_viewport())
@@ -1584,12 +1663,9 @@ func _layout() -> void:
     var h: float=safe.size.y
     root.get_node("AuroraHeader").visible=false
     _place(_training_radar,Rect2(origin+Vector2(24,62),Vector2(156,142)))
-    _place(_health_label,Rect2(origin+Vector2(w*.5-85,h-91),Vector2(170,28)))
-    _place(_armor_label,Rect2(origin+Vector2(w*.5-85,h-118),Vector2(170,24)))
-    _place(_lila_ability_label,Rect2(origin+Vector2(w*.5-165,h-149),
+    _layout_vitals(safe)
+    _place(_lila_ability_label,Rect2(origin+Vector2(w*.5-165,h-151),
         Vector2(330,27)))
-    _health_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-    _place(_health_meter,Rect2(origin+Vector2(w*.5-85,h-61),Vector2(170,12)))
     _place(_weapon,Rect2(origin+Vector2(w-260,16),Vector2(230,30)))
     _place(_ammo,Rect2(origin+Vector2(w-210,48),Vector2(180,32)))
     _place(_fps,Rect2(origin+Vector2(24,211),Vector2(96,24)))
