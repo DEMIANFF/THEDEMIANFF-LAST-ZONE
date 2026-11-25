@@ -184,15 +184,24 @@ func _verify() -> void:
     check(float(zone_coverage.get("current",2.0))<=1.0 and
         float(zone_coverage.get("next",2.0))<=1.0,
         "legacy full-ring overview diagnostic was discarded")
+    check(radar.ground_contacts_visible(),"ground minimap lost physical contacts")
     player.set("air_mode","parachute")
+    check(not radar.ground_contacts_visible(),"ground contacts clutter parachute navigation")
     check(is_equal_approx(float(radar.call("_detail_range")),
         RADAR.CANOPY_DETAIL_METRES),
         "parachute minimap lost airborne landing context")
     player.set("air_mode","aircraft")
+    check(not radar.ground_contacts_visible(),"ground contacts clutter aircraft navigation")
     check(is_equal_approx(float(radar.call("_detail_range")),
         RADAR.AIRCRAFT_DETAIL_METRES),
         "aircraft minimap lost larger genuine route view")
     player.set("air_mode","ground")
+    check(radar.ground_contacts_visible(),"landing did not restore ground contacts")
+    check(radar._map_bezel!=null and radar._map_bezel.corner_radius_top_left>=8,
+        "minimap lacks its rounded cartographic frame")
+    check(hud._battle_status.mouse_filter==Control.MOUSE_FILTER_IGNORE and
+        hud._battle_status.get_theme_stylebox("normal") is StyleBoxFlat,
+        "combat intel panel is missing or intercepts movement")
 
     # ACTUAL mobile joystick and CharacterBody3D movement, not a manual
     # translation of map decoration; physics collision remains engaged.

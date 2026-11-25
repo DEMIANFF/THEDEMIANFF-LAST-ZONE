@@ -242,6 +242,8 @@ func _ready() -> void:
     _armor_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
     _battle_button=_button(root,"INICIAR BR",.63,.035,139,52,Color(.25,.39,.49),_battle_down)
     _battle_status=_text(root,"ENTRENAMIENTO",.46,.125,15,Color(.98,.85,.61),HORIZONTAL_ALIGNMENT_CENTER)
+    _style_intel_label(_battle_status,Color(.028,.048,.068,.74),Color(.65,.78,.85,.38))
+    _style_intel_label(_eliminations_label,Color(.065,.045,.055,.76),Color(.92,.56,.48,.55))
     _ground_intel=_text(root,"",.38,.18,12,
         Color(.99,.87,.53),HORIZONTAL_ALIGNMENT_CENTER)
     _ground_intel.name="RealGroundBattleIntel"
@@ -591,6 +593,17 @@ func _ready() -> void:
     apply_ui_settings()
     get_viewport().size_changed.connect(_layout)
     _layout.call_deferred()
+
+
+func _style_intel_label(label: Label,bg: Color,edge: Color) -> void:
+    var plate:=StyleBoxFlat.new()
+    plate.bg_color=bg
+    plate.border_color=edge
+    plate.set_border_width_all(1)
+    plate.set_corner_radius_all(5)
+    label.add_theme_stylebox_override("normal",plate)
+    label.clip_text=true
+    label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 
 
 func _text(parent: Control,value: String,x: float,y: float,size: int,color: Color,align: HorizontalAlignment) -> Label:
@@ -1669,9 +1682,10 @@ func _layout() -> void:
     _place(_weapon,Rect2(origin+Vector2(w-260,16),Vector2(230,30)))
     _place(_ammo,Rect2(origin+Vector2(w-210,48),Vector2(180,32)))
     _place(_fps,Rect2(origin+Vector2(24,211),Vector2(96,24)))
-    _place(_eliminations_label,Rect2(origin+Vector2(w-360,24),Vector2(90,24)))
+    _eliminations_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+    _place(_eliminations_label,Rect2(origin+Vector2(w-358,12),Vector2(84,25)))
     _place(_compass,Rect2(origin+Vector2(w*.5-75,6),Vector2(150,28)))
-    _place(_battle_status,Rect2(origin+Vector2(w*.5-220,37),Vector2(440,30)))
+    _place(_battle_status,Rect2(origin+Vector2(w*.5-210,37),Vector2(420,28)))
     _place(_ground_intel,Rect2(origin+Vector2(w*.5-165,83),Vector2(330,23)))
     _place(_battle_button,Rect2(origin+Vector2(w*.5-90,64),Vector2(180,46)))
     _place(_exit_button,Rect2(origin+Vector2(184,12),Vector2(54,54)))
