@@ -29,7 +29,7 @@ func _verify() -> void:
     await process_frame
     check(front.stage=="lobby" and front._selected_tab=="JUGAR",
         "offline entry did not open native Battle Royale lobby")
-    check(front._left_shortcuts.get_child_count()==5 and
+    check(front._left_shortcuts.get_child_count()==4 and
         front._bottom_navigation.get_child_count()==5 and
         front._bottom_navigation.has_node("BottomJUGAR"),
         "commerce rail and JUGAR return route must exist with full navigation")
@@ -38,7 +38,7 @@ func _verify() -> void:
         not front._left_shortcuts.has_node("QuickJUGAR") and
         front._left_shortcuts.has_node("QuickEVENTS") and
         front._left_shortcuts.has_node("QuickMISSIONS") and
-        front._left_shortcuts.has_node("QuickACHIEVEMENTS"),
+        not front._left_shortcuts.has_node("QuickACHIEVEMENTS"),
         "store, pass, events, missions or achievements missing; no second JUGAR")
     check(front._social_panel.visible and
         front._social_status_label.text.contains("SIN AMIGOS"),
