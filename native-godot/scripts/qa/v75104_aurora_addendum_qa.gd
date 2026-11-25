@@ -88,9 +88,11 @@ func verify() -> void:
     var avatar: Node3D=front._preview_avatar
     var anim:=avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
     var rig:=avatar.find_child("Skeleton3D",true,false) as Skeleton3D
-    var timer: Timer=anim.get_node("LobbyGestureTimer")
-    timer.timeout.emit()
-    check(anim.current_animation==&"aurora_lobby/Motion","lobby did not play its retarget")
+    check(anim.get_node_or_null("LobbyGestureTimer")==null,
+        "obsolete automatic lobby gesture timer returned")
+    front._play_lobby_gesture()
+    check(anim.current_animation==&"aurora_lobby/Motion",
+        "explicit lobby interaction did not play its retarget")
     anim.advance(.30)
     anim.seek(.03,true)
     rig.force_update_all_bone_transforms()
