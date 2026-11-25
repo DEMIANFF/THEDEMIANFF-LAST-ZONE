@@ -3676,8 +3676,8 @@ func _toggle_mixamo_preview() -> void:
         var player: AnimationPlayer=incoming.find_child(
             "*AnimationPlayer*",true,false) as AnimationPlayer
         if player and player.has_animation("AuroraIdle"):
-            player.play("AuroraIdle")
             _install_lobby_motion(player)
+            player.play("AuroraIdle")
         if _offline_records:
             _apply_preview_skin(str(
                 _offline_records.cosmetic_state()["equipped"]))
@@ -3771,7 +3771,49 @@ func _play_lobby_gesture() -> void:
     animator.play(LOBBY_MOTION_CLIP,.26)
 
 
+## The lobby used the untouched, narrow fashion stance from the import.
+## Reuse only the lower-body pose of the corrected combat idle. Preserve
+## the unarmed upper body, fingers, original GLB and all gameplay clips.
+func _prepare_lobby_idle(animator: AnimationPlayer) -> void:
+    if not animator.has_animation("AuroraArmedIdle") or not animator.has_animation_library(""):
+        return
+    var idle: Animation=animator.get_animation("AuroraIdle").duplicate() as Animation
+    var planted: Animation=animator.get_animation("AuroraArmedIdle")
+    var changed: int=0
+    for i in range(planted.get_track_count()):
+        var path: NodePath=planted.track_get_path(i)
+        var type: Animation.TrackType=planted.track_get_type(i)
+        if path.get_subname_count()==0 or type not in [Animation.TYPE_ROTATION_3D,Animation.TYPE_POSITION_3D] or planted.track_get_key_count(i)==0:
+            continue
+        var bone: String=str(path.get_subname(0))
+        if bone not in ["Hips","LeftUpLeg","RightUpLeg","LeftLeg","RightLeg","LeftFoot","RightFoot","LeftToeBase","RightToeBase"]:
+            continue
+        var track: int=idle.find_track(path,type)
+        if track<0:
+            track=idle.add_track(type)
+            idle.track_set_path(track,path)
+        for k in range(idle.track_get_key_count(track)-1,-1,-1):
+            idle.track_remove_key(track,k)
+        var value: Variant=planted.track_get_key_value(i,0)
+        idle.track_insert_key(track,0.0,value)
+        idle.track_insert_key(track,idle.length,value)
+        changed+=1
+    if changed==0:
+        return
+    idle.loop_mode=Animation.LOOP_LINEAR
+    var library: AnimationLibrary=animator.get_animation_library("").duplicate() as AnimationLibrary
+    if library==null:
+        return
+    library.remove_animation("AuroraIdle")
+    if library.add_animation("AuroraIdle",idle)!=OK:
+        return
+    animator.remove_animation_library("")
+    if animator.add_animation_library("",library)==OK:
+        animator.set_meta("aurora_lobby_planted_tracks",changed)
+
+
 func _install_lobby_motion(animator: AnimationPlayer) -> void:
+    _prepare_lobby_idle(animator)
     var motion:=LOBBY_MOTION.duplicate() as Animation
     var idle:=animator.get_animation("AuroraIdle")
     # Preserve the neutral leg, pelvis and finger tracks on Lila's podium.
@@ -3787,18 +3829,11 @@ func _install_lobby_motion(animator: AnimationPlayer) -> void:
     var library:=AnimationLibrary.new()
     library.add_animation(&"Motion",motion)
     animator.add_animation_library(&"aurora_lobby",library)
-    var gesture_timer:=Timer.new()
-    gesture_timer.name="LobbyGestureTimer"
-    animator.add_child(gesture_timer)
-    gesture_timer.timeout.connect(func():
-        gesture_timer.wait_time=26.0
-        if stage=="lobby" and _preview_container and _preview_container.is_visible_in_tree() and (
-                animator.current_animation==&"AuroraIdle"):
-            animator.play(LOBBY_MOTION_CLIP,.28))
+    # Emotes are explicit character interactions, not an unsolicited
+    # twelve-second gesture that interrupts the neutral lobby stance.
     animator.animation_finished.connect(func(clip: StringName):
         if clip==LOBBY_MOTION_CLIP:
             animator.play(&"AuroraIdle",.28))
-    gesture_timer.start(10.0)
 
 
 func _build_preview() -> void:
@@ -4030,10 +4065,9 @@ func _build_preview() -> void:
             # Use the real relaxed skeletal idle here; the actual match
             # keeps its weapon-ready and ADS animation states.
             if anim and anim.has_animation("AuroraIdle"):
-                anim.get_animation("AuroraIdle").loop_mode=Animation.LOOP_LINEAR
+                _install_lobby_motion(anim)
                 anim.play("AuroraIdle")
                 anim.advance(.36)
-                _install_lobby_motion(anim)
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
