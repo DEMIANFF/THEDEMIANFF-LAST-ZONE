@@ -57,10 +57,10 @@ func _verify() -> void:
     check(not front._lobby_status_ribbon.visible,
         "extra local-mode ribbon still crowds the bottom of Lila")
     var rail: VBoxContainer=front._left_shortcuts
-    check(rail.get_child_count()==5 and
+    check(rail.get_child_count()==4 and
         rail.get_node_or_null("QuickJUGAR")==null and
         rail.get_node_or_null("QuickPASE")!=null,
-        "left rail must have five genuine actions and no duplicated JUGAR")
+        "left rail must have four genuine actions and no duplicated JUGAR")
     front._select_tab("INVENTARIO")
     footer.get_node("BottomJUGAR").pressed.emit()
     check(front._selected_tab=="JUGAR" and right.visible,
@@ -109,6 +109,6 @@ func _verify() -> void:
         print("V75155_LOBBY_HUD_SETTINGS PASS viewport=964x434 "+
             "left_mode_button=REMOVED footer_preset=REMOVED "+
             "right_mode_selector=ONLY_ONE classic_roster=50 "+
-            "footer_buttons=5 rail_buttons=6 hud_presets=4 "+
+            "footer_buttons=5 rail_buttons=4 hud_presets=4 "+
             "settings_top_gear=1 lobby_returns=1 training_not_started=1")
     quit(1 if failed else 0)

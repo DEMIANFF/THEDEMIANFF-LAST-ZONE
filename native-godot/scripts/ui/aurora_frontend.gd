@@ -127,7 +127,7 @@ var _lobby_nav: VBoxContainer
 var _profile_strip: Label
 var _stats_strip: Label
 var _currency_strip: Label
-var _objective_selector: OptionButton
+var _objective_selector: TabBar
 var _objective_page: String="missions"
 var _objectives_progress_panel: VBoxContainer
 var _objectives_progress_rows: Array[Dictionary]=[]
@@ -189,7 +189,6 @@ var _armory_selected_slot: int=0
 # A lobby catalogue choice changes the actual training armory order only.
 # Never grant an uncollected BR weapon or persist a fictitious entitlement.
 var _requested_training_weapon_slot: int=-1
-var _armory_vector_entry: Button
 var _armory_test_button: Button
 var _equipment_selector: OptionButton
 var _equipment_category_selector: OptionButton
@@ -1445,15 +1444,15 @@ func _show_lobby() -> void:
     _name_save_button.custom_minimum_size.y=30
     _name_save_button.add_theme_font_size_override("font_size",12)
     _page.add_child(_name_save_button)
-    _objective_selector=OptionButton.new()
+    _objective_selector=TabBar.new()
     _objective_selector.name="ObjectivesCategorySelector"
-    _objective_selector.custom_minimum_size=Vector2(265,35)
-    _objective_selector.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
-    _objective_selector.add_item("MISIONES",0)
-    _objective_selector.add_item("LOGROS",1)
-    _objective_selector.add_item("EVENTOS",2)
-    _objective_selector.select(["missions","achievements","events"].find(_objective_page))
-    _objective_selector.item_selected.connect(_on_objective_category_selected)
+    _objective_selector.custom_minimum_size=Vector2(0,35)
+    _objective_selector.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+    _objective_selector.clip_tabs=false
+    _objective_selector.add_tab("MISIONES")
+    _objective_selector.add_tab("LOGROS")
+    _objective_selector.current_tab=1 if _objective_page=="achievements" else 0
+    _objective_selector.tab_changed.connect(_on_objective_category_selected)
     _page.add_child(_objective_selector)
     # These bars are read-only projections of the signed local match ledger.
     # No new reward, entitlement, rank, claim or remote account is created.
@@ -1569,24 +1568,12 @@ func _show_lobby() -> void:
     _page.add_child(_armory_category_selector)
     _armory_list=ItemList.new()
     _armory_list.name="AuroraWeaponCatalogList"
-    _armory_list.custom_minimum_size=Vector2(245,118)
+    _armory_list.custom_minimum_size=Vector2(245,156)
     _armory_list.size_flags_horizontal=Control.SIZE_EXPAND_FILL
     _armory_list.select_mode=ItemList.SELECT_SINGLE
     _armory_list.item_selected.connect(_on_armory_slot_selected)
     _page.add_child(_armory_list)
     _refresh_armory_catalog()
-    # KRISS VECTOR already exists as slot 4 with a real 3D GLB. The
-    # narrow 118px scroll list obscures it behind older entries; give it
-    # a direct discoverable selector, without creating a new inventory ID.
-    _armory_vector_entry=Button.new()
-    _armory_vector_entry.name="AuroraInspectRealVector"
-    _armory_vector_entry.text="INSPECCIONAR KRISS VECTOR 3D"
-    _armory_vector_entry.custom_minimum_size=Vector2(245,38)
-    _armory_vector_entry.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-    _armory_vector_entry.pressed.connect(_inspect_real_vector)
-    # Born hidden: no one-frame flash over the INICIAR card on Android.
-    _armory_vector_entry.visible=false
-    _page.add_child(_armory_vector_entry)
     _armory_test_button=_button("PROBAR EN ENTRENAMIENTO",_open_weapon_training,245)
     _armory_test_button.name="AuroraWeaponTrainingEntry"
     _armory_test_button.custom_minimum_size.y=32
@@ -1753,15 +1740,9 @@ func _sign_out_native_session() -> void:
 func _on_objective_category_selected(index: int) -> void:
     if _objective_selector==null:
         return
-    match _objective_selector.get_item_id(index):
-        0:
-            _objective_page="missions"
-        1:
-            _objective_page="achievements"
-        2:
-            _objective_page="events"
-        _:
-            _objective_page="missions"
+    if index not in [0,1]:
+        return
+    _objective_page="achievements" if index==1 else "missions"
     _update_objective_details()
 
 
@@ -1888,7 +1869,7 @@ func _sync_lobby_match_mode() -> void:
             "Acceder con la cuenta Google" if ready else message)
         _auth_guest_button.tooltip_text=(
             "Crear o recuperar sesión anónima" if ready else message)
-    _objective_selector.visible=_selected_tab=="OBJETIVOS"
+    _objective_selector.visible=_selected_tab=="OBJETIVOS" and _objective_page!="events"
     if is_instance_valid(_objectives_progress_panel):
         _objectives_progress_panel.visible=(
             _selected_tab=="OBJETIVOS" and _objective_page!="events")
@@ -1913,10 +1894,6 @@ func _sync_lobby_match_mode() -> void:
     _shop_equip_button.visible=_selected_tab=="TIENDA"
     _armory_list.visible=_selected_tab=="ARMAS"
     _armory_category_selector.visible=_selected_tab=="ARMAS"
-    # The standalone Vector shortcut belongs ONLY to ARMAS. It used to
-    # leak into JUGAR and cover the right BR start panel on 964x434.
-    if is_instance_valid(_armory_vector_entry):
-        _armory_vector_entry.visible=_selected_tab=="ARMAS"
     _armory_test_button.visible=_selected_tab=="ARMAS"
     _equipment_selector.visible=_selected_tab=="INVENTARIO"
     _equipment_category_selector.visible=_selected_tab=="INVENTARIO"
@@ -2070,7 +2047,7 @@ func _ensure_lobby_navigation() -> void:
     _left_shortcuts.name="AuroraCommerceRail"
     _left_shortcuts.anchor_left=.025
     _left_shortcuts.anchor_right=.201
-    # Five 40px tap targets; no duplicate left JUGAR/MODOS action.
+    # Four compact actions; missions and achievements share one page.
     _left_shortcuts.anchor_top=.265
     _left_shortcuts.anchor_bottom=.860
     _left_shortcuts.add_theme_constant_override("separation",3)
@@ -2080,8 +2057,7 @@ func _ensure_lobby_navigation() -> void:
         ["PASE ROYALE","PASE","",6],
         # JUGAR is already the primary footer action; no second shortcut.
         ["EVENTOS","OBJETIVOS","events",8],
-        ["MISIONES","OBJETIVOS","missions",9],
-        ["LOGROS","OBJETIVOS","achievements",10]
+        ["MISIONES / LOGROS","OBJETIVOS","missions",9]
     ]
     for item in quick_items:
         var label: String=str(item[0])
@@ -2097,7 +2073,7 @@ func _ensure_lobby_navigation() -> void:
         button.custom_minimum_size=Vector2(0,40)
         button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
         button.add_theme_font_override("font",DISPLAY_FONT)
-        button.add_theme_font_size_override("font_size",22)
+        button.add_theme_font_size_override("font_size",16 if objective=="missions" else 22)
         _style_aurora_tab(button,Color(.35,.70,.91))
         button.size_flags_vertical=Control.SIZE_EXPAND_FILL
         _left_shortcuts.add_child(button)
@@ -2862,9 +2838,8 @@ func _open_profile_account() -> void:
 func _open_lobby_category(tab: String,objective: String="") -> void:
     if not objective.is_empty():
         _objective_page=objective
-        if _objective_selector!=null:
-            _objective_selector.select(["missions","achievements","events"].find(
-                objective))
+        if _objective_selector!=null and objective!="events":
+            _objective_selector.current_tab=1 if objective=="achievements" else 0
     _select_tab(tab)
 
 
@@ -2886,7 +2861,8 @@ func _select_tab(tab: String) -> void:
             if button is Button:
                 var target: String=button.name.trim_prefix("Quick")
                 var active: bool=(target==tab or (tab=="OBJETIVOS" and
-                    target==str(_objective_page).to_upper()))
+                    (target==str(_objective_page).to_upper() or
+                     (target=="MISSIONS" and _objective_page=="achievements"))))
                 button.modulate=Color.WHITE if active else Color(.72,.76,.85)
     _style_bottom_navigation_active(tab)
     if _social_panel!=null:
@@ -2908,7 +2884,7 @@ func _select_tab(tab: String) -> void:
             "" if tab=="JUGAR"
             else "MI CUENTA" if tab=="CUENTA"
             else "CONFIGURACIÓN" if tab=="AJUSTES"
-            else "EVENTOS / MISIONES / LOGROS" if tab=="OBJETIVOS"
+            else ("EVENTOS" if _objective_page=="events" else "MISIONES / LOGROS") if tab=="OBJETIVOS"
             else tab)
         _lobby_section_hint.text=(
             "" if tab=="JUGAR"
@@ -3003,30 +2979,12 @@ func _refresh_armory_catalog() -> void:
         var available: bool=_armory_has_model(slot)
         var row: int=_armory_list.item_count
         _armory_list.add_item("%s  ·  %s"%[
-            str(weapon["short"]),
+            "KRISS VECTOR" if slot==WEAPON_CATALOG.KRISS else str(weapon["short"]),
             "MODELO LISTO" if available else "GLB PENDIENTE"])
         _armory_list.set_item_metadata(row,slot)
         if slot==_armory_selected_slot:
             _armory_list.select(row)
-
-
-## Real catalog slot 4: the imported 3D Vector can be previewed
-## from the lobby without pretending the weapon is purchased or owned.
-func _inspect_real_vector() -> void:
-    _armory_category=WEAPON_FAMILIES.SMG
-    _armory_selected_slot=WEAPON_CATALOG.KRISS
-    if _armory_category_selector!=null:
-        _armory_category_selector.select(_armory_category)
-    _refresh_armory_catalog()
-    if _armory_list!=null:
-        for row in range(_armory_list.item_count):
-            if int(_armory_list.get_item_metadata(row))==WEAPON_CATALOG.KRISS:
-                _armory_list.select(row)
-                _armory_list.ensure_current_is_visible()
-                break
-    if stage=="lobby" and _selected_tab=="ARMAS":
-        _update_armory_details()
-        _sync_armory_visual()
+    _armory_list.ensure_current_is_visible()
 
 
 func _on_armory_category_selected(index: int) -> void:

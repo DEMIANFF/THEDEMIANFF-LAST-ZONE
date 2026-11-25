@@ -39,15 +39,15 @@ func _verify() -> void:
         front._bottom_navigation.get_child_count()==5 and
         front._bottom_navigation.get_node_or_null("BottomJUGAR")!=null,
         "hidden duplicate nav buttons reappeared or JUGAR footer missing")
-    check(front._left_shortcuts.get_child_count()==5 and
+    check(front._left_shortcuts.get_child_count()==4 and
         front._left_shortcuts.get_node_or_null("QuickEVENTS")!=null and
         front._left_shortcuts.get_node_or_null("QuickMISSIONS")!=null and
-        front._left_shortcuts.get_node_or_null("QuickACHIEVEMENTS")!=null,
+        front._left_shortcuts.get_node_or_null("QuickACHIEVEMENTS")==null,
         "live objective categories were lost from commerce rail")
     front._select_tab("OBJETIVOS")
-    var options: OptionButton=front._objective_selector
+    var options: TabBar=front._objective_selector
     check(options!=null and options.is_visible_in_tree() and
-        options.get_item_count()==3,
+        options.tab_count==2,
         "objectives switcher is not visible and functional")
     check(not front._battle_entry.visible and
         front.find_child("OfflineEncounterSize",true,false)==null,
@@ -56,13 +56,13 @@ func _verify() -> void:
         front._info.text.contains("5 / 5") and
         front._info.text.contains("1 / 1"),
         "missions do not reflect real saved-match totals")
-    options.select(1)
+    options.current_tab=1
     front._on_objective_category_selected(1)
     check(front._info.text.contains("Primera victoria: COMPLETADO") and
         front._info.text.contains("10 eliminaciones: 6 / 10"),
         "achievements are not calculated from real outcomes")
-    options.select(2)
-    front._on_objective_category_selected(2)
+    front._open_lobby_category("OBJETIVOS","events")
+    check(not options.visible,"event page leaks mission tabs")
     check(front._info.text.contains("SIN TEMPORADA ACTIVA") and
         front._info.text.contains("validación del servidor"),
         "events advertise a nonexistent online season or fake reward")

@@ -28,7 +28,7 @@ static func choose_preset(slot: int) -> Error:
     return DirAccess.rename_absolute(ACTIVE_PATH+".tmp",ACTIVE_PATH)
 const IDS: Array[String]=[
     "MovePad","DirectionalFirePad","CORRER","MIRA","RECARGA","ARMA",
-    "SALTAR","AGACHAR","CURAR 2","BARRERA 0","MOCHILA","AJUSTES","MAPA"
+    "SALTAR","AGACHAR","CURAR 2","BARRERA 0","MOCHILA","AJUSTES","MAPA","GRANADA"
 ]
 const MIN_SCALE: float=.72
 const MAX_SCALE: float=1.32
@@ -88,6 +88,7 @@ func install_aurora_reference() -> Error:
         "AGACHAR":Vector2(.55,.78),
         "CURAR 2":Vector2(.46,.91),
         "BARRERA 0":Vector2(.53,.53),
+        "GRANADA":Vector2(.47,.64),
         "MOCHILA":Vector2(.80,.24),
         "AJUSTES":Vector2(.94,.095),
         "MAPA":Vector2(.28,.31)

@@ -51,7 +51,7 @@ func _verify() -> void:
     check(bars.get_child_count()==5 and bars.get_node_or_null("BottomPRESET")==null,
         "five functional footer tabs and no PRESET required")
     var left: VBoxContainer=front._left_shortcuts
-    check(left.get_child_count()==5 and left.get_node_or_null("QuickJUGAR")==null,
+    check(left.get_child_count()==4 and left.get_node_or_null("QuickJUGAR")==null,
         "five functional left shortcuts required; no duplicate JUGAR")
     # V75.173 deliberately increased real Motorola text to 22px. This
     # historical compactness assertion must protect legibility instead of

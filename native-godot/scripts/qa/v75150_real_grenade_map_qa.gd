@@ -49,6 +49,27 @@ func _verify() -> void:
     check(combat.active_fighter_count()==50 and
         combat._targets.size()==49,
         "physical BR roster was reduced by tactical threat display")
+    var quick: Button=hud.get_node("AuroraTacticalOverlay/GRANADA")
+    check(quick.visible and quick.disabled and quick.text.contains("0"),
+        "ground grenade action lacks honest empty inventory state")
+    check(combat.collect_sector_loot("grenade"),
+        "could not collect a real grenade through combat inventory")
+    check(quick.visible and not quick.disabled and quick.text.contains("1"),
+        "direct grenade action does not track actual pickup")
+    var signal_count: Array[int]=[0]
+    hud.grenade_requested.connect(func(): signal_count[0]+=1)
+    quick.button_down.emit()
+    check(signal_count[0]==1,
+        "direct grenade action does not emit the real combat signal")
+    hud.set_air_stage("aircraft")
+    check(not quick.visible and quick.disabled,
+        "grenade action leaks into aircraft")
+    hud.set_air_stage("ground")
+    check(quick.visible,"ground grenade action did not return")
+    # The existing projectile fixture below independently validates real
+    # map threats. Clear any projectile emitted by the control above.
+    combat._clear_grenades()
+    combat._sync_hud()
     var at:=Vector2(8.0,-22.0)
     player.global_position=Vector3(at.x,
         terrain.height_at(at.x,at.y)+1.4,at.y)

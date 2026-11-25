@@ -53,13 +53,13 @@ func _verify() -> void:
         var nav_button: Button=icon_button as Button
         check(nav_button!=null and nav_button.icon is AtlasTexture,
             "commerce icon is not connected to original SVG atlas")
-    check(rail!=null and rail.get_child_count()==5 and
+    check(rail!=null and rail.get_child_count()==4 and
         rail.get_node_or_null("QuickTIENDA")!=null and
         rail.get_node_or_null("QuickPASE")!=null and
         rail.get_node_or_null("QuickJUGAR")==null and
         rail.get_node_or_null("QuickEVENTS")!=null and
         rail.get_node_or_null("QuickMISSIONS")!=null and
-        rail.get_node_or_null("QuickACHIEVEMENTS")!=null,
+        rail.get_node_or_null("QuickACHIEVEMENTS")==null,
         "five original left shortcuts only; JUGAR belongs to footer")
     check(mode!=null and mode.is_visible_in_tree() and
         front._mode_gallery_entry==null and
