@@ -8,6 +8,7 @@ const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
 const MATCH_RECORDS=preload("res://scripts/persistence/offline_match_records.gd")
 const LOCAL_PROFILE_EXPORT=preload("res://scripts/persistence/local_profile_export.gd")
 const RENDER_BUDGET=preload("res://scripts/render/aurora_render_budget.gd")
+const ASSET_CREDITS=preload("res://scripts/ui/aurora_asset_credits.gd")
 const UI_PATH: String="user://aurora_ui_options.cfg"
 const AUDIO_PATH: String="user://aurora_audio.cfg"
 const BACKUP_PATH: String="user://aurora_local_settings_export.cfg"
@@ -516,6 +517,7 @@ func _select_hud_preset(index: int) -> void:
 
 func _account_page() -> void:
     _heading("CUENTA Y BÁSICO / AURORA")
+    _make_button(_content,"CRÉDITOS Y LICENCIAS",_show_asset_credits)
     _info("Estado: perfil local de la vista nativa. La autenticación Google/Firebase de Android anterior no está vinculada a este cliente Godot. No se simula un inicio de sesión.")
     _heading("IDIOMA")
     _info("Español (Colombia). Otros idiomas requieren traducciones verificadas.")
@@ -543,6 +545,40 @@ func _account_page() -> void:
     _heading("VISIBILIDAD Y SEGURIDAD")
     _info("Espectadores, privacidad de clasificación, amigos y gestión de cuentas online estarán disponibles cuando exista el servicio multijugador.")
     _info("No hay botones de desvincular, borrar cuenta o iniciar sesión ficticios. Los datos existentes de Firebase no se modifican.")
+
+
+func _clear_credit_page() -> void:
+    for child in _content.get_children():
+        _content.remove_child(child)
+        child.queue_free()
+
+
+func _show_asset_credits() -> void:
+    _clear_credit_page()
+    _make_button(_content,"VOLVER A CUENTA",func(): _show_category("CUENTA"))
+    _heading("THEDEMIAN: LAST ZONE / CRÉDITOS")
+    _info("Modelos de terceros y modificaciones utilizadas en esta versión.")
+    for entry in ASSET_CREDITS.MODELS:
+        _heading(str(entry.title))
+        _info(str(entry.author)+"\n"+str(entry.license)+"\n"+
+            str(entry.source)+"\n"+str(entry.changes))
+    _make_button(_content,"LICENCIAS DEL MOTOR GODOT",_show_engine_licenses)
+
+
+func _show_engine_licenses() -> void:
+    _clear_credit_page()
+    _make_button(_content,"VOLVER A CRÉDITOS",_show_asset_credits)
+    _heading("GODOT ENGINE")
+    _info(Engine.get_license_text())
+    for component in Engine.get_copyright_info():
+        _heading(str(component.get("name","")))
+        for part in component.get("parts",[]):
+            _info("\n".join(PackedStringArray(part.get("copyright",[])))+
+                "\n"+str(part.get("license","")))
+    var licenses: Dictionary=Engine.get_license_info()
+    for title in licenses:
+        _heading(str(title))
+        _info(str(licenses[title]))
 
 
 func _refresh_local_profile_backup() -> void:

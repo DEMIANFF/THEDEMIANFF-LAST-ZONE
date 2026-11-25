@@ -1,0 +1,44 @@
+name: Review signed Aurora delivery
+on:
+  push:
+    branches: ['codex/v75-*']
+    paths:
+      - 'docs/evidence/aurora-delivery.json'
+      - '.github/workflows/aurora-delivery-review.yml'
+      - 'scripts/review_aurora_delivery.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+      - name: Fetch the two artifacts from the verified Android run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          run_id="$(jq -er '.run_id|numbers' docs/evidence/aurora-delivery.json)"
+          sha="$(jq -er '.commit|strings' docs/evidence/aurora-delivery.json)"
+          gh api "repos/$GH_REPO/actions/runs/$run_id" | jq -e --arg sha "$sha" \
+            '.head_sha==$sha and .conclusion=="success" and .path==".github/workflows/native-godot-preview-apk.yml"' >/dev/null
+          gh run download "$run_id" --pattern 'THEDEMIAN-*-MOTOROLA-VULKAN' --pattern 'THEDEMIAN-*-GODOT-VISUAL-QA' --dir evidence
+      - name: Verify downloaded bytes and inspect Godot images
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -c 'from PIL import Image' || sudo apt-get install -y -qq python3-pil
+          /usr/bin/python3 scripts/review_aurora_delivery.py evidence \
+            "$(jq -r .commit docs/evidence/aurora-delivery.json)" review --emit-images \
+            --inspect-glb native-godot/assets/weapons/aurora_v2_optional/aurora_p90.glb
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Aurora-visual-review
+          path: review/*.jpg
+          if-no-files-found: error
+          retention-days: 30

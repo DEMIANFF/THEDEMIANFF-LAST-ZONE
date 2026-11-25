@@ -37,6 +37,7 @@ func _verify() -> void:
     var skeleton:=player._avatar.find_child("Skeleton3D",true,false) as Skeleton3D
     skeleton.skeleton_updated.connect(func():
         for name in ["LeftFoot","RightFoot","LeftToeBase","RightToeBase",
+                "Hips","Spine1","Head","LeftUpLeg","LeftLeg","RightUpLeg","RightLeg",
                 "LeftArm","LeftForeArm","LeftHand","RightArm","RightForeArm","RightHand"]:
             bones[name]=skeleton.to_global(skeleton.get_bone_global_pose(skeleton.find_bone(name)).origin))
     for frame in range(24):
@@ -68,6 +69,36 @@ func _verify() -> void:
     platform.rotation.z=0.0
     for frame in range(45):
         await physics_frame
+    var standing_pelvis: float=(bones["Hips"] as Vector3).y
+    player.set_crouch(true)
+    for frame in range(35):
+        await physics_frame
+    var pelvis_drop: float=standing_pelvis-(bones["Hips"] as Vector3).y
+    check(pelvis_drop>.20 and pelvis_drop<.40,"crouch must lower pelvis, not fold torso: "+str(pelvis_drop))
+    var torso: Vector3=(bones["Head"] as Vector3)-(bones["Spine1"] as Vector3)
+    check(torso.angle_to(Vector3.UP)<deg_to_rad(40.0),"crouched torso folds too far forward")
+    for side in ["Left","Right"]:
+        var knee: Vector3=bones[side+"Leg"]
+        var thigh: Vector3=(bones[side+"UpLeg"] as Vector3)-knee
+        var shin: Vector3=(bones[side+"Foot"] as Vector3)-knee
+        var knee_angle: float=rad_to_deg(thigh.angle_to(shin))
+        print("V75190_KNEE side=",side," angle_deg=",knee_angle)
+        check(knee_angle>60.0 and knee_angle<150.0,"crouch knee not naturally flexed: "+side+str(knee_angle))
+    check(absf((bones["LeftToeBase"] as Vector3).y-(bones["RightToeBase"] as Vector3).y)<.035,
+        "crouch feet lost equal ground contact")
+    print("V75190_CROUCH pelvis_drop_m=",pelvis_drop," torso_deg=",rad_to_deg(torso.angle_to(Vector3.UP)))
+    player.set_touch_move_axis(Vector2(0,-1))
+    for frame in range(24):
+        await physics_frame
+    torso=(bones["Head"] as Vector3)-(bones["Spine1"] as Vector3)
+    check(player._current_clip=="AuroraCrouchWalk","crouch movement did not use locomotion clip")
+    check(standing_pelvis-(bones["Hips"] as Vector3).y>.20,"crouch walking raised pelvis to standing")
+    check(torso.angle_to(Vector3.UP)<deg_to_rad(40.0),"crouch walk restored folded torso")
+    check(player.is_on_floor(),"crouch walking lost physical floor")
+    player.set_touch_move_axis(Vector2.ZERO)
+    player.set_crouch(false)
+    for frame in range(35):
+        await physics_frame
     # Test actual support geometry with the existing five installed weapons.
     combat.open_training_armory()
     for kind in ["weapon_scar","weapon_mp40","weapon_kriss"]:
@@ -84,6 +115,14 @@ func _verify() -> void:
         check(visuals._support_ik.right_error_m<.045,"trigger grip error: "+str(slot))
         check(visuals._support_ik.projection_iterations<=24,"unbounded arm projection")
         check(visuals._support_ik.diagnostics.is_empty(),"per-frame diagnostic string allocation")
+        player.set_crouch(true)
+        for frame in range(24):
+            await physics_frame
+        check(visuals._support_ik.last_error_m<.045 and visuals._support_ik.right_error_m<.045,
+            "crouching detached installed weapon grip: "+str(slot))
+        player.set_crouch(false)
+        for frame in range(24):
+            await physics_frame
     player.set_ads(true,2.0)
     player._pitch=.5
     player._desired_pitch=.5

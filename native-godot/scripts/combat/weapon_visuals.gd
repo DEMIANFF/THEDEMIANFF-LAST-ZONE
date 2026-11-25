@@ -521,6 +521,25 @@ static func calibrate_expansion(visual: Node3D,slot: int) -> void:
             visual.hide()
             push_error("Optional gun GLB has no usable mesh geometry: "+visual.name)
             return
+        if slot==WEAPONS.P90 and visual.find_child("P90Low003*",true,false)!=null:
+            # The real P90's silencer points toward source -X. The generic
+            # long-axis rule turned this gun backwards and placed its
+            # support marker beyond Lila's reachable arm length.
+            # These points are in the recovered model's coordinates: grip
+            # below the rear thumb opening, real foregrip and silencer tip.
+            visual.rotation=Vector3(0,-PI*.5,0)
+            var p90_scale: float=.76/length
+            visual.scale=Vector3.ONE*p90_scale
+            visual.position=-(visual.quaternion*Vector3(125,-105,0))*p90_scale
+            var p90_support:=Node3D.new()
+            p90_support.name="SupportGrip"
+            p90_support.position=Vector3(-297,-68,0)
+            visual.add_child(p90_support)
+            var p90_muzzle:=Node3D.new()
+            p90_muzzle.name="Muzzle"
+            p90_muzzle.position=Vector3(-595.56,-5.55,0)
+            visual.add_child(p90_muzzle)
+            return
         # Source long-axis to canonical forward (-Z), without mirroring.
         if extents.x>=extents.y and extents.x>=extents.z:
             visual.rotation.y=PI*.5

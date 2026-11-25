@@ -40,26 +40,25 @@ func _verify() -> void:
     check(is_equal_approx(single,player._desired_yaw),"event partition changed yaw")
     var crouch: Button=hud.get_node("AuroraTacticalOverlay/AGACHAR")
     check(player._touch_over_action_buttons(crouch.get_global_rect().get_center()),"crouch captured by look")
-    player.set_crouch(true)
-    player.set_ads(true,2.0)
-    await frames(12)
-    check(player._current_clip.begins_with("AuroraCrouch"),"ADS lost crouch")
+    # Sample the final deformed skeleton relative to the capsule on the same
+    # ground. Reading the AnimationPlayer alone bypasses slope and body IK.
     var rig=player.get_node("AuroraFemaleRiggedOperator")
     var skeleton: Skeleton3D=rig.find_child("Skeleton3D",true,false)
-    var animator: AnimationPlayer=rig.find_child("AnimationPlayer",true,false)
-    player.set_physics_process(false)
     var head: int=skeleton.find_bone("Head")
-    animator.play("AuroraArmedIdle",0)
-    animator.advance(0.2)
-    skeleton.force_update_all_bone_transforms()
-    var standing: float=skeleton.to_global(skeleton.get_bone_global_pose(head).origin).y
-    animator.play("AuroraCrouch",0)
-    animator.advance(0.2)
-    skeleton.force_update_all_bone_transforms()
-    var crouched: float=skeleton.to_global(skeleton.get_bone_global_pose(head).origin).y
+    var sample: Dictionary={}
+    var sample_head:=func() -> void:
+        sample["height"]=skeleton.to_global(skeleton.get_bone_global_pose(head).origin).y-player.global_position.y
+    skeleton.skeleton_updated.connect(sample_head)
+    await frames(35)
+    var standing: float=float(sample.get("height",0.0))
+    player.set_crouch(true)
+    player.set_ads(true,2.0)
+    await frames(40)
+    check(player._current_clip.begins_with("AuroraCrouch"),"ADS lost crouch")
+    var crouched: float=float(sample.get("height",0.0))
+    skeleton.skeleton_updated.disconnect(sample_head)
     print("V752_CROUCH_HEAD_DROP ",standing-crouched)
-    check(standing-crouched>.35,"crouch pose did not lower head")
-    player.set_physics_process(true)
+    check(crouched>0.0 and standing-crouched>.35,"crouch pose did not lower head")
     player.set_ads(false,1.0)
     player.set_crouch(false)
     player.training_health=50.0

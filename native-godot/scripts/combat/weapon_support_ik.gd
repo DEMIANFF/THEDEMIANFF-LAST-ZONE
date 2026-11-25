@@ -62,15 +62,22 @@ func _process_modification_with_delta(_delta: float) -> void:
     # or moving the support marker away from the actual foregrip.
     var requested: Vector3=hand_world
     var forward: Vector3=-weapons.operator.global_basis.z.normalized()
+    var torso_center: Vector3=(left_root+right_root)*.5
+    # Standing long guns need clearance from the jacket at the trigger hand.
+    # Blend by the actual shoulder height so crouch clips keep a reachable grip.
+    var shoulder_height: float=(torso_center-weapons.operator.global_position).dot(Vector3.UP)
+    var grip_clearance: float=lerpf(.10,.125,smoothstep(1.16,1.36,shoulder_height))
     projection_iterations=0
     for iteration in range(24):
         var previous: Vector3=requested
         requested=_inside_sphere(requested,left_root-support_offset,left_reach)
         requested=_inside_sphere(requested,right_root,right_reach)
         # Keep the grip in front of the torso as well as within arm reach.
-        var ahead: float=(requested-weapons.operator.global_position).dot(forward)
-        if ahead<.08:
-            requested+=forward*(.08-ahead)
+        # The chest moves behind the capsule origin when crouching. A plane
+        # pinned to the capsule pushed compact weapons outside arm reach.
+        var ahead: float=(requested-torso_center).dot(forward)
+        if ahead<grip_clearance:
+            requested+=forward*(grip_clearance-ahead)
         projection_iterations=iteration+1
         if requested.distance_squared_to(previous)<.000000001:
             break

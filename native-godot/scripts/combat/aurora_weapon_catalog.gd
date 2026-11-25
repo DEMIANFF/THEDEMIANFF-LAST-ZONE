@@ -39,7 +39,7 @@ const ENTRIES: Array[Dictionary]=[
         "cadence":.112,"damage":27.0,"critical":1.75,"recoil":.0055,"sample":"ar_fire",
         "asset":"res://assets/weapons/aurora_v2_optional/aurora_hk416.glb",
         "pickup":"weapon_hk416"},
-    {"short":"P90","label":"P90 / SUBFUSIL","capacity":15,"reload":1.80,
+    {"short":"P90","label":"P90 / SUBFUSIL","capacity":50,"reload":1.80,
         "cadence":.085,"damage":17.0,"critical":1.55,"recoil":.0038,"sample":"kriss_fire",
         "asset":"res://assets/weapons/aurora_v2_optional/aurora_p90.glb",
         "pickup":"weapon_p90"},

@@ -12,7 +12,9 @@ assets/weapons/ak74-tactical_*.png
 assets/characters/aurora_operator_*.jpg
 assets/characters/lila_aurora_*.jpg
 assets/audio/aurora_v3_addendum/
-assets/weapons/aurora_v2_optional/
+assets/weapons/aurora_v2_optional/*
+!assets/weapons/aurora_v2_optional/aurora_p90.glb
+!assets/weapons/aurora_v2_optional/README.md
 assets/vehicles/user_pack/
 assets/weapons/aurora_v3_sources/
 assets/weapons/aurora_v3_extended/

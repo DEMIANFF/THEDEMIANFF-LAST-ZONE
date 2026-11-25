@@ -1,6 +1,6 @@
 extends SkeletonModifier3D
 ## Local-player correction after the AnimationTree. Physics probes are cached;
-## the render callback only rotates existing bones. Never stretches the rig.
+## the render callback poses the original joints and preserves limb lengths.
 var operator: CharacterBody3D
 var legs: Array[PackedInt32Array]=[]
 var spines: PackedInt32Array=PackedInt32Array()
@@ -9,6 +9,10 @@ var normals: Array[Vector3]=[Vector3.UP,Vector3.UP]
 var contacts: Array[bool]=[false,false]
 var probe_count: int=0
 var aim_pitch: float=0.0
+var pelvis_bone: int=-1
+var crouch_drop: float=0.0
+# Additional world-space clearance under low cover, measured in metres.
+const CROUCH_DROP_METRES: float=.105
 var foot_errors: Array[float]=[0.0,0.0]
 var _query:=PhysicsRayQueryParameters3D.new()
 
@@ -16,6 +20,7 @@ var _query:=PhysicsRayQueryParameters3D.new()
 func bind_player(player: CharacterBody3D) -> void:
     operator=player
     var skeleton: Skeleton3D=get_skeleton()
+    pelvis_bone=skeleton.find_bone("Hips")
     for side in ["Left","Right"]:
         legs.append(PackedInt32Array([skeleton.find_bone(side+"UpLeg"),
             skeleton.find_bone(side+"Leg"),skeleton.find_bone(side+"Foot")]))
@@ -75,23 +80,51 @@ func _process_modification_with_delta(delta: float) -> void:
         pose.basis=Basis(Quaternion(axis,aim_pitch*.5))*pose.basis
         skeleton.set_bone_global_pose(spine,pose)
     if not _grounded():
+        crouch_drop=0.0
         return
+    # Lower the pelvis without moving the capsule or the authored footfalls.
+    # The same leg solve handles crouch and incline, including the swing foot.
+    var desired_drop: float=CROUCH_DROP_METRES if operator._crouching else 0.0
+    crouch_drop=lerpf(crouch_drop,desired_drop,1.0-exp(-maxf(delta,0.0)*18.0))
+    if crouch_drop<.0005 or pelvis_bone<0:
+        crouch_drop=0.0
+    if crouch_drop>0.0:
+        var pelvis: Transform3D=skeleton.get_bone_global_pose(pelvis_bone)
+        pelvis.origin-=skeleton.global_basis.inverse()*Vector3.UP*crouch_drop
+        skeleton.set_bone_global_pose(pelvis_bone,pelvis)
     for i in range(legs.size()):
-        if -1 in legs[i] or not contacts[i] or absf(offsets[i])<.001:
-            continue
-        _fit_foot(skeleton,legs[i],i)
+        var lift: float=crouch_drop+(offsets[i] if contacts[i] else 0.0)
+        if not -1 in legs[i] and absf(lift)>.001:
+            _fit_foot(skeleton,legs[i],i,lift)
 
 
-func _fit_foot(skeleton: Skeleton3D,chain: PackedInt32Array,index: int) -> void:
+func _fit_foot(skeleton: Skeleton3D,chain: PackedInt32Array,index: int,lift: float) -> void:
     var hip: Transform3D=skeleton.get_bone_global_pose(chain[0])
     var knee: Transform3D=skeleton.get_bone_global_pose(chain[1])
     var foot: Transform3D=skeleton.get_bone_global_pose(chain[2])
-    var target: Vector3=foot.origin+skeleton.global_basis.inverse()*Vector3.UP*offsets[index]
+    var target: Vector3=foot.origin+skeleton.global_basis.inverse()*Vector3.UP*lift
     var a: float=hip.origin.distance_to(knee.origin)
     var b: float=knee.origin.distance_to(foot.origin)
     var ray: Vector3=target-hip.origin
     if minf(a,b)<.00001 or ray.length_squared()<.00001:
         return
+    # Preserve ankle height while opening a compressed knee under the lowered
+    # pelvis. Slide along the authored fore/aft line and the contacted surface.
+    if crouch_drop>.001:
+        var weight: float=clampf(crouch_drop/CROUCH_DROP_METRES,0.0,1.0)
+        var minimum_angle: float=deg_to_rad(69.0)*weight
+        var minimum_sq: float=a*a+b*b-2.0*a*b*cos(minimum_angle)
+        if ray.length_squared()<minimum_sq:
+            var floor_normal: Vector3=normals[index] if contacts[index] else Vector3.UP
+            var stride: Vector3=(-operator.global_basis.z).slide(floor_normal)
+            var axis: Vector3=(skeleton.global_basis.inverse()*stride).normalized()
+            var projection: float=ray.dot(axis)
+            if projection<-.0001 or (absf(projection)<=.0001 and index==1):
+                axis=-axis
+                projection=-projection
+            var shift: float=sqrt(maxf(0.0,projection*projection+minimum_sq-ray.length_squared()))-projection
+            target+=axis*shift
+            ray=target-hip.origin
     var direction: Vector3=ray.normalized()
     var length: float=clampf(ray.length(),absf(a-b)+.0001,a+b-.0001)
     var along: float=(a*a-b*b+length*length)/(2.0*length)

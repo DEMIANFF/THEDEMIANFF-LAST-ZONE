@@ -14,13 +14,21 @@ func _capture() -> void:
     var player: CharacterBody3D=game.get_node("Operator")
     var combat: Node3D=game.get_node("CombatRange")
     game.get_node("AuroraSectorMatch").set_process(false)
-    player.set_physics_process(false)
     combat.set_process(false)
     game.get_node("TrainingHUD").hide()
     for bot in combat._targets:
         bot.set_physics_process(false)
     player.global_position=Vector3(-75,game.island.height_at(-75,-75),-75)
+    player.global_position.y+=.07
+    player.velocity=Vector3.ZERO
     player.rotation=Vector3.ZERO
+    for frame in range(35):
+        await physics_frame
+    if not player.is_on_floor():
+        push_error("Lila capture requires a grounded player")
+        quit(2)
+        return
+    player.set_physics_process(false)
     player._avatar.show()
     var controller: Node=player._animation_controller
     controller.set_process(false)
@@ -32,16 +40,21 @@ func _capture() -> void:
     combat.open_training_armory()
     for kind in ["weapon_scar","weapon_mp40","weapon_kriss"]:
         combat.collect_sector_loot(kind)
+    combat.collect_sector_loot("weapon_p90")
     var poses: Array[Dictionary]=[
         {"name":"ar-front","slot":0,"clip":"AuroraArmedIdle","camera":Vector3(1.5,1.2,-3.3)},
         {"name":"awm-front","slot":1,"clip":"AuroraArmedIdle","camera":Vector3(1.5,1.2,-3.3)},
         {"name":"awm-side","slot":1,"clip":"AuroraAimAWM","camera":Vector3(3.1,1.2,-.9)},
         {"name":"scar-front","slot":2,"clip":"AuroraArmedIdle","camera":Vector3(1.5,1.2,-3.3)},
         {"name":"mp40-crouch","slot":3,"clip":"AuroraCrouch","camera":Vector3(1.5,1.2,-3.3)},
-        {"name":"vector-walk","slot":4,"clip":"AuroraArmedWalk","camera":Vector3(1.5,1.2,-3.3)}]
+        {"name":"vector-walk","slot":4,"clip":"AuroraArmedWalk","camera":Vector3(1.5,1.2,-3.3)},
+        {"name":"p90-front","slot":6,"clip":"AuroraArmedIdle","camera":Vector3(1.5,1.2,-3.3)},
+        {"name":"p90-side","slot":6,"clip":"AuroraAim","camera":Vector3(3.1,1.2,-.9)},
+        {"name":"p90-crouch","slot":6,"clip":"AuroraCrouch","camera":Vector3(1.5,1.2,-3.3)}]
     for pose in poses:
         combat._equip_inventory_weapon(int(pose.slot))
         player.set_equipped_weapon(int(pose.slot))
+        player.set_crouch(str(pose.clip).begins_with("AuroraCrouch"))
         controller.reset_ground_pose()
         controller.playback.start(str(pose.clip))
         for frame in range(20):
