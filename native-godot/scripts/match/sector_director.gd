@@ -465,18 +465,20 @@ func _spawn_phase_resupply(phase: int) -> void:
 
 
 func _sync_bot_safe_zone() -> void:
+    # Compute the shared next circle once, not once per living opponent.
+    # Keep the exact authoritative values on EVERY physics-bearing rival.
+    var next_index: int=mini(zone_phase+1,PHASE_COUNT)
+    var next_active: bool=zone_phase<PHASE_COUNT
+    var next_center: Vector2=_zone_center_at(next_index)
+    var next_radius: float=PHASE_RADII[next_index] if next_active else OVERTIME_RADIUS
     for bot in combat._targets:
         if is_instance_valid(bot) and bot.health>0:
             bot.safe_center=zone_center
             bot.safe_radius=radius
-            # The destination is an actual later ring, not a fabricated
-            # client waypoint. Disable advance rotation after phase four.
-            bot.next_zone_active=zone_phase<PHASE_COUNT
+            bot.next_zone_active=next_active
             bot.zone_seconds_remaining=zone_seconds_remaining
-            bot.next_safe_center=_zone_center_at(
-                mini(zone_phase+1,PHASE_COUNT))
-            bot.next_safe_radius=(PHASE_RADII[mini(zone_phase+1,PHASE_COUNT)]
-                if zone_phase<PHASE_COUNT else OVERTIME_RADIUS)
+            bot.next_safe_center=next_center
+            bot.next_safe_radius=next_radius
 
 
 ## A new match has a seeded destination ON WALKABLE LAND instead of a

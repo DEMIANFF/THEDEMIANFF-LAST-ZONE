@@ -8,6 +8,12 @@ var terrain: StaticBody3D
 var world_center: Vector2=Vector2.ZERO
 var safe_radius: float=90.0
 var _surface: MeshInstance3D
+var _directions:=PackedVector2Array()
+var _colors:=PackedColorArray()
+var _indices:=PackedInt32Array()
+var _boundary_material: StandardMaterial3D
+var last_height_samples: int=0
+var mesh_rebuilds: int=0
 
 
 func _ready() -> void:
@@ -15,6 +21,7 @@ func _ready() -> void:
     _surface.name="SectorBoundaryMesh"
     _surface.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(_surface)
+    _prepare_static_geometry()
     set_zone_state(world_center,safe_radius,true)
 
 
@@ -33,55 +40,80 @@ func set_zone_state(center: Vector2,value: float,force: bool=false) -> void:
     safe_radius=new_radius
     if _surface==null:
         return
+    # Sample each shared perimeter point once. Adjacent quads use the
+    # identical terrain height instead of making two queries per segment.
+    var perimeter:=PackedVector3Array()
+    perimeter.resize(SEGMENTS)
+    last_height_samples=0
+    for i in range(SEGMENTS):
+        var at: Vector2=world_center+_directions[i]*safe_radius
+        perimeter[i]=Vector3(at.x,terrain.height_at(at.x,at.y)+.65,at.y)
+        last_height_samples+=1
     var vertices:=PackedVector3Array()
-    var colors:=PackedColorArray()
-    var indices:=PackedInt32Array()
+    vertices.resize(SEGMENTS*8)
+    var rim_width: float=minf(.52,safe_radius*.32)
+    for i in range(SEGMENTS):
+        var next: int=(i+1)%SEGMENTS
+        var a: Vector3=perimeter[i]
+        var b: Vector3=perimeter[next]
+        var base: int=i*8
+        vertices[base]=a
+        vertices[base+1]=a-ca_to_3d(_directions[i])*rim_width
+        vertices[base+2]=b-ca_to_3d(_directions[next])*rim_width
+        vertices[base+3]=b
+        vertices[base+4]=a
+        vertices[base+5]=b
+        vertices[base+6]=b+Vector3.UP*8.0
+        vertices[base+7]=a+Vector3.UP*8.0
+    var arrays: Array=[]
+    arrays.resize(Mesh.ARRAY_MAX)
+    arrays[Mesh.ARRAY_VERTEX]=vertices
+    arrays[Mesh.ARRAY_COLOR]=_colors
+    arrays[Mesh.ARRAY_INDEX]=_indices
+    var mesh:=ArrayMesh.new()
+    mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+    mesh.surface_set_material(0,_boundary_material)
+    _surface.mesh=mesh
+    mesh_rebuilds+=1
+
+
+func _prepare_static_geometry() -> void:
+    _directions.resize(SEGMENTS)
+    _colors.resize(SEGMENTS*8)
+    _indices.resize(SEGMENTS*12)
     var line: Color=Color(.30,.88,.96,.73)
     var wall_bottom: Color=Color(.19,.64,.90,.26)
     var wall_top: Color=Color(.25,.79,.92,.01)
     for i in range(SEGMENTS):
-        var angle_1: float=TAU*float(i)/float(SEGMENTS)
-        var angle_2: float=TAU*float(i+1)/float(SEGMENTS)
-        var ca:=Vector2(cos(angle_1),sin(angle_1))
-        var cb:=Vector2(cos(angle_2),sin(angle_2))
-        var world_a:=world_center+ca*safe_radius
-        var world_b:=world_center+cb*safe_radius
-        var a:=Vector3(world_a.x,terrain.height_at(world_a.x,world_a.y)+.65,world_a.y)
-        var b:=Vector3(world_b.x,terrain.height_at(world_b.x,world_b.y)+.65,world_b.y)
-        # Solid 0.5m luminous ground ring (paired triangles).
-        var rim_width: float=minf(.52,safe_radius*.32)
-        _quad(vertices,colors,indices,a,a-ca_to_3d(ca)*rim_width,b-ca_to_3d(cb)*rim_width,b,line,line,line,line)
-        # Atmospheric boundary. No obstacle collider: hazard affects health, not
-        # physical locomotion.
-        _quad(vertices,colors,indices,a,b,b+Vector3.UP*8.0,a+Vector3.UP*8.0,wall_bottom,wall_bottom,wall_top,wall_top)
-    var arrays: Array=[]
-    arrays.resize(Mesh.ARRAY_MAX)
-    arrays[Mesh.ARRAY_VERTEX]=vertices
-    arrays[Mesh.ARRAY_COLOR]=colors
-    arrays[Mesh.ARRAY_INDEX]=indices
-    var mesh:=ArrayMesh.new()
-    mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
-    var material:=StandardMaterial3D.new()
-    material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
-    material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
-    material.cull_mode=BaseMaterial3D.CULL_DISABLED
-    material.vertex_color_use_as_albedo=true
-    material.albedo_color=Color.WHITE
-    material.emission_enabled=true
-    material.emission=Color(.10,.30,.38)
-    material.emission_energy_multiplier=.35
-    mesh.surface_set_material(0,material)
-    _surface.mesh=mesh
+        var angle: float=TAU*float(i)/float(SEGMENTS)
+        _directions[i]=Vector2(cos(angle),sin(angle))
+        var v: int=i*8
+        for k in range(4):
+            _colors[v+k]=line
+        _colors[v+4]=wall_bottom
+        _colors[v+5]=wall_bottom
+        _colors[v+6]=wall_top
+        _colors[v+7]=wall_top
+        for quad in range(2):
+            var base: int=v+quad*4
+            var index: int=i*12+quad*6
+            _indices[index]=base
+            _indices[index+1]=base+1
+            _indices[index+2]=base+2
+            _indices[index+3]=base
+            _indices[index+4]=base+2
+            _indices[index+5]=base+3
+    _boundary_material=StandardMaterial3D.new()
+    _boundary_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    _boundary_material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+    _boundary_material.cull_mode=BaseMaterial3D.CULL_DISABLED
+    _boundary_material.vertex_color_use_as_albedo=true
+    _boundary_material.albedo_color=Color.WHITE
+    _boundary_material.emission_enabled=true
+    _boundary_material.emission=Color(.10,.30,.38)
+    _boundary_material.emission_energy_multiplier=.35
 
 
 func ca_to_3d(value: Vector2) -> Vector3:
     return Vector3(value.x,0,value.y)
 
-
-func _quad(verts: PackedVector3Array, shades: PackedColorArray, tris: PackedInt32Array,
-        a: Vector3,b: Vector3,c: Vector3,d: Vector3,
-        ca: Color,cb: Color,cc: Color,cd: Color) -> void:
-    var base: int=verts.size()
-    verts.append_array(PackedVector3Array([a,b,c,d]))
-    shades.append_array(PackedColorArray([ca,cb,cc,cd]))
-    tris.append_array(PackedInt32Array([base,base+1,base+2,base,base+2,base+3]))

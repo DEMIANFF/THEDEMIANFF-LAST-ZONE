@@ -60,7 +60,26 @@ func _verify() -> void:
                 "consecutive 2-second safe circles are not nested at "+str(sec))
         last_radius=radius
         last_center=center
+    var boundary: Node3D=director._zone_visual
+    var material: Material=boundary._surface.mesh.surface_get_material(0)
+    var before: int=boundary.mesh_rebuilds
+    boundary.set_zone_state(boundary.world_center,boundary.safe_radius)
+    check(boundary.mesh_rebuilds==before,"unchanged circle rebuilt mesh")
     director._process(120.0)
+    check(boundary.last_height_samples==boundary.SEGMENTS and
+        boundary._surface.mesh.surface_get_material(0)==material,
+        "moving ring duplicated terrain samples or recreated its material")
+    var geometry: Array=boundary._surface.mesh.surface_get_arrays(0)
+    var vertices: PackedVector3Array=geometry[Mesh.ARRAY_VERTEX]
+    var indices: PackedInt32Array=geometry[Mesh.ARRAY_INDEX]
+    check(vertices.size()==boundary.SEGMENTS*8 and indices.size()==boundary.SEGMENTS*12,
+        "ring optimization removed its actual geometry")
+    for i in range(boundary.SEGMENTS):
+        var point: Vector3=vertices[i*8]
+        check(absf(Vector2(point.x,point.z).distance_to(boundary.world_center)-boundary.safe_radius)<.002 and
+            absf(point.y-boundary.terrain.height_at(point.x,point.z)-.65)<.002 and
+            vertices[i*8+5].distance_to(vertices[((i+1)%boundary.SEGMENTS)*8])<.001,
+            "ring lost terrain contact, radius or seam at segment "+str(i))
     var radar: Control=game.get_node("TrainingHUD")._training_radar
     var actual: Dictionary=director.zone_state_at(120.0)
     check(director.zone_center.distance_to(actual["center"])<.001 and
@@ -73,8 +92,12 @@ func _verify() -> void:
             director._phase_centers[1])<.001,
         "real minimap lost current/next moving storm circles")
     for bot in combat._targets:
-        check(bot.safe_center.distance_to(director.zone_center)<.001,
-            "bot AI still navigates toward outdated fixed storm center")
+        check(bot.safe_center.distance_to(director.zone_center)<.001 and
+            is_equal_approx(bot.safe_radius,director.radius) and
+            bot.next_zone_active and
+            bot.next_safe_center.distance_to(director._phase_centers[1])<.001 and
+            is_equal_approx(bot.next_safe_radius,DIRECTOR.PHASE_RADII[1]),
+            "bot AI still navigates toward outdated storm center or next circle")
     check(not director.is_outside_zone(Vector3(
         director.zone_center.x,0.0,director.zone_center.y)),
         "storm damages players standing at its true current center")

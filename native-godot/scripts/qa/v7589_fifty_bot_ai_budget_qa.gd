@@ -79,6 +79,26 @@ func _verify() -> void:
             dist>=last_distance and dist<BOT.SIGHT_RANGE*BOT.SIGHT_RANGE,
             "near-sight list is out of order, fake or out of range")
         last_distance=dist
+    # Compare the entire optimized shortlist against a brute force
+    # physical roster at the actual current positions.
+    var reference: Array[Dictionary]=[]
+    var range_sq: float=pow(attacker._loadout_sight_range(),2)
+    var physical: Array[CharacterBody3D]=[operator]
+    physical.append_array(attacker._foes)
+    for foe in physical:
+        if not attacker._is_live_foe(foe):
+            continue
+        var d2: float=attacker.global_position.distance_squared_to(foe.global_position)
+        if d2<range_sq:
+            reference.append({"foe":foe,"distance_sq":d2,"order":reference.size()})
+    reference.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
+        return a["order"]<b["order"] if a["distance_sq"]==b["distance_sq"] else a["distance_sq"]<b["distance_sq"])
+    check(nearest.size()==mini(reference.size(),BOT.MAX_VISION_RAYS),
+        "optimized candidate count differs from physical roster")
+    for i in range(mini(nearest.size(),reference.size())):
+        check(nearest[i]["foe"]==reference[i]["foe"] and
+            is_equal_approx(float(nearest[i]["distance_sq"]),float(reference[i]["distance_sq"])),
+            "optimized shortlist changed actual target order")
     attacker._sense_player()
     check(attacker.vision_rays_last<=BOT.MAX_VISION_RAYS and
         attacker.vision_rays_total>=attacker.vision_rays_last,
