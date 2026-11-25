@@ -3,7 +3,7 @@ extends Node
 const UPPER_BODY_CLIPS: Array[String]=[
     "AuroraFire","AuroraFireAWM","AuroraHit","AuroraHitFront","AuroraHitBack",
     "AuroraHitLeft","AuroraHitRight","AuroraReloadAR","AuroraReloadAWM",
-    "AuroraReloadMP40","AuroraHeal"]
+    "AuroraReloadMP40","AuroraHeal","AuroraEquip"]
 var tree: AnimationTree
 var states: AnimationNodeStateMachine
 var playback: AnimationNodeStateMachinePlayback
@@ -12,8 +12,45 @@ var animator: AnimationPlayer
 var upper_tracks: Array[NodePath]=[]
 var _requested_gait: StringName=&"AuroraArmedIdle"
 
+## Derive a short ORIGINAL transition from the existing rig's authored
+## ready/reload rotations. No claim of an imported equip motion; this is a
+## new local upper-body gesture, built once and never in a combat tick.
+static func ensure_equip_clip(source: AnimationPlayer) -> bool:
+    if source.has_animation("AuroraEquip"):
+        return true
+    if not source.has_animation("AuroraReloadAR") or not source.has_animation_library(""):
+        return false
+    var reference: Animation=source.get_animation("AuroraReloadAR")
+    var clip:=Animation.new()
+    clip.length=.20
+    clip.loop_mode=Animation.LOOP_NONE
+    for i in range(reference.get_track_count()):
+        if reference.track_get_type(i)!=Animation.TYPE_ROTATION_3D or reference.track_get_key_count(i)<2:
+            continue
+        var path: NodePath=reference.track_get_path(i)
+        var bone: String=str(path.get_subname(0)).to_lower() if path.get_subname_count()>0 else ""
+        if not ("arm" in bone or "hand" in bone or "shoulder" in bone):
+            continue
+        var rest: Quaternion=reference.track_get_key_value(i,0)
+        var lowered: Quaternion=reference.rotation_track_interpolate(i,reference.length*.47)
+        var track: int=clip.add_track(Animation.TYPE_ROTATION_3D)
+        clip.track_set_path(track,path)
+        clip.rotation_track_insert_key(track,0.0,rest)
+        clip.rotation_track_insert_key(track,.085,rest.slerp(lowered,.42))
+        clip.rotation_track_insert_key(track,.20,rest)
+    if clip.get_track_count()==0:
+        return false
+    # Imported libraries may be shared by other instances. Keep the new
+    # clip local while retaining all original Animation resources.
+    var library: AnimationLibrary=source.get_animation_library("").duplicate() as AnimationLibrary
+    if library==null or library.add_animation("AuroraEquip",clip)!=OK:
+        return false
+    source.remove_animation_library("")
+    return source.add_animation_library("",library)==OK
+
 func setup(source: AnimationPlayer) -> void:
     animator=source
+    ensure_equip_clip(source)
     states=AnimationNodeStateMachine.new()
     var names: Array[String]=[]
     for clip in source.get_animation_list():

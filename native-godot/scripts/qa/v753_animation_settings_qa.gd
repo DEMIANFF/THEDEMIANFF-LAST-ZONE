@@ -71,7 +71,28 @@ func verify() -> void:
     print("V753_LAYERED_RELOAD clip=",player._current_clip," leg_angle=",first.angle_to(second))
     combat._on_weapon()
     await wait_for_action_evaluation(controller.tree)
-    check(combat.reload_timer==0 and not controller.tree.get("parameters/UpperBody/active"),"weapon change kept old reload action")
+    check(combat.reload_timer==0 and controller.action_clip.animation=="AuroraEquip" and
+        player._combat_action!="AuroraReloadAR",
+        "weapon change retained old reload instead of a real equip gesture")
+    var equip: Animation=player._animator.get_animation("AuroraEquip")
+    check(equip!=null and equip.get_track_count()>0 and
+        equip.loop_mode==Animation.LOOP_NONE and is_equal_approx(equip.length,.20),
+        "derived equip gesture missing real skeletal tracks")
+    if equip!=null:
+        var moving_tracks: int=0
+        for i in range(equip.get_track_count()):
+            var bone: String=str(equip.track_get_path(i)).to_lower()
+            check(not "leg" in bone and not "foot" in bone and not "hips" in bone,
+                "equip animation interferes with legs")
+            if equip.track_get_key_count(i)>=3:
+                var initial: Quaternion=equip.track_get_key_value(i,0)
+                var lowered: Quaternion=equip.track_get_key_value(i,1)
+                if initial.angle_to(lowered)>.001:
+                    moving_tracks+=1
+        check(moving_tracks>0,"equip gesture does not change any bone rotation")
+    await frames(24)
+    check(not controller.tree.get("parameters/UpperBody/active"),
+        "equip transition did not finish")
     player.set_touch_move_axis(Vector2.ZERO)
     player.set_crouch(true)
     player.play_weapon_action("fire",.24)

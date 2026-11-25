@@ -289,11 +289,13 @@ func _equip_inventory_weapon(index: int) -> void:
     _cancel_healing("CURACION CANCELADA / ARMA")
     _auto_reload_queued=false
     _cancel_awm_bolt()
+    # Cancel the outgoing weapon's reload and native animation BEFORE
+    # changing its catalog slot. Never reset the incoming weapon instead.
+    _clear_reload()
     weapon_index=index
     trigger_held=false
     operator.set_firing(false)
     cooldown=.20
-    _clear_reload()
     aim_active=false
     current_zoom=1.0
     if _weapon_visuals:
@@ -301,6 +303,7 @@ func _equip_inventory_weapon(index: int) -> void:
         _weapon_visuals.play_source_action(weapon_index,"equip")
     operator.set_equipped_weapon(weapon_index)
     operator.set_ads(false,1.0)
+    operator.play_weapon_action("equip",.20)
     hud.set_aim(false,"MIRA LIBRE",1.0)
     _sync_hud()
 
@@ -430,8 +433,10 @@ func _clear_reload() -> void:
     reload_timer=0.0
     _reload_duration=0.0
     _mp40_reload_cue=0
+    operator.cancel_reload_action()
     if _weapon_visuals:
         _weapon_visuals.set_mp40_reload_progress(0.0)
+        _weapon_visuals.finish_source_reload(weapon_index)
     hud.set_reload_state(false,0.0,0.0)
 
 

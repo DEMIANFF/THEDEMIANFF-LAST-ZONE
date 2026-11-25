@@ -1138,12 +1138,25 @@ func play_weapon_action(action: String, seconds: float) -> void:
                 _: requested="AuroraReloadAR"
         "heal":
             requested="AuroraHeal"
+        "equip":
+            requested="AuroraEquip"
         _:
             return
+    if _animator==null or not _animator.has_animation(requested):
+        return
     _combat_action=requested
     _combat_action_seconds=maxf(0.05,seconds)
     if _animation_controller:
         _animation_controller.action(requested,seconds)
+
+
+func cancel_reload_action() -> void:
+    if not _combat_action.begins_with("AuroraReload"):
+        return
+    _combat_action=""
+    _combat_action_seconds=0.0
+    if _animation_controller:
+        _animation_controller.cancel_action()
 
 
 func cancel_medical_action() -> void:
