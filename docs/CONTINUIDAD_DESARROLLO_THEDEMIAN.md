@@ -1,0 +1,35 @@
+# Continuidad de THEDEMIAN: LAST ZONE
+
+Actualizado el 25 de noviembre de 2026. Proyecto `native-godot/`, Godot 4.7.2, Android ARM64 con Vulkan Mobile. Dispositivo de referencia Motorola Edge 60 Fusion.
+
+## Punto de recuperación
+
+| Versión | Rama y revisión comprobadas | PR | Compilación | Resultado comprobado |
+|---|---|---|---|---|
+| V75.188 | `codex/v75-188-operator-weapon-transition` · `25861973b7e5cd08dd916244394e496bb2a72e7f` | [#186](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/pull/186) | [45671650639](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/45671650639) | Última entrega aprobada al recuperar la sesión. |
+| V75.189 | `codex/v75-189-lila-body-contact-performance` · `6a304691a22460a8276545d26fedb8e889a905cc` | [#187](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/pull/187) | [45684774492](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/45684774492) | Batería nativa aprobada. En el primer control, la captura de escenas seguía en curso. |
+| V75.190 | `codex/v75-190-p90-original-armory` · `3971048b4140c28625efb7eb1d96554244d74738` | [#188](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/pull/188) | [45685705379](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/45685705379) | V75.189 es ancestro directo de la serie, con tres commits adicionales y cero detrás. La importación y las dos pruebas nuevas pasaron. La batería completa detuvo la exportación. |
+
+## Regresiones que impiden cerrar la V75.190
+
+- `weapon_visual_qa` midió 0,04269 m desde el centro de la cápsula hasta la mano. Comprobar la mano respecto al pecho real y conservar una guarda para la postura de pie.
+- `v752_regression_qa` midió 0,27291 m de descenso de la cabeza frente a los 0,35 m exigidos. Conservar la flexión de piernas, el apoyo de los pies, el torso erguido y los agarres. Contrastar el descenso con la altura de colisión.
+- Las QA específicas `v75189_lila_body_performance_qa` y `v75190_p90_original_qa` pasaron en ese mismo job. Este run terminó antes de capturas, firma y exportación.
+- Se mantienen como pendientes el contacto visual de las extremidades, la P90 en la armería del lobby y la comprobación física de FPS, temperatura y controles en el Motorola. La observación física comunicada es de 20 FPS.
+
+## Recursos y trazabilidad
+
+Los archivos de referencia son `AURORA_V3_INVENTARIO_80.json`, `MENSAJE_MAESTRO_WORK_AURORA_V3.md`, `THEDEMIAN_INVENTARIO_AURORA_V2_V3_148_2026-11-19.md`, `THEDEMIAN_RECUPERACION_AURORA_V2_V3_113_ORIGINALES.md` y `THEDEMIAN_PROYECTO_MAESTRO_1000_MEJORAS.pdf`. La recuperación del 20 de noviembre documenta 33 entradas V2 y 80 V3, con 108 huellas distintas en el conjunto. El inventario de 148 incluye material documental. Se localizaron los 24 ZIP V3 y los 8 paquetes V2 en la máquina actual. La verificación de los originales y la de sus derivados se registran por separado.
+
+| Recurso | SHA-256 de la fuente | Procedencia y derechos registrados | Ubicación y función | Evidencia |
+|---|---|---|---|---|
+| Lila | `62da843e0649b4274f5af4dfc75dfa3fa557d094224922c002498d5c28e15cbd` | Original aportado para el proyecto, fijado en `tools/build_lila.py`. Conservar el original privado y la malla aprobada. | `native-godot/assets/characters/lila_aurora.glb`, avatar de lobby y combate. 56 huesos. | QA de identidad, animación y contacto corporal. Revisión visual pendiente en esta revisión. |
+| Modular P90 Tactical | `3daa1c9d1596a223a95ef873271adb961cbf6d75bfcdebf59f6a71b434e1a67e` | Aurora V2, doomsentinel, CC BY 4.0. Enlace y atribución en `assets/weapons/aurora_v2_optional/README.md` y en Ajustes. | `native-godot/assets/weapons/aurora_v2_optional/aurora_p90.glb`, subfusil de 50 en el catálogo, inventario y combate. Fuente estática. | `v75190_p90_original_qa` comprueba geometría, agarre, recarga, reserva y créditos. Falta comprobar la ruta del lobby. |
+
+El catálogo incluye rutas opcionales que solo representan integración si el GLB está presente, se importa, se usa en el juego y pasa su prueba. El audio dedicado de la P90, las licencias de los candidatos y la aparición de cada modelo en armería y combate deben comprobarse individualmente.
+
+## Próxima tarea exacta
+
+Corregir ambos fallos de postura sobre el PR #188, comprobar las seis armas de esta compilación y la armería de la P90, ejecutar las regresiones y revisar las capturas reales. Verificar la APK firmada con su nombre de paquete, versión, ABI, firma y SHA-256 antes de entregar. Tras cerrar esa compilación, continuar con el cargador superior de la P90 y el siguiente modelo con procedencia y permiso de distribución comprobados.
+
+Trabajar en ramas de desarrollo con PR en borrador. Preservar la estable, la identidad y firma de Android, los datos de jugadores y los presets HUD. Validación de Firebase sin despliegues a producción. El BR mantiene sus 50 participantes.
