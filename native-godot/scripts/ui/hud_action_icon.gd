@@ -3,6 +3,10 @@ extends Control
 ## input, state, text contract, signals and persisted HUD identity.
 static var _textures: Dictionary={}
 const ART: Dictionary={
+    "rifle": '<path d="M4 24h13l8-5h23v5h13v6H38l-4 16H23l6-16H17L4 36z" fill="white" stroke="none"/><path d="M30 19v-6h13v6"/>',
+    "sniper": '<path d="M3 28h14l9-6h21v4h15v5H35l-5 14h-8l4-14H16L3 38z" fill="white" stroke="none"/><path d="M26 17h18m-14 5v-5m10 5v-5"/>',
+    "pistol": '<path d="M9 18h43v15H30l-5 22H13l4-23H9z" fill="white" stroke="none"/><path d="M35 33v7H24"/>',
+    "knife": '<path d="M50 5 58 8 39 37 27 40 23 36zM21 35l13 13M24 42 8 58l-5-5 16-16" fill="white"/>',
     "fire": '<path d="M13 48 33 28 45 40 25 60 10 62z M36 25 47 14 58 25 48 37z M48 11 61 3 58 22z" fill="white" stroke="none"/><path d="m6 39 10-4m8-18 4-10m33 35-10 3" />',
     "aim": '<circle cx="32" cy="32" r="19"/><path d="M32 4v16m0 24v16M4 32h16m24 0h16"/><circle cx="32" cy="32" r="3" fill="white"/>',
     "reload": '<path d="M49 18A21 21 0 1 0 52 43M49 8v14H35"/><rect x="27" y="24" width="11" height="24" rx="3" fill="white" stroke="none"/><path d="M32 15v8"/>',
@@ -102,4 +106,4 @@ func _draw() -> void:
     if air:
         var font: Font=ThemeDB.fallback_font
         var fs: int=12
-        draw_string(font,Vector2(center.x+radius+5,center.y+4), "SALTAR" if caption.begins_with("SALTAR") else "ABRIR",HORIZONTAL_ALIGNMENT_LEFT,-1,fs,tint)
+        draw_string(font,Vector2(center.x-radius*.65,center.y+radius*.82), "SALTAR" if caption.begins_with("SALTAR") else "ABRIR",HORIZONTAL_ALIGNMENT_LEFT,-1,fs,tint)
