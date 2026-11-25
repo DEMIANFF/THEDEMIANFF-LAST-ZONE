@@ -633,6 +633,17 @@ func _start_original_clip(animator: AnimationPlayer,clip: String,
 ## One lifecycle reset for the actual mounted weapon and all authored
 ## private GLB clips. Scene end, elimination and new-round setup use exactly
 ## this same path, so no 3D recoil, bolt or sped-up reload survives a match.
+func finish_source_reload(slot: int) -> void:
+    var native_player: AnimationPlayer=_source_animation_players.get(slot) as AnimationPlayer
+    if not is_instance_valid(native_player):
+        return
+    if not str(native_player.current_animation).to_lower().contains("reload"):
+        return
+    native_player.stop()
+    native_player.speed_scale=1.0
+    play_source_action(slot,"idle")
+
+
 func reset_action_state() -> void:
     cancel_visual_recoil()
     cancel_awm_mechanical_cycle()
