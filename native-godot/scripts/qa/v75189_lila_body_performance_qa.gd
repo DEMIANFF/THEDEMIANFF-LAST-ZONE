@@ -82,6 +82,7 @@ func _verify() -> void:
         var thigh: Vector3=(bones[side+"UpLeg"] as Vector3)-knee
         var shin: Vector3=(bones[side+"Foot"] as Vector3)-knee
         var knee_angle: float=rad_to_deg(thigh.angle_to(shin))
+        print("V75190_KNEE side=",side," angle_deg=",knee_angle)
         check(knee_angle>60.0 and knee_angle<150.0,"crouch knee not naturally flexed: "+side+str(knee_angle))
     check(absf((bones["LeftToeBase"] as Vector3).y-(bones["RightToeBase"] as Vector3).y)<.035,
         "crouch feet lost equal ground contact")

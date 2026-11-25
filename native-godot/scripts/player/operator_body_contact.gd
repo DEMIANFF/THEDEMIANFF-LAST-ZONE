@@ -108,6 +108,23 @@ func _fit_foot(skeleton: Skeleton3D,chain: PackedInt32Array,index: int,lift: flo
     var ray: Vector3=target-hip.origin
     if minf(a,b)<.00001 or ray.length_squared()<.00001:
         return
+    # Preserve ankle height while opening a compressed knee under the lowered
+    # pelvis. Slide along the authored fore/aft line and the contacted surface.
+    if crouch_drop>.001:
+        var weight: float=clampf(crouch_drop/CROUCH_DROP_METRES,0.0,1.0)
+        var minimum_angle: float=deg_to_rad(69.0)*weight
+        var minimum_sq: float=a*a+b*b-2.0*a*b*cos(minimum_angle)
+        if ray.length_squared()<minimum_sq:
+            var floor_normal: Vector3=normals[index] if contacts[index] else Vector3.UP
+            var stride: Vector3=(-operator.global_basis.z).slide(floor_normal)
+            var axis: Vector3=(skeleton.global_basis.inverse()*stride).normalized()
+            var projection: float=ray.dot(axis)
+            if projection<-.0001 or (absf(projection)<=.0001 and index==1):
+                axis=-axis
+                projection=-projection
+            var shift: float=sqrt(maxf(0.0,projection*projection+minimum_sq-ray.length_squared()))-projection
+            target+=axis*shift
+            ray=target-hip.origin
     var direction: Vector3=ray.normalized()
     var length: float=clampf(ray.length(),absf(a-b)+.0001,a+b-.0001)
     var along: float=(a*a-b*b+length*length)/(2.0*length)
