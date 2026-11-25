@@ -32,6 +32,7 @@ const TACTICAL_MAP=preload("res://scripts/ui/aurora_tactical_map.gd")
 const DAMAGE_COMPASS=preload("res://scripts/ui/aurora_damage_compass.gd")
 const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
 const HUD_EDITOR=preload("res://scripts/ui/hud_edit_surface.gd")
+const HUD_ICON=preload("res://scripts/ui/hud_action_icon.gd")
 
 var _weapon: Label
 var _ammo: Label
@@ -619,6 +620,18 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
     if up.is_valid():
         button.button_up.connect(up)
     root.add_child(button)
+    if HUD_ICON.IDS.has(label):
+        # Preserve the actual Button and legacy text/ID contracts. The
+        # child alone paints the icon and cannot intercept multitouch.
+        for state in ["normal","hover","pressed","disabled","focus","hover_pressed"]:
+            button.add_theme_stylebox_override(state,StyleBoxEmpty.new())
+        for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color","font_disabled_color","font_hover_pressed_color","font_outline_color"]:
+            button.add_theme_color_override(state,Color.TRANSPARENT)
+        button.tooltip_text=label
+        var art: Control=HUD_ICON.new()
+        art.name="AuroraActionIcon"
+        art.action=HUD_ICON.IDS[label]
+        button.add_child(art)
     return button
 
 
@@ -685,7 +698,6 @@ func _refresh_grenade_button() -> void:
     _grenade_button.visible=live or _hud_editing
     _grenade_button.disabled=not live or _grenade_count<=0 or _hud_editing
     _grenade_button.text="GRANADA\n%d"%_grenade_count
-    _grenade_button.modulate.a=1.0 if _hud_editing else _grenade_button.modulate.a
 
 
 func set_air_stage(value: String) -> void:
@@ -1012,6 +1024,7 @@ func set_aurora_cover_count(charges: int,cooldown: float=0.0) -> void:
     _cover_cooldown=maxf(0.0,cooldown)
     if _cover_button:
         _cover_button.text="BARRERA %d"%_cover_charges
+        _cover_button.set_meta("hud_cooldown",_cover_cooldown)
         _cover_button.disabled=_cover_charges<=0 or _cover_cooldown>0.0 or air_stage!="ground"
 
 
@@ -1482,7 +1495,7 @@ func _layout() -> void:
     _place(_battle_button,Rect2(origin+Vector2(w*.5-90,64),Vector2(180,46)))
     _place(_exit_button,Rect2(origin+Vector2(w-107,108),Vector2(78,78)))
     _place(_settings_button,Rect2(origin+Vector2(w-194,108),Vector2(78,78)))
-    _place(_inventory_button,Rect2(origin+Vector2(w-281,108),Vector2(78,78)))
+    _place(_inventory_button,Rect2(origin+Vector2(260,h-275),Vector2(70,70)))
     _place(_supply_locker_button,Rect2(
         origin+Vector2(w*.5-80,h-158),Vector2(135,67)))
     _place(_supply_locker_caption,Rect2(
@@ -1506,7 +1519,7 @@ func _layout() -> void:
     _place(_hit,Rect2(origin+Vector2(w*.5-300,128),Vector2(600,50)))
     _hit.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     _place(root.get_node("MovePad"),Rect2(origin+Vector2(40,h-235),Vector2(210,210)))
-    _place(_run_button,Rect2(origin+Vector2(96,h-341),Vector2(90,90)))
+    _place(_run_button,Rect2(origin+Vector2(190,h-321),Vector2(78,78)))
     _place(_vehicle_action_button,Rect2(
         origin+Vector2(w*.5-40,h-159),Vector2(88,80)))
     _place(_vehicle_speed_label,Rect2(
@@ -1516,9 +1529,9 @@ func _layout() -> void:
     _place(root.get_node("RECARGA"),Rect2(origin+Vector2(w-314,h-186),Vector2(76,76)))
     _place(root.get_node("ARMA"),Rect2(origin+Vector2(w-230,h-106),Vector2(76,76)))
     _place(_crouch_button,Rect2(origin+Vector2(w-421,h-190),Vector2(78,78)))
-    _place(_medkit_button,Rect2(origin+Vector2(w-421,h-99),Vector2(78,78)))
+    _place(_medkit_button,Rect2(origin+Vector2(260,h-105),Vector2(74,74)))
     _place(_cover_button,Rect2(origin+Vector2(w-421,h-284),Vector2(78,78)))
-    _place(_grenade_button,Rect2(origin+Vector2(w-508,h-190),Vector2(74,74)))
+    _place(_grenade_button,Rect2(origin+Vector2(260,h-190),Vector2(74,74)))
     _jump_button.custom_minimum_size=Vector2.ZERO
     var jump_rect:=Rect2(origin+Vector2(w-121,h-112),Vector2(92,92))
     if air_stage!="ground":
