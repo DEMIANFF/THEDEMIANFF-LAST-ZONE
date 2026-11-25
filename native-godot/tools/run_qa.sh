@@ -166,6 +166,9 @@ for script in v75183_mobile_lobby_aircraft_enemy_visual_qa v75182_volumetric_air
   fi
   if [ -n "$failure_reason" ]; then
     printf '%s FAIL (%s)\n' "$script" "$failure_reason"
+    # Show the actual failing assertion even when hundreds of model-fit
+    # diagnostics follow it. Retain the complete log artifact and tail.
+    grep -nE 'SCRIPT ERROR:|ERROR:' "$LOGS/$script.log" || true
     tail -n 90 "$LOGS/$script.log"
     failed_scripts+=("$script:$failure_reason")
     failures=$((failures+1))

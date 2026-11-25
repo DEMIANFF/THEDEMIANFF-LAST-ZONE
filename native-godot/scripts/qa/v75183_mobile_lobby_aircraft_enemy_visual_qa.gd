@@ -83,13 +83,35 @@ func _verify() -> void:
     check(is_instance_valid(flight),"no live aircraft controller to test jump")
     if is_instance_valid(flight):
         flight.jump_from_aircraft()
-        check(player.air_mode=="freefall" and
+        # The actual aircraft transition releases the aircraft in a deferred
+        # call, then commits freefall on process_frame. Never assert it in
+        # the same call stack or force the player's air_mode for the test.
+        for frame in range(10):
+            await process_frame
+            if flight.phase=="freefall" and player.air_mode=="freefall":
+                break
+        check(flight.phase=="freefall" and player.air_mode=="freefall" and
             radar.aircraft_route_pixels().is_empty(),
-            "actual jump failed to exit the aircraft navigation phase")
+            "actual deferred jump failed: flight=%s player=%s"%[
+                flight.phase,player.air_mode])
         check(radar.landing_waypoint_guidance().get("world",Vector2(INF,INF))==
             Vector2(18.0,-16.0) and not radar.minimap_waypoint_marker().is_empty(),
             "stored destination did not become visible again after the real jump")
 
+    # Use a fresh physical round for the independent enemy-visual checks.
+    # A committed jump also starts staging rival airdrops asynchronously;
+    # do not intermingle those pending callbacks with the ground fixture.
+    game.queue_free()
+    await process_frame
+    await process_frame
+    game=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
+    root.add_child(game)
+    combat=game.get_node("CombatRange")
+    director=game.get_node("AuroraSectorMatch")
+    player=game.get_node("Operator")
+    for rival in combat._targets:
+        rival.set_physics_process(false)
+    await physics_frame
     combat.set_encounter_size(50)
     director.start_sector_battle()
     director.set_process(false)
