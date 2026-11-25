@@ -148,15 +148,35 @@ class LilaAsset:
         return transform
 
     def ground_stance(self, pose, deepen, stable=False):
-        at = self.transforms(pose)
+        source_at = self.transforms(pose)
+        at = source_at
         hips = self.indices["Hips"]
         # The source clips do not share a planted-foot reference. Use the
         # standing clip's lowest toe height so stride clips do not float above
         # the capsule or sink into the floor during a crouch.
         toe_height = min(at(self.indices[side + "ToeBase"])[0][1] for side in ("Left", "Right"))
         grounding = (0., -.46 - toe_height, 0.)
-        lowering = (0., -.079 if deepen else -.012 if stable else 0., 0.)
-        changes = {(hips, "translation"): add(pose[hips, "translation"], add(grounding, lowering))}
+        changes = {}
+        if deepen:
+            # The supplied crouch bends the upper body almost horizontally
+            # while keeping its pelvis near standing height. Derive an armed
+            # crouch from the original upright torso and lower the hips, then
+            # solve the knees to the original contact/stride targets. This is
+            # a generated correction, not an additional imported source clip.
+            upright = {"Hips", "Spine", "Spine1", "Spine2", "Neck", "Head",
+                       "LeftShoulder", "RightShoulder"}
+            idle = self.sources["Idle"]
+            for channel in idle["channels"]:
+                target = channel["target"]
+                if target["path"] == "rotation" and self.nodes[target["node"]]["name"] in upright:
+                    value = self.values(idle["samplers"][channel["sampler"]]["output"])[0]
+                    if self.nodes[target["node"]]["name"] == "Spine1":
+                        value = mul(value, axis(.16, 0))
+                    changes[target["node"], "rotation"] = value
+            at = self.transforms({**pose, **changes})
+        lowering = (0., -.18 - pose[hips, "translation"][1] - grounding[1]
+                    if deepen else -.012 if stable else 0., 0.)
+        changes[hips, "translation"] = add(pose[hips, "translation"], add(grounding, lowering))
         if stable or deepen:
             # Lower the crouch at the hips while holding the imported ankle
             # positions and soles. The collider uses a real crouched height.
@@ -167,15 +187,18 @@ class LilaAsset:
                 foot, foot_rotation = at(ankle)
                 upper = self.nodes[shin]["translation"]
                 lower = self.nodes[ankle]["translation"]
-                target = foot
-                pole = sub(knee, start)
+                target = source_at(ankle)[0] if deepen else foot
+                pole = ((-.10 if side == "Left" else .10), -.03, .25) if deepen else sub(knee, start)
+                if deepen:
+                    foot_rotation = source_at(ankle)[1]
                 if stable:
                     # The supplied Idle is a narrow, inward-pointing fashion
                     # stance. Derive a planted combat stance WITHOUT changing
                     # the mesh, bind lengths, weights, textures or finger clips.
                     sign = -1. if side == "Left" else 1.
-                    toe = at(self.indices[side + "ToeBase"])[0]
-                    toe_ray = sub(toe, foot)
+                    contact_at = source_at if deepen else at
+                    toe = contact_at(self.indices[side + "ToeBase"])[0]
+                    toe_ray = sub(toe, contact_at(ankle)[0])
                     flat = math.sqrt(max(.0001, dot(toe_ray, toe_ray) - .037**2))
                     toe_target = (sign * flat * math.sin(.10), -.037, flat * math.cos(.10))
                     foot_rotation = mul(aim_vector(toe_ray, toe_target), foot_rotation)
@@ -366,7 +389,7 @@ def build(source, output):
     ):
         duration = {"Jump": .86, "Land": .37}.get(name)
         model.clip("Aurora" + name, source_name, lambda _, grip=pose: (grip, 0., 0.),
-                   duration, ground=duration is None, deepen=name == "Crouch",
+                   duration, ground=duration is None, deepen=name in ("Crouch", "CrouchWalk"),
                    stable=name in ("ArmedIdle", "Aim", "AimAWM", "Crouch"))
     model.clip("AuroraHeal", "Bandage", seconds=3.0)
     model.clip("AuroraFreefall", "Jump", lambda p: (
