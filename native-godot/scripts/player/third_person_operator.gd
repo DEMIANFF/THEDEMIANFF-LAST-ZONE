@@ -7,6 +7,7 @@ const ACCELERATION: float = 16.0
 const GRAVITY: float = 17.5
 const LOOK_SENSITIVITY: float = 0.0032
 const ANIMATION_CONTROLLER=preload("res://scripts/player/operator_animation.gd")
+const BODY_CONTACT=preload("res://scripts/player/operator_body_contact.gd")
 const GROUND_CONTACT=preload("res://scripts/player/aurora_operator_contact_shadow.gd")
 const BACKPACK_VISUAL=preload("res://scripts/player/aurora_backpack_visual.gd")
 const LOCAL_PLAYER_RECORDS=preload("res://scripts/persistence/offline_match_records.gd")
@@ -93,6 +94,7 @@ var _camera: Camera3D
 var _avatar: Node3D
 var _ground_contact: MeshInstance3D
 var _animation_controller: Node
+var _body_contact: SkeletonModifier3D
 var _landing_seconds: float=0.0
 var _footstep_distance: float=0.0
 var _foot_contacts=preload("res://scripts/animation/aurora_foot_contacts.gd").new()
@@ -222,6 +224,12 @@ func _ready() -> void:
             _animation_controller=ANIMATION_CONTROLLER.new()
             add_child(_animation_controller)
             _animation_controller.setup(_animator)
+        var skeleton:=_avatar.find_child("Skeleton3D",true,false) as Skeleton3D
+        if skeleton!=null and skeleton.find_bone("LeftUpLeg")>=0:
+            _body_contact=BODY_CONTACT.new()
+            _body_contact.name="LilaBodyContact"
+            skeleton.add_child(_body_contact)
+            _body_contact.bind_player(self)
         _play_matching_animation("AuroraArmedIdle")
     else:
         push_warning("Lila Aurora character asset could not be loaded.")

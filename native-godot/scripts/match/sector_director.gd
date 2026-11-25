@@ -113,6 +113,7 @@ var _pending_result: Dictionary={}
 var _save_clock: float=0.0
 var _perf_clock: float=0.0
 var _perf_samples: Array[float]=[]
+var _perf_metrics: Dictionary={}
 var _opponent_drops_spawned: int=0
 var _remote_death_caches_retired: int=0
 var _dropped_opponents: Dictionary={}
@@ -283,6 +284,7 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _ui_clock=0.0
     _perf_clock=0.0
     _perf_samples.clear()
+    _perf_metrics.clear()
     _opponent_drops_spawned=0
     _remote_death_caches_retired=0
     _dropped_opponents.clear()
@@ -373,6 +375,18 @@ func _process(delta: float) -> void:
             var fps: float=float(Engine.get_frames_per_second())
             if is_finite(fps) and fps>0.0 and fps<360.0 and _perf_samples.size()<MAX_PERF_SAMPLES:
                 _perf_samples.append(fps)
+                var budget: Node=get_parent().get_node_or_null("AuroraRenderBudget")
+                if budget!=null:
+                    var snapshot: Dictionary=budget.snapshot()
+                    if float(snapshot.get("fps",0.0))>0.0:
+                        for key in ["gpu_render_ms","render_cpu_ms","physics_ms",
+                                "draw_calls","triangles","video_memory_mb","texture_memory_mb",
+                                "active_enemy_rigs"]:
+                            var value: float=float(snapshot.get(key,0.0))
+                            if is_finite(value) and value>=0.0:
+                                _perf_metrics[key+"_peak"]=maxf(
+                                    float(_perf_metrics.get(key+"_peak",0.0)),value)
+                        _perf_metrics["last_snapshot"]=snapshot
     var state: Dictionary=zone_state_at(elapsed)
     radius=float(state["radius"])
     zone_center=state["center"]
@@ -576,7 +590,7 @@ func _finish(victory: bool) -> void:
     match_ended = true
     if _perf_samples.size()>2:
         var result: Error=PERFORMANCE.record(
-            int(combat.get("encounter_size")),_perf_samples,elapsed,true)
+            int(combat.get("encounter_size")),_perf_samples,elapsed,true,_perf_metrics)
         if result!=OK:
             push_warning("Aurora measured FPS report could not be persisted")
     combat.end_sector_battle()

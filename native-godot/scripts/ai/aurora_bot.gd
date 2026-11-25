@@ -1,4 +1,5 @@
 extends CharacterBody3D
+const ANIMATION_BUDGET=preload("res://scripts/ai/aurora_enemy_animation_budget.gd")
 const STARTUP_DIAG=preload("res://scripts/persistence/scene_startup_diagnostics.gd")
 const IMPACT=preload("res://scripts/player/third_person_operator.gd")
 const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
@@ -344,6 +345,10 @@ func _instantiate_original_distant_visual() -> void:
             idle.play("AuroraIdle")
             idle.advance(.16)
         idle.active=false
+        var budget:=ANIMATION_BUDGET.new()
+        budget.name="EnemyAnimationBudget"
+        _lod_rig.add_child(budget)
+        budget.configure(idle,self,operator)
     # Same rifle model and skeletal hand mount on either side of 39m.
     # A promotion only enables the existing animator; it creates no
     # second rig and does not swap a square head for a normal face.

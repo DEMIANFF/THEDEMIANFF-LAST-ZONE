@@ -147,7 +147,7 @@ class LilaAsset:
 
         return transform
 
-    def ground_stance(self, pose, deepen):
+    def ground_stance(self, pose, deepen, stable=False):
         at = self.transforms(pose)
         hips = self.indices["Hips"]
         # The source clips do not share a planted-foot reference. Use the
@@ -155,9 +155,9 @@ class LilaAsset:
         # the capsule or sink into the floor during a crouch.
         toe_height = min(at(self.indices[side + "ToeBase"])[0][1] for side in ("Left", "Right"))
         grounding = (0., -.46 - toe_height, 0.)
-        lowering = (0., -.079 if deepen else 0., 0.)
+        lowering = (0., -.079 if deepen else -.012 if stable else 0., 0.)
         changes = {(hips, "translation"): add(pose[hips, "translation"], add(grounding, lowering))}
-        if deepen:
+        if stable or deepen:
             # Lower the crouch at the hips while holding the imported ankle
             # positions and soles. The collider uses a real crouched height.
             for side in ("Left", "Right"):
@@ -167,7 +167,22 @@ class LilaAsset:
                 foot, foot_rotation = at(ankle)
                 upper = self.nodes[shin]["translation"]
                 lower = self.nodes[ankle]["translation"]
-                bend, rest = solve_hinge(sub(foot, add(start, lowering)), sub(knee, start), upper, lower)
+                target = foot
+                pole = sub(knee, start)
+                if stable:
+                    # The supplied Idle is a narrow, inward-pointing fashion
+                    # stance. Derive a planted combat stance WITHOUT changing
+                    # the mesh, bind lengths, weights, textures or finger clips.
+                    sign = -1. if side == "Left" else 1.
+                    toe = at(self.indices[side + "ToeBase"])[0]
+                    toe_ray = sub(toe, foot)
+                    flat = math.sqrt(max(.0001, dot(toe_ray, toe_ray) - .037**2))
+                    toe_target = (sign * flat * math.sin(.10), -.037, flat * math.cos(.10))
+                    foot_rotation = mul(aim_vector(toe_ray, toe_target), foot_rotation)
+                    target = (sign * (.100 if deepen else .095), -.423 - grounding[1],
+                              .035 if side == "Left" else -.040)
+                    pole = (sign * .10, -.03, .25)
+                bend, rest = solve_hinge(sub(target, add(start, lowering)), pole, upper, lower)
                 new_thigh = mul(aim_vector(rotate(thigh_rotation, upper), bend), thigh_rotation)
                 new_shin = mul(aim_vector(rotate(shin_rotation, lower), rest), shin_rotation)
                 changes[thigh, "rotation"] = unit(mul(inverse(at(self.parents[thigh])[1]), new_thigh))
@@ -175,9 +190,9 @@ class LilaAsset:
                 changes[ankle, "rotation"] = unit(mul(inverse(new_shin), foot_rotation))
         return changes
 
-    def overlay(self, tracks, frame, profile, ground, deepen):
+    def overlay(self, tracks, frame, profile, ground, deepen, stable=False):
         pose = {target: values[frame] for target, values in tracks.items()}
-        changes = self.ground_stance(pose, deepen) if ground else {}
+        changes = self.ground_stance(pose, deepen, stable) if ground else {}
         pose.update(changes)
         grip, pitch, roll = profile
         hips = self.indices["Hips"]
@@ -208,21 +223,31 @@ class LilaAsset:
             # Keep wrists aligned with forearms and reuse the GLB's hand/finger poses.
             changes[arm, "rotation"] = unit(mul(inverse(parent_rot), arm_rot))
             changes[forearm, "rotation"] = unit(mul(inverse(arm_rot), lower_rot))
+            # Wrist orientation is a grip constraint, not the forearm's new
+            # IK rotation. Previously solving the elbow also twisted the
+            # closed fingers sideways through the receiver. Keep the source
+            # finger articulation, with the support palm turned upward.
+            hand_rotation = transform(hand)[1]
+            if side == "Left":
+                hand_rotation = mul(axis(math.pi * .5, 2), hand_rotation)
+            changes[hand, "rotation"] = unit(mul(inverse(lower_rot), hand_rotation))
 
         return changes
 
-    def clip(self, name, source_name, action=None, seconds=None, ground=False, deepen=False):
+    def clip(self, name, source_name, action=None, seconds=None, ground=False, deepen=False, stable=False):
         source = self.sources[source_name]
         out = {"name": name, "samplers": [], "channels": []}
         tracks = {}
-        if action:
+        if action or ground:
             for channel in source["channels"]:
                 target = channel["target"]
                 sampler = source["samplers"][channel["sampler"]]
                 tracks[target["node"], target["path"]] = self.values(sampler["output"])
             assert len({len(values) for values in tracks.values()}) == 1
             count = len(next(iter(tracks.values())))
-            poses = [self.overlay(tracks, i, action(i / (count - 1)), ground, deepen)
+            poses = [(self.overlay(tracks, i, action(i / (count - 1)), ground, deepen, stable)
+                      if action else self.ground_stance(
+                          {key: values[i] for key, values in tracks.items()}, deepen, stable))
                      for i in range(count)]
         timelines = {}
         for channel in source["channels"]:
@@ -254,7 +279,7 @@ class LilaAsset:
                 timelines[input_idx] = (new_input, keep)
             sampler["input"], keep = timelines[input_idx]
             values = None
-            if action and any((node, path) in pose for pose in poses):
+            if (action or ground) and any((node, path) in pose for pose in poses):
                 values = [pose.get((node, path), tracks[node, path][i]) for i, pose in enumerate(poses)]
             if keep is not None:
                 if values is None:
@@ -330,7 +355,7 @@ def build(source, output):
     if hashlib.sha256(raw).hexdigest() != SOURCE_SHA256:
         raise ValueError("Expected the verified original rigged-model(1).glb")
     model = LilaAsset(raw)
-    model.clip("AuroraIdle", "Idle")
+    model.clip("AuroraIdle", "Idle", ground=True, stable=True)
     for name, source_name, pose in (
         ("ArmedIdle", "Idle", READY), ("ArmedWalk", "Walk", READY),
         ("ArmedRun", "Sprint", READY), ("ArmedStrafeLeft", "Jog Left", AIM),
@@ -341,7 +366,8 @@ def build(source, output):
     ):
         duration = {"Jump": .86, "Land": .37}.get(name)
         model.clip("Aurora" + name, source_name, lambda _, grip=pose: (grip, 0., 0.),
-                   duration, ground=duration is None, deepen=name == "Crouch")
+                   duration, ground=duration is None, deepen=name == "Crouch",
+                   stable=name in ("ArmedIdle", "Aim", "AimAWM", "Crouch"))
     model.clip("AuroraHeal", "Bandage", seconds=3.0)
     model.clip("AuroraFreefall", "Jump", lambda p: (
         ((.34, -.08 + .025*math.sin(math.tau*p), .13),

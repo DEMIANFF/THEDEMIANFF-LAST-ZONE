@@ -22,13 +22,15 @@ static func latest() -> Dictionary:
         # target project settings. Real Vulkan fallback is visible here.
         "render_method":str(cfg.get_value("run","render_method","unknown")),
         "render_driver":str(cfg.get_value("run","render_driver","unknown")),
-        "quality_scale":float(cfg.get_value("run","quality_scale",1.0))
+        "quality_scale":float(cfg.get_value("run","quality_scale",1.0)),
+        "metrics":cfg.get_value("run","metrics",{}),
+        "device":str(cfg.get_value("run","device","unknown"))
     }
 
 
 static func record(participants: int,samples: Array[float],
-        elapsed: float,complete: bool) -> Error:
-    if samples.is_empty() or participants not in [9,20,30] or not is_finite(elapsed) or elapsed<0.0:
+        elapsed: float,complete: bool,metrics: Dictionary={}) -> Error:
+    if samples.is_empty() or participants not in [9,20,30,50] or not is_finite(elapsed) or elapsed<0.0:
         return ERR_INVALID_PARAMETER
     var valid: Array[float]=[]
     for value in samples:
@@ -51,6 +53,8 @@ static func record(participants: int,samples: Array[float],
     cfg.set_value("run","min_fps",snappedf(valid[0],.1))
     cfg.set_value("run","seconds",roundi(elapsed))
     cfg.set_value("run","completed",complete)
+    cfg.set_value("run","metrics",metrics)
+    cfg.set_value("run","device",OS.get_model_name())
     cfg.set_value("run","render_method",
         RenderingServer.get_current_rendering_method())
     cfg.set_value("run","render_driver",

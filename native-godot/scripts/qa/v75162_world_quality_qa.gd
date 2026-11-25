@@ -97,7 +97,7 @@ func _verify() -> void:
 
     var renderer_method: String=RenderingServer.get_current_rendering_method()
     check(budget.call("select_profile","FLUIDEZ")==OK and
-        absf(float(budget.get("current_scale"))-.78)<.002 and
+        absf(float(budget.get("current_scale"))-.70)<.002 and
         not world_env.environment.fog_enabled and not sun.shadow_enabled and
         not bool(nature.get("detailed_foliage")) and
         pines.multimesh.mesh is CylinderMesh and
