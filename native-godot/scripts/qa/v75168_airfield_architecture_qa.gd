@@ -88,7 +88,9 @@ func _verify() -> void:
     check(directional.size()==0 and pointlights.size()<=5,
         "architectural detail must not incur dynamic shadow or light costs")
     check(front._bottom_navigation.get_child_count()==5 and
-        front._left_shortcuts.get_child_count()==5 and
+        front._left_shortcuts.get_child_count()==4 and
+        front._left_shortcuts.has_node("QuickMISSIONS") and
+        not front._left_shortcuts.has_node("QuickACHIEVEMENTS") and
         not front._top_social_button.is_visible_in_tree() and
         front._mode_gallery_entry==null,
         "visual polish recreated duplicate lobby actions")
