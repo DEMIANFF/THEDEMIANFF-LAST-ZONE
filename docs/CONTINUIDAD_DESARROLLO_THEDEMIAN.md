@@ -30,6 +30,25 @@ El catálogo incluye rutas opcionales que solo representan integración si el GL
 
 El [inventario por original](aurora-v3/INVENTARIO_FUENTES_Y_DERIVADOS_113.csv) cruza los 33 nombres de `AURORA_AUDITORIA_33_ASSETS.csv` y las 80 entradas de `AURORA_V3_INVENTARIO_80.json` con los SHA de `COMPLETE_ASSET_LEDGER_148.json`, los manifiestos de derivados y los archivos de esta revisión. Contiene 113 filas y 108 SHA distintos. Los nombres de las pruebas señalan qué verificar. El 25 de noviembre se leyeron los 24 ZIP V3 y los ocho ZIP V2. Se reconstruyeron en orden los archivos partidos. Coincidieron los SHA-256 recalculados para los 80 originales V3 y los 11 originales incluidos en estos ZIP V2. En las otras 22 filas V2 figura la huella de la auditoría anterior. El inventario conserva los ZIP y miembros exactos, el tamaño verificado y la evidencia por fila. Una ruta opcional con el GLB ausente tiene ese estado explícito. El audio de disparo asignado a la P90 es `dennish18-machine-gun-129928.mp3`; falta acreditar el archivo y revisar el audio propio de recarga. La adenda de la canción y la del avión/granada se auditan fuera de estas 113 entradas.
 
+## Adendas comprobadas en los archivos recuperados
+
+| Archivo | SHA-256 medido | Uso y estado |
+|---|---|---|
+| `AURORA_AVION_SOBREVUELO_TRANSICION.ogg` | `875bc4e8f50dcd00d9fd7e93e586e60bf2e2914a8bdf53eb8d6fa5a0a6065aa9` | Conversión verificada en el ZIP. El instalador es opcional y el medio está ausente de la revisión pública. |
+| `AURORA_GRANADA_EXPLOSION.ogg` | `f6a973a97bf366db7491283e13e1c63a9eb6a5830d014cb51972fc1c3cf49e0f` | Conversión verificada en el ZIP. El instalador es opcional y el medio está ausente de la revisión pública. |
+| `freesound_community-hq-explosion-6288.mp3` | `aca0d73a429c99709c42d3f310a4a2baecaab2bf962c4c973e6540a7c313a7ae` | Original del efecto, cotejado con el manifiesto de granada y avión. |
+| `storegraphic-deep-long-air-transition-311051.mp3` | `f70ea2b63b16b092f09d2298529adf8ef2bd3165df9d0bdf5d1c1cf0599c9487` | Original del efecto, cotejado con el manifiesto de granada y avión. |
+| `freesound_community-walking-46245.mp3` | `8bd34b2e6a38829e728eb3f65821dc1516992bd353db2781588c61c4c3b5b571` | Grabación de pasos de la adenda. El juego dispone de lógica de reproducción y mezcla de reserva. |
+| `freeeverythingxx-running-on-concrete-268478.mp3` | `3ac5acd848e0c34808122b087a5f000893d100fc685122413279d67edd41fffe` | Grabación de pasos de la adenda. El juego dispone de lógica de reproducción y mezcla de reserva. |
+| `siff.glb` | `53e39259ccbcf83ce749da6f688e19bbdf0485fa1f10bd40371c9776bfaac2cb` | Modelo de la adenda con 141 articulaciones. El operador del juego conserva el original rigged-model.glb. |
+
+
+La [MP5 de JUST](https://sketchfab.com/3d-models/animated-mp5-19278d5f4a334f4abf320bc303ff9be1) identifica a tnnv como autor de la malla. La [ficha del original de tnnv](https://api.sketchfab.com/v3/models/25c2dac7d675420a9511e040f2a8e462) declara CC BY-NC 4.0. Se retiene la entrada privada de inventario. La SCAR instalada procede de [JUST](https://sketchfab.com/3d-models/animated-scar-5e64d6245bba4a819b9fef578c34b3fe) con geometría de [notcplkerry](https://sketchfab.com/notcplkerry), CC BY 4.0. El derivado combina materiales, simplifica la malla y excluye los brazos de primera persona.
+
+La fuente del [HK416 de r4m](https://api.sketchfab.com/v3/models/a16768f0ffa24737a4fe324a411cfbd9) y la del [VSS de DOSOWERT](https://api.sketchfab.com/v3/models/82fc1c6264434ede987079a834b1994b) declaran CC BY 4.0. Los nombres opcionales del catálogo se conservan hasta montar y validar los derivados correspondientes.
+
+El PDF maestro de 13 páginas, edición del 13 de noviembre, organiza 1.000 entregables en 20 áreas. Su base histórica era V75.59. La guía de 29 apartados es otra orden de trabajo. Los ocho apartados finales de esa orden siguen pendientes de recuperar palabra por palabra. La instrucción de continuidad del 25 de noviembre mantiene el ámbito vigente, incluida la validación física, el servicio multijugador y la protección de las ramas.
+
 ## Revisión de referencia
 
 La [revisión descargada de V75.189](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/45692175634) recalculó el SHA-256 de la APK y reunió seis posturas del juego. En la vista lateral de AWM el arma se mantiene horizontal. De frente se distingue la separación de los pies. Con la MP40 agachada el tronco queda muy inclinado y la pelvis alta; esta imagen justifica el cambio de postura de V75.190. Las imágenes proceden de Godot de escritorio.
