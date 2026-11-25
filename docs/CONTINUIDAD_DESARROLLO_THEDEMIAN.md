@@ -28,6 +28,12 @@ Los archivos de referencia son `AURORA_V3_INVENTARIO_80.json`, `MENSAJE_MAESTRO_
 
 El catálogo incluye rutas opcionales que solo representan integración si el GLB está presente, se importa, se usa en el juego y pasa su prueba. El audio dedicado de la P90, las licencias de los candidatos y la aparición de cada modelo en armería y combate deben comprobarse individualmente.
 
+El [inventario por original](aurora-v3/INVENTARIO_FUENTES_Y_DERIVADOS_113.csv) cruza los 33 nombres de `AURORA_AUDITORIA_33_ASSETS.csv` y las 80 entradas de `AURORA_V3_INVENTARIO_80.json` con los SHA de `COMPLETE_ASSET_LEDGER_148.json`, los manifiestos de derivados y los archivos de esta revisión. Contiene 113 filas y 108 SHA distintos. Los nombres de las pruebas señalan qué verificar. Los SHA originales provienen de las auditorías de recuperación. Una ruta opcional con el GLB ausente tiene ese estado explícito. El audio de disparo asignado a la P90 es `dennish18-machine-gun-129928.mp3`; falta acreditar el archivo y revisar el audio propio de recarga. La adenda de la canción y la del avión/granada se auditan fuera de estas 113 entradas.
+
+## Revisión de referencia
+
+La [revisión descargada de V75.189](https://github.com/DEMIANFF/THEDEMIANFF-LAST-ZONE/actions/runs/45692175634) recalculó el SHA-256 de la APK y reunió seis posturas del juego. En la vista lateral de AWM el arma se mantiene horizontal. De frente se distingue la separación de los pies. Con la MP40 agachada el tronco queda muy inclinado y la pelvis alta; esta imagen justifica el cambio de postura de V75.190. Las imágenes proceden de Godot de escritorio.
+
 ## Próxima tarea exacta
 
 Se añadió descenso de pelvis al modificador de contacto con compensación de ambas piernas en la misma pasada, separación gradual del arma respecto al torso de pie y muestreo de cabeza en el esqueleto final. La regresión conserva el mínimo de 0,35 m. La captura del lobby recorre todos los modelos instalados y comprueba el recurso mostrado, incluidos KRISS y P90. Las capturas de combate parten del personaje apoyado en el terreno. Se conserva el GLB publicado de Lila.
