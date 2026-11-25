@@ -32,13 +32,17 @@ func _capture() -> void:
     combat.open_training_armory()
     for kind in ["weapon_scar","weapon_mp40","weapon_kriss"]:
         combat.collect_sector_loot(kind)
+    combat.collect_sector_loot("weapon_p90")
     var poses: Array[Dictionary]=[
         {"name":"ar-front","slot":0,"clip":"AuroraArmedIdle","camera":Vector3(1.5,1.2,-3.3)},
         {"name":"awm-front","slot":1,"clip":"AuroraArmedIdle","camera":Vector3(1.5,1.2,-3.3)},
         {"name":"awm-side","slot":1,"clip":"AuroraAimAWM","camera":Vector3(3.1,1.2,-.9)},
         {"name":"scar-front","slot":2,"clip":"AuroraArmedIdle","camera":Vector3(1.5,1.2,-3.3)},
         {"name":"mp40-crouch","slot":3,"clip":"AuroraCrouch","camera":Vector3(1.5,1.2,-3.3)},
-        {"name":"vector-walk","slot":4,"clip":"AuroraArmedWalk","camera":Vector3(1.5,1.2,-3.3)}]
+        {"name":"vector-walk","slot":4,"clip":"AuroraArmedWalk","camera":Vector3(1.5,1.2,-3.3)},
+        {"name":"p90-front","slot":6,"clip":"AuroraArmedIdle","camera":Vector3(1.5,1.2,-3.3)},
+        {"name":"p90-side","slot":6,"clip":"AuroraAim","camera":Vector3(3.1,1.2,-.9)},
+        {"name":"p90-crouch","slot":6,"clip":"AuroraCrouch","camera":Vector3(1.5,1.2,-3.3)}]
     for pose in poses:
         combat._equip_inventory_weapon(int(pose.slot))
         player.set_equipped_weapon(int(pose.slot))
