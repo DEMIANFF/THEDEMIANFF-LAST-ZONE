@@ -38,6 +38,32 @@ func _verify() -> void:
         not front._preview_caption.visible,
         "obsolete arrows, VISTA, GESTO or nameplate still block character")
 
+    var animator: AnimationPlayer=avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
+    check(animator!=null and int(animator.get_meta("aurora_lobby_planted_tracks",0))>=9,
+        "lobby did not inherit corrected lower-body stance")
+    if animator!=null and animator.has_animation("AuroraIdle"):
+        var idle: Animation=animator.get_animation("AuroraIdle")
+        var planted: Animation=animator.get_animation("AuroraArmedIdle")
+        for i in range(planted.get_track_count()):
+            var path: NodePath=planted.track_get_path(i)
+            var type: Animation.TrackType=planted.track_get_type(i)
+            if path.get_subname_count()==0 or type not in [Animation.TYPE_ROTATION_3D,Animation.TYPE_POSITION_3D] or planted.track_get_key_count(i)==0:
+                continue
+            if str(path.get_subname(0)) not in ["Hips","LeftUpLeg","RightUpLeg","LeftLeg","RightLeg","LeftFoot","RightFoot","LeftToeBase","RightToeBase"]:
+                continue
+            var track: int=idle.find_track(path,type)
+            check(track>=0,"missing planted lower-body track "+str(path))
+            if track>=0:
+                check(idle.track_get_key_count(track)==2 and
+                    idle.track_get_key_value(track,0)==planted.track_get_key_value(i,0) and
+                    idle.track_get_key_value(track,1)==planted.track_get_key_value(i,0),
+                    "lobby idle drifts away from planted pose "+str(path))
+        check(animator.get_node_or_null("LobbyGestureTimer")==null,
+            "automatic emote still interrupts neutral lobby pose")
+        front._play_lobby_gesture()
+        check(animator.current_animation=="aurora_lobby/Motion",
+            "explicit gesture no longer works")
+        animator.play("AuroraIdle")
     var original: float=avatar.rotation.y
     var press:=InputEventMouseButton.new()
     press.button_index=MOUSE_BUTTON_LEFT

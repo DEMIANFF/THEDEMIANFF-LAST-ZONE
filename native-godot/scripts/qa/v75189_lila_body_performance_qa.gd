@@ -87,6 +87,23 @@ func _verify() -> void:
     check(absf((bones["LeftToeBase"] as Vector3).y-(bones["RightToeBase"] as Vector3).y)<.035,
         "crouch feet lost equal ground contact")
     print("V75190_CROUCH pelvis_drop_m=",pelvis_drop," torso_deg=",rad_to_deg(torso.angle_to(Vector3.UP)))
+    # The device video shows a lifted knee persisting for seconds while
+    # the joystick is neutral. Sample the settled crouch throughout time,
+    # not just one lucky frame. No forced pose or edited bone positions.
+    for sample in range(8):
+        for frame in range(15):
+            await physics_frame
+        check(player._current_clip=="AuroraCrouch" and player.is_on_floor(),
+            "stationary crouch drifted into locomotion")
+        check(absf((bones["LeftToeBase"] as Vector3).y-(bones["RightToeBase"] as Vector3).y)<.035,
+            "stationary crouch left one foot raised at sample "+str(sample))
+        for side in ["Left","Right"]:
+            var joint: Vector3=bones[side+"Leg"]
+            var upper: Vector3=(bones[side+"UpLeg"] as Vector3)-joint
+            var lower: Vector3=(bones[side+"Foot"] as Vector3)-joint
+            var angle: float=rad_to_deg(upper.angle_to(lower))
+            check(angle>60.0 and angle<150.0,
+                "stationary crouch knee angle out of range "+side+" "+str(angle))
     player.set_touch_move_axis(Vector2(0,-1))
     for frame in range(24):
         await physics_frame
