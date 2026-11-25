@@ -26,7 +26,10 @@ jobs:
       - uses: actions/checkout@v5
       # Fail fast on version metadata, before Blender, Godot and Android setup.
       - name: Preflight Mobile/Vulkan preview version, ABI and export path
-        run: python3 native-godot/tools/configure_android_renderer.py --variant mobile
+        run: |
+          python3 native-godot/tools/configure_android_renderer.py --variant mobile
+          # Preserve the validated code across export setup without an obsolete version pin.
+          sed -n 's/^version\/code=/AURORA_VERSION_CODE=/p' native-godot/export_presets.cfg >> "$GITHUB_ENV"
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -497,7 +500,7 @@ jobs:
           python3 native-godot/tools/configure_android_renderer.py --variant mobile
           grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
           grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
-          grep -Fx 'version/code=178' native-godot/export_presets.cfg
+          grep -Fx "version/code=${AURORA_VERSION_CODE}" native-godot/export_presets.cfg
           godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.190-MOTOROLA-VULKAN.apk
           test -s native-godot/out/THEDEMIAN-V75.190-MOTOROLA-VULKAN.apk
       - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
