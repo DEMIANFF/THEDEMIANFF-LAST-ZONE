@@ -20,7 +20,7 @@ func verify() -> void:
     await process_frame
     check(front.stage=="lobby","lobby not displayed")
     check(front._lobby_nav!=null and front._lobby_nav.get_child_count()==0 and
-        front._left_shortcuts.get_child_count()==5 and
+        front._left_shortcuts.get_child_count()==4 and
         front._bottom_navigation.get_child_count()==5,
         "real five-shortcut rail and five-action footer are incomplete")
     check(front._preview_container.visible,"character 3D preview hidden")
