@@ -20,6 +20,11 @@ func _verify() -> void:
     game.get_node("AuroraSectorMatch").set_process(false)
     for bot in combat._targets:
         bot.set_physics_process(false)
+        var budget: Node=bot._rig.get_node_or_null("EnemyAnimationBudget")
+        check(budget!=null,"ordinary enemy bypasses animation evaluation budget")
+        check(bot._animation.callback_mode_process==
+            AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL,
+            "ordinary enemy animator still advances outside its budget")
     var platform:=StaticBody3D.new()
     var collider:=CollisionShape3D.new()
     collider.shape=BoxShape3D.new()
@@ -47,6 +52,22 @@ func _verify() -> void:
     var right_toe: Vector3=bones["RightToeBase"]
     check(absf(left_toe.y-right_toe.y)<.035,"standing soles do not share ground contact")
     print("V75189_STANCE feet_m=",separation," toe_height_delta_m=",absf(left_toe.y-right_toe.y))
+    # A physical slope must change foot contact, not the capsule scale or
+    # just an arbitrary root offset. Check both uphill directions.
+    for angle in [.18,-.18]:
+        platform.rotation.z=angle
+        for frame in range(45):
+            await physics_frame
+        left=bones["LeftFoot"]
+        right=bones["RightFoot"]
+        check(player.is_on_floor(),"slope correction lost physical floor contact")
+        check(absf((left.y-right.y)-(left.x-right.x)*tan(angle))<.025,
+            "ankle heights do not follow physical slope")
+        check(player._body_contact.foot_errors.max()<.025,
+            "slope foot target outside acceptable contact tolerance")
+    platform.rotation.z=0.0
+    for frame in range(45):
+        await physics_frame
     # Test actual support geometry with the existing five installed weapons.
     combat.open_training_armory()
     for kind in ["weapon_scar","weapon_mp40","weapon_kriss"]:

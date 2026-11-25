@@ -436,6 +436,10 @@ func _create_full_rig() -> void:
     if _animation:
         _animation.play("AuroraIdle")
         _animation.advance(.16)
+        var budget:=ANIMATION_BUDGET.new()
+        budget.name="EnemyAnimationBudget"
+        _rig.add_child(budget)
+        budget.configure(_animation,self,operator)
     _attach_original_hand_rifle()
 
 
