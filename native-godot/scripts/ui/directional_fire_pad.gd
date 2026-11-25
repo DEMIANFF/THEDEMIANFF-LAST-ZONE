@@ -7,6 +7,7 @@ signal released
 signal look_dragged(relative: Vector2)
 
 const RADIUS: float = 64.0
+const HUD_ICON=preload("res://scripts/ui/hud_action_icon.gd")
 var _finger: int = -1
 var _mouse: bool = false
 var _last_point: Vector2 = Vector2.ZERO
@@ -21,18 +22,18 @@ func _ready() -> void:
 
 
 func _draw() -> void:
-    var center: Vector2 = size * 0.5
-    var glow: Color = Color(.90, .35, .20, .30 if _finger < 0 and not _mouse else .57)
-    draw_circle(center, RADIUS, Color(.20,.05,.045,.45))
-    draw_circle(center, RADIUS - 8.0, glow)
-    draw_arc(center, RADIUS, 0, TAU, 60, Color(1,.83,.76,.94), 3.0, true)
-    var at: Vector2 = center + _knob
-    draw_circle(at, 29.0, Color(1.0,.79,.70,.77))
-    draw_line(at + Vector2(-14,0), at + Vector2(14,0), Color(.20,.08,.06), 2.5)
-    draw_line(at + Vector2(0,-14), at + Vector2(0,14), Color(.20,.08,.06), 2.5)
-    draw_circle(at, 4.0, Color(.20,.08,.06))
-    if _finger >= 0 or _mouse:
-        draw_arc(at, 38, .1, TAU-.1, 36, Color(1,.97,.83,.9), 2.0)
+    var center: Vector2=size*.5
+    var held: bool=_finger>=0 or _mouse
+    var radius: float=minf(RADIUS,minf(size.x,size.y)*.5-3.0)
+    draw_circle(center,radius,Color(.025,.045,.065,.48 if not held else .75))
+    draw_arc(center,radius,0,TAU,60,Color(.92,.96,1.0,.82),2.0,true)
+    var at: Vector2=center+_knob
+    var texture: Texture2D=HUD_ICON.texture_for("fire")
+    if texture!=null:
+        var side: float=radius*1.28
+        draw_texture_rect(texture,Rect2(at-Vector2.ONE*side*.5,Vector2.ONE*side),false,Color.WHITE)
+    if held:
+        draw_arc(center,radius-4.0,0,TAU,48,Color(.32,.87,1.0,.95),3.0,true)
 
 
 func _gui_input(event: InputEvent) -> void:

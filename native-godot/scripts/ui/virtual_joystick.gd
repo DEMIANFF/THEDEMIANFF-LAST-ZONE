@@ -15,10 +15,10 @@ func _ready() -> void:
 
 func _draw() -> void:
     var center: Vector2=_origin if _finger>=0 or _mouse else size*.5
-    draw_circle(center,RADIUS,Color(.06,.22,.30,.35))
-    draw_arc(center,RADIUS,0.0,TAU,48,Color(.7,.94,1,.85),2.0,true)
+    draw_circle(center,RADIUS,Color(.025,.045,.065,.34))
+    draw_arc(center,RADIUS,0.0,TAU,48,Color(.90,.96,1,.65),2.0,true)
     var knob: Vector2=center+_axis*RADIUS*.67
-    draw_circle(knob,29.0,Color(.15,.60,.72,.55))
+    draw_circle(knob,29.0,Color(.74,.84,.90,.34))
     draw_arc(knob,29.0,0.0,TAU,40,Color(.90,.98,1,.90),2.0,true)
 
 func _gui_input(event: InputEvent) -> void:

@@ -66,6 +66,19 @@ func _verify() -> void:
         "physically collected medical and grenade actions not available")
     hud.set_air_stage("ground")
     hud.set_match_controls(true)
+    check(hud._quick_weapon_items.has(int(inventory["active_weapon"])) and
+        hud._quick_weapons.visible,
+        "quick equipment strip not bound to actual owned active weapon")
+    var target: Button=null
+    for button in hud._quick_weapon_buttons:
+        if button.visible and not button.disabled:
+            target=button
+            break
+    if target!=null:
+        var chosen: int=int(target.get_meta("weapon_slot"))
+        target.pressed.emit()
+        check(combat.weapon_index==chosen and hud._quick_weapon_active==chosen,
+            "direct weapon card did not equip the real owned gun")
     hud._toggle_inventory()
     await process_frame
     var panel: Control=hud._inventory_panel
@@ -84,8 +97,8 @@ func _verify() -> void:
     check(not panel.visible,"close button leaves inventory blocking combat")
     hud._toggle_inventory()
     hud.set_air_stage("aircraft")
-    check(not panel.visible,
-        "inventory was not closed before aircraft/freefall")
+    check(not panel.visible and not hud._quick_weapons.visible,
+        "inventory or quick weapon strip leaked into aircraft/freefall")
     root.size=Vector2i(1280,720)
     await process_frame
     hud._layout()

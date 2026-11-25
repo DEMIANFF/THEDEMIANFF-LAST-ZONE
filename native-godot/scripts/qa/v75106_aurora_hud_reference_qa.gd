@@ -41,7 +41,7 @@ func _verify() -> void:
         "Aurora preset did not activate slot 4")
     var active: RefCounted=HUD_LAYOUT.new(HUD_LAYOUT.slot_path(4))
     check(active.loaded and active.controls.size()==HUD_LAYOUT.IDS.size(),
-        "Aurora preset failed to persist all 14 touch actions")
+        "Aurora preset failed to persist all 15 touch actions")
     check(HUD_LAYOUT.choose_preset(1)==OK,"cannot inspect original HUD slot")
     var original_after: RefCounted=HUD_LAYOUT.new()
     check(original_after.controls==original_snapshot,
@@ -78,6 +78,21 @@ func _verify() -> void:
         if control!=null:
             check(safe.grow(1.5).encloses(control.get_global_rect()),
                 "Aurora HUD touch action outside Motorola bounds: "+id)
+    var icon_script=preload("res://scripts/ui/hud_action_icon.gd")
+    for id in ["MIRA","RECARGA","ARMA","CORRER","SALTAR","AGACHAR",
+            "CURAR 2","BARRERA 0","GRANADA","MOCHILA","AJUSTES"]:
+        var button: Button=hud.hud_editor_target(id) as Button
+        var art: Control=button.get_node_or_null("AuroraActionIcon") as Control
+        check(art!=null and art.mouse_filter==Control.MOUSE_FILTER_IGNORE and
+            button.get_theme_color("font_color").a==0.0 and
+            icon_script.texture_for(str(icon_script.IDS[id]))!=null,
+            "illustrated action missing or intercepts input: "+id)
+    check(icon_script.texture_for("fire")!=null,
+        "directional fire lacks its original vector icon")
+    hud.open_hud_editor()
+    check(hud._hud_editing and hud._grenade_button.visible,
+        "granade icon cannot be edited in training")
+    hud._hud_edit_close()
     var pad: Control=hud.hud_editor_target("MovePad")
     var trigger: Control=hud.hud_editor_target("DirectionalFirePad")
     if pad!=null and trigger!=null:
@@ -101,5 +116,5 @@ func _verify() -> void:
     front.queue_free()
     HUD_LAYOUT.choose_preset(original_slot)
     if not failed:
-        print("V75106_AURORA_HUD PASS preset4=14 controls saved preserved=1 mobile_bounds=1 shop_to_play=1")
+        print("V75106_AURORA_HUD PASS preset4=15 controls saved preserved=1 mobile_bounds=1 shop_to_play=1")
     quit(1 if failed else 0)

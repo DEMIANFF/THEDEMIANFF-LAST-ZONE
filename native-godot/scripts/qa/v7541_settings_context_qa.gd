@@ -2,6 +2,7 @@ extends SceneTree
 ## HUD editor must return to its actual origin. Match settings must pause,
 ## apply changes, and resume the exact world without a new training match.
 const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
+const HUD_ICON=preload("res://scripts/ui/hud_action_icon.gd")
 var failed: bool=false
 
 
@@ -77,9 +78,15 @@ func _verify() -> void:
         var button: Button=root_hud.get_node(name) as Button
         check(absf(button.size.x-button.size.y)<.1,
             "gameplay action "+name+" is still rectangular")
-        var skin: StyleBoxFlat=button.get_theme_stylebox("normal") as StyleBoxFlat
-        check(skin.corner_radius_top_left>=40,
-            "button "+name+" has no circular touch silhouette")
+        var art: Control=button.get_node_or_null("AuroraActionIcon") as Control
+        check(button.get_theme_stylebox("normal") is StyleBoxEmpty and
+            art!=null and art.mouse_filter==Control.MOUSE_FILTER_IGNORE and
+            button.get_theme_color("font_color").a==0.0 and
+            HUD_ICON.texture_for(str(HUD_ICON.IDS.get(name,"")))!=null,
+            "button "+name+" lacks non-intercepting illustrated circular skin")
+        if art!=null:
+            check(art.action==HUD_ICON.IDS[name],
+                "button "+name+" has the wrong action pictogram")
     check(hud._settings_button!=null and hud._settings_button.visible,
         "no settings button available during live training")
 

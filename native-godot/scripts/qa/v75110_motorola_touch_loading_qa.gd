@@ -63,8 +63,10 @@ func _verify() -> void:
     check(not front._top_social_button.is_visible_in_tree() and
         front._bottom_navigation.get_node_or_null("BottomSOCIAL")!=null,
         "obsolete header SOCIAL is interactable or footer SOCIAL missing")
-    check(front._left_shortcuts.get_child_count()==5,
-        "six functional Aurora commerce shortcuts are missing")
+    check(front._left_shortcuts.get_child_count()==4 and
+        front._left_shortcuts.has_node("QuickMISSIONS") and
+        not front._left_shortcuts.has_node("QuickACHIEVEMENTS"),
+        "four functional Aurora commerce shortcuts or merged objectives missing")
     var previous_bottom: float=-1.0
     for node in front._left_shortcuts.get_children():
         var button:=node as Button
@@ -82,6 +84,11 @@ func _verify() -> void:
     await _tap(store)
     check(front._selected_tab=="TIENDA" and front._shop_selector.visible,
         "native screen touch on left rail did not open the store")
+    var missions: Button=front._left_shortcuts.get_node("QuickMISSIONS") as Button
+    await _tap(missions)
+    check(front._selected_tab=="OBJETIVOS" and
+        front._objective_selector.visible and front._objective_selector.tab_count==2,
+        "native touch did not open shared missions/achievements page")
     var play: Button=front._bottom_navigation.get_node("BottomJUGAR") as Button
     _check_target(play,safe)
     await _tap(play)

@@ -32,9 +32,14 @@ const TACTICAL_MAP=preload("res://scripts/ui/aurora_tactical_map.gd")
 const DAMAGE_COMPASS=preload("res://scripts/ui/aurora_damage_compass.gd")
 const HUD_LAYOUT=preload("res://scripts/persistence/hud_layout.gd")
 const HUD_EDITOR=preload("res://scripts/ui/hud_edit_surface.gd")
+const HUD_ICON=preload("res://scripts/ui/hud_action_icon.gd")
 
 var _weapon: Label
 var _ammo: Label
+var _quick_weapons: HBoxContainer
+var _quick_weapon_buttons: Array[Button]=[]
+var _quick_weapon_items: Dictionary={}
+var _quick_weapon_active: int=-1
 var _status: Label
 var _fps: Label
 var _compass: Label
@@ -179,6 +184,7 @@ func _ready() -> void:
 
     _weapon = _text(root, "AR-7  /  ASALTO",.76,.085,21,Color(.90,.96,1),HORIZONTAL_ALIGNMENT_RIGHT)
     _ammo = _text(root, "30 / 180",.79,.137,22,Color(1,.79,.49),HORIZONTAL_ALIGNMENT_RIGHT)
+    _build_quick_weapons(root)
     _fps = _text(root,"FPS —",.865,.028,13,Color(.67,.94,.81),HORIZONTAL_ALIGNMENT_RIGHT)
     _compass=_text(root,"N 000°",.45,.025,18,Color(.87,.97,1),HORIZONTAL_ALIGNMENT_CENTER)
     _compass.name="CameraHeading"
@@ -619,6 +625,18 @@ func _button(root: Control,label: String,x: float,y: float,w: float,h: float,col
     if up.is_valid():
         button.button_up.connect(up)
     root.add_child(button)
+    if HUD_ICON.IDS.has(label):
+        # Preserve the actual Button and legacy text/ID contracts. The
+        # child alone paints the icon and cannot intercept multitouch.
+        for state in ["normal","hover","pressed","disabled","focus","hover_pressed"]:
+            button.add_theme_stylebox_override(state,StyleBoxEmpty.new())
+        for state in ["font_color","font_hover_color","font_pressed_color","font_focus_color","font_disabled_color","font_hover_pressed_color","font_outline_color"]:
+            button.add_theme_color_override(state,Color.TRANSPARENT)
+        button.tooltip_text=label
+        var art: Control=HUD_ICON.new()
+        art.name="AuroraActionIcon"
+        art.action=HUD_ICON.IDS[label]
+        button.add_child(art)
     return button
 
 
@@ -685,7 +703,6 @@ func _refresh_grenade_button() -> void:
     _grenade_button.visible=live or _hud_editing
     _grenade_button.disabled=not live or _grenade_count<=0 or _hud_editing
     _grenade_button.text="GRANADA\n%d"%_grenade_count
-    _grenade_button.modulate.a=1.0 if _hud_editing else _grenade_button.modulate.a
 
 
 func set_air_stage(value: String) -> void:
@@ -727,6 +744,7 @@ func set_air_stage(value: String) -> void:
         _status.text="AURORA / "+("RUTA AÉREA" if value=="aircraft" else "CAÍDA LIBRE" if value=="freefall" else "ATERRIZAJE")
     _layout()
     _refresh_grenade_button()
+    _refresh_quick_weapons()
     if _battle_status and airborne and value!="aircraft":
         _battle_status.text=(
             "CAÍDA LIBRE / ABRE PARACAÍDAS" if value=="freefall"
@@ -913,6 +931,7 @@ func set_vehicle_context(can_enter: bool,driving: bool,speed_kmh: float) -> void
     var was_driving: bool=_driving_vehicle
     _driving_vehicle=driving
     _refresh_grenade_button()
+    _refresh_quick_weapons()
     if _vehicle_action_button==null:
         return
     _vehicle_action_button.visible=driving or can_enter
@@ -1012,6 +1031,7 @@ func set_aurora_cover_count(charges: int,cooldown: float=0.0) -> void:
     _cover_cooldown=maxf(0.0,cooldown)
     if _cover_button:
         _cover_button.text="BARRERA %d"%_cover_charges
+        _cover_button.set_meta("hud_cooldown",_cover_cooldown)
         _cover_button.disabled=_cover_charges<=0 or _cover_cooldown>0.0 or air_stage!="ground"
 
 
@@ -1099,7 +1119,105 @@ func set_supply_search_progress(progress: float,active: bool) -> void:
         _supply_locker_caption.hide()
 
 
+## Three bounded, direct equipment shortcuts. These are a projection of
+## owned weapon IDs, never another inventory or an ammunition authority.
+func _build_quick_weapons(root: Control) -> void:
+    _quick_weapons=HBoxContainer.new()
+    _quick_weapons.name="QuickWeaponStrip"
+    _quick_weapons.mouse_filter=Control.MOUSE_FILTER_IGNORE
+    _quick_weapons.add_theme_constant_override("separation",4)
+    root.add_child(_quick_weapons)
+    for i in range(3):
+        var button:=Button.new()
+        button.name="QuickWeapon%d"%i
+        button.custom_minimum_size=Vector2(88,42)
+        button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+        button.focus_mode=Control.FOCUS_NONE
+        button.add_theme_font_size_override("font_size",11)
+        button.add_theme_constant_override("icon_max_width",32)
+        button.add_theme_constant_override("h_separation",3)
+        button.pressed.connect(_equip_quick_weapon.bind(button))
+        button.visible=false
+        _quick_weapons.add_child(button)
+        _quick_weapon_buttons.append(button)
+
+func _equip_quick_weapon(button: Button) -> void:
+    if _hud_editing or air_stage!="ground" or _driving_vehicle or not _grenade_controls_enabled:
+        return
+    if (_map_overlay!=null and _map_overlay.visible) or (_inventory_panel!=null and _inventory_panel.visible):
+        return
+    var slot: int=int(button.get_meta("weapon_slot",-1))
+    if slot>=0 and _quick_weapon_items.has(slot) and slot!=_quick_weapon_active:
+        inventory_equip_requested.emit(slot)
+
+func _update_quick_weapons(items: Dictionary) -> void:
+    _quick_weapon_items.clear()
+    for slot in [0,1]:
+        var prefix: String="ar" if slot==0 else "awm"
+        if bool(items.get(prefix+"_owned",false)):
+            _quick_weapon_items[slot]={"loaded":int(items.get(prefix+"_loaded",0)),"reserve":int(items.get(prefix+"_reserve",0))}
+    var additions: Dictionary=items.get("additions",{})
+    for slot in additions:
+        var id: int=int(slot)
+        if id>=2 and id<EXPANSION_WEAPONS.ENTRIES.size():
+            _quick_weapon_items[id]=additions[slot]
+    _quick_weapon_active=int(items.get("active_weapon",-1))
+    _refresh_quick_weapons()
+
+func _refresh_quick_weapons() -> void:
+    if not is_instance_valid(_quick_weapons):
+        return
+    var owned: Array=_quick_weapon_items.keys()
+    owned.sort()
+    var shown: Array=owned.slice(0,3)
+    if _quick_weapon_items.has(_quick_weapon_active) and not shown.has(_quick_weapon_active):
+        if shown.size()>=3:
+            shown[2]=_quick_weapon_active
+        else:
+            shown.append(_quick_weapon_active)
+    var live: bool=air_stage=="ground" and not _driving_vehicle and _grenade_controls_enabled
+    _quick_weapons.visible=(live and not shown.is_empty()) or _hud_editing
+    for i in range(_quick_weapon_buttons.size()):
+        var button: Button=_quick_weapon_buttons[i]
+        var real: bool=i<shown.size()
+        button.visible=real or _hud_editing
+        var slot: int=int(shown[i]) if real else -1
+        button.set_meta("weapon_slot",slot)
+        button.disabled=not real or not live or _hud_editing or slot==_quick_weapon_active
+        if not real:
+            button.text="—"
+            button.icon=null
+            continue
+        var counts: Dictionary=_quick_weapon_items[slot]
+        var name: String=str(EXPANSION_WEAPONS.ENTRIES[slot]["short"])
+        if slot==EXPANSION_WEAPONS.KRISS:
+            name="VECTOR"
+        button.text="%s\n%d/%d"%[name,int(counts.get("loaded",0)),int(counts.get("reserve",0))]
+        if slot==EXPANSION_WEAPONS.KNIFE:
+            button.text=name+"\n—"
+        var key: String="rifle"
+        if slot==EXPANSION_WEAPONS.KNIFE:
+            key="knife"
+        elif slot==EXPANSION_WEAPONS.MAGNUM:
+            key="pistol"
+        elif slot in [EXPANSION_WEAPONS.AWM,EXPANSION_WEAPONS.SNIPER]:
+            key="sniper"
+        button.icon=HUD_ICON.texture_for(key)
+        # Only state changes allocate a new skin, not every ammo update.
+        var active: bool=slot==_quick_weapon_active
+        if not button.has_meta("quick_active_style") or bool(button.get_meta("quick_active_style"))!=active:
+            button.set_meta("quick_active_style",active)
+            var skin:=StyleBoxFlat.new()
+            skin.bg_color=Color(.10,.25,.32,.88) if active else Color(.025,.045,.065,.63)
+            skin.border_color=Color(.42,.93,1.0,.96) if active else Color(.73,.83,.88,.55)
+            skin.set_border_width_all(2 if active else 1)
+            skin.set_corner_radius_all(5)
+            for state in ["normal","hover","pressed","disabled","focus"]:
+                button.add_theme_stylebox_override(state,skin)
+            button.add_theme_color_override("font_disabled_color",Color(.95,.98,1.0))
+
 func set_inventory_snapshot(items: Dictionary) -> void:
+    _update_quick_weapons(items)
     if _inventory_label==null:
         return
     for key in _inventory_tiles:
@@ -1480,9 +1598,10 @@ func _layout() -> void:
     _place(_battle_status,Rect2(origin+Vector2(w*.5-220,37),Vector2(440,30)))
     _place(_ground_intel,Rect2(origin+Vector2(w*.5-165,83),Vector2(330,23)))
     _place(_battle_button,Rect2(origin+Vector2(w*.5-90,64),Vector2(180,46)))
-    _place(_exit_button,Rect2(origin+Vector2(w-107,108),Vector2(78,78)))
-    _place(_settings_button,Rect2(origin+Vector2(w-194,108),Vector2(78,78)))
-    _place(_inventory_button,Rect2(origin+Vector2(w-281,108),Vector2(78,78)))
+    _place(_exit_button,Rect2(origin+Vector2(184,12),Vector2(54,54)))
+    _place(_settings_button,Rect2(origin+Vector2(244,12),Vector2(54,54)))
+    _place(_quick_weapons,Rect2(origin+Vector2(w-302,80),Vector2(280,44)))
+    _place(_inventory_button,Rect2(origin+Vector2(280,h-275),Vector2(70,70)))
     _place(_supply_locker_button,Rect2(
         origin+Vector2(w*.5-80,h-158),Vector2(135,67)))
     _place(_supply_locker_caption,Rect2(
@@ -1506,7 +1625,7 @@ func _layout() -> void:
     _place(_hit,Rect2(origin+Vector2(w*.5-300,128),Vector2(600,50)))
     _hit.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
     _place(root.get_node("MovePad"),Rect2(origin+Vector2(40,h-235),Vector2(210,210)))
-    _place(_run_button,Rect2(origin+Vector2(96,h-341),Vector2(90,90)))
+    _place(_run_button,Rect2(origin+Vector2(190,h-321),Vector2(78,78)))
     _place(_vehicle_action_button,Rect2(
         origin+Vector2(w*.5-40,h-159),Vector2(88,80)))
     _place(_vehicle_speed_label,Rect2(
@@ -1516,9 +1635,9 @@ func _layout() -> void:
     _place(root.get_node("RECARGA"),Rect2(origin+Vector2(w-314,h-186),Vector2(76,76)))
     _place(root.get_node("ARMA"),Rect2(origin+Vector2(w-230,h-106),Vector2(76,76)))
     _place(_crouch_button,Rect2(origin+Vector2(w-421,h-190),Vector2(78,78)))
-    _place(_medkit_button,Rect2(origin+Vector2(w-421,h-99),Vector2(78,78)))
+    _place(_medkit_button,Rect2(origin+Vector2(280,h-105),Vector2(74,74)))
     _place(_cover_button,Rect2(origin+Vector2(w-421,h-284),Vector2(78,78)))
-    _place(_grenade_button,Rect2(origin+Vector2(w-508,h-190),Vector2(74,74)))
+    _place(_grenade_button,Rect2(origin+Vector2(280,h-190),Vector2(74,74)))
     _jump_button.custom_minimum_size=Vector2.ZERO
     var jump_rect:=Rect2(origin+Vector2(w-121,h-112),Vector2(92,92))
     if air_stage!="ground":
@@ -1624,6 +1743,7 @@ func open_hud_editor() -> void:
         _map_overlay.visible=false
     _hud_editing=true
     _refresh_grenade_button()
+    _refresh_quick_weapons()
     _hud_selected=""
     _hud_editor.visible=true
     _hud_editor.call("reset_pointer")
@@ -1723,6 +1843,7 @@ func _hud_edit_close() -> void:
         return
     _hud_editing=false
     _refresh_grenade_button()
+    _refresh_quick_weapons()
     _hud_selected=""
     _hud_editor.visible=false
     _hud_editor.call("reset_pointer")
@@ -1782,6 +1903,7 @@ func set_match_controls(enabled: bool) -> void:
     if _inventory_button:
         _inventory_button.disabled=not enabled or air_stage!="ground"
     _refresh_grenade_button()
+    _refresh_quick_weapons()
     if not enabled and _inventory_panel:
         _inventory_panel.visible=false
     if not enabled:
