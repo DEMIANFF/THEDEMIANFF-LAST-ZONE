@@ -8,7 +8,7 @@ extends Node
 
 const OPTIONS_FILE: String="user://aurora_render_quality.cfg"
 const PROFILES: Array[String]=["AUTO","CLARIDAD","EQUILIBRADO","FLUIDEZ","PERSONALIZADO"]
-const STEPS: Array[float]=[.78,.86,.94,1.0]
+const STEPS: Array[float]=[.70,.78,.86,.94,1.0]
 const SAMPLE_INTERVAL: float=.75
 const BAD_SAMPLES: int=9
 const GOOD_SAMPLES: int=18
@@ -26,6 +26,13 @@ var last_target_fps: float=60.0
 var last_refresh_hz: float=0.0
 var last_cpu_ms: float=0.0
 var last_frame_ms: float=0.0
+var last_gpu_ms: float=0.0
+var last_render_cpu_ms: float=0.0
+var last_physics_ms: float=0.0
+var last_triangles: int=0
+var last_video_memory_mb: float=0.0
+var last_texture_memory_mb: float=0.0
+var last_active_enemy_rigs: int=0
 var last_bottleneck: String="NOT_SAMPLED"
 var _sample_clock: float=0.0
 var _low_samples: int=0
@@ -85,7 +92,7 @@ static func preferred_scale(preset: String) -> float:
         "EQUILIBRADO":
             return .90
         "FLUIDEZ":
-            return .78
+            return .70
         "PERSONALIZADO":
             return read_custom_scale()
         _:
@@ -192,6 +199,8 @@ func _ready() -> void:
     _apply_scale(preferred_scale(profile))
     if DisplayServer.get_name()=="headless":
         set_process(false)
+    else:
+        RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(),true)
 
 
 func _apply_scale(next: float) -> void:
@@ -242,6 +251,14 @@ func _process(delta: float) -> void:
     last_fps=float(Engine.get_frames_per_second())
     last_draw_calls=int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
     last_rendered_objects=int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))
+    last_triangles=int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
+    last_video_memory_mb=Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)/1048576.0
+    last_texture_memory_mb=Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED)/1048576.0
+    last_physics_ms=Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0
+    last_active_enemy_rigs=get_tree().get_nodes_in_group("AuroraDetailedEnemyRig").size()
+    var viewport_rid: RID=get_viewport().get_viewport_rid()
+    last_gpu_ms=RenderingServer.viewport_get_measured_render_time_gpu(viewport_rid)
+    last_render_cpu_ms=RenderingServer.viewport_get_measured_render_time_cpu(viewport_rid)
     if not is_finite(last_fps) or last_fps<5.0 or last_fps>250.0:
         last_bottleneck="INVALID"
         return
@@ -285,6 +302,7 @@ func _exit_tree() -> void:
     # The next battle reads the chosen profile again.
     var viewport: Viewport=get_viewport()
     if viewport!=null:
+        RenderingServer.viewport_set_measure_render_time(viewport.get_viewport_rid(),false)
         viewport.scaling_3d_scale=1.0
         viewport.msaa_3d=Viewport.MSAA_DISABLED
         viewport.screen_space_aa=Viewport.SCREEN_SPACE_AA_DISABLED
@@ -301,6 +319,14 @@ func snapshot() -> Dictionary:
         "refresh_hz":last_refresh_hz,
         "cpu_ms":last_cpu_ms,
         "frame_ms":last_frame_ms,
+        "gpu_render_ms":last_gpu_ms,
+        "render_cpu_ms":last_render_cpu_ms,
+        "physics_ms":last_physics_ms,
+        "triangles":last_triangles,
+        "video_memory_mb":last_video_memory_mb,
+        "texture_memory_mb":last_texture_memory_mb,
+        "active_enemy_rigs":last_active_enemy_rigs,
+        "gpu_timing_available":last_gpu_ms>0.0,
         "bottleneck":last_bottleneck,
         "adjustments":changes,
         "sun_shadows":shadow_detail_enabled,

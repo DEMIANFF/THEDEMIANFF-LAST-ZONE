@@ -80,7 +80,7 @@ func _verify() -> void:
     check(RENDER.save_profile("TRUCO_INEXISTENTE")==ERR_INVALID_PARAMETER,
         "unsupported profile was accepted without validation")
     for item in [
-        ["CLARIDAD",1.0],["EQUILIBRADO",.90],["FLUIDEZ",.78],["AUTO",.94]
+        ["CLARIDAD",1.0],["EQUILIBRADO",.90],["FLUIDEZ",.70],["AUTO",.94]
     ]:
         var key: String=str(item[0])
         check(budget.call("select_profile",key)==OK,

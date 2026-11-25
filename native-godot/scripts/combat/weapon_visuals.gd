@@ -791,6 +791,6 @@ func support_grip_enabled() -> bool:
     if controller and controller.tree and bool(
             controller.tree.get("parameters/UpperBody/active")):
         var action_name: String=str(controller.action_clip.animation)
-        if action_name.begins_with("AuroraReload") or action_name=="AuroraHeal":
+        if action_name.begins_with("AuroraReload") or action_name in ["AuroraHeal","AuroraEquip"]:
             return false
     return currently_equipped()!=null

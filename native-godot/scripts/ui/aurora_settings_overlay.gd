@@ -313,6 +313,14 @@ func _screen_page() -> void:
                     int(measured.get("draw_calls",0)),
                     int(measured.get("objects",0)),
                     float(measured.get("scale",1.0))*100.0]
+                diagnostic+="\nGPU %s / RENDER CPU %.1f ms / FÍSICA %.1f ms"%[
+                    ("%.1f ms"%float(measured.get("gpu_render_ms",0.0))
+                        if bool(measured.get("gpu_timing_available",false)) else "sin dato"),
+                    float(measured.get("render_cpu_ms",0.0)),
+                    float(measured.get("physics_ms",0.0))]
+                diagnostic+="\nTRIÁNGULOS %d / VRAM %.0f MB / RIVALES ANIMADOS %d"%[
+                    int(measured.get("triangles",0)),float(measured.get("video_memory_mb",0.0)),
+                    int(measured.get("active_enemy_rigs",0))]
                 _info(diagnostic)
     var graphics:=OptionButton.new()
     graphics.name="GraphicsSelector"
