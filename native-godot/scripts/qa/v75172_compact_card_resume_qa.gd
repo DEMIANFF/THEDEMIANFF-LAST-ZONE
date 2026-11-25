@@ -59,7 +59,7 @@ func _check_composition(front: Control,dimensions: Vector2i) -> void:
     print("V75172_GEOMETRY requested=",dimensions," logical_safe=",safe,
         " match_card=",card," launch=",launch," profile=",header)
     check(front._bottom_navigation.get_child_count()==5 and
-        front._left_shortcuts.get_child_count()==5 and
+        front._left_shortcuts.get_child_count()==4 and
         not front._lobby_section_title.visible and
         not front._lobby_match_facts.visible,
         "old duplicated BR controls returned to the mobile lobby")

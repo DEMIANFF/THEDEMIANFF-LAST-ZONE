@@ -42,7 +42,7 @@ func _verify() -> void:
     # PRESET moved exclusively under the top-right settings gear.
     var play_footer: Button=front._bottom_navigation.get_node_or_null(
         "BottomJUGAR") as Button
-    check(front._left_shortcuts.get_child_count()==5 and
+    check(front._left_shortcuts.get_child_count()==4 and
         front._bottom_navigation.get_child_count()==5 and
         front._bottom_navigation.get_node_or_null("BottomPRESET")==null and
         play_footer!=null and play_footer.is_visible_in_tree() and

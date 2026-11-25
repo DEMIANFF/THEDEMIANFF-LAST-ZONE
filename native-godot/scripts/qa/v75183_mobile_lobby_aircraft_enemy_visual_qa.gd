@@ -22,25 +22,29 @@ func _verify() -> void:
     await process_frame
     front._layout_safe()
     await process_frame
-    var vector_button: Button=front.find_child(
-        "AuroraInspectRealVector",true,false) as Button
-    check(vector_button!=null and front.stage=="lobby" and
-        front._selected_tab=="JUGAR" and
-        not vector_button.is_visible_in_tree(),
-        "the Kriss Vector inspect button leaks under INICIAR in JUGAR")
+    check(front.find_child("AuroraInspectRealVector",true,false)==null and
+        not front._armory_list.visible,
+        "obsolete Vector shortcut or weapon list leaked into JUGAR")
     front._select_tab("ARMAS")
-    check(front._selected_tab=="ARMAS" and
-        vector_button.is_visible_in_tree(),
-        "the original 3D Vector inspection is unavailable in ARMAS")
-    # The original weapon catalog and its actual model must keep working.
-    vector_button.pressed.emit()
-    check(front._selected_tab=="ARMAS" and
-        int(front._armory_selected_slot)==4,
-        "Vector shortcut no longer selects the real weapon catalog slot")
+    var list: ItemList=front._armory_list
+    var vector_row: int=-1
+    for row in range(list.item_count):
+        if int(list.get_item_metadata(row))==4:
+            vector_row=row
+            break
+    check(vector_row>=0 and list.visible and
+        list.get_item_text(vector_row).contains("KRISS VECTOR"),
+        "Vector not discoverable in the ordinary all-weapons list")
+    if vector_row>=0:
+        list.select(vector_row)
+        list.item_selected.emit(vector_row)
+        check(front._armory_selected_slot==4 and front._preview_weapon_slot==4,
+            "ordinary Vector row did not select the real preview slot")
     for tab in ["INVENTARIO","PERSONAJE","SOCIAL","JUGAR"]:
         front._select_tab(tab)
-        check(not vector_button.is_visible_in_tree(),
-            "weapon inspect shortcut persists in unrelated lobby tab "+tab)
+        check(not list.is_visible_in_tree() and
+            front.find_child("AuroraInspectRealVector",true,false)==null,
+            "weapon inspector leaked into unrelated lobby tab "+tab)
     front.queue_free()
     await process_frame
 

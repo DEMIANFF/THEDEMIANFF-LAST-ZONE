@@ -77,7 +77,7 @@ func _verify() -> void:
     check(front._top_account_button.get_theme_font_size("font_size")>=20 and
         front._currency_strip.get_theme_font_size("font_size")>=20,
         "profile or currency illegible at Motorola landscape size")
-    check(front._left_shortcuts.get_child_count()==5 and
+    check(front._left_shortcuts.get_child_count()==4 and
         front._bottom_navigation.get_child_count()==5 and
         front._social_panel.get_node(
             "SocialContent/AuroraFourMemberSquad").get_child_count()==4,

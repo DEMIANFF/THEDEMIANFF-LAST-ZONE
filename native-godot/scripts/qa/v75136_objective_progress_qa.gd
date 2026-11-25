@@ -65,7 +65,7 @@ func _verify() -> void:
             (paint.bg_color.r>.9 if value==maximum else
                 paint.bg_color.g>.7),
             "phone-sized mission progress invisible or incorrect state color")
-    front._objective_selector.select(1)
+    front._objective_selector.current_tab=1
     front._on_objective_category_selected(1)
     check(panel.visible,"completed real achievements have no progress")
     for i in range(3):
@@ -73,13 +73,11 @@ func _verify() -> void:
         check(int(bar.value)==[1,1,6][i] and
             int(bar.max_value)==[1,1,10][i],
             "achievement bar does not represent actual 1/1/6 records")
-    front._objective_selector.select(2)
-    front._on_objective_category_selected(2)
+    front._open_lobby_category("OBJETIVOS","events")
     check(not panel.visible and
         front._info.text.contains("SIN TEMPORADA ACTIVA"),
         "online events incorrectly receive invented local progress")
-    front._objective_selector.select(0)
-    front._on_objective_category_selected(0)
+    front._open_lobby_category("OBJETIVOS","missions")
     await process_frame
     await process_frame
     front._layout_safe()

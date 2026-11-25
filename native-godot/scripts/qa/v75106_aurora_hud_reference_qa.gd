@@ -41,7 +41,7 @@ func _verify() -> void:
         "Aurora preset did not activate slot 4")
     var active: RefCounted=HUD_LAYOUT.new(HUD_LAYOUT.slot_path(4))
     check(active.loaded and active.controls.size()==HUD_LAYOUT.IDS.size(),
-        "Aurora preset failed to persist all 13 touch actions")
+        "Aurora preset failed to persist all 14 touch actions")
     check(HUD_LAYOUT.choose_preset(1)==OK,"cannot inspect original HUD slot")
     var original_after: RefCounted=HUD_LAYOUT.new()
     check(original_after.controls==original_snapshot,
@@ -101,5 +101,5 @@ func _verify() -> void:
     front.queue_free()
     HUD_LAYOUT.choose_preset(original_slot)
     if not failed:
-        print("V75106_AURORA_HUD PASS preset4=13 controls saved preserved=1 mobile_bounds=1 shop_to_play=1")
+        print("V75106_AURORA_HUD PASS preset4=14 controls saved preserved=1 mobile_bounds=1 shop_to_play=1")
     quit(1 if failed else 0)

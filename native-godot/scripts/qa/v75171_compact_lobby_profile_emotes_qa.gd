@@ -83,7 +83,7 @@ func _verify() -> void:
     check(front._social_panel.get_node(
         "SocialContent/AuroraFourMemberSquad").get_child_count()==4,
         "local squad must preserve the four actual places")
-    check(front._left_shortcuts.get_child_count()==5 and
+    check(front._left_shortcuts.get_child_count()==4 and
         front._left_shortcuts.get_node_or_null("QuickJUGAR")==null and
         front._bottom_navigation.get_child_count()==5 and
         front._bottom_navigation.get_node_or_null("BottomPRESET")==null,

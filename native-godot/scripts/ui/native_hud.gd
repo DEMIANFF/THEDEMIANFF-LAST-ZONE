@@ -117,6 +117,10 @@ var _inventory_expansion_row: HFlowContainer
 var _inventory_medkit: Button
 var _inventory_syringe: Button
 var _inventory_grenade: Button
+var _grenade_button: Button
+var _grenade_count: int=0
+var _grenade_battle_mode: bool=false
+var _grenade_controls_enabled: bool=true
 signal grenade_requested
 var air_stage: String="ground"
 var _hud_layout: RefCounted
@@ -337,6 +341,10 @@ func _ready() -> void:
     _cover_button=_button(root,"BARRERA 0",.52,.68,96,55,Color(.13,.53,.68),_cover_down)
     _cover_button.visible=false
     _cover_button.disabled=true
+    _grenade_button=_button(root,"GRANADA",.48,.61,78,78,
+        Color(.36,.38,.19),_quick_grenade_down)
+    _grenade_button.visible=false
+    _grenade_button.disabled=true
     _vehicle_action_button=_button(root,"CONDUCIR",.5,.60,92,74,
         Color(.24,.43,.30),func(): vehicle_action_requested.emit())
     _vehicle_action_button.name="AuroraRealVehicleAction"
@@ -659,6 +667,27 @@ func _return_lobby() -> void:
     leave_to_lobby_requested.emit()
 
 
+func _quick_grenade_down() -> void:
+    if _grenade_button==null or _grenade_button.disabled or _hud_editing:
+        return
+    if _inventory_panel!=null and _inventory_panel.visible:
+        return
+    if _map_overlay!=null and _map_overlay.visible:
+        return
+    grenade_requested.emit()
+
+
+func _refresh_grenade_button() -> void:
+    if _grenade_button==null:
+        return
+    var live: bool=_grenade_battle_mode and _grenade_controls_enabled and (
+        air_stage=="ground") and not _driving_vehicle
+    _grenade_button.visible=live or _hud_editing
+    _grenade_button.disabled=not live or _grenade_count<=0 or _hud_editing
+    _grenade_button.text="GRANADA\n%d"%_grenade_count
+    _grenade_button.modulate.a=1.0 if _hud_editing else _grenade_button.modulate.a
+
+
 func set_air_stage(value: String) -> void:
     reset_controls()
     air_stage=value
@@ -697,6 +726,7 @@ func set_air_stage(value: String) -> void:
     if _status and airborne:
         _status.text="AURORA / "+("RUTA AÉREA" if value=="aircraft" else "CAÍDA LIBRE" if value=="freefall" else "ATERRIZAJE")
     _layout()
+    _refresh_grenade_button()
     if _battle_status and airborne and value!="aircraft":
         _battle_status.text=(
             "CAÍDA LIBRE / ABRE PARACAÍDAS" if value=="freefall"
@@ -854,6 +884,8 @@ func clear_next_sector_zone() -> void:
 
 
 func set_radar_battle_mode(enabled: bool) -> void:
+    _grenade_battle_mode=enabled
+    _refresh_grenade_button()
     if _training_radar:
         _training_radar.call("set_battle_mode",enabled)
 
@@ -880,6 +912,7 @@ func set_battle_button(label: String) -> void:
 func set_vehicle_context(can_enter: bool,driving: bool,speed_kmh: float) -> void:
     var was_driving: bool=_driving_vehicle
     _driving_vehicle=driving
+    _refresh_grenade_button()
     if _vehicle_action_button==null:
         return
     _vehicle_action_button.visible=driving or can_enter
@@ -1105,7 +1138,9 @@ func set_inventory_snapshot(items: Dictionary) -> void:
     var syringes: int=int(items.get("syringes",0))
     _inventory_syringe.visible=syringes>0
     _inventory_syringe.text="USAR JERINGA ×%d"%syringes
-    var grenades: int=int(items.get("grenades",0))
+    var grenades: int=maxi(0,int(items.get("grenades",0)))
+    _grenade_count=grenades
+    _refresh_grenade_button()
     _inventory_grenade.visible=grenades>0
     _inventory_grenade.text="LANZAR GRANADA ×%d"%grenades
     var backpack: int=clampi(int(items.get("backpack",0)),0,3)
@@ -1483,6 +1518,7 @@ func _layout() -> void:
     _place(_crouch_button,Rect2(origin+Vector2(w-421,h-190),Vector2(78,78)))
     _place(_medkit_button,Rect2(origin+Vector2(w-421,h-99),Vector2(78,78)))
     _place(_cover_button,Rect2(origin+Vector2(w-421,h-284),Vector2(78,78)))
+    _place(_grenade_button,Rect2(origin+Vector2(w-508,h-190),Vector2(74,74)))
     _jump_button.custom_minimum_size=Vector2.ZERO
     var jump_rect:=Rect2(origin+Vector2(w-121,h-112),Vector2(92,92))
     if air_stage!="ground":
@@ -1587,6 +1623,7 @@ func open_hud_editor() -> void:
     if _map_overlay:
         _map_overlay.visible=false
     _hud_editing=true
+    _refresh_grenade_button()
     _hud_selected=""
     _hud_editor.visible=true
     _hud_editor.call("reset_pointer")
@@ -1685,6 +1722,7 @@ func _hud_edit_close() -> void:
     if not _hud_editing:
         return
     _hud_editing=false
+    _refresh_grenade_button()
     _hud_selected=""
     _hud_editor.visible=false
     _hud_editor.call("reset_pointer")
@@ -1728,6 +1766,7 @@ func reset_controls() -> void:
 
 
 func set_match_controls(enabled: bool) -> void:
+    _grenade_controls_enabled=enabled
     if not enabled:
         set_vehicle_context(false,false,0.0)
     var root: Control=get_node("AuroraTacticalOverlay")
@@ -1742,6 +1781,7 @@ func set_match_controls(enabled: bool) -> void:
     _cover_button.disabled=not enabled or _cover_charges<=0 or _cover_cooldown>0.0
     if _inventory_button:
         _inventory_button.disabled=not enabled or air_stage!="ground"
+    _refresh_grenade_button()
     if not enabled and _inventory_panel:
         _inventory_panel.visible=false
     if not enabled:
