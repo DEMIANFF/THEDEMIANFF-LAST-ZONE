@@ -30,6 +30,8 @@ El catálogo incluye rutas opcionales que solo representan integración si el GL
 
 ## Próxima tarea exacta
 
-Corregir ambos fallos de postura sobre el PR #188, comprobar las seis armas de esta compilación y la armería de la P90, ejecutar las regresiones y revisar las capturas reales. Verificar la APK firmada con su nombre de paquete, versión, ABI, firma y SHA-256 antes de entregar. Tras cerrar esa compilación, continuar con el cargador superior de la P90 y el siguiente modelo con procedencia y permiso de distribución comprobados.
+Se añadió descenso de pelvis al modificador de contacto con compensación de ambas piernas en la misma pasada, separación gradual del arma respecto al torso de pie y muestreo de cabeza en el esqueleto final. La regresión conserva el mínimo de 0,35 m. La captura del lobby recorre todos los modelos instalados y comprueba el recurso mostrado, incluidos KRISS y P90. Las capturas de combate parten del personaje apoyado en el terreno. Se conserva el GLB publicado de Lila.
+
+Comprobar el nuevo job del PR #188 y sus capturas, y contrastar las seis armas en el APK. Verificar la APK firmada con su nombre de paquete, versión, ABI, firma y SHA-256 antes de entregar. Tras cerrar esa compilación, continuar con el cargador superior de la P90 y el siguiente modelo con procedencia y permiso de distribución comprobados.
 
 Trabajar en ramas de desarrollo con PR en borrador. Preservar la estable, la identidad y firma de Android, los datos de jugadores y los presets HUD. Validación de Firebase sin despliegues a producción. El BR mantiene sus 50 participantes.

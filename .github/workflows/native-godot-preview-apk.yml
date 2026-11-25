@@ -21,7 +21,7 @@ permissions:
 jobs:
   android-preview:
     runs-on: ubuntu-24.04
-    timeout-minutes: 48
+    timeout-minutes: 65
     steps:
       - uses: actions/checkout@v5
       # Fail fast on version metadata, before Blender, Godot and Android setup.
@@ -250,7 +250,7 @@ jobs:
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-xvfb.log
           mkdir -p native-godot/out
           xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_lila_body_qa.gd
-          for pose in ar-front awm-front awm-side scar-front mp40-crouch vector-walk; do
+          for pose in ar-front awm-front awm-side scar-front mp40-crouch vector-walk p90-front p90-side p90-crouch; do
             test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-lila-${pose}.png"
           done
           xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_preview.gd
@@ -286,7 +286,7 @@ jobs:
           # Real showroom GLBs, same phone-aspect viewport. Desktop render
           # evidence only; actual Motorola/Vulkan test remains separate.
           xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_armory_qa.gd
-          for weapon in ar awm scar mp40; do
+          for weapon in ar awm scar mp40 kriss p90; do
             test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-armory-${weapon}.png"
           done
           echo "AURORA_ARMORY_MOTOROLA_VIEWPORT_CAPTURE PASS models=4"

@@ -26,7 +26,10 @@ func _capture() -> void:
     front._select_tab("ARMAS")
     for frame in range(5):
         await process_frame
-    for slot in [CATALOG.AR,CATALOG.AWM,CATALOG.SCAR,CATALOG.MP40]:
+    var captured: int=0
+    for slot in range(CATALOG.ENTRIES.size()):
+        if not front._armory_has_model(slot):
+            continue
         # Show the REAL filtered category in every captured screenshot.
         # The displayed row number is never the persistent combat slot.
         var family: int=FAMILIES.family_for_slot(slot)
@@ -56,7 +59,8 @@ func _capture() -> void:
             push_error("ARMORY_MOTOROLA_CAPTURE no actual model for slot "+str(slot))
             quit(3)
             return
-        if model.get_node_or_null("SelectedOriginalWeaponGLB")==null:
+        var shown:=model.get_node_or_null("SelectedOriginalWeaponGLB") as Node3D
+        if shown==null or shown.scene_file_path!=front._armory_model_path(slot):
             push_error("ARMORY_MOTOROLA_CAPTURE original GLB missing "+str(slot))
             quit(4)
             return
@@ -71,6 +75,7 @@ func _capture() -> void:
             push_error("ARMORY_MOTOROLA_CAPTURE unable to save "+output)
             quit(6)
             return
+        captured+=1
         print("ARMORY_MOTOROLA_CAPTURE slot=",slot," weapon=",label,
             " output=",output)
     front._welcome()
@@ -78,5 +83,5 @@ func _capture() -> void:
     for frame in range(8):
         await RenderingServer.frame_post_draw
     print("ARMORY_MOTOROLA_CAPTURE PASS resolution=964x434 "+
-        "actual_glbs=4 renderer=desktop not_phone=1")
+        "actual_glbs=%d renderer=desktop not_phone=1"%captured)
     quit(0)
