@@ -106,34 +106,54 @@ func _verify() -> void:
         shooter._reload_remaining==BOT.RELOAD_SECONDS,
         "physical reload created an unauthorized muzzle flash")
 
-    # Low-detail agents keep their true health, AI, bullets and collider
-    # but never receive a high-detail flash or gun mesh as a side effect.
+    # Distant agents keep the original rifle and rig, but no active
+    # high-detail animation lease or visible muzzle effect.
     var distant: CharacterBody3D=combat._targets[24]
-    check(distant._rig==null and distant._enemy_hand_rifle==null and
-        distant._enemy_muzzle_flash==null and
+    check(distant._rig==null and is_instance_valid(distant._lod_rig) and
+        distant._lod_rig.visible and is_instance_valid(distant._enemy_hand_rifle) and
+        is_instance_valid(distant._enemy_muzzle_flash) and
+        not distant._enemy_muzzle_flash.visible and
         distant.get_node_or_null("OpponentCollider") is CollisionShape3D,
-        "41 distant physical bots gained an expensive new gun draw-call")
+        "distant physical bot lost original appearance or shows active muzzle")
     var old_events: int=distant.muzzle_flashes_shown
     distant._show_real_muzzle_flash()
     check(distant.muzzle_flashes_shown==old_events and
-        distant._visible_trace_origin(fallback)==fallback,
-        "LOD muzzle animation invented a high-resolution visual")
+        is_instance_valid(distant._enemy_muzzle_flash) and
+        not distant._enemy_muzzle_flash.visible and
+        distant._visible_trace_origin(physics_origin)==physics_origin,
+        "far LOD triggered muzzle flash or replaced authoritative tracer origin")
 
-    # Dynamic rig promotion/demotion must allocate/release the marker
-    # with its original weapon bone without leaking objects in memory.
+    # Promotion/demotion reuses the identical rig, weapon and effect node,
+    # releases the animation lease and clears any active muzzle flash.
     var candidate: CharacterBody3D=combat._targets[8]
+    var original: Node3D=candidate._lod_rig
+    var original_weapon: Node3D=candidate._enemy_hand_rifle
+    var original_flash: MeshInstance3D=candidate._enemy_muzzle_flash
     var rigs: int=get_nodes_in_group(BOT.DETAILED_ENEMY_GROUP).size()
     candidate._set_full_visual(true)
-    check(candidate._enemy_muzzle_flash!=null and
-        not candidate._enemy_muzzle_flash.visible and
+    check(is_instance_valid(original) and candidate._rig==original and
+        is_instance_valid(original_weapon) and candidate._enemy_hand_rifle==original_weapon and
+        is_instance_valid(original_flash) and candidate._enemy_muzzle_flash==original_flash and
+        not original_flash.visible and
         get_nodes_in_group(BOT.DETAILED_ENEMY_GROUP).size()==rigs+1,
-        "close real fighter promotion lacks a hidden shared muzzle effect")
+        "close real fighter promotion failed to reuse original visual and muzzle")
+    candidate._show_real_muzzle_flash()
+    check(is_instance_valid(original_flash) and original_flash.visible,
+        "leased original rig cannot show its muzzle effect")
     candidate._set_full_visual(false)
-    check(candidate._enemy_muzzle_flash==null and
-        candidate._enemy_hand_rifle==null and
+    var frozen: AnimationPlayer=null
+    if is_instance_valid(original):
+        frozen=original.find_child("AnimationPlayer",true,false) as AnimationPlayer
+    check(candidate._rig==null and is_instance_valid(original) and
+        candidate._lod_rig==original and original.visible and
+        is_instance_valid(original_weapon) and candidate._enemy_hand_rifle==original_weapon and
+        is_instance_valid(original_flash) and candidate._enemy_muzzle_flash==original_flash and
+        not original_flash.visible and candidate._muzzle_flash_remaining==0.0 and
+        frozen!=null and not frozen.active and
         get_nodes_in_group(BOT.DETAILED_ENEMY_GROUP).size()==rigs and
+        candidate.get_node_or_null("OpponentCollider") is CollisionShape3D and
         candidate.health>0.0,
-        "far opponent LOD demotion leaked muzzle or removed combat body")
+        "far demotion changed model, leaked animation/flash or removed combat body")
 
     director.start_sector_battle()
     director.set_process(false)
@@ -153,7 +173,7 @@ func _verify() -> void:
     if not failed:
         print("V75102_RIFLE_MUZZLE PASS roster=50 original_hand_rifle=1 "+
             "physical_shot_flash=1 tracer_from_bone=1 no_fake_fire=1 "+
-            "flash_decay=0.09s LOD_41_no_extra_rig=1 "+
+            "flash_decay=0.09s LOD_41_same_original_inactive_muzzle=1 "+
             "dynamic_promotion_demotion=clean reload_no_flare=1 "+
             "new_round=clean online=false motorola_fps=unmeasured")
     quit(1 if failed else 0)

@@ -1,5 +1,5 @@
 extends SceneTree
-## V75.83: keep actual 50 combatants, but cap skeleton/GPU rig residency.
+## V75.83 + V75.183: 50 physical fighters, shared original enemy visual\n## at all distances, with just 14 active AnimationPlayer leases.
 const BOT=preload("res://scripts/ai/aurora_bot.gd")
 var failed: bool=false
 
@@ -62,8 +62,11 @@ func _verify() -> void:
             rival.health>0.0 and rival.sector_battle,
             "visual budget removed a damageable live opponent")
         if rival._rig==null:
-            check(rival._lod_body!=null and rival._lod_body.visible,
-                "overflow rival is invisible rather than visible LOD mesh")
+            check(rival._lod_rig!=null and rival._lod_rig.visible and
+                rival._lod_rig.find_child("Skeleton3D",true,false)!=null
+                and not (rival._lod_rig.find_child(
+                    "AnimationPlayer",true,false) as AnimationPlayer).active,
+                "far rival does not retain identical frozen original 3D character")
     check(populated==BOT.MAX_DETAILED_ENEMY_RIGS-baseline and
         fallback_count==distant.size()-populated,
         "budget overflow did not preserve deterministic low-poly enemies")
@@ -73,12 +76,14 @@ func _verify() -> void:
         check(get_nodes_in_group(BOT.DETAILED_ENEMY_GROUP).size()==
                 BOT.MAX_DETAILED_ENEMY_RIGS and
                 bot_to_promote._rig!=null and
-                owner_to_free._lod_body.visible,
-            "rig lease not available immediately after LOD release")
+                owner_to_free._lod_rig.visible and
+                owner_to_free._lod_rig.find_child(
+                    "Skeleton3D",true,false)!=null,
+            "rig lease swap changed the character's visible appearance")
     game.queue_free()
     await process_frame
     if not failed:
         print("V7583_AI_RIG_BUDGET PASS roster=50 colliders=49 "+
             "rig_cap=14 initial_rigs=8 dynamic_rigs=6 "+
-            "overflow=visible_LOD rig_reuse=real")
+            "overflow=original_frozen_rig rig_reuse=real")
     quit(1 if failed else 0)

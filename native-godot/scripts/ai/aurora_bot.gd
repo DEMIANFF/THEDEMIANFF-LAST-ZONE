@@ -137,14 +137,15 @@ var next_safe_radius: float=INF
 var zone_seconds_remaining: int=0
 var next_zone_active: bool=false
 var _avoid_side: float=1.0
-## Mobile-only visual LOD. Agents remain real damageable CharacterBody3D
-## enemies with their own AI and collisions at every distance.
-# Preserve physics, ammunition and real AI for all 49 rivals. Only GPU-heavy
-# skinned visuals are bounded; overflow stays a visible low-poly enemy.
+## V75.183: all 49 opponents render the SAME source character at near
+## and far distances; only 14 animated/weapon-action detail leases are
+## active at once. Distant actors retain original meshes, UVs and materials,
+## with their AnimationPlayer frozen (no substitute cuboid silhouettes).
+## The physical 49 CharacterBody3D agents, AI and ballistics are untouched.
 const MAX_DETAILED_ENEMY_RIGS: int=14
 const DETAILED_ENEMY_GROUP: String="AuroraDetailedEnemyRig"
 var distance_lod: bool=false
-var _lod_body: MeshInstance3D
+var _lod_rig: Node3D
 var _lod_clock: float=0.0
 var _lod_pending: bool=false
 var _death_tween: Tween
@@ -298,78 +299,57 @@ func set_match_spawn(at: Vector2) -> void:
     global_position=_anchor
 
 
-## One original, batched low-poly HUMAN silhouette rather than an
-## unidentifiable gray capsule/cube. Seven body pieces are merged into one
-## draw-call mesh to preserve the 49-player Vulkan Mobile LOD budget.
-static func _append_lod_cuboid(st: SurfaceTool,
-        center: Vector3,half: Vector3,tint: Color) -> void:
-    var faces: Array[PackedVector3Array]=[
-        PackedVector3Array([
-            Vector3(-1,-1,1),Vector3(1,-1,1),
-            Vector3(1,1,1),Vector3(-1,1,1)]),
-        PackedVector3Array([
-            Vector3(1,-1,-1),Vector3(-1,-1,-1),
-            Vector3(-1,1,-1),Vector3(1,1,-1)]),
-        PackedVector3Array([
-            Vector3(-1,-1,-1),Vector3(-1,-1,1),
-            Vector3(-1,1,1),Vector3(-1,1,-1)]),
-        PackedVector3Array([
-            Vector3(1,-1,1),Vector3(1,-1,-1),
-            Vector3(1,1,-1),Vector3(1,1,1)]),
-        PackedVector3Array([
-            Vector3(-1,1,1),Vector3(1,1,1),
-            Vector3(1,1,-1),Vector3(-1,1,-1)]),
-        PackedVector3Array([
-            Vector3(-1,-1,-1),Vector3(1,-1,-1),
-            Vector3(1,-1,1),Vector3(-1,-1,1)])]
-    var normals: Array[Vector3]=[
-        Vector3.BACK,Vector3.FORWARD,Vector3.LEFT,
-        Vector3.RIGHT,Vector3.UP,Vector3.DOWN]
-    for face_index in range(faces.size()):
-        var corners: PackedVector3Array=faces[face_index]
-        for index in [0,1,2,0,2,3]:
-            var v: Vector3=corners[index]
-            st.set_normal(normals[face_index])
-            st.set_color(tint)
-            st.add_vertex(center+Vector3(
-                v.x*half.x,v.y*half.y,v.z*half.z))
-
-
-static func build_low_detail_humanoid() -> ArrayMesh:
-    var st:=SurfaceTool.new()
-    st.begin(Mesh.PRIMITIVE_TRIANGLES)
-    # Head/neck, jacket/waist, two arms and two separated legs. Clearly
-    # different from a gray placeholder at third-person engagement ranges.
-    var uniform: Color=Color(.20,.45,.52)
-    var armor: Color=Color(.13,.30,.36)
-    var face: Color=Color(.68,.56,.43)
-    var trousers: Color=Color(.09,.21,.26)
-    # Vertex colors define the correct body-part silhouettes without
-    # assigning eight materials or spawning extra MeshInstance3D nodes.
-    _append_lod_cuboid(st,Vector3(0,1.62,0),Vector3(.155,.19,.15),face)
-    _append_lod_cuboid(st,Vector3(0,1.42,0),Vector3(.085,.065,.09),armor)
-    _append_lod_cuboid(st,Vector3(0,1.10,0),Vector3(.32,.35,.19),uniform)
-    _append_lod_cuboid(st,Vector3(0,.79,0),Vector3(.24,.13,.16),armor)
-    _append_lod_cuboid(st,Vector3(-.40,1.12,0),Vector3(.115,.34,.13),uniform)
-    _append_lod_cuboid(st,Vector3(.40,1.12,0),Vector3(.115,.34,.13),uniform)
-    _append_lod_cuboid(st,Vector3(-.145,.35,0),Vector3(.12,.34,.14),trousers)
-    _append_lod_cuboid(st,Vector3(.145,.35,0),Vector3(.12,.34,.14),trousers)
-    _append_lod_cuboid(st,Vector3(0,1.77,0),Vector3(.19,.07,.19),armor)
-    return st.commit()
-
-
+## Every distant enemy is an original Aurora character, not a substitute
+## low-poly mannequin. PackedScene and GLB mesh/material resources are shared
+## by Godot across the roster; only the static pose is frozen at distance.
+## Detail leasing reuses THIS exact node (no duplicate skinned character).
 func _create_lod_visual() -> void:
-    _lod_body=MeshInstance3D.new()
-    _lod_body.name="DistantEnemyVisual"
-    _lod_body.mesh=build_low_detail_humanoid()
-    var material:=StandardMaterial3D.new()
-    material.albedo_color=Color.WHITE
-    material.vertex_color_use_as_albedo=true
-    material.roughness=.84
-    _lod_body.material_override=material
-    _lod_body.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    add_child(_lod_body)
-    _lod_rest_transform=_lod_body.transform
+    if STARTUP_DIAG.without_enemy_rigs():
+        return
+    _instantiate_original_distant_visual()
+
+
+func _instantiate_original_distant_visual() -> void:
+    if not ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
+        push_error("Aurora enemy source model unavailable; cannot show original appearance at distance")
+        return
+    var original: PackedScene=load(
+        "res://assets/characters/aurora_operator.glb") as PackedScene
+    if original==null:
+        return
+    _lod_rig=original.instantiate() as Node3D
+    if _lod_rig==null:
+        return
+    _lod_rig.name="DistantOriginalEnemyRig"
+    add_child(_lod_rig)
+    var kit: MeshInstance3D=_lod_rig.find_child(
+        "LilaAuroraSignatureKit",true,false) as MeshInstance3D
+    if kit!=null:
+        kit.visible=false
+        kit.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    var hair: MeshInstance3D=_lod_rig.find_child(
+        "LilaAuroraOriginalHair",true,false) as MeshInstance3D
+    if hair!=null:
+        hair.visible=false
+        hair.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    if is_instance_valid(operator) and operator.has_method(
+            "fit_operator_visual"):
+        operator.fit_operator_visual(_lod_rig)
+    _lod_rest_transform=_lod_rig.transform
+    _rig_rest_transform=_lod_rig.transform
+    var idle: AnimationPlayer=_lod_rig.find_child(
+        "AnimationPlayer",true,false) as AnimationPlayer
+    if idle!=null:
+        if idle.has_animation("AuroraIdle"):
+            idle.play("AuroraIdle")
+            idle.advance(.16)
+        idle.active=false
+    # Same rifle model and skeletal hand mount on either side of 39m.
+    # A promotion only enables the existing animator; it creates no
+    # second rig and does not swap a square head for a normal face.
+    _rig=_lod_rig
+    _attach_original_hand_rifle()
+    _rig=null
 
 
 func _reserve_detailed_rig_slot() -> bool:
@@ -407,6 +387,22 @@ func _create_full_rig() -> void:
         return
     if distance_lod and not _reserve_detailed_rig_slot():
         return
+    if distance_lod and is_instance_valid(_lod_rig):
+        # Reuse the SAME authored mesh and appearance; only animate when
+        # a lease is available. No GPU double allocation on promotion.
+        _rig=_lod_rig
+        _rig.add_to_group(DETAILED_ENEMY_GROUP)
+        _rig_rest_transform=_lod_rest_transform
+        _animation=_rig.find_child(
+            "AnimationPlayer",true,false) as AnimationPlayer
+        if _animation!=null:
+            _animation.active=true
+            _animation.speed_scale=1.0
+            _animation.play("AuroraIdle")
+            _animation.advance(.16)
+        if not is_instance_valid(_enemy_right_hand_socket):
+            _attach_original_hand_rifle()
+        return
     if not ResourceLoader.exists("res://assets/characters/aurora_operator.glb"):
         return
     var source:=load("res://assets/characters/aurora_operator.glb") as PackedScene
@@ -438,11 +434,9 @@ func _create_full_rig() -> void:
     _attach_original_hand_rifle()
 
 
-## Every high-detail rival carries the same existing *original* 3D AR
-## model as Lila, attached to an actual animated right-hand bone. There
-## are no camera/HUD-tracked guns, no copied third-party items, and no
-## rifle objects at all for the 41 low-poly physical rivals. Share the
-## existing AK GLB loader's correct FBX scale/axis normalization.
+## Both animated and far-static rivals carry their actual 3D weapon
+## attached to the same original hand bone, regardless of camera range.
+## The authoritative bullets and raycast collision are independent.
 
 ## Each combatant is assigned a real, installed weapon catalog slot.
 ## Existing training rigs retain the original AR/18-round QA contract.
@@ -593,20 +587,32 @@ func _set_full_visual(closer: bool) -> void:
         # The group lease is freed immediately, not after the next
         # render frame, to allow another nearby opponent to use the slot.
         _rig.remove_from_group(DETAILED_ENEMY_GROUP)
-        _rig.queue_free()
+        if distance_lod and _rig==_lod_rig:
+            # Freeze original skeleton in a neutral AuroraIdle pose.
+            # Keep 3D meshes, clothing, original weapon and materials
+            # visible. No pop into a different model at 56 metres.
+            if _animation!=null:
+                _animation.speed_scale=1.0
+                if _animation.has_animation("AuroraIdle"):
+                    _animation.play("AuroraIdle")
+                    _animation.advance(.16)
+                _animation.active=false
+            _rig.transform=_lod_rest_transform
+        else:
+            _rig.queue_free()
+            _enemy_hand_rifle=null
+            _enemy_right_hand_socket=null
+            _enemy_muzzle_flash=null
         _rig=null
-        # References are released together with the existing detailed rig.
-        # The 49 physics bodies remain active and use their old low LOD.
-        _enemy_hand_rifle=null
-        _enemy_right_hand_socket=null
-        _enemy_muzzle_flash=null
         _muzzle_flash_remaining=0.0
+        if is_instance_valid(_enemy_muzzle_flash):
+            _enemy_muzzle_flash.visible=false
         _animation=null
         _clip=""
         _impact_reaction_remaining=0.0
         _weapon_action_remaining=0.0
-    if _lod_body!=null:
-        _lod_body.visible=_rig==null
+    if is_instance_valid(_lod_rig):
+        _lod_rig.visible=true
 
 
 func _update_distance_lod(dt: float) -> void:
@@ -1240,7 +1246,7 @@ func _play_weapon_action(clip: String,seconds: float) -> bool:
 func _play_death_presentation(lethal_attacker: Node3D) -> void:
     if _death_tween!=null and _death_tween.is_valid():
         _death_tween.kill()
-    var visual: Node3D=_rig if _rig!=null else _lod_body
+    var visual: Node3D=_rig if _rig!=null else _lod_rig
     if not is_instance_valid(visual):
         visible=false
         return
@@ -1303,9 +1309,9 @@ func _reset_death_presentation() -> void:
             _animation.speed_scale=1.0
             _animation.play("AuroraIdle")
             _clip="AuroraIdle"
-    if _lod_body!=null:
-        _lod_body.transform=_lod_rest_transform
-        _lod_body.visible=_rig==null
+    if is_instance_valid(_lod_rig):
+        _lod_rig.transform=_lod_rest_transform
+        _lod_rig.visible=true
     var marker:=get_node_or_null("TrainingTargetMarker") as Label3D
     if marker!=null:
         # The death animation resets the mesh across rounds; do not let
@@ -1452,7 +1458,10 @@ func _has_line_of_fire(foe: CharacterBody3D) -> bool:
 ## The raycast physics/damage origin remains the same gameplay muzzle;
 ## only the pooled visual tracer may start at this animated rifle muzzle.
 func _show_real_muzzle_flash() -> void:
-    if health<=0.0 or not is_instance_valid(_enemy_muzzle_flash):
+    # The far actor keeps the same weapon mesh but not 49 simultaneous
+    # muzzle VFX; only a leased near animator may display this flash.
+    if (_rig==null or health<=0.0 or
+            not is_instance_valid(_enemy_muzzle_flash)):
         return
     _enemy_muzzle_flash.visible=true
     _muzzle_flash_remaining=REAL_MUZZLE_FLASH_SECONDS
@@ -1460,7 +1469,8 @@ func _show_real_muzzle_flash() -> void:
 
 
 func _visible_trace_origin(physics_origin: Vector3) -> Vector3:
-    if health<=0.0 or not is_instance_valid(_enemy_muzzle_flash):
+    if (_rig==null or health<=0.0 or
+            not is_instance_valid(_enemy_muzzle_flash)):
         return physics_origin
     var rifle_point: Vector3=_enemy_muzzle_flash.global_position
     if (not rifle_point.is_finite() or

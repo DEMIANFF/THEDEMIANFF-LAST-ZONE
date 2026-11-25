@@ -484,6 +484,14 @@ func _waypoint_marker(center: Vector2,radius: float,
         "outside":outside,"distance_m":player_at.distance_to(_waypoint)}
 
 
+## Actual render input for the small minimap; independent of tactical map
+## navigation geometry. Keep the destination stored while aboard the plane.
+func minimap_waypoint_marker() -> Dictionary:
+    if not is_instance_valid(player) or player.air_mode=="aircraft":
+        return {}
+    return _waypoint_marker(_radar_center(),_radar_radius(),_detail_range())
+
+
 func _draw_navigation_compass(center: Vector2,radius: float,
         world_range: float) -> void:
     var yaw: float=_radar_yaw()
@@ -525,13 +533,10 @@ func _draw() -> void:
     var yaw: float=_radar_yaw()
     var world_range: float=_detail_range()
     _draw_terrain_disc(center,radius,world_range,yaw)
-    # The route is a real aircraft flight segment; the full tactical map
-    # already uses these same endpoints. Do not add an extra map button.
-    var flight_line: PackedVector2Array=aircraft_route_pixels()
-    if flight_line.size()==2:
-        draw_line(flight_line[0],flight_line[1],
-            Color(1.0,.82,.34,.92),2.4,true)
-        draw_circle(flight_line[1],3.0,Color(1.0,.78,.26,.96))
+    # V75.183: Do not paint the yellow aircraft route/end marker over
+    # the small in-flight minimap. The REAL route remains queryable through
+    # aircraft_route_pixels() and is visible on the expanded tactical map.
+    # The airplane HUD keeps its clean, terrain-based navigation disc.
     draw_arc(center,radius,0,TAU,52,Color(.41,.89,.95,.86),1.9,true)
     draw_arc(center,radius*.5,0,TAU,52,Color(.75,.91,.92,.27),1.0,true)
     draw_line(center+Vector2(-radius,0),center+Vector2(radius,0),Color(.28,.50,.55,.32),1.0)
@@ -547,8 +552,7 @@ func _draw() -> void:
         _draw_zone_in_local_disc(_next_zone_center,_next_zone_radius,
             center,radius,world_range,Color(.99,.79,.37,.85),1.6)
     if _waypoint.is_finite():
-        var waypoint_icon: Dictionary=_waypoint_marker(
-            center,radius,world_range)
+        var waypoint_icon: Dictionary=minimap_waypoint_marker()
         if not waypoint_icon.is_empty():
             var dot: Vector2=waypoint_icon["at"]
             # Navigation markers stay visible, but DO NOT draw the
