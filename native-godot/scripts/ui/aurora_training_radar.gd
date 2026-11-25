@@ -18,6 +18,7 @@ var rotate_with_camera: bool=true
 # Reuse the actual terrain-derived cartography of the full tactical map.
 var map_texture: Texture2D
 var _zone_label: Label
+var _map_bezel: StyleBoxFlat
 var _waypoint: Vector2=Vector2(INF,INF)
 const GUNFIRE_HEARING_RANGE: float=42.0
 const GUNFIRE_PING_SECONDS: float=3.0
@@ -46,13 +47,21 @@ func _ready() -> void:
     # The first 245m safe-zone ring used to bleed out of the minimap and
     # cover adjacent HUD controls. Clip ALL map content to its actual hitbox.
     clip_contents=true
+    _map_bezel=StyleBoxFlat.new()
+    _map_bezel.bg_color=Color(.025,.045,.065,.68)
+    _map_bezel.border_color=Color(.69,.81,.88,.65)
+    _map_bezel.set_border_width_all(1)
+    _map_bezel.set_corner_radius_all(8)
     var heading:=Label.new()
     heading.text="PUERTO AURORA"
     heading.position=Vector2(8,3)
     # Phone-sized radar: avoid a clipped single 200px line over the map.
     heading.custom_minimum_size=Vector2(142,25)
     heading.add_theme_font_size_override("font_size",10)
-    heading.add_theme_color_override("font_color",Color(.79,.95,.96))
+    heading.add_theme_color_override("font_color",Color(.95,.98,1.0))
+    heading.add_theme_color_override("font_shadow_color",Color(.02,.03,.04,1.0))
+    heading.add_theme_constant_override("shadow_offset_x",1)
+    heading.add_theme_constant_override("shadow_offset_y",1)
     heading.mouse_filter=Control.MOUSE_FILTER_IGNORE
     add_child(heading)
     _zone_label=heading
@@ -385,7 +394,7 @@ func _draw_terrain_disc(center: Vector2,screen_radius: float,
         var terrain_at: Vector2=world+radial.rotated(-yaw)*(
             world_range/screen_radius)
         uvs.append(_terrain_uv(terrain_at))
-    draw_polygon(points,PackedColorArray([Color(1,1,1,.85)]),uvs,map_texture)
+    draw_polygon(points,PackedColorArray([Color(1,1,1,1.0)]),uvs,map_texture)
 
 
 func _process(delta: float) -> void:
@@ -502,11 +511,14 @@ func _draw_navigation_compass(center: Vector2,radius: float,
     for i in range(world_axes.size()):
         var offset: Vector2=world_axes[i].rotated(yaw)*(radius-13.0)
         var color: Color=Color(1.0,.79,.35) if i==0 else Color(.80,.92,.97)
-        draw_string(font,center+offset+Vector2(-4,4),labels[i],
+        var at: Vector2=center+offset+Vector2(-4,4)
+        draw_string(font,at+Vector2(1,1),labels[i],
+            HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color(.02,.03,.04,.98))
+        draw_string(font,at,labels[i],
             HORIZONTAL_ALIGNMENT_LEFT,-1,11,color)
     # Contrast helps the player's actual centre survive snowy map tiles.
-    draw_circle(center,9.0,Color(.017,.058,.08,.98))
-    draw_arc(center,9.8,0,TAU,24,Color(.80,.97,1.0,.94),1.4,true)
+    draw_circle(center,8.0,Color(.017,.035,.055,.90))
+    draw_arc(center,9.0,0,TAU,24,Color(.91,.97,1.0,.93),1.2,true)
     var facing: Vector2=_player_screen_forward()
     var lateral:=Vector2(-facing.y,facing.x)
     var tip:=PackedVector2Array([
@@ -521,10 +533,16 @@ func _draw_navigation_compass(center: Vector2,radius: float,
         HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color(.96,.98,.93))
 
 
+## Only show physical combat contacts while actually on the ground.
+## Flight retains terrain, compass, true zone geometry and the explicit
+## post-jump destination; the full tactical map keeps its independent view.
+func ground_contacts_visible() -> bool:
+    return is_instance_valid(player) and player.air_mode=="ground" and not player.royale_eliminated
+
 func _draw() -> void:
     var rect: Rect2=Rect2(Vector2.ZERO,size)
-    draw_rect(rect,Color(.025,.09,.13,.77))
-    draw_rect(rect,Color(.30,.73,.81,.85),false,1.6)
+    if _map_bezel!=null:
+        draw_style_box(_map_bezel,rect)
     var center: Vector2=_radar_center()
     var radius: float=_radar_radius()
     if player==null or not is_instance_valid(player):
@@ -537,10 +555,10 @@ func _draw() -> void:
     # the small in-flight minimap. The REAL route remains queryable through
     # aircraft_route_pixels() and is visible on the expanded tactical map.
     # The airplane HUD keeps its clean, terrain-based navigation disc.
-    draw_arc(center,radius,0,TAU,52,Color(.41,.89,.95,.86),1.9,true)
-    draw_arc(center,radius*.5,0,TAU,52,Color(.75,.91,.92,.27),1.0,true)
-    draw_line(center+Vector2(-radius,0),center+Vector2(radius,0),Color(.28,.50,.55,.32),1.0)
-    draw_line(center+Vector2(0,-radius),center+Vector2(0,radius),Color(.28,.50,.55,.32),1.0)
+    # A cartographic bezel, not a scanner crosshair. No artificial grid
+    # obscures the real road/roof texture or the physical safe-zone rings.
+    draw_arc(center,radius,0,TAU,64,Color(.02,.04,.06,.96),3.5,true)
+    draw_arc(center,radius,0,TAU,64,Color(.85,.94,.98,.82),1.4,true)
     # Compass/player pointer are drawn LAST so world icons cannot obscure
     # the actual actor location or the movement direction.
     if _zone_enabled:
@@ -573,6 +591,9 @@ func _draw() -> void:
             else:
                 draw_circle(dot,5.3,Color(1.0,.73,.15))
                 draw_arc(dot,8.0,0,TAU,28,Color(1.0,.90,.42),1.6)
+    if not ground_contacts_visible():
+        _draw_navigation_compass(center,radius,world_range)
+        return
     if _battle_mode:
         # Resource dots use real Area3D collision items, not a second
         # simulated loot map. Yellow=ammo, red=medical, blue=equipment.
@@ -589,8 +610,16 @@ func _draw() -> void:
                 or kind=="syringe" else Color(.44,.79,1.0)
                 if kind.begins_with("vest") or kind.begins_with("helmet")
                 or kind.begins_with("backpack") else Color(1.0,.83,.33))
-            draw_circle(dot,3.3,tint)
-            draw_arc(dot,5.0,0,TAU,16,Color(.02,.12,.17,.95),1.0)
+            # Compact semantic marks: a medical cross, protective square
+            # or ammunition dot. Each is anchored to the actual pickup.
+            draw_circle(dot,5.0,Color(.02,.04,.06,.94))
+            if kind in ["medkit","syringe"]:
+                draw_rect(Rect2(dot-Vector2(1.2,3.5),Vector2(2.4,7.0)),tint)
+                draw_rect(Rect2(dot-Vector2(3.5,1.2),Vector2(7.0,2.4)),tint)
+            elif kind.begins_with("vest") or kind.begins_with("helmet") or kind.begins_with("backpack"):
+                draw_rect(Rect2(dot-Vector2(3,3),Vector2(6,6)),tint)
+            else:
+                draw_circle(dot,3.0,tint)
         # Interactable supply lockers use a distinct gold diamond; unlike
         # individual pickups, these require an actual press and raycast.
         for locker_at in nearby_sealed_lockers():

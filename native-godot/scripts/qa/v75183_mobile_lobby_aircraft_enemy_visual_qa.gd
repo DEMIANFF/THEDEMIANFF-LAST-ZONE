@@ -68,8 +68,9 @@ func _verify() -> void:
         "the flight destination information was accidentally deleted")
     # Exercise the actual marker input used by _draw, including in an
     # exported PCK where GDScript source text is not necessarily present.
-    check(radar.minimap_waypoint_marker().is_empty(),
-        "yellow destination marker still renders aboard aircraft")
+    check(radar.minimap_waypoint_marker().is_empty() and
+        not radar.ground_contacts_visible(),
+        "yellow destination or ground contact still renders aboard aircraft")
     # The route drawing itself stays out of the minimap. Audit source
     # only when available; the runtime checks above and below always run.
     var radar_path: String="res://scripts/ui/aurora_training_radar.gd"
