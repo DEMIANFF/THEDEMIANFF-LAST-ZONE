@@ -899,12 +899,15 @@ static func confirmed_contact_position(last_contact: Vector3,
 ## PhysicsServer raycast checks; farther bodies still exist, fight and take
 ## damage normally. No artificial eliminations or fake distant targets.
 func _insert_sight_candidate(picks: Array[Dictionary],
-        foe: CharacterBody3D) -> void:
+        foe: CharacterBody3D,origin: Vector3,range_sq: float) -> void:
     if not _is_live_foe(foe):
         return
-    var distance_sq: float=global_position.distance_squared_to(
-        foe.global_position)
-    if distance_sq>=_loadout_sight_range()*_loadout_sight_range():
+    var distance_sq: float=origin.distance_squared_to(foe.global_position)
+    if distance_sq>=range_sq:
+        return
+    # Reject an out-of-budget candidate before scanning the insertion list.
+    # Strict ordering and ties retain the historical first-seen order.
+    if picks.size()==MAX_VISION_RAYS and distance_sq>=float(picks[-1]["distance_sq"]):
         return
     var place: int=picks.size()
     while place>0 and distance_sq<float(picks[place-1]["distance_sq"]):
@@ -918,11 +921,14 @@ func _insert_sight_candidate(picks: Array[Dictionary],
 
 func _nearest_sight_candidates() -> Array[Dictionary]:
     var picks: Array[Dictionary]=[]
+    var origin: Vector3=global_position
+    var sight: float=_loadout_sight_range()
+    var range_sq: float=sight*sight
     if is_instance_valid(operator):
-        _insert_sight_candidate(picks,operator)
+        _insert_sight_candidate(picks,operator,origin,range_sq)
     if sector_battle:
         for foe in _foes:
-            _insert_sight_candidate(picks,foe)
+            _insert_sight_candidate(picks,foe,origin,range_sq)
     return picks
 
 
