@@ -1,0 +1,6 @@
+# V75.225 — combate táctico autoritativo
+Base V75.224 9610d7ce2c7e08f44b82d5632b2290446d445ae8, CI 45869956532 success. Log confirma los siete controles de botín: unowned_denied, replica, no_local_collision, physical_pickup, removed, equipped, aim. No simulación local; no se vieron rivales en esa prueba.
+
+Protocolo 5: añade dos intenciones fiables, granada y barrera. Reutiliza throw_grenade y _on_cover_pressed en servidor, no permite conceder recursos ni daño. Snapshot táctico de granadas reales y barreras activas cercanas, más última detonación confirmada y cooldown; cliente interpola proyectil sin activar física/fusible, representa pared usando malla original y colisión estática únicamente para cámara, sin daño, expiración ni grupo de combate local. Elimina objetos desaparecidos, efecto visual sólo al recibir detonación confirmada. Botones muestran cantidades y cooldown real. No incluye aún sincronización de audio del combate, vehículos o múltiples humanos.
+
+QA amplía fixture de servidor aislado con una granada física junto al AWM; prueba consumo, réplica sin física local, detonación confirmada, retirada, barrera real con collider y cooldown. No concede el objeto por RPC. Pruebas anteriores se mantienen. CI pendiente, no hay FPS de Android, APK ni despliegue público. No se cambia Firebase, firma ni modelo privado.

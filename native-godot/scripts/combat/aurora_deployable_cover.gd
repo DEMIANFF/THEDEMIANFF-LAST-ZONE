@@ -6,13 +6,18 @@ signal broken
 const MAX_HEALTH: float=220.0
 const LIFETIME_SECONDS: float=48.0
 
+var presentation_only: bool=false
 var health: float=MAX_HEALTH
 var seconds_left: float=LIFETIME_SECONDS
 var _destroyed: bool=false
 
 
 func _ready() -> void:
-    add_to_group("aurora_deployable_cover")
+    if not presentation_only:
+        add_to_group("aurora_deployable_cover")
+    else:
+        # Static camera obstruction only; no local lifetime or damage authority.
+        set_process(false)
     collision_layer=1
     collision_mask=0
 
@@ -56,7 +61,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-    if _destroyed:
+    if presentation_only or _destroyed:
         return
     seconds_left=maxf(0.0,seconds_left-maxf(0.0,delta))
     if seconds_left<=0.0:
@@ -64,7 +69,7 @@ func _process(delta: float) -> void:
 
 
 func take_damage(amount: float) -> bool:
-    if _destroyed or not is_finite(amount) or amount<=0.0:
+    if presentation_only or _destroyed or not is_finite(amount) or amount<=0.0:
         return false
     health=maxf(0.0,health-amount)
     if health<=0.0:
