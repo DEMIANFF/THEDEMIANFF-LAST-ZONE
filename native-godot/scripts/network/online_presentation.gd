@@ -10,6 +10,9 @@ const COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const AUDIO=preload("res://scripts/audio/aurora_audio.gd")
+const FLIGHT_VISUAL=preload("res://scripts/match/airdrop_sequence.gd")
+var flight_visual: Node3D
+var _jump: Button
 var sound: Node3D
 var last_sound_sequence: int=0
 var last_critical_sound_sequence: int=0
@@ -124,7 +127,7 @@ func _build_touch_hud() -> void:
     _run.offset_top=-310
     _run.offset_bottom=-248
     _run.toggled.connect(func(value: bool): sprint=value)
-    var jump: Button=_action_button("SALTAR",Vector2(-315,-140),func(): request_action(session.ACTION_JUMP))
+    _jump=_action_button("SALTAR",Vector2(-315,-140),func(): request_action(session.ACTION_JUMP))
     var reload: Button=_action_button("RECARGA",Vector2(-315,-218),func(): request_action(session.ACTION_RELOAD))
     _crouch=_action_button("AGACHAR",Vector2(-445,-140),func():
         request_action(session.ACTION_STAND if bool(_last_state.get("crouched",false)) else session.ACTION_CROUCH))
@@ -133,7 +136,7 @@ func _build_touch_hud() -> void:
     _aim=_action_button("MIRA",Vector2(-315,-296),func(): request_action(session.ACTION_AIM))
     _grenade=_action_button("GRANADA",Vector2(-575,-140),func(): request_action(session.ACTION_GRENADE))
     _cover=_action_button("BARRERA",Vector2(-575,-218),func(): request_action(session.ACTION_COVER))
-    layer.actions=[_pad,_fire_pad,_run,jump,reload,_crouch,_weapon,_heal,_aim,_grenade,_cover]
+    layer.actions=[_pad,_fire_pad,_run,_jump,reload,_crouch,_weapon,_heal,_aim,_grenade,_cover]
 
 func _action_button(label: String,offset: Vector2,callback: Callable) -> Button:
     var button:=Button.new()
@@ -397,6 +400,39 @@ func _sync_sounds(events: Array) -> void:
                 continue
         received_sounds[counter]=int(received_sounds.get(counter,0))+1
 
+# Original aircraft builder and canopy mesh; never start local flight physics.
+func _sync_air_presentation(mode: String) -> void:
+    operator.air_mode=mode
+    if mode=="aircraft":
+        if not is_instance_valid(flight_visual):
+            flight_visual=FLIGHT_VISUAL.new()
+            flight_visual.player=operator
+            world.add_child(flight_visual)
+            flight_visual._build_craft()
+        _jump.text="SALTAR AVIÓN"
+    else:
+        _release_aircraft_visual()
+        _jump.text="ABRIR PARACAÍDAS" if mode=="freefall" else "SALTAR"
+    _jump.disabled=mode=="parachute"
+    if operator._parachute_visual!=null:
+        operator._parachute_visual.visible=mode=="parachute"
+    _fire_pad.visible=mode=="ground"
+    _run.visible=mode=="ground"
+    _crouch.visible=mode=="ground"
+    _weapon.visible=mode=="ground"
+    _heal.visible=mode=="ground"
+    _aim.visible=mode=="ground"
+    _grenade.visible=mode=="ground"
+    _cover.visible=mode=="ground"
+
+func _release_aircraft_visual() -> void:
+    if is_instance_valid(flight_visual):
+        if is_instance_valid(flight_visual._craft):
+            flight_visual._craft.hide()
+            flight_visual._craft.queue_free()
+        flight_visual.queue_free()
+    flight_visual=null
+
 func apply_snapshot(data: Dictionary) -> void:
     if not data.has("position") or not data.has("rivals"):
         return
@@ -407,7 +443,9 @@ func apply_snapshot(data: Dictionary) -> void:
         operator.global_position=data.position
         operator.show()
         _has_state=true
-    zone.show()
+    var air: String=str(data.get("air_mode","ground"))
+    _sync_air_presentation(air)
+    zone.visible=str(data.get("match_mode","sector_battle"))=="sector_battle"
     zone.set_zone_state(data.zone_center,float(data.zone_radius))
     var seen: Dictionary={}
     for item in data.rivals:
@@ -450,10 +488,15 @@ func apply_snapshot(data: Dictionary) -> void:
     _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · MUNICIÓN %d/%d%s"%[
         int(data.alive),roundi(float(data.health)),float(data.zone_radius),
         int(data.ammo),int(data.reserve)," · RECARGANDO" if float(data.reload_remaining)>0.0 else ""]
+    if air!="ground":
+        _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
     if bool(data.get("ended",false)):
         _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else "ONLINE · PARTIDA FINALIZADA"
 
 func _clear_remote() -> void:
+    _release_aircraft_visual()
+    if operator._parachute_visual!=null:
+        operator._parachute_visual.hide()
     for id in replicas.keys():
         replicas[id].hide()
         replicas[id].queue_free()
@@ -492,11 +535,17 @@ func _physics_process(delta: float) -> void:
         if not clip.is_empty() and operator._current_clip!=clip:
             operator._play_matching_animation(clip)
         operator._camera.fov=lerpf(operator._camera.fov,clampf(74.0/float(_last_state.zoom),9.0,74.0),factor)
+        var air: String=str(_last_state.get("air_mode","ground"))
         var desired_distance: float=operator.ADS_CAMERA_DISTANCE if bool(_last_state.aim) else operator.GROUND_CAMERA_DISTANCE
-        var distance: float=operator._collision_safe_camera_distance(desired_distance)
+        var distance: float=operator._collision_safe_camera_distance(desired_distance) if air=="ground" else (7.1 if air=="aircraft" else 6.4)
         operator._camera.position.z=distance
+        if air!="ground":
+            operator._camera.fov=lerpf(operator._camera.fov,76.0,factor)
         if operator._avatar!=null:
-            operator._avatar.visible=distance>1.50
+            operator._avatar.visible=air!="aircraft" and distance>1.50
+        if is_instance_valid(flight_visual) and is_instance_valid(flight_visual._craft):
+            flight_visual._craft.global_position=operator.global_position+Vector3(0,.7,-1)
+            flight_visual._advance_visible_propellers(delta)
         for id in grenade_replicas.keys():
             var projectile: Node3D=grenade_replicas[id]
             projectile.global_position=projectile.global_position.lerp(grenade_targets[id],factor)
