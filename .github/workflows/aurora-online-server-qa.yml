@@ -1,7 +1,7 @@
-name: Aurora V75.231 dedicated online server real UDP QA
+name: Aurora V75.232 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-231-airborne-rivals-audio]
+    branches: [codex/v75-232-authoritative-waiting-island]
   workflow_dispatch:
 permissions:
   contents: read
@@ -172,9 +172,10 @@ jobs:
           AURORA_ONLINE_QA_FLIGHT=1 AURORA_ONLINE_LOG_DIR="$PWD/native-godot/out/online/flight" bash native-godot/tools/run_online_qa.sh
           grep -F 'V75230_FLIGHT PASS' native-godot/out/online/flight/client.log
           grep -F 'V75231_AIR_VISUAL PASS' native-godot/out/online/flight/client.log
+          grep -F 'V75232_WAITING PASS' native-godot/out/online/flight/client.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.231-ONLINE-SERVER-QA
+          name: AURORA-V75.232-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3

@@ -12,6 +12,10 @@ const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const AUDIO=preload("res://scripts/audio/aurora_audio.gd")
 const FLIGHT_VISUAL=preload("res://scripts/match/airdrop_sequence.gd")
 const CANOPY_VISUAL=preload("res://scripts/match/rival_canopy_visual.gd")
+const WAITING_ISLAND=preload("res://scripts/network/online_waiting_island.gd")
+var waiting_visual: Node3D
+var _reload: Button
+var _presented_match_mode: String=""
 var flight_visual: Node3D
 var _jump: Button
 var sound: Node3D
@@ -129,7 +133,7 @@ func _build_touch_hud() -> void:
     _run.offset_bottom=-248
     _run.toggled.connect(func(value: bool): sprint=value)
     _jump=_action_button("SALTAR",Vector2(-315,-140),func(): request_action(session.ACTION_JUMP))
-    var reload: Button=_action_button("RECARGA",Vector2(-315,-218),func(): request_action(session.ACTION_RELOAD))
+    _reload=_action_button("RECARGA",Vector2(-315,-218),func(): request_action(session.ACTION_RELOAD))
     _crouch=_action_button("AGACHAR",Vector2(-445,-140),func():
         request_action(session.ACTION_STAND if bool(_last_state.get("crouched",false)) else session.ACTION_CROUCH))
     _weapon=_action_button("ARMA",Vector2(-190,-285),func(): request_action(session.ACTION_NEXT_WEAPON))
@@ -137,7 +141,7 @@ func _build_touch_hud() -> void:
     _aim=_action_button("MIRA",Vector2(-315,-296),func(): request_action(session.ACTION_AIM))
     _grenade=_action_button("GRANADA",Vector2(-575,-140),func(): request_action(session.ACTION_GRENADE))
     _cover=_action_button("BARRERA",Vector2(-575,-218),func(): request_action(session.ACTION_COVER))
-    layer.actions=[_pad,_fire_pad,_run,_jump,reload,_crouch,_weapon,_heal,_aim,_grenade,_cover]
+    layer.actions=[_pad,_fire_pad,_run,_jump,_reload,_crouch,_weapon,_heal,_aim,_grenade,_cover]
 
 func _action_button(label: String,offset: Vector2,callback: Callable) -> Button:
     var button:=Button.new()
@@ -435,6 +439,33 @@ func _release_aircraft_visual() -> void:
         flight_visual.queue_free()
     flight_visual=null
 
+func _sync_waiting(mode: String) -> void:
+    if mode=="waiting":
+        if not is_instance_valid(waiting_visual):
+            waiting_visual=WAITING_ISLAND.new()
+            waiting_visual.physical=false
+            world.add_child(waiting_visual)
+        _fire_pad.hide()
+        _reload.hide()
+        _crouch.hide()
+        _weapon.hide()
+        _heal.hide()
+        _aim.hide()
+        _grenade.hide()
+        _cover.hide()
+        weapon_visuals.hide()
+        firing=false
+    else:
+        _release_waiting()
+        _reload.visible=operator.air_mode=="ground"
+        weapon_visuals.show()
+
+func _release_waiting() -> void:
+    if is_instance_valid(waiting_visual):
+        waiting_visual.hide()
+        waiting_visual.queue_free()
+    waiting_visual=null
+
 func apply_snapshot(data: Dictionary) -> void:
     if not data.has("position") or not data.has("rivals"):
         return
@@ -446,8 +477,13 @@ func apply_snapshot(data: Dictionary) -> void:
         operator.show()
         _has_state=true
     var air: String=str(data.get("air_mode","ground"))
+    var match_mode: String=str(data.get("match_mode","sector_battle"))
+    if match_mode!=_presented_match_mode:
+        operator.global_position=data.position
+        _presented_match_mode=match_mode
     _sync_air_presentation(air)
-    zone.visible=str(data.get("match_mode","sector_battle"))=="sector_battle"
+    _sync_waiting(match_mode)
+    zone.visible=match_mode=="sector_battle"
     zone.set_zone_state(data.zone_center,float(data.zone_radius))
     var seen: Dictionary={}
     for item in data.rivals:
@@ -498,12 +534,16 @@ func apply_snapshot(data: Dictionary) -> void:
     _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · MUNICIÓN %d/%d%s"%[
         int(data.alive),roundi(float(data.health)),float(data.zone_radius),
         int(data.ammo),int(data.reserve)," · RECARGANDO" if float(data.reload_remaining)>0.0 else ""]
-    if air!="ground":
+    if match_mode=="waiting":
+        _status.text="ISLA DE ESPERA · DESPEGUE EN %02d s · CAPACIDAD 50"%ceili(float(data.get("waiting_remaining",0.0)))
+    elif air!="ground":
         _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
     if bool(data.get("ended",false)):
         _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else "ONLINE · PARTIDA FINALIZADA"
 
 func _clear_remote() -> void:
+    _release_waiting()
+    _presented_match_mode=""
     sound.set_aircraft_audio(false)
     _release_aircraft_visual()
     if operator._parachute_visual!=null:
