@@ -25,6 +25,20 @@ const GUNFIRE_PING_SECONDS: float=3.0
 const GUNFIRE_MERGE_DISTANCE: float=6.0
 const MAX_GUNFIRE_PINGS: int=8
 const MAP_DISC_SIDES: int=64
+# Unit directions and screen polygon are shared across all redraws.
+# Only the world-space UVs change when the operator moves or turns.
+var _disc_unit:=PackedVector2Array()
+var _disc_points:=PackedVector2Array()
+var _disc_uvs:=PackedVector2Array()
+var _disc_tint:=PackedColorArray([Color.WHITE])
+var _disc_cached_center:=Vector2(INF,INF)
+var _disc_cached_radius: float=-1.0
+var _disc_cached_world:=Vector2(INF,INF)
+var _disc_cached_range: float=-1.0
+var _disc_cached_yaw: float=INF
+var disc_polygon_rebuilds: int=0
+var disc_uv_rebuilds: int=0
+var _zone_unit_cache: Dictionary={}
 # Player may recover nearby physical death crates; unlike enemy contacts
 # these are existing world items, not wallhack positions of living bots.
 const MAX_MINIMAP_CACHES: int=4
@@ -377,25 +391,42 @@ func _terrain_pixel(world: Vector2,texture_size: Vector2) -> Vector2:
     return _terrain_uv(world)*texture_size
 
 
+func _update_disc_geometry(center: Vector2,screen_radius: float,
+        world_range: float,yaw: float,world: Vector2) -> void:
+    if _disc_unit.is_empty():
+        _disc_unit.resize(MAP_DISC_SIDES)
+        _disc_points.resize(MAP_DISC_SIDES)
+        _disc_uvs.resize(MAP_DISC_SIDES)
+        for i in range(MAP_DISC_SIDES):
+            _disc_unit[i]=Vector2.from_angle(TAU*float(i)/float(MAP_DISC_SIDES))
+    if center!=_disc_cached_center or screen_radius!=_disc_cached_radius:
+        _disc_cached_center=center
+        _disc_cached_radius=screen_radius
+        for i in range(MAP_DISC_SIDES):
+            _disc_points[i]=center+_disc_unit[i]*screen_radius
+        disc_polygon_rebuilds+=1
+    if world!=_disc_cached_world or world_range!=_disc_cached_range or yaw!=_disc_cached_yaw:
+        _disc_cached_world=world
+        _disc_cached_range=world_range
+        _disc_cached_yaw=yaw
+        # A single rotation basis per disc instead of 64 independent
+        # angle calculations and 64 rotated() calls on each repaint.
+        var axis_x:=Vector2(cos(yaw),-sin(yaw))
+        var axis_y:=Vector2(-axis_x.y,axis_x.x)
+        for i in range(MAP_DISC_SIDES):
+            var radial: Vector2=_disc_unit[i]
+            var terrain_at: Vector2=world+(axis_x*radial.x+axis_y*radial.y)*world_range
+            _disc_uvs[i]=_terrain_uv(terrain_at)
+        disc_uv_rebuilds+=1
+
+
 func _draw_terrain_disc(center: Vector2,screen_radius: float,
         world_range: float,yaw: float) -> void:
     if map_texture==null or not is_instance_valid(player) or screen_radius<1.0:
         return
     var world: Vector2=Vector2(player.global_position.x,player.global_position.z)
-    var points:=PackedVector2Array()
-    var uvs:=PackedVector2Array()
-    # Draw one convex 64-sided disc instead of a square texture under a
-    # circular bezel. Normalized UVs preserve the same projection used
-    # for zone rings and world markers; no extra Viewport or per-frame image.
-    for i in range(MAP_DISC_SIDES):
-        var radial: Vector2=Vector2.from_angle(
-            TAU*float(i)/float(MAP_DISC_SIDES))*screen_radius
-        points.append(center+radial)
-        var terrain_at: Vector2=world+radial.rotated(-yaw)*(
-            world_range/screen_radius)
-        uvs.append(_terrain_uv(terrain_at))
-    draw_polygon(points,PackedColorArray([Color(1,1,1,1.0)]),uvs,map_texture)
-
+    _update_disc_geometry(center,screen_radius,world_range,yaw,world)
+    draw_polygon(_disc_points,_disc_tint,_disc_uvs,map_texture)
 
 func _process(delta: float) -> void:
     # Fixed upper bound: even all 49 rivals firing cannot grow the radar
@@ -466,14 +497,40 @@ func _draw_zone_in_local_disc(world_center: Vector2,world_radius: float,
             projected_radius>center_distance+clip_radius):
         return
     var segments: int=clampi(ceili(TAU*projected_radius/4.5),72,192)
-    var previous: Vector2=projected+Vector2(projected_radius,0.0)
+    var edges: PackedVector2Array=_clipped_zone_edges(projected,projected_radius,
+        center,clip_radius,segments)
+    if not edges.is_empty():
+        # Independent pairs preserve the original clipped segments, but
+        # submit one CanvasItem drawing command per visible circle.
+        draw_multiline(edges,tint,width,true)
+
+
+func _clipped_zone_edges(projected: Vector2,projected_radius: float,
+        center: Vector2,clip_radius: float,segments: int) -> PackedVector2Array:
+    if not _zone_unit_cache.has(segments):
+        # Small bounded cache: radius changes can produce many segment
+        # counts over a match, so retain at most eight resolutions.
+        if _zone_unit_cache.size()>=8:
+            _zone_unit_cache.erase(_zone_unit_cache.keys()[0])
+        var unit:=PackedVector2Array()
+        unit.resize(segments+1)
+        for i in range(segments+1):
+            unit[i]=Vector2.from_angle(TAU*float(i)/float(segments))
+        _zone_unit_cache[segments]=unit
+    var directions: PackedVector2Array=_zone_unit_cache[segments]
+    var edges:=PackedVector2Array()
+    var previous: Vector2=projected+directions[0]*projected_radius
+    var clip_sq: float=clip_radius*clip_radius
+    var previous_inside: bool=previous.distance_squared_to(center)<=clip_sq
     for i in range(1,segments+1):
-        var angle: float=TAU*float(i)/float(segments)
-        var current: Vector2=projected+Vector2.from_angle(angle)*projected_radius
-        if (previous.distance_squared_to(center)<=clip_radius*clip_radius and
-                current.distance_squared_to(center)<=clip_radius*clip_radius):
-            draw_line(previous,current,tint,width,true)
+        var current: Vector2=projected+directions[i]*projected_radius
+        var inside: bool=current.distance_squared_to(center)<=clip_sq
+        if previous_inside and inside:
+            edges.append(previous)
+            edges.append(current)
         previous=current
+        previous_inside=inside
+    return edges
 
 
 ## Never shrink an in-range destination by 10 px: its ground
