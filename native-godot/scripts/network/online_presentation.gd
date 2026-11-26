@@ -385,7 +385,7 @@ func _sync_sounds(events: Array) -> void:
     for item in events:
         var id: int=int(item.seq)
         var kind: String=str(item.kind)
-        if kind=="local" or kind=="remote_blast":
+        if kind=="local" or kind=="remote_blast" or kind in ["duel_remote_shot","duel_remote_reload"]:
             if id<=last_critical_sound_sequence:
                 continue
             last_critical_sound_sequence=id
@@ -404,8 +404,10 @@ func _sync_sounds(events: Array) -> void:
                 counter=sample
             "local_step":
                 sound.play_operator_contact(bool(item.stone),bool(item.run))
-            "remote_shot":
+            "remote_shot","duel_remote_shot":
                 sound.play_world_shot(at)
+            "duel_remote_reload":
+                sound.play_world_reload(at)
             "remote_step":
                 sound.play_bot_contact(at,bool(item.run),bool(item.stone))
             "remote_blast":

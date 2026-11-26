@@ -2,7 +2,7 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=18
+const PROTOCOL: int=19
 var dual_combat: bool=false
 var _dual_winner: int=0
 var _dual_finished: bool=false
@@ -435,7 +435,7 @@ func _dual_joined(id: int) -> void:
         "action_ack":0,"action_rejected":0,"action_applied":0,"jump_pending":false,"jump_ms":-1000,
         "fire":false,"ammo":int(WEAPON_CATALOG.ENTRIES[WEAPON_CATALOG.AR].capacity),
         "reserve":90,"shots":0,"hits":0,"kills":0,"reload_pending":false,
-        "reload_remaining":0.0,"reloads":0,"fire_clock":0.0}
+        "reload_remaining":0.0,"reloads":0,"fire_clock":0.0,"audio_seq":0}
     _dual_admitted+=1
     print("V75237_SERVER_ADMIT peer=",id," live_humans=",dual_peers.size())
 
@@ -507,6 +507,27 @@ func _dual_action(version: int,request_id: int,action: int) -> void:
 
 # Minimal AR duel: server owns magazine, reload, cadence, ray and damage.
 # No client hit claims or target IDs; the first actual physics collider wins.
+# Per-recipient sequence space. The original single-player reliable audio
+# channel is reused, never a broadcast containing another player's local cues.
+func _dual_sound(recipient: int,kind: String,sample: String,at: Vector3=Vector3.ZERO) -> void:
+    if not dual_peers.has(recipient):
+        return
+    var peer: Dictionary=dual_peers[recipient]
+    if kind.begins_with("duel_remote"):
+        var maximum: float=150.0 if kind=="duel_remote_shot" else 26.0
+        if not at.is_finite() or peer.actor.global_position.distance_squared_to(at)>maximum*maximum:
+            return
+        at=at.snapped(Vector3(4.0,2.0,4.0))
+    peer.audio_seq+=1
+    receive_critical_sound.rpc_id(recipient,PROTOCOL,{"seq":peer.audio_seq,"kind":kind,
+        "sample":sample,"at":at,"run":false,"stone":false})
+
+func _dual_sound_action(id: int,local_sample: String,remote_kind: String,at: Vector3) -> void:
+    _dual_sound(id,"local",local_sample)
+    for other_id in dual_peers:
+        if other_id!=id:
+            _dual_sound(int(other_id),remote_kind,local_sample,at)
+
 func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> void:
     var actor: CharacterBody3D=peer.actor
     var ready: bool=dual_peers.size()==2 and not _dual_finished and actor.can_act()
@@ -523,6 +544,7 @@ func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> voi
         peer.reload_remaining=float(spec.reload)
         peer.action_applied+=1
         actor.play_weapon_action("reload",float(spec.reload))
+        _dual_sound_action(id,"reload","duel_remote_reload",actor.global_position)
     if float(peer.reload_remaining)>0.0:
         peer.reload_remaining=maxf(0.0,float(peer.reload_remaining)-delta)
         if float(peer.reload_remaining)<=0.0:
@@ -540,6 +562,7 @@ func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> voi
     peer.ammo-=1
     peer.shots+=1
     actor.play_weapon_action("fire",.10)
+    _dual_sound_action(id,str(spec.sample),"duel_remote_shot",actor.global_position)
     var origin: Vector3=actor.global_position+Vector3.UP*1.35
     var angle: float=actor._yaw
     var pitch_angle: float=actor._pitch
@@ -558,6 +581,8 @@ func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> voi
         target.receive_training_hit(float(spec.damage),false,origin,impact.position)
         if target.training_health<old_hp:
             peer.hits+=1
+            _dual_sound(id,"local","impact")
+            _dual_sound(int(other_id),"local","hit")
         if target.royale_eliminated:
             peer.kills+=1
             _dual_finished=true
@@ -622,7 +647,7 @@ func _dual_tick(delta: float) -> void:
             alive+=0 if participant.actor.royale_eliminated else 1
         _send_world_state({"snapshot_id":snapshot_sequence,"self_peer":id,"dual_waiting":true,"dual_combat":dual_combat,
             "duel_ready":dual_peers.size()==2 and not _dual_finished,"duel_winner":_dual_winner,
-            "hits":peer.hits,"kills":peer.kills,"reloads":peer.reloads,
+            "hits":peer.hits,"kills":peer.kills,"reloads":peer.reloads,"duel_audio_sent":peer.audio_seq,
             "position":actor.global_position,"velocity":actor.velocity,"body_yaw":actor.rotation.y,
             "clip":str(actor._current_clip),"air_mode":"ground","match_mode":"waiting",
             "waiting_remaining":0.0,"waiting_ready":dual_peers.size(),"rivals":rivals,
