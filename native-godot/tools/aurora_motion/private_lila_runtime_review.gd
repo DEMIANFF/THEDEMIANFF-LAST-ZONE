@@ -1,5 +1,5 @@
 extends SceneTree
-## Explicit local-only test of the private Rev2 GLB, NOT an exported scene.
+## Explicit local-only test of the private Rev2 or Rev3 GLB, NOT an exported scene.
 const EXPECTED: Array[String]=[
     "AuroraIdle","AuroraArmedIdle","AuroraAim","AuroraAimAWM","AuroraCrouch",
     "AuroraArmedWalk","AuroraArmedRun","AuroraCrouchWalk","AuroraArmedStrafeLeft",
@@ -8,6 +8,7 @@ const EXPECTED: Array[String]=[
     "AuroraReloadAWM","AuroraReloadMP40","AuroraHeal","AuroraEquip","AuroraHit",
     "AuroraHitFront","AuroraHitBack","AuroraHitLeft","AuroraHitRight"]
 const SHA: String="ab0df204ebe5cdbd2c9472af22eb672eac6cc9cec3818e6859baf1d884c3aa12"
+const CONTACT_SHA: String="b3fd330483756a16d2a5022776428e54db39f916404ec70438b64de37932b896"
 var failed: bool=false
 
 func _initialize() -> void:
@@ -16,7 +17,7 @@ func _initialize() -> void:
 func check(ok: bool,reason: String) -> void:
     if not ok:
         failed=true
-        push_error("LILA_PRIVATE_REV2 "+reason)
+        push_error("LILA_PRIVATE_RUNTIME "+reason)
 
 func _review() -> void:
     var args: PackedStringArray=OS.get_cmdline_user_args()
@@ -25,7 +26,7 @@ func _review() -> void:
         quit(2)
         return
     var path: String=args[0]
-    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path)!=SHA:
+    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path) not in [SHA,CONTACT_SHA]:
         push_error("Private candidate missing or SHA mismatch")
         quit(2)
         return
@@ -81,7 +82,7 @@ func _review() -> void:
                 check(rig.get_bone_global_pose(bone).is_finite(),"invalid bone "+clip)
             poses+=1
         animator.stop()
-    print("LILA_PRIVATE_REV2 imported_clips=",EXPECTED.size()," sampled_poses=",poses,
+    print("LILA_PRIVATE_RUNTIME imported_clips=",EXPECTED.size()," sampled_poses=",poses,
         " production_approved=false")
     visual.queue_free()
     quit(1 if failed else 0)
