@@ -51,6 +51,48 @@ func _verify() -> void:
         is_equal_approx(range_m,RADAR.GROUND_DETAIL_METRES),
         "player arrow is offset or combat radar is not local detail")
 
+    # The optimized cached disc must be numerically identical to the
+    # original per-vertex projection at several yaw and range values.
+    for angle in [0.0,.43,-PI*.5,PI]:
+        for detail in [80.0,110.0,145.0]:
+            radar._update_disc_geometry(center,radius,detail,angle,origin)
+            for i in range(RADAR.MAP_DISC_SIDES):
+                var radial: Vector2=Vector2.from_angle(TAU*float(i)/float(RADAR.MAP_DISC_SIDES))*radius
+                var expected_uv: Vector2=radar._terrain_uv(origin+radial.rotated(-angle)*(detail/radius))
+                check(radar._disc_points[i].distance_to(center+radial)<.001 and
+                    radar._disc_uvs[i].distance_to(expected_uv)<.00001,
+                    "cached disc changed terrain geometry or rotation")
+    var polygon_count: int=radar.disc_polygon_rebuilds
+    var uv_count: int=radar.disc_uv_rebuilds
+    radar._update_disc_geometry(center,radius,145.0,PI,origin)
+    check(radar.disc_polygon_rebuilds==polygon_count and radar.disc_uv_rebuilds==uv_count,
+        "stationary minimap rebuilt unchanged geometry")
+    radar._update_disc_geometry(center,radius,145.0,PI,origin+Vector2.RIGHT)
+    check(radar.disc_polygon_rebuilds==polygon_count and radar.disc_uv_rebuilds==uv_count+1,
+        "moving operator rebuilt static screen polygon or stale UVs")
+    radar._update_disc_geometry(center,radius+2.0,145.0,PI,origin+Vector2.RIGHT)
+    check(radar.disc_polygon_rebuilds==polygon_count+1 and radar.disc_uv_rebuilds==uv_count+1,
+        "HUD resize did not update screen polygon independently")
+    for segments in range(72,92):
+        var projected: Vector2=center+Vector2(radius*.70,0)
+        var ring_radius: float=radius*.65
+        var clip_radius: float=radius-2.0
+        var edges: PackedVector2Array=radar._clipped_zone_edges(projected,ring_radius,center,clip_radius,segments)
+        var reference:=PackedVector2Array()
+        var previous: Vector2=projected+Vector2(ring_radius,0)
+        for i in range(1,segments+1):
+            var current: Vector2=projected+Vector2.from_angle(TAU*float(i)/float(segments))*ring_radius
+            if previous.distance_squared_to(center)<=clip_radius*clip_radius and current.distance_squared_to(center)<=clip_radius*clip_radius:
+                reference.append(previous)
+                reference.append(current)
+            previous=current
+        check(not edges.is_empty() and edges.size()==reference.size(),
+            "batched ring lost or added visible segments")
+        for i in range(mini(edges.size(),reference.size())):
+            check(edges[i].distance_to(reference[i])<.001,
+                "batched ring moved a real zone boundary")
+    check(radar._zone_unit_cache.size()<=8,"zone geometry cache grows without bound")
+
     # A north-looking camera sees true east on the RIGHT and north ABOVE.
     var east: Vector2=radar.call("_world_to_radar",
         origin+Vector2(20.0,0.0),center,radius,range_m)
