@@ -13,6 +13,7 @@ const GROUND_CONTACT=preload("res://scripts/player/aurora_operator_contact_shado
 const BACKPACK_VISUAL=preload("res://scripts/player/aurora_backpack_visual.gd")
 const LOCAL_PLAYER_RECORDS=preload("res://scripts/persistence/offline_match_records.gd")
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
+const LILA_SOURCE=preload("res://scripts/player/aurora_lila_source.gd")
 const CAMERA_PREFERENCES=preload("res://scripts/persistence/camera_preferences.gd")
 const PLAYER_SETTINGS=preload("res://scripts/persistence/player_settings.gd")
 const FLIGHT_DIAGNOSTICS=preload("res://scripts/match/flight_diagnostics.gd")
@@ -204,10 +205,11 @@ func _ready() -> void:
     add_child(_ground_contact)
 
     var operator_scene: PackedScene = approved_operator_scene
-    if operator_scene == null and ResourceLoader.exists("res://assets/characters/lila_aurora.glb"):
-        operator_scene = load("res://assets/characters/lila_aurora.glb") as PackedScene
+    if operator_scene == null:
+        operator_scene = LILA_SOURCE.scene()
     if operator_scene != null:
         _avatar = operator_scene.instantiate() as Node3D
+        LILA_SOURCE.tag_instance(_avatar,operator_scene)
         _avatar.name = "AuroraFemaleRiggedOperator"
         add_child(_avatar)
         fit_operator_visual(_avatar)
