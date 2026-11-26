@@ -58,10 +58,36 @@ func _verify() -> void:
     combat.ammo[CATALOG.P90]=37
     var reserve_before: int=combat.reserve[CATALOG.MP40]
     combat._on_reload()
-    check(combat.reload_timer>0.0,"P90 reload did not use the real action timer")
-    combat._process(float(CATALOG.ENTRIES[CATALOG.P90].reload)+.01)
+    check(combat.reload_timer>0.0 and visuals.p90_reload_active,
+        "P90 reload did not start its actual timed hand gesture")
+    var reload_target: Node3D=visuals.support_grip_anchor()
+    var rest: Vector3=reload_target.position
+    var duration: float=float(CATALOG.ENTRIES[CATALOG.P90].reload)
+    combat._process(duration*.5)
+    check(combat.ammo[CATALOG.P90]==37 and combat.reserve[CATALOG.MP40]==reserve_before,
+        "P90 transferred ammunition before the timed action finished")
+    check(reload_target.name=="P90ReloadHandTarget" and
+        reload_target.position.distance_to(rest)>10.0 and visuals.support_grip_enabled(),
+        "P90 hand failed to move to its distinct upper receiver target")
+    # Evaluate real skeletal modifier through the same manual mixer path
+    # used by the four existing grip fixtures. No mock hand movement.
+    for frame in range(12):
+        controller.tree.advance(1.0/60.0)
+        await process_frame
+    check(visuals._support_ik.solved and visuals._support_ik.last_error_m<.045 and
+        visuals._support_ik.right_error_m<.045,
+        "P90 reload loses reachable hand contact")
+    combat._equip_inventory_weapon(CATALOG.AR)
+    check(not visuals.p90_reload_active and reload_target.position.is_equal_approx(rest) and
+        combat.ammo[CATALOG.P90]==37 and combat.reserve[CATALOG.MP40]==reserve_before,
+        "weapon swap leaked reload pose or changed ammunition")
+    combat._equip_inventory_weapon(CATALOG.P90)
+    combat._on_reload()
+    combat._process(duration+.01)
     check(combat.ammo[CATALOG.P90]==50 and
-        combat.reserve[CATALOG.MP40]==reserve_before-13,"P90 reload duplicated or lost ammunition")
+        combat.reserve[CATALOG.MP40]==reserve_before-13 and
+        not visuals.p90_reload_active and reload_target.position.is_equal_approx(rest),
+        "P90 reload duplicated ammunition or retained reload pose")
     var credited: bool=false
     for entry in CREDITS.MODELS:
         if str(entry.source).ends_with("080897fc0366455884b1a916684313fe"):
