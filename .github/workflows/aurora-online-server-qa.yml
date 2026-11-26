@@ -1,7 +1,7 @@
-name: Aurora V75.240 dedicated online server real UDP QA
+name: Aurora V75.241 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-240-shared-duel-loot]
+    branches: [codex/v75-241-authoritative-medical-channel]
   workflow_dispatch:
 permissions:
   contents: read
@@ -190,10 +190,15 @@ jobs:
           grep -F 'V75239_AUDIO PASS' native-godot/out/online/duel/first.log
           grep -F 'V75239_AUDIO PASS' native-godot/out/online/duel/second.log
       - name: Shared physical loot and independent inventory across two clients
-        run: AURORA_ONLINE_DUAL_LOOT=1 bash native-godot/tools/run_dual_waiting_qa.sh
+        run: |
+          AURORA_ONLINE_DUAL_LOOT=1 bash native-godot/tools/run_dual_waiting_qa.sh
+          grep -F 'V75241_HEAL PASS' native-godot/out/online/dual_loot/first.log
+          grep -F 'V75241_HEAL PASS' native-godot/out/online/dual_loot/second.log
+          test "$(grep -c 'V75241_SERVER_HEAL peer=' native-godot/out/online/dual_loot/server.log)" -eq 1
+          grep -F 'V75241_SERVER_HEAL_CANCEL reason=input_or_movement medkits=1' native-godot/out/online/dual_loot/server.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.240-ONLINE-SERVER-QA
+          name: AURORA-V75.241-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3
