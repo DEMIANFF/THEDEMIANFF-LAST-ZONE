@@ -34,6 +34,15 @@ func _verify() -> void:
         "static P90 falsely advertised as an authored animated source")
     for item in parts:
         var part:=item as MeshInstance3D
+        # Record actual imported mesh bounds in model coordinates for the
+        # next visual audit. Never infer magazine identity from names alone.
+        var low:=Vector3(INF,INF,INF)
+        var high:=Vector3(-INF,-INF,-INF)
+        for corner in range(8):
+            var point: Vector3=model.to_local(part.to_global(part.get_aabb().get_endpoint(corner)))
+            low=low.min(point)
+            high=high.max(point)
+        print("V75194_P90_PART ",model.get_path_to(part)," min=",low," max=",high)
         for surface in range(part.mesh.get_surface_count()):
             var material:=part.get_active_material(surface) as StandardMaterial3D
             if material and material.albedo_texture:
@@ -57,13 +66,25 @@ func _verify() -> void:
     # A normal reload consumes the shared SMG reserve exactly once.
     combat.ammo[CATALOG.P90]=37
     var reserve_before: int=combat.reserve[CATALOG.MP40]
+    var cues: Array[StringName]=[]
+    combat.reload_cue.connect(func(cue: StringName): cues.append(cue))
+    var sound: Node=game.get_node("AuroraSoundStage")
+    var audio_cursor: int=sound._cursor
     combat._on_reload()
+    check(sound._cursor==audio_cursor and cues.is_empty(),
+        "P90 played unrelated generic reload sound before its hand gesture")
     check(combat.reload_timer>0.0 and visuals.p90_reload_active,
         "P90 reload did not start its actual timed hand gesture")
     var reload_target: Node3D=visuals.support_grip_anchor()
     var rest: Vector3=reload_target.position
     var duration: float=float(CATALOG.ENTRIES[CATALOG.P90].reload)
     combat._process(duration*.5)
+    check(cues.size()==2 and cues[0]==CATALOG.P90_RELOAD_CUES[0] and
+        cues[1]==CATALOG.P90_RELOAD_CUES[1] and
+        sound._cursor==(audio_cursor+2)%sound._voices.size(),
+        "P90 release/contact cues were not synchronized or routed to audio")
+    combat._process(0.0)
+    check(cues.size()==2,"P90 repeated audio cues without advancing time")
     check(combat.ammo[CATALOG.P90]==37 and combat.reserve[CATALOG.MP40]==reserve_before,
         "P90 transferred ammunition before the timed action finished")
     check(reload_target.name=="P90ReloadHandTarget" and
@@ -81,9 +102,15 @@ func _verify() -> void:
     check(not visuals.p90_reload_active and reload_target.position.is_equal_approx(rest) and
         combat.ammo[CATALOG.P90]==37 and combat.reserve[CATALOG.MP40]==reserve_before,
         "weapon swap leaked reload pose or changed ammunition")
+    check(cues.size()==2,"cancelled P90 reload emitted future audio")
+    cues.clear()
     combat._equip_inventory_weapon(CATALOG.P90)
     combat._on_reload()
-    combat._process(duration+.01)
+    combat._process(duration*.9)
+    check(cues==CATALOG.P90_RELOAD_CUES and combat.ammo[CATALOG.P90]==37,
+        "second reload missed its three ordered cues or transferred ammo too early")
+    combat._process(duration*.1+.01)
+    check(cues==CATALOG.P90_RELOAD_CUES,"reload completion repeated a sound cue")
     check(combat.ammo[CATALOG.P90]==50 and
         combat.reserve[CATALOG.MP40]==reserve_before-13 and
         not visuals.p90_reload_active and reload_target.position.is_equal_approx(rest),

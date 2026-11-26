@@ -34,6 +34,17 @@ func _verify() -> void:
         check(stream!=null,"missing playable "+key)
         if stream:
             check(stream.mix_rate==22050 and stream.data.size()>2000,"invalid authored sample "+key)
+    for key in ["p90_fire","p90_release","p90_contact","p90_return"]:
+        var cue: AudioStream=sound._samples.get(key)
+        check(cue!=null and cue.get_length()>.05,
+            "P90 dedicated cached audio missing "+key)
+    check(sound._samples.get("p90_fire")!=sound._samples.get("kriss_fire"),
+        "P90 still shares the Vector sound resource")
+    var p90_voice: int=sound._cursor
+    combat.shot_fired.emit(combat.WEAPONS.P90,false)
+    check(sound._cursor==(p90_voice+1)%sound._voices.size() and
+        sound._voices[p90_voice].stream==sound._samples.get("p90_fire"),
+        "P90 actual shot event did not select its own sound")
     var first:int=sound._cursor
     combat.shot_fired.emit(0,false)
     check(sound._cursor==(first+1)%sound._voices.size(),"gunshot event not connected")

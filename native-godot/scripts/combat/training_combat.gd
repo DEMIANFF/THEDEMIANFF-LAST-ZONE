@@ -76,6 +76,7 @@ const AUTO_RELOAD_SLOTS: Array[int]=[
     WEAPONS.HK416,WEAPONS.P90,WEAPONS.VSS,WEAPONS.MP5]
 var _auto_reload_queued: bool=false
 var _mp40_reload_cue: int=0
+var _p90_reload_cue: int=0
 var _awm_bolt_remaining: float=0.0
 var _awm_bolt_pending: bool=false
 var shots_fired_total: int=0
@@ -219,8 +220,8 @@ func _process(dt: float) -> void:
         _reload_ui_clock-=dt
         if weapon_index==WEAPONS.MP40:
             _advance_mp40_reload(1.0-reload_timer/_reload_duration)
-        elif weapon_index==WEAPONS.P90 and _weapon_visuals:
-            _weapon_visuals.set_p90_reload_progress(1.0-reload_timer/_reload_duration)
+        elif weapon_index==WEAPONS.P90:
+            _advance_p90_reload(1.0-reload_timer/_reload_duration)
         if reload_timer==0:
             var cap: int=WEAPONS.ENTRIES[weapon_index]["capacity"]
             var pool: int=WEAPONS.reserve_slot(weapon_index)
@@ -420,6 +421,7 @@ func _on_reload() -> void:
     _reload_duration=reload_timer
     _reload_ui_clock=0.0
     _mp40_reload_cue=0
+    _p90_reload_cue=0
     hud.set_reload_state(true,reload_timer,_reload_duration)
     operator.play_weapon_action("reload",reload_timer)
     if _weapon_visuals:
@@ -437,12 +439,22 @@ func _clear_reload() -> void:
     reload_timer=0.0
     _reload_duration=0.0
     _mp40_reload_cue=0
+    _p90_reload_cue=0
     operator.cancel_reload_action()
     if _weapon_visuals:
         _weapon_visuals.set_mp40_reload_progress(0.0)
         _weapon_visuals.set_p90_reload_progress(0.0,false)
         _weapon_visuals.finish_source_reload(weapon_index)
     hud.set_reload_state(false,0.0,0.0)
+
+
+func _advance_p90_reload(progress: float) -> void:
+    if _weapon_visuals:
+        _weapon_visuals.set_p90_reload_progress(progress)
+    while _p90_reload_cue<WEAPONS.P90_RELOAD_MARKS.size() and (
+            progress>=WEAPONS.P90_RELOAD_MARKS[_p90_reload_cue]):
+        reload_cue.emit(WEAPONS.P90_RELOAD_CUES[_p90_reload_cue])
+        _p90_reload_cue+=1
 
 
 func _advance_mp40_reload(progress: float) -> void:
