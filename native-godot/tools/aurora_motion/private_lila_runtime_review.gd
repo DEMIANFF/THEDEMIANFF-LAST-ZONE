@@ -1,5 +1,5 @@
 extends SceneTree
-## Explicit local-only test of the private Rev2, Rev3 or Rev4 GLB, NOT an exported scene.
+## Explicit local-only test of the private Rev2 through Rev5 GLB, NOT an exported scene.
 const EXPECTED: Array[String]=[
     "AuroraIdle","AuroraArmedIdle","AuroraAim","AuroraAimAWM","AuroraCrouch",
     "AuroraArmedWalk","AuroraArmedRun","AuroraCrouchWalk","AuroraArmedStrafeLeft",
@@ -10,6 +10,7 @@ const EXPECTED: Array[String]=[
 const SHA: String="ab0df204ebe5cdbd2c9472af22eb672eac6cc9cec3818e6859baf1d884c3aa12"
 const CONTACT_SHA: String="b3fd330483756a16d2a5022776428e54db39f916404ec70438b64de37932b896"
 const CACHE_SHA: String="2a4c00e4ec9afcfcc7d529d73dadb85e57b94f80e2b59a6e25c7f599b5289c7d"
+const HAND_SHA: String="c9b755349a4dc2692f45f3bec1918001d72a05f01b3bcad4aff406c743afb74b"
 var failed: bool=false
 
 func _initialize() -> void:
@@ -27,7 +28,7 @@ func _review() -> void:
         quit(2)
         return
     var path: String=args[0]
-    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path) not in [SHA,CONTACT_SHA,CACHE_SHA]:
+    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path) not in [SHA,CONTACT_SHA,CACHE_SHA,HAND_SHA]:
         push_error("Private candidate missing or SHA mismatch")
         quit(2)
         return
@@ -57,6 +58,13 @@ func _review() -> void:
         for digit in ["Thumb","Index","Middle","Ring","Pinky"]:
             for segment in range(1,4):
                 check(rig.find_bone(side+"Hand"+digit+str(segment))>=0,"missing digit bone")
+    var require_hand_refit: bool=FileAccess.get_sha256(path)==HAND_SHA
+    var direct_digit_vertices: Dictionary={}
+    if require_hand_refit:
+        for side in ["Left","Right"]:
+            for digit in ["Thumb","Index","Middle","Ring","Pinky"]:
+                for segment in range(1,4):
+                    direct_digit_vertices[side+"Hand"+digit+str(segment)]=0
     var outfit_mask: bool=false
     for node in meshes:
         var mesh: MeshInstance3D=node as MeshInstance3D
@@ -66,7 +74,48 @@ func _review() -> void:
             var arrays: Array=mesh.mesh.surface_get_arrays(surface)
             if arrays[Mesh.ARRAY_TEX_UV2]!=null and arrays[Mesh.ARRAY_TEX_UV2].size()>0:
                 outfit_mask=true
+            if require_hand_refit and mesh.skin!=null:
+                var bones: PackedInt32Array=arrays[Mesh.ARRAY_BONES]
+                var weights: PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
+                var verts: PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
+                if bones.is_empty() or verts.is_empty():
+                    continue
+                check(bones.size()==weights.size() and bones.size()%verts.size()==0,
+                    "invalid imported skin arrays")
+                if bones.size()!=weights.size() or bones.size()%verts.size()!=0:
+                    continue
+                @warning_ignore("integer_division")
+                var influences: int=bones.size()/verts.size()
+                check(influences in [4,8],"unexpected influences per vertex")
+                var bind_names: Array[String]=[]
+                for bind in range(mesh.skin.get_bind_count()):
+                    var bone_name: String=str(mesh.skin.get_bind_name(bind))
+                    if bone_name.is_empty():
+                        var bone_id: int=mesh.skin.get_bind_bone(bind)
+                        if bone_id>=0 and bone_id<rig.get_bone_count():
+                            bone_name=rig.get_bone_name(bone_id)
+                    bind_names.append(bone_name)
+                for vertex in range(verts.size()):
+                    var seen: Dictionary={}
+                    for k in range(influences):
+                        var offset: int=vertex*influences+k
+                        if weights[offset]<=0.00001:
+                            continue
+                        var bind: int=bones[offset]
+                        if bind<0 or bind>=bind_names.size():
+                            check(false,"imported skin bind out of bounds")
+                            continue
+                        var bone_name: String=bind_names[bind]
+                        if direct_digit_vertices.has(bone_name) and not seen.has(bone_name):
+                            direct_digit_vertices[bone_name]+=1
+                            seen[bone_name]=true
     check(outfit_mask,"outfit UV2 mask missing")
+    if require_hand_refit:
+        for digit in direct_digit_vertices:
+            # Godot may merge vertices during import. Require meaningful
+            # positive support, not the exact pre-import vertex count.
+            check(direct_digit_vertices[digit]>=10,"missing digit influence "+digit)
+        print("LILA_PRIVATE_RUNTIME imported_digit_support=",direct_digit_vertices)
     var poses: int=0
     for clip in EXPECTED:
         if not animator.has_animation(clip):
