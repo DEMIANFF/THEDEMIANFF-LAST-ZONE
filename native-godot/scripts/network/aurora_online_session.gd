@@ -2,7 +2,13 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=3
+const PROTOCOL: int=4
+const ACTION_NEXT_WEAPON: int=5
+const ACTION_HEAL: int=6
+const ACTION_SYRINGE: int=7
+const ACTION_AIM: int=8
+const LOOT_RANGE: float=35.0
+const MAX_LOOT_SNAPSHOT: int=16
 const ACTION_JUMP: int=1
 const ACTION_RELOAD: int=2
 const ACTION_CROUCH: int=3
@@ -70,6 +76,11 @@ func _joined(id: int) -> void:
         push_error("AURORA_ONLINE authoritative match failed to start")
         multiplayer.multiplayer_peer.disconnect_peer(id)
         return
+    # A real extra physical pickup only in the isolated CI test room.
+    # Never grant the weapon directly or enable this from a remote packet.
+    if OS.get_environment("AURORA_ONLINE_QA_FIXTURE")=="1":
+        var at:=Vector2(operator.global_position.x,operator.global_position.z-3.2)
+        director._make_pickup(at,"weapon_awm","OnlineQAPhysicalAWM")
     print("AURORA_ONLINE MATCH peer=",id," participants=",combat.active_fighter_count())
 
 func _left(id: int) -> void:
@@ -120,7 +131,7 @@ func submit_action(version: int,request_id: int,action: int) -> void:
         action_rejected+=1
         return
     action_ack=request_id
-    if action<ACTION_JUMP or action>ACTION_STAND or director.match_ended or not operator.can_act():
+    if action<ACTION_JUMP or action>ACTION_AIM or director.match_ended or not operator.can_act():
         action_rejected+=1
         return
     var now: int=Time.get_ticks_msec()
@@ -144,8 +155,34 @@ func _apply_actions() -> void:
                 operator.set_crouch(true)
             ACTION_STAND:
                 operator.set_crouch(false)
+            ACTION_NEXT_WEAPON:
+                combat._on_weapon()
+            ACTION_HEAL:
+                combat._on_heal(false)
+            ACTION_SYRINGE:
+                combat._on_heal(true)
+            ACTION_AIM:
+                combat._on_aim()
         action_applied+=1
     _action_queue.clear()
+
+# Only nearby uncollected physical pickups, no simulated loot or client grants.
+func _nearby_loot() -> Array[Dictionary]:
+    var found: Array[Dictionary]=[]
+    if director.match_ended or operator.royale_eliminated:
+        return found
+    for pickup in director._loot:
+        if not is_instance_valid(pickup) or pickup.collected or pickup.is_queued_for_deletion():
+            continue
+        var distance: float=operator.global_position.distance_squared_to(pickup.global_position)
+        if distance<=LOOT_RANGE*LOOT_RANGE:
+            found.append({"id":pickup.get_instance_id(),"position":pickup.global_position,
+                "kind":pickup.pickup_type,"from_opponent":pickup.from_opponent,
+                "quantity":pickup.quantity,"distance_sq":distance})
+    found.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return float(a.distance_sq)<float(b.distance_sq))
+    if found.size()>MAX_LOOT_SNAPSHOT:
+        found.resize(MAX_LOOT_SNAPSHOT)
+    return found
 
 @rpc("authority","call_remote","unreliable_ordered",2)
 func receive_state(version: int,data: Dictionary) -> void:
@@ -187,6 +224,9 @@ func _physics_process(delta: float) -> void:
             "position":operator.global_position,"velocity":operator.velocity,
             "body_yaw":operator.rotation.y,"clip":str(operator._current_clip),
             "rivals":rivals,"ended":director.match_ended,
+            "loot":_nearby_loot(),"inventory":combat.inventory_snapshot(),
+            "weapon":combat.weapon_index,"aim":combat.aim_active,"zoom":combat.current_zoom,
+            "heal_remaining":combat._heal_remaining,"firing":combat.trigger_held,
             "crouched":operator._crouching,"grounded":operator.is_on_floor(),
             "ammo":combat.ammo[combat.weapon_index],
             "reserve":combat.reserve[combat.WEAPONS.reserve_slot(combat.weapon_index)],

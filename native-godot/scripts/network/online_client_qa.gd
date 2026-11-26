@@ -32,13 +32,30 @@ func _verify() -> void:
     for i in range(5):
         session.submit_input.rpc_id(1,SESSION.PROTOCOL,1,Vector2(3,0),0.0,-.14,false,false)
         await create_timer(.05).timeout
+    # Attempt to select the next weapon before physical ownership exists.
+    view.send_controls=true
+    await create_timer(.25).timeout
+    view.request_action(session.ACTION_NEXT_WEAPON)
+    await create_timer(.30).timeout
+    var denied_unowned: bool=int(session.state.weapon)==0 and not bool(session.state.inventory.awm_owned)
+    var fixture_id: int=0
+    for item in session.state.loot:
+        if str(item.kind)=="weapon_awm" and float(item.distance_sq)<25.0:
+            fixture_id=int(item.id)
+            break
+    var had_replica: bool=fixture_id!=0 and view.loot_replicas.has(fixture_id)
+    var noninteractive: bool=false
+    if had_replica:
+        var replica: Area3D=view.loot_replicas[fixture_id]
+        noninteractive=not replica.monitoring and not replica.monitorable and replica.get_node_or_null("LootPickupRange")==null
     view.move_axis=Vector2(0,-1)
     view.firing=true
-    view.send_controls=true
     await create_timer(.65).timeout
     view.firing=false
     view.move_axis=Vector2.ZERO
     await create_timer(.45).timeout
+    var picked_up: bool=bool(session.state.inventory.awm_owned) and int(session.state.inventory.loot_collected)>0
+    var removed: bool=not view.loot_replicas.has(fixture_id)
     var ammo_before: int=int(session.state.ammo)
     var reload_before: int=int(session.state.reloads)
     view.request_action(session.ACTION_RELOAD)
@@ -64,18 +81,27 @@ func _verify() -> void:
         await create_timer(.05).timeout
         if not bool(session.state.grounded) and float(session.state.position.y)>jump_base+.15:
             jump_ok=true
+    view.request_action(session.ACTION_NEXT_WEAPON)
+    await create_timer(.35).timeout
+    var equipped: bool=int(session.state.weapon)==1 and view.weapon_visuals.selected_weapon==1 and view.weapon_visuals.currently_equipped()!=null
+    view.request_action(session.ACTION_AIM)
+    await create_timer(.30).timeout
+    var aimed: bool=bool(session.state.aim) and float(session.state.zoom)==8.0
     view.move_axis=Vector2(0,-1)
     await create_timer(1.0).timeout
     view.send_controls=false
     await create_timer(1.3).timeout
     var final: Dictionary=session.state
     print("V75223_ACTIONS reload=",reload_ok," crouch=",crouch_ok," stand=",stand_ok," jump=",jump_ok," action_ack=",final.action_ack," applied=",final.action_applied," rejected=",final.action_rejected)
+    var loot_ok: bool=denied_unowned and had_replica and noninteractive and picked_up and removed and equipped and aimed
+    print("V75224_LOOT unowned_denied=",denied_unowned," replica=",had_replica," no_local_collision=",noninteractive," physical_pickup=",picked_up," removed=",removed," equipped=",equipped," aim=",aimed)
     var moved: bool=(final.position as Vector3).distance_to(start)>1.0
     var stopped: bool=Vector2(final.velocity.x,final.velocity.z).length()<.2
     var synced: bool=world.operator.global_position.distance_to(final.position)<.4
-    var ok: bool=moved and stopped and synced and final.elapsed>initial_elapsed and final.accepted>10 and final.rejected>0 and final.shots>0 and final.bots==49 and final.has("rivals") and no_sim and reload_ok and crouch_ok and stand_ok and jump_ok and int(final.action_applied)==4 and int(final.action_rejected)>=1
+    var ok: bool=moved and stopped and synced and final.elapsed>initial_elapsed and final.accepted>10 and final.rejected>0 and final.shots>0 and final.bots==49 and final.has("rivals") and no_sim and reload_ok and crouch_ok and stand_ok and jump_ok and int(final.action_applied)==7 and loot_ok and int(final.action_rejected)>=1
     print("V75222_CLIENT local_ai=0 local_match=0 local_nav=0 start=",start," authoritative=",final.position," presented=",world.operator.global_position," shots=",final.shots," accepted=",final.accepted," rejected=",final.rejected," replicas=",view.replicas.size())
     if ok:
+        print("V75224_LOOT PASS")
         print("V75223_ACTIONS PASS")
         print("V75222_ONLINE PASS")
         print("V75221_ONLINE PASS")
