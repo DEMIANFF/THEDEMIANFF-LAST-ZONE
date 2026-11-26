@@ -2,7 +2,7 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=1
+const PROTOCOL: int=2
 const INPUT_TIMEOUT_MS: int=500
 var world: Node3D
 var operator: CharacterBody3D
@@ -15,6 +15,7 @@ var accepted: int=0
 var last_input_ms: int=0
 var axis: Vector2=Vector2.ZERO
 var yaw: float=0.0
+var pitch: float=-.14
 var sprint: bool=false
 var fire: bool=false
 var previous_fire: bool=false
@@ -76,12 +77,12 @@ func _stop_input() -> void:
     previous_fire=false
 
 @rpc("any_peer","call_remote","unreliable_ordered",1)
-func submit_input(version: int,sequence: int,move: Vector2,heading: float,run: bool,shoot: bool) -> void:
+func submit_input(version: int,sequence: int,move: Vector2,heading: float,look_pitch: float,run: bool,shoot: bool) -> void:
     if not multiplayer.is_server() or multiplayer.get_remote_sender_id()!=remote_id or remote_id==0:
         return
     # Clients send intent only, never positions, damage, inventory or kills.
     # Reject stale or unreasonable data before touching the authoritative actor.
-    if version!=PROTOCOL or sequence<=last_sequence or sequence-last_sequence>256 or not move.is_finite() or move.length_squared()>1.001 or not is_finite(heading) or absf(heading)>PI:
+    if version!=PROTOCOL or sequence<=last_sequence or sequence-last_sequence>256 or not move.is_finite() or move.length_squared()>1.001 or not is_finite(heading) or absf(heading)>PI or not is_finite(look_pitch) or look_pitch<-.55 or look_pitch>.62:
         rejected+=1
         return
     last_sequence=sequence
@@ -89,6 +90,7 @@ func submit_input(version: int,sequence: int,move: Vector2,heading: float,run: b
     last_input_ms=Time.get_ticks_msec()
     axis=move
     yaw=heading
+    pitch=look_pitch
     sprint=run
     fire=shoot
 
@@ -105,6 +107,7 @@ func _physics_process(delta: float) -> void:
     else:
         operator.set_touch_move_axis(axis)
         operator._desired_yaw=yaw
+        operator._desired_pitch=pitch
         operator.set_touch_run(sprint)
         if fire!=previous_fire:
             if fire:
@@ -115,9 +118,21 @@ func _physics_process(delta: float) -> void:
     _send_clock+=delta
     if _send_clock>=.1:
         _send_clock=fmod(_send_clock,.1)
+        # Only fresh server-tested FOV/LOS contacts leave the server.
+        # Never broadcast the complete bot roster or last-known positions.
+        director._scan_visible_enemy_contacts()
+        var rivals: Array[Dictionary]=[]
+        for entry in director._visible_enemy_actors:
+            var actor: CharacterBody3D=entry["actor"] as CharacterBody3D
+            if is_instance_valid(actor) and actor.health>0.0:
+                rivals.append({"id":actor.get_instance_id(),
+                    "position":actor.global_position,"yaw":actor.rotation.y,
+                    "clip":str(actor._clip)})
         # Private development snapshot: no hidden enemy coordinates.
         receive_state.rpc_id(remote_id,PROTOCOL,{
             "position":operator.global_position,"velocity":operator.velocity,
+            "body_yaw":operator.rotation.y,"clip":str(operator._current_clip),
+            "rivals":rivals,"ended":director.match_ended,
             "health":operator.training_health,"participants":50,
             "alive":combat.active_fighter_count(),"bots":combat._targets.size(),
             "shots":combat.shots_fired_total,"zone_center":director.zone_center,

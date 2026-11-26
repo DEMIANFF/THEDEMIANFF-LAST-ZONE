@@ -1437,6 +1437,8 @@ func _input(event: InputEvent) -> void:
 
 func _touch_over_action_buttons(at: Vector2) -> bool:
     var hud:=get_parent().get_node_or_null("TrainingHUD")
+    if hud==null:
+        hud=get_parent().get_node_or_null("OnlineTouchHUD")
     return hud!=null and hud.is_action_at(at)
 
 
