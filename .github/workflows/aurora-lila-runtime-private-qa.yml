@@ -1,7 +1,7 @@
 name: Lila private runtime contract QA
 on:
   push:
-    branches: [codex/v75-198-lila-rev6-sleeve-refit]
+    branches: [codex/v75-198-lila-rev7-hair-shoulder-refit]
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,3 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: python3 -m unittest discover -s native-godot/tools/aurora_motion -p 'test_validate_lila_runtime_private.py' -v
+
+      - name: Check private review runner syntax
+        run: bash -n native-godot/tools/aurora_motion/run_private_lila_review.sh

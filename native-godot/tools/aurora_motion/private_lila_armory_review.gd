@@ -10,6 +10,7 @@ const SLOTS: Array[int]=[WEAPONS.AR,WEAPONS.AWM,WEAPONS.SCAR,WEAPONS.MP40,WEAPON
 const POSES: Array[String]=["AuroraArmedIdle","AuroraAim","AuroraCrouch","AuroraArmedWalk"]
 const DIGITS: Array[String]=["Index","Middle","Ring","Pinky"]
 const SLEEVE_SHA: String="a98b6cca5b51fff38ff1570704dedbe58b4be90edbc84f0685b9bd282d74e6b1"
+const HAIR_SHA: String="7e01f72eced0556b29c6232f999e1a6351fcc4e39563e6a32f5cf2ab13f274a8"
 var candidate_digest: String=""
 var failed: bool=false
 var latest: Dictionary={}
@@ -26,7 +27,7 @@ func check(ok: bool, reason: String) -> void:
         push_error("LILA_ARMORY_REVIEW "+reason)
 
 func _private_scene(path: String) -> PackedScene:
-    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path) not in [PRIVATE_SHA,SLEEVE_SHA]:
+    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path) not in [PRIVATE_SHA,SLEEVE_SHA,HAIR_SHA]:
         push_error("LILA_ARMORY_REVIEW candidate missing or wrong SHA")
         return null
     candidate_digest=FileAccess.get_sha256(path)
