@@ -34,6 +34,11 @@ var _mp40_magazine: Node3D
 var _mp40_charging_handle: Node3D
 var _magazine_rest: Transform3D
 var _charging_rest: Vector3
+var _p90_reload_anchor: Node3D
+var _p90_reload_rest: Vector3
+var _p90_reload_upper: Vector3
+var p90_reload_active: bool=false
+var p90_reload_progress: float=0.0
 var _skeleton: Skeleton3D
 var _right_hand_id: int=-1
 var _support_ik: SkeletonModifier3D
@@ -386,6 +391,7 @@ func _process(_delta: float) -> void:
         var stow: bool=operator.get("air_mode") in ["freefall","parachute"]
         if flight_holster!=stow:
             if stow:
+                set_p90_reload_progress(0.0,false)
                 cancel_visual_recoil()
             flight_holster=stow
             _sync_equipment_visibility()
@@ -425,6 +431,7 @@ func set_awm_owned(owned: bool) -> void:
 
 func set_medical_busy(active: bool) -> void:
     if active:
+        set_p90_reload_progress(0.0,false)
         cancel_visual_recoil()
         cancel_awm_mechanical_cycle()
     medical_busy=active
@@ -491,6 +498,13 @@ func add_expansion(slot: int) -> bool:
             _magazine_rest=_mp40_magazine.transform
         if _mp40_charging_handle:
             _charging_rest=_mp40_charging_handle.position
+    if slot==WEAPONS.P90:
+        _p90_reload_anchor=carried.get_node_or_null("P90ReloadHandTarget") as Node3D
+        var grip: Node3D=carried.get_node_or_null("SupportGrip") as Node3D
+        if is_instance_valid(_p90_reload_anchor) and is_instance_valid(grip):
+            _p90_reload_upper=_p90_reload_anchor.position
+            _p90_reload_rest=grip.position
+            _p90_reload_anchor.position=_p90_reload_rest
     _sync_equipment_visibility()
     return true
 
@@ -535,6 +549,15 @@ static func calibrate_expansion(visual: Node3D,slot: int) -> void:
             p90_support.name="SupportGrip"
             p90_support.position=Vector3(-297,-68,0)
             visual.add_child(p90_support)
+            # Static source: an approximate upper-receiver contact target,
+            # NOT an imported clip or an identified detachable magazine.
+            # The real model remains intact. Source-space bounds constrain
+            # the hand target before the normal two-arm reach solver.
+            var reload_target:=Node3D.new()
+            reload_target.name="P90ReloadHandTarget"
+            reload_target.position=Vector3(clampf(-110.0,low.x,high.x),
+                lerpf(low.y,high.y,.76),clampf(0.0,low.z,high.z))
+            visual.add_child(reload_target)
             var p90_muzzle:=Node3D.new()
             p90_muzzle.name="Muzzle"
             p90_muzzle.position=Vector3(-595.56,-5.55,0)
@@ -667,6 +690,7 @@ func reset_action_state() -> void:
     cancel_visual_recoil()
     cancel_awm_mechanical_cycle()
     set_mp40_reload_progress(0.0)
+    set_p90_reload_progress(0.0,false)
     for player_anim in _source_animation_players.values():
         if is_instance_valid(player_anim):
             var native_player: AnimationPlayer=player_anim as AnimationPlayer
@@ -685,6 +709,19 @@ func clear_expansion() -> void:
     _expansion_holsters.clear()
     _mp40_magazine=null
     _mp40_charging_handle=null
+    _p90_reload_anchor=null
+
+
+## Authored runtime hand gesture synchronized to the authoritative reload.
+## Reach toward the upper receiver, hold briefly, and return to foregrip.
+## No mesh is fabricated or detached: the original GLB has no native clips.
+func set_p90_reload_progress(progress: float,active: bool=true) -> void:
+    p90_reload_active=active and selected_weapon==WEAPONS.P90 and is_instance_valid(_p90_reload_anchor)
+    p90_reload_progress=clampf(progress,0.0,1.0) if p90_reload_active else 0.0
+    if not is_instance_valid(_p90_reload_anchor):
+        return
+    var weight: float=smoothstep(.08,.32,p90_reload_progress)*(1.0-smoothstep(.68,.94,p90_reload_progress))
+    _p90_reload_anchor.position=_p90_reload_rest.lerp(_p90_reload_upper,weight)
 
 
 func set_mp40_reload_progress(progress: float) -> void:
@@ -733,6 +770,7 @@ func equip(index: int) -> void:
     if index<WEAPONS.AR or (index>=WEAPONS.SCAR and not _expansion.has(index)):
         return
     if selected_weapon!=index:
+        set_p90_reload_progress(0.0,false)
         cancel_visual_recoil()
         var inactive: AnimationPlayer=(
             _source_animation_players.get(selected_weapon) as AnimationPlayer)
@@ -791,6 +829,8 @@ func muzzle_position() -> Vector3:
 
 
 func support_grip_anchor() -> Node3D:
+    if selected_weapon==WEAPONS.P90 and p90_reload_active and is_instance_valid(_p90_reload_anchor):
+        return _p90_reload_anchor
     if not _support_anchors.has(selected_weapon):
         var weapon: Node3D=currently_equipped()
         if weapon==null:
@@ -810,6 +850,8 @@ func support_grip_enabled() -> bool:
     if controller and controller.tree and bool(
             controller.tree.get("parameters/UpperBody/active")):
         var action_name: String=str(controller.action_clip.animation)
+        if action_name.begins_with("AuroraReload") and selected_weapon==WEAPONS.P90 and p90_reload_active:
+            return is_instance_valid(_p90_reload_anchor)
         if action_name.begins_with("AuroraReload") or action_name in ["AuroraHeal","AuroraEquip"]:
             return false
     return currently_equipped()!=null

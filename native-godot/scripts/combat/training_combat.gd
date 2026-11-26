@@ -219,6 +219,8 @@ func _process(dt: float) -> void:
         _reload_ui_clock-=dt
         if weapon_index==WEAPONS.MP40:
             _advance_mp40_reload(1.0-reload_timer/_reload_duration)
+        elif weapon_index==WEAPONS.P90 and _weapon_visuals:
+            _weapon_visuals.set_p90_reload_progress(1.0-reload_timer/_reload_duration)
         if reload_timer==0:
             var cap: int=WEAPONS.ENTRIES[weapon_index]["capacity"]
             var pool: int=WEAPONS.reserve_slot(weapon_index)
@@ -421,6 +423,8 @@ func _on_reload() -> void:
     hud.set_reload_state(true,reload_timer,_reload_duration)
     operator.play_weapon_action("reload",reload_timer)
     if _weapon_visuals:
+        if weapon_index==WEAPONS.P90:
+            _weapon_visuals.set_p90_reload_progress(0.0)
         _weapon_visuals.play_source_action(
             weapon_index,"reload",reload_timer)
     reload_started.emit()
@@ -436,6 +440,7 @@ func _clear_reload() -> void:
     operator.cancel_reload_action()
     if _weapon_visuals:
         _weapon_visuals.set_mp40_reload_progress(0.0)
+        _weapon_visuals.set_p90_reload_progress(0.0,false)
         _weapon_visuals.finish_source_reload(weapon_index)
     hud.set_reload_state(false,0.0,0.0)
 
