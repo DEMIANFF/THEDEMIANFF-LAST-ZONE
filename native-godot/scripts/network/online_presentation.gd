@@ -597,7 +597,10 @@ func apply_snapshot(data: Dictionary) -> void:
                 if str(data.vehicles.get("result",""))=="blocked_exit":
                     _status.text+=" · BUSCA SALIDA SEGURA"
     if match_mode=="waiting":
-        _status.text="ISLA DE ESPERA · %d/50 PARTICIPANTES · DESPEGUE EN %02d s"%[int(data.get("waiting_ready",1)),ceili(float(data.get("waiting_remaining",0.0)))]
+        if bool(data.get("dual_waiting",false)):
+            _status.text="SALA DE RED · %d/2 JUGADORES · SIN COMBATE"%int(data.get("waiting_ready",1))
+        else:
+            _status.text="ISLA DE ESPERA · %d/50 PARTICIPANTES · DESPEGUE EN %02d s"%[int(data.get("waiting_ready",1)),ceili(float(data.get("waiting_remaining",0.0)))]
     elif air!="ground":
         _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
     if bool(data.get("ended",false)):
