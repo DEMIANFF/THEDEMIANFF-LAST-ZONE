@@ -29,6 +29,17 @@ func _verify() -> void:
     var model: Node3D=visuals.currently_equipped()
     var parts: Array[Node]=model.find_children("*","MeshInstance3D",true,false)
     check(parts.size()==8,"P90 original geometry was substituted or lost")
+    check(visuals._p90_magazine_parts.size()==2,
+        "the two original P90 magazine meshes were not identified")
+    var mag_rest: Array[Transform3D]=[]
+    var mag_origins: Array[Vector3]=[]
+    for part in visuals._p90_magazine_parts:
+        mag_rest.append(part.transform)
+        mag_origins.append(model.to_local(part.global_position))
+    var other_parts: Dictionary={}
+    for part in parts:
+        if not part in visuals._p90_magazine_parts:
+            other_parts[part]=part.transform
     check(combat.ammo[CATALOG.P90]==50,"P90 does not have its 50-round magazine")
     check(not visuals._source_animation_players.has(CATALOG.P90),
         "static P90 falsely advertised as an authored animated source")
@@ -79,6 +90,17 @@ func _verify() -> void:
     var rest: Vector3=reload_target.position
     var duration: float=float(CATALOG.ENTRIES[CATALOG.P90].reload)
     combat._process(duration*.5)
+    check(is_equal_approx(visuals.p90_magazine_lift,1.0),
+        "actual timed reload did not lift the original magazine")
+    for i in range(visuals._p90_magazine_parts.size()):
+        var part: MeshInstance3D=visuals._p90_magazine_parts[i]
+        var displacement: Vector3=model.to_local(part.global_position)-mag_origins[i]
+        check(absf(displacement.y*model.scale.x-.045)<.002 and
+            absf(displacement.x*model.scale.x)<.002 and absf(displacement.z*model.scale.x)<.002,
+            "original magazine pieces did not move together")
+    for part in other_parts:
+        check(part.transform.is_equal_approx(other_parts[part]),
+            "reload changed unrelated original weapon geometry")
     check(cues.size()==2 and cues[0]==CATALOG.P90_RELOAD_CUES[0] and
         cues[1]==CATALOG.P90_RELOAD_CUES[1] and
         sound._cursor==(audio_cursor+2)%sound._voices.size(),
@@ -103,6 +125,9 @@ func _verify() -> void:
         combat.ammo[CATALOG.P90]==37 and combat.reserve[CATALOG.MP40]==reserve_before,
         "weapon swap leaked reload pose or changed ammunition")
     check(cues.size()==2,"cancelled P90 reload emitted future audio")
+    for i in range(visuals._p90_magazine_parts.size()):
+        check(visuals._p90_magazine_parts[i].transform.is_equal_approx(mag_rest[i]),
+            "cancelled reload left an original magazine mesh displaced")
     cues.clear()
     combat._equip_inventory_weapon(CATALOG.P90)
     combat._on_reload()
@@ -115,6 +140,9 @@ func _verify() -> void:
         combat.reserve[CATALOG.MP40]==reserve_before-13 and
         not visuals.p90_reload_active and reload_target.position.is_equal_approx(rest),
         "P90 reload duplicated ammunition or retained reload pose")
+    for i in range(visuals._p90_magazine_parts.size()):
+        check(visuals._p90_magazine_parts[i].transform.is_equal_approx(mag_rest[i]),
+            "completed reload did not restore the exact magazine transforms")
     var credited: bool=false
     for entry in CREDITS.MODELS:
         if str(entry.source).ends_with("080897fc0366455884b1a916684313fe"):

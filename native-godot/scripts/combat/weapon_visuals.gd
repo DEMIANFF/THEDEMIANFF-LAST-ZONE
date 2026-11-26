@@ -37,6 +37,14 @@ var _charging_rest: Vector3
 var _p90_reload_anchor: Node3D
 var _p90_reload_rest: Vector3
 var _p90_reload_upper: Vector3
+# Recovered V2 GLB: these two named original meshes share the Magazine
+# material and overlap in the magazine's bounds. Keep both together.
+var _p90_magazine_parts: Array[MeshInstance3D]=[]
+var _p90_magazine_rest: Array[Transform3D]=[]
+var _p90_magazine_origins: Array[Vector3]=[]
+var _p90_magazine_model: Node3D
+var _p90_magazine_lift_units: float=0.0
+var p90_magazine_lift: float=0.0
 var p90_reload_active: bool=false
 var p90_reload_progress: float=0.0
 var _skeleton: Skeleton3D
@@ -505,6 +513,7 @@ func add_expansion(slot: int) -> bool:
             _p90_reload_upper=_p90_reload_anchor.position
             _p90_reload_rest=grip.position
             _p90_reload_anchor.position=_p90_reload_rest
+            _bind_p90_magazine(carried)
     _sync_equipment_visibility()
     return true
 
@@ -710,18 +719,78 @@ func clear_expansion() -> void:
     _mp40_magazine=null
     _mp40_charging_handle=null
     _p90_reload_anchor=null
+    _p90_magazine_model=null
+    _p90_magazine_parts.clear()
+    _p90_magazine_rest.clear()
+    _p90_magazine_origins.clear()
 
 
-## Authored runtime hand gesture synchronized to the authoritative reload.
-## Reach toward the upper receiver, hold briefly, and return to foregrip.
-## No mesh is fabricated or detached: the original GLB has no native clips.
+## Bind only the two mesh names inspected in the SHA-verified V2 GLB.
+## Never move a receiver, sight, or unidentified piece as a magazine.
+func _bind_p90_magazine(model: Node3D) -> void:
+    _p90_magazine_parts.clear()
+    _p90_magazine_rest.clear()
+    _p90_magazine_origins.clear()
+    _p90_magazine_model=null
+    var low:=Vector3(INF,INF,INF)
+    var high:=Vector3(-INF,-INF,-INF)
+    for prefix in ["MagazineLPB001","MagBody"]:
+        var matches: Array[Node]=model.find_children(prefix+"*","MeshInstance3D",true,false)
+        if matches.size()!=1:
+            _p90_magazine_parts.clear()
+            return
+        var part: MeshInstance3D=matches[0] as MeshInstance3D
+        if part.mesh==null:
+            _p90_magazine_parts.clear()
+            return
+        _p90_magazine_parts.append(part)
+        for corner in range(8):
+            var point: Vector3=model.to_local(part.to_global(part.get_aabb().get_endpoint(corner)))
+            low=low.min(point)
+            high=high.max(point)
+    if not low.is_finite() or not high.is_finite() or model.scale.x<=0.0:
+        _p90_magazine_parts.clear()
+        return
+    _p90_magazine_model=model
+    # Modest authored in-game lift, measured in human-scale metres.
+    # Preserve the existing front-to-top hand motion and original asset.
+    _p90_magazine_lift_units=.045/model.scale.x
+    _p90_reload_upper=Vector3(clampf(_p90_reload_upper.x,low.x,high.x),
+        high.y,(low.z+high.z)*.5)
+    for part in _p90_magazine_parts:
+        _p90_magazine_rest.append(part.transform)
+        _p90_magazine_origins.append(model.to_local(part.global_position))
+
+
+func _apply_p90_magazine(lift: float) -> void:
+    p90_magazine_lift=0.0
+    if not is_instance_valid(_p90_magazine_model) or _p90_magazine_parts.size()!=2:
+        return
+    p90_magazine_lift=lift
+    for i in range(_p90_magazine_parts.size()):
+        var part: MeshInstance3D=_p90_magazine_parts[i]
+        if not is_instance_valid(part):
+            continue
+        # Restore EXACT imported local transform at both lifecycle edges.
+        part.transform=_p90_magazine_rest[i]
+        if lift>0.0:
+            part.global_position=_p90_magazine_model.to_global(
+                _p90_magazine_origins[i]+Vector3.UP*_p90_magazine_lift_units*lift)
+
+
+## Authored runtime motion: both original magazine pieces move together
+## while the real IK support hand follows the same timed contact target.
+## The static GLB has no imported animation; this is a new game animation.
 func set_p90_reload_progress(progress: float,active: bool=true) -> void:
     p90_reload_active=active and selected_weapon==WEAPONS.P90 and is_instance_valid(_p90_reload_anchor)
     p90_reload_progress=clampf(progress,0.0,1.0) if p90_reload_active else 0.0
     if not is_instance_valid(_p90_reload_anchor):
         return
     var weight: float=smoothstep(.08,.32,p90_reload_progress)*(1.0-smoothstep(.68,.94,p90_reload_progress))
-    _p90_reload_anchor.position=_p90_reload_rest.lerp(_p90_reload_upper,weight)
+    var lift: float=smoothstep(.32,.46,p90_reload_progress)*(1.0-smoothstep(.58,.76,p90_reload_progress))
+    _apply_p90_magazine(lift)
+    var upper: Vector3=_p90_reload_upper+Vector3.UP*_p90_magazine_lift_units*p90_magazine_lift
+    _p90_reload_anchor.position=_p90_reload_rest.lerp(upper,weight)
 
 
 func set_mp40_reload_progress(progress: float) -> void:
