@@ -11,6 +11,7 @@ const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const AUDIO=preload("res://scripts/audio/aurora_audio.gd")
 const FLIGHT_VISUAL=preload("res://scripts/match/airdrop_sequence.gd")
+const CANOPY_VISUAL=preload("res://scripts/match/rival_canopy_visual.gd")
 var flight_visual: Node3D
 var _jump: Button
 var sound: Node3D
@@ -403,6 +404,7 @@ func _sync_sounds(events: Array) -> void:
 # Original aircraft builder and canopy mesh; never start local flight physics.
 func _sync_air_presentation(mode: String) -> void:
     operator.air_mode=mode
+    sound.set_aircraft_audio(mode=="aircraft")
     if mode=="aircraft":
         if not is_instance_valid(flight_visual):
             flight_visual=FLIGHT_VISUAL.new()
@@ -465,7 +467,15 @@ func apply_snapshot(data: Dictionary) -> void:
         target_positions[id]=item.position
         target_yaws[id]=float(item.yaw)
         var replica: Node3D=replicas[id]
-        _sync_rival_weapon(replica,int(item.get("weapon",-1)))
+        var airborne: bool=bool(item.get("airborne",false))
+        _sync_rival_weapon(replica,-1 if airborne else int(item.get("weapon",-1)))
+        var canopy:=replica.get_node_or_null("RealRivalParachute") as MeshInstance3D
+        if airborne and canopy==null:
+            canopy=CANOPY_VISUAL.create()
+            replica.add_child(canopy)
+        elif not airborne and canopy!=null:
+            canopy.hide()
+            canopy.queue_free()
         var animator:=replica.find_child("AnimationPlayer",true,false) as AnimationPlayer
         var clip: String=str(item.clip)
         if animator!=null:
@@ -494,6 +504,7 @@ func apply_snapshot(data: Dictionary) -> void:
         _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else "ONLINE · PARTIDA FINALIZADA"
 
 func _clear_remote() -> void:
+    sound.set_aircraft_audio(false)
     _release_aircraft_visual()
     if operator._parachute_visual!=null:
         operator._parachute_visual.hide()
