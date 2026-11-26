@@ -1,0 +1,12 @@
+# V75.221 — transición a online, servidor dedicado
+Decisión del propietario: nuevo desarrollo exclusivamente orientado a online. Se conserva la APK instalada y los sistemas existentes como base técnica; no se publica otro modo offline ni se presenta un APK local como online.
+
+Base: V75.220 0a09fb8b3c6a22e4a3e1482ed6e95b297355360a, PR #220 todavía en CI al iniciar la rama. No se cambia firma, Firebase, datos productivos ni archivos de Lila privada.
+
+Implementación: servidor Godot headless ejecuta Main real, inicia sector battle con 1 operador remoto y 49 bots; ENet UDP con RPC de intención (movimiento, yaw, sprint, fuego), snapshots 10 Hz (posición y salud propios, cantidad real de supervivientes, zona y ack), rechazo de vector no válido/protocolo/secuencia, parada por ausencia de controles tras 500 ms. No envía coordenadas de rivales ocultos. Un solo cliente de desarrollo, bind explícito 127.0.0.1:24621, sin exposición pública, sin credenciales Firebase, sin ranking productivo. No es todavía un cliente Android jugable ni servidor de producción. El código de simulación existente todavía crea nodos visuales/HUD en el servidor headless; separación completa de recursos sigue pendiente.
+
+Prueba local Godot 4.7.2, kit de proyecto local actualizado con cambios de navegación, dos procesos independientes: 50 mensajes válidos recibidos, cinco vectores inválidos rechazados, posición inicial (0,22.13,0), final (0.08,19.63,-14.81), velocidad final 0, 29 disparos reales, 49 bots presentes, 48 supervivientes, salud 88. PASS del cliente. No equivale a una medición de FPS móvil. Nuevo workflow reproduce el servidor y cliente con el checkout exacto. No se genera APK en esta etapa porque todavía no se integra cliente visual ni servidor accesible.
+
+Ejecutar desde proyecto importado: GODOT_BIN=/ruta/al/godot bash native-godot/tools/run_online_qa.sh (desde raíz del repositorio). Prueba usa directorios de datos temporales independientes y limpia el proceso servidor.
+
+Próximos requisitos de migración: cliente de presentación sin instanciar IA local, replicación de rivales visibles y estados de animación, entrada táctil y cámara, acciones de combate/loot/vehículos, predicción y reconciliación, autenticación Firebase verificada por backend y admisión segura, múltiples humanos reales, matchmaking, persistencia autoritativa, hosting UDP privado y pruebas físicas Motorola. No abrir puerto públicamente en esta versión.
