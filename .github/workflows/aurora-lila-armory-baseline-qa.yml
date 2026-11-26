@@ -1,7 +1,7 @@
-name: Lila real armory review baseline
+name: Lila comparative palm target review
 on:
   push:
-    branches: [codex/v75-198-lila-real-armory-review]
+    branches: [codex/v75-198-lila-palm-target-review]
   workflow_dispatch:
 permissions:
   contents: read
@@ -161,10 +161,18 @@ jobs:
           timeout 150 godot --headless --path native-godot --script res://tools/aurora_motion/private_lila_armory_review.gd -- --baseline 2>&1 | tee native-godot/out/lila-review/baseline.log
           grep -F 'LILA_ARMORY_REVIEW PASS poses=24 baseline=true' native-godot/out/lila-review/baseline.log
           if grep -E 'SCRIPT ERROR:|ERROR:' native-godot/out/lila-review/baseline.log; then exit 1; fi
+      - name: Experimental palm-target comparison with unchanged public rig
+        run: |
+          set -euo pipefail
+          export XDG_DATA_HOME="$(mktemp -d)"
+          timeout 150 godot --headless --path native-godot --script res://tools/aurora_motion/private_lila_armory_review.gd -- --baseline-palm 2>&1 | tee native-godot/out/lila-review/palm.log
+          grep -F 'LILA_ARMORY_REVIEW PASS poses=24 baseline=true experimental_palm=true' native-godot/out/lila-review/palm.log
+          if grep -E 'SCRIPT ERROR:|ERROR:' native-godot/out/lila-review/palm.log; then exit 1; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: LILA-ARMORY-BASELINE-REVIEW
           path: |
             native-godot/out/lila-review/baseline.log
+            native-godot/out/lila-review/palm.log
             /tmp/lila-import.log

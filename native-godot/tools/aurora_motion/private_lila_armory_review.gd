@@ -13,6 +13,7 @@ var failed: bool=false
 var latest: Dictionary={}
 var results: Array[Dictionary]=[]
 var stage: Node3D
+var use_palm: bool=false
 
 func _initialize() -> void:
     call_deferred("_review")
@@ -87,9 +88,10 @@ func _capture(rig: Skeleton3D, visuals: Node3D) -> void:
 
 func _review() -> void:
     var args: PackedStringArray=OS.get_cmdline_user_args()
-    var baseline: bool=args.size()==1 and args[0]=="--baseline"
-    if not baseline and (args.size()!=2 or args[0]!="--candidate"):
-        push_error("Use -- --baseline or -- --candidate /absolute/private.glb")
+    var baseline: bool=args.size()==1 and args[0] in ["--baseline","--baseline-palm"]
+    use_palm=args.size()>0 and args[0] in ["--baseline-palm","--candidate-palm"]
+    if not baseline and (args.size()!=2 or args[0] not in ["--candidate","--candidate-palm"]):
+        push_error("Use -- --baseline[-palm] or -- --candidate[-palm] /absolute/private.glb")
         quit(2)
         return
     var candidate: PackedScene
@@ -135,6 +137,7 @@ func _review() -> void:
         push_error("LILA_ARMORY_REVIEW missing real support IK")
         quit(1)
         return
+    visuals._support_ik.review_support_palm=use_palm
     visuals.set_awm_owned(true)
     for slot in SLOTS:
         if slot>=WEAPONS.SCAR:
@@ -178,13 +181,19 @@ func _review() -> void:
                 float(row["right_wrist_solver_error_m"])<.045,
                 "wrist IK exceeds historical tolerance "+str(slot)+" "+clip)
             check(int(row["projection_iterations"])<=24,"projection iterations exceeded")
+            if use_palm:
+                check(float(row["left_palm_proxy_to_support_anchor_m"])<.010,
+                    "experimental palm target misses marker "+str(slot)+" "+clip)
+                check(absf(float(row["left_palm_proxy_to_support_anchor_m"])-
+                    visuals._support_ik.left_palm_proxy_error_m)<.001,
+                    "independent palm diagnostic differs from solver")
             results.append(row)
     check(results.size()==SLOTS.size()*POSES.size(),"incomplete weapon/pose matrix")
     print("LILA_ARMORY_REVIEW_JSON ",JSON.stringify({"baseline":baseline,
         "candidate_sha256":"" if baseline else PRIVATE_SHA,
-        "production_approved":false,"poses":results,"pass":not failed}))
+        "experimental_palm":use_palm,"production_approved":false,"poses":results,"pass":not failed}))
     stage.queue_free()
     await process_frame
     if not failed:
-        print("LILA_ARMORY_REVIEW PASS poses=",results.size()," baseline=",baseline)
+        print("LILA_ARMORY_REVIEW PASS poses=",results.size()," baseline=",baseline," experimental_palm=",use_palm)
     quit(1 if failed else 0)
