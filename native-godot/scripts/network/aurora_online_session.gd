@@ -2,7 +2,10 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=12
+const PROTOCOL: int=13
+const WAITING_BOT_LIMIT: int=49
+const WAITING_CONTACT_LIMIT: int=8
+var _waiting_roster: Array[CharacterBody3D]=[]
 const WAITING_ISLAND=preload("res://scripts/network/online_waiting_island.gd")
 const WAIT_SECONDS: float=15.0
 var waiting_remaining: float=0.0
@@ -187,12 +190,80 @@ func _begin_waiting() -> void:
     operator.velocity=Vector3.ZERO
     waiting_remaining=WAIT_SECONDS
     _waiting_transition=false
+    _waiting_roster.clear()
+    # Server scene remains visible for LOS, but all staged actors are noncombat.
+    combat.visible=true
+    _stage_waiting_roster()
     print("AURORA_ONLINE MATCH peer=",remote_id," capacity=50 phase=waiting")
+
+# Stage original match actors incrementally on the idle thread, never
+# instantiate colliders in a physics callback or duplicate the battle roster.
+func _process(_delta: float) -> void:
+    if remote_id!=0 and multiplayer.is_server() and director.mode=="waiting" and not _waiting_transition:
+        _stage_waiting_roster()
+
+func _stage_waiting_roster() -> void:
+    if _waiting_roster.size()>=WAITING_BOT_LIMIT:
+        return
+    combat._ensure_encounter_capacity(3)
+    var next: int=mini(combat._targets.size(),_waiting_roster.size()+3)
+    for i in range(_waiting_roster.size(),next):
+        var bot: CharacterBody3D=combat._targets[i]
+        bot.set_physics_process(false)
+        bot.cancel_real_airdrop()
+        bot.health=bot.MAX_HEALTH
+        bot.velocity=Vector3.ZERO
+        bot.visible=true
+        bot._clip="AuroraIdle"
+        var ring: int=0 if i<12 else (1 if i<28 else 2)
+        var index: int=i if ring==0 else (i-12 if ring==1 else i-28)
+        var count: int=12 if ring==0 else (16 if ring==1 else 21)
+        var angle: float=TAU*float(index)/float(count)+float(ring)*.13
+        var radius: float=8.0+float(ring)*5.0
+        bot.global_position=WAITING_ISLAND.SPAWN+Vector3(sin(angle)*radius,-.15,-cos(angle)*radius)
+        bot.rotation.y=angle+PI
+        _waiting_roster.append(bot)
+    if _waiting_roster.size()==WAITING_BOT_LIMIT:
+        print("V75233_SERVER_ROSTER physical_bots=",_waiting_roster.size()," fighters=",combat.active_fighter_count())
+
+func _waiting_contacts() -> Array[Dictionary]:
+    var contacts: Array[Dictionary]=[]
+    if director.mode!="waiting":
+        return contacts
+    var eye: Vector3=operator.global_position+Vector3.UP*1.4
+    var forward:=Vector2(-sin(operator._yaw),-cos(operator._yaw))
+    var candidates: Array[Dictionary]=[]
+    for bot in _waiting_roster:
+        if not is_instance_valid(bot) or bot.health<=0.0 or not bot.is_visible_in_tree():
+            continue
+        var offset: Vector3=bot.global_position-eye
+        var horizontal:=Vector2(offset.x,offset.z)
+        if horizontal.length_squared()<2.25 or horizontal.length_squared()>35.0*35.0 or horizontal.normalized().dot(forward)<.35:
+            continue
+        candidates.append({"actor":bot,"distance":offset.length_squared()})
+    candidates.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return float(a.distance)<float(b.distance))
+    for i in range(mini(WAITING_CONTACT_LIMIT,candidates.size())):
+        var actor: CharacterBody3D=candidates[i].actor
+        var ray:=PhysicsRayQueryParameters3D.create(eye,actor.global_position+Vector3.UP)
+        ray.exclude=[operator.get_rid()]
+        var hit: Dictionary=world.get_world_3d().direct_space_state.intersect_ray(ray)
+        if hit.get("collider")==actor:
+            contacts.append({"id":actor.get_instance_id(),"position":actor.global_position,
+                "yaw":actor.rotation.y,"clip":"AuroraIdle","weapon":-1,"waiting":true})
+    return contacts
 
 func _depart_waiting() -> void:
     if director.mode!="waiting" or remote_id==0:
         return
     _stop_input()
+    # Same bodies and spawn assignments survive. Restore their original
+    # anchors before the director stages the real aircraft departures.
+    for bot in _waiting_roster:
+        if is_instance_valid(bot):
+            bot.global_position=bot._anchor
+            bot.velocity=Vector3.ZERO
+            bot.set_physics_process(false)
+    _waiting_roster.clear()
     director.begin_aircraft_phase()
     if director.mode!="aircraft":
         push_error("AURORA_ONLINE authoritative aircraft failed to start")
@@ -587,7 +658,7 @@ func _physics_process(delta: float) -> void:
         if operator.global_position.y<WAITING_ISLAND.SPAWN.y-3.0:
             operator.global_position=WAITING_ISLAND.SPAWN
             operator.velocity=Vector3.ZERO
-        if waiting_remaining<=0.0 and not _waiting_transition:
+        if waiting_remaining<=0.0 and _waiting_roster.size()==WAITING_BOT_LIMIT and not _waiting_transition:
             _waiting_transition=true
             call_deferred("_depart_waiting")
     if Time.get_ticks_msec()-last_input_ms>INPUT_TIMEOUT_MS or director.match_ended:
@@ -627,6 +698,7 @@ func _physics_process(delta: float) -> void:
                     "position":actor.global_position,"yaw":actor.rotation.y,
                     "clip":str(actor._clip),"weapon":int(actor.weapon_slot)})
         rivals.append_array(_airborne_contacts())
+        rivals.append_array(_waiting_contacts())
         # Private development snapshot: no hidden enemy coordinates.
         snapshot_sequence+=1
         _send_world_state({
@@ -636,7 +708,7 @@ func _physics_process(delta: float) -> void:
             "body_yaw":operator.rotation.y,"clip":str(operator._current_clip),
             "air_mode":str(operator.air_mode),"match_mode":str(director.mode),
             "flight_elapsed":director._flight.elapsed,
-            "waiting_remaining":waiting_remaining,
+            "waiting_remaining":waiting_remaining,"waiting_ready":_waiting_roster.size()+1 if director.mode=="waiting" else 0,
             "rivals":rivals,"ended":director.match_ended,
             "loot":_nearby_loot(),"inventory":combat.inventory_snapshot(),
             "tactical":_tactical_snapshot(),
