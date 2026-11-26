@@ -20,10 +20,16 @@ for i in $(seq 1 120); do
   sleep .5
 done
 grep -F 'AURORA_ONLINE READY' "$logdir/server.log"
-if ! XDG_DATA_HOME="$work/client" timeout 60 "$engine" --headless --path "$project" --script res://scripts/network/online_client_qa.gd >"$logdir/client.log" 2>&1; then
+client_script="online_client_qa.gd"
+pass_marker="V75221_ONLINE PASS"
+if [ "${AURORA_ONLINE_QA_RIVALS:-0}" = 1 ]; then
+  client_script="online_rival_qa.gd"
+  pass_marker="V75228_RIVALS PASS"
+fi
+if ! XDG_DATA_HOME="$work/client" timeout 60 "$engine" --headless --path "$project" --script "res://scripts/network/$client_script" >"$logdir/client.log" 2>&1; then
   cat "$logdir/server.log" "$logdir/client.log"; exit 1
 fi
 cat "$logdir/client.log"
-grep -F 'V75221_ONLINE PASS' "$logdir/client.log"
+grep -F "$pass_marker" "$logdir/client.log"
 grep -F 'AURORA_ONLINE MATCH' "$logdir/server.log"
 if grep -E 'SCRIPT ERROR|ERROR: Failed to load script' "$logdir/server.log" "$logdir/client.log"; then exit 1; fi

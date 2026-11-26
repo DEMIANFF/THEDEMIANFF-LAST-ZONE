@@ -24,6 +24,11 @@ var last_sound_batch: Array=[]
 var pending_sounds: Array=[]
 var _qa_fixture: bool=false
 var _qa_end_verified: bool=false
+var _qa_rival_test: bool=false
+var _qa_rival: CharacterBody3D
+var _qa_rival_wall: StaticBody3D
+var _qa_rival_start: int=0
+var _qa_rival_phase: int=-1
 var max_sound_bytes: int=0
 const ACTION_GRENADE: int=9
 const ACTION_COVER: int=10
@@ -127,6 +132,7 @@ func _joined(id: int) -> void:
     # A real extra physical pickup only in the isolated CI test room.
     # Never grant the weapon directly or enable this from a remote packet.
     _qa_fixture=OS.get_environment("AURORA_ONLINE_QA_FIXTURE")=="1"
+    _qa_rival_test=_qa_fixture and OS.get_environment("AURORA_ONLINE_QA_RIVALS")=="1"
     if _qa_fixture:
         # Isolate mechanical regression from randomly timed bot elimination.
         # Only the private CI process activates this; normal matches retain damage.
@@ -137,6 +143,60 @@ func _joined(id: int) -> void:
         director._make_pickup(at,"weapon_awm","OnlineQAPhysicalAWM")
         director._make_pickup(at,"grenade","OnlineQAPhysicalGrenade")
     print("AURORA_ONLINE MATCH peer=",id," participants=",combat.active_fighter_count())
+    if _qa_rival_test:
+        _prepare_rival_fixture()
+
+# Separate private QA room. Use actual server bots and physical ray occlusion,
+# not a fabricated network snapshot. Never triggered by a client packet.
+func _prepare_rival_fixture() -> void:
+    director.set_process(false)
+    combat.set_process(false)
+    operator.set_physics_process(false)
+    operator.global_position=Vector3(0,55,-24)
+    operator.set("_yaw",0.0)
+    operator.set("_desired_yaw",0.0)
+    operator.set("air_mode","ground")
+    for bot: CharacterBody3D in combat._targets:
+        bot.set_physics_process(false)
+    _qa_rival=combat._targets[0]
+    _qa_rival.global_position=Vector3(0,55,-37)
+    _qa_rival.collision_layer=1
+    _qa_rival.visible=true
+    _qa_rival.set("health",200.0)
+    _qa_rival.set("_airdrop_stage","inactive")
+    _qa_rival.set("_clip","AuroraIdle")
+    _qa_rival_start=Time.get_ticks_msec()
+
+func _advance_rival_fixture() -> void:
+    if not is_instance_valid(_qa_rival):
+        return
+    var age: int=Time.get_ticks_msec()-_qa_rival_start
+    var phase: int=0 if age<2500 else (1 if age<5000 else (2 if age<7500 else (3 if age<10000 else 4)))
+    if phase==_qa_rival_phase:
+        return
+    _qa_rival_phase=phase
+    match phase:
+        1:
+            _qa_rival.set("_clip","AuroraWalk")
+            _qa_rival.global_position=Vector3(1,55,-38)
+            _qa_rival.rotation.y=.65
+        2:
+            _qa_rival_wall=StaticBody3D.new()
+            _qa_rival_wall.collision_layer=1
+            world.add_child(_qa_rival_wall)
+            _qa_rival_wall.global_position=Vector3(0,56,-30.5)
+            var collision:=CollisionShape3D.new()
+            var box:=BoxShape3D.new()
+            box.size=Vector3(5,3,1.1)
+            collision.shape=box
+            _qa_rival_wall.add_child(collision)
+        3:
+            _qa_rival_wall.queue_free()
+            _qa_rival.set("_clip","AuroraRun")
+        4:
+            _qa_rival.set("health",0.0)
+    print("V75228_SERVER_RIVAL_PHASE ",phase)
+
 
 func _left(id: int) -> void:
     if id==remote_id:
@@ -395,6 +455,8 @@ func _physics_process(delta: float) -> void:
     if _qa_fixture and not _qa_end_verified and action_applied>=10 and last_input_ms>0 and Time.get_ticks_msec()-last_input_ms>3000:
         _qa_end_verified=true
         operator.receive_training_hit(operator.MAX_HEALTH,true)
+    if _qa_rival_test:
+        _advance_rival_fixture()
     _send_clock+=delta
     if _send_clock>=.1:
         _send_clock=fmod(_send_clock,.1)
