@@ -2,7 +2,7 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=13
+const PROTOCOL: int=14
 const WAITING_BOT_LIMIT: int=49
 const WAITING_CONTACT_LIMIT: int=8
 var _waiting_roster: Array[CharacterBody3D]=[]
@@ -220,8 +220,9 @@ func _stage_waiting_roster() -> void:
         var count: int=12 if ring==0 else (16 if ring==1 else 21)
         var angle: float=TAU*float(index)/float(count)+float(ring)*.13
         var radius: float=8.0+float(ring)*5.0
-        bot.global_position=WAITING_ISLAND.SPAWN+Vector3(sin(angle)*radius,-.15,-cos(angle)*radius)
+        var home: Vector3=WAITING_ISLAND.SPAWN+Vector3(sin(angle)*radius,-.15,-cos(angle)*radius)
         bot.rotation.y=angle+PI
+        bot.begin_waiting_walk(home,Vector3(cos(angle),0,sin(angle)),i)
         _waiting_roster.append(bot)
     if _waiting_roster.size()==WAITING_BOT_LIMIT:
         print("V75233_SERVER_ROSTER physical_bots=",_waiting_roster.size()," fighters=",combat.active_fighter_count())
@@ -249,7 +250,7 @@ func _waiting_contacts() -> Array[Dictionary]:
         var hit: Dictionary=world.get_world_3d().direct_space_state.intersect_ray(ray)
         if hit.get("collider")==actor:
             contacts.append({"id":actor.get_instance_id(),"position":actor.global_position,
-                "yaw":actor.rotation.y,"clip":"AuroraIdle","weapon":-1,"waiting":true})
+                "yaw":actor.rotation.y,"clip":str(actor._clip),"weapon":-1,"waiting":true})
     return contacts
 
 func _depart_waiting() -> void:
@@ -258,11 +259,16 @@ func _depart_waiting() -> void:
     _stop_input()
     # Same bodies and spawn assignments survive. Restore their original
     # anchors before the director stages the real aircraft departures.
+    var moved: int=0
+    var shots: int=0
     for bot in _waiting_roster:
         if is_instance_valid(bot):
+            if bot.waiting_distance>1.0:
+                moved+=1
+            shots+=int(bot.shots_fired)
+            bot.end_waiting_walk()
             bot.global_position=bot._anchor
-            bot.velocity=Vector3.ZERO
-            bot.set_physics_process(false)
+    print("V75234_SERVER_WAITING moved=",moved," shots=",shots)
     _waiting_roster.clear()
     director.begin_aircraft_phase()
     if director.mode!="aircraft":
