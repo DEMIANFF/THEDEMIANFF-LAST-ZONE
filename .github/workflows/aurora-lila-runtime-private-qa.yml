@@ -1,0 +1,14 @@
+name: Lila private runtime contract QA
+on:
+  push:
+    branches: [codex/v75-198-lila-rev2-runtime-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - run: python3 -m unittest discover -s native-godot/tools/aurora_motion -p 'test_validate_lila_runtime_private.py' -v

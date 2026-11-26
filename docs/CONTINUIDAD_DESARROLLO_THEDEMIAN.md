@@ -110,3 +110,15 @@ Base PR #198 `ace462e1f9af30bc231fc812f627e929125fa4db`, CI 45745687864 verde. S
 ## Lila Aurora reconstrucción 2K — revisión privada 1
 
 Base PR #199 `ef24ad63192fa8e4388ac661becbf3ae4d26f074`, CI 45750532632 verde. Se reconstruyeron pesos anatómicos y matrices de bind sobre la malla original del usuario, recolocando muñecas y dedos, tobillos y puntas; 52 deformadores, 30 dedos con pesos, 56 huesos, 93.572 vértices, 95.885 triángulos conservados, dos mapas 2048². 57 clips corregidos y 11 nuevos candidatos procedurales (479 fotogramas). Comparativa offline 160010/1371 incidencias de aristas >10x en 25 poses antiguas (99,14% reducción); cero incidencias de ese umbral en los 479 nuevos fotogramas. GLB privado SHA `1c6c4c8bf3fb1d36624e95d5041cf222c55b003f9ffcfd2c6e9bb0b0c409e3a1` entregado al usuario junto a scripts y auditorías. Se publica verificador de integridad y QA sintética; no se reemplaza modelo activo. Falta revisar dedos parcialmente fusionados, clipping, optimización de geometría, adaptar Prisma al rig corregido y validar en Godot/Motorola. Ver docs/aurora-v3/LILA_REBUILD_2K_PRIVATE_REV1.md.
+
+## Lila Rev2 — contrato de animaciones
+
+# Lila 2K Rev2 — candidato privado compatible con nombres Aurora
+Base Rev1 SHA 1c6c4c8bf3fb1d36624e95d5041cf222c55b003f9ffcfd2c6e9bb0b0c409e3a1. CI de PR #200 45753994669 verde. Candidato Rev2 generado localmente: SHA ab0df204ebe5cdbd2c9472af22eb672eac6cc9cec3818e6859baf1d884c3aa12, 20.060.196 bytes frente a 23.740.256 en Rev1 (15,50% menos). No es reducción de polígonos: conserva exactamente 95.885 triángulos, 93.572 vértices, todos los pesos, matrices de bind, nodos, texturas 2K. Se seleccionan 27 acciones nuevas con nombres del AnimationTree, se añade TEXCOORD_1 de vestimenta siguiendo fórmula de build_lila.py, se compactan 1.351 pistas constantes y se deduplican accessors. Los 68 clips de Rev1 permanecen en su archivo independiente. Las acciones son procedurales candidatas, no captura Prisma retargeteada ni aprobadas por gameplay.
+
+Auditoría offline de los 924 fotogramas de las 27 acciones: cero incidencias >10x en aristas de referencia >0,0003 unidades; máximo 9,433; separación lateral mínima de tobillos 0,114 unidades del rig. 13 ciclos cierran extremos. Se corrigieron inicialmente postura de paracaídas y separación de pasos laterales. No se verificó clipping de suelas o arma, rendimiento ni importación Godot. Se publica gate de SHA y script de revisión Godot local real; este último todavía NO ejecutado. Usar:
+
+    python3 native-godot/tools/aurora_motion/validate_lila_runtime_private.py /ruta/privada/Lila_Aurora_2K_Rev2_Runtime_PRIVADA.glb
+    godot --headless --path native-godot --script res://tools/aurora_motion/private_lila_runtime_review.gd -- /ruta/privada/Lila_Aurora_2K_Rev2_Runtime_PRIVADA.glb
+
+No sustituir el modelo activo ni publicar APK. Pendientes permisos, importación local, IK manos, colisiones, cabello/dedos parcialmente fusionados, ajuste de contacto con suelo, prueba física y reducción real de polígonos. Los binarios y scripts de generación/auditoría se entregan en paquete privado.
