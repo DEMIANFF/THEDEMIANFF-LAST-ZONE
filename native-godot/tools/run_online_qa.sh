@@ -12,7 +12,7 @@ trap cleanup EXIT
 mkdir -p "$work/server" "$work/client"
 logdir="${AURORA_ONLINE_LOG_DIR:-$project/out/online}"
 mkdir -p "$logdir"
-XDG_DATA_HOME="$work/server" "$engine" --headless --path "$project" --script res://scripts/network/dedicated_server.gd >"$logdir/server.log" 2>&1 &
+AURORA_ONLINE_QA_FIXTURE=1 XDG_DATA_HOME="$work/server" "$engine" --headless --path "$project" --script res://scripts/network/dedicated_server.gd >"$logdir/server.log" 2>&1 &
 pid=$!
 for i in $(seq 1 120); do
   kill -0 "$pid" 2>/dev/null || { cat "$logdir/server.log"; exit 1; }

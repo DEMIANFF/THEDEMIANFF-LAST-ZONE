@@ -13,6 +13,8 @@ var world_spot: Vector2=Vector2.ZERO
 # Exterior loot uses the terrain mesh exactly as before.
 var surface_height_override: float=NAN
 var collected: bool=false
+# Remote presentation only: no Area3D monitoring, overlap, grant or local pickup.
+var presentation_only: bool=false
 # Visual identity for an actual opponent elimination reward.
 var from_opponent: bool=false
 # -1 means the standard world pickup amount; death caches record a real
@@ -23,21 +25,24 @@ var _phase: float=0.0
 var _pickup_clock: float=0.0
 
 func _ready() -> void:
-    monitoring=true
-    monitorable=true
+    monitoring=not presentation_only
+    monitorable=not presentation_only
     collision_layer=0
-    collision_mask=1
+    collision_mask=0 if presentation_only else 1
     var surface_y: float=surface_height_override if is_finite(surface_height_override) else         terrain.height_at(world_spot.x,world_spot.y)
     # Pod center is 0.50m above the real support surface (floor/terrain).
     # The previous 1.08m offset detached pickups from indoor floors, and
     # made loot appear misplaced from a third-person camera.
     global_position=Vector3(world_spot.x,surface_y+.50,world_spot.y)
-    var sphere:=SphereShape3D.new()
-    sphere.radius=1.65
-    var shape:=CollisionShape3D.new()
-    shape.name="LootPickupRange"
-    shape.shape=sphere
-    add_child(shape)
+    if not presentation_only:
+        var sphere:=SphereShape3D.new()
+        sphere.radius=1.65
+        var shape:=CollisionShape3D.new()
+        shape.name="LootPickupRange"
+        shape.shape=sphere
+        add_child(shape)
+    else:
+        set_process(false)
     _visual=Node3D.new()
     _visual.name="SupplyCacheVisual"
     add_child(_visual)
@@ -219,7 +224,8 @@ func _ready() -> void:
         lamp.emission_energy_multiplier=1.5
         beam.material_override=lamp
         _visual.add_child(beam)
-    body_entered.connect(_collect)
+    if not presentation_only:
+        body_entered.connect(_collect)
 
 
 func _add_ground_weapon_visual() -> bool:
@@ -303,7 +309,7 @@ func _seat_ground_weapon(weapon: Node3D) -> bool:
 
 
 func _process(delta: float) -> void:
-    if collected:
+    if presentation_only or collected:
         return
     _pickup_clock-=delta
     if _pickup_clock<=0:
@@ -320,7 +326,7 @@ func _process(delta: float) -> void:
 
 
 func _collect(body: Node3D) -> void:
-    if collected or body!=player:
+    if presentation_only or collected or body!=player:
         return
     var ray:=PhysicsRayQueryParameters3D.create(player.global_position+Vector3.UP,global_position)
     ray.exclude=[player.get_rid()]
