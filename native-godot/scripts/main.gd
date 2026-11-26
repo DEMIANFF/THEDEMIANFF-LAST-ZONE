@@ -147,7 +147,7 @@ func _ready() -> void:
     combat.grenade_fuse_close.connect(func(seconds_left: float):
         sound.play_event("grenade_fuse",1.14 if seconds_left<.45 else 1.0))
     combat.reload_started.connect(func():
-        if combat.weapon_index!=COMBAT.WEAPONS.MP40:
+        if combat.weapon_index not in [COMBAT.WEAPONS.MP40,COMBAT.WEAPONS.P90]:
             sound.play_event("reload"))
     combat.reload_cue.connect(func(sample: StringName): sound.play_event(str(sample)))
     combat.awm_bolt_cycled.connect(func(): sound.play_event("awm_bolt"))

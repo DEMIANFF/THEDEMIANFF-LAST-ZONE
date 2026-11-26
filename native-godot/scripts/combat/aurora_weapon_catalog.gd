@@ -18,6 +18,10 @@ const SNIPER: int=12
 
 const MP40_RELOAD_MARKS: Array[float]=[.23,.64,.85]
 const MP40_RELOAD_CUES: Array[StringName]=[&"mp40_extract",&"mp40_seat",&"mp40_bolt"]
+# Synchronize to the existing procedural hand gesture, not a claimed
+# detachable magazine. Release, upper receiver contact, return.
+const P90_RELOAD_MARKS: Array[float]=[.12,.32,.82]
+const P90_RELOAD_CUES: Array[StringName]=[&"p90_release",&"p90_contact",&"p90_return"]
 
 const ENTRIES: Array[Dictionary]=[
     {"short":"AR","label":"AR-7 / ASALTO","capacity":30,"reload":1.55,
@@ -40,7 +44,7 @@ const ENTRIES: Array[Dictionary]=[
         "asset":"res://assets/weapons/aurora_v2_optional/aurora_hk416.glb",
         "pickup":"weapon_hk416"},
     {"short":"P90","label":"P90 / SUBFUSIL","capacity":50,"reload":1.80,
-        "cadence":.085,"damage":17.0,"critical":1.55,"recoil":.0038,"sample":"kriss_fire",
+        "cadence":.085,"damage":17.0,"critical":1.55,"recoil":.0038,"sample":"p90_fire",
         "asset":"res://assets/weapons/aurora_v2_optional/aurora_p90.glb",
         "pickup":"weapon_p90"},
     {"short":"VSS","label":"VSS / DMR","capacity":10,"reload":2.15,

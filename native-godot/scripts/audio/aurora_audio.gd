@@ -52,6 +52,10 @@ func _ready() -> void:
         "scar_fire":.32,
         "mp40_fire":.17,
         "kriss_fire":.13,
+        "p90_fire":.20,
+        "p90_release":.14,
+        "p90_contact":.18,
+        "p90_return":.13,
         "shotgun_fire":.58,
         "pistol_fire":.34,
         "knife_swing":.19,
@@ -372,6 +376,18 @@ func _render(kind: String,duration: float) -> AudioStreamWAV:
                 value=(.86*high+.34*pulse)*exp(-t*37.0)+.35*middle*exp(-t*16.0)
             "kriss_fire":
                 value=(.68*high+.53*middle+.24*pulse)*exp(-t*45.0)
+            "p90_fire":
+                # Original game SFX, cached PCM; not a source recording.
+                value=(.42*high+.54*middle+.30*pulse)*exp(-t*34.0)
+                value+=.16*low*exp(-t*13.0)
+            "p90_release","p90_contact","p90_return":
+                var frequency: float=440.0 if kind=="p90_release" else 620.0 if kind=="p90_contact" else 790.0
+                var transient: float=exp(-pow((t-.018)/.012,2))
+                var tail: float=exp(-t*28.0)
+                value=(.44*middle+.18*sin(TAU*frequency*t))*transient
+                value+=(.19*high+.09*low)*tail
+                if kind=="p90_contact":
+                    value+=.31*middle*exp(-pow((t-.073)/.014,2))
             "shotgun_fire":
                 value=(.85*middle+.57*high+.32*pulse)*exp(-t*17.0)
                 value+=.27*low*exp(-t*4.4)
