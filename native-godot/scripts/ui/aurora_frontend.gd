@@ -12,6 +12,7 @@ const GAME_PATH: String="res://scenes/Main.tscn"
 const SETTINGS_OVERLAY=preload("res://scripts/ui/aurora_settings_overlay.gd")
 const MATCH_RECORDS = preload("res://scripts/persistence/offline_match_records.gd")
 const COSMETICS=preload("res://scripts/player/aurora_operator_cosmetics.gd")
+const LILA_SOURCE=preload("res://scripts/player/aurora_lila_source.gd")
 const LOBBY_MOTION = preload("res://assets/animations/aurora_lobby_motion.tres")
 const LOBBY_MOTION_CLIP: StringName=&"aurora_lobby/Motion"
 const MALE_PREVIEW=preload("res://scripts/player/aurora_mixamo_male_preview.gd")
@@ -3279,7 +3280,7 @@ func _apply_preview_skin(skin: String) -> void:
         _preview_skin_applied=skin
         var body:=_preview_avatar.find_child("Lila_Aurora_Mesh",true,false) as MeshInstance3D
         body.material_override=null
-        if skin==COSMETICS.ORIGINAL_SKIN:
+        if skin==COSMETICS.ORIGINAL_SKIN and not bool(_preview_avatar.get_meta("aurora_private_lila_rev9",false)):
             var material:=body.mesh.surface_get_material(0) as StandardMaterial3D
             if material!=null and material.albedo_texture!=null:
                 var portrait:=ShaderMaterial.new()
@@ -3648,11 +3649,10 @@ func _toggle_mixamo_preview() -> void:
             return
         incoming.name="AuroraMaleMixamoPreview"
     else:
-        var path: String="res://assets/characters/lila_aurora.glb"
-        if ResourceLoader.exists(path,"PackedScene"):
-            var scene: PackedScene=load(path) as PackedScene
-            if scene:
-                incoming=scene.instantiate() as Node3D
+        var source: PackedScene=LILA_SOURCE.scene()
+        if source!=null:
+            incoming=source.instantiate() as Node3D
+            LILA_SOURCE.tag_instance(incoming,source)
         if incoming==null:
             return
         incoming.name="LilaAuroraPreview"
@@ -3676,7 +3676,7 @@ func _toggle_mixamo_preview() -> void:
         var player: AnimationPlayer=incoming.find_child(
             "*AnimationPlayer*",true,false) as AnimationPlayer
         if player and player.has_animation("AuroraIdle"):
-            _install_lobby_motion(player)
+            _install_lobby_motion(player,bool(incoming.get_meta("aurora_private_lila_rev9",false)))
             player.play("AuroraIdle")
         if _offline_records:
             _apply_preview_skin(str(
@@ -3812,10 +3812,26 @@ func _prepare_lobby_idle(animator: AnimationPlayer) -> void:
         animator.set_meta("aurora_lobby_planted_tracks",changed)
 
 
-func _install_lobby_motion(animator: AnimationPlayer) -> void:
+func _install_lobby_motion(animator: AnimationPlayer,private_rev9: bool=false) -> void:
     _prepare_lobby_idle(animator)
     var motion:=LOBBY_MOTION.duplicate() as Animation
     var idle:=animator.get_animation("AuroraIdle")
+    # Rev9 has corrected local hand axes. Preserve the authored neutral
+    # fingers/wrists, and apply the old gesture's relative upper-body motion
+    # to the new idle rotations, never its obsolete absolute joint poses.
+    if private_rev9:
+        for i in range(motion.get_track_count()-1,-1,-1):
+            var path: NodePath=motion.track_get_path(i)
+            var bone: String=str(path.get_subname(0)) if path.get_subname_count()>0 else ""
+            var track: int=idle.find_track(path,Animation.TYPE_ROTATION_3D)
+            if motion.track_get_type(i)!=Animation.TYPE_ROTATION_3D or track<0 or idle.track_get_key_count(track)==0 or motion.track_get_key_count(i)==0 or "Hand" in bone:
+                motion.remove_track(i)
+                continue
+            var base: Quaternion=idle.track_get_key_value(track,0)
+            var initial: Quaternion=motion.track_get_key_value(i,0)
+            for k in range(motion.track_get_key_count(i)):
+                var old_rotation: Quaternion=motion.track_get_key_value(i,k)
+                motion.track_set_key_value(i,k,(base*initial.inverse()*old_rotation).normalized())
     # Preserve the neutral leg, pelvis and finger tracks on Lila's podium.
     for i in range(idle.get_track_count()):
         var type: Animation.TrackType=idle.track_get_type(i)
@@ -4049,25 +4065,25 @@ func _build_preview() -> void:
         ring.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
         stage3d.add_child(ring)
 
-    if ResourceLoader.exists("res://assets/characters/lila_aurora.glb"):
-        var source:=load("res://assets/characters/lila_aurora.glb") as PackedScene
-        if source!=null:
-            _preview_avatar=source.instantiate() as Node3D
-            _preview_skin_applied=""
-            _preview_avatar.name="LilaAuroraPreview"
-            stage3d.add_child(_preview_avatar)
-            _fit_avatar_for_preview(_preview_avatar)
-            for node in _preview_avatar.find_children("*","MeshInstance3D",true,false):
-                (node as MeshInstance3D).layers|=PORTRAIT_LIGHT_LAYER
-            var anim:=_preview_avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
-            # Lobby has no equipped hand-held rifle. Playing the armed grip
-            # without a model made Lila's empty palms look glued together.
-            # Use the real relaxed skeletal idle here; the actual match
-            # keeps its weapon-ready and ADS animation states.
-            if anim and anim.has_animation("AuroraIdle"):
-                _install_lobby_motion(anim)
-                anim.play("AuroraIdle")
-                anim.advance(.36)
+    var source: PackedScene=LILA_SOURCE.scene()
+    if source!=null:
+        _preview_avatar=source.instantiate() as Node3D
+        LILA_SOURCE.tag_instance(_preview_avatar,source)
+        _preview_skin_applied=""
+        _preview_avatar.name="LilaAuroraPreview"
+        stage3d.add_child(_preview_avatar)
+        _fit_avatar_for_preview(_preview_avatar)
+        for node in _preview_avatar.find_children("*","MeshInstance3D",true,false):
+            (node as MeshInstance3D).layers|=PORTRAIT_LIGHT_LAYER
+        var anim:=_preview_avatar.find_child("AnimationPlayer",true,false) as AnimationPlayer
+        # Lobby has no equipped hand-held rifle. Playing the armed grip
+        # without a model made Lila's empty palms look glued together.
+        # Use the real relaxed skeletal idle here; the actual match
+        # keeps its weapon-ready and ADS animation states.
+        if anim and anim.has_animation("AuroraIdle"):
+            _install_lobby_motion(anim,bool(_preview_avatar.get_meta("aurora_private_lila_rev9",false)))
+            anim.play("AuroraIdle")
+            anim.advance(.36)
 
     var caption:=Label.new()
     caption.name="PreviewDisclosure"
