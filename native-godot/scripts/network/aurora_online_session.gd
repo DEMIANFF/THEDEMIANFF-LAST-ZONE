@@ -2,7 +2,13 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=16
+const PROTOCOL: int=17
+const HUMAN_OPERATOR=preload("res://scripts/player/third_person_operator.gd")
+# Explicit local development room. Normal BR admission remains single-human
+# until per-human combat, inventory and flight directors are migrated.
+var dual_waiting: bool=false
+var dual_peers: Dictionary={}
+var _dual_admitted: int=0
 const ACTION_VEHICLE: int=11
 const VEHICLE=preload("res://scripts/world/aurora_driveable_vehicle.gd")
 var _qa_vehicle_test: bool=false
@@ -97,7 +103,8 @@ var _sounds: Array[Dictionary]=[]
 func listen(port: int=PORT) -> Error:
     var peer:=ENetMultiplayerPeer.new()
     peer.set_bind_ip("127.0.0.1")
-    var result: Error=peer.create_server(port,1,5)
+    dual_waiting=OS.get_environment("AURORA_ONLINE_DUAL_WAITING")=="1"
+    var result: Error=peer.create_server(port,2 if dual_waiting else 1,5)
     if result!=OK:
         return result
     multiplayer.multiplayer_peer=peer
@@ -113,6 +120,9 @@ func connect_local(port: int=PORT) -> Error:
     return result
 
 func _joined(id: int) -> void:
+    if dual_waiting:
+        _dual_joined(id)
+        return
     if remote_id!=0 or not is_instance_valid(world):
         multiplayer.multiplayer_peer.disconnect_peer(id)
         return
@@ -366,12 +376,163 @@ func _advance_rival_fixture() -> void:
 
 
 func _left(id: int) -> void:
+    if dual_waiting:
+        _dual_left(id)
+        return
     if id==remote_id:
         _stop_input()
         remote_id=0
         # A dedicated development room is single-use. Never allow a second
         # connection to inherit the previous player's in-progress match.
         get_tree().quit()
+
+# Two authenticated-by-transport peer IDs, no client-selected actor IDs.
+# This is an isolated noncombat staging room, not a 50-human battle.
+func _dual_joined(id: int) -> void:
+    if _dual_admitted>=2 or not is_instance_valid(world):
+        multiplayer.multiplayer_peer.disconnect_peer(id)
+        return
+    if _dual_admitted==0:
+        combat.end_sector_battle()
+        combat.hide()
+        combat.set_process(false)
+        for bot in combat._targets:
+            bot.set_physics_process(false)
+            bot.collision_layer=0
+        director.mode="waiting"
+        director.set_process(false)
+        director.match_ended=false
+        waiting_island=WAITING_ISLAND.new()
+        waiting_island.physical=true
+        world.add_child(waiting_island)
+    var actor: CharacterBody3D=operator
+    if _dual_admitted==1:
+        actor=HUMAN_OPERATOR.new()
+        actor.name="OnlineHuman"+str(id)
+        world.add_child(actor)
+    var side: float=-1.0 if _dual_admitted==0 else 1.0
+    var home: Vector3=WAITING_ISLAND.SPAWN+Vector3(side*3.0,0,0)
+    var heading: float=side*PI*.5
+    actor.reset_controls()
+    actor.round_finished=false
+    actor.royale_eliminated=false
+    actor.air_mode="ground"
+    actor.training_health=actor.MAX_HEALTH
+    actor.global_position=home
+    actor.velocity=Vector3.ZERO
+    actor.rotation.y=heading
+    actor._yaw=heading
+    actor._desired_yaw=heading
+    actor.get_view_camera().current=false
+    dual_peers[id]={"actor":actor,"home":home,"sequence":0,"accepted":0,"rejected":0,
+        "input_ms":0,"axis":Vector2.ZERO,"yaw":heading,"pitch":-.14,"run":false,
+        "action_ack":0,"action_rejected":0,"action_applied":0,"jump_pending":false,"jump_ms":-1000}
+    _dual_admitted+=1
+    print("V75237_SERVER_ADMIT peer=",id," live_humans=",dual_peers.size())
+
+func _dual_left(id: int) -> void:
+    if not dual_peers.has(id):
+        return
+    var actor: CharacterBody3D=dual_peers[id].actor
+    actor.reset_controls()
+    actor.set_physics_process(false)
+    actor.collision_layer=0
+    actor.collision_mask=0
+    actor.hide()
+    if actor!=operator:
+        actor.queue_free()
+    dual_peers.erase(id)
+    print("V75237_SERVER_LEAVE peer=",id," remaining=",dual_peers.size())
+    if dual_peers.is_empty():
+        get_tree().quit()
+
+func _dual_input(version: int,sequence: int,move: Vector2,heading: float,look_pitch: float,run: bool,shoot: bool) -> void:
+    if not multiplayer.is_server():
+        return
+    var id: int=multiplayer.get_remote_sender_id()
+    if not dual_peers.has(id):
+        return
+    var peer: Dictionary=dual_peers[id]
+    if version!=PROTOCOL or sequence<=int(peer.sequence) or sequence-int(peer.sequence)>256 or not move.is_finite() or move.length_squared()>1.001 or not is_finite(heading) or absf(heading)>PI or not is_finite(look_pitch) or look_pitch<-.55 or look_pitch>.62 or shoot:
+        peer.rejected+=1
+        return
+    peer.sequence=sequence
+    peer.accepted+=1
+    peer.input_ms=Time.get_ticks_msec()
+    peer.axis=move
+    peer.yaw=heading
+    peer.pitch=look_pitch
+    peer.run=run
+
+func _dual_action(version: int,request_id: int,action: int) -> void:
+    if not multiplayer.is_server():
+        return
+    var id: int=multiplayer.get_remote_sender_id()
+    if not dual_peers.has(id):
+        return
+    var peer: Dictionary=dual_peers[id]
+    if version!=PROTOCOL or request_id<=int(peer.action_ack) or request_id-int(peer.action_ack)>256:
+        peer.action_rejected+=1
+        return
+    peer.action_ack=request_id
+    var now: int=Time.get_ticks_msec()
+    if action!=ACTION_JUMP or now-int(peer.input_ms)>INPUT_TIMEOUT_MS or now-int(peer.jump_ms)<ACTION_MIN_INTERVAL_MS or bool(peer.jump_pending):
+        peer.action_rejected+=1
+        return
+    peer.jump_pending=true
+    peer.jump_ms=now
+
+func _dual_tick(delta: float) -> void:
+    if dual_peers.is_empty():
+        return
+    for id in dual_peers:
+        var peer: Dictionary=dual_peers[id]
+        var actor: CharacterBody3D=peer.actor
+        var fresh: bool=Time.get_ticks_msec()-int(peer.input_ms)<=INPUT_TIMEOUT_MS
+        actor.set_touch_move_axis(peer.axis if fresh else Vector2.ZERO)
+        actor.set_touch_run(bool(peer.run) and fresh)
+        actor._desired_yaw=float(peer.yaw)
+        actor._desired_pitch=float(peer.pitch)
+        if bool(peer.jump_pending):
+            if fresh and actor.can_act():
+                actor.touch_jump()
+                peer.action_applied+=1
+            else:
+                peer.action_rejected+=1
+            peer.jump_pending=false
+        if actor.global_position.y<WAITING_ISLAND.SPAWN.y-3.0:
+            actor.global_position=peer.home
+            actor.velocity=Vector3.ZERO
+    _send_clock+=delta
+    if _send_clock<.1:
+        return
+    _send_clock=fmod(_send_clock,.1)
+    snapshot_sequence+=1
+    for id in dual_peers:
+        var peer: Dictionary=dual_peers[id]
+        var actor: CharacterBody3D=peer.actor
+        var rivals: Array[Dictionary]=[]
+        for other_id in dual_peers:
+            if other_id==id:
+                continue
+            var other: CharacterBody3D=dual_peers[other_id].actor
+            # Staging room is public to its two admitted participants.
+            # No combat fog-of-war data exists in this isolated room.
+            rivals.append({"id":other_id,"position":other.global_position,
+                "yaw":other.rotation.y,"clip":str(other._current_clip),
+                "weapon":-1,"waiting":true,"human":true})
+        _send_world_state({"snapshot_id":snapshot_sequence,"self_peer":id,"dual_waiting":true,
+            "position":actor.global_position,"velocity":actor.velocity,"body_yaw":actor.rotation.y,
+            "clip":str(actor._current_clip),"air_mode":"ground","match_mode":"waiting",
+            "waiting_remaining":0.0,"waiting_ready":dual_peers.size(),"rivals":rivals,
+            "ended":false,"eliminated":false,"loot":[],"vehicles":{},
+            "inventory":{"awm_owned":false,"additions":[],"medkits":0,"grenades":0,"covers":0},
+            "tactical":{"cover_cooldown":0.0},"weapon":WEAPON_CATALOG.AR,"aim":false,"zoom":1.0,
+            "firing":false,"crouched":false,"grounded":actor.is_on_floor(),"ammo":0,"reserve":0,
+            "reload_remaining":0.0,"health":actor.training_health,"participants":dual_peers.size(),
+            "alive":dual_peers.size(),"bots":0,"shots":0,"zone_center":Vector2.ZERO,"zone_radius":0.0,
+            "action_ack":peer.action_ack,"action_applied":peer.action_applied,"action_rejected":peer.action_rejected,
+            "accepted":peer.accepted,"rejected":peer.rejected,"ack":peer.sequence},id)
 
 func _stop_input() -> void:
     axis=Vector2.ZERO
@@ -387,6 +548,9 @@ func _stop_input() -> void:
 
 @rpc("any_peer","call_remote","unreliable_ordered",1)
 func submit_input(version: int,sequence: int,move: Vector2,heading: float,look_pitch: float,run: bool,shoot: bool) -> void:
+    if dual_waiting:
+        _dual_input(version,sequence,move,heading,look_pitch,run,shoot)
+        return
     if not multiplayer.is_server() or multiplayer.get_remote_sender_id()!=remote_id or remote_id==0:
         return
     # Clients send intent only, never positions, damage, inventory or kills.
@@ -407,6 +571,9 @@ func submit_input(version: int,sequence: int,move: Vector2,heading: float,look_p
 # Monotonic IDs prevent repeated execution; no client-supplied ammo or HP.
 @rpc("any_peer","call_remote","reliable",0)
 func submit_action(version: int,request_id: int,action: int) -> void:
+    if dual_waiting:
+        _dual_action(version,request_id,action)
+        return
     if not multiplayer.is_server() or remote_id==0 or multiplayer.get_remote_sender_id()!=remote_id:
         return
     if version!=PROTOCOL or request_id<=action_ack or request_id-action_ack>256:
@@ -600,7 +767,10 @@ func _send_sound_batches() -> void:
         max_sound_bytes=maxi(max_sound_bytes,bytes)
         receive_sound_batch.rpc_id(remote_id,PROTOCOL,batch)
 
-func _send_world_state(data: Dictionary) -> void:
+func _send_world_state(data: Dictionary,destination: int=0) -> void:
+    var recipient: int=remote_id if destination==0 else destination
+    if recipient<=0:
+        return
     var raw: PackedByteArray=var_to_bytes(data)
     if raw.is_empty() or raw.size()>STATE_RAW_LIMIT:
         push_warning("AURORA_ONLINE snapshot outside raw budget")
@@ -613,7 +783,7 @@ func _send_world_state(data: Dictionary) -> void:
     for index in range(count):
         var offset: int=index*STATE_CHUNK_BYTES
         var part: PackedByteArray=encoded.slice(offset,mini(offset+STATE_CHUNK_BYTES,encoded.size()))
-        receive_state_chunk.rpc_id(remote_id,PROTOCOL,int(data.snapshot_id),index,count,raw.size(),part)
+        receive_state_chunk.rpc_id(recipient,PROTOCOL,int(data.snapshot_id),index,count,raw.size(),part)
 
 @rpc("authority","call_remote","unreliable_ordered",2)
 func receive_state_chunk(version: int,frame: int,index: int,count: int,raw_size: int,part: PackedByteArray) -> void:
@@ -717,6 +887,9 @@ func _vehicle_snapshot() -> Dictionary:
     return {"cars":cars,"ride":ride,"near":near,"exit_ready":exit_ready,"result":vehicle_action_result}
 
 func _physics_process(delta: float) -> void:
+    if dual_waiting and multiplayer.is_server():
+        _dual_tick(delta)
+        return
     if remote_id==0 or not multiplayer.is_server() or not is_instance_valid(operator):
         return
     if director.mode=="waiting":
