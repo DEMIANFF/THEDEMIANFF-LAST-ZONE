@@ -60,6 +60,8 @@ var send_controls: bool=true
 var _clock: float=0.0
 var _last_state: Dictionary={}
 var _last_state_ms: int=0
+# Commit marker is advanced only after all visuals and HUD are applied.
+var applied_snapshot_id: int=0
 var _has_state: bool=false
 var _status: Label
 var _touch_root: Control
@@ -600,6 +602,7 @@ func apply_snapshot(data: Dictionary) -> void:
         _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
     if bool(data.get("ended",false)):
         _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else "ONLINE · PARTIDA FINALIZADA"
+    applied_snapshot_id=int(data.get("snapshot_id",0))
 
 func _clear_remote() -> void:
     _sync_vehicles({})
