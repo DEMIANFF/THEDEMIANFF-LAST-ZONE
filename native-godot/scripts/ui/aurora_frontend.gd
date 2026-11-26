@@ -3582,7 +3582,7 @@ func _return_to_lobby() -> void:
         _game=null
         var sound: Node3D=old.get_node_or_null("AuroraSoundStage")
         if sound!=null:
-            sound.set_enabled(false)
+            sound.shutdown()
         old.get_parent().remove_child(old)
         old.queue_free()
     _hud_editor_requested=false

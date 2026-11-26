@@ -1,7 +1,7 @@
 name: Lila physical slope and armory regression
 on:
   push:
-    branches: [codex/v75-198-enemy-animation-clock-zoom]
+    branches: [codex/v75-198-scene-lifecycle-audio-respawn]
   workflow_dispatch:
 permissions:
   contents: read
@@ -193,6 +193,13 @@ jobs:
           timeout 150 godot --headless --path native-godot --script res://scripts/qa/v75216_enemy_animation_clock_qa.gd 2>&1 | tee native-godot/out/lila-review/enemy-clock.log
           grep -F 'V75216_ENEMY_CLOCK PASS' native-godot/out/lila-review/enemy-clock.log
           if grep -E 'SCRIPT ERROR:|ERROR:' native-godot/out/lila-review/enemy-clock.log; then exit 1; fi
+      - name: Three actual map lifecycles and owned respawn/audio cleanup
+        run: |
+          set -euo pipefail
+          export XDG_DATA_HOME="$(mktemp -d)"
+          timeout 150 godot --headless --path native-godot --fixed-fps 60 --script res://scripts/qa/v75217_scene_lifecycle_qa.gd 2>&1 | tee native-godot/out/lila-review/scene-lifecycle.log
+          grep -F 'V75217_LIFECYCLE PASS cycles=3' native-godot/out/lila-review/scene-lifecycle.log
+          if grep -E 'SCRIPT ERROR:|ERROR:' native-godot/out/lila-review/scene-lifecycle.log; then exit 1; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -203,4 +210,5 @@ jobs:
             native-godot/out/lila-review/body.log
             native-godot/out/lila-review/p90.log
             native-godot/out/lila-review/enemy-clock.log
+            native-godot/out/lila-review/scene-lifecycle.log
             /tmp/lila-import.log
