@@ -4,7 +4,12 @@ from pathlib import Path
 SHA="ab0df204ebe5cdbd2c9472af22eb672eac6cc9cec3818e6859baf1d884c3aa12"
 CONTACT_SHA="b3fd330483756a16d2a5022776428e54db39f916404ec70438b64de37932b896"
 CACHE_SHA="2a4c00e4ec9afcfcc7d529d73dadb85e57b94f80e2b59a6e25c7f599b5289c7d"
-CANDIDATES={SHA: "Rev2", CONTACT_SHA: "Rev3", CACHE_SHA: "Rev4"}
+HAND_SHA="c9b755349a4dc2692f45f3bec1918001d72a05f01b3bcad4aff406c743afb74b"
+CANDIDATES={SHA: "Rev2", CONTACT_SHA: "Rev3", CACHE_SHA: "Rev4", HAND_SHA: "Rev5"}
+HAND_DIGITS={side+"Hand"+digit+str(segment)
+             for side in ("Left","Right")
+             for digit in ("Thumb","Index","Middle","Ring","Pinky")
+             for segment in (1,2,3)}
 EXPECTED=set(("AuroraIdle AuroraArmedIdle AuroraAim AuroraAimAWM AuroraCrouch "
 "AuroraArmedWalk AuroraArmedRun AuroraCrouchWalk AuroraArmedStrafeLeft "
 "AuroraArmedStrafeRight AuroraArmedBackpedal AuroraJump AuroraLand AuroraFreefall "
@@ -16,7 +21,22 @@ def require(ok, message):
     if not ok:
         raise ValueError(message)
 
-def inspect(raw, require_compact_joints=False):
+def digit_counts(names, joints, weights):
+    """Count actual per-vertex influences, never just existing bone names."""
+    import math
+    counts=dict.fromkeys(names,0)
+    for ji, wi in zip(joints,weights,strict=True):
+        require(len(ji)==len(wi)==4,"Expected four influences")
+        require(all(0<=j<len(names) for j in ji),"Joint index out of bounds")
+        require(all(math.isfinite(w) and w>=0 for w in wi) and abs(sum(wi)-1)<1e-5,
+                "Invalid skin weights")
+        for k in {j for j,w in zip(ji,wi) if w>1e-5}:
+            counts[names[k]]+=1
+    require(HAND_DIGITS.issubset(counts),"Missing digit bone")
+    require(all(counts[k]>=30 for k in HAND_DIGITS),"Insufficient direct digit support")
+    return {k:counts[k] for k in sorted(HAND_DIGITS)}
+
+def inspect(raw, require_compact_joints=False, require_hand_refit=False):
     require(len(raw)>=28,"Truncated GLB")
     magic,version,length,n,kind=struct.unpack_from("<5I",raw)
     require((magic,version,length,kind)==(0x46546c67,2,len(raw),0x4e4f534a),
@@ -48,13 +68,36 @@ def inspect(raw, require_compact_joints=False):
                 "Joint index buffer exceeds bounds")
         require(max(raw[start+offset:start+offset+4*joint["count"]])<56,
                 "Rev4 joint index out of bounds")
-    return {"runtime_clips":len(names),"joints":56,"production_approved":False}
+    result={"runtime_clips":len(names),"joints":56,"production_approved":False}
+    if require_hand_refit:
+        require(require_compact_joints,"Hand refit requires checked compact joints")
+        skin=d["skins"][0]
+        joint_names=[d["nodes"][i]["name"] for i in skin["joints"]]
+        require(len(set(joint_names))==56,"Duplicate skin joint name")
+        weight=d["accessors"][p["attributes"]["WEIGHTS_0"]]
+        require(weight["componentType"]==5126 and weight["type"]=="VEC4"
+                and weight["count"]==93572 and "sparse" not in weight,
+                "Expected original float weights")
+        wview=d["bufferViews"][weight["bufferView"]]
+        wbase=wview.get("byteOffset",0)
+        woff=wbase+weight.get("byteOffset",0)
+        stride=wview.get("byteStride",16)
+        require(stride>=16 and woff>=wbase and
+                woff+stride*(weight["count"]-1)+16<=wbase+wview["byteLength"]<=size,
+                "Weight buffer exceeds bounds")
+        js=struct.iter_unpack("<4B",raw[start+offset:start+offset+4*joint["count"]])
+        ws=(struct.unpack_from("<4f",raw,start+woff+i*stride)
+            for i in range(weight["count"]))
+        counts=digit_counts(joint_names,js,ws)
+        result["min_direct_digit_vertices"]=min(counts.values())
+        result["digit_counts"]=counts
+    return result
 
 def validate(path):
     raw=path.read_bytes()
     digest=hashlib.sha256(raw).hexdigest()
     require(digest in CANDIDATES,"Private candidate SHA mismatch")
-    return {**inspect(raw, digest==CACHE_SHA), "revision": CANDIDATES[digest], "sha256": digest}
+    return {**inspect(raw, digest in (CACHE_SHA,HAND_SHA), digest==HAND_SHA), "revision": CANDIDATES[digest], "sha256": digest}
 
 if __name__=="__main__":
     parser=argparse.ArgumentParser(description=__doc__)

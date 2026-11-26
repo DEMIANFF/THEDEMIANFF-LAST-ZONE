@@ -23,8 +23,8 @@ class RuntimeGateTest(unittest.TestCase):
         with self.assertRaises(ValueError):gate.inspect(b"bad")
 
     def test_all_private_revisions_are_pinned(self):
-        self.assertEqual(set(gate.CANDIDATES.values()), {"Rev2", "Rev3", "Rev4"})
-        self.assertEqual(len(gate.CANDIDATES),3)
+        self.assertEqual(set(gate.CANDIDATES.values()), {"Rev2", "Rev3", "Rev4", "Rev5"})
+        self.assertEqual(len(gate.CANDIDATES),4)
         self.assertTrue(all(len(s)==64 for s in gate.CANDIDATES))
 
     def compact_fixture(self, joint_value=55, component=5121):
@@ -45,3 +45,15 @@ class RuntimeGateTest(unittest.TestCase):
             gate.inspect(self.compact_fixture(joint_value=56),True)
         with self.assertRaises(ValueError):
             gate.inspect(self.compact_fixture(component=5123),True)
+
+    def test_direct_digit_support_not_just_bone_names(self):
+        names=sorted(gate.HAND_DIGITS)
+        joints=[(i,i,i,i) for i in range(len(names)) for _ in range(30)]
+        weights=[(1.,0.,0.,0.)]*len(joints)
+        counts=gate.digit_counts(names,joints,weights)
+        self.assertEqual(min(counts.values()),30)
+        with self.assertRaises(ValueError):
+            gate.digit_counts(names,joints[:-1],weights[:-1])
+        weights[0]=(1.,1.,0.,0.)
+        with self.assertRaises(ValueError):
+            gate.digit_counts(names,joints,weights)
