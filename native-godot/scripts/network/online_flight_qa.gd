@@ -68,16 +68,35 @@ func _verify() -> void:
     var roster_ready: bool=false
     var waiting_rival: bool=false
     var bounded: bool=true
+    var walking: bool=false
+    var displacement_ok: bool=false
+    var first_positions: Dictionary={}
     for i in range(400):
         await create_timer(.05).timeout
         if session.state.get("match_mode","")=="waiting":
             roster_ready=roster_ready or (int(session.state.waiting_ready)==50 and int(session.state.bots)==49 and int(session.state.alive)==50)
             waiting_rival=waiting_rival or _waiting_rival_visible(session,view)
             bounded=bounded and session.state.rivals.size()<=8
+            for item in session.state.rivals:
+                if not bool(item.get("waiting",false)):
+                    continue
+                var id: int=int(item.id)
+                var at: Vector3=item.position
+                if not first_positions.has(id):
+                    first_positions[id]=at
+                elif at.distance_to(first_positions[id])>.65:
+                    displacement_ok=true
+                if str(item.clip)=="AuroraWalk" and view.replicas.has(id):
+                    var holder: Node3D=view.replicas[id]
+                    var animator:=holder.find_child("AnimationPlayer",true,false) as AnimationPlayer
+                    if animator!=null and animator.current_animation=="AuroraWalk":
+                        walking=true
         if view._has_state and session.state.get("air_mode","")=="aircraft":
             break
     var roster_cleared: bool=session.state.rivals.is_empty() and view.replicas.is_empty() and int(session.state.get("waiting_ready",-1))==0
     var roster_ok: bool=roster_ready and waiting_rival and bounded and roster_cleared
+    var locomotion_ok: bool=walking and displacement_ok and roster_cleared
+    print("V75234_WAITING_WALK clip=",walking," physical_displacement=",displacement_ok," cleared=",roster_cleared)
     print("V75233_ROSTER ready=",roster_ready," unarmed_rival=",waiting_rival," bounded=",bounded," cleared=",roster_cleared)
     var departed: bool=session.state.get("air_mode","")=="aircraft" and not is_instance_valid(view.waiting_visual) and float(session.state.waiting_remaining)==0.0
     var waiting_ok: bool=island_ok and moved and waiting_safe and countdown and departed
@@ -130,12 +149,13 @@ func _verify() -> void:
             cleared=false
     var air_ok: bool=rival_ok and aircraft_audio and audio_stopped and cleared
     print("V75231_AIR_VISUAL rival_canopy=",rival_ok," aircraft_audio=",aircraft_audio," audio_stopped=",audio_stopped," cleared=",cleared)
-    ok=ok and air_ok and waiting_ok and roster_ok
+    ok=ok and air_ok and waiting_ok and roster_ok and locomotion_ok
     if ok:
         print("V75230_FLIGHT PASS")
         print("V75231_AIR_VISUAL PASS")
         print("V75232_WAITING PASS")
         print("V75233_ROSTER PASS")
+        print("V75234_WAITING_WALK PASS")
     else:
         push_error("V75230 deployment regression")
     session.multiplayer.multiplayer_peer.close()

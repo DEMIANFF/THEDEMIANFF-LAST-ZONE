@@ -14,6 +14,12 @@ signal foot_contact(world_position: Vector3,running: bool,on_stone: bool)
 ## This line is derived from the actual PhysicsServer hit; never a fake shot.
 signal shot_trace(from: Vector3,to: Vector3)
 
+var waiting_active: bool=false
+var waiting_distance: float=0.0
+var _waiting_home: Vector3
+var _waiting_tangent: Vector3
+var _waiting_clock: float=0.0
+var _waiting_direction: float=1.0
 const WALK_SPEED: float = 2.5
 const CHASE_SPEED: float = 4.15
 var _foot_contacts=preload("res://scripts/animation/aurora_foot_contacts.gd").new()
@@ -629,7 +635,56 @@ func _update_distance_lod(dt: float) -> void:
         call_deferred("_set_full_visual",wants_full)
 
 
+# Noncombat physical pacing on the staging island. No target scans,
+# pathfinding, weapon fire, health changes or combat action timers here.
+func begin_waiting_walk(home: Vector3,tangent: Vector3,index: int) -> void:
+    waiting_active=true
+    waiting_distance=0.0
+    _waiting_home=home
+    _waiting_tangent=tangent.normalized()
+    _waiting_clock=float(index%5)*.25
+    _waiting_direction=1.0 if index%2==0 else -1.0
+    velocity=Vector3.ZERO
+    global_position=home
+    set_physics_process(true)
+
+func end_waiting_walk() -> void:
+    waiting_active=false
+    velocity=Vector3.ZERO
+    set_physics_process(false)
+
+func _advance_waiting_walk(dt: float) -> void:
+    _waiting_clock+=dt
+    # Short, staggered pacing along each actor's own slot.
+    var target: Vector3=_waiting_home+_waiting_tangent*_waiting_direction*1.15
+    var direction: Vector3=target-global_position
+    direction.y=0.0
+    var rest: bool=fmod(_waiting_clock,4.0)<.65
+    if direction.length()<.18:
+        _waiting_direction*=-1.0
+        rest=true
+    var step: Vector3=Vector3.ZERO if rest else direction.normalized()*1.45
+    velocity.x=move_toward(velocity.x,step.x,6.0*dt)
+    velocity.z=move_toward(velocity.z,step.z,6.0*dt)
+    velocity.y-=GRAVITY*dt
+    var before: Vector3=global_position
+    move_and_slide()
+    var displacement: Vector3=global_position-before
+    displacement.y=0.0
+    waiting_distance+=displacement.length()
+    var walking: bool=is_on_floor() and displacement.length()>.35*dt
+    if walking:
+        rotation.y=lerp_angle(rotation.y,atan2(-displacement.x,-displacement.z),minf(1.0,dt*7.0))
+    var clip: String="AuroraWalk" if walking else "AuroraIdle"
+    if clip!=_clip:
+        _clip=clip
+        if _animation!=null and _animation.active and _animation.has_animation(clip):
+            _animation.play(clip,.18)
+
 func _physics_process(dt: float) -> void:
+    if waiting_active:
+        _advance_waiting_walk(dt)
+        return
     # Live physics-only descent precedes shooting, healing and pathfinding.
     if _airdrop_stage in ["waiting","descending"]:
         _advance_real_airdrop(dt)
