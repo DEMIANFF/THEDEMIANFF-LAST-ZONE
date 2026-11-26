@@ -38,7 +38,6 @@ func setup(source: Node3D,transport: Node) -> void:
     world.add_child(zone)
     zone.hide()
     operator.hide()
-    var contact: Node=operator.get_node_or_null("AuroraFemaleRiggedOperator/Skeleton3D/LilaBodyContact")
     # Disable ground-contact modifiers on the presentation actor. No local
     # physics solver may change the authoritative pose/position.
     for modifier in operator.find_children("LilaBodyContact","SkeletonModifier3D",true,false):
@@ -49,11 +48,10 @@ func setup(source: Node3D,transport: Node) -> void:
     _build_touch_hud()
 
 func _build_touch_hud() -> void:
-    var layer:=CanvasLayer.new()
+    # Construct the scripted adapter directly, not a dynamically retyped CanvasLayer.
+    var layer:=preload("res://scripts/network/online_touch_hud.gd").new()
     layer.name="OnlineTouchHUD"
     world.add_child(layer)
-    # Operator's touch exclusion uses a small adapter on the world.
-    layer.set_script(preload("res://scripts/network/online_touch_hud.gd"))
     _touch_root=Control.new()
     _touch_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _touch_root.mouse_filter=Control.MOUSE_FILTER_IGNORE
