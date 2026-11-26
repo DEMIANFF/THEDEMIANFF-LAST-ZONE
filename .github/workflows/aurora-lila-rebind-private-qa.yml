@@ -1,0 +1,15 @@
+name: Lila private rebind gate QA
+on:
+  push:
+    branches: [codex/v75-198-lila-rebind-2k-private-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Test skinning integrity gate without private assets
+        run: python3 -m unittest discover -s native-godot/tools/aurora_motion -p 'test_validate_lila_rebind_private.py' -v
