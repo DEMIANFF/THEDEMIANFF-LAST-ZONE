@@ -227,3 +227,13 @@ Comandos (proyecto importado, directorio de datos aislado):
     godot --path native-godot --script res://tools/aurora_motion/private_lila_visual_review.gd -- /ruta/salida --candidate-palm /ruta/privada/Rev9.glb
 
 Sin exportación APK ni cambios de firma/Firebase/modelo público. Pendientes optimización geométrica, dedos parcialmente fusionados, contacto real, prueba Vulkan y Motorola, permisos de distribución.
+
+# Lila Rev9 — LOD nativo privado, selección conservadora
+
+Base PR #213 commit 359b7a83180aab1a698aac8f87cd3be718b63182, CI 45825301067 success. GLB candidato SHA 19c93a00c114246aba2dca99c3a53698990dea2b9c519fc50a61a159331c4d45. Godot 4.7.2 ImporterMesh genera índices LOD1 47931 triángulos y LOD2 29727, fuente 95885. Arrays del nivel base idénticos antes/después de generate_lods. Prueba forzada local: 72 capturas (4 poses, 3 distancias, 2 ángulos, 3 niveles), 800x800 FOV40. LOD1 IoU de silueta medio 0.9614/0.9618/0.9590 a 4/15/30m; LOD2 0.8641/0.8641/0.8515 y alteraciones visibles en piernas. Se rechaza LOD2. No se declara identidad visual perfecta del LOD1.
+
+Escena privada generada con LOD0 95885 y LOD1 47931 (-50.01% triángulos del personaje al elegir LOD1), umbral experimental 0.04. Se comparan dos ArrayMesh empaquetados de forma equivalente para no confundir cuantización normal del motor con cambio de atributos. Se guarda/recarga PackedScene con recursos embebidos y se verifica igualdad de arrays base y conservación de 56 huesos/27 clips. La malla deserializada se renderiza y se leen primitivas visibles del viewport. 24 comprobaciones (dos poses, dos ángulos, seis distancias): 4/15/30/60m 95885, 100/150m 47931, exit 0. Las distancias dependen de FOV/resolución y no se extrapolan a Android. Conserva 93572 vértices compartidos, no se afirma reducción de memoria de vértices ni FPS. Prueba local software OpenGL; intento Mobile/Vulkan falló por VK_KHR_surface y cayó a OpenGL, no se contabiliza como prueba Vulkan. No se cambia renderer de Android.
+
+Paquete privado THEDEMIAN_LILA_REV9_LOD_GODOT_PRIVADA.zip incluye escena .scn, scripts, 96 capturas, auditorías, logs y fallback Vulkan. SHA de escena exportada 236056e220607d9e8920b5be924e12ef84ba88e5a928edae5e46b43fe7b419e3. No se publica escena, GLB o capturas privadas. Solo herramienta de revisión local y comprobación sintáctica CI; baseline público mantiene pruebas físicas/armory. Ejecutar con proyecto importado:
+    godot --path native-godot --audio-driver Dummy --rendering-method gl_compatibility --script res://tools/aurora_motion/private_lila_lod_native.gd -- /ruta/Rev9.glb /ruta/salida
+Sin cambios del modelo activo, APK, firma, Firebase. Pendientes contacto real, geometría dedos, revisión de LOD en escena completa, Vulkan y Motorola.

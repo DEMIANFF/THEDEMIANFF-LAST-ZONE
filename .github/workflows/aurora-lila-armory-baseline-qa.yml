@@ -1,7 +1,7 @@
 name: Lila physical slope and armory regression
 on:
   push:
-    branches: [codex/v75-198-lila-private-main-visual-review]
+    branches: [codex/v75-198-lila-native-lod-review]
   workflow_dispatch:
 permissions:
   contents: read
@@ -153,6 +153,8 @@ jobs:
           export XDG_DATA_HOME="$(mktemp -d)"
           godot --headless --path native-godot --editor --quit > /tmp/lila-import.log 2>&1
           if grep -E 'SCRIPT ERROR:|ERROR:' /tmp/lila-import.log; then exit 1; fi
+      - name: Check private native LOD review script syntax
+        run: godot --headless --path native-godot --check-only --script res://tools/aurora_motion/private_lila_lod_native.gd
       - name: Actual Godot baseline weapon and skeletal modifier matrix
         run: |
           set -euo pipefail
