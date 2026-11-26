@@ -1,7 +1,7 @@
-name: Aurora V75.222 dedicated online server real UDP QA
+name: Aurora V75.223 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-222-online-client-presentation]
+    branches: [codex/v75-223-authoritative-actions]
   workflow_dispatch:
 permissions:
   contents: read
@@ -157,9 +157,10 @@ jobs:
         run: |
           bash native-godot/tools/run_online_qa.sh
           grep -F 'V75222_ONLINE PASS' native-godot/out/online/client.log
+          grep -F 'V75223_ACTIONS PASS' native-godot/out/online/client.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.222-ONLINE-SERVER-QA
+          name: AURORA-V75.223-ONLINE-SERVER-QA
           path: native-godot/out/online/*.log
           retention-days: 3

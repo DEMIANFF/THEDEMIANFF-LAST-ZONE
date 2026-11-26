@@ -14,6 +14,8 @@ var target_yaws: Dictionary={}
 var rig_source: PackedScene
 var last_ack: int=0
 var sequence: int=0
+var action_sequence: int=0
+var _crouch: Button
 var move_axis: Vector2=Vector2.ZERO
 var sprint: bool=false
 var firing: bool=false
@@ -92,7 +94,32 @@ func _build_touch_hud() -> void:
     _run.offset_top=-310
     _run.offset_bottom=-248
     _run.toggled.connect(func(value: bool): sprint=value)
-    layer.actions=[_pad,_fire_pad,_run]
+    var jump: Button=_action_button("SALTAR",Vector2(-315,-140),func(): request_action(session.ACTION_JUMP))
+    var reload: Button=_action_button("RECARGA",Vector2(-315,-218),func(): request_action(session.ACTION_RELOAD))
+    _crouch=_action_button("AGACHAR",Vector2(-445,-140),func():
+        request_action(session.ACTION_STAND if bool(_last_state.get("crouched",false)) else session.ACTION_CROUCH))
+    layer.actions=[_pad,_fire_pad,_run,jump,reload,_crouch]
+
+func _action_button(label: String,offset: Vector2,callback: Callable) -> Button:
+    var button:=Button.new()
+    button.text=label
+    button.focus_mode=Control.FOCUS_NONE
+    _touch_root.add_child(button)
+    button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+    button.offset_left=offset.x
+    button.offset_top=offset.y
+    button.offset_right=offset.x+118
+    button.offset_bottom=offset.y+58
+    button.pressed.connect(callback)
+    return button
+
+func request_action(action: int) -> void:
+    if not _has_state or not send_controls or bool(_last_state.get("ended",false)):
+        return
+    if session.multiplayer.multiplayer_peer==null or session.multiplayer.multiplayer_peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:
+        return
+    action_sequence+=1
+    session.submit_action.rpc_id(1,session.PROTOCOL,action_sequence,action)
 
 func _new_replica(id: int) -> Node3D:
     if rig_source==null:
@@ -150,8 +177,10 @@ func apply_snapshot(data: Dictionary) -> void:
             replicas.erase(id)
             target_positions.erase(id)
             target_yaws.erase(id)
-    _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · DISPAROS %d"%[
-        int(data.alive),roundi(float(data.health)),float(data.zone_radius),int(data.shots)]
+    _crouch.text="LEVANTAR" if bool(data.crouched) else "AGACHAR"
+    _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · MUNICIÓN %d/%d%s"%[
+        int(data.alive),roundi(float(data.health)),float(data.zone_radius),
+        int(data.ammo),int(data.reserve)," · RECARGANDO" if float(data.reload_remaining)>0.0 else ""]
 
 func _clear_remote() -> void:
     for id in replicas.keys():
@@ -181,6 +210,7 @@ func _physics_process(delta: float) -> void:
         operator._yaw=operator._desired_yaw
         operator._camera_pivot.rotation.y=wrapf(operator._yaw-operator.rotation.y,-PI,PI)
         operator._camera_pivot.rotation.x=operator._desired_pitch
+        operator._camera_pivot.position.y=lerpf(operator._camera_pivot.position.y,1.13 if bool(_last_state.get("crouched",false)) else 1.55,factor)
         var clip: String=str(_last_state.clip)
         if not clip.is_empty() and operator._current_clip!=clip:
             operator._play_matching_animation(clip)

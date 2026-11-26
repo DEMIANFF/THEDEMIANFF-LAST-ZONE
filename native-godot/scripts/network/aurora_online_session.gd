@@ -2,7 +2,12 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=2
+const PROTOCOL: int=3
+const ACTION_JUMP: int=1
+const ACTION_RELOAD: int=2
+const ACTION_CROUCH: int=3
+const ACTION_STAND: int=4
+const ACTION_MIN_INTERVAL_MS: int=180
 const INPUT_TIMEOUT_MS: int=500
 var world: Node3D
 var operator: CharacterBody3D
@@ -19,6 +24,11 @@ var pitch: float=-.14
 var sprint: bool=false
 var fire: bool=false
 var previous_fire: bool=false
+var action_ack: int=0
+var action_rejected: int=0
+var action_applied: int=0
+var _action_queue: Array[int]=[]
+var _last_action_ms: Dictionary={}
 var state: Dictionary={}
 var _send_clock: float=0.0
 
@@ -49,6 +59,11 @@ func _joined(id: int) -> void:
     accepted=0
     rejected=0
     last_input_ms=0
+    action_ack=0
+    action_rejected=0
+    action_applied=0
+    _action_queue.clear()
+    _last_action_ms.clear()
     combat.set_encounter_size(50)
     director.start_sector_battle()
     if director.mode!="sector_battle" or combat.active_fighter_count()!=50:
@@ -75,6 +90,7 @@ func _stop_input() -> void:
     if is_instance_valid(combat):
         combat._on_fire_released()
     previous_fire=false
+    _action_queue.clear()
 
 @rpc("any_peer","call_remote","unreliable_ordered",1)
 func submit_input(version: int,sequence: int,move: Vector2,heading: float,look_pitch: float,run: bool,shoot: bool) -> void:
@@ -94,6 +110,43 @@ func submit_input(version: int,sequence: int,move: Vector2,heading: float,look_p
     sprint=run
     fire=shoot
 
+# Reliable, ordered one-shot intent is separate from continuous movement.
+# Monotonic IDs prevent repeated execution; no client-supplied ammo or HP.
+@rpc("any_peer","call_remote","reliable",0)
+func submit_action(version: int,request_id: int,action: int) -> void:
+    if not multiplayer.is_server() or remote_id==0 or multiplayer.get_remote_sender_id()!=remote_id:
+        return
+    if version!=PROTOCOL or request_id<=action_ack or request_id-action_ack>256:
+        action_rejected+=1
+        return
+    action_ack=request_id
+    if action<ACTION_JUMP or action>ACTION_STAND or director.match_ended or not operator.can_act():
+        action_rejected+=1
+        return
+    var now: int=Time.get_ticks_msec()
+    if now-last_input_ms>INPUT_TIMEOUT_MS or _action_queue.size()>=4 or now-int(_last_action_ms.get(action,-1000))<ACTION_MIN_INTERVAL_MS:
+        action_rejected+=1
+        return
+    _last_action_ms[action]=now
+    _action_queue.append(action)
+
+func _apply_actions() -> void:
+    for action in _action_queue:
+        if not operator.can_act():
+            action_rejected+=1
+            continue
+        match action:
+            ACTION_JUMP:
+                operator.touch_jump()
+            ACTION_RELOAD:
+                combat._on_reload()
+            ACTION_CROUCH:
+                operator.set_crouch(true)
+            ACTION_STAND:
+                operator.set_crouch(false)
+        action_applied+=1
+    _action_queue.clear()
+
 @rpc("authority","call_remote","unreliable_ordered",2)
 func receive_state(version: int,data: Dictionary) -> void:
     if version==PROTOCOL and not multiplayer.is_server():
@@ -109,6 +162,7 @@ func _physics_process(delta: float) -> void:
         operator._desired_yaw=yaw
         operator._desired_pitch=pitch
         operator.set_touch_run(sprint)
+        _apply_actions()
         if fire!=previous_fire:
             if fire:
                 combat._on_fire_pressed()
@@ -133,6 +187,11 @@ func _physics_process(delta: float) -> void:
             "position":operator.global_position,"velocity":operator.velocity,
             "body_yaw":operator.rotation.y,"clip":str(operator._current_clip),
             "rivals":rivals,"ended":director.match_ended,
+            "crouched":operator._crouching,"grounded":operator.is_on_floor(),
+            "ammo":combat.ammo[combat.weapon_index],
+            "reserve":combat.reserve[combat.WEAPONS.reserve_slot(combat.weapon_index)],
+            "reload_remaining":combat.reload_timer,"reloads":combat.reloads_completed,
+            "action_ack":action_ack,"action_applied":action_applied,"action_rejected":action_rejected,
             "health":operator.training_health,"participants":50,
             "alive":combat.active_fighter_count(),"bots":combat._targets.size(),
             "shots":combat.shots_fired_total,"zone_center":director.zone_center,
