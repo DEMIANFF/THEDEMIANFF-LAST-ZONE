@@ -76,7 +76,15 @@ func _verify() -> void:
         print("V75238_FIRE_HOLD sustained=",burst," released=",released," spent=",spent," snapshot_delta=",view.applied_snapshot_id-press_frame)
         print("V75238_ATTACKER damage=",damaged," reload=",restored," won=",won," shots=",session.state.shots," hits=",session.state.hits)
         ok=ok and burst and released and damaged and restored and won
-        await create_timer(1.0).timeout
+        await create_timer(.45).timeout
+        var expected: int=int(session.state.shots)+int(session.state.hits)+1
+        var audio_ok: bool=int(view.received_sounds.get("ar_fire",0))==int(session.state.shots) and int(view.received_sounds.get("impact",0))==int(session.state.hits) and int(view.received_sounds.get("reload",0))==1 and int(view.received_sounds.get("hit",0))==0 and int(view.received_sounds.get("duel_remote_shot",0))==0 and session.received_critical_sequence==expected and int(session.state.duel_audio_sent)==expected and session.critical_sound_gaps==0
+        var before: Dictionary=view.received_sounds.duplicate()
+        view._sync_sounds([session.last_critical_sound])
+        var dedup: bool=before==view.received_sounds
+        print("V75239_ATTACK_AUDIO local_shots=",view.received_sounds.get("ar_fire",0)," impact=",view.received_sounds.get("impact",0)," reload=",view.received_sounds.get("reload",0)," expected=",expected," received=",session.received_critical_sequence," gaps=",session.critical_sound_gaps," isolated=",audio_ok," dedup=",dedup)
+        ok=ok and audio_ok and dedup
+        await create_timer(.65).timeout
     else:
         var hurt: bool=false
         for i in range(400):
@@ -91,8 +99,18 @@ func _verify() -> void:
         var denied: bool=dead and int(session.state.action_rejected)>denied_before and int(session.state.shots)==0 and int(session.state.ammo)==30
         print("V75238_TARGET damaged=",hurt," eliminated=",dead," post_elimination_denied=",denied)
         ok=ok and hurt and dead and denied
+        var remote_shots: int=int(view.received_sounds.get("duel_remote_shot",0))
+        var received_hits: int=int(view.received_sounds.get("hit",0))
+        var expected: int=int(session.state.duel_audio_sent)
+        var audio_ok: bool=remote_shots>=8 and received_hits==8 and int(view.received_sounds.get("duel_remote_reload",0))==1 and int(view.received_sounds.get("ar_fire",0))==0 and int(view.received_sounds.get("impact",0))==0 and expected==remote_shots+received_hits+1 and session.received_critical_sequence==expected and session.critical_sound_gaps==0
+        var before: Dictionary=view.received_sounds.duplicate()
+        view._sync_sounds([session.last_critical_sound])
+        var dedup: bool=before==view.received_sounds
+        print("V75239_TARGET_AUDIO remote_shots=",remote_shots," hit=",received_hits," reload=",view.received_sounds.get("duel_remote_reload",0)," expected=",expected," received=",session.received_critical_sequence," gaps=",session.critical_sound_gaps," isolated=",audio_ok," dedup=",dedup)
+        ok=ok and audio_ok and dedup
     if ok:
         print("V75238_DUEL PASS")
+        print("V75239_AUDIO PASS")
     else:
         push_error("V75238 duel regression")
     session.multiplayer.multiplayer_peer.close()

@@ -273,6 +273,24 @@ func play_world_shot(at: Vector3) -> void:
     source.play()
 
 
+# Reuse bounded world voices and the original reload sample. No extra
+# audio node per remote actor or per reload.
+func play_world_reload(at: Vector3) -> void:
+    if not _sound_enabled or not at.is_finite() or not _samples.has("reload"):
+        return
+    var listener: Camera3D=get_viewport().get_camera_3d()
+    if listener==null or listener.global_position.distance_to(at)>=26.0:
+        return
+    var slot: int=_world_cursor
+    var voice: AudioStreamPlayer=_world_voices[slot]
+    _world_cursor=(_world_cursor+1)%_world_voices.size()
+    voice.stop()
+    _world_positions[slot]=at+Vector3.UP*1.35
+    _update_world_pan(slot,listener,true)
+    voice.stream=_samples["reload"]
+    voice.pitch_scale=1.0
+    voice.play()
+
 func play_footstep(on_stone: bool) -> void:
     _foot_index+=1
     var variation: float=.94+float(_foot_index%5)*.026

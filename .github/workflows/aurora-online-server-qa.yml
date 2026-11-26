@@ -1,7 +1,7 @@
-name: Aurora V75.238 dedicated online server real UDP QA
+name: Aurora V75.239 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-238-two-peer-authoritative-duel]
+    branches: [codex/v75-239-duel-combat-audio]
   workflow_dispatch:
 permissions:
   contents: read
@@ -185,10 +185,13 @@ jobs:
       - name: Two independent human-client processes in a shared staging room
         run: bash native-godot/tools/run_dual_waiting_qa.sh
       - name: Real UDP two-client AR duel and elimination
-        run: AURORA_ONLINE_DUAL_COMBAT=1 bash native-godot/tools/run_dual_waiting_qa.sh
+        run: |
+          AURORA_ONLINE_DUAL_COMBAT=1 bash native-godot/tools/run_dual_waiting_qa.sh
+          grep -F 'V75239_AUDIO PASS' native-godot/out/online/duel/first.log
+          grep -F 'V75239_AUDIO PASS' native-godot/out/online/duel/second.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.238-ONLINE-SERVER-QA
+          name: AURORA-V75.239-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3
