@@ -21,3 +21,8 @@ class RuntimeGateTest(unittest.TestCase):
         with self.assertRaises(ValueError):gate.inspect(self.raw(d))
     def test_bad_header_rejected(self):
         with self.assertRaises(ValueError):gate.inspect(b"bad")
+
+    def test_both_private_revisions_are_pinned(self):
+        self.assertEqual(set(gate.CANDIDATES.values()), {"Rev2", "Rev3"})
+        self.assertEqual(len(gate.CANDIDATES),2)
+        self.assertTrue(all(len(s)==64 for s in gate.CANDIDATES))

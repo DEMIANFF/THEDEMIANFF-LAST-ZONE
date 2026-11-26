@@ -2,6 +2,8 @@
 import argparse, hashlib, json, struct
 from pathlib import Path
 SHA="ab0df204ebe5cdbd2c9472af22eb672eac6cc9cec3818e6859baf1d884c3aa12"
+CONTACT_SHA="b3fd330483756a16d2a5022776428e54db39f916404ec70438b64de37932b896"
+CANDIDATES={SHA: "Rev2", CONTACT_SHA: "Rev3"}
 EXPECTED=set(("AuroraIdle AuroraArmedIdle AuroraAim AuroraAimAWM AuroraCrouch "
 "AuroraArmedWalk AuroraArmedRun AuroraCrouchWalk AuroraArmedStrafeLeft "
 "AuroraArmedStrafeRight AuroraArmedBackpedal AuroraJump AuroraLand AuroraFreefall "
@@ -34,8 +36,9 @@ def inspect(raw):
 
 def validate(path):
     raw=path.read_bytes()
-    require(hashlib.sha256(raw).hexdigest()==SHA,"Private candidate SHA mismatch")
-    return inspect(raw)
+    digest=hashlib.sha256(raw).hexdigest()
+    require(digest in CANDIDATES,"Private candidate SHA mismatch")
+    return {**inspect(raw), "revision": CANDIDATES[digest], "sha256": digest}
 
 if __name__=="__main__":
     parser=argparse.ArgumentParser(description=__doc__)
