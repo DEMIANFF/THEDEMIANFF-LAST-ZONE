@@ -14,3 +14,7 @@ Uso privado desde una copia del repositorio:
     python3 native-godot/tools/aurora_motion/stage_prisma_review.py --bank /ruta/Lila_Prisma_Clips_13.json --target native-godot/assets/characters/lila_aurora.glb --output /ruta/privada/Lila_Review.glb
 
 La herramienta no escribe el GLB original ni inicia otra compilación Android.
+
+## Ciclos de locomoción — segunda revisión
+
+Cuatro ventanas cerradas extraídas de las pistas de piernas, sin publicar datos: A 91–114 (23 intervalos), B 70–125 (55), C 15–61 (46), rápida 22–40 (18). Aprox. 0.767, 1.833, 1.533 y 0.600 s respectivamente. Se comprobaron direcciones y posiciones articulares mediante cinemática directa sobre el rig de Lila: separación lateral de los tobillos y alternancia de z; diferencia máxima entre extremos de rotación <0.025 grados y posiciones de tobillo/dedo <0.000001 unidades de rig. No son medidas de deslizamiento en movimiento real ni de contacto de suela con suelo. El código `--gait-cycles` agrega cuatro clips candidatos con siete pistas cada uno, sin pisar los 13 clips de revisión anteriores ni los clips originales del destino. Cierra únicamente el error numérico de la última clave, rechaza costuras >0.25 grados o pelvis >0.0001 unidades. Los clips no se conectan al AnimationTree ni se exportan en APK pública. Pendiente inspección en Godot y prueba de velocidad de desplazamiento, apoyo, agarre y derechos.

@@ -1,7 +1,7 @@
 name: Aurora private Prisma motion staging QA
 on:
   push:
-    branches: [codex/v75-198-prisma-lila-private-motion-review]
+    branches: [codex/v75-198-prisma-gait-loop-review]
   workflow_dispatch:
 permissions:
   contents: read
