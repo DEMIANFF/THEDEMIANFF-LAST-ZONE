@@ -12,6 +12,11 @@ var grip_adjustment_m: float=0.0
 var diagnostics: Dictionary={}
 var diagnostics_enabled: bool=false
 var projection_iterations: int=0
+# Experimental review only. Existing anchors were authored as wrist targets;
+# never silently reinterpret them in the production rig.
+var review_support_palm: bool=false
+var left_palm_proxy_error_m: float=INF
+var _left_knuckles: PackedInt32Array=PackedInt32Array([-1,-1,-1,-1])
 
 
 func bind_chain() -> void:
@@ -24,6 +29,22 @@ func bind_chain() -> void:
             var suffix: String=["arm","forearm","hand"][j]
             if bone.ends_with("left"+suffix): left[j]=i
             if bone.ends_with("right"+suffix): right[j]=i
+        for j in range(4):
+            if bone.ends_with("lefthand"+["index","middle","ring","pinky"][j]+"1"):
+                _left_knuckles[j]=i
+
+
+## Same diagnostic palm proxy as the private armory review. This is not a
+## surface collision/contact point. _solve preserves the global hand basis,
+## so the wrist-to-proxy vector can be subtracted from the anchor target.
+func _left_palm_offset(skeleton: Skeleton3D) -> Vector3:
+    if -1 in _left_knuckles or left[2]<0:
+        return Vector3(INF,INF,INF)
+    var wrist: Vector3=skeleton.get_bone_global_pose(left[2]).origin
+    var average:=Vector3.ZERO
+    for id in _left_knuckles:
+        average+=skeleton.get_bone_global_pose(id).origin
+    return skeleton.global_basis*((average*.25-wrist)*.5)
 
 
 func _reach(skeleton: Skeleton3D,chain: PackedInt32Array) -> float:
@@ -42,6 +63,7 @@ func _process_modification_with_delta(_delta: float) -> void:
     solved=false
     last_error_m=INF
     right_error_m=INF
+    left_palm_proxy_error_m=INF
     if not is_instance_valid(weapons) or -1 in left or -1 in right:
         return
     if not weapons.support_grip_enabled():
@@ -52,7 +74,15 @@ func _process_modification_with_delta(_delta: float) -> void:
     var skeleton: Skeleton3D=get_skeleton()
     weapons._align_mount_to_sight(true)
     var hand_world: Vector3=skeleton.to_global(skeleton.get_bone_global_pose(right[2]).origin)
-    var support_offset: Vector3=anchor.global_position-hand_world
+    # Keep the original wrist target for mechanical reloads; those anchors
+    # were synchronized to the actual animated magazine.
+    var use_palm: bool=review_support_palm and not bool(weapons.p90_reload_active)
+    var palm_offset:=Vector3.ZERO
+    if use_palm:
+        palm_offset=_left_palm_offset(skeleton)
+        if not palm_offset.is_finite():
+            return
+    var support_offset: Vector3=anchor.global_position-palm_offset-hand_world
     var left_root: Vector3=skeleton.to_global(skeleton.get_bone_global_pose(left[0]).origin)
     var right_root: Vector3=skeleton.to_global(skeleton.get_bone_global_pose(right[0]).origin)
     var left_reach: float=_reach(skeleton,left)*.96
@@ -91,8 +121,12 @@ func _process_modification_with_delta(_delta: float) -> void:
     grip_adjustment_m=requested.distance_to(hand_world)
     right_error_m=_solve(skeleton,right,requested,left[0])
     weapons._align_mount_to_sight(true)
-    last_error_m=_solve(skeleton,left,anchor.global_position,right[0])
-    solved=true
+    last_error_m=_solve(skeleton,left,anchor.global_position-palm_offset,right[0])
+    solved=is_finite(last_error_m) and is_finite(right_error_m)
+    if use_palm and solved:
+        var final_wrist: Vector3=skeleton.to_global(skeleton.get_bone_global_pose(left[2]).origin)
+        var final_offset: Vector3=_left_palm_offset(skeleton)
+        left_palm_proxy_error_m=(final_wrist+final_offset).distance_to(anchor.global_position)
 
 
 func _solve(skeleton: Skeleton3D,chain: PackedInt32Array,
