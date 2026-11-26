@@ -50,3 +50,15 @@ La copia solo se realiza cuando se añade expresamente `--install`. No sobrescri
 La batería `v75118_optional_weapon_catalog_qa.gd` verifica invariantes del catálogo y rutas, y `v75118_training_armory_qa.gd` incluye el combate con armas opcionales **cuando los GLB estén presentes**. La CI ordinaria no incluye los binarios privados, de modo que **no valida sus mallas importadas**. El contacto mano/arma, muzzle real, cámara ADS y fps deben inspeccionarse en Godot con modelos instalados y finalmente en Motorola Edge 60 Fusion.
 
 **No declarar la integración terminada ni liberar APK por el mero resultado verde de CI.**
+
+## Recuperación selectiva posterior a V75.190
+
+La P90 pública tiene un derivado móvil posterior y no debe sustituirse por el GLB de este paquete privado. Para preparar **solo HK416 y VSS** en una copia de pruebas actual:
+
+```bash
+python3 native-godot/tools/aurora_v2/stage_optional_armory.py \
+  --pack /ruta/THEDEMIAN_AURORA_V2_TRES_ARMAS_GODOT_PRIVATE.zip \
+  --project native-godot --models HK416 VSS
+```
+
+Añadir `--install` exclusivamente para efectuar la copia privada. El programa verifica los SHA de los tres miembros antes de escribir, pero comprueba destinos y copia únicamente los seleccionados. La P90 actual queda intacta; los GLB privados no se publican ni se consideran licenciados para distribución por esta operación. Ejecutar Godot y las QA de armería con ambos archivos presentes antes de liberar una APK. La verificación de permisos adicionales sigue pendiente.

@@ -25,7 +25,13 @@ def sha_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def prepare(archive: Path, project_root: Path, install: bool = False) -> dict:
+def prepare(archive: Path, project_root: Path, install: bool = False,
+            models: tuple[str, ...] | None = None) -> dict:
+    # Always verify the entire archive, even for a selective installation.
+    # The public P90 has a newer derivative than this private pack.
+    selected = set(STAGED) if models is None else set(models)
+    if not selected or not selected.issubset(STAGED):
+        raise ValueError("Unknown or empty model selection")
     project_root = project_root.resolve()
     if project_root.name != "native-godot" or not (project_root / "project.godot").is_file():
         raise ValueError("Project must be native-godot with project.godot")
@@ -39,7 +45,8 @@ def prepare(archive: Path, project_root: Path, install: bool = False) -> dict:
         if present - allowed - {"PRIVATE_ARMORY_MANIFEST.json", "README_ES.txt"}:
             raise ValueError("Unexpected ZIP member")
         manifest = json.loads(bundle.read("PRIVATE_ARMORY_MANIFEST.json"))
-        if {row["name"] for row in manifest.get("models", [])} != set(STAGED):
+        rows = manifest.get("models", [])
+        if len(rows) != len(STAGED) or {row["name"] for row in rows} != set(STAGED):
             raise ValueError("Unexpected manifest models")
         candidates = []
         for row in manifest["models"]:
@@ -54,6 +61,8 @@ def prepare(archive: Path, project_root: Path, install: bool = False) -> dict:
                 data = stream.read(info.file_size + 1)
             if len(data) != info.file_size or sha_bytes(data) != expected:
                 raise ValueError("Model SHA mismatch: " + name)
+            if name not in selected:
+                continue
             dest = project_root / rel.removeprefix("native-godot/")
             if not dest.resolve().is_relative_to(project_root):
                 raise ValueError("Unsafe destination")
@@ -74,7 +83,9 @@ def prepare(archive: Path, project_root: Path, install: bool = False) -> dict:
                 temp_path.unlink(missing_ok=True)
                 raise ValueError("Staged copy corrupted: " + name)
             temp_path.replace(dest)
-    return {"models": len(candidates), "checked": True, "installed": install,
+    return {"models": len(candidates), "archive_models_verified": len(STAGED),
+            "selected": sorted(selected), "excluded": sorted(set(STAGED) - selected),
+            "checked": True, "installed": install,
             "paths": [str(dest.relative_to(project_root)) for _, dest, _ in candidates],
             "physical_qa_complete": False, "distribution_rights_approved": False}
 
@@ -84,8 +95,11 @@ def main() -> None:
     parser.add_argument("--pack", type=Path, required=True)
     parser.add_argument("--project", type=Path, required=True)
     parser.add_argument("--install", action="store_true")
+    parser.add_argument("--models", choices=sorted(STAGED), nargs="+",
+                        help="Select models without replacing unselected assets")
     args = parser.parse_args()
-    print(json.dumps(prepare(args.pack, args.project, args.install), indent=2))
+    print(json.dumps(prepare(args.pack, args.project, args.install,
+                             tuple(args.models) if args.models else None), indent=2))
 
 
 if __name__ == "__main__":
