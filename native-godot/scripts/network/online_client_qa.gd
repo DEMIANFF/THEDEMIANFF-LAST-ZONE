@@ -128,11 +128,11 @@ func _verify() -> void:
     var tactical_ok: bool=grenade_ok and cover_ok and cooldown_ok
     var sound_counts: Dictionary=view.received_sounds.duplicate()
     var sound_seq: int=view.last_sound_sequence
-    view._sync_sounds(final.sounds)
+    view._sync_sounds(session.last_sound_batch)
     var dedup: bool=sound_counts==view.received_sounds and sound_seq==view.last_sound_sequence
-    var audio_ok: bool=int(sound_counts.get("ar_fire",0))==int(final.shots) and int(sound_counts.get("reload",0))>=1 and int(sound_counts.get("jump",0))>=1 and int(sound_counts.get("remote_blast",0))>=1 and dedup and view.sound._voices.size()==8
+    var audio_ok: bool=int(sound_counts.get("ar_fire",0))==int(final.shots) and int(sound_counts.get("reload",0))>=1 and int(sound_counts.get("jump",0))>=1 and int(sound_counts.get("remote_blast",0))>=1 and dedup and view.sound._voices.size()==8 and int(final.sound_payload_peak)>0 and int(final.sound_payload_peak)<1200
     print("V75226_AUDIO counts=",sound_counts," shots=",final.shots," dedup=",dedup," pool=",view.sound._voices.size())
-    print("V75225_TACTICAL grenade=",grenade_ok," cover=",cover_ok," cooldown=",cooldown_ok," attempts=",tries)
+    print("V75225_TACTICAL grenade=",grenade_ok," cover=",cover_ok," cooldown=",cooldown_ok," attempts=",tries," hp=",final.health," ended=",final.ended," cover_reason=",final.cover_reason," snapshot_id=",final.snapshot_id," sound_payload_peak=",final.sound_payload_peak)
     print("V75223_ACTIONS reload=",reload_ok," crouch=",crouch_ok," stand=",stand_ok," jump=",jump_ok," action_ack=",final.action_ack," applied=",final.action_applied," rejected=",final.action_rejected)
     var loot_ok: bool=denied_unowned and had_replica and noninteractive and picked_up and removed and equipped and aimed
     print("V75224_LOOT unowned_denied=",denied_unowned," replica=",had_replica," no_local_collision=",noninteractive," physical_pickup=",picked_up," removed=",removed," equipped=",equipped," aim=",aimed)
@@ -141,6 +141,18 @@ func _verify() -> void:
     var synced: bool=world.operator.global_position.distance_to(final.position)<.4
     var ok: bool=moved and stopped and synced and final.elapsed>initial_elapsed and final.accepted>10 and final.rejected>0 and final.shots>0 and final.bots==49 and final.has("rivals") and no_sim and reload_ok and crouch_ok and stand_ok and jump_ok and int(final.action_applied)==9+tries and loot_ok and tactical_ok and audio_ok and int(final.action_rejected)>=1
     print("V75222_CLIENT local_ai=0 local_match=0 local_nav=0 start=",start," authoritative=",final.position," presented=",world.operator.global_position," shots=",final.shots," accepted=",final.accepted," rejected=",final.rejected," replicas=",view.replicas.size())
+    # The server fixture performs a real lethal hit after >3s without input.
+    # Verify end-of-round and a post-elimination command rejection, not just
+    # the protected mechanics path. Production damage remains unchanged.
+    await create_timer(2.5).timeout
+    var ended: Dictionary=session.state
+    var count_before: int=int(ended.action_applied)
+    var rejected_before: int=int(ended.action_rejected)
+    session.submit_action.rpc_id(1,SESSION.PROTOCOL,view.action_sequence+1,session.ACTION_COVER)
+    await create_timer(.4).timeout
+    var end_ok: bool=bool(ended.ended) and bool(ended.eliminated) and float(ended.health)<=0.0 and int(session.state.action_applied)==count_before and int(session.state.action_rejected)>rejected_before and view.cover_replicas.is_empty()
+    print("V75226_END ended=",ended.ended," eliminated=",ended.eliminated," health=",ended.health," post_end_rejected=",end_ok)
+    ok=ok and end_ok
     if ok:
         print("V75226_AUDIO PASS")
         print("V75225_TACTICAL PASS")

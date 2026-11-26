@@ -378,11 +378,12 @@ func apply_snapshot(data: Dictionary) -> void:
     _sync_loot(data.loot)
     _sync_tactical(data.tactical)
     _sync_inventory(data)
-    _sync_sounds(data.sounds)
     _crouch.text="LEVANTAR" if bool(data.crouched) else "AGACHAR"
     _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · MUNICIÓN %d/%d%s"%[
         int(data.alive),roundi(float(data.health)),float(data.zone_radius),
         int(data.ammo),int(data.reserve)," · RECARGANDO" if float(data.reload_remaining)>0.0 else ""]
+    if bool(data.get("ended",false)):
+        _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else "ONLINE · PARTIDA FINALIZADA"
 
 func _clear_remote() -> void:
     for id in replicas.keys():
@@ -409,6 +410,8 @@ func _physics_process(delta: float) -> void:
         _status.text="ONLINE · Esperando estado del servidor"
     if connected and session.state!=_last_state:
         apply_snapshot(session.state)
+    if connected and _has_state:
+        _sync_sounds(session.drain_sounds())
     if _has_state:
         var factor: float=1.0-exp(-delta*15.0)
         operator.global_position=operator.global_position.lerp(_last_state.position,factor)
