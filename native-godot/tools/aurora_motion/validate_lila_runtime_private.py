@@ -5,7 +5,8 @@ SHA="ab0df204ebe5cdbd2c9472af22eb672eac6cc9cec3818e6859baf1d884c3aa12"
 CONTACT_SHA="b3fd330483756a16d2a5022776428e54db39f916404ec70438b64de37932b896"
 CACHE_SHA="2a4c00e4ec9afcfcc7d529d73dadb85e57b94f80e2b59a6e25c7f599b5289c7d"
 HAND_SHA="c9b755349a4dc2692f45f3bec1918001d72a05f01b3bcad4aff406c743afb74b"
-CANDIDATES={SHA: "Rev2", CONTACT_SHA: "Rev3", CACHE_SHA: "Rev4", HAND_SHA: "Rev5"}
+SLEEVE_SHA="a98b6cca5b51fff38ff1570704dedbe58b4be90edbc84f0685b9bd282d74e6b1"
+CANDIDATES={SHA: "Rev2", CONTACT_SHA: "Rev3", CACHE_SHA: "Rev4", HAND_SHA: "Rev5", SLEEVE_SHA: "Rev6"}
 HAND_DIGITS={side+"Hand"+digit+str(segment)
              for side in ("Left","Right")
              for digit in ("Thumb","Index","Middle","Ring","Pinky")
@@ -97,7 +98,7 @@ def validate(path):
     raw=path.read_bytes()
     digest=hashlib.sha256(raw).hexdigest()
     require(digest in CANDIDATES,"Private candidate SHA mismatch")
-    return {**inspect(raw, digest in (CACHE_SHA,HAND_SHA), digest==HAND_SHA), "revision": CANDIDATES[digest], "sha256": digest}
+    return {**inspect(raw, digest in (CACHE_SHA,HAND_SHA,SLEEVE_SHA), digest in (HAND_SHA,SLEEVE_SHA)), "revision": CANDIDATES[digest], "sha256": digest}
 
 if __name__=="__main__":
     parser=argparse.ArgumentParser(description=__doc__)

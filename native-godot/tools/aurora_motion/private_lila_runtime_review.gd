@@ -1,5 +1,5 @@
 extends SceneTree
-## Explicit local-only test of the private Rev2 through Rev5 GLB, NOT an exported scene.
+## Explicit local-only test of the private Rev2 through Rev6 GLB, NOT an exported scene.
 const EXPECTED: Array[String]=[
     "AuroraIdle","AuroraArmedIdle","AuroraAim","AuroraAimAWM","AuroraCrouch",
     "AuroraArmedWalk","AuroraArmedRun","AuroraCrouchWalk","AuroraArmedStrafeLeft",
@@ -11,6 +11,7 @@ const SHA: String="ab0df204ebe5cdbd2c9472af22eb672eac6cc9cec3818e6859baf1d884c3a
 const CONTACT_SHA: String="b3fd330483756a16d2a5022776428e54db39f916404ec70438b64de37932b896"
 const CACHE_SHA: String="2a4c00e4ec9afcfcc7d529d73dadb85e57b94f80e2b59a6e25c7f599b5289c7d"
 const HAND_SHA: String="c9b755349a4dc2692f45f3bec1918001d72a05f01b3bcad4aff406c743afb74b"
+const SLEEVE_SHA: String="a98b6cca5b51fff38ff1570704dedbe58b4be90edbc84f0685b9bd282d74e6b1"
 var failed: bool=false
 
 func _initialize() -> void:
@@ -28,7 +29,7 @@ func _review() -> void:
         quit(2)
         return
     var path: String=args[0]
-    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path) not in [SHA,CONTACT_SHA,CACHE_SHA,HAND_SHA]:
+    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path) not in [SHA,CONTACT_SHA,CACHE_SHA,HAND_SHA,SLEEVE_SHA]:
         push_error("Private candidate missing or SHA mismatch")
         quit(2)
         return
@@ -58,7 +59,7 @@ func _review() -> void:
         for digit in ["Thumb","Index","Middle","Ring","Pinky"]:
             for segment in range(1,4):
                 check(rig.find_bone(side+"Hand"+digit+str(segment))>=0,"missing digit bone")
-    var require_hand_refit: bool=FileAccess.get_sha256(path)==HAND_SHA
+    var require_hand_refit: bool=FileAccess.get_sha256(path) in [HAND_SHA,SLEEVE_SHA]
     var direct_digit_vertices: Dictionary={}
     if require_hand_refit:
         for side in ["Left","Right"]:
