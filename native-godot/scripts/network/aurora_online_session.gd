@@ -2,7 +2,7 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=8
+const PROTOCOL: int=9
 # Reserve headroom below the observed 1392-byte ENet MTU for RPC headers.
 const STATE_CHUNK_BYTES: int=960
 const STATE_RAW_LIMIT: int=65536
@@ -22,6 +22,11 @@ const SOUND_BATCH: int=6
 var snapshot_sequence: int=0
 var last_sound_batch: Array=[]
 var pending_sounds: Array=[]
+var pending_critical_sounds: Array=[]
+var last_critical_sound: Dictionary={}
+var critical_sound_sequence: int=0
+var received_critical_sequence: int=0
+var critical_sound_gaps: int=0
 var _qa_fixture: bool=false
 var _qa_end_verified: bool=false
 var _qa_rival_test: bool=false
@@ -76,7 +81,7 @@ var _sounds: Array[Dictionary]=[]
 func listen(port: int=PORT) -> Error:
     var peer:=ENetMultiplayerPeer.new()
     peer.set_bind_ip("127.0.0.1")
-    var result: Error=peer.create_server(port,1,4)
+    var result: Error=peer.create_server(port,1,5)
     if result!=OK:
         return result
     multiplayer.multiplayer_peer=peer
@@ -86,7 +91,7 @@ func listen(port: int=PORT) -> Error:
 
 func connect_local(port: int=PORT) -> Error:
     var peer:=ENetMultiplayerPeer.new()
-    var result: Error=peer.create_client("127.0.0.1",port,4)
+    var result: Error=peer.create_client("127.0.0.1",port,5)
     if result==OK:
         multiplayer.multiplayer_peer=peer
     return result
@@ -110,6 +115,7 @@ func _joined(id: int) -> void:
     if not combat.grenade_detonated.is_connected(_on_server_blast):
         combat.grenade_detonated.connect(_on_server_blast)
     sound_sequence=0
+    critical_sound_sequence=0
     _sounds.clear()
     combat.shot_fired.connect(_on_player_shot)
     combat.reload_started.connect(_on_player_reload)
@@ -329,6 +335,13 @@ func _sound_event(kind: String,sample: String,at: Vector3=Vector3.ZERO,running: 
         # Audible direction only: quantize locations, never send actor IDs
         # or continuous hidden-player tracking with a sound event.
         at=at.snapped(Vector3(4.0,2.0,4.0))
+    # Critical cues cannot be evicted by the high-volume bot sound history.
+    # Both streams have independent sequences; remote positions remain quantized.
+    if kind=="local" or kind=="remote_blast":
+        critical_sound_sequence+=1
+        receive_critical_sound.rpc_id(remote_id,PROTOCOL,{"seq":critical_sound_sequence,"kind":kind,
+            "sample":sample,"at":at,"run":running,"stone":stone})
+        return
     sound_sequence+=1
     _sounds.append({"seq":sound_sequence,"kind":kind,"sample":sample,
         "at":at,"run":running,"stone":stone,"time":Time.get_ticks_msec()})
@@ -376,8 +389,24 @@ func receive_sound_batch(version: int,events: Array) -> void:
     if pending_sounds.size()>128:
         pending_sounds=pending_sounds.slice(-128)
 
+# Reliable, ordered channel isolated from snapshots and ambient sound.
+@rpc("authority","call_remote","reliable",4)
+func receive_critical_sound(version: int,event: Dictionary) -> void:
+    if version!=PROTOCOL or multiplayer.is_server():
+        return
+    var id: int=int(event.get("seq",0))
+    if id<=received_critical_sequence:
+        return
+    if id!=received_critical_sequence+1:
+        critical_sound_gaps+=1
+    received_critical_sequence=id
+    last_critical_sound=event
+    pending_critical_sounds.append(event)
+
 func drain_sounds() -> Array:
-    var result: Array=pending_sounds
+    var result: Array=pending_critical_sounds
+    pending_critical_sounds=[]
+    result.append_array(pending_sounds)
     pending_sounds=[]
     return result
 

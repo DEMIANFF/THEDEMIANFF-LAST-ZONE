@@ -12,6 +12,7 @@ const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const AUDIO=preload("res://scripts/audio/aurora_audio.gd")
 var sound: Node3D
 var last_sound_sequence: int=0
+var last_critical_sound_sequence: int=0
 var received_sounds: Dictionary={}
 var world: Node3D
 var operator: CharacterBody3D
@@ -362,14 +363,19 @@ func _sync_inventory(data: Dictionary) -> void:
     _aim.text="MIRA %dX"%roundi(zoom) if aiming else "MIRA"
 
 func _sync_sounds(events: Array) -> void:
-    # Repeated short snapshot history tolerates individual UDP packet losses.
-    # Each event is consumed at most once, and old events never replay.
+    # Separate sequence spaces: ambient bot traffic cannot suppress a
+    # reliable local cue or nearby detonation that arrives later.
     for item in events:
         var id: int=int(item.seq)
-        if id<=last_sound_sequence:
-            continue
-        last_sound_sequence=id
         var kind: String=str(item.kind)
+        if kind=="local" or kind=="remote_blast":
+            if id<=last_critical_sound_sequence:
+                continue
+            last_critical_sound_sequence=id
+        else:
+            if id<=last_sound_sequence:
+                continue
+            last_sound_sequence=id
         var sample: String=str(item.sample)
         var at: Vector3=item.at
         var counter: String=kind

@@ -150,9 +150,14 @@ func _verify() -> void:
     var tactical_ok: bool=grenade_ok and cover_ok and cooldown_ok
     var sound_counts: Dictionary=view.received_sounds.duplicate()
     var sound_seq: int=view.last_sound_sequence
+    var critical_seq: int=view.last_critical_sound_sequence
     view._sync_sounds(session.last_sound_batch)
-    var dedup: bool=sound_counts==view.received_sounds and sound_seq==view.last_sound_sequence
-    var audio_ok: bool=int(sound_counts.get("ar_fire",0))==int(final.shots) and int(sound_counts.get("reload",0))>=1 and int(sound_counts.get("jump",0))>=1 and int(sound_counts.get("remote_blast",0))>=1 and dedup and view.sound._voices.size()==8 and int(final.sound_payload_peak)>0 and int(final.sound_payload_peak)<1200
+    if not session.last_critical_sound.is_empty():
+        view._sync_sounds([session.last_critical_sound])
+    var dedup: bool=sound_counts==view.received_sounds and sound_seq==view.last_sound_sequence and critical_seq==view.last_critical_sound_sequence
+    var critical_ok: bool=critical_seq>0 and critical_seq==session.received_critical_sequence and session.critical_sound_gaps==0
+    print("V75229_CRITICAL_AUDIO received=",session.received_critical_sequence," consumed=",critical_seq," gaps=",session.critical_sound_gaps," ambient_seq=",sound_seq," dedup=",dedup)
+    var audio_ok: bool=int(sound_counts.get("ar_fire",0))==int(final.shots) and int(sound_counts.get("reload",0))>=1 and int(sound_counts.get("jump",0))>=1 and int(sound_counts.get("remote_blast",0))>=1 and dedup and critical_ok and view.sound._voices.size()==8 and int(final.sound_payload_peak)>0 and int(final.sound_payload_peak)<1200
     print("V75226_AUDIO counts=",sound_counts," shots=",final.shots," dedup=",dedup," pool=",view.sound._voices.size())
     print("V75225_TACTICAL grenade=",grenade_ok," cover=",cover_ok," cooldown=",cooldown_ok," attempts=",tries," hp=",final.health," ended=",final.ended," cover_reason=",final.cover_reason," snapshot_id=",final.snapshot_id," sound_payload_peak=",final.sound_payload_peak)
     print("V75223_ACTIONS reload=",reload_ok," crouch=",crouch_ok," stand=",stand_ok," jump=",jump_ok," action_ack=",final.action_ack," applied=",final.action_applied," rejected=",final.action_rejected)
