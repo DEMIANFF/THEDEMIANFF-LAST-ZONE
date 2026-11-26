@@ -2,7 +2,10 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=10
+const PROTOCOL: int=11
+const AIR_CONTACT_LIMIT: int=8
+const AIR_CONTACT_RANGE: float=65.0
+var _qa_air_rival_prepared: bool=false
 # Reserve headroom below the observed 1392-byte ENet MTU for RPC headers.
 const STATE_CHUNK_BYTES: int=960
 const STATE_RAW_LIMIT: int=65536
@@ -490,6 +493,48 @@ func _ingest_state_chunk(frame: int,index: int,count: int,raw_size: int,part: Pa
     max_state_raw_bytes=maxi(max_state_raw_bytes,raw_size)
     max_state_encoded_bytes=maxi(max_state_encoded_bytes,encoded.size())
 
+# Only actual descending, alive bodies in view and unobstructed by physics.
+# This separate visual stream does not change ground radar visibility.
+func _airborne_contacts() -> Array[Dictionary]:
+    var found: Array[Dictionary]=[]
+    if director.mode!="aircraft" or operator.air_mode not in ["freefall","parachute"]:
+        return found
+    var eye: Vector3=operator.global_position+Vector3.UP*1.4
+    var forward:=Vector2(-sin(operator._yaw),-cos(operator._yaw))
+    var candidates: Array[Dictionary]=[]
+    for rival in combat._targets:
+        if not is_instance_valid(rival) or rival.is_queued_for_deletion() or not rival.is_visible_in_tree() or rival.health<=0.0 or rival._airdrop_stage!="descending":
+            continue
+        var offset: Vector3=rival.global_position-eye
+        var horizontal:=Vector2(offset.x,offset.z)
+        var distance: float=offset.length_squared()
+        if distance>AIR_CONTACT_RANGE*AIR_CONTACT_RANGE or horizontal.length_squared()<2.25 or horizontal.normalized().dot(forward)<.35:
+            continue
+        candidates.append({"actor":rival,"distance":distance})
+    candidates.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return float(a.distance)<float(b.distance))
+    for i in range(mini(AIR_CONTACT_LIMIT,candidates.size())):
+        var actor: CharacterBody3D=candidates[i].actor
+        var ray:=PhysicsRayQueryParameters3D.create(eye,actor.global_position+Vector3.UP)
+        ray.exclude=[operator.get_rid()]
+        var hit: Dictionary=world.get_world_3d().direct_space_state.intersect_ray(ray)
+        if hit.get("collider")!=actor:
+            continue
+        found.append({"id":actor.get_instance_id(),"position":actor.global_position,
+            "yaw":actor.rotation.y,"clip":"AuroraParachute","weapon":-1,"airborne":true})
+    return found
+
+func _prepare_air_rival_qa() -> void:
+    if not _qa_flight_test or _qa_air_rival_prepared or operator.air_mode!="freefall" or not director._rivals_departed or combat._targets.is_empty():
+        return
+    # Deterministic sighting in the existing flight room: start one actual
+    # descending bot in front, then let its normal physical descent run.
+    var actor: CharacterBody3D=combat._targets[0]
+    var origin: Vector3=operator.global_position+Vector3(0,0,-14)
+    actor.retarget_real_airdrop(Vector2(origin.x,origin.z))
+    actor.begin_real_airdrop(origin,0.0)
+    _qa_air_rival_prepared=true
+    print("V75231_AIR_FIXTURE real_bot=",actor.get_instance_id())
+
 func _physics_process(delta: float) -> void:
     if remote_id==0 or not multiplayer.is_server() or not is_instance_valid(operator):
         return
@@ -515,6 +560,7 @@ func _physics_process(delta: float) -> void:
         operator.receive_training_hit(operator.MAX_HEALTH,true)
     if _qa_rival_test:
         _advance_rival_fixture()
+    _prepare_air_rival_qa()
     _send_clock+=delta
     if _send_clock>=.1:
         _send_clock=fmod(_send_clock,.1)
@@ -528,6 +574,7 @@ func _physics_process(delta: float) -> void:
                 rivals.append({"id":actor.get_instance_id(),
                     "position":actor.global_position,"yaw":actor.rotation.y,
                     "clip":str(actor._clip),"weapon":int(actor.weapon_slot)})
+        rivals.append_array(_airborne_contacts())
         # Private development snapshot: no hidden enemy coordinates.
         snapshot_sequence+=1
         _send_world_state({

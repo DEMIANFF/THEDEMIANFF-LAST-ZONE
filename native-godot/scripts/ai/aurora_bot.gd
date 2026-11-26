@@ -5,6 +5,7 @@ const IMPACT=preload("res://scripts/player/third_person_operator.gd")
 const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 const AURORA_COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const CANOPY_VISUAL=preload("res://scripts/match/rival_canopy_visual.gd")
 ## Aurora V73 offline training opponent: rigged glTF visual, bounded ray-LOS,
 ## grounded patrol and actual damage. This is not a networked human player.
 signal eliminated(agent: CharacterBody3D, killer: Node3D)
@@ -225,20 +226,7 @@ func _create_real_parachute() -> void:
     if _airdrop_canopy!=null and is_instance_valid(_airdrop_canopy):
         _airdrop_canopy.show()
         return
-    _airdrop_canopy=MeshInstance3D.new()
-    _airdrop_canopy.name="RealRivalParachute"
-    var dome:=SphereMesh.new()
-    dome.radius=1.38
-    dome.height=.74
-    dome.radial_segments=10
-    dome.rings=4
-    _airdrop_canopy.mesh=dome
-    _airdrop_canopy.position=Vector3(0,3.15,0)
-    _airdrop_canopy.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-    var fabric:=StandardMaterial3D.new()
-    fabric.albedo_color=Color(.33,.66,.88)
-    fabric.roughness=.90
-    _airdrop_canopy.material_override=fabric
+    _airdrop_canopy=CANOPY_VISUAL.create()
     add_child(_airdrop_canopy)
 
 
