@@ -34,6 +34,20 @@ func _verify() -> void:
         OPERATOR.measured_motion_speed(Vector3(1,0,0),0.0)==0.0,
         "animation speed wrongly depends on target velocity or invalid motion")
 
+    check(OPERATOR.resolve_motion_clip(false,false,true,1,0.0,"Idle","",0.0)=="AuroraJump" and
+        OPERATOR.resolve_motion_clip(false,true,false,0,2.0,"Walk","",0.0)=="AuroraJump" and
+        OPERATOR.resolve_motion_clip(true,false,true,1,0.0,"Idle","",.20)=="AuroraLand" and
+        OPERATOR.resolve_motion_clip(true,false,true,1,0.0,"Idle","",0.0)=="AuroraAimAWM" and
+        OPERATOR.resolve_motion_clip(true,true,false,0,2.0,"Walk","",0.0)=="AuroraCrouchWalk",
+        "airborne/landing/ground posture priority regressed")
+    check(is_equal_approx(OPERATOR.gait_reference_speed("AuroraCrouchWalk"),OPERATOR.CROUCH_SPEED) and
+        is_equal_approx(OPERATOR.gait_reference_speed("AuroraArmedStrafeLeft"),OPERATOR.WALK_SPEED) and
+        is_equal_approx(OPERATOR.gait_reference_speed("AuroraArmedBackpedal"),OPERATOR.WALK_SPEED) and
+        OPERATOR.gait_reference_speed("AuroraJump")==0.0 and
+        OPERATOR.gait_reference_speed("AuroraLand")==0.0 and
+        OPERATOR.gait_reference_speed("AuroraArmedIdle")==0.0 and
+        OPERATOR.gait_reference_speed("AuroraCrouch")==0.0,
+        "selected clip uses an unrelated playback reference")
     var game: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
     root.add_child(game)
     var player: CharacterBody3D=game.get_node("Operator")
@@ -132,6 +146,18 @@ func _verify() -> void:
     check(player._crouching and not player._sprint_touch and
         cancelled[0]==2,
         "crouch failed to cancel sprint in controls and the real HUD")
+    player.set_touch_move_axis(Vector2.UP)
+    await frames(25)
+    check(player._current_clip=="AuroraCrouchWalk" and
+        player.measured_ground_speed>1.5 and
+        absf(float(player._animation_controller.tree.get("parameters/GaitSpeed/scale"))-
+            clampf(player.measured_ground_speed/OPERATOR.CROUCH_SPEED,.75,1.30))<.03,
+        "actual crouch walk plays with standing walk timing")
+    player.set_touch_move_axis(Vector2.ZERO)
+    await frames(22)
+    check(player._current_clip=="AuroraCrouch" and
+        is_equal_approx(float(player._animation_controller.tree.get("parameters/GaitSpeed/scale")),1.0),
+        "stationary crouch slowed or retained walking cadence")
     player.set_crouch(false)
     check(not player._sprint_touch,
         "standing resumed sprint unexpectedly after crouching")
@@ -144,6 +170,7 @@ func _verify() -> void:
     player.velocity=Vector3.ZERO
     await frames(14)
     check(player.is_on_floor(),"fresh jump test cannot ground Lila")
+    player.set_ads(true,2.0)
     player.touch_jump()
     await physics_frame
     check(hits[0]==1 and player.velocity.y>3.0 and
@@ -153,6 +180,10 @@ func _verify() -> void:
     await frames(3)
     check(hits[0]==1 and not player.is_on_floor(),
         "Lila jumped twice in the air without a second ground contact")
+    check(player._current_clip=="AuroraJump" and
+        is_equal_approx(float(player._animation_controller.tree.get("parameters/GaitSpeed/scale")),1.0),
+        "aiming while airborne replaced the physical jump or altered its timing")
+    player.set_ads(false,1.0)
     await frames(13)
     check(hits[0]==1 and player._jump_buffer_seconds<=0.0 and
         not player._jump_requested,
