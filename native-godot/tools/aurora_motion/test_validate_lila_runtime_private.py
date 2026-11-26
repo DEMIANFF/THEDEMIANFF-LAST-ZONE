@@ -23,8 +23,8 @@ class RuntimeGateTest(unittest.TestCase):
         with self.assertRaises(ValueError):gate.inspect(b"bad")
 
     def test_all_private_revisions_are_pinned(self):
-        self.assertEqual(set(gate.CANDIDATES.values()), {"Rev2", "Rev3", "Rev4", "Rev5", "Rev6", "Rev7", "Rev8"})
-        self.assertEqual(len(gate.CANDIDATES),7)
+        self.assertEqual(set(gate.CANDIDATES.values()), {"Rev2", "Rev3", "Rev4", "Rev5", "Rev6", "Rev7", "Rev8", "Rev9"})
+        self.assertEqual(len(gate.CANDIDATES),8)
         self.assertTrue(all(len(s)==64 for s in gate.CANDIDATES))
 
     def compact_fixture(self, joint_value=55, component=5121):
