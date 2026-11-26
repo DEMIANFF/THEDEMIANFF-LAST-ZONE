@@ -285,6 +285,8 @@ func start_sector_battle(from_airdrop: bool=false) -> void:
     _perf_clock=0.0
     _perf_samples.clear()
     _perf_metrics.clear()
+    if nav!=null:
+        nav.reset_live_metrics()
     _opponent_drops_spawned=0
     _remote_death_caches_retired=0
     _dropped_opponents.clear()
@@ -591,6 +593,9 @@ func _finish(victory: bool) -> void:
         return
     match_ended = true
     if _perf_samples.size()>2:
+        var nav: Node3D=combat.get("navigation") as Node3D
+        if nav!=null:
+            _perf_metrics["navigation"]=nav.live_metrics()
         var result: Error=PERFORMANCE.record(
             int(combat.get("encounter_size")),_perf_samples,elapsed,true,_perf_metrics)
         if result!=OK:

@@ -10,6 +10,20 @@ var graph:=AStar3D.new()
 var available: bool=false
 var route_requests: int=0
 var cover_route_probes: int=0
+# Shared admission budget for live BR bots only. Direct QA/training calls
+# retain the complete collision-checked routing contract.
+const LIVE_PLANS_PER_TICK: int=2
+const LIVE_PLAN_SOFT_USEC: int=2000
+var _plan_frame: int=-1
+var _plans_this_tick: int=0
+var _plan_usec_this_tick: int=0
+var live_plans: int=0
+var live_deferred: int=0
+var live_peak_plans: int=0
+var live_peak_usec: int=0
+var segment_ground_queries: int=0
+var segment_overlap_queries: int=0
+var segment_motion_queries: int=0
 var build_msec: int=0
 var max_build_slice_usec: int=0
 var _ground_ray:=PhysicsRayQueryParameters3D.new()
@@ -55,6 +69,47 @@ func _exclusions() -> Array[RID]:
         if is_instance_valid(actor):
             result.append(actor.get_rid())
     return result
+
+func reset_live_metrics() -> void:
+    _plan_frame=-1
+    _plans_this_tick=0
+    _plan_usec_this_tick=0
+    live_plans=0
+    live_deferred=0
+    live_peak_plans=0
+    live_peak_usec=0
+    segment_ground_queries=0
+    segment_overlap_queries=0
+    segment_motion_queries=0
+
+
+func try_live_plan() -> bool:
+    var frame: int=Engine.get_physics_frames()
+    if frame!=_plan_frame:
+        _plan_frame=frame
+        _plans_this_tick=0
+        _plan_usec_this_tick=0
+    if _plans_this_tick>=LIVE_PLANS_PER_TICK or _plan_usec_this_tick>=LIVE_PLAN_SOFT_USEC:
+        live_deferred+=1
+        return false
+    _plans_this_tick+=1
+    live_plans+=1
+    live_peak_plans=maxi(live_peak_plans,_plans_this_tick)
+    return true
+
+
+func finish_live_plan(started_usec: int) -> void:
+    _plan_usec_this_tick+=maxi(0,Time.get_ticks_usec()-started_usec)
+    live_peak_usec=maxi(live_peak_usec,_plan_usec_this_tick)
+
+
+func live_metrics() -> Dictionary:
+    return {"plans":live_plans,"deferred":live_deferred,
+        "plans_per_tick_peak":live_peak_plans,"plan_usec_per_tick_peak":live_peak_usec,
+        "segment_ground_queries":segment_ground_queries,
+        "segment_overlap_queries":segment_overlap_queries,
+        "segment_motion_queries":segment_motion_queries}
+
 
 func ground_point(at: Vector3) -> Vector3:
     var h: float=terrain.height_at(at.x,at.z)
@@ -203,19 +258,25 @@ func segment_clear(from: Vector3, to: Vector3) -> bool:
     if not from.is_finite() or not to.is_finite():
         return false
     var space:=get_world_3d().direct_space_state
+    segment_ground_queries+=1
     var previous:=ground_point(from)
     if not previous.is_finite():
         return false
     var steps:=maxi(1,int(ceil(from.distance_to(to)/.65)))
-    for i in range(steps+1):
+    # The former i=0 iteration repeated the start ray and overlap, then
+    # issued a zero-motion cast. Check the same start occupancy once.
+    for i in range(1,steps+1):
+        segment_ground_queries+=1
         var point:=ground_point(from.lerp(to,float(i)/steps))
         if not point.is_finite() or absf(point.y-previous.y)>.65:
             return false
         _query.transform=Transform3D(Basis(),previous+Vector3.UP*.95)
         _query.motion=Vector3.ZERO
+        segment_overlap_queries+=1
         if not space.intersect_shape(_query,1).is_empty():
             return false
         _query.motion=point-previous
+        segment_motion_queries+=1
         if space.cast_motion(_query)[0]<.995:
             return false
         previous=point
