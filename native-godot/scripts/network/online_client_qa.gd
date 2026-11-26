@@ -3,7 +3,29 @@ const SESSION=preload("res://scripts/network/aurora_online_session.gd")
 const PRESENTATION=preload("res://scripts/network/online_presentation.gd")
 func _initialize() -> void:
     call_deferred("_verify")
+func _verify_state_codec() -> bool:
+    var probe:=SESSION.new()
+    var raw: PackedByteArray=var_to_bytes({"snapshot_id":2,"loot":[{"id":77,"position":Vector3(1,2,3)}],"rivals":[]})
+    var packed: PackedByteArray=raw.compress(FileAccess.COMPRESSION_DEFLATE)
+    var middle: int=packed.size()/2
+    var first: PackedByteArray=packed.slice(0,middle)
+    var second: PackedByteArray=packed.slice(middle)
+    probe._ingest_state_chunk(1,0,2,raw.size(),first)
+    var incomplete: bool=probe.state.is_empty()
+    probe._ingest_state_chunk(2,1,2,raw.size(),second)
+    probe._ingest_state_chunk(1,1,2,raw.size(),second)
+    probe._ingest_state_chunk(2,1,2,raw.size(),second)
+    var isolated: bool=probe.state.is_empty()
+    probe._ingest_state_chunk(2,0,2,raw.size(),first)
+    var decoded: bool=probe.state.get("snapshot_id",0)==2 and probe.state.get("loot",[])==[{"id":77,"position":Vector3(1,2,3)}]
+    probe._ingest_state_chunk(1,0,1,raw.size(),packed)
+    var old_rejected: bool=probe.state.get("snapshot_id",0)==2 and probe.state_frames==1
+    probe.free()
+    print("V75227_CODEC incomplete=",incomplete," isolated=",isolated," decoded=",decoded," stale_rejected=",old_rejected)
+    return incomplete and isolated and decoded and old_rejected
+
 func _verify() -> void:
+    var codec_ok: bool=_verify_state_codec()
     var world: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
     world.online_presentation_only=true
     root.add_child(world)
@@ -152,8 +174,11 @@ func _verify() -> void:
     await create_timer(.4).timeout
     var end_ok: bool=bool(ended.ended) and bool(ended.eliminated) and float(ended.health)<=0.0 and int(session.state.action_applied)==count_before and int(session.state.action_rejected)>rejected_before and view.cover_replicas.is_empty()
     print("V75226_END ended=",ended.ended," eliminated=",ended.eliminated," health=",ended.health," post_end_rejected=",end_ok)
-    ok=ok and end_ok
+    var transport_ok: bool=session.state_frames>10 and session.max_state_chunk_bytes>0 and session.max_state_chunk_bytes<=SESSION.STATE_CHUNK_BYTES and session.max_state_encoded_bytes>0 and session.max_state_encoded_bytes<session.max_state_raw_bytes
+    print("V75227_STATE frames=",session.state_frames," raw_peak=",session.max_state_raw_bytes," encoded_peak=",session.max_state_encoded_bytes," chunk_peak=",session.max_state_chunk_bytes)
+    ok=ok and end_ok and codec_ok and transport_ok
     if ok:
+        print("V75227_STATE PASS")
         print("V75226_AUDIO PASS")
         print("V75225_TACTICAL PASS")
         print("V75224_LOOT PASS")
