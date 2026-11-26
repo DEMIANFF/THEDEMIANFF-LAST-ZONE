@@ -2,7 +2,7 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=7
+const PROTOCOL: int=8
 # Reserve headroom below the observed 1392-byte ENet MTU for RPC headers.
 const STATE_CHUNK_BYTES: int=960
 const STATE_RAW_LIMIT: int=65536
@@ -164,6 +164,7 @@ func _prepare_rival_fixture() -> void:
     _qa_rival.visible=true
     _qa_rival.set("health",200.0)
     _qa_rival.set("_airdrop_stage","inactive")
+    _qa_rival.set("weapon_slot",WEAPON_CATALOG.AR)
     _qa_rival.set("_clip","AuroraIdle")
     _qa_rival_start=Time.get_ticks_msec()
 
@@ -171,7 +172,7 @@ func _advance_rival_fixture() -> void:
     if not is_instance_valid(_qa_rival):
         return
     var age: int=Time.get_ticks_msec()-_qa_rival_start
-    var phase: int=0 if age<2500 else (1 if age<5000 else (2 if age<7500 else (3 if age<10000 else 4)))
+    var phase: int=mini(age/2500,7)
     if phase==_qa_rival_phase:
         return
     _qa_rival_phase=phase
@@ -181,6 +182,13 @@ func _advance_rival_fixture() -> void:
             _qa_rival.global_position=Vector3(1,55,-38)
             _qa_rival.rotation.y=.65
         2:
+            _qa_rival.set("_clip","AuroraFire")
+        3:
+            _qa_rival.set("weapon_slot",WEAPON_CATALOG.AWM)
+            _qa_rival.set("_clip","AuroraReloadAR")
+        4:
+            _qa_rival.set("_clip","AuroraHitFront")
+        5:
             _qa_rival_wall=StaticBody3D.new()
             _qa_rival_wall.collision_layer=1
             world.add_child(_qa_rival_wall)
@@ -190,10 +198,10 @@ func _advance_rival_fixture() -> void:
             box.size=Vector3(5,3,1.1)
             collision.shape=box
             _qa_rival_wall.add_child(collision)
-        3:
+        6:
             _qa_rival_wall.queue_free()
             _qa_rival.set("_clip","AuroraRun")
-        4:
+        7:
             _qa_rival.set("health",0.0)
     print("V75228_SERVER_RIVAL_PHASE ",phase)
 
@@ -469,7 +477,7 @@ func _physics_process(delta: float) -> void:
             if is_instance_valid(actor) and actor.health>0.0:
                 rivals.append({"id":actor.get_instance_id(),
                     "position":actor.global_position,"yaw":actor.rotation.y,
-                    "clip":str(actor._clip)})
+                    "clip":str(actor._clip),"weapon":int(actor.weapon_slot)})
         # Private development snapshot: no hidden enemy coordinates.
         snapshot_sequence+=1
         _send_world_state({
