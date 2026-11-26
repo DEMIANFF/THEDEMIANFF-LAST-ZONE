@@ -1,0 +1,15 @@
+name: Aurora private Prisma motion staging QA
+on:
+  push:
+    branches: [codex/v75-198-prisma-lila-private-motion-review]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review-tools:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate private retarget staging invariants
+        run: python3 -m unittest discover -s native-godot/tools/aurora_motion -p 'test_stage_prisma_review.py' -v
