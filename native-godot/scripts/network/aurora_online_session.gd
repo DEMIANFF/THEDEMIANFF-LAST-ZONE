@@ -2,10 +2,11 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=15
+const PROTOCOL: int=16
 const ACTION_VEHICLE: int=11
 const VEHICLE=preload("res://scripts/world/aurora_driveable_vehicle.gd")
 var _qa_vehicle_test: bool=false
+var vehicle_action_result: String=""
 const WAITING_BOT_LIMIT: int=49
 const WAITING_CONTACT_LIMIT: int=8
 var _waiting_roster: Array[CharacterBody3D]=[]
@@ -443,11 +444,14 @@ func _apply_actions() -> void:
             continue
         if action==ACTION_VEHICLE:
             var was_riding: bool=operator.vehicle_ride_active()
+            var motion_blocked: bool=was_riding and not operator._vehicle_ride.exit_motion_safe()
             director._on_real_vehicle_action()
             if was_riding!=operator.vehicle_ride_active():
                 action_applied+=1
+                vehicle_action_result="exited" if was_riding else "entered"
             else:
                 action_rejected+=1
+                vehicle_action_result="moving" if motion_blocked else ("blocked_exit" if was_riding else "no_nearby_vehicle")
             continue
         if not operator.can_act():
             action_rejected+=1
@@ -693,6 +697,7 @@ func _vehicle_snapshot() -> Dictionary:
     var cars: Array[Dictionary]=[]
     var ride: int=0
     var near: bool=false
+    var exit_ready: bool=false
     if director.mode=="sector_battle" and not director.match_ended and not operator.royale_eliminated:
         for car in director._driveable_cars:
             if not is_instance_valid(car) or car.is_queued_for_deletion() or not car._model_ready:
@@ -705,10 +710,11 @@ func _vehicle_snapshot() -> Dictionary:
             var id: int=car.get_instance_id()
             if car.driver==operator:
                 ride=id
+                exit_ready=car.exit_motion_safe()
             near=near or (operator.can_act() and car.can_enter(operator))
             cars.append({"id":id,"kind":car.variant,"transform":car.global_transform,
                 "speed":car.speed_kmh(),"fixture":fixture})
-    return {"cars":cars,"ride":ride,"near":near}
+    return {"cars":cars,"ride":ride,"near":near,"exit_ready":exit_ready,"result":vehicle_action_result}
 
 func _physics_process(delta: float) -> void:
     if remote_id==0 or not multiplayer.is_server() or not is_instance_valid(operator):

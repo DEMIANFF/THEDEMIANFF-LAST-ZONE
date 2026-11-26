@@ -699,7 +699,7 @@ func _on_real_vehicle_action() -> void:
         if car==null or not is_instance_valid(car):
             player.force_vehicle_exit()
             return
-        if car.linear_velocity.length()>2.5:
+        if not car.exit_motion_safe():
             hud.impact("DETÉN EL VEHÍCULO ANTES DE BAJAR")
             return
         var landing: Vector3=car.exit_position(player)
