@@ -30,7 +30,7 @@ func _verify() -> void:
         # Shorten only the QA wait after verifying the production deadline.
         timer.start(.05)
         for frame in range(60):
-            await process_frame
+            await physics_frame
             if bot.health==BOT.MAX_HEALTH:
                 break
         await physics_frame
