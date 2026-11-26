@@ -2,7 +2,7 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=9
+const PROTOCOL: int=10
 # Reserve headroom below the observed 1392-byte ENet MTU for RPC headers.
 const STATE_CHUNK_BYTES: int=960
 const STATE_RAW_LIMIT: int=65536
@@ -30,6 +30,7 @@ var critical_sound_gaps: int=0
 var _qa_fixture: bool=false
 var _qa_end_verified: bool=false
 var _qa_rival_test: bool=false
+var _qa_flight_test: bool=false
 var _qa_rival: CharacterBody3D
 var _qa_rival_wall: StaticBody3D
 var _qa_rival_start: int=0
@@ -129,7 +130,20 @@ func _joined(id: int) -> void:
     combat.bot_shot.connect(func(at: Vector3): _sound_event("remote_shot","",at))
     combat.bot_foot_contact.connect(func(at: Vector3,running: bool,stone: bool): _sound_event("remote_step","",at,running,stone))
     combat.grenade_fuse_close.connect(func(_seconds: float): _sound_event("local","grenade_fuse"))
+    _qa_fixture=OS.get_environment("AURORA_ONLINE_QA_FIXTURE")=="1"
+    _qa_rival_test=_qa_fixture and OS.get_environment("AURORA_ONLINE_QA_RIVALS")=="1"
+    _qa_flight_test=_qa_fixture and OS.get_environment("AURORA_ONLINE_QA_FLIGHT")=="1"
     combat.set_encounter_size(50)
+    # Existing isolated ground regressions retain their exact starting room.
+    # Normal development matches now use the original authoritative airdrop.
+    if not _qa_fixture or _qa_flight_test:
+        director.begin_aircraft_phase()
+        if director.mode!="aircraft":
+            push_error("AURORA_ONLINE authoritative aircraft failed to start")
+            multiplayer.multiplayer_peer.disconnect_peer(id)
+            return
+        print("AURORA_ONLINE MATCH peer=",id," participants=50 phase=aircraft")
+        return
     director.start_sector_battle()
     if director.mode!="sector_battle" or combat.active_fighter_count()!=50:
         push_error("AURORA_ONLINE authoritative match failed to start")
@@ -137,8 +151,6 @@ func _joined(id: int) -> void:
         return
     # A real extra physical pickup only in the isolated CI test room.
     # Never grant the weapon directly or enable this from a remote packet.
-    _qa_fixture=OS.get_environment("AURORA_ONLINE_QA_FIXTURE")=="1"
-    _qa_rival_test=_qa_fixture and OS.get_environment("AURORA_ONLINE_QA_RIVALS")=="1"
     if _qa_fixture:
         # Isolate mechanical regression from randomly timed bot elimination.
         # Only the private CI process activates this; normal matches retain damage.
@@ -260,7 +272,8 @@ func submit_action(version: int,request_id: int,action: int) -> void:
         action_rejected+=1
         return
     action_ack=request_id
-    if action<ACTION_JUMP or action>ACTION_COVER or director.match_ended or not operator.can_act():
+    var air_jump: bool=action==ACTION_JUMP and director.mode=="aircraft" and director._flight.phase in ["aircraft","freefall"]
+    if action<ACTION_JUMP or action>ACTION_COVER or director.match_ended or (not operator.can_act() and not air_jump):
         action_rejected+=1
         return
     var now: int=Time.get_ticks_msec()
@@ -272,6 +285,13 @@ func submit_action(version: int,request_id: int,action: int) -> void:
 
 func _apply_actions() -> void:
     for action in _action_queue:
+        if director.mode=="aircraft":
+            if action==ACTION_JUMP and director._flight.phase in ["aircraft","freefall"]:
+                director._flight.call_deferred("request_jump_or_parachute")
+                action_applied+=1
+            else:
+                action_rejected+=1
+            continue
         if not operator.can_act():
             action_rejected+=1
             continue
@@ -302,7 +322,7 @@ func _apply_actions() -> void:
 # Only nearby uncollected physical pickups, no simulated loot or client grants.
 func _nearby_loot() -> Array[Dictionary]:
     var found: Array[Dictionary]=[]
-    if director.match_ended or operator.royale_eliminated:
+    if director.mode!="sector_battle" or director.match_ended or operator.royale_eliminated:
         return found
     for pickup in director._loot:
         if not is_instance_valid(pickup) or pickup.collected or pickup.is_queued_for_deletion():
@@ -369,7 +389,7 @@ func _on_server_blast(at: Vector3) -> void:
 func _tactical_snapshot() -> Dictionary:
     var grenades: Array[Dictionary]=[]
     var covers: Array[Dictionary]=[]
-    if not director.match_ended:
+    if director.mode=="sector_battle" and not director.match_ended:
         for grenade in combat._grenades:
             if is_instance_valid(grenade) and not grenade.is_queued_for_deletion() and not grenade._spent and operator.global_position.distance_squared_to(grenade.global_position)<=TACTICAL_RANGE*TACTICAL_RANGE:
                 grenades.append({"id":grenade.get_instance_id(),"position":grenade.global_position,"seconds":grenade._remaining})
@@ -481,15 +501,16 @@ func _physics_process(delta: float) -> void:
         operator._desired_pitch=pitch
         operator.set_touch_run(sprint)
         _apply_actions()
-        if fire!=previous_fire:
-            if fire:
+        var allowed_fire: bool=fire and director.mode=="sector_battle" and operator.can_act()
+        if allowed_fire!=previous_fire:
+            if allowed_fire:
                 combat._on_fire_pressed()
             else:
                 combat._on_fire_released()
-            previous_fire=fire
+            previous_fire=allowed_fire
     # CI-only end-of-round regression after input timeout, independent of
     # tactical placement. Uses the real damage and elimination code path.
-    if _qa_fixture and not _qa_end_verified and action_applied>=10 and last_input_ms>0 and Time.get_ticks_msec()-last_input_ms>3000:
+    if _qa_fixture and not _qa_flight_test and not _qa_end_verified and action_applied>=10 and last_input_ms>0 and Time.get_ticks_msec()-last_input_ms>3000:
         _qa_end_verified=true
         operator.receive_training_hit(operator.MAX_HEALTH,true)
     if _qa_rival_test:
@@ -514,6 +535,8 @@ func _physics_process(delta: float) -> void:
             "cover_reason":combat.cover_last_block_reason,"sound_payload_peak":max_sound_bytes,
             "position":operator.global_position,"velocity":operator.velocity,
             "body_yaw":operator.rotation.y,"clip":str(operator._current_clip),
+            "air_mode":str(operator.air_mode),"match_mode":str(director.mode),
+            "flight_elapsed":director._flight.elapsed,
             "rivals":rivals,"ended":director.match_ended,
             "loot":_nearby_loot(),"inventory":combat.inventory_snapshot(),
             "tactical":_tactical_snapshot(),

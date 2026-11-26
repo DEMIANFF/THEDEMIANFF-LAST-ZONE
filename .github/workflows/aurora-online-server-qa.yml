@@ -1,7 +1,7 @@
-name: Aurora V75.229 dedicated online server real UDP QA
+name: Aurora V75.230 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-229-remote-rival-weapons]
+    branches: [codex/v75-230-authoritative-airdrop]
   workflow_dispatch:
 permissions:
   contents: read
@@ -167,9 +167,13 @@ jobs:
           AURORA_ONLINE_QA_RIVALS=1 AURORA_ONLINE_LOG_DIR="$PWD/native-godot/out/online/rivals" bash native-godot/tools/run_online_qa.sh
           grep -F 'V75228_RIVALS PASS' native-godot/out/online/rivals/client.log
           grep -F 'V75229_WEAPONS PASS' native-godot/out/online/rivals/client.log
+      - name: Real UDP aircraft to physical landing
+        run: |
+          AURORA_ONLINE_QA_FLIGHT=1 AURORA_ONLINE_LOG_DIR="$PWD/native-godot/out/online/flight" bash native-godot/tools/run_online_qa.sh
+          grep -F 'V75230_FLIGHT PASS' native-godot/out/online/flight/client.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.229-ONLINE-SERVER-QA
+          name: AURORA-V75.230-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3
