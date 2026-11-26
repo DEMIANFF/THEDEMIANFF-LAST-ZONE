@@ -3,6 +3,7 @@ extends CharacterBody3D
 ## Production character visuals require a reviewed, rigged GLB; no cube placeholder.
 const WALK_SPEED: float = 4.6
 const RUN_SPEED: float = 7.1
+const CROUCH_SPEED: float = WALK_SPEED * .52
 const ACCELERATION: float = 16.0
 const GRAVITY: float = 17.5
 const LOOK_SENSITIVITY: float = 0.0032
@@ -296,7 +297,7 @@ func _physics_process(delta: float) -> void:
     var run_fast := (Input.is_action_pressed("run") or _sprint_touch) and         not _crouching and not _fire_held and not _ads_active
     var target_speed: float = WALK_SPEED
     if _crouching:
-        target_speed = WALK_SPEED * .52
+        target_speed = CROUCH_SPEED
     elif run_fast:
         target_speed = RUN_SPEED
     # A physical elimination briefly increases actual walk/run mobility.
@@ -423,10 +424,7 @@ func _physics_process(delta: float) -> void:
             _combat_action=""
         var speed: float=actual_speed
         var locomotion: String=_select_locomotion(speed)
-        if _animation_controller:
-            _animation_controller.set_gait_speed(speed,
-                RUN_SPEED if locomotion=="Run" else WALK_SPEED if locomotion=="Walk" else 1.0)
-        var clip: String="AuroraArmed"+locomotion
+        var tactical: String=""
         # Real post-collision motion, projected into Lila's facing space:
         # ADS/backwards/strafe steps stay under the independently animated
         # rifle grip. No camera-linked avatar sliding or fake root motion.
@@ -434,18 +432,13 @@ func _physics_process(delta: float) -> void:
             var physical_motion: Vector3=(global_position-before_move)/maxf(delta,.001)
             var relative_motion: Vector3=global_basis.inverse()*Vector3(
                 physical_motion.x,0.0,physical_motion.z)
-            var tactical: String=tactical_gait_clip(relative_motion,
-                actual_speed,true)
-            if not tactical.is_empty():
-                clip=tactical
-        if _crouching:
-            clip="AuroraCrouchWalk" if speed>=.75 else "AuroraCrouch"
-        elif not is_on_floor():
-            clip="AuroraJump"
-        if _ads_active and not _crouching and speed<1.0:
-            clip="AuroraAimAWM" if _weapon_index==1 else "AuroraAim"
-        if _landing_seconds>0.0 and speed<1.0 and not _crouching:
-            clip="AuroraLand"
+            tactical=tactical_gait_clip(relative_motion,actual_speed,true)
+        var clip: String=resolve_motion_clip(is_on_floor(),_crouching,
+            _ads_active,_weapon_index,speed,locomotion,tactical,_landing_seconds)
+        # Scale the FINAL selected gait, not the earlier walk/run guess.
+        # Static poses, jumps and landings must keep their authored timing.
+        if _animation_controller:
+            _animation_controller.set_gait_speed(speed,gait_reference_speed(clip))
         if clip!=_current_clip:
             _play_matching_animation(clip)
     if moving_on_ground and _animation_controller and _animation_controller.playback:
@@ -458,6 +451,36 @@ func _physics_process(delta: float) -> void:
             foot_contact.emit(stone,gait==&"AuroraArmedRun")
     else:
         _foot_contacts.advance(&"",0.0,0.0,delta)
+
+
+## Flight has priority over idle aim or crouched ground locomotion.
+## A physical fall must never display a planted idle or crouch-walk.
+static func resolve_motion_clip(grounded: bool,crouched: bool,ads: bool,
+        weapon: int,speed: float,locomotion: String,tactical: String,
+        landing_seconds: float) -> String:
+    if not grounded:
+        return "AuroraJump"
+    if crouched:
+        return "AuroraCrouchWalk" if speed>=.75 else "AuroraCrouch"
+    if landing_seconds>0.0 and speed<1.0:
+        return "AuroraLand"
+    if ads and speed<1.0:
+        return "AuroraAimAWM" if weapon==1 else "AuroraAim"
+    return tactical if not tactical.is_empty() else "AuroraArmed"+locomotion
+
+
+## Nominal physical speed for the selected moving clip. Zero means
+## unscaled authored playback, through gait_multiplier's existing contract.
+static func gait_reference_speed(clip: String) -> float:
+    match clip:
+        "AuroraArmedRun":
+            return RUN_SPEED
+        "AuroraCrouchWalk":
+            return CROUCH_SPEED
+        "AuroraArmedWalk","AuroraArmedStrafeLeft","AuroraArmedStrafeRight","AuroraArmedBackpedal":
+            return WALK_SPEED
+        _:
+            return 0.0
 
 
 ## Select animation from physics-resolved displacement in the character's
