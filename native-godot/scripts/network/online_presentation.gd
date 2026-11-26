@@ -504,7 +504,8 @@ func apply_snapshot(data: Dictionary) -> void:
         target_yaws[id]=float(item.yaw)
         var replica: Node3D=replicas[id]
         var airborne: bool=bool(item.get("airborne",false))
-        _sync_rival_weapon(replica,-1 if airborne else int(item.get("weapon",-1)))
+        var waiting: bool=bool(item.get("waiting",false))
+        _sync_rival_weapon(replica,-1 if airborne or waiting else int(item.get("weapon",-1)))
         var canopy:=replica.get_node_or_null("RealRivalParachute") as MeshInstance3D
         if airborne and canopy==null:
             canopy=CANOPY_VISUAL.create()
@@ -535,7 +536,7 @@ func apply_snapshot(data: Dictionary) -> void:
         int(data.alive),roundi(float(data.health)),float(data.zone_radius),
         int(data.ammo),int(data.reserve)," · RECARGANDO" if float(data.reload_remaining)>0.0 else ""]
     if match_mode=="waiting":
-        _status.text="ISLA DE ESPERA · DESPEGUE EN %02d s · CAPACIDAD 50"%ceili(float(data.get("waiting_remaining",0.0)))
+        _status.text="ISLA DE ESPERA · %d/50 PARTICIPANTES · DESPEGUE EN %02d s"%[int(data.get("waiting_ready",1)),ceili(float(data.get("waiting_remaining",0.0)))]
     elif air!="ground":
         _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
     if bool(data.get("ended",false)):

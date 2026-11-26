@@ -19,6 +19,19 @@ func _air_rival_visible(session: Node,view: Node) -> bool:
             return true
     return false
 
+func _waiting_rival_visible(session: Node,view: Node) -> bool:
+    for item in session.state.get("rivals",[]):
+        if not bool(item.get("waiting",false)) or int(item.weapon)!=-1:
+            continue
+        var id: int=int(item.id)
+        if not view.replicas.has(id):
+            continue
+        var holder: Node3D=view.replicas[id]
+        var skeleton:=holder.find_child("Skeleton3D",true,false) as Skeleton3D
+        if skeleton!=null and holder.is_visible_in_tree() and holder.find_child("OnlineRivalHandSocket",true,false)==null and holder.get_node_or_null("RealRivalParachute")==null:
+            return true
+    return false
+
 func _verify() -> void:
     var world: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
     world.online_presentation_only=true
@@ -52,10 +65,20 @@ func _verify() -> void:
     await create_timer(.35).timeout
     var waiting_safe: bool=int(session.state.action_rejected)>waiting_reject and int(session.state.shots)==0 and float(session.state.health)==200.0 and session.state.loot.is_empty()
     var countdown: bool=float(session.state.waiting_remaining)<time_start and float(session.state.waiting_remaining)>0.0
+    var roster_ready: bool=false
+    var waiting_rival: bool=false
+    var bounded: bool=true
     for i in range(400):
         await create_timer(.05).timeout
+        if session.state.get("match_mode","")=="waiting":
+            roster_ready=roster_ready or (int(session.state.waiting_ready)==50 and int(session.state.bots)==49 and int(session.state.alive)==50)
+            waiting_rival=waiting_rival or _waiting_rival_visible(session,view)
+            bounded=bounded and session.state.rivals.size()<=8
         if view._has_state and session.state.get("air_mode","")=="aircraft":
             break
+    var roster_cleared: bool=session.state.rivals.is_empty() and view.replicas.is_empty() and int(session.state.get("waiting_ready",-1))==0
+    var roster_ok: bool=roster_ready and waiting_rival and bounded and roster_cleared
+    print("V75233_ROSTER ready=",roster_ready," unarmed_rival=",waiting_rival," bounded=",bounded," cleared=",roster_cleared)
     var departed: bool=session.state.get("air_mode","")=="aircraft" and not is_instance_valid(view.waiting_visual) and float(session.state.waiting_remaining)==0.0
     var waiting_ok: bool=island_ok and moved and waiting_safe and countdown and departed
     print("V75232_WAITING island=",island_ok," move=",moved," safe=",waiting_safe," countdown=",countdown," departure=",departed)
@@ -107,11 +130,12 @@ func _verify() -> void:
             cleared=false
     var air_ok: bool=rival_ok and aircraft_audio and audio_stopped and cleared
     print("V75231_AIR_VISUAL rival_canopy=",rival_ok," aircraft_audio=",aircraft_audio," audio_stopped=",audio_stopped," cleared=",cleared)
-    ok=ok and air_ok and waiting_ok
+    ok=ok and air_ok and waiting_ok and roster_ok
     if ok:
         print("V75230_FLIGHT PASS")
         print("V75231_AIR_VISUAL PASS")
         print("V75232_WAITING PASS")
+        print("V75233_ROSTER PASS")
     else:
         push_error("V75230 deployment regression")
     session.multiplayer.multiplayer_peer.close()
