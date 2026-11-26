@@ -1,0 +1,15 @@
+name: Aurora private armory staging QA
+on:
+  push:
+    branches: [codex/v75-198-selective-armory-staging]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staging-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Test selective staging without private binaries
+        run: python3 -m unittest discover -s native-godot/tools/aurora_v2 -p 'test_stage_optional_armory.py' -v
