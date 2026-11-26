@@ -767,8 +767,15 @@ func _physics_process(dt: float) -> void:
             _reload_remaining>0.0) and _alert_time>0 and
             navigation and navigation.available):
         if _cover_clock<=0:
-            _cover_point=navigation.find_cover(global_position,_last_seen)
-            _cover_clock=4.0
+            if not sector_battle or navigation.try_live_plan():
+                var cover_started: int=Time.get_ticks_usec()
+                _cover_point=navigation.find_cover(global_position,_last_seen)
+                if sector_battle:
+                    navigation.finish_live_plan(cover_started)
+                _cover_clock=4.0
+            else:
+                # Retry with a per-agent phase; no fake route or cover result.
+                _cover_clock=.10+float(get_instance_id()%7)*.017
         if _cover_point.is_finite() and _cover_clock>1.0:
             destination=_cover_point
             behavior="cover"
@@ -814,9 +821,16 @@ func _physics_process(dt: float) -> void:
         target_speed=CHASE_SPEED
     if navigation and navigation.available:
         if _route_clock<=0 and (destination.distance_squared_to(_route_goal)>6.25 or _route.is_empty()):
-            _route=navigation.route(global_position,destination)
-            _route_goal=destination
-            _route_clock=route_replan_interval(get_instance_id())
+            if not sector_battle or navigation.try_live_plan():
+                var route_started: int=Time.get_ticks_usec()
+                _route=navigation.route(global_position,destination)
+                if sector_battle:
+                    navigation.finish_live_plan(route_started)
+                _route_goal=destination
+                _route_clock=route_replan_interval(get_instance_id())
+            else:
+                # Keep the last checked waypoints and local obstacle avoidance.
+                _route_clock=.05+float(get_instance_id()%11)*.013
         while not _route.is_empty() and Vector2(_route[0].x-global_position.x,_route[0].z-global_position.z).length()<.65:
             _route.remove_at(0)
         if not _route.is_empty():
