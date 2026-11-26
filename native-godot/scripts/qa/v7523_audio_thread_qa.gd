@@ -51,6 +51,28 @@ func _verify() -> void:
         "gunfire lost left/right positioning: "+str(pan_right)+"/"+str(pan_left))
     check(sound._world_voices[0].playing and sound._world_voices[1].playing,
         "workaround muted or dropped positional gunfire")
+    # Repeated exact spatial updates must not rewrite mixer properties.
+    # The AudioServer lock/unlock safety barrier is deliberately preserved.
+    var bus: int=sound._world_buses[0]
+    var panner: AudioEffectPanner=sound._world_panners[0]
+    var point: Vector3=camera.global_position+right*8.0
+    sound._pan_from(point,camera,panner,bus,150.0,true)
+    var pan_writes: int=sound.spatial_pan_writes
+    var gain_writes: int=sound.spatial_gain_writes
+    for i in range(120):
+        sound._pan_from(point,camera,panner,bus,150.0)
+    check(sound.spatial_pan_writes==pan_writes and sound.spatial_gain_writes==gain_writes,
+        "stationary source still writes the same mixer values")
+    sound._pan_from(camera.global_position-right*30.0,camera,panner,bus,150.0)
+    check(sound.spatial_pan_writes==pan_writes+1 and
+        sound.spatial_gain_writes==gain_writes+1 and panner.pan<-.25,
+        "movement did not refresh the real pan and distance attenuation")
+    var expected_db: float=linear_to_db(pow(.8,2.0))
+    check(absf(AudioServer.get_bus_volume_db(bus)-expected_db)<.11,
+        "cached gain changed the physical attenuation curve")
+    sound._pan_from(camera.global_position-right*30.0,camera,panner,bus,150.0,true)
+    check(sound.spatial_pan_writes==pan_writes+2 and sound.spatial_gain_writes==gain_writes+2,
+        "reused voice failed to force fresh mixer state")
     for i in range(70):
         await process_frame
         if i%9==0:

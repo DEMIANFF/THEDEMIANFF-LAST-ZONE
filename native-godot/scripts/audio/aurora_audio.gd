@@ -35,6 +35,15 @@ var _addendum_panners: Array[AudioEffectPanner]=[]
 var _addendum_positions: Array[Vector3]=[]
 var _step_cursor: int=0
 var _blast_cursor: int=0
+# Positional sources are stationary for each short sample. Avoid sending
+# identical mixer updates on every frame while the camera is unchanged.
+# Cache is bounded by the fixed 5 world + 6 positional voice buses.
+var _pan_cache: Dictionary={}
+var _gain_cache: Dictionary={}
+var spatial_pan_writes: int=0
+var spatial_gain_writes: int=0
+const PAN_EPSILON: float=.005
+const GAIN_EPSILON_DB: float=.10
 
 
 func _ready() -> void:
@@ -180,23 +189,32 @@ func _process(_delta: float) -> void:
     AudioServer.unlock()
 
 
-func _update_world_pan(index: int,listener: Camera3D) -> void:
-    _pan_from(_world_positions[index],listener,_world_panners[index],_world_buses[index],150.0)
+func _update_world_pan(index: int,listener: Camera3D,force: bool=false) -> void:
+    _pan_from(_world_positions[index],listener,_world_panners[index],_world_buses[index],150.0,force)
 
 
 func _pan_from(source: Vector3,listener: Camera3D,panner: AudioEffectPanner,
-        bus: int,range_metres: float) -> void:
+        bus: int,range_metres: float,force: bool=false) -> void:
+    if not is_instance_valid(listener) or not is_instance_valid(panner):
+        return
     var toward: Vector3=source-listener.global_position
     var distance: float=toward.length()
     toward.y=0.0
     var pan: float=0.0
     if toward.length_squared()>.001:
         pan=clampf(toward.normalized().dot(listener.global_basis.x),-1.0,1.0)
-    panner.pan=pan
-    # 3D-style distance attenuation retained, applied on the audio BUS to
-    # avoid per-playback bus-details mutations while a sound is playing.
+    if force or not _pan_cache.has(bus) or absf(pan-float(_pan_cache[bus]))>=PAN_EPSILON:
+        panner.pan=pan
+        _pan_cache[bus]=pan
+        spatial_pan_writes+=1
+    # Keep the same attenuation curve. Compare to the LAST applied gain,
+    # not the previous frame, so small movements accumulate correctly.
     var gain: float=pow(clampf(1.0-distance/range_metres,0.001,1.0),2.0)
-    AudioServer.set_bus_volume_db(bus,linear_to_db(gain))
+    var db: float=linear_to_db(gain)
+    if force or not _gain_cache.has(bus) or absf(db-float(_gain_cache[bus]))>=GAIN_EPSILON_DB:
+        AudioServer.set_bus_volume_db(bus,db)
+        _gain_cache[bus]=db
+        spatial_gain_writes+=1
 
 
 func _load_settings() -> void:
@@ -245,7 +263,8 @@ func play_world_shot(at: Vector3) -> void:
     source.stop()
     _world_positions[voice_index]=at+Vector3.UP*1.35
     if listener!=null:
-        _update_world_pan(voice_index,listener)
+        # Each new sound refreshes its reused voice regardless of cache.
+        _update_world_pan(voice_index,listener,true)
     source.stream=_samples["distant_fire" if distance>=62.0 else "ar_fire"]
     source.pitch_scale=.91+float(_world_cursor%4)*.04
     source.play()
@@ -301,7 +320,7 @@ func _play_positional(slot: int,at: Vector3,stream: AudioStream,max_range: float
     voice.stop()
     _addendum_positions[slot]=at
     _pan_from(at,get_viewport().get_camera_3d(),_addendum_panners[slot],
-        _addendum_buses[slot],max_range)
+        _addendum_buses[slot],max_range,true)
     voice.stream=stream
     voice.play()
 
