@@ -64,11 +64,17 @@ func _verify() -> void:
         check(player.is_on_floor(),"slope correction lost physical floor contact")
         check(absf((left.y-right.y)-(left.x-right.x)*tan(angle))<.025,
             "ankle heights do not follow physical slope")
+        check(player._body_contact.slope_drop>=0.0 and player._body_contact.slope_drop<=.08,
+            "slope pelvis compensation exceeded its bounded reach")
+        check(player._body_contact.probe_count==2,"slope added extra physics probes")
+        print("V75199_SLOPE angle=",angle," drop_m=",player._body_contact.slope_drop,
+            " foot_errors_m=",player._body_contact.foot_errors)
         check(player._body_contact.foot_errors.max()<.025,
             "slope foot target outside acceptable contact tolerance")
     platform.rotation.z=0.0
     for frame in range(45):
         await physics_frame
+    check(player._body_contact.slope_drop<.001,"slope pelvis compensation retained on flat ground")
     var standing_pelvis: float=(bones["Hips"] as Vector3).y
     player.set_crouch(true)
     for frame in range(35):
@@ -154,6 +160,7 @@ func _verify() -> void:
     for frame in range(3):
         await physics_frame
     check(player._body_contact.probe_count==0,"airborne feet still query ground")
+    check(player._body_contact.slope_drop==0.0,"slope pelvis compensation retained in flight")
     check(not visuals.support_grip_enabled(),"airborne hands remain pinned to gun")
     var samples: Array[float]=[20.0,30.0,60.0]
     var metrics: Dictionary={"gpu_render_ms_peak":31.0,"draw_calls_peak":350.0}

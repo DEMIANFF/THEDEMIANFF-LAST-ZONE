@@ -11,6 +11,8 @@ var probe_count: int=0
 var aim_pitch: float=0.0
 var pelvis_bone: int=-1
 var crouch_drop: float=0.0
+var slope_drop: float=0.0
+const MAX_SLOPE_DROP_METRES: float=.08
 # Additional world-space clearance under low cover, measured in metres.
 const CROUCH_DROP_METRES: float=.105
 var foot_errors: Array[float]=[0.0,0.0]
@@ -81,6 +83,7 @@ func _process_modification_with_delta(delta: float) -> void:
         skeleton.set_bone_global_pose(spine,pose)
     if not _grounded():
         crouch_drop=0.0
+        slope_drop=0.0
         return
     # Lower the pelvis without moving the capsule or the authored footfalls.
     # The same leg solve handles crouch and incline, including the swing foot.
@@ -88,12 +91,32 @@ func _process_modification_with_delta(delta: float) -> void:
     crouch_drop=lerpf(crouch_drop,desired_drop,1.0-exp(-maxf(delta,0.0)*18.0))
     if crouch_drop<.0005 or pelvis_bone<0:
         crouch_drop=0.0
-    if crouch_drop>0.0:
+    # A downhill ankle can lie beyond the actual leg length, especially
+    # on a rig with straighter standing knees. Move the pelvis down only
+    # enough to make the cached contact reachable; preserve both footfalls.
+    var needed: float=0.0
+    for i in range(legs.size()):
+        if not contacts[i] or -1 in legs[i] or offsets[i]>=-.001:
+            continue
+        var hip: Vector3=skeleton.to_global(skeleton.get_bone_global_pose(legs[i][0]).origin)
+        var knee: Vector3=skeleton.to_global(skeleton.get_bone_global_pose(legs[i][1]).origin)
+        var ankle: Vector3=skeleton.to_global(skeleton.get_bone_global_pose(legs[i][2]).origin)
+        var ray: Vector3=ankle+Vector3.UP*offsets[i]-(hip-Vector3.UP*crouch_drop)
+        var reach: float=hip.distance_to(knee)+knee.distance_to(ankle)-.002
+        var horizontal_sq: float=ray.slide(Vector3.UP).length_squared()
+        if reach>0.0 and horizontal_sq<reach*reach:
+            needed=maxf(needed,-ray.y-sqrt(maxf(0.0,reach*reach-horizontal_sq)))
+    slope_drop=lerpf(slope_drop,clampf(needed,0.0,MAX_SLOPE_DROP_METRES),
+        1.0-exp(-maxf(delta,0.0)*18.0))
+    if slope_drop<.0005:
+        slope_drop=0.0
+    var body_drop: float=crouch_drop+slope_drop
+    if body_drop>0.0 and pelvis_bone>=0:
         var pelvis: Transform3D=skeleton.get_bone_global_pose(pelvis_bone)
-        pelvis.origin-=skeleton.global_basis.inverse()*Vector3.UP*crouch_drop
+        pelvis.origin-=skeleton.global_basis.inverse()*Vector3.UP*body_drop
         skeleton.set_bone_global_pose(pelvis_bone,pelvis)
     for i in range(legs.size()):
-        var lift: float=crouch_drop+(offsets[i] if contacts[i] else 0.0)
+        var lift: float=body_drop+(offsets[i] if contacts[i] else 0.0)
         if not -1 in legs[i] and absf(lift)>.001:
             _fit_foot(skeleton,legs[i],i,lift)
 
