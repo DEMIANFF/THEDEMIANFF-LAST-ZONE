@@ -168,6 +168,12 @@ func _new_replica(id: int) -> Node3D:
         var part:=rig.find_child(name,true,false) as MeshInstance3D
         if part!=null:
             part.hide()
+            part.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    # Replicas are visual-only. Imported collision or processing bodies
+    # must not interfere with camera rays or local movement.
+    for collision in rig.find_children("*","CollisionObject3D",true,false):
+        collision.collision_layer=0
+        collision.collision_mask=0
     return holder
 
 func _sync_loot(items: Array) -> void:
@@ -349,6 +355,10 @@ func apply_snapshot(data: Dictionary) -> void:
     var seen: Dictionary={}
     for item in data.rivals:
         var id: int=int(item.id)
+        var at: Vector3=item.position
+        var heading: float=float(item.yaw)
+        if id<=0 or not at.is_finite() or not is_finite(heading):
+            continue
         if not replicas.has(id):
             var holder: Node3D=_new_replica(id)
             if holder==null:
@@ -408,7 +418,7 @@ func _physics_process(delta: float) -> void:
         if _has_state:
             _clear_remote()
         _status.text="ONLINE · Esperando estado del servidor"
-    if connected and session.state!=_last_state:
+    if connected and int(session.state.get("snapshot_id",0))>int(_last_state.get("snapshot_id",0)):
         apply_snapshot(session.state)
     if connected and _has_state:
         _sync_sounds(session.drain_sounds())
