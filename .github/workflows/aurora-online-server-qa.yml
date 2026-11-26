@@ -1,7 +1,7 @@
-name: Aurora V75.234 dedicated online server real UDP QA
+name: Aurora V75.235 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-234-waiting-locomotion]
+    branches: [codex/v75-235-authoritative-vehicles]
   workflow_dispatch:
 permissions:
   contents: read
@@ -177,9 +177,13 @@ jobs:
           grep -F 'V75233_SERVER_ROSTER physical_bots=49 fighters=50' native-godot/out/online/flight/server.log
           grep -F 'V75234_WAITING_WALK PASS' native-godot/out/online/flight/client.log
           grep -E 'V75234_SERVER_WAITING moved=([1-9][0-9]*) shots=0' native-godot/out/online/flight/server.log
+      - name: Real UDP vehicle chassis mechanics (no private GLBs)
+        run: |
+          AURORA_ONLINE_QA_VEHICLE=1 AURORA_ONLINE_LOG_DIR="$PWD/native-godot/out/online/vehicle" bash native-godot/tools/run_online_qa.sh
+          grep -F 'V75235_VEHICLE PASS' native-godot/out/online/vehicle/client.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.234-ONLINE-SERVER-QA
+          name: AURORA-V75.235-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3

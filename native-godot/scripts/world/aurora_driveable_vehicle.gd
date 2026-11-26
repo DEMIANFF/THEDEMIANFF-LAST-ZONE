@@ -88,14 +88,21 @@ func _build_wheels() -> void:
 
 
 func _load_authentic_source() -> bool:
-    var scene: PackedScene=load(str(SOURCE_FILES[variant])) as PackedScene
+    _source_visual=create_authentic_visual(variant,self)
+    return _source_visual!=null
+
+# Shared normalization for server vehicle and nonphysical network replica.
+static func create_authentic_visual(kind: String,holder: Node3D) -> Node3D:
+    if not source_available(kind):
+        return null
+    var scene: PackedScene=load(str(SOURCE_FILES[kind])) as PackedScene
     if scene==null:
-        return false
+        return null
     var model: Node3D=scene.instantiate() as Node3D
     if model==null:
-        return false
-    model.name="Original"+variant+"UserModel"
-    add_child(model)
+        return null
+    model.name="Original"+kind+"UserModel"
+    holder.add_child(model)
     var low:=Vector3(INF,INF,INF)
     var high:=Vector3(-INF,-INF,-INF)
     var count: int=0
@@ -114,18 +121,17 @@ func _load_authentic_source() -> bool:
     var size: Vector3=high-low
     if count<=0 or not size.is_finite() or size.z<.001:
         model.queue_free()
-        return false
+        return null
     # Measured source geometry: Toyota ~8.05m long, BMW ~23.67 source units.
     # Keep proper geometry and materials; normalize only model's visual parent.
     var scale_factor: float=clampf(
-        float(TARGET_LENGTHS[variant])/maxf(size.x,size.z),.05,5.0)
+        float(TARGET_LENGTHS[kind])/maxf(size.x,size.z),.05,5.0)
     model.scale=Vector3.ONE*scale_factor
     model.position=-(low+size*.5)*scale_factor+Vector3(0,-.25,0)
-    _source_visual=model
-    print("AURORA_REAL_DRIVABLE source=",variant," meshes=",count,
+    print("AURORA_REAL_DRIVABLE source=",kind," meshes=",count,
         " normalized_length_m=",maxf(size.x,size.z)*scale_factor,
-        " vehicle_wheels_physical=4")
-    return true
+        " normalized_visual=1")
+    return model
 
 
 func _physics_process(delta: float) -> void:

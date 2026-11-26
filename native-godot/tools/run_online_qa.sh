@@ -30,6 +30,10 @@ if [ "${AURORA_ONLINE_QA_FLIGHT:-0}" = 1 ]; then
   client_script="online_flight_qa.gd"
   pass_marker="V75230_FLIGHT PASS"
 fi
+if [ "${AURORA_ONLINE_QA_VEHICLE:-0}" = 1 ]; then
+  client_script="online_vehicle_qa.gd"
+  pass_marker="V75235_VEHICLE PASS"
+fi
 if ! XDG_DATA_HOME="$work/client" timeout 60 "$engine" --headless --path "$project" --script "res://scripts/network/$client_script" >"$logdir/client.log" 2>&1; then
   cat "$logdir/server.log" "$logdir/client.log"; exit 1
 fi

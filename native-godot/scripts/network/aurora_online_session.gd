@@ -2,7 +2,10 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=14
+const PROTOCOL: int=15
+const ACTION_VEHICLE: int=11
+const VEHICLE=preload("res://scripts/world/aurora_driveable_vehicle.gd")
+var _qa_vehicle_test: bool=false
 const WAITING_BOT_LIMIT: int=49
 const WAITING_CONTACT_LIMIT: int=8
 var _waiting_roster: Array[CharacterBody3D]=[]
@@ -144,6 +147,7 @@ func _joined(id: int) -> void:
     _qa_fixture=OS.get_environment("AURORA_ONLINE_QA_FIXTURE")=="1"
     _qa_rival_test=_qa_fixture and OS.get_environment("AURORA_ONLINE_QA_RIVALS")=="1"
     _qa_flight_test=_qa_fixture and OS.get_environment("AURORA_ONLINE_QA_FLIGHT")=="1"
+    _qa_vehicle_test=_qa_fixture and OS.get_environment("AURORA_ONLINE_QA_VEHICLE")=="1"
     combat.set_encounter_size(50)
     # Existing isolated ground regressions retain their exact starting room.
     # Normal development matches now use the original authoritative airdrop.
@@ -169,8 +173,28 @@ func _joined(id: int) -> void:
     print("AURORA_ONLINE MATCH peer=",id," participants=",combat.active_fighter_count())
     if _qa_rival_test:
         _prepare_rival_fixture()
+    if _qa_vehicle_test:
+        _prepare_vehicle_fixture()
 
 # A bounded physical staging island, separate from the combat terrain.
+# Test-only wheel chassis with no render model. Never instantiated in
+# normal matches and never advertised as an authentic car asset.
+func _prepare_vehicle_fixture() -> void:
+    director.set_process(false)
+    combat.set_process(false)
+    for bot in combat._targets:
+        bot.set_physics_process(false)
+    director._remove_driveable_vehicles()
+    var car: AuroraDriveableVehicle=preload("res://scripts/network/qa_vehicle_chassis.gd").new()
+    car.terrain=director.terrain
+    var site:=Vector2(72,-6)
+    car.position=Vector3(site.x,director.terrain.height_at(site.x,site.y)+1.4,site.y)
+    director.add_child(car)
+    director._driveable_cars.append(car)
+    operator.global_position=car.global_position+Vector3(-7,0,0)
+    operator.velocity=Vector3.ZERO
+    print("V75235_SERVER_FIXTURE chassis_only=true")
+
 func _begin_waiting() -> void:
     combat.end_sector_battle()
     combat.visible=false
@@ -390,7 +414,8 @@ func submit_action(version: int,request_id: int,action: int) -> void:
     action_ack=request_id
     var air_jump: bool=action==ACTION_JUMP and director.mode=="aircraft" and director._flight.phase in ["aircraft","freefall"]
     var waiting_denied: bool=director.mode=="waiting" and action!=ACTION_JUMP
-    if action<ACTION_JUMP or action>ACTION_COVER or director.match_ended or waiting_denied or (not operator.can_act() and not air_jump):
+    var vehicle_action: bool=action==ACTION_VEHICLE and director.mode=="sector_battle" and operator.air_mode=="ground" and not operator.royale_eliminated
+    if action<ACTION_JUMP or action>ACTION_VEHICLE or director.match_ended or waiting_denied or (action==ACTION_VEHICLE and not vehicle_action) or (not operator.can_act() and not air_jump and not vehicle_action):
         action_rejected+=1
         return
     var now: int=Time.get_ticks_msec()
@@ -412,6 +437,14 @@ func _apply_actions() -> void:
         if director.mode=="aircraft":
             if action==ACTION_JUMP and director._flight.phase in ["aircraft","freefall"]:
                 director._flight.call_deferred("request_jump_or_parachute")
+                action_applied+=1
+            else:
+                action_rejected+=1
+            continue
+        if action==ACTION_VEHICLE:
+            var was_riding: bool=operator.vehicle_ride_active()
+            director._on_real_vehicle_action()
+            if was_riding!=operator.vehicle_ride_active():
                 action_applied+=1
             else:
                 action_rejected+=1
@@ -656,6 +689,27 @@ func _prepare_air_rival_qa() -> void:
     _qa_air_rival_prepared=true
     print("V75231_AIR_FIXTURE real_bot=",actor.get_instance_id())
 
+func _vehicle_snapshot() -> Dictionary:
+    var cars: Array[Dictionary]=[]
+    var ride: int=0
+    var near: bool=false
+    if director.mode=="sector_battle" and not director.match_ended and not operator.royale_eliminated:
+        for car in director._driveable_cars:
+            if not is_instance_valid(car) or car.is_queued_for_deletion() or not car._model_ready:
+                continue
+            if car.global_position.distance_squared_to(operator.global_position)>95.0*95.0 and car.driver!=operator:
+                continue
+            var fixture: bool=_qa_vehicle_test and car.get_script().resource_path.ends_with("qa_vehicle_chassis.gd")
+            if not fixture and not VEHICLE.source_available(car.variant):
+                continue
+            var id: int=car.get_instance_id()
+            if car.driver==operator:
+                ride=id
+            near=near or (operator.can_act() and car.can_enter(operator))
+            cars.append({"id":id,"kind":car.variant,"transform":car.global_transform,
+                "speed":car.speed_kmh(),"fixture":fixture})
+    return {"cars":cars,"ride":ride,"near":near}
+
 func _physics_process(delta: float) -> void:
     if remote_id==0 or not multiplayer.is_server() or not is_instance_valid(operator):
         return
@@ -684,7 +738,7 @@ func _physics_process(delta: float) -> void:
             previous_fire=allowed_fire
     # CI-only end-of-round regression after input timeout, independent of
     # tactical placement. Uses the real damage and elimination code path.
-    if _qa_fixture and not _qa_flight_test and not _qa_end_verified and action_applied>=10 and last_input_ms>0 and Time.get_ticks_msec()-last_input_ms>3000:
+    if _qa_fixture and not _qa_flight_test and not _qa_vehicle_test and not _qa_end_verified and action_applied>=10 and last_input_ms>0 and Time.get_ticks_msec()-last_input_ms>3000:
         _qa_end_verified=true
         operator.receive_training_hit(operator.MAX_HEALTH,true)
     if _qa_rival_test:
@@ -717,7 +771,7 @@ func _physics_process(delta: float) -> void:
             "waiting_remaining":waiting_remaining,"waiting_ready":_waiting_roster.size()+1 if director.mode=="waiting" else 0,
             "rivals":rivals,"ended":director.match_ended,
             "loot":_nearby_loot(),"inventory":combat.inventory_snapshot(),
-            "tactical":_tactical_snapshot(),
+            "tactical":_tactical_snapshot(),"vehicles":_vehicle_snapshot(),
             "weapon":combat.weapon_index,"aim":combat.aim_active,"zoom":combat.current_zoom,
             "heal_remaining":combat._heal_remaining,"firing":combat.trigger_held,
             "crouched":operator._crouching,"grounded":operator.is_on_floor(),

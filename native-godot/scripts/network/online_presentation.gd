@@ -13,6 +13,11 @@ const AUDIO=preload("res://scripts/audio/aurora_audio.gd")
 const FLIGHT_VISUAL=preload("res://scripts/match/airdrop_sequence.gd")
 const CANOPY_VISUAL=preload("res://scripts/match/rival_canopy_visual.gd")
 const WAITING_ISLAND=preload("res://scripts/network/online_waiting_island.gd")
+const VEHICLE=preload("res://scripts/world/aurora_driveable_vehicle.gd")
+var vehicle_replicas: Dictionary={}
+var vehicle_targets: Dictionary={}
+var _vehicle: Button
+var _ride_id: int=0
 var waiting_visual: Node3D
 var _reload: Button
 var _presented_match_mode: String=""
@@ -141,7 +146,9 @@ func _build_touch_hud() -> void:
     _aim=_action_button("MIRA",Vector2(-315,-296),func(): request_action(session.ACTION_AIM))
     _grenade=_action_button("GRANADA",Vector2(-575,-140),func(): request_action(session.ACTION_GRENADE))
     _cover=_action_button("BARRERA",Vector2(-575,-218),func(): request_action(session.ACTION_COVER))
-    layer.actions=[_pad,_fire_pad,_run,_jump,_reload,_crouch,_weapon,_heal,_aim,_grenade,_cover]
+    _vehicle=_action_button("CONDUCIR",Vector2(-705,-140),func(): request_action(session.ACTION_VEHICLE))
+    _vehicle.hide()
+    layer.actions=[_pad,_fire_pad,_run,_jump,_reload,_crouch,_weapon,_heal,_aim,_grenade,_cover,_vehicle]
 
 func _action_button(label: String,offset: Vector2,callback: Callable) -> Button:
     var button:=Button.new()
@@ -466,6 +473,46 @@ func _release_waiting() -> void:
         waiting_visual.queue_free()
     waiting_visual=null
 
+func _sync_vehicles(data: Dictionary) -> void:
+    var seen: Dictionary={}
+    _ride_id=int(data.get("ride",0))
+    for item in data.get("cars",[]):
+        var id: int=int(item.id)
+        var transform: Transform3D=item.transform
+        if id<=0 or not transform.is_finite():
+            continue
+        if not vehicle_replicas.has(id):
+            var holder:=Node3D.new()
+            holder.name="OnlineVehicle"+str(id)
+            world.add_child(holder)
+            holder.global_transform=transform
+            var visual: Node3D=VEHICLE.create_authentic_visual(str(item.kind),holder) if not bool(item.get("fixture",false)) else null
+            if visual==null and not (bool(item.get("fixture",false)) and OS.get_environment("AURORA_ONLINE_QA_VEHICLE")=="1"):
+                holder.queue_free()
+                continue
+            if visual!=null:
+                for collider in visual.find_children("*","CollisionObject3D",true,false):
+                    collider.collision_layer=0
+                    collider.collision_mask=0
+            vehicle_replicas[id]=holder
+        seen[id]=true
+        vehicle_targets[id]=transform
+    for id in vehicle_replicas.keys():
+        if not seen.has(id):
+            vehicle_replicas[id].hide()
+            vehicle_replicas[id].queue_free()
+            vehicle_replicas.erase(id)
+            vehicle_targets.erase(id)
+    _vehicle.visible=_ride_id!=0 or bool(data.get("near",false))
+    _vehicle.text="BAJAR" if _ride_id!=0 else "CONDUCIR"
+    if _ride_id!=0:
+        for control in [_fire_pad,_reload,_run,_jump,_crouch,_weapon,_heal,_aim,_grenade,_cover]:
+            control.hide()
+        weapon_visuals.hide()
+        firing=false
+    else:
+        _jump.visible=true
+
 func apply_snapshot(data: Dictionary) -> void:
     if not data.has("position") or not data.has("rivals"):
         return
@@ -483,6 +530,7 @@ func apply_snapshot(data: Dictionary) -> void:
         _presented_match_mode=match_mode
     _sync_air_presentation(air)
     _sync_waiting(match_mode)
+    _sync_vehicles(data.get("vehicles",{}))
     zone.visible=match_mode=="sector_battle"
     zone.set_zone_state(data.zone_center,float(data.zone_radius))
     var seen: Dictionary={}
@@ -535,6 +583,10 @@ func apply_snapshot(data: Dictionary) -> void:
     _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · MUNICIÓN %d/%d%s"%[
         int(data.alive),roundi(float(data.health)),float(data.zone_radius),
         int(data.ammo),int(data.reserve)," · RECARGANDO" if float(data.reload_remaining)>0.0 else ""]
+    if _ride_id!=0:
+        for car in data.get("vehicles",{}).get("cars",[]):
+            if int(car.id)==_ride_id:
+                _status.text="ONLINE · AUTO %d km/h"%roundi(float(car.speed))
     if match_mode=="waiting":
         _status.text="ISLA DE ESPERA · %d/50 PARTICIPANTES · DESPEGUE EN %02d s"%[int(data.get("waiting_ready",1)),ceili(float(data.get("waiting_remaining",0.0)))]
     elif air!="ground":
@@ -543,6 +595,7 @@ func apply_snapshot(data: Dictionary) -> void:
         _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else "ONLINE · PARTIDA FINALIZADA"
 
 func _clear_remote() -> void:
+    _sync_vehicles({})
     _release_waiting()
     _presented_match_mode=""
     sound.set_aircraft_audio(false)
@@ -593,8 +646,14 @@ func _physics_process(delta: float) -> void:
         operator._camera.position.z=distance
         if air!="ground":
             operator._camera.fov=lerpf(operator._camera.fov,76.0,factor)
+        if _ride_id!=0:
+            operator._camera.position.z=6.0
+            operator._camera.fov=lerpf(operator._camera.fov,77.0,factor)
         if operator._avatar!=null:
-            operator._avatar.visible=air!="aircraft" and distance>1.50
+            operator._avatar.visible=_ride_id==0 and air!="aircraft" and distance>1.50
+        for id in vehicle_replicas.keys():
+            var car: Node3D=vehicle_replicas[id]
+            car.global_transform=car.global_transform.interpolate_with(vehicle_targets[id],factor)
         if is_instance_valid(flight_visual) and is_instance_valid(flight_visual._craft):
             flight_visual._craft.global_position=operator.global_position+Vector3(0,.7,-1)
             flight_visual._advance_visible_propellers(delta)
