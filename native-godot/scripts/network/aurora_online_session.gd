@@ -2,7 +2,17 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=5
+const PROTOCOL: int=6
+const WEAPON_CATALOG=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const SOUND_WINDOW_MS: int=650
+const SOUND_LIMIT: int=32
+const SOUND_BATCH: int=6
+var snapshot_sequence: int=0
+var last_sound_batch: Array=[]
+var pending_sounds: Array=[]
+var _qa_fixture: bool=false
+var _qa_end_verified: bool=false
+var max_sound_bytes: int=0
 const ACTION_GRENADE: int=9
 const ACTION_COVER: int=10
 const TACTICAL_RANGE: float=40.0
@@ -43,11 +53,13 @@ var _send_clock: float=0.0
 var grenade_blasts: int=0
 var last_blast_position: Vector3=Vector3.ZERO
 var last_blast_ms: int=-10000
+var sound_sequence: int=0
+var _sounds: Array[Dictionary]=[]
 
 func listen(port: int=PORT) -> Error:
     var peer:=ENetMultiplayerPeer.new()
     peer.set_bind_ip("127.0.0.1")
-    var result: Error=peer.create_server(port,1,2)
+    var result: Error=peer.create_server(port,1,4)
     if result!=OK:
         return result
     multiplayer.multiplayer_peer=peer
@@ -57,7 +69,7 @@ func listen(port: int=PORT) -> Error:
 
 func connect_local(port: int=PORT) -> Error:
     var peer:=ENetMultiplayerPeer.new()
-    var result: Error=peer.create_client("127.0.0.1",port,2)
+    var result: Error=peer.create_client("127.0.0.1",port,4)
     if result==OK:
         multiplayer.multiplayer_peer=peer
     return result
@@ -80,6 +92,20 @@ func _joined(id: int) -> void:
     last_blast_ms=-10000
     if not combat.grenade_detonated.is_connected(_on_server_blast):
         combat.grenade_detonated.connect(_on_server_blast)
+    sound_sequence=0
+    _sounds.clear()
+    combat.shot_fired.connect(_on_player_shot)
+    combat.reload_started.connect(_on_player_reload)
+    combat.reload_cue.connect(func(sample: StringName): _sound_event("local",str(sample)))
+    combat.awm_bolt_cycled.connect(func(): _sound_event("local","awm_bolt"))
+    combat.healed.connect(func(): _sound_event("local","heal"))
+    combat.impact_occurred.connect(func(): _sound_event("local","impact"))
+    operator.jumped.connect(func(): _sound_event("local","jump"))
+    operator.player_damaged.connect(func(_amount: float): _sound_event("local","hit"))
+    operator.foot_contact.connect(func(stone: bool,running: bool): _sound_event("local_step","",Vector3.ZERO,running,stone))
+    combat.bot_shot.connect(func(at: Vector3): _sound_event("remote_shot","",at))
+    combat.bot_foot_contact.connect(func(at: Vector3,running: bool,stone: bool): _sound_event("remote_step","",at,running,stone))
+    combat.grenade_fuse_close.connect(func(_seconds: float): _sound_event("local","grenade_fuse"))
     combat.set_encounter_size(50)
     director.start_sector_battle()
     if director.mode!="sector_battle" or combat.active_fighter_count()!=50:
@@ -88,7 +114,13 @@ func _joined(id: int) -> void:
         return
     # A real extra physical pickup only in the isolated CI test room.
     # Never grant the weapon directly or enable this from a remote packet.
-    if OS.get_environment("AURORA_ONLINE_QA_FIXTURE")=="1":
+    _qa_fixture=OS.get_environment("AURORA_ONLINE_QA_FIXTURE")=="1"
+    if _qa_fixture:
+        # Isolate mechanical regression from randomly timed bot elimination.
+        # Only the private CI process activates this; normal matches retain damage.
+        # The same test ends with a real lethal server hit and rejects later actions.
+        operator._training_immunity=90.0
+        print("AURORA_ONLINE QA fixture: temporary non-environmental immunity")
         var at:=Vector2(operator.global_position.x,operator.global_position.z-3.2)
         director._make_pickup(at,"weapon_awm","OnlineQAPhysicalAWM")
         director._make_pickup(at,"grenade","OnlineQAPhysicalGrenade")
@@ -199,7 +231,43 @@ func _nearby_loot() -> Array[Dictionary]:
         found.resize(MAX_LOOT_SNAPSHOT)
     return found
 
+func _on_player_shot(weapon: int,_hit: bool) -> void:
+    if weapon>=0 and weapon<WEAPON_CATALOG.ENTRIES.size():
+        _sound_event("local",str(WEAPON_CATALOG.ENTRIES[weapon]["sample"]))
+
+func _on_player_reload() -> void:
+    if combat.weapon_index not in [WEAPON_CATALOG.MP40,WEAPON_CATALOG.P90]:
+        _sound_event("local","reload")
+
+func _sound_event(kind: String,sample: String,at: Vector3=Vector3.ZERO,running: bool=false,stone: bool=false) -> void:
+    if remote_id==0 or not is_instance_valid(operator) or director.match_ended:
+        return
+    if kind.begins_with("remote"):
+        var maximum: float=26.0 if kind=="remote_step" else (105.0 if kind=="remote_blast" else 150.0)
+        if not at.is_finite() or operator.global_position.distance_squared_to(at)>maximum*maximum:
+            return
+        # Audible direction only: quantize locations, never send actor IDs
+        # or continuous hidden-player tracking with a sound event.
+        at=at.snapped(Vector3(4.0,2.0,4.0))
+    sound_sequence+=1
+    _sounds.append({"seq":sound_sequence,"kind":kind,"sample":sample,
+        "at":at,"run":running,"stone":stone,"time":Time.get_ticks_msec()})
+    if _sounds.size()>SOUND_LIMIT:
+        _sounds.pop_front()
+
+func _sound_snapshot() -> Array[Dictionary]:
+    var now: int=Time.get_ticks_msec()
+    while not _sounds.is_empty() and now-int(_sounds[0].time)>SOUND_WINDOW_MS:
+        _sounds.pop_front()
+    var result: Array[Dictionary]=[]
+    for entry in _sounds:
+        var item: Dictionary=entry.duplicate()
+        item.erase("time")
+        result.append(item)
+    return result
+
 func _on_server_blast(at: Vector3) -> void:
+    _sound_event("remote_blast","",at)
     if at.is_finite() and operator.global_position.distance_squared_to(at)<=TACTICAL_RANGE*TACTICAL_RANGE:
         grenade_blasts+=1
         last_blast_position=at
@@ -219,9 +287,32 @@ func _tactical_snapshot() -> Dictionary:
         "blast_position":last_blast_position if Time.get_ticks_msec()-last_blast_ms<1000 else null,
         "cover_cooldown":combat.cover_cooldown}
 
+@rpc("authority","call_remote","unreliable_ordered",3)
+func receive_sound_batch(version: int,events: Array) -> void:
+    if version!=PROTOCOL or multiplayer.is_server():
+        return
+    last_sound_batch=events
+    pending_sounds.append_array(events)
+    if pending_sounds.size()>128:
+        pending_sounds=pending_sounds.slice(-128)
+
+func drain_sounds() -> Array:
+    var result: Array=pending_sounds
+    pending_sounds=[]
+    return result
+
+func _send_sound_batches() -> void:
+    var events: Array[Dictionary]=_sound_snapshot()
+    for start in range(0,events.size(),SOUND_BATCH):
+        var batch: Array=events.slice(start,mini(start+SOUND_BATCH,events.size()))
+        # Inspect serialized variant size; reserve margin for RPC/ENet headers.
+        var bytes: int=var_to_bytes(batch).size()
+        max_sound_bytes=maxi(max_sound_bytes,bytes)
+        receive_sound_batch.rpc_id(remote_id,PROTOCOL,batch)
+
 @rpc("authority","call_remote","unreliable_ordered",2)
 func receive_state(version: int,data: Dictionary) -> void:
-    if version==PROTOCOL and not multiplayer.is_server():
+    if version==PROTOCOL and not multiplayer.is_server() and int(data.get("snapshot_id",0))>int(state.get("snapshot_id",0)):
         state=data
 
 func _physics_process(delta: float) -> void:
@@ -241,6 +332,11 @@ func _physics_process(delta: float) -> void:
             else:
                 combat._on_fire_released()
             previous_fire=fire
+    # CI-only end-of-round regression after input timeout, independent of
+    # tactical placement. Uses the real damage and elimination code path.
+    if _qa_fixture and not _qa_end_verified and action_applied>=10 and last_input_ms>0 and Time.get_ticks_msec()-last_input_ms>3000:
+        _qa_end_verified=true
+        operator.receive_training_hit(operator.MAX_HEALTH,true)
     _send_clock+=delta
     if _send_clock>=.1:
         _send_clock=fmod(_send_clock,.1)
@@ -255,7 +351,10 @@ func _physics_process(delta: float) -> void:
                     "position":actor.global_position,"yaw":actor.rotation.y,
                     "clip":str(actor._clip)})
         # Private development snapshot: no hidden enemy coordinates.
+        snapshot_sequence+=1
         receive_state.rpc_id(remote_id,PROTOCOL,{
+            "snapshot_id":snapshot_sequence,"eliminated":operator.royale_eliminated,
+            "cover_reason":combat.cover_last_block_reason,"sound_payload_peak":max_sound_bytes,
             "position":operator.global_position,"velocity":operator.velocity,
             "body_yaw":operator.rotation.y,"clip":str(operator._current_clip),
             "rivals":rivals,"ended":director.match_ended,
@@ -273,3 +372,4 @@ func _physics_process(delta: float) -> void:
             "shots":combat.shots_fired_total,"zone_center":director.zone_center,
             "zone_radius":director.radius,"elapsed":director.elapsed,
             "accepted":accepted,"rejected":rejected,"ack":last_sequence})
+        _send_sound_batches()
