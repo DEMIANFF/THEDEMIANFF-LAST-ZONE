@@ -9,6 +9,8 @@ const PRIVATE_SHA: String="c9b755349a4dc2692f45f3bec1918001d72a05f01b3bcad4aff40
 const SLOTS: Array[int]=[WEAPONS.AR,WEAPONS.AWM,WEAPONS.SCAR,WEAPONS.MP40,WEAPONS.KRISS,WEAPONS.P90]
 const POSES: Array[String]=["AuroraArmedIdle","AuroraAim","AuroraCrouch","AuroraArmedWalk"]
 const DIGITS: Array[String]=["Index","Middle","Ring","Pinky"]
+const SLEEVE_SHA: String="a98b6cca5b51fff38ff1570704dedbe58b4be90edbc84f0685b9bd282d74e6b1"
+var candidate_digest: String=""
 var failed: bool=false
 var latest: Dictionary={}
 var results: Array[Dictionary]=[]
@@ -24,9 +26,10 @@ func check(ok: bool, reason: String) -> void:
         push_error("LILA_ARMORY_REVIEW "+reason)
 
 func _private_scene(path: String) -> PackedScene:
-    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path)!=PRIVATE_SHA:
+    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path) not in [PRIVATE_SHA,SLEEVE_SHA]:
         push_error("LILA_ARMORY_REVIEW candidate missing or wrong SHA")
         return null
+    candidate_digest=FileAccess.get_sha256(path)
     var doc:=GLTFDocument.new()
     var state:=GLTFState.new()
     if doc.append_from_file(path,state)!=OK:
@@ -190,7 +193,7 @@ func _review() -> void:
             results.append(row)
     check(results.size()==SLOTS.size()*POSES.size(),"incomplete weapon/pose matrix")
     print("LILA_ARMORY_REVIEW_JSON ",JSON.stringify({"baseline":baseline,
-        "candidate_sha256":"" if baseline else PRIVATE_SHA,
+        "candidate_sha256":"" if baseline else candidate_digest,
         "experimental_palm":use_palm,"production_approved":false,"poses":results,"pass":not failed}))
     stage.queue_free()
     await process_frame

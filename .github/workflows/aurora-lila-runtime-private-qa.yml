@@ -1,7 +1,7 @@
 name: Lila private runtime contract QA
 on:
   push:
-    branches: [codex/v75-198-lila-rev5-hand-refit]
+    branches: [codex/v75-198-lila-rev6-sleeve-refit]
   workflow_dispatch:
 permissions:
   contents: read
