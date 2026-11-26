@@ -1,0 +1,5 @@
+# Entorno de revisión local de Lila privada
+
+Base PR #210, CI 45820606922 success. El repositorio es público; no se deben publicar los GLB privados Rev2–9 ni introducirlos en artifacts públicos. Se comprobó que se puede descargar un artifact de GitHub Actions mediante el conector (15114980577, logs de baseline). Para superar el bloqueo de descarga directa del editor local se añade un workflow separado sin exportación Android, firma, Firebase, secrets ni modificación de modelos.
+
+Dos jobs: descarga del editor oficial Godot 4.7.2 Linux x86_64, verificación ZIP y versión; preparación de los recursos públicos y generados CC0 siguiendo exactamente los pasos de CI existentes. git archive limita el proyecto a archivos rastreados públicos, más los dos GLB generados explícitamente. Artifacts independientes, retención 1 día, manifiestos SHA256 de transporte (no prueba independiente de autenticidad del editor). El binario privado se conserva localmente y se usa con run_private_lila_review.sh tras importar el proyecto. No se certifica que la descarga de artifacts grandes o el motor funcionen aún; no es una APK ni una integración de producción.

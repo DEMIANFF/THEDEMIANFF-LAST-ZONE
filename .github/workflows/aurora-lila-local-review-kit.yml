@@ -1,0 +1,196 @@
+name: Public Godot review kit for private Lila testing
+on:
+  push:
+    branches: [codex/v75-198-lila-local-godot-review-kit]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  engine:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Retrieve official Godot 4.7.2 Linux editor
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lila-engine"
+          cd "$RUNNER_TEMP/lila-engine"
+          release='https://github.com/godotengine/godot/releases/download/4.7.2-stable'
+          name='Godot_v4.7.2-stable_linux.x86_64.zip'
+          curl --fail --location --retry 3 --retry-delay 2 "$release/$name" -o "$name"
+          unzip -tq "$name"
+          sha256sum "$name" > SHA256SUMS
+          unzip -q "$name" -d "$RUNNER_TEMP/godot-engine-test"
+          "$RUNNER_TEMP/godot-engine-test/Godot_v4.7.2-stable_linux.x86_64" --headless --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GODOT-4.7.2-LINUX-LOCAL-REVIEW
+          path: ${{ runner.temp }}/lila-engine/
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+  project:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      # Generated CC0 models depend only on the pinned source and converter.
+      # On retries use validated cached GLBs; never repeat a large Blender
+      # installation when the exact source scripts are unchanged.
+      - name: Cache reproducible Aurora model GLBs
+        id: aurora-model-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            native-godot/assets/characters/aurora_operator.glb
+            native-godot/assets/weapons/aurora_awm.glb
+          key: aurora-godot472-original-glbs-v1-${{ hashFiles('native-godot/tools/fetch_operator.sh', 'native-godot/tools/convert_operator.py', 'native-godot/tools/build_awm.py') }}
+          # Caches save automatically after successful jobs; no deprecated flag.
+      - name: Prepare CC0 detailed AI rig source (pinned and verified)
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
+        run: bash native-godot/tools/fetch_operator.sh /tmp/aurora-operator
+      - name: Install official Blender 4.0.2 portable archive (no apt install)
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
+        run: |
+          set -euo pipefail
+          # Ubuntu's apt-get Blender installation timed out repeatedly.
+          # Use Blender's exact 4.0.2 official standalone Linux build instead.
+          # Check the archive against the official SHA-256 release manifest.
+          name="blender-4.0.2-linux-x64.tar.xz"
+          version_manifest="blender-4.0.2.sha256"
+          primary="https://download.blender.org/release/Blender4.0"
+          backup="https://ftp.blender.org/release/Blender4.0"
+          download() {
+            local filename="$1"
+            local output="$2"
+            if ! curl --fail --location --silent --show-error --retry 2 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 480 "$primary/$filename" -o "$output"; then
+              rm -f "$output"
+              curl --fail --location --silent --show-error --retry 2 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 480 "$backup/$filename" -o "$output"
+            fi
+          }
+          cd /tmp
+          download "$name" "$name"
+          download "$version_manifest" "$version_manifest"
+          test "$(stat -c '%s' "$name")" -eq 277588768
+          grep -F "$name" "$version_manifest" | sha256sum --check --status
+          echo "AURORA_OFFICIAL_BLENDER_SHA256_PASS blender=4.0.2"
+          mkdir -p /tmp/aurora-blender
+          tar -xJf "$name" -C /tmp/aurora-blender
+          bin="/tmp/aurora-blender/blender-4.0.2-linux-x64"
+          test -x "$bin/blender"
+          "$bin/blender" --background --version | head -n 2
+          echo "$bin" >> "$GITHUB_PATH"
+          rm -f "/tmp/$name" "/tmp/$version_manifest"
+      - name: Generate the detailed AI rig from verified CC0 source
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
+        run: |
+          blender -b --python native-godot/tools/convert_operator.py -- \
+            /tmp/aurora-operator/attractor_mechanic_tpose.fbx \
+            /tmp/aurora-operator/attractor_mechanic_tpose.png \
+            native-godot/assets/characters/aurora_operator.glb
+          python3 - <<'PY'
+          import json,struct
+          from pathlib import Path
+          f=Path('native-godot/assets/characters/aurora_operator.glb')
+          data=f.read_bytes()
+          magic,ver,total=struct.unpack_from('<III',data)
+          assert magic==0x46546c67 and ver==2 and total==len(data)
+          chunk_length,chunk_type=struct.unpack_from('<II',data,12)
+          assert chunk_type==0x4e4f534a
+          scene=json.loads(data[20:20+chunk_length])
+          print('Skinned GLB:',f.stat().st_size,'bytes',len(scene.get('skins',[])),'skins',len(scene.get('animations',[])),'clips',len(scene.get('meshes',[])),'meshes')
+          assert len(scene.get('skins',[]))>=1,'Rigged character has no skin'
+          assert len(scene.get('animations',[]))>=1,'Character has no animation clips'
+          animation_names={anim.get('name','') for anim in scene.get('animations',[])}
+          for required in ('AuroraArmedStrafeLeft','AuroraArmedStrafeRight','AuroraArmedBackpedal'):
+              assert any(required in name for name in animation_names), (
+                  'The original skinned tactical locomotion clip is missing: '+required)
+          print('LILA_DIRECTIONAL_ANIMATION_GLTF_PASS',sorted(
+              a for a in animation_names if 'Strafe' in a or 'Backpedal' in a))
+          impact_clips=('AuroraHitFront','AuroraHitBack',
+                        'AuroraHitLeft','AuroraHitRight','AuroraFireAWM')
+          for required in impact_clips:
+              assert any(required in name for name in animation_names), (
+                  'Direction-aware physical combat animation not in GLB: '+required)
+          print('LILA_IMPACT_RECOIL_GLTF_PASS',len(impact_clips),'skinned clips')
+          kit_meshes=[m for m in scene.get('meshes',[])
+                      if 'LilaAuroraSignature' in m.get('name','')]
+          kit_nodes=[n for n in scene.get('nodes',[])
+                     if n.get('name')=='LilaAuroraSignatureKit']
+          kit_mats=[m for m in scene.get('materials',[])
+                    if m.get('name','').startswith('LilaAurora') and
+                       not m.get('name','').startswith('LilaAuroraHair')]
+          assert len(kit_meshes)==1,'Lila original tactical kit is absent'
+          assert len(kit_nodes)==1 and 'skin' in kit_nodes[0],\
+              'Lila kit is not weighted to original humanoid skeleton'
+          assert len(kit_mats)==3,'Lila signature needs three shared PBR materials'
+          kit_vertices=sum(scene['accessors'][p['attributes']['POSITION']]['count']
+                           for p in kit_meshes[0]['primitives'])
+          assert 152<=kit_vertices<=1500, 'Lila original kit geometry too large or missing'
+          hair_meshes=[m for m in scene.get('meshes',[])
+                       if 'LilaAuroraHairSculpt' in m.get('name','')]
+          hair_nodes=[n for n in scene.get('nodes',[])
+                      if n.get('name')=='LilaAuroraOriginalHair']
+          hair_mats=[m for m in scene.get('materials',[])
+                     if m.get('name','').startswith('LilaAuroraHair')]
+          assert len(hair_meshes)==1, 'Original Lila curved hair mesh was not exported'
+          assert len(hair_nodes)==1 and 'skin' in hair_nodes[0], \
+              'Lila hairstyle is not weighted to the humanoid armature'
+          assert len(hair_mats)==3,'Lila sculpted hair needs 3 original PBR materials'
+          hair_vertices=sum(scene['accessors'][p['attributes']['POSITION']]['count']
+                            for p in hair_meshes[0]['primitives'])
+          assert 1200<=hair_vertices<=12000, 'Lila mobile hair vertex budget violated'
+          print('LILA_SIGNATURE_GLTF_PASS',len(kit_nodes),'skinned armor,',
+                kit_vertices,'vertices,',len(kit_mats),'materials')
+          print('LILA_HAIR_GLTF_PASS',len(hair_nodes),'skinned hairstyle,',
+                hair_vertices,'vertices,',len(hair_mats),'materials')
+          PY
+      - name: Build original AWM GLB from authored Blender mesh
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
+        run: |
+          blender --background --python native-godot/tools/build_awm.py -- native-godot/assets/weapons/aurora_awm.glb
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,struct
+          p=Path('native-godot/assets/weapons/aurora_awm.glb')
+          blob=p.read_bytes()
+          magic,version,length=struct.unpack_from('<III',blob)
+          assert (magic,version,length)==(0x46546c67,2,len(blob))
+          n,t=struct.unpack_from('<II',blob,12)
+          assert t==0x4e4f534a
+          payload=json.loads(blob[20:20+n])
+          print('ORIGINAL_AWM_MESH',len(payload.get('meshes',[])),'GLB_BYTES',p.stat().st_size)
+          assert len(payload.get('meshes',[]))>=32, 'AWM missing real modelling detail'
+          PY
+      - name: Verify cached or generated GLBs against Aurora rig requirements
+        run: python3 native-godot/tools/verify_prepared_model_glbs.py
+      - name: Package only public tracked project and generated CC0 assets
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lila-project/stage" "$RUNNER_TEMP/lila-project/output"
+          git archive HEAD native-godot | tar -xf - -C "$RUNNER_TEMP/lila-project/stage"
+          for asset in assets/characters/aurora_operator.glb assets/weapons/aurora_awm.glb; do
+            install -D -m 0644 "native-godot/$asset" "$RUNNER_TEMP/lila-project/stage/native-godot/$asset"
+          done
+          cd "$RUNNER_TEMP/lila-project/stage"
+          # Explicitly reject private/signing material; never copy the working
+          # tree, environment, user data, CI credentials or Android build outputs.
+          if find . -type f \( -iname '*.jks' -o -iname '*.keystore' -o -iname '*.p12' -o -iname '*.pem' -o -name 'google-services.json' -o -name '.env' \) | grep -q .; then
+            echo "Sensitive filename detected"; exit 1
+          fi
+          test -s native-godot/assets/characters/lila_aurora.glb
+          test -s native-godot/assets/characters/aurora_operator.glb
+          test -s native-godot/assets/weapons/aurora_awm.glb
+          printf '%s\n' "$GITHUB_SHA" > SOURCE_COMMIT
+          tar -czf ../output/THEDEMIAN-public-review-project.tar.gz native-godot SOURCE_COMMIT
+          cd ../output
+          sha256sum THEDEMIAN-public-review-project.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: THEDEMIAN-PUBLIC-LOCAL-REVIEW-PROJECT
+          path: ${{ runner.temp }}/lila-project/output/
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
