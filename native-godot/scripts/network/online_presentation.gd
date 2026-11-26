@@ -46,6 +46,7 @@ var _heal: Button
 var _aim: Button
 var _last_shots: int=-1
 var _was_reloading: bool=false
+var _was_duel_healing: bool=false
 var target_positions: Dictionary={}
 var target_yaws: Dictionary={}
 var rig_source: PackedScene
@@ -366,6 +367,12 @@ func _sync_inventory(data: Dictionary) -> void:
         operator.cancel_reload_action()
         weapon_visuals.finish_source_reload(weapon)
     _was_reloading=reloading
+    var medical: bool=bool(data.get("dual_loot",false)) and float(data.get("heal_remaining",0.0))>0.0
+    if medical and not _was_duel_healing:
+        operator.play_weapon_action("heal",float(data.heal_remaining))
+    elif not medical and _was_duel_healing:
+        operator.cancel_medical_action()
+    _was_duel_healing=medical
     var shots: int=int(data.shots)
     if _last_shots>=0 and shots>_last_shots:
         operator.play_weapon_action("fire",.10)
@@ -450,7 +457,7 @@ func _release_aircraft_visual() -> void:
         flight_visual.queue_free()
     flight_visual=null
 
-func _sync_waiting(mode: String,duel_playable: bool=false) -> void:
+func _sync_waiting(mode: String,duel_playable: bool=false,duel_medical: bool=false) -> void:
     if mode=="waiting":
         if not is_instance_valid(waiting_visual):
             waiting_visual=WAITING_ISLAND.new()
@@ -462,7 +469,7 @@ func _sync_waiting(mode: String,duel_playable: bool=false) -> void:
         _reload.visible=duel_playable
         _crouch.hide()
         _weapon.hide()
-        _heal.hide()
+        _heal.visible=duel_medical
         _aim.hide()
         _grenade.hide()
         _cover.hide()
@@ -538,7 +545,7 @@ func apply_snapshot(data: Dictionary) -> void:
     var duel: bool=bool(data.get("dual_combat",false))
     var duel_playable: bool=duel and bool(data.get("duel_ready",false)) and not bool(data.get("ended",false))
     _sync_air_presentation(air,match_mode!="waiting" or duel_playable)
-    _sync_waiting(match_mode,duel_playable)
+    _sync_waiting(match_mode,duel_playable,duel_playable and bool(data.get("dual_loot",false)))
     var previous_ride: int=_ride_id
     _sync_vehicles(data.get("vehicles",{}))
     if previous_ride!=_ride_id:
@@ -614,6 +621,9 @@ func apply_snapshot(data: Dictionary) -> void:
             _status.text="DUELO LOCAL · HP %d · AR %d/%d · BAJAS %d"%[roundi(float(data.health)),int(data.ammo),int(data.reserve),int(data.get("kills",0))]
             if bool(data.get("dual_loot",false)):
                 _status.text+=" · BOTIQUINES %d"%int(data.inventory.medkits)
+                if float(data.get("heal_remaining",0.0))>0.0:
+                    _status.text+=" · CURANDO %.1fs"%float(data.heal_remaining)
+                    _heal.text="CURANDO %.1fs"%float(data.heal_remaining)
         elif bool(data.get("dual_waiting",false)):
             _status.text="SALA DE RED · %d/2 JUGADORES · SIN COMBATE"%int(data.get("waiting_ready",1))
         else:
@@ -625,6 +635,9 @@ func apply_snapshot(data: Dictionary) -> void:
     applied_snapshot_id=int(data.get("snapshot_id",0))
 
 func _clear_remote() -> void:
+    if _was_duel_healing:
+        operator.cancel_medical_action()
+        _was_duel_healing=false
     firing=false
     _fire_pad.hide()
     _fire_pad.reset()

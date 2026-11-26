@@ -2,7 +2,9 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=20
+const PROTOCOL: int=21
+const DUAL_HEAL_SECONDS: float=3.0
+const DUAL_HEAL_HP: float=45.0
 const SHARED_LOOT=preload("res://scripts/match/aurora_loot.gd")
 var dual_loot: bool=false
 var _dual_loot_nodes: Array[Area3D]=[]
@@ -441,7 +443,8 @@ func _dual_joined(id: int) -> void:
         "fire":false,"ammo":int(WEAPON_CATALOG.ENTRIES[WEAPON_CATALOG.AR].capacity),
         "reserve":90,"shots":0,"hits":0,"kills":0,"reload_pending":false,
         "reload_remaining":0.0,"reloads":0,"fire_clock":0.0,"audio_seq":0,
-        "medkits":0,"loot_claims":0,"heal_pending":false,"heal_remaining":0.0}
+        "medkits":0,"loot_claims":0,"heal_pending":false,"heal_remaining":0.0,
+        "heal_anchor":home,"heal_completed":0,"heal_cancelled":0,"heal_gained":0.0}
     _dual_admitted+=1
     if dual_loot and dual_peers.size()==2:
         _spawn_dual_loot()
@@ -555,7 +558,7 @@ func _dual_action(version: int,request_id: int,action: int) -> void:
         peer.action_rejected+=1
         return
     if dual_loot and action==ACTION_HEAL:
-        if now-int(peer.input_ms)>INPUT_TIMEOUT_MS or bool(peer.heal_pending) or float(peer.heal_remaining)>0.0 or int(peer.medkits)<=0 or float(peer.actor.training_health)>=peer.actor.MAX_HEALTH:
+        if now-int(peer.input_ms)>INPUT_TIMEOUT_MS or bool(peer.heal_pending) or float(peer.heal_remaining)>0.0 or int(peer.medkits)<=0 or float(peer.actor.training_health)>=peer.actor.MAX_HEALTH or bool(peer.fire) or bool(peer.run) or (peer.axis as Vector2).length_squared()>.01 or float(peer.reload_remaining)>0.0 or bool(peer.reload_pending):
             peer.action_rejected+=1
             return
         peer.heal_pending=true
@@ -595,6 +598,14 @@ func _dual_sound_action(id: int,local_sample: String,remote_kind: String,at: Vec
         if other_id!=id:
             _dual_sound(int(other_id),remote_kind,local_sample,at)
 
+func _dual_cancel_heal(peer: Dictionary,reason: String) -> void:
+    if float(peer.heal_remaining)<=0.0:
+        return
+    peer.heal_remaining=0.0
+    peer.heal_cancelled+=1
+    peer.actor.cancel_medical_action()
+    print("V75241_SERVER_HEAL_CANCEL reason=",reason," medkits=",peer.medkits)
+
 func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> void:
     var actor: CharacterBody3D=peer.actor
     var ready: bool=dual_peers.size()==2 and not _dual_finished and actor.can_act()
@@ -603,25 +614,35 @@ func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> voi
         peer.reload_pending=false
         peer.reload_remaining=0.0
         peer.heal_pending=false
-        peer.heal_remaining=0.0
+        _dual_cancel_heal(peer,"round_end")
         actor.set_firing(false)
         return
     if bool(peer.heal_pending):
         peer.heal_pending=false
-        if int(peer.medkits)>0 and actor.training_health<actor.MAX_HEALTH and float(peer.reload_remaining)<=0.0 and not bool(peer.reload_pending):
-            peer.medkits-=1
-            peer.heal_remaining=2.5
+        if fresh and int(peer.medkits)>0 and actor.training_health<actor.MAX_HEALTH and float(peer.reload_remaining)<=0.0 and not bool(peer.reload_pending) and not bool(peer.fire) and not bool(peer.run) and (peer.axis as Vector2).length_squared()<=.01 and Vector2(actor.velocity.x,actor.velocity.z).length_squared()<=.49:
+            peer.heal_remaining=DUAL_HEAL_SECONDS
+            peer.heal_anchor=actor.global_position
             peer.action_applied+=1
-            actor.play_weapon_action("heal",2.5)
+            actor.play_weapon_action("heal",DUAL_HEAL_SECONDS)
         else:
             peer.action_rejected+=1
     if float(peer.heal_remaining)>0.0:
-        peer.heal_remaining=maxf(0.0,float(peer.heal_remaining)-delta)
-        if float(peer.heal_remaining)<=0.0:
-            actor.receive_training_heal(75.0)
-            _dual_sound(id,"local","heal")
-        actor.set_firing(false)
-        return
+        if not fresh or bool(peer.fire) or bool(peer.run) or bool(peer.reload_pending) or (peer.axis as Vector2).length_squared()>.01 or actor.global_position.distance_squared_to(peer.heal_anchor)>.36:
+            _dual_cancel_heal(peer,"input_or_movement")
+        else:
+            peer.heal_remaining=maxf(0.0,float(peer.heal_remaining)-delta)
+            if float(peer.heal_remaining)<=0.0:
+                actor.cancel_medical_action()
+                if int(peer.medkits)>0 and actor.training_health<actor.MAX_HEALTH:
+                    var before: float=actor.training_health
+                    peer.medkits-=1
+                    actor.receive_training_heal(DUAL_HEAL_HP)
+                    peer.heal_gained=actor.training_health-before
+                    peer.heal_completed+=1
+                    _dual_sound(id,"local","heal")
+                    print("V75241_SERVER_HEAL peer=",id," before=",before," after=",actor.training_health," gained=",peer.heal_gained," medkits=",peer.medkits)
+            actor.set_firing(false)
+            return
     var spec: Dictionary=WEAPON_CATALOG.ENTRIES[WEAPON_CATALOG.AR]
     peer.fire_clock=maxf(0.0,float(peer.fire_clock)-delta)
     if bool(peer.reload_pending):
@@ -665,6 +686,7 @@ func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> voi
         var old_hp: float=target.training_health
         target.receive_training_hit(float(spec.damage),false,origin,impact.position)
         if target.training_health<old_hp:
+            _dual_cancel_heal(dual_peers[other_id],"damage")
             peer.hits+=1
             _dual_sound(id,"local","impact")
             _dual_sound(int(other_id),"local","hit")
@@ -692,6 +714,7 @@ func _dual_tick(delta: float) -> void:
         actor._desired_pitch=float(peer.pitch)
         if bool(peer.jump_pending):
             if fresh and actor.can_act():
+                _dual_cancel_heal(peer,"jump")
                 actor.touch_jump()
                 peer.action_applied+=1
             else:
@@ -720,19 +743,23 @@ func _dual_tick(delta: float) -> void:
             # The isolated open platform has no hidden combat roster.
             var clip: String=str(other._current_clip)
             if dual_combat:
-                if float(dual_peers[other_id].reload_remaining)>0.0:
+                if float(dual_peers[other_id].heal_remaining)>0.0:
+                    clip="AuroraHeal"
+                elif float(dual_peers[other_id].reload_remaining)>0.0:
                     clip="AuroraReloadAR"
                 elif bool(dual_peers[other_id].fire) and not _dual_finished:
                     clip="AuroraFire"
             rivals.append({"id":other_id,"position":other.global_position,
                 "yaw":other.rotation.y,"clip":clip,
-                "weapon":WEAPON_CATALOG.AR if dual_combat else -1,"waiting":not dual_combat,"human":true})
+                "weapon":WEAPON_CATALOG.AR if dual_combat else -1,"waiting":not dual_combat,"human":true,
+                "medical":float(dual_peers[other_id].heal_remaining)>0.0})
         var alive: int=0
         for participant in dual_peers.values():
             alive+=0 if participant.actor.royale_eliminated else 1
         _send_world_state({"snapshot_id":snapshot_sequence,"self_peer":id,"dual_waiting":true,"dual_combat":dual_combat,"dual_loot":dual_loot,
             "duel_loot_claims":peer.loot_claims,"duel_world_claims":_dual_loot_claims,
-            "heal_remaining":peer.heal_remaining,
+            "heal_remaining":peer.heal_remaining,"heal_completed":peer.heal_completed,
+            "heal_cancelled":peer.heal_cancelled,"heal_gained":peer.heal_gained,
             "duel_ready":dual_peers.size()==2 and not _dual_finished,"duel_winner":_dual_winner,
             "hits":peer.hits,"kills":peer.kills,"reloads":peer.reloads,"duel_audio_sent":peer.audio_seq,
             "position":actor.global_position,"velocity":actor.velocity,"body_yaw":actor.rotation.y,
