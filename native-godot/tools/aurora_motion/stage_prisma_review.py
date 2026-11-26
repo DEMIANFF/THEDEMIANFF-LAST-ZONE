@@ -26,6 +26,50 @@ EXPECTED.update({"ReviewPrisma_Legs_" + name: (COUNTS[name], LEG_NAMES)
                  for name in ("locomocion_a", "locomocion_b", "locomocion_c", "carrera_rapida")})
 
 
+# Inclusive first/last samples from the SHA-pinned private review bank.
+# Chosen by forward-kinematic ankle/toe separation, alternating strides,
+# endpoint orientation and endpoint velocity; not a claim of visual approval.
+GAIT_WINDOWS = {
+    "locomocion_a": (91, 114),
+    "locomocion_b": (70, 125),
+    "locomocion_c": (15, 61),
+    "carrera_rapida": (22, 40),
+}
+
+
+def extract_gait_cycles(bank):
+    clips = {c["name"]: c for c in bank["clips"]}
+    result = []
+    for name, (first, last) in GAIT_WINDOWS.items():
+        source = clips["ReviewPrisma_Legs_" + name]
+        times = source["times"][first:last+1]
+        if len(times) != last-first+1 or len(times) < 2:
+            raise ValueError("Incomplete gait window")
+        t0 = times[0]
+        tracks = []
+        for track in source["tracks"]:
+            rows = [list(v) for v in track["values"][first:last+1]]
+            if len(rows) != len(times):
+                raise ValueError("Incomplete gait track")
+            if track["path"] == "rotation":
+                dot = sum(a*b for a,b in zip(rows[0], rows[-1]))
+                angle = 2*math.acos(min(1., abs(dot)))
+                if angle > math.radians(.25):
+                    raise ValueError("Gait seam too far apart")
+                # Correct sub-degree floating-point seam, keeping hemisphere
+                # continuous with the penultimate key.
+                sign = -1. if sum(a*b for a,b in zip(rows[0], rows[-2])) < 0 else 1.
+                rows[-1] = [sign*v for v in rows[0]]
+            else:
+                if math.dist(rows[0], rows[-1]) > .0001:
+                    raise ValueError("Pelvis seam too far apart")
+                rows[-1] = rows[0].copy()
+            tracks.append({"bone": track["bone"], "path": track["path"], "values": rows})
+        result.append({"name": "ReviewPrisma_Cycle_" + name,
+                       "times": [t-t0 for t in times], "tracks": tracks})
+    return result
+
+
 def parse_glb(raw):
     magic, version, size, jlen, kind = struct.unpack_from("<5I", raw)
     if (magic, version, size, kind) != (0x46546c67, 2, len(raw), 0x4e4f534a):
@@ -38,7 +82,7 @@ def parse_glb(raw):
     return document, data
 
 
-def merge_private_bank(document, original_binary, bank):
+def merge_private_bank(document, original_binary, bank, gait_cycles=False):
     if (bank.get("schema") != "aurora-lila-private-review-v1"
             or bank.get("source_sha256") != SOURCE_SHA
             or bank.get("lila_source_sha256") != LILA_SHA
@@ -51,12 +95,17 @@ def merge_private_bank(document, original_binary, bank):
     clips = bank["clips"]
     if len(clips) != len(EXPECTED) or {c["name"] for c in clips} != set(EXPECTED):
         raise ValueError("Incomplete or duplicate review clips")
+    expected = dict(EXPECTED)
+    if gait_cycles:
+        for clip in extract_gait_cycles(bank):
+            expected[clip["name"]] = (len(clip["times"]), LEG_NAMES)
+            clips = [*clips, clip]
     current = {c["name"] for c in document["animations"]}
-    if current.intersection(EXPECTED):
+    if current.intersection(expected):
         raise ValueError("Refusing to overwrite an existing review clip")
     # Validate EVERYTHING before mutating the output document.
     for clip in clips:
-        count, required = EXPECTED[clip["name"]]
+        count, required = expected[clip["name"]]
         times = clip["times"]
         if (len(times) != count or times[0] != 0 or
                 not all(math.isfinite(t) for t in times) or
@@ -113,24 +162,26 @@ def merge_private_bank(document, original_binary, bank):
     document["buffers"][0]["byteLength"] = len(data)
     document["asset"].setdefault("extras", {})["private_prisma_review"] = {
         "source_sha256": SOURCE_SHA, "bank_sha256": BANK_SHA,
-        "review_only": True, "production_approved": False}
+        "review_only": True, "production_approved": False,
+        "gait_cycle_candidates": len(GAIT_WINDOWS) if gait_cycles else 0}
     j = json.dumps(document, separators=(",", ":")).encode()
     j += b" " * (-len(j) % 4)
     return (struct.pack("<5I", 0x46546c67, 2, 28+len(j)+len(data), len(j), 0x4e4f534a)
             + j + struct.pack("<2I", len(data), 0x004e4942) + data)
 
 
-def prepare(bank_path, target, output):
+def prepare(bank_path, target, output, gait_cycles=False):
     if target.resolve() == output.resolve() or output.exists():
         raise FileExistsError("Private output must be a new file, never the original")
     raw = bank_path.read_bytes()
     if hashlib.sha256(raw).hexdigest() != BANK_SHA:
         raise ValueError("Private motion bank SHA mismatch")
     document, data = parse_glb(target.read_bytes())
-    result = merge_private_bank(document, data, json.loads(raw))
+    result = merge_private_bank(document, data, json.loads(raw), gait_cycles)
     with output.open("xb") as stream:
         stream.write(result)
-    return {"review_clips": len(EXPECTED), "production_approved": False,
+    return {"review_clips": len(EXPECTED) + (len(GAIT_WINDOWS) if gait_cycles else 0),
+            "production_approved": False,
             "output_sha256": hashlib.sha256(result).hexdigest()}
 
 
@@ -139,5 +190,7 @@ if __name__ == "__main__":
     p.add_argument("--bank", type=Path, required=True)
     p.add_argument("--target", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--gait-cycles", action="store_true",
+                   help="Append four periodic lower-body candidates to private review")
     a = p.parse_args()
-    print(json.dumps(prepare(a.bank, a.target, a.output), indent=2))
+    print(json.dumps(prepare(a.bank, a.target, a.output, a.gait_cycles), indent=2))

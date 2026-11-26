@@ -56,5 +56,40 @@ class PrivateReviewTest(unittest.TestCase):
             stage.merge_private_bank(self.document, b"ABCD", self.bank)
 
 
+class GaitCycleTest(unittest.TestCase):
+    def fixture(self):
+        source = {"name": "ReviewPrisma_Legs_fixture", "times": [0., .1, .2, .3],
+                  "tracks": [{"bone": "Hips", "path": "translation",
+                              "values": [[0,0,0],[0,.01,0],[0,.02,0],[0,0,0]]},
+                             {"bone": "LeftLeg", "path": "rotation",
+                              "values": [[0,0,0,1],[.6,0,0,.8],[0,0,0,-1],[0,0,0,-1]]}]}
+        return {"clips": [source]}
+
+    def test_periodic_clip_exact_seam_and_non_mutation(self):
+        bank = self.fixture()
+        before = copy.deepcopy(bank)
+        with patch.object(stage, "GAIT_WINDOWS", {"fixture": (0,3)}):
+            cycle = stage.extract_gait_cycles(bank)[0]
+        self.assertEqual(bank, before)
+        self.assertEqual(cycle["times"], [0., .1, .2, .3])
+        self.assertEqual(cycle["tracks"][0]["values"][0], cycle["tracks"][0]["values"][-1])
+        self.assertEqual(cycle["tracks"][1]["values"][-1], [0,0,0,-1])
+        self.assertEqual(cycle["name"], "ReviewPrisma_Cycle_fixture")
+
+    def test_bad_pose_seam_rejected(self):
+        bank = self.fixture()
+        bank["clips"][0]["tracks"][1]["values"][-1] = [.6,0,0,.8]
+        with patch.object(stage, "GAIT_WINDOWS", {"fixture": (0,3)}):
+            with self.assertRaises(ValueError):
+                stage.extract_gait_cycles(bank)
+
+    def test_bad_pelvis_seam_rejected(self):
+        bank = self.fixture()
+        bank["clips"][0]["tracks"][0]["values"][-1][1] = .1
+        with patch.object(stage, "GAIT_WINDOWS", {"fixture": (0,3)}):
+            with self.assertRaises(ValueError):
+                stage.extract_gait_cycles(bank)
+
+
 if __name__ == "__main__":
     unittest.main()
