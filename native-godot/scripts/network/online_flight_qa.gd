@@ -32,6 +32,16 @@ func _waiting_rival_visible(session: Node,view: Node) -> bool:
             return true
     return false
 
+# ENet reception and presentation run in separate callbacks. Test the
+# exact received snapshot after its visual commit, with a bounded deadline.
+func _await_presented(view: Node,id: int) -> bool:
+    var deadline: int=Time.get_ticks_msec()+350
+    while Time.get_ticks_msec()<deadline:
+        if view._has_state and view.applied_snapshot_id>=id:
+            return true
+        await process_frame
+    return false
+
 func _verify() -> void:
     var world: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
     world.online_presentation_only=true
@@ -53,9 +63,10 @@ func _verify() -> void:
         push_error("V75232 missing waiting island")
         quit(1)
         return
+    var waiting_applied: bool=await _await_presented(view,int(session.state.snapshot_id))
     var waiting_start: Vector3=session.state.position
     var time_start: float=float(session.state.waiting_remaining)
-    var island_ok: bool=is_instance_valid(view.waiting_visual) and not view.waiting_visual.physical and not view.zone.visible and not view._fire_pad.visible and not view._reload.visible
+    var island_ok: bool=waiting_applied and is_instance_valid(view.waiting_visual) and not view.waiting_visual.physical and not view.zone.visible and not view._fire_pad.visible and not view._reload.visible
     view.move_axis=Vector2(0,-1)
     await create_timer(.65).timeout
     view.move_axis=Vector2.ZERO
@@ -93,12 +104,17 @@ func _verify() -> void:
                         walking=true
         if view._has_state and session.state.get("air_mode","")=="aircraft":
             break
-    var roster_cleared: bool=session.state.rivals.is_empty() and view.replicas.is_empty() and int(session.state.get("waiting_ready",-1))==0
+    # Check the first observed aircraft snapshot before the visual commit.
+    var departure_id: int=int(session.state.get("snapshot_id",0))
+    var wire_clean: bool=session.state.get("air_mode","")=="aircraft" and session.state.rivals.is_empty() and int(session.state.get("waiting_ready",-1))==0 and float(session.state.waiting_remaining)==0.0
+    var departure_applied: bool=await _await_presented(view,departure_id)
+    var roster_cleared: bool=wire_clean and departure_applied and view.replicas.is_empty()
+    print("V75236_DEPARTURE_SYNC received=",departure_id," applied=",view.applied_snapshot_id," wire_clean=",wire_clean," presentation_ready=",departure_applied," visual_count=",view.replicas.size()," waiting_visual=",is_instance_valid(view.waiting_visual))
     var roster_ok: bool=roster_ready and waiting_rival and bounded and roster_cleared
     var locomotion_ok: bool=walking and displacement_ok and roster_cleared
     print("V75234_WAITING_WALK clip=",walking," physical_displacement=",displacement_ok," cleared=",roster_cleared)
     print("V75233_ROSTER ready=",roster_ready," unarmed_rival=",waiting_rival," bounded=",bounded," cleared=",roster_cleared)
-    var departed: bool=session.state.get("air_mode","")=="aircraft" and not is_instance_valid(view.waiting_visual) and float(session.state.waiting_remaining)==0.0
+    var departed: bool=wire_clean and departure_applied and view._presented_match_mode=="aircraft" and not is_instance_valid(view.waiting_visual)
     var waiting_ok: bool=island_ok and moved and waiting_safe and countdown and departed
     print("V75232_WAITING island=",island_ok," move=",moved," safe=",waiting_safe," countdown=",countdown," departure=",departed)
     if not view._has_state:
@@ -129,7 +145,8 @@ func _verify() -> void:
         await create_timer(.05).timeout
         if session.state.get("air_mode","")=="parachute":
             break
-    var canopy_ok: bool=session.state.get("air_mode","")=="parachute" and world.operator._parachute_visual!=null and world.operator._parachute_visual.visible
+    var canopy_applied: bool=await _await_presented(view,int(session.state.snapshot_id))
+    var canopy_ok: bool=canopy_applied and session.state.get("air_mode","")=="parachute" and world.operator._parachute_visual!=null and world.operator._parachute_visual.visible
     for i in range(600):
         await create_timer(.05).timeout
         rival_ok=rival_ok or _air_rival_visible(session,view)

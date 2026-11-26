@@ -9,6 +9,8 @@ const SOURCE_FILES: Dictionary={
 }
 const TARGET_LENGTHS: Dictionary={"Toyota":5.0,"BMW":4.8}
 const SAFE_ENTRY_RADIUS: float=3.35
+const SAFE_EXIT_MPS: float=1.0
+const SAFE_EXIT_ANGULAR: float=.8
 const MAX_FORWARD_MPS: float=25.0
 const MAX_REVERSE_MPS: float=7.0
 const ENGINE_FORCE: float=1700.0
@@ -197,6 +199,9 @@ func leave() -> void:
     brake=24.0
 
 
+func exit_motion_safe() -> bool:
+    return linear_velocity.length()<=SAFE_EXIT_MPS and angular_velocity.length()<=SAFE_EXIT_ANGULAR
+
 func exit_position(player: CharacterBody3D) -> Vector3:
     if player==null or terrain==null or not is_instance_valid(terrain):
         return Vector3(INF,INF,INF)
@@ -207,7 +212,7 @@ func exit_position(player: CharacterBody3D) -> Vector3:
                   Vector3(0,0,2.95)]:
         var world: Vector3=to_global(local)
         var ground_y: float=float(terrain.height_at(world.x,world.z))
-        if not is_finite(ground_y) or absf(ground_y-global_position.y)>2.8:
+        if not is_finite(ground_y) or ground_y<float(terrain.get("sea_level"))+.25 or absf(ground_y-global_position.y)>2.8:
             continue
         var proposed:=Vector3(world.x,ground_y+.15,world.z)
         var query:=PhysicsShapeQueryParameters3D.new()

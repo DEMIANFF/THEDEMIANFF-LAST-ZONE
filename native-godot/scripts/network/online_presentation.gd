@@ -60,6 +60,8 @@ var send_controls: bool=true
 var _clock: float=0.0
 var _last_state: Dictionary={}
 var _last_state_ms: int=0
+# Commit marker is advanced only after all visuals and HUD are applied.
+var applied_snapshot_id: int=0
 var _has_state: bool=false
 var _status: Label
 var _touch_root: Control
@@ -504,7 +506,7 @@ func _sync_vehicles(data: Dictionary) -> void:
             vehicle_replicas.erase(id)
             vehicle_targets.erase(id)
     _vehicle.visible=_ride_id!=0 or bool(data.get("near",false))
-    _vehicle.text="BAJAR" if _ride_id!=0 else "CONDUCIR"
+    _vehicle.text=("BAJAR" if bool(data.get("exit_ready",false)) else "DETÉN AUTO") if _ride_id!=0 else "CONDUCIR"
     if _ride_id!=0:
         for control in [_fire_pad,_reload,_run,_jump,_crouch,_weapon,_heal,_aim,_grenade,_cover]:
             control.hide()
@@ -530,7 +532,12 @@ func apply_snapshot(data: Dictionary) -> void:
         _presented_match_mode=match_mode
     _sync_air_presentation(air)
     _sync_waiting(match_mode)
+    var previous_ride: int=_ride_id
     _sync_vehicles(data.get("vehicles",{}))
+    if previous_ride!=_ride_id:
+        operator.global_position=data.position
+        move_axis=Vector2.ZERO
+        firing=false
     zone.visible=match_mode=="sector_battle"
     zone.set_zone_state(data.zone_center,float(data.zone_radius))
     var seen: Dictionary={}
@@ -586,13 +593,16 @@ func apply_snapshot(data: Dictionary) -> void:
     if _ride_id!=0:
         for car in data.get("vehicles",{}).get("cars",[]):
             if int(car.id)==_ride_id:
-                _status.text="ONLINE · AUTO %d km/h"%roundi(float(car.speed))
+                _status.text="ONLINE · AUTO %d km/h%s"%[roundi(float(car.speed))," · FRENA PARA BAJAR" if not bool(data.vehicles.get("exit_ready",false)) else ""]
+                if str(data.vehicles.get("result",""))=="blocked_exit":
+                    _status.text+=" · BUSCA SALIDA SEGURA"
     if match_mode=="waiting":
         _status.text="ISLA DE ESPERA · %d/50 PARTICIPANTES · DESPEGUE EN %02d s"%[int(data.get("waiting_ready",1)),ceili(float(data.get("waiting_remaining",0.0)))]
     elif air!="ground":
         _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
     if bool(data.get("ended",false)):
         _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else "ONLINE · PARTIDA FINALIZADA"
+    applied_snapshot_id=int(data.get("snapshot_id",0))
 
 func _clear_remote() -> void:
     _sync_vehicles({})
@@ -647,7 +657,7 @@ func _physics_process(delta: float) -> void:
         if air!="ground":
             operator._camera.fov=lerpf(operator._camera.fov,76.0,factor)
         if _ride_id!=0:
-            operator._camera.position.z=6.0
+            operator._camera.position.z=operator._collision_safe_camera_distance(6.0,.20)
             operator._camera.fov=lerpf(operator._camera.fov,77.0,factor)
         if operator._avatar!=null:
             operator._avatar.visible=_ride_id==0 and air!="aircraft" and distance>1.50
