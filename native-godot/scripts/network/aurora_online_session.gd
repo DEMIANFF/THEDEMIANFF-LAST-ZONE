@@ -2,7 +2,10 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=17
+const PROTOCOL: int=18
+var dual_combat: bool=false
+var _dual_winner: int=0
+var _dual_finished: bool=false
 const HUMAN_OPERATOR=preload("res://scripts/player/third_person_operator.gd")
 # Explicit local development room. Normal BR admission remains single-human
 # until per-human combat, inventory and flight directors are migrated.
@@ -103,7 +106,8 @@ var _sounds: Array[Dictionary]=[]
 func listen(port: int=PORT) -> Error:
     var peer:=ENetMultiplayerPeer.new()
     peer.set_bind_ip("127.0.0.1")
-    dual_waiting=OS.get_environment("AURORA_ONLINE_DUAL_WAITING")=="1"
+    dual_combat=OS.get_environment("AURORA_ONLINE_DUAL_COMBAT")=="1"
+    dual_waiting=dual_combat or OS.get_environment("AURORA_ONLINE_DUAL_WAITING")=="1"
     var result: Error=peer.create_server(port,2 if dual_waiting else 1,5)
     if result!=OK:
         return result
@@ -418,6 +422,8 @@ func _dual_joined(id: int) -> void:
     actor.royale_eliminated=false
     actor.air_mode="ground"
     actor.training_health=actor.MAX_HEALTH
+    actor.battle_royale_active=dual_combat
+    actor._training_immunity=0.0
     actor.global_position=home
     actor.velocity=Vector3.ZERO
     actor.rotation.y=heading
@@ -426,7 +432,10 @@ func _dual_joined(id: int) -> void:
     actor.get_view_camera().current=false
     dual_peers[id]={"actor":actor,"home":home,"sequence":0,"accepted":0,"rejected":0,
         "input_ms":0,"axis":Vector2.ZERO,"yaw":heading,"pitch":-.14,"run":false,
-        "action_ack":0,"action_rejected":0,"action_applied":0,"jump_pending":false,"jump_ms":-1000}
+        "action_ack":0,"action_rejected":0,"action_applied":0,"jump_pending":false,"jump_ms":-1000,
+        "fire":false,"ammo":int(WEAPON_CATALOG.ENTRIES[WEAPON_CATALOG.AR].capacity),
+        "reserve":90,"shots":0,"hits":0,"kills":0,"reload_pending":false,
+        "reload_remaining":0.0,"reloads":0,"fire_clock":0.0}
     _dual_admitted+=1
     print("V75237_SERVER_ADMIT peer=",id," live_humans=",dual_peers.size())
 
@@ -443,6 +452,10 @@ func _dual_left(id: int) -> void:
         actor.queue_free()
     dual_peers.erase(id)
     print("V75237_SERVER_LEAVE peer=",id," remaining=",dual_peers.size())
+    if dual_combat and _dual_admitted==2 and not _dual_finished:
+        _dual_finished=true
+        if not dual_peers.is_empty():
+            _dual_winner=int(dual_peers.keys()[0])
     if dual_peers.is_empty():
         get_tree().quit()
 
@@ -453,7 +466,7 @@ func _dual_input(version: int,sequence: int,move: Vector2,heading: float,look_pi
     if not dual_peers.has(id):
         return
     var peer: Dictionary=dual_peers[id]
-    if version!=PROTOCOL or sequence<=int(peer.sequence) or sequence-int(peer.sequence)>256 or not move.is_finite() or move.length_squared()>1.001 or not is_finite(heading) or absf(heading)>PI or not is_finite(look_pitch) or look_pitch<-.55 or look_pitch>.62 or shoot:
+    if version!=PROTOCOL or sequence<=int(peer.sequence) or sequence-int(peer.sequence)>256 or not move.is_finite() or move.length_squared()>1.001 or not is_finite(heading) or absf(heading)>PI or not is_finite(look_pitch) or look_pitch<-.55 or look_pitch>.62 or (shoot and not dual_combat) or (dual_combat and (_dual_finished or peer.actor.royale_eliminated)):
         peer.rejected+=1
         return
     peer.sequence=sequence
@@ -463,6 +476,7 @@ func _dual_input(version: int,sequence: int,move: Vector2,heading: float,look_pi
     peer.yaw=heading
     peer.pitch=look_pitch
     peer.run=run
+    peer.fire=shoot
 
 func _dual_action(version: int,request_id: int,action: int) -> void:
     if not multiplayer.is_server():
@@ -476,11 +490,84 @@ func _dual_action(version: int,request_id: int,action: int) -> void:
         return
     peer.action_ack=request_id
     var now: int=Time.get_ticks_msec()
+    if dual_combat and (_dual_finished or peer.actor.royale_eliminated or dual_peers.size()!=2):
+        peer.action_rejected+=1
+        return
+    if dual_combat and action==ACTION_RELOAD:
+        if now-int(peer.input_ms)>INPUT_TIMEOUT_MS or bool(peer.reload_pending) or float(peer.reload_remaining)>0.0 or int(peer.ammo)>=int(WEAPON_CATALOG.ENTRIES[WEAPON_CATALOG.AR].capacity) or int(peer.reserve)<=0:
+            peer.action_rejected+=1
+            return
+        peer.reload_pending=true
+        return
     if action!=ACTION_JUMP or now-int(peer.input_ms)>INPUT_TIMEOUT_MS or now-int(peer.jump_ms)<ACTION_MIN_INTERVAL_MS or bool(peer.jump_pending):
         peer.action_rejected+=1
         return
     peer.jump_pending=true
     peer.jump_ms=now
+
+# Minimal AR duel: server owns magazine, reload, cadence, ray and damage.
+# No client hit claims or target IDs; the first actual physics collider wins.
+func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> void:
+    var actor: CharacterBody3D=peer.actor
+    var ready: bool=dual_peers.size()==2 and not _dual_finished and actor.can_act()
+    if not ready:
+        peer.fire=false
+        peer.reload_pending=false
+        peer.reload_remaining=0.0
+        actor.set_firing(false)
+        return
+    var spec: Dictionary=WEAPON_CATALOG.ENTRIES[WEAPON_CATALOG.AR]
+    peer.fire_clock=maxf(0.0,float(peer.fire_clock)-delta)
+    if bool(peer.reload_pending):
+        peer.reload_pending=false
+        peer.reload_remaining=float(spec.reload)
+        peer.action_applied+=1
+        actor.play_weapon_action("reload",float(spec.reload))
+    if float(peer.reload_remaining)>0.0:
+        peer.reload_remaining=maxf(0.0,float(peer.reload_remaining)-delta)
+        if float(peer.reload_remaining)<=0.0:
+            var amount: int=mini(int(spec.capacity)-int(peer.ammo),int(peer.reserve))
+            peer.ammo+=amount
+            peer.reserve-=amount
+            peer.reloads+=1
+        actor.set_firing(false)
+        return
+    var firing_now: bool=fresh and bool(peer.fire) and int(peer.ammo)>0
+    actor.set_firing(firing_now)
+    if not firing_now or float(peer.fire_clock)>0.0:
+        return
+    peer.fire_clock=float(spec.cadence)
+    peer.ammo-=1
+    peer.shots+=1
+    actor.play_weapon_action("fire",.10)
+    var origin: Vector3=actor.global_position+Vector3.UP*1.35
+    var angle: float=actor._yaw
+    var pitch_angle: float=actor._pitch
+    var direction:=Vector3(-sin(angle)*cos(pitch_angle),sin(pitch_angle),-cos(angle)*cos(pitch_angle))
+    var ray:=PhysicsRayQueryParameters3D.create(origin,origin+direction*80.0)
+    ray.exclude=[actor.get_rid()]
+    ray.collision_mask=1
+    var impact: Dictionary=world.get_world_3d().direct_space_state.intersect_ray(ray)
+    for other_id in dual_peers:
+        if other_id==id:
+            continue
+        var target: CharacterBody3D=dual_peers[other_id].actor
+        if impact.get("collider")!=target or target.royale_eliminated:
+            continue
+        var old_hp: float=target.training_health
+        target.receive_training_hit(float(spec.damage),false,origin,impact.position)
+        if target.training_health<old_hp:
+            peer.hits+=1
+        if target.royale_eliminated:
+            peer.kills+=1
+            _dual_finished=true
+            _dual_winner=id
+            for participant in dual_peers.values():
+                participant.actor.reset_controls()
+                participant.actor.round_finished=true
+                participant.fire=false
+            print("V75238_SERVER_ELIMINATION winner=",id," target=",other_id," shots=",peer.shots," hits=",peer.hits," hp=",target.training_health)
+        break
 
 func _dual_tick(delta: float) -> void:
     if dual_peers.is_empty():
@@ -488,7 +575,7 @@ func _dual_tick(delta: float) -> void:
     for id in dual_peers:
         var peer: Dictionary=dual_peers[id]
         var actor: CharacterBody3D=peer.actor
-        var fresh: bool=Time.get_ticks_msec()-int(peer.input_ms)<=INPUT_TIMEOUT_MS
+        var fresh: bool=Time.get_ticks_msec()-int(peer.input_ms)<=INPUT_TIMEOUT_MS and not (dual_combat and _dual_finished)
         actor.set_touch_move_axis(peer.axis if fresh else Vector2.ZERO)
         actor.set_touch_run(bool(peer.run) and fresh)
         actor._desired_yaw=float(peer.yaw)
@@ -503,6 +590,8 @@ func _dual_tick(delta: float) -> void:
         if actor.global_position.y<WAITING_ISLAND.SPAWN.y-3.0:
             actor.global_position=peer.home
             actor.velocity=Vector3.ZERO
+        if dual_combat:
+            _dual_combat_tick(int(id),peer,fresh,delta)
     _send_clock+=delta
     if _send_clock<.1:
         return
@@ -516,21 +605,34 @@ func _dual_tick(delta: float) -> void:
             if other_id==id:
                 continue
             var other: CharacterBody3D=dual_peers[other_id].actor
-            # Staging room is public to its two admitted participants.
-            # No combat fog-of-war data exists in this isolated room.
+            if other.royale_eliminated:
+                continue
+            # The isolated open platform has no hidden combat roster.
+            var clip: String=str(other._current_clip)
+            if dual_combat:
+                if float(dual_peers[other_id].reload_remaining)>0.0:
+                    clip="AuroraReloadAR"
+                elif bool(dual_peers[other_id].fire) and not _dual_finished:
+                    clip="AuroraFire"
             rivals.append({"id":other_id,"position":other.global_position,
-                "yaw":other.rotation.y,"clip":str(other._current_clip),
-                "weapon":-1,"waiting":true,"human":true})
-        _send_world_state({"snapshot_id":snapshot_sequence,"self_peer":id,"dual_waiting":true,
+                "yaw":other.rotation.y,"clip":clip,
+                "weapon":WEAPON_CATALOG.AR if dual_combat else -1,"waiting":not dual_combat,"human":true})
+        var alive: int=0
+        for participant in dual_peers.values():
+            alive+=0 if participant.actor.royale_eliminated else 1
+        _send_world_state({"snapshot_id":snapshot_sequence,"self_peer":id,"dual_waiting":true,"dual_combat":dual_combat,
+            "duel_ready":dual_peers.size()==2 and not _dual_finished,"duel_winner":_dual_winner,
+            "hits":peer.hits,"kills":peer.kills,"reloads":peer.reloads,
             "position":actor.global_position,"velocity":actor.velocity,"body_yaw":actor.rotation.y,
             "clip":str(actor._current_clip),"air_mode":"ground","match_mode":"waiting",
             "waiting_remaining":0.0,"waiting_ready":dual_peers.size(),"rivals":rivals,
-            "ended":false,"eliminated":false,"loot":[],"vehicles":{},
+            "ended":dual_combat and _dual_finished,"eliminated":actor.royale_eliminated,"loot":[],"vehicles":{},
             "inventory":{"awm_owned":false,"additions":[],"medkits":0,"grenades":0,"covers":0},
             "tactical":{"cover_cooldown":0.0},"weapon":WEAPON_CATALOG.AR,"aim":false,"zoom":1.0,
-            "firing":false,"crouched":false,"grounded":actor.is_on_floor(),"ammo":0,"reserve":0,
-            "reload_remaining":0.0,"health":actor.training_health,"participants":dual_peers.size(),
-            "alive":dual_peers.size(),"bots":0,"shots":0,"zone_center":Vector2.ZERO,"zone_radius":0.0,
+            "firing":dual_combat and bool(actor._fire_held),"crouched":false,"grounded":actor.is_on_floor(),
+            "ammo":peer.ammo if dual_combat else 0,"reserve":peer.reserve if dual_combat else 0,
+            "reload_remaining":peer.reload_remaining if dual_combat else 0.0,"health":actor.training_health,"participants":dual_peers.size(),
+            "alive":alive,"bots":0,"shots":peer.shots,"zone_center":Vector2.ZERO,"zone_radius":0.0,
             "action_ack":peer.action_ack,"action_applied":peer.action_applied,"action_rejected":peer.action_rejected,
             "accepted":peer.accepted,"rejected":peer.rejected,"ack":peer.sequence},id)
 

@@ -586,6 +586,11 @@ func apply_snapshot(data: Dictionary) -> void:
     _sync_loot(data.loot)
     _sync_tactical(data.tactical)
     _sync_inventory(data)
+    if bool(data.get("dual_combat",false)):
+        var playable: bool=bool(data.get("duel_ready",false)) and not bool(data.get("ended",false))
+        _fire_pad.visible=playable
+        _reload.visible=playable
+        weapon_visuals.visible=not bool(data.get("eliminated",false))
     _crouch.text="LEVANTAR" if bool(data.crouched) else "AGACHAR"
     _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · MUNICIÓN %d/%d%s"%[
         int(data.alive),roundi(float(data.health)),float(data.zone_radius),
@@ -597,14 +602,16 @@ func apply_snapshot(data: Dictionary) -> void:
                 if str(data.vehicles.get("result",""))=="blocked_exit":
                     _status.text+=" · BUSCA SALIDA SEGURA"
     if match_mode=="waiting":
-        if bool(data.get("dual_waiting",false)):
+        if bool(data.get("dual_combat",false)):
+            _status.text="DUELO LOCAL · HP %d · AR %d/%d · BAJAS %d"%[roundi(float(data.health)),int(data.ammo),int(data.reserve),int(data.get("kills",0))]
+        elif bool(data.get("dual_waiting",false)):
             _status.text="SALA DE RED · %d/2 JUGADORES · SIN COMBATE"%int(data.get("waiting_ready",1))
         else:
             _status.text="ISLA DE ESPERA · %d/50 PARTICIPANTES · DESPEGUE EN %02d s"%[int(data.get("waiting_ready",1)),ceili(float(data.get("waiting_remaining",0.0)))]
     elif air!="ground":
         _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
     if bool(data.get("ended",false)):
-        _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else "ONLINE · PARTIDA FINALIZADA"
+        _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else ("DUELO · VICTORIA" if bool(data.get("dual_combat",false)) and int(data.get("duel_winner",0))==int(data.get("self_peer",-1)) else "ONLINE · PARTIDA FINALIZADA")
     applied_snapshot_id=int(data.get("snapshot_id",0))
 
 func _clear_remote() -> void:
