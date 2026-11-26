@@ -415,7 +415,7 @@ func _sync_sounds(events: Array) -> void:
         received_sounds[counter]=int(received_sounds.get(counter,0))+1
 
 # Original aircraft builder and canopy mesh; never start local flight physics.
-func _sync_air_presentation(mode: String) -> void:
+func _sync_air_presentation(mode: String,combat_controls: bool=true) -> void:
     operator.air_mode=mode
     sound.set_aircraft_audio(mode=="aircraft")
     if mode=="aircraft":
@@ -431,7 +431,7 @@ func _sync_air_presentation(mode: String) -> void:
     _jump.disabled=mode=="parachute"
     if operator._parachute_visual!=null:
         operator._parachute_visual.visible=mode=="parachute"
-    _fire_pad.visible=mode=="ground"
+    _fire_pad.visible=mode=="ground" and combat_controls
     _run.visible=mode=="ground"
     _crouch.visible=mode=="ground"
     _weapon.visible=mode=="ground"
@@ -448,22 +448,25 @@ func _release_aircraft_visual() -> void:
         flight_visual.queue_free()
     flight_visual=null
 
-func _sync_waiting(mode: String) -> void:
+func _sync_waiting(mode: String,duel_playable: bool=false) -> void:
     if mode=="waiting":
         if not is_instance_valid(waiting_visual):
             waiting_visual=WAITING_ISLAND.new()
             waiting_visual.physical=false
             world.add_child(waiting_visual)
-        _fire_pad.hide()
-        _reload.hide()
+        # Never hide a held fire pad on a playable duel snapshot:
+        # visibility notification resets its finger and emits released.
+        _fire_pad.visible=duel_playable
+        _reload.visible=duel_playable
         _crouch.hide()
         _weapon.hide()
         _heal.hide()
         _aim.hide()
         _grenade.hide()
         _cover.hide()
-        weapon_visuals.hide()
-        firing=false
+        weapon_visuals.visible=duel_playable
+        if not duel_playable:
+            firing=false
     else:
         _release_waiting()
         _reload.visible=operator.air_mode=="ground"
@@ -530,8 +533,10 @@ func apply_snapshot(data: Dictionary) -> void:
     if match_mode!=_presented_match_mode:
         operator.global_position=data.position
         _presented_match_mode=match_mode
-    _sync_air_presentation(air)
-    _sync_waiting(match_mode)
+    var duel: bool=bool(data.get("dual_combat",false))
+    var duel_playable: bool=duel and bool(data.get("duel_ready",false)) and not bool(data.get("ended",false))
+    _sync_air_presentation(air,match_mode!="waiting" or duel_playable)
+    _sync_waiting(match_mode,duel_playable)
     var previous_ride: int=_ride_id
     _sync_vehicles(data.get("vehicles",{}))
     if previous_ride!=_ride_id:
@@ -586,6 +591,10 @@ func apply_snapshot(data: Dictionary) -> void:
     _sync_loot(data.loot)
     _sync_tactical(data.tactical)
     _sync_inventory(data)
+    if duel:
+        weapon_visuals.visible=duel_playable and not bool(data.get("eliminated",false))
+        if not duel_playable:
+            firing=false
     _crouch.text="LEVANTAR" if bool(data.crouched) else "AGACHAR"
     _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · MUNICIÓN %d/%d%s"%[
         int(data.alive),roundi(float(data.health)),float(data.zone_radius),
@@ -597,17 +606,22 @@ func apply_snapshot(data: Dictionary) -> void:
                 if str(data.vehicles.get("result",""))=="blocked_exit":
                     _status.text+=" · BUSCA SALIDA SEGURA"
     if match_mode=="waiting":
-        if bool(data.get("dual_waiting",false)):
+        if bool(data.get("dual_combat",false)):
+            _status.text="DUELO LOCAL · HP %d · AR %d/%d · BAJAS %d"%[roundi(float(data.health)),int(data.ammo),int(data.reserve),int(data.get("kills",0))]
+        elif bool(data.get("dual_waiting",false)):
             _status.text="SALA DE RED · %d/2 JUGADORES · SIN COMBATE"%int(data.get("waiting_ready",1))
         else:
             _status.text="ISLA DE ESPERA · %d/50 PARTICIPANTES · DESPEGUE EN %02d s"%[int(data.get("waiting_ready",1)),ceili(float(data.get("waiting_remaining",0.0)))]
     elif air!="ground":
         _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
     if bool(data.get("ended",false)):
-        _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else "ONLINE · PARTIDA FINALIZADA"
+        _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else ("DUELO · VICTORIA" if bool(data.get("dual_combat",false)) and int(data.get("duel_winner",0))==int(data.get("self_peer",-1)) else "ONLINE · PARTIDA FINALIZADA")
     applied_snapshot_id=int(data.get("snapshot_id",0))
 
 func _clear_remote() -> void:
+    firing=false
+    _fire_pad.hide()
+    _fire_pad.reset()
     _sync_vehicles({})
     _release_waiting()
     _presented_match_mode=""

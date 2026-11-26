@@ -4,6 +4,11 @@ project="$(cd "$(dirname "$0")/.." && pwd)"
 engine="${GODOT_BIN:-godot}"
 work="$(mktemp -d)"
 logdir="$project/out/online/dual"
+client_script="online_dual_waiting_qa.gd"
+if [ "${AURORA_ONLINE_DUAL_COMBAT:-0}" = 1 ]; then
+  logdir="$project/out/online/duel"
+  client_script="online_duel_qa.gd"
+fi
 mkdir -p "$logdir" "$work/server" "$work/first" "$work/second"
 pids=()
 cleanup() {
@@ -19,17 +24,23 @@ for i in $(seq 1 120); do
   sleep .5
 done
 grep -F 'AURORA_ONLINE READY' "$logdir/server.log"
-AURORA_DUAL_QA_ROLE=first XDG_DATA_HOME="$work/first" timeout 45 "$engine" --headless --path "$project" --script res://scripts/network/online_dual_waiting_qa.gd >"$logdir/first.log" 2>&1 &
+AURORA_DUAL_QA_ROLE=first XDG_DATA_HOME="$work/first" timeout 45 "$engine" --headless --path "$project" --script "res://scripts/network/$client_script" >"$logdir/first.log" 2>&1 &
 first=$!; pids+=("$first")
-AURORA_DUAL_QA_ROLE=second XDG_DATA_HOME="$work/second" timeout 45 "$engine" --headless --path "$project" --script res://scripts/network/online_dual_waiting_qa.gd >"$logdir/second.log" 2>&1 &
+AURORA_DUAL_QA_ROLE=second XDG_DATA_HOME="$work/second" timeout 45 "$engine" --headless --path "$project" --script "res://scripts/network/$client_script" >"$logdir/second.log" 2>&1 &
 second=$!; pids+=("$second")
 status=0
 wait "$first" || status=1
 wait "$second" || status=1
 cat "$logdir/server.log" "$logdir/first.log" "$logdir/second.log"
 test "$status" -eq 0
-grep -F 'V75237_DUAL PASS' "$logdir/first.log"
-grep -F 'V75237_DUAL PASS' "$logdir/second.log"
-grep -F 'V75237_DISCONNECT removed=true' "$logdir/second.log"
+if [ "${AURORA_ONLINE_DUAL_COMBAT:-0}" = 1 ]; then
+  grep -F 'V75238_DUEL PASS' "$logdir/first.log"
+  grep -F 'V75238_DUEL PASS' "$logdir/second.log"
+  grep -F 'V75238_SERVER_ELIMINATION' "$logdir/server.log"
+else
+  grep -F 'V75237_DUAL PASS' "$logdir/first.log"
+  grep -F 'V75237_DUAL PASS' "$logdir/second.log"
+  grep -F 'V75237_DISCONNECT removed=true' "$logdir/second.log"
+fi
 grep -F 'live_humans=2' "$logdir/server.log"
 if grep -E 'SCRIPT ERROR|ERROR: Failed to load script' "$logdir/"*.log; then exit 1; fi
