@@ -14,7 +14,7 @@ var crouch_drop: float=0.0
 var slope_drop: float=0.0
 const MAX_SLOPE_DROP_METRES: float=.08
 # Additional world-space clearance under low cover, measured in metres.
-const CROUCH_DROP_METRES: float=.105
+const CROUCH_DROP_METRES: float=.14
 var foot_errors: Array[float]=[0.0,0.0]
 var _query:=PhysicsRayQueryParameters3D.new()
 
