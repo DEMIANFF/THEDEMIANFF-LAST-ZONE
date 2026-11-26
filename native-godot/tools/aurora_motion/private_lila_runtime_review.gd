@@ -1,5 +1,5 @@
 extends SceneTree
-## Explicit local-only test of the private Rev2 or Rev3 GLB, NOT an exported scene.
+## Explicit local-only test of the private Rev2, Rev3 or Rev4 GLB, NOT an exported scene.
 const EXPECTED: Array[String]=[
     "AuroraIdle","AuroraArmedIdle","AuroraAim","AuroraAimAWM","AuroraCrouch",
     "AuroraArmedWalk","AuroraArmedRun","AuroraCrouchWalk","AuroraArmedStrafeLeft",
@@ -9,6 +9,7 @@ const EXPECTED: Array[String]=[
     "AuroraHitFront","AuroraHitBack","AuroraHitLeft","AuroraHitRight"]
 const SHA: String="ab0df204ebe5cdbd2c9472af22eb672eac6cc9cec3818e6859baf1d884c3aa12"
 const CONTACT_SHA: String="b3fd330483756a16d2a5022776428e54db39f916404ec70438b64de37932b896"
+const CACHE_SHA: String="2a4c00e4ec9afcfcc7d529d73dadb85e57b94f80e2b59a6e25c7f599b5289c7d"
 var failed: bool=false
 
 func _initialize() -> void:
@@ -26,7 +27,7 @@ func _review() -> void:
         quit(2)
         return
     var path: String=args[0]
-    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path) not in [SHA,CONTACT_SHA]:
+    if not FileAccess.file_exists(path) or FileAccess.get_sha256(path) not in [SHA,CONTACT_SHA,CACHE_SHA]:
         push_error("Private candidate missing or SHA mismatch")
         quit(2)
         return

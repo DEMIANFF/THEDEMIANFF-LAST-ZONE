@@ -22,7 +22,26 @@ class RuntimeGateTest(unittest.TestCase):
     def test_bad_header_rejected(self):
         with self.assertRaises(ValueError):gate.inspect(b"bad")
 
-    def test_both_private_revisions_are_pinned(self):
-        self.assertEqual(set(gate.CANDIDATES.values()), {"Rev2", "Rev3"})
-        self.assertEqual(len(gate.CANDIDATES),2)
+    def test_all_private_revisions_are_pinned(self):
+        self.assertEqual(set(gate.CANDIDATES.values()), {"Rev2", "Rev3", "Rev4"})
+        self.assertEqual(len(gate.CANDIDATES),3)
         self.assertTrue(all(len(s)==64 for s in gate.CANDIDATES))
+
+    def compact_fixture(self, joint_value=55, component=5121):
+        d=self.fixture()
+        d["meshes"][0]["primitives"][0]["attributes"]["JOINTS_0"]=3
+        d["accessors"].append({"bufferView":0,"componentType":component,
+                               "type":"VEC4","count":93572})
+        payload=bytes([joint_value])*93572*4
+        d["bufferViews"]=[{"buffer":0,"byteLength":len(payload)}]
+        j=json.dumps(d).encode()
+        j+=b" "*(-len(j)%4)
+        return (struct.pack("<5I",0x46546c67,2,28+len(j)+len(payload),len(j),0x4e4f534a)
+                +j+struct.pack("<2I",len(payload),0x004e4942)+payload)
+
+    def test_rev4_joint_index_encoding(self):
+        self.assertEqual(gate.inspect(self.compact_fixture(),True)["joints"],56)
+        with self.assertRaises(ValueError):
+            gate.inspect(self.compact_fixture(joint_value=56),True)
+        with self.assertRaises(ValueError):
+            gate.inspect(self.compact_fixture(component=5123),True)
