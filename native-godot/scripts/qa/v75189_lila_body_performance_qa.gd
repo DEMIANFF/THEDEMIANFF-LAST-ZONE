@@ -2,6 +2,28 @@ extends SceneTree
 const PERF=preload("res://scripts/persistence/aurora_performance_report.gd")
 var failed: bool=false
 var bones: Dictionary={}
+const REV9_SHA: String="19c93a00c114246aba2dca99c3a53698990dea2b9c519fc50a61a159331c4d45"
+
+func _own_children(parent: Node, scene_root: Node) -> void:
+    for child in parent.get_children():
+        child.owner=scene_root
+        _own_children(child,scene_root)
+
+func _review_candidate(path: String) -> PackedScene:
+    if not path.is_absolute_path() or not FileAccess.file_exists(path) or FileAccess.get_sha256(path)!=REV9_SHA:
+        return null
+    var doc:=GLTFDocument.new()
+    var state:=GLTFState.new()
+    if doc.append_from_file(path,state)!=OK:
+        return null
+    var node: Node=doc.generate_scene(state)
+    if node==null:
+        return null
+    _own_children(node,node)
+    var scene:=PackedScene.new()
+    var status: Error=scene.pack(node)
+    node.free()
+    return scene if status==OK else null
 
 func _initialize() -> void:
     call_deferred("_verify")
@@ -13,8 +35,34 @@ func check(value: bool,message: String) -> void:
 
 func _verify() -> void:
     var game: Node3D=(load("res://scenes/Main.tscn") as PackedScene).instantiate()
+    var args: PackedStringArray=OS.get_cmdline_user_args()
+    var candidate: PackedScene
+    if not args.is_empty():
+        if args.size()!=2 or args[0]!="--candidate":
+            push_error("Use -- --candidate /absolute/private/Rev9.glb")
+            quit(2)
+            return
+        candidate=_review_candidate(args[1])
+        if candidate==null:
+            push_error("Rev9 private candidate missing, changed or invalid")
+            quit(2)
+            return
+        game.review_operator_scene=candidate
     root.add_child(game)
     var player: CharacterBody3D=game.get_node("Operator")
+    check(player.approved_operator_scene==candidate,"unexpected operator scene routing")
+    if candidate!=null:
+        var imported_meshes: Array[Node]=[]
+        for child in player._avatar.find_children("*","MeshInstance3D",true,false):
+            if (child as MeshInstance3D).skin!=null:
+                imported_meshes.append(child)
+        check(imported_meshes.size()==1,"private candidate mesh count changed")
+        if imported_meshes.size()==1:
+            var visual: MeshInstance3D=imported_meshes[0] as MeshInstance3D
+            var arrays: Array=visual.mesh.surface_get_arrays(0)
+            check(arrays[Mesh.ARRAY_VERTEX].size()==93572 and arrays[Mesh.ARRAY_INDEX].size()==95885*3,
+                "actual player visual is not the Rev9 mesh")
+        print("V75189_PRIVATE_MAIN candidate_sha256=",REV9_SHA," injected=true")
     var combat: Node3D=game.get_node("CombatRange")
     combat.set_process(false)
     game.get_node("AuroraSectorMatch").set_process(false)
@@ -162,6 +210,8 @@ func _verify() -> void:
     check(player._body_contact.probe_count==0,"airborne feet still query ground")
     check(player._body_contact.slope_drop==0.0,"slope pelvis compensation retained in flight")
     check(not visuals.support_grip_enabled(),"airborne hands remain pinned to gun")
+    if candidate!=null:
+        print("V75189_PRIVATE_MAIN PHYSICS_CHECKS_COMPLETE")
     var samples: Array[float]=[20.0,30.0,60.0]
     var metrics: Dictionary={"gpu_render_ms_peak":31.0,"draw_calls_peak":350.0}
     check(PERF.record(50,samples,70.0,true,metrics)==OK,"50-player performance report rejected")

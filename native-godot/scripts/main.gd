@@ -17,6 +17,9 @@ const MICRO_SURFACE=preload("res://scripts/render/aurora_micro_surface.gd")
 
 var island: StaticBody3D
 var operator: CharacterBody3D
+# Local review only: set explicitly before this scene enters the tree.
+# Normal lobby/match flow never sets this or reads private file paths.
+var review_operator_scene: PackedScene
 
 
 func _ready() -> void:
@@ -90,6 +93,8 @@ func _ready() -> void:
     TRACE.checkpoint("active","scene_load",null,"operator_build_begin")
     operator = OPERATOR.new()
     operator.name = "Operator"
+    if review_operator_scene != null:
+        operator.approved_operator_scene=review_operator_scene
     add_child(operator)
     TRACE.checkpoint("active","scene_load",operator,"operator_build_done")
     operator.global_position = Vector3(0.0, island.height_at(0.0, 0.0) + 1.2, 0.0)
