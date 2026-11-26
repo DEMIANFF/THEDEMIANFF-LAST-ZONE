@@ -9,6 +9,10 @@ const GRENADE=preload("res://scripts/combat/aurora_grenade.gd")
 const COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const AUDIO=preload("res://scripts/audio/aurora_audio.gd")
+var sound: Node3D
+var last_sound_sequence: int=0
+var received_sounds: Dictionary={}
 var world: Node3D
 var operator: CharacterBody3D
 var session: Node
@@ -69,6 +73,9 @@ func setup(source: Node3D,transport: Node) -> void:
     weapon_visuals=WEAPON_VISUALS.new()
     add_child(weapon_visuals)
     weapon_visuals.attach_to_player(operator)
+    sound=AUDIO.new()
+    sound.name="OnlineSoundStage"
+    world.add_child(sound)
     _build_touch_hud()
 
 func _build_touch_hud() -> void:
@@ -297,6 +304,36 @@ func _sync_inventory(data: Dictionary) -> void:
     _cover.disabled=int(inventory.covers)<=0 or float(data.tactical.cover_cooldown)>0.0
     _aim.text="MIRA %dX"%roundi(zoom) if aiming else "MIRA"
 
+func _sync_sounds(events: Array) -> void:
+    # Repeated short snapshot history tolerates individual UDP packet losses.
+    # Each event is consumed at most once, and old events never replay.
+    for item in events:
+        var id: int=int(item.seq)
+        if id<=last_sound_sequence:
+            continue
+        last_sound_sequence=id
+        var kind: String=str(item.kind)
+        var sample: String=str(item.sample)
+        var at: Vector3=item.at
+        var counter: String=kind
+        match kind:
+            "local":
+                if not sound._samples.has(sample):
+                    continue
+                sound.play_event(sample)
+                counter=sample
+            "local_step":
+                sound.play_operator_contact(bool(item.stone),bool(item.run))
+            "remote_shot":
+                sound.play_world_shot(at)
+            "remote_step":
+                sound.play_bot_contact(at,bool(item.run),bool(item.stone))
+            "remote_blast":
+                sound.play_grenade_detonation(at)
+            _:
+                continue
+        received_sounds[counter]=int(received_sounds.get(counter,0))+1
+
 func apply_snapshot(data: Dictionary) -> void:
     if not data.has("position") or not data.has("rivals"):
         return
@@ -341,6 +378,7 @@ func apply_snapshot(data: Dictionary) -> void:
     _sync_loot(data.loot)
     _sync_tactical(data.tactical)
     _sync_inventory(data)
+    _sync_sounds(data.sounds)
     _crouch.text="LEVANTAR" if bool(data.crouched) else "AGACHAR"
     _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · MUNICIÓN %d/%d%s"%[
         int(data.alive),roundi(float(data.health)),float(data.zone_radius),
@@ -361,6 +399,8 @@ func _clear_remote() -> void:
 
 func _physics_process(delta: float) -> void:
     if not is_instance_valid(session) or session.multiplayer.multiplayer_peer==null:
+        if _has_state:
+            _clear_remote()
         return
     var connected: bool=session.multiplayer.multiplayer_peer.get_connection_status()==MultiplayerPeer.CONNECTION_CONNECTED
     if not connected or (_has_state and Time.get_ticks_msec()-_last_state_ms>750):

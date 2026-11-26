@@ -2,7 +2,10 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=5
+const PROTOCOL: int=6
+const WEAPON_CATALOG=preload("res://scripts/combat/aurora_weapon_catalog.gd")
+const SOUND_WINDOW_MS: int=650
+const SOUND_LIMIT: int=32
 const ACTION_GRENADE: int=9
 const ACTION_COVER: int=10
 const TACTICAL_RANGE: float=40.0
@@ -43,6 +46,8 @@ var _send_clock: float=0.0
 var grenade_blasts: int=0
 var last_blast_position: Vector3=Vector3.ZERO
 var last_blast_ms: int=-10000
+var sound_sequence: int=0
+var _sounds: Array[Dictionary]=[]
 
 func listen(port: int=PORT) -> Error:
     var peer:=ENetMultiplayerPeer.new()
@@ -80,6 +85,20 @@ func _joined(id: int) -> void:
     last_blast_ms=-10000
     if not combat.grenade_detonated.is_connected(_on_server_blast):
         combat.grenade_detonated.connect(_on_server_blast)
+    sound_sequence=0
+    _sounds.clear()
+    combat.shot_fired.connect(_on_player_shot)
+    combat.reload_started.connect(_on_player_reload)
+    combat.reload_cue.connect(func(sample: StringName): _sound_event("local",str(sample)))
+    combat.awm_bolt_cycled.connect(func(): _sound_event("local","awm_bolt"))
+    combat.healed.connect(func(): _sound_event("local","heal"))
+    combat.impact_occurred.connect(func(): _sound_event("local","impact"))
+    operator.jumped.connect(func(): _sound_event("local","jump"))
+    operator.player_damaged.connect(func(_amount: float): _sound_event("local","hit"))
+    operator.foot_contact.connect(func(stone: bool,running: bool): _sound_event("local_step","",Vector3.ZERO,running,stone))
+    combat.bot_shot.connect(func(at: Vector3): _sound_event("remote_shot","",at))
+    combat.bot_foot_contact.connect(func(at: Vector3,running: bool,stone: bool): _sound_event("remote_step","",at,running,stone))
+    combat.grenade_fuse_close.connect(func(_seconds: float): _sound_event("local","grenade_fuse"))
     combat.set_encounter_size(50)
     director.start_sector_battle()
     if director.mode!="sector_battle" or combat.active_fighter_count()!=50:
@@ -199,7 +218,43 @@ func _nearby_loot() -> Array[Dictionary]:
         found.resize(MAX_LOOT_SNAPSHOT)
     return found
 
+func _on_player_shot(weapon: int,_hit: bool) -> void:
+    if weapon>=0 and weapon<WEAPON_CATALOG.ENTRIES.size():
+        _sound_event("local",str(WEAPON_CATALOG.ENTRIES[weapon]["sample"]))
+
+func _on_player_reload() -> void:
+    if combat.weapon_index not in [WEAPON_CATALOG.MP40,WEAPON_CATALOG.P90]:
+        _sound_event("local","reload")
+
+func _sound_event(kind: String,sample: String,at: Vector3=Vector3.ZERO,running: bool=false,stone: bool=false) -> void:
+    if remote_id==0 or not is_instance_valid(operator) or director.match_ended:
+        return
+    if kind.begins_with("remote"):
+        var maximum: float=26.0 if kind=="remote_step" else (105.0 if kind=="remote_blast" else 150.0)
+        if not at.is_finite() or operator.global_position.distance_squared_to(at)>maximum*maximum:
+            return
+        # Audible direction only: quantize locations, never send actor IDs
+        # or continuous hidden-player tracking with a sound event.
+        at=at.snapped(Vector3(4.0,2.0,4.0))
+    sound_sequence+=1
+    _sounds.append({"seq":sound_sequence,"kind":kind,"sample":sample,
+        "at":at,"run":running,"stone":stone,"time":Time.get_ticks_msec()})
+    if _sounds.size()>SOUND_LIMIT:
+        _sounds.pop_front()
+
+func _sound_snapshot() -> Array[Dictionary]:
+    var now: int=Time.get_ticks_msec()
+    while not _sounds.is_empty() and now-int(_sounds[0].time)>SOUND_WINDOW_MS:
+        _sounds.pop_front()
+    var result: Array[Dictionary]=[]
+    for entry in _sounds:
+        var item: Dictionary=entry.duplicate()
+        item.erase("time")
+        result.append(item)
+    return result
+
 func _on_server_blast(at: Vector3) -> void:
+    _sound_event("remote_blast","",at)
     if at.is_finite() and operator.global_position.distance_squared_to(at)<=TACTICAL_RANGE*TACTICAL_RANGE:
         grenade_blasts+=1
         last_blast_position=at
@@ -260,7 +315,7 @@ func _physics_process(delta: float) -> void:
             "body_yaw":operator.rotation.y,"clip":str(operator._current_clip),
             "rivals":rivals,"ended":director.match_ended,
             "loot":_nearby_loot(),"inventory":combat.inventory_snapshot(),
-            "tactical":_tactical_snapshot(),
+            "tactical":_tactical_snapshot(),"sounds":_sound_snapshot(),
             "weapon":combat.weapon_index,"aim":combat.aim_active,"zoom":combat.current_zoom,
             "heal_remaining":combat._heal_remaining,"firing":combat.trigger_held,
             "crouched":operator._crouching,"grounded":operator.is_on_floor(),

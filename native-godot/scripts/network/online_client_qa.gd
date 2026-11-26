@@ -126,6 +126,12 @@ func _verify() -> void:
     await create_timer(1.3).timeout
     var final: Dictionary=session.state
     var tactical_ok: bool=grenade_ok and cover_ok and cooldown_ok
+    var sound_counts: Dictionary=view.received_sounds.duplicate()
+    var sound_seq: int=view.last_sound_sequence
+    view._sync_sounds(final.sounds)
+    var dedup: bool=sound_counts==view.received_sounds and sound_seq==view.last_sound_sequence
+    var audio_ok: bool=int(sound_counts.get("ar_fire",0))==int(final.shots) and int(sound_counts.get("reload",0))>=1 and int(sound_counts.get("jump",0))>=1 and int(sound_counts.get("remote_blast",0))>=1 and dedup and view.sound._voices.size()==8
+    print("V75226_AUDIO counts=",sound_counts," shots=",final.shots," dedup=",dedup," pool=",view.sound._voices.size())
     print("V75225_TACTICAL grenade=",grenade_ok," cover=",cover_ok," cooldown=",cooldown_ok," attempts=",tries)
     print("V75223_ACTIONS reload=",reload_ok," crouch=",crouch_ok," stand=",stand_ok," jump=",jump_ok," action_ack=",final.action_ack," applied=",final.action_applied," rejected=",final.action_rejected)
     var loot_ok: bool=denied_unowned and had_replica and noninteractive and picked_up and removed and equipped and aimed
@@ -133,9 +139,10 @@ func _verify() -> void:
     var moved: bool=(final.position as Vector3).distance_to(start)>1.0
     var stopped: bool=Vector2(final.velocity.x,final.velocity.z).length()<.2
     var synced: bool=world.operator.global_position.distance_to(final.position)<.4
-    var ok: bool=moved and stopped and synced and final.elapsed>initial_elapsed and final.accepted>10 and final.rejected>0 and final.shots>0 and final.bots==49 and final.has("rivals") and no_sim and reload_ok and crouch_ok and stand_ok and jump_ok and int(final.action_applied)==9+tries and loot_ok and tactical_ok and int(final.action_rejected)>=1
+    var ok: bool=moved and stopped and synced and final.elapsed>initial_elapsed and final.accepted>10 and final.rejected>0 and final.shots>0 and final.bots==49 and final.has("rivals") and no_sim and reload_ok and crouch_ok and stand_ok and jump_ok and int(final.action_applied)==9+tries and loot_ok and tactical_ok and audio_ok and int(final.action_rejected)>=1
     print("V75222_CLIENT local_ai=0 local_match=0 local_nav=0 start=",start," authoritative=",final.position," presented=",world.operator.global_position," shots=",final.shots," accepted=",final.accepted," rejected=",final.rejected," replicas=",view.replicas.size())
     if ok:
+        print("V75226_AUDIO PASS")
         print("V75225_TACTICAL PASS")
         print("V75224_LOOT PASS")
         print("V75223_ACTIONS PASS")
