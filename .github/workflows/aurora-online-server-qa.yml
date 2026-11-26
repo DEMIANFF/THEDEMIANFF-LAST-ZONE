@@ -1,7 +1,7 @@
-name: Aurora V75.226 dedicated online server real UDP QA
+name: Aurora V75.227 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-226-authoritative-combat-audio]
+    branches: [codex/v75-227-bounded-world-snapshots]
   workflow_dispatch:
 permissions:
   contents: read
@@ -161,9 +161,10 @@ jobs:
           grep -F 'V75224_LOOT PASS' native-godot/out/online/client.log
           grep -F 'V75225_TACTICAL PASS' native-godot/out/online/client.log
           grep -F 'V75226_AUDIO PASS' native-godot/out/online/client.log
+          grep -F 'V75227_STATE PASS' native-godot/out/online/client.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.226-ONLINE-SERVER-QA
+          name: AURORA-V75.227-ONLINE-SERVER-QA
           path: native-godot/out/online/*.log
           retention-days: 3

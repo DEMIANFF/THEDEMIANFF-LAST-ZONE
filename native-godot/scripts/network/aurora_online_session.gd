@@ -2,7 +2,19 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=6
+const PROTOCOL: int=7
+# Reserve headroom below the observed 1392-byte ENet MTU for RPC headers.
+const STATE_CHUNK_BYTES: int=960
+const STATE_RAW_LIMIT: int=65536
+const STATE_MAX_CHUNKS: int=70
+var _state_pending_id: int=0
+var _state_pending_count: int=0
+var _state_pending_raw_size: int=0
+var _state_parts: Dictionary={}
+var state_frames: int=0
+var max_state_chunk_bytes: int=0
+var max_state_raw_bytes: int=0
+var max_state_encoded_bytes: int=0
 const WEAPON_CATALOG=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const SOUND_WINDOW_MS: int=650
 const SOUND_LIMIT: int=32
@@ -310,10 +322,56 @@ func _send_sound_batches() -> void:
         max_sound_bytes=maxi(max_sound_bytes,bytes)
         receive_sound_batch.rpc_id(remote_id,PROTOCOL,batch)
 
+func _send_world_state(data: Dictionary) -> void:
+    var raw: PackedByteArray=var_to_bytes(data)
+    if raw.is_empty() or raw.size()>STATE_RAW_LIMIT:
+        push_warning("AURORA_ONLINE snapshot outside raw budget")
+        return
+    var encoded: PackedByteArray=raw.compress(FileAccess.COMPRESSION_DEFLATE)
+    if encoded.is_empty() or encoded.size()>STATE_CHUNK_BYTES*STATE_MAX_CHUNKS:
+        push_warning("AURORA_ONLINE snapshot outside encoded budget")
+        return
+    var count: int=ceili(float(encoded.size())/float(STATE_CHUNK_BYTES))
+    for index in range(count):
+        var offset: int=index*STATE_CHUNK_BYTES
+        var part: PackedByteArray=encoded.slice(offset,mini(offset+STATE_CHUNK_BYTES,encoded.size()))
+        receive_state_chunk.rpc_id(remote_id,PROTOCOL,int(data.snapshot_id),index,count,raw.size(),part)
+
 @rpc("authority","call_remote","unreliable_ordered",2)
-func receive_state(version: int,data: Dictionary) -> void:
-    if version==PROTOCOL and not multiplayer.is_server() and int(data.get("snapshot_id",0))>int(state.get("snapshot_id",0)):
-        state=data
+func receive_state_chunk(version: int,frame: int,index: int,count: int,raw_size: int,part: PackedByteArray) -> void:
+    if version==PROTOCOL and not multiplayer.is_server():
+        _ingest_state_chunk(frame,index,count,raw_size,part)
+
+# Complete frames only: missing chunks never erase loot or rival replicas.
+# Newer frames supersede incomplete older ones; no reliable-channel backlog.
+func _ingest_state_chunk(frame: int,index: int,count: int,raw_size: int,part: PackedByteArray) -> void:
+    if frame<=int(state.get("snapshot_id",0)) or frame<_state_pending_id or count<1 or count>STATE_MAX_CHUNKS or index<0 or index>=count or raw_size<1 or raw_size>STATE_RAW_LIMIT or part.is_empty() or part.size()>STATE_CHUNK_BYTES:
+        return
+    if frame>_state_pending_id:
+        _state_pending_id=frame
+        _state_pending_count=count
+        _state_pending_raw_size=raw_size
+        _state_parts.clear()
+    if count!=_state_pending_count or raw_size!=_state_pending_raw_size or _state_parts.has(index):
+        return
+    max_state_chunk_bytes=maxi(max_state_chunk_bytes,part.size())
+    _state_parts[index]=part
+    if _state_parts.size()!=count:
+        return
+    var encoded: PackedByteArray=PackedByteArray()
+    for i in range(count):
+        encoded.append_array(_state_parts[i])
+    _state_parts.clear()
+    var raw: PackedByteArray=encoded.decompress(raw_size,FileAccess.COMPRESSION_DEFLATE)
+    if raw.size()!=raw_size:
+        return
+    var decoded: Variant=bytes_to_var(raw)
+    if not decoded is Dictionary or int(decoded.get("snapshot_id",0))!=frame:
+        return
+    state=decoded
+    state_frames+=1
+    max_state_raw_bytes=maxi(max_state_raw_bytes,raw_size)
+    max_state_encoded_bytes=maxi(max_state_encoded_bytes,encoded.size())
 
 func _physics_process(delta: float) -> void:
     if remote_id==0 or not multiplayer.is_server() or not is_instance_valid(operator):
@@ -352,7 +410,7 @@ func _physics_process(delta: float) -> void:
                     "clip":str(actor._clip)})
         # Private development snapshot: no hidden enemy coordinates.
         snapshot_sequence+=1
-        receive_state.rpc_id(remote_id,PROTOCOL,{
+        _send_world_state({
             "snapshot_id":snapshot_sequence,"eliminated":operator.royale_eliminated,
             "cover_reason":combat.cover_last_block_reason,"sound_payload_peak":max_sound_bytes,
             "position":operator.global_position,"velocity":operator.velocity,
