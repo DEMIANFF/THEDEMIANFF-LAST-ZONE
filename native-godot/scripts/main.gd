@@ -20,6 +20,8 @@ var operator: CharacterBody3D
 # Local review only: set explicitly before this scene enters the tree.
 # Normal lobby/match flow never sets this or reads private file paths.
 var review_operator_scene: PackedScene
+# Explicit development client scene: never builds local match simulation.
+var online_presentation_only: bool=false
 
 
 func _ready() -> void:
@@ -99,6 +101,14 @@ func _ready() -> void:
     TRACE.checkpoint("active","scene_load",operator,"operator_build_done")
     operator.global_position = Vector3(0.0, island.height_at(0.0, 0.0) + 1.2, 0.0)
     operator.respawn_point=operator.global_position
+
+    if online_presentation_only:
+        operator.set_physics_process(false)
+        operator.set_process(false)
+        operator.collision_layer=0
+        operator.collision_mask=0
+        render_budget.configure_scene(self)
+        return
 
     var hud = HUD.new()
     hud.name = "TrainingHUD"
