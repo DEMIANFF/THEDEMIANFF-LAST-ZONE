@@ -34,8 +34,31 @@ func _verify() -> void:
         return
     for i in range(120):
         await create_timer(.05).timeout
+        if view._has_state and session.state.get("match_mode","")=="waiting":
+            break
+    if not view._has_state or session.state.get("match_mode","")!="waiting":
+        push_error("V75232 missing waiting island")
+        quit(1)
+        return
+    var waiting_start: Vector3=session.state.position
+    var time_start: float=float(session.state.waiting_remaining)
+    var island_ok: bool=is_instance_valid(view.waiting_visual) and not view.waiting_visual.physical and not view.zone.visible and not view._fire_pad.visible and not view._reload.visible
+    view.move_axis=Vector2(0,-1)
+    await create_timer(.65).timeout
+    view.move_axis=Vector2.ZERO
+    var moved: bool=(session.state.position as Vector3).distance_to(waiting_start)>1.0 and bool(session.state.grounded)
+    var waiting_reject: int=int(session.state.action_rejected)
+    view.request_action(session.ACTION_RELOAD)
+    await create_timer(.35).timeout
+    var waiting_safe: bool=int(session.state.action_rejected)>waiting_reject and int(session.state.shots)==0 and float(session.state.health)==200.0 and session.state.loot.is_empty()
+    var countdown: bool=float(session.state.waiting_remaining)<time_start and float(session.state.waiting_remaining)>0.0
+    for i in range(400):
+        await create_timer(.05).timeout
         if view._has_state and session.state.get("air_mode","")=="aircraft":
             break
+    var departed: bool=session.state.get("air_mode","")=="aircraft" and not is_instance_valid(view.waiting_visual) and float(session.state.waiting_remaining)==0.0
+    var waiting_ok: bool=island_ok and moved and waiting_safe and countdown and departed
+    print("V75232_WAITING island=",island_ok," move=",moved," safe=",waiting_safe," countdown=",countdown," departure=",departed)
     if not view._has_state:
         quit(1)
         return
@@ -84,10 +107,11 @@ func _verify() -> void:
             cleared=false
     var air_ok: bool=rival_ok and aircraft_audio and audio_stopped and cleared
     print("V75231_AIR_VISUAL rival_canopy=",rival_ok," aircraft_audio=",aircraft_audio," audio_stopped=",audio_stopped," cleared=",cleared)
-    ok=ok and air_ok
+    ok=ok and air_ok and waiting_ok
     if ok:
         print("V75230_FLIGHT PASS")
         print("V75231_AIR_VISUAL PASS")
+        print("V75232_WAITING PASS")
     else:
         push_error("V75230 deployment regression")
     session.multiplayer.multiplayer_peer.close()

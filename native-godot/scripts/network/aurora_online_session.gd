@@ -2,7 +2,12 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=11
+const PROTOCOL: int=12
+const WAITING_ISLAND=preload("res://scripts/network/online_waiting_island.gd")
+const WAIT_SECONDS: float=15.0
+var waiting_remaining: float=0.0
+var waiting_island: Node3D
+var _waiting_transition: bool=false
 const AIR_CONTACT_LIMIT: int=8
 const AIR_CONTACT_RANGE: float=65.0
 var _qa_air_rival_prepared: bool=false
@@ -140,12 +145,7 @@ func _joined(id: int) -> void:
     # Existing isolated ground regressions retain their exact starting room.
     # Normal development matches now use the original authoritative airdrop.
     if not _qa_fixture or _qa_flight_test:
-        director.begin_aircraft_phase()
-        if director.mode!="aircraft":
-            push_error("AURORA_ONLINE authoritative aircraft failed to start")
-            multiplayer.multiplayer_peer.disconnect_peer(id)
-            return
-        print("AURORA_ONLINE MATCH peer=",id," participants=50 phase=aircraft")
+        _begin_waiting()
         return
     director.start_sector_battle()
     if director.mode!="sector_battle" or combat.active_fighter_count()!=50:
@@ -166,6 +166,42 @@ func _joined(id: int) -> void:
     print("AURORA_ONLINE MATCH peer=",id," participants=",combat.active_fighter_count())
     if _qa_rival_test:
         _prepare_rival_fixture()
+
+# A bounded physical staging island, separate from the combat terrain.
+func _begin_waiting() -> void:
+    combat.end_sector_battle()
+    combat.visible=false
+    combat.set_process(false)
+    director.mode="waiting"
+    director.match_ended=false
+    operator.reset_controls()
+    operator.round_finished=false
+    operator.royale_eliminated=false
+    operator.air_mode="ground"
+    operator.training_health=operator.MAX_HEALTH
+    operator._training_immunity=WAIT_SECONDS+5.0
+    waiting_island=WAITING_ISLAND.new()
+    waiting_island.physical=true
+    world.add_child(waiting_island)
+    operator.global_position=WAITING_ISLAND.SPAWN
+    operator.velocity=Vector3.ZERO
+    waiting_remaining=WAIT_SECONDS
+    _waiting_transition=false
+    print("AURORA_ONLINE MATCH peer=",remote_id," capacity=50 phase=waiting")
+
+func _depart_waiting() -> void:
+    if director.mode!="waiting" or remote_id==0:
+        return
+    _stop_input()
+    director.begin_aircraft_phase()
+    if director.mode!="aircraft":
+        push_error("AURORA_ONLINE authoritative aircraft failed to start")
+        multiplayer.multiplayer_peer.disconnect_peer(remote_id)
+        return
+    if is_instance_valid(waiting_island):
+        waiting_island.queue_free()
+    waiting_island=null
+    print("V75232_SERVER_DEPARTURE countdown=",waiting_remaining)
 
 # Separate private QA room. Use actual server bots and physical ray occlusion,
 # not a fabricated network snapshot. Never triggered by a client packet.
@@ -276,7 +312,8 @@ func submit_action(version: int,request_id: int,action: int) -> void:
         return
     action_ack=request_id
     var air_jump: bool=action==ACTION_JUMP and director.mode=="aircraft" and director._flight.phase in ["aircraft","freefall"]
-    if action<ACTION_JUMP or action>ACTION_COVER or director.match_ended or (not operator.can_act() and not air_jump):
+    var waiting_denied: bool=director.mode=="waiting" and action!=ACTION_JUMP
+    if action<ACTION_JUMP or action>ACTION_COVER or director.match_ended or waiting_denied or (not operator.can_act() and not air_jump):
         action_rejected+=1
         return
     var now: int=Time.get_ticks_msec()
@@ -288,6 +325,13 @@ func submit_action(version: int,request_id: int,action: int) -> void:
 
 func _apply_actions() -> void:
     for action in _action_queue:
+        if director.mode=="waiting":
+            if action==ACTION_JUMP and operator.can_act():
+                operator.touch_jump()
+                action_applied+=1
+            else:
+                action_rejected+=1
+            continue
         if director.mode=="aircraft":
             if action==ACTION_JUMP and director._flight.phase in ["aircraft","freefall"]:
                 director._flight.call_deferred("request_jump_or_parachute")
@@ -538,6 +582,14 @@ func _prepare_air_rival_qa() -> void:
 func _physics_process(delta: float) -> void:
     if remote_id==0 or not multiplayer.is_server() or not is_instance_valid(operator):
         return
+    if director.mode=="waiting":
+        waiting_remaining=maxf(0.0,waiting_remaining-delta)
+        if operator.global_position.y<WAITING_ISLAND.SPAWN.y-3.0:
+            operator.global_position=WAITING_ISLAND.SPAWN
+            operator.velocity=Vector3.ZERO
+        if waiting_remaining<=0.0 and not _waiting_transition:
+            _waiting_transition=true
+            call_deferred("_depart_waiting")
     if Time.get_ticks_msec()-last_input_ms>INPUT_TIMEOUT_MS or director.match_ended:
         _stop_input()
     else:
@@ -584,6 +636,7 @@ func _physics_process(delta: float) -> void:
             "body_yaw":operator.rotation.y,"clip":str(operator._current_clip),
             "air_mode":str(operator.air_mode),"match_mode":str(director.mode),
             "flight_elapsed":director._flight.elapsed,
+            "waiting_remaining":waiting_remaining,
             "rivals":rivals,"ended":director.match_ended,
             "loot":_nearby_loot(),"inventory":combat.inventory_snapshot(),
             "tactical":_tactical_snapshot(),
