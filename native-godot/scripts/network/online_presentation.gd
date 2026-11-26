@@ -5,6 +5,8 @@ const ZONE=preload("res://scripts/match/aurora_zone_visual.gd")
 const PAD=preload("res://scripts/ui/virtual_joystick.gd")
 const FIRE=preload("res://scripts/ui/directional_fire_pad.gd")
 const LOOT=preload("res://scripts/match/aurora_loot.gd")
+const GRENADE=preload("res://scripts/combat/aurora_grenade.gd")
+const COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 const WEAPON_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 var world: Node3D
@@ -13,6 +15,12 @@ var session: Node
 var zone: Node3D
 var replicas: Dictionary={}
 var loot_replicas: Dictionary={}
+var grenade_replicas: Dictionary={}
+var cover_replicas: Dictionary={}
+var grenade_targets: Dictionary={}
+var _last_blast_sequence: int=0
+var _grenade: Button
+var _cover: Button
 var weapon_visuals: Node3D
 var _presented_weapon: int=-1
 var _weapon: Button
@@ -115,7 +123,9 @@ func _build_touch_hud() -> void:
     _weapon=_action_button("ARMA",Vector2(-190,-285),func(): request_action(session.ACTION_NEXT_WEAPON))
     _heal=_action_button("CURAR",Vector2(-445,-218),func(): request_action(session.ACTION_HEAL))
     _aim=_action_button("MIRA",Vector2(-315,-296),func(): request_action(session.ACTION_AIM))
-    layer.actions=[_pad,_fire_pad,_run,jump,reload,_crouch,_weapon,_heal,_aim]
+    _grenade=_action_button("GRANADA",Vector2(-575,-140),func(): request_action(session.ACTION_GRENADE))
+    _cover=_action_button("BARRERA",Vector2(-575,-218),func(): request_action(session.ACTION_COVER))
+    layer.actions=[_pad,_fire_pad,_run,jump,reload,_crouch,_weapon,_heal,_aim,_grenade,_cover]
 
 func _action_button(label: String,offset: Vector2,callback: Callable) -> Button:
     var button:=Button.new()
@@ -180,6 +190,75 @@ func _sync_loot(items: Array) -> void:
             loot_replicas[id].queue_free()
             loot_replicas.erase(id)
 
+func _sync_tactical(data: Dictionary) -> void:
+    var seen_grenades: Dictionary={}
+    var seen_covers: Dictionary={}
+    for item in data.get("grenades",[]):
+        var id: int=int(item.id)
+        var at: Vector3=item.position
+        if not at.is_finite():
+            continue
+        seen_grenades[id]=true
+        if not grenade_replicas.has(id):
+            var grenade: Node3D=GRENADE.new()
+            grenade.presentation_only=true
+            world.add_child(grenade)
+            grenade.global_position=at
+            grenade_replicas[id]=grenade
+        grenade_targets[id]=at
+    for item in data.get("covers",[]):
+        var id: int=int(item.id)
+        var at: Vector3=item.position
+        if not at.is_finite():
+            continue
+        seen_covers[id]=true
+        if not cover_replicas.has(id):
+            var cover: StaticBody3D=COVER.new()
+            cover.presentation_only=true
+            world.add_child(cover)
+            cover.global_position=at
+            cover.rotation.y=float(item.yaw)
+            cover_replicas[id]=cover
+    for id in grenade_replicas.keys():
+        if not seen_grenades.has(id):
+            grenade_replicas[id].hide()
+            grenade_replicas[id].queue_free()
+            grenade_replicas.erase(id)
+            grenade_targets.erase(id)
+    for id in cover_replicas.keys():
+        if not seen_covers.has(id):
+            var cover: StaticBody3D=cover_replicas[id]
+            cover.hide()
+            cover.collision_layer=0
+            cover.queue_free()
+            cover_replicas.erase(id)
+    var blast: int=int(data.get("blast_sequence",0))
+    if blast>_last_blast_sequence:
+        _last_blast_sequence=blast
+        var at: Variant=data.get("blast_position")
+        if at is Vector3 and at.is_finite():
+            _show_blast(at)
+
+func _show_blast(at: Vector3) -> void:
+    # Visual confirmation only. No damage, collision or locally timed grenade.
+    var flash:=MeshInstance3D.new()
+    var sphere:=SphereMesh.new()
+    sphere.radial_segments=10
+    sphere.rings=4
+    flash.mesh=sphere
+    flash.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    var material:=StandardMaterial3D.new()
+    material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+    material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+    material.albedo_color=Color(1.0,.51,.17,.72)
+    flash.material_override=material
+    world.add_child(flash)
+    flash.global_position=at
+    var fade:=flash.create_tween().set_parallel()
+    fade.tween_property(flash,"scale",Vector3.ONE*5.5,.24)
+    fade.tween_property(material,"albedo_color:a",0.0,.24)
+    fade.chain().tween_callback(flash.queue_free)
+
 func _sync_inventory(data: Dictionary) -> void:
     var inventory: Dictionary=data.inventory
     var weapon: int=int(data.weapon)
@@ -212,6 +291,10 @@ func _sync_inventory(data: Dictionary) -> void:
     _last_shots=shots
     _weapon.text=str(WEAPONS.ENTRIES[weapon]["short"])
     _heal.text="CURAR %d"%int(inventory.medkits)
+    _grenade.text="GRANADA %d"%int(inventory.grenades)
+    _grenade.disabled=int(inventory.grenades)<=0
+    _cover.text="BARRERA %d"%int(inventory.covers)
+    _cover.disabled=int(inventory.covers)<=0 or float(data.tactical.cover_cooldown)>0.0
     _aim.text="MIRA %dX"%roundi(zoom) if aiming else "MIRA"
 
 func apply_snapshot(data: Dictionary) -> void:
@@ -256,6 +339,7 @@ func apply_snapshot(data: Dictionary) -> void:
             target_positions.erase(id)
             target_yaws.erase(id)
     _sync_loot(data.loot)
+    _sync_tactical(data.tactical)
     _sync_inventory(data)
     _crouch.text="LEVANTAR" if bool(data.crouched) else "AGACHAR"
     _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · MUNICIÓN %d/%d%s"%[
@@ -268,6 +352,7 @@ func _clear_remote() -> void:
         replicas[id].queue_free()
     replicas.clear()
     _sync_loot([])
+    _sync_tactical({})
     target_positions.clear()
     target_yaws.clear()
     _has_state=false
@@ -301,6 +386,9 @@ func _physics_process(delta: float) -> void:
         operator._camera.position.z=distance
         if operator._avatar!=null:
             operator._avatar.visible=distance>1.50
+        for id in grenade_replicas.keys():
+            var projectile: Node3D=grenade_replicas[id]
+            projectile.global_position=projectile.global_position.lerp(grenade_targets[id],factor)
         for id in replicas.keys():
             var replica: Node3D=replicas[id]
             replica.global_position=replica.global_position.lerp(target_positions[id],factor)

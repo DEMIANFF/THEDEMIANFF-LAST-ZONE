@@ -89,18 +89,54 @@ func _verify() -> void:
     var aimed: bool=bool(session.state.aim) and float(session.state.zoom)==8.0
     view.move_axis=Vector2(0,-1)
     await create_timer(1.0).timeout
+    view.move_axis=Vector2.ZERO
+    await create_timer(.5).timeout
+    var grenade_before: int=int(session.state.inventory.grenades)
+    var blast_before: int=int(session.state.tactical.blast_sequence)
+    view.request_action(session.ACTION_GRENADE)
+    var live_grenade: bool=false
+    var no_local_fuse: bool=false
+    for i in range(18):
+        await create_timer(.05).timeout
+        if not view.grenade_replicas.is_empty():
+            live_grenade=true
+            var replica: Node3D=view.grenade_replicas.values()[0]
+            no_local_fuse=replica.presentation_only and not replica.is_physics_processing()
+    await create_timer(1.4).timeout
+    var grenade_ok: bool=grenade_before>0 and int(session.state.inventory.grenades)==grenade_before-1 and live_grenade and no_local_fuse and int(session.state.tactical.blast_sequence)>blast_before and view.grenade_replicas.is_empty()
+    var cover_before: int=int(session.state.inventory.covers)
+    var cover_ok: bool=false
+    var tries: int=0
+    # At a real world location, try four headings to avoid incidental obstacles.
+    for heading in [0.0,PI*.5,-PI*.5,PI-.01]:
+        world.operator._desired_yaw=heading
+        await create_timer(.55).timeout
+        view.request_action(session.ACTION_COVER)
+        tries+=1
+        await create_timer(.40).timeout
+        if int(session.state.inventory.covers)==cover_before-1 and not view.cover_replicas.is_empty():
+            var wall: StaticBody3D=view.cover_replicas.values()[0]
+            cover_ok=wall.presentation_only and not wall.is_processing() and wall.get_node_or_null("AuroraIceWallCollision")!=null and float(session.state.tactical.cover_cooldown)>0.0
+            break
+    # Even after a second request, the existing cooldown must preserve inventory.
+    view.request_action(session.ACTION_COVER)
+    await create_timer(.40).timeout
+    var cooldown_ok: bool=int(session.state.inventory.covers)==cover_before-1
     view.send_controls=false
     await create_timer(1.3).timeout
     var final: Dictionary=session.state
+    var tactical_ok: bool=grenade_ok and cover_ok and cooldown_ok
+    print("V75225_TACTICAL grenade=",grenade_ok," cover=",cover_ok," cooldown=",cooldown_ok," attempts=",tries)
     print("V75223_ACTIONS reload=",reload_ok," crouch=",crouch_ok," stand=",stand_ok," jump=",jump_ok," action_ack=",final.action_ack," applied=",final.action_applied," rejected=",final.action_rejected)
     var loot_ok: bool=denied_unowned and had_replica and noninteractive and picked_up and removed and equipped and aimed
     print("V75224_LOOT unowned_denied=",denied_unowned," replica=",had_replica," no_local_collision=",noninteractive," physical_pickup=",picked_up," removed=",removed," equipped=",equipped," aim=",aimed)
     var moved: bool=(final.position as Vector3).distance_to(start)>1.0
     var stopped: bool=Vector2(final.velocity.x,final.velocity.z).length()<.2
     var synced: bool=world.operator.global_position.distance_to(final.position)<.4
-    var ok: bool=moved and stopped and synced and final.elapsed>initial_elapsed and final.accepted>10 and final.rejected>0 and final.shots>0 and final.bots==49 and final.has("rivals") and no_sim and reload_ok and crouch_ok and stand_ok and jump_ok and int(final.action_applied)==7 and loot_ok and int(final.action_rejected)>=1
+    var ok: bool=moved and stopped and synced and final.elapsed>initial_elapsed and final.accepted>10 and final.rejected>0 and final.shots>0 and final.bots==49 and final.has("rivals") and no_sim and reload_ok and crouch_ok and stand_ok and jump_ok and int(final.action_applied)==9+tries and loot_ok and tactical_ok and int(final.action_rejected)>=1
     print("V75222_CLIENT local_ai=0 local_match=0 local_nav=0 start=",start," authoritative=",final.position," presented=",world.operator.global_position," shots=",final.shots," accepted=",final.accepted," rejected=",final.rejected," replicas=",view.replicas.size())
     if ok:
+        print("V75225_TACTICAL PASS")
         print("V75224_LOOT PASS")
         print("V75223_ACTIONS PASS")
         print("V75222_ONLINE PASS")

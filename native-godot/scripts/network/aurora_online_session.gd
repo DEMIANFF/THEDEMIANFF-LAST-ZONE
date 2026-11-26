@@ -2,7 +2,10 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=4
+const PROTOCOL: int=5
+const ACTION_GRENADE: int=9
+const ACTION_COVER: int=10
+const TACTICAL_RANGE: float=40.0
 const ACTION_NEXT_WEAPON: int=5
 const ACTION_HEAL: int=6
 const ACTION_SYRINGE: int=7
@@ -37,6 +40,9 @@ var _action_queue: Array[int]=[]
 var _last_action_ms: Dictionary={}
 var state: Dictionary={}
 var _send_clock: float=0.0
+var grenade_blasts: int=0
+var last_blast_position: Vector3=Vector3.ZERO
+var last_blast_ms: int=-10000
 
 func listen(port: int=PORT) -> Error:
     var peer:=ENetMultiplayerPeer.new()
@@ -70,6 +76,10 @@ func _joined(id: int) -> void:
     action_applied=0
     _action_queue.clear()
     _last_action_ms.clear()
+    grenade_blasts=0
+    last_blast_ms=-10000
+    if not combat.grenade_detonated.is_connected(_on_server_blast):
+        combat.grenade_detonated.connect(_on_server_blast)
     combat.set_encounter_size(50)
     director.start_sector_battle()
     if director.mode!="sector_battle" or combat.active_fighter_count()!=50:
@@ -81,6 +91,7 @@ func _joined(id: int) -> void:
     if OS.get_environment("AURORA_ONLINE_QA_FIXTURE")=="1":
         var at:=Vector2(operator.global_position.x,operator.global_position.z-3.2)
         director._make_pickup(at,"weapon_awm","OnlineQAPhysicalAWM")
+        director._make_pickup(at,"grenade","OnlineQAPhysicalGrenade")
     print("AURORA_ONLINE MATCH peer=",id," participants=",combat.active_fighter_count())
 
 func _left(id: int) -> void:
@@ -131,7 +142,7 @@ func submit_action(version: int,request_id: int,action: int) -> void:
         action_rejected+=1
         return
     action_ack=request_id
-    if action<ACTION_JUMP or action>ACTION_AIM or director.match_ended or not operator.can_act():
+    if action<ACTION_JUMP or action>ACTION_COVER or director.match_ended or not operator.can_act():
         action_rejected+=1
         return
     var now: int=Time.get_ticks_msec()
@@ -163,6 +174,10 @@ func _apply_actions() -> void:
                 combat._on_heal(true)
             ACTION_AIM:
                 combat._on_aim()
+            ACTION_GRENADE:
+                combat.throw_grenade()
+            ACTION_COVER:
+                combat._on_cover_pressed()
         action_applied+=1
     _action_queue.clear()
 
@@ -183,6 +198,26 @@ func _nearby_loot() -> Array[Dictionary]:
     if found.size()>MAX_LOOT_SNAPSHOT:
         found.resize(MAX_LOOT_SNAPSHOT)
     return found
+
+func _on_server_blast(at: Vector3) -> void:
+    if at.is_finite() and operator.global_position.distance_squared_to(at)<=TACTICAL_RANGE*TACTICAL_RANGE:
+        grenade_blasts+=1
+        last_blast_position=at
+        last_blast_ms=Time.get_ticks_msec()
+
+func _tactical_snapshot() -> Dictionary:
+    var grenades: Array[Dictionary]=[]
+    var covers: Array[Dictionary]=[]
+    if not director.match_ended:
+        for grenade in combat._grenades:
+            if is_instance_valid(grenade) and not grenade.is_queued_for_deletion() and not grenade._spent and operator.global_position.distance_squared_to(grenade.global_position)<=TACTICAL_RANGE*TACTICAL_RANGE:
+                grenades.append({"id":grenade.get_instance_id(),"position":grenade.global_position,"seconds":grenade._remaining})
+        for cover in get_tree().get_nodes_in_group("aurora_deployable_cover"):
+            if is_instance_valid(cover) and cover.is_active() and operator.global_position.distance_squared_to(cover.global_position)<=TACTICAL_RANGE*TACTICAL_RANGE:
+                covers.append({"id":cover.get_instance_id(),"position":cover.global_position,"yaw":cover.rotation.y})
+    return {"grenades":grenades,"covers":covers,"blast_sequence":grenade_blasts,
+        "blast_position":last_blast_position if Time.get_ticks_msec()-last_blast_ms<1000 else null,
+        "cover_cooldown":combat.cover_cooldown}
 
 @rpc("authority","call_remote","unreliable_ordered",2)
 func receive_state(version: int,data: Dictionary) -> void:
@@ -225,6 +260,7 @@ func _physics_process(delta: float) -> void:
             "body_yaw":operator.rotation.y,"clip":str(operator._current_clip),
             "rivals":rivals,"ended":director.match_ended,
             "loot":_nearby_loot(),"inventory":combat.inventory_snapshot(),
+            "tactical":_tactical_snapshot(),
             "weapon":combat.weapon_index,"aim":combat.aim_active,"zoom":combat.current_zoom,
             "heal_remaining":combat._heal_remaining,"firing":combat.trigger_held,
             "crouched":operator._crouching,"grounded":operator.is_on_floor(),

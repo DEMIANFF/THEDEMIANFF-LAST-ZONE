@@ -8,6 +8,7 @@ const FUSE_SECONDS: float=1.65
 const WORLD_EDGE: float=446.0
 const AUDIBLE_FUSE_START_SECONDS: float=1.1
 const AUDIBLE_FUSE_INTERVAL_SECONDS: float=.25
+var presentation_only: bool=false
 var velocity: Vector3
 var excluded: RID
 var _remaining: float=FUSE_SECONDS
@@ -34,6 +35,8 @@ func _ready() -> void:
     # The supplied CC BY-ND grenade model remains outside all releases until
     # its distribution rights are independently resolved. Physics is unchanged.
     _build_original_grenade_detail()
+    if presentation_only:
+        set_physics_process(false)
 
 
 func _detail(mesh: Mesh,display: String,at: Vector3,
@@ -83,6 +86,8 @@ func _build_original_grenade_detail() -> void:
 
 
 func _physics_process(delta: float) -> void:
+    if presentation_only:
+        return
     velocity.y-=17.5*delta
     var next: Vector3=global_position+velocity*delta
     if global_position.distance_squared_to(next)>.000001:
@@ -108,7 +113,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _detonate() -> void:
-    if _spent:
+    if presentation_only or _spent:
         return
     _spent=true
     detonated.emit(global_position)
