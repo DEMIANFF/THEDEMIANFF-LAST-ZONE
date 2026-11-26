@@ -594,6 +594,8 @@ func apply_snapshot(data: Dictionary) -> void:
     _sync_tactical(data.tactical)
     _sync_inventory(data)
     if duel:
+        _heal.visible=duel_playable and bool(data.get("dual_loot",false))
+        _heal.disabled=int(data.inventory.medkits)<=0 or float(data.health)>=200.0 or float(data.get("heal_remaining",0.0))>0.0
         weapon_visuals.visible=duel_playable and not bool(data.get("eliminated",false))
         if not duel_playable:
             firing=false
@@ -610,6 +612,8 @@ func apply_snapshot(data: Dictionary) -> void:
     if match_mode=="waiting":
         if bool(data.get("dual_combat",false)):
             _status.text="DUELO LOCAL · HP %d · AR %d/%d · BAJAS %d"%[roundi(float(data.health)),int(data.ammo),int(data.reserve),int(data.get("kills",0))]
+            if bool(data.get("dual_loot",false)):
+                _status.text+=" · BOTIQUINES %d"%int(data.inventory.medkits)
         elif bool(data.get("dual_waiting",false)):
             _status.text="SALA DE RED · %d/2 JUGADORES · SIN COMBATE"%int(data.get("waiting_ready",1))
         else:

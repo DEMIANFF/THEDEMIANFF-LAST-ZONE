@@ -2,7 +2,11 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=19
+const PROTOCOL: int=20
+const SHARED_LOOT=preload("res://scripts/match/aurora_loot.gd")
+var dual_loot: bool=false
+var _dual_loot_nodes: Array[Area3D]=[]
+var _dual_loot_claims: int=0
 var dual_combat: bool=false
 var _dual_winner: int=0
 var _dual_finished: bool=false
@@ -106,7 +110,8 @@ var _sounds: Array[Dictionary]=[]
 func listen(port: int=PORT) -> Error:
     var peer:=ENetMultiplayerPeer.new()
     peer.set_bind_ip("127.0.0.1")
-    dual_combat=OS.get_environment("AURORA_ONLINE_DUAL_COMBAT")=="1"
+    dual_loot=OS.get_environment("AURORA_ONLINE_DUAL_LOOT")=="1"
+    dual_combat=dual_loot or OS.get_environment("AURORA_ONLINE_DUAL_COMBAT")=="1"
     dual_waiting=dual_combat or OS.get_environment("AURORA_ONLINE_DUAL_WAITING")=="1"
     var result: Error=peer.create_server(port,2 if dual_waiting else 1,5)
     if result!=OK:
@@ -435,9 +440,65 @@ func _dual_joined(id: int) -> void:
         "action_ack":0,"action_rejected":0,"action_applied":0,"jump_pending":false,"jump_ms":-1000,
         "fire":false,"ammo":int(WEAPON_CATALOG.ENTRIES[WEAPON_CATALOG.AR].capacity),
         "reserve":90,"shots":0,"hits":0,"kills":0,"reload_pending":false,
-        "reload_remaining":0.0,"reloads":0,"fire_clock":0.0,"audio_seq":0}
+        "reload_remaining":0.0,"reloads":0,"fire_clock":0.0,"audio_seq":0,
+        "medkits":0,"loot_claims":0,"heal_pending":false,"heal_remaining":0.0}
     _dual_admitted+=1
+    if dual_loot and dual_peers.size()==2:
+        _spawn_dual_loot()
     print("V75237_SERVER_ADMIT peer=",id," live_humans=",dual_peers.size())
+
+func _spawn_dual_loot() -> void:
+    # Actual existing Area3D pickups on the walkable shared deck.
+    for item in [{"kind":"ammo_ar","offset":Vector3(0,0,0),"amount":45},
+            {"kind":"medkit","offset":Vector3(-5,0,-4),"amount":1},
+            {"kind":"medkit","offset":Vector3(5,0,-4),"amount":1}]:
+        var pickup: Area3D=SHARED_LOOT.new()
+        pickup.pickup_type=item.kind
+        pickup.quantity=item.amount
+        pickup.terrain=director.terrain
+        var at: Vector3=WAITING_ISLAND.SPAWN+item.offset
+        pickup.world_spot=Vector2(at.x,at.z)
+        pickup.surface_height_override=WAITING_ISLAND.SPAWN.y-.3
+        pickup.shared_grant=Callable(self,"_grant_dual_loot")
+        world.add_child(pickup)
+        _dual_loot_nodes.append(pickup)
+
+func _grant_dual_loot(body: Node3D,kind: String,quantity: int) -> bool:
+    if not dual_loot or _dual_finished or dual_peers.size()!=2:
+        return false
+    for id in dual_peers:
+        var peer: Dictionary=dual_peers[id]
+        if peer.actor!=body or not peer.actor.can_act():
+            continue
+        match kind:
+            "ammo_ar":
+                var gained: int=mini(clampi(quantity,0,45),180-int(peer.reserve))
+                if gained<=0:
+                    return false
+                peer.reserve+=gained
+            "medkit":
+                if int(peer.medkits)>=5 or quantity!=1:
+                    return false
+                peer.medkits+=1
+            _:
+                return false
+        peer.loot_claims+=1
+        _dual_loot_claims+=1
+        print("V75240_SERVER_CLAIM kind=",kind," peer=",id," total=",_dual_loot_claims," reserve=",peer.reserve," medkits=",peer.medkits)
+        return true
+    return false
+
+func _dual_loot_snapshot(actor: CharacterBody3D) -> Array[Dictionary]:
+    var result: Array[Dictionary]=[]
+    if not dual_loot or _dual_finished or actor.royale_eliminated:
+        return result
+    for pickup in _dual_loot_nodes:
+        if not is_instance_valid(pickup) or pickup.collected or pickup.is_queued_for_deletion():
+            continue
+        if actor.global_position.distance_squared_to(pickup.global_position)<=LOOT_RANGE*LOOT_RANGE:
+            result.append({"id":pickup.get_instance_id(),"position":pickup.global_position,
+                "kind":pickup.pickup_type,"from_opponent":false,"quantity":pickup.quantity})
+    return result
 
 func _dual_left(id: int) -> void:
     if not dual_peers.has(id):
@@ -493,6 +554,12 @@ func _dual_action(version: int,request_id: int,action: int) -> void:
     if dual_combat and (_dual_finished or peer.actor.royale_eliminated or dual_peers.size()!=2):
         peer.action_rejected+=1
         return
+    if dual_loot and action==ACTION_HEAL:
+        if now-int(peer.input_ms)>INPUT_TIMEOUT_MS or bool(peer.heal_pending) or float(peer.heal_remaining)>0.0 or int(peer.medkits)<=0 or float(peer.actor.training_health)>=peer.actor.MAX_HEALTH:
+            peer.action_rejected+=1
+            return
+        peer.heal_pending=true
+        return
     if dual_combat and action==ACTION_RELOAD:
         if now-int(peer.input_ms)>INPUT_TIMEOUT_MS or bool(peer.reload_pending) or float(peer.reload_remaining)>0.0 or int(peer.ammo)>=int(WEAPON_CATALOG.ENTRIES[WEAPON_CATALOG.AR].capacity) or int(peer.reserve)<=0:
             peer.action_rejected+=1
@@ -535,6 +602,24 @@ func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> voi
         peer.fire=false
         peer.reload_pending=false
         peer.reload_remaining=0.0
+        peer.heal_pending=false
+        peer.heal_remaining=0.0
+        actor.set_firing(false)
+        return
+    if bool(peer.heal_pending):
+        peer.heal_pending=false
+        if int(peer.medkits)>0 and actor.training_health<actor.MAX_HEALTH and float(peer.reload_remaining)<=0.0 and not bool(peer.reload_pending):
+            peer.medkits-=1
+            peer.heal_remaining=2.5
+            peer.action_applied+=1
+            actor.play_weapon_action("heal",2.5)
+        else:
+            peer.action_rejected+=1
+    if float(peer.heal_remaining)>0.0:
+        peer.heal_remaining=maxf(0.0,float(peer.heal_remaining)-delta)
+        if float(peer.heal_remaining)<=0.0:
+            actor.receive_training_heal(75.0)
+            _dual_sound(id,"local","heal")
         actor.set_firing(false)
         return
     var spec: Dictionary=WEAPON_CATALOG.ENTRIES[WEAPON_CATALOG.AR]
@@ -645,14 +730,16 @@ func _dual_tick(delta: float) -> void:
         var alive: int=0
         for participant in dual_peers.values():
             alive+=0 if participant.actor.royale_eliminated else 1
-        _send_world_state({"snapshot_id":snapshot_sequence,"self_peer":id,"dual_waiting":true,"dual_combat":dual_combat,
+        _send_world_state({"snapshot_id":snapshot_sequence,"self_peer":id,"dual_waiting":true,"dual_combat":dual_combat,"dual_loot":dual_loot,
+            "duel_loot_claims":peer.loot_claims,"duel_world_claims":_dual_loot_claims,
+            "heal_remaining":peer.heal_remaining,
             "duel_ready":dual_peers.size()==2 and not _dual_finished,"duel_winner":_dual_winner,
             "hits":peer.hits,"kills":peer.kills,"reloads":peer.reloads,"duel_audio_sent":peer.audio_seq,
             "position":actor.global_position,"velocity":actor.velocity,"body_yaw":actor.rotation.y,
             "clip":str(actor._current_clip),"air_mode":"ground","match_mode":"waiting",
             "waiting_remaining":0.0,"waiting_ready":dual_peers.size(),"rivals":rivals,
-            "ended":dual_combat and _dual_finished,"eliminated":actor.royale_eliminated,"loot":[],"vehicles":{},
-            "inventory":{"awm_owned":false,"additions":[],"medkits":0,"grenades":0,"covers":0},
+            "ended":dual_combat and _dual_finished,"eliminated":actor.royale_eliminated,"loot":_dual_loot_snapshot(actor),"vehicles":{},
+            "inventory":{"awm_owned":false,"additions":[],"medkits":peer.medkits,"grenades":0,"covers":0},
             "tactical":{"cover_cooldown":0.0},"weapon":WEAPON_CATALOG.AR,"aim":false,"zoom":1.0,
             "firing":dual_combat and bool(actor._fire_held),"crouched":false,"grounded":actor.is_on_floor(),
             "ammo":peer.ammo if dual_combat else 0,"reserve":peer.reserve if dual_combat else 0,

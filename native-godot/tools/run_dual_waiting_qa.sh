@@ -9,6 +9,10 @@ if [ "${AURORA_ONLINE_DUAL_COMBAT:-0}" = 1 ]; then
   logdir="$project/out/online/duel"
   client_script="online_duel_qa.gd"
 fi
+if [ "${AURORA_ONLINE_DUAL_LOOT:-0}" = 1 ]; then
+  logdir="$project/out/online/dual_loot"
+  client_script="online_dual_loot_qa.gd"
+fi
 mkdir -p "$logdir" "$work/server" "$work/first" "$work/second"
 pids=()
 cleanup() {
@@ -33,7 +37,13 @@ wait "$first" || status=1
 wait "$second" || status=1
 cat "$logdir/server.log" "$logdir/first.log" "$logdir/second.log"
 test "$status" -eq 0
-if [ "${AURORA_ONLINE_DUAL_COMBAT:-0}" = 1 ]; then
+if [ "${AURORA_ONLINE_DUAL_LOOT:-0}" = 1 ]; then
+  grep -F 'V75240_LOOT PASS' "$logdir/first.log"
+  grep -F 'V75240_LOOT PASS' "$logdir/second.log"
+  test "$(grep -c 'V75240_SERVER_CLAIM kind=ammo_ar' "$logdir/server.log")" -eq 1
+  test "$(grep -c 'V75240_SERVER_CLAIM kind=medkit' "$logdir/server.log")" -eq 2
+  grep -F 'total=3' "$logdir/server.log"
+elif [ "${AURORA_ONLINE_DUAL_COMBAT:-0}" = 1 ]; then
   grep -F 'V75238_DUEL PASS' "$logdir/first.log"
   grep -F 'V75238_DUEL PASS' "$logdir/second.log"
   grep -F 'V75238_SERVER_ELIMINATION' "$logdir/server.log"
