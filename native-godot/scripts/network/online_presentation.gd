@@ -12,6 +12,7 @@ const WEAPONS=preload("res://scripts/combat/aurora_weapon_catalog.gd")
 const AUDIO=preload("res://scripts/audio/aurora_audio.gd")
 var sound: Node3D
 var last_sound_sequence: int=0
+var last_critical_sound_sequence: int=0
 var received_sounds: Dictionary={}
 var world: Node3D
 var operator: CharacterBody3D
@@ -176,6 +177,57 @@ func _new_replica(id: int) -> Node3D:
         collision.collision_mask=0
     return holder
 
+# Match the existing local bot's real skeletal hand mount and asset selection.
+# No combat script, collider, inventory or synthetic replacement weapon.
+func _sync_rival_weapon(holder: Node3D,slot: int) -> void:
+    if int(holder.get_meta("weapon_slot",-1))==slot:
+        return
+    var skeleton:=holder.find_child("Skeleton3D",true,false) as Skeleton3D
+    if skeleton==null:
+        return
+    var old:=skeleton.get_node_or_null("OnlineRivalHandSocket") as BoneAttachment3D
+    if old!=null:
+        skeleton.remove_child(old)
+        old.queue_free()
+    holder.set_meta("weapon_slot",slot)
+    if slot<0 or slot>=WEAPONS.ENTRIES.size():
+        return
+    var path: String=str(WEAPONS.ENTRIES[slot].get("asset",""))
+    if slot==WEAPONS.AR:
+        path=WEAPON_VISUALS.AK_PATH
+    elif slot==WEAPONS.AWM:
+        path=WEAPON_VISUALS.AWM_PATH
+    if path.is_empty() or not ResourceLoader.exists(path):
+        return
+    var hand: int=-1
+    for i in range(skeleton.get_bone_count()):
+        if skeleton.get_bone_name(i).to_lower().ends_with("righthand"):
+            hand=i
+            break
+    var imported_scale: float=skeleton.global_transform.basis.get_scale().x
+    if hand<0 or not is_finite(imported_scale) or imported_scale<=.00001:
+        return
+    var socket:=BoneAttachment3D.new()
+    socket.name="OnlineRivalHandSocket"
+    socket.bone_name=skeleton.get_bone_name(hand)
+    skeleton.add_child(socket)
+    var mount:=Node3D.new()
+    mount.name="OnlineRivalWeaponMount"
+    socket.add_child(mount)
+    mount.scale=Vector3.ONE/imported_scale
+    mount.position=Vector3(0,-.012,-.075)/imported_scale
+    mount.rotation_degrees=Vector3(-12,0,90)
+    var loader: Node3D=WEAPON_VISUALS.new()
+    var visual: Node3D=loader._load_visual(path,"AK74OnlineRivalVisual" if slot==WEAPONS.AR else "OnlineRivalWeaponVisual",mount)
+    loader.free()
+    if visual==null:
+        skeleton.remove_child(socket)
+        socket.queue_free()
+        return
+    for collision in visual.find_children("*","CollisionObject3D",true,false):
+        collision.collision_layer=0
+        collision.collision_mask=0
+
 func _sync_loot(items: Array) -> void:
     var seen: Dictionary={}
     for item in items:
@@ -311,14 +363,19 @@ func _sync_inventory(data: Dictionary) -> void:
     _aim.text="MIRA %dX"%roundi(zoom) if aiming else "MIRA"
 
 func _sync_sounds(events: Array) -> void:
-    # Repeated short snapshot history tolerates individual UDP packet losses.
-    # Each event is consumed at most once, and old events never replay.
+    # Separate sequence spaces: ambient bot traffic cannot suppress a
+    # reliable local cue or nearby detonation that arrives later.
     for item in events:
         var id: int=int(item.seq)
-        if id<=last_sound_sequence:
-            continue
-        last_sound_sequence=id
         var kind: String=str(item.kind)
+        if kind=="local" or kind=="remote_blast":
+            if id<=last_critical_sound_sequence:
+                continue
+            last_critical_sound_sequence=id
+        else:
+            if id<=last_sound_sequence:
+                continue
+            last_sound_sequence=id
         var sample: String=str(item.sample)
         var at: Vector3=item.at
         var counter: String=kind
@@ -370,6 +427,7 @@ func apply_snapshot(data: Dictionary) -> void:
         target_positions[id]=item.position
         target_yaws[id]=float(item.yaw)
         var replica: Node3D=replicas[id]
+        _sync_rival_weapon(replica,int(item.get("weapon",-1)))
         var animator:=replica.find_child("AnimationPlayer",true,false) as AnimationPlayer
         var clip: String=str(item.clip)
         if animator!=null:
