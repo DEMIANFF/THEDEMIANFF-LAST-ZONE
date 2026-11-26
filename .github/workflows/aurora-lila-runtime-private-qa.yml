@@ -1,7 +1,7 @@
 name: Lila private runtime contract QA
 on:
   push:
-    branches: [codex/v75-198-lila-rev3-ground-contact]
+    branches: [codex/v75-198-lila-rev4-cache-and-digit-audit]
   workflow_dispatch:
 permissions:
   contents: read
