@@ -15,6 +15,8 @@ var surface_height_override: float=NAN
 var collected: bool=false
 # Remote presentation only: no Area3D monitoring, overlap, grant or local pickup.
 var presentation_only: bool=false
+# Optional authoritative shared-room grant, never assigned to client replicas.
+var shared_grant: Callable=Callable()
 # Visual identity for an actual opponent elimination reward.
 var from_opponent: bool=false
 # -1 means the standard world pickup amount; death caches record a real
@@ -314,7 +316,15 @@ func _process(delta: float) -> void:
     _pickup_clock-=delta
     if _pickup_clock<=0:
         _pickup_clock=.3
-        if global_position.distance_to(player.global_position+Vector3.UP)<1.65:
+        if shared_grant.is_valid():
+            var candidates: Array[Node3D]=get_overlapping_bodies()
+            candidates.sort_custom(func(a: Node3D,b: Node3D) -> bool:
+                return a.global_position.distance_squared_to(global_position)<b.global_position.distance_squared_to(global_position))
+            for body in candidates:
+                _collect(body)
+                if collected:
+                    break
+        elif is_instance_valid(player) and global_position.distance_to(player.global_position+Vector3.UP)<1.65:
             _collect(player)
     # Collected enemy caches must look physically supported, not float or
     # rotate through the floor. Keep the old animated visual for normal
@@ -326,13 +336,18 @@ func _process(delta: float) -> void:
 
 
 func _collect(body: Node3D) -> void:
-    if presentation_only or collected or body!=player:
+    if presentation_only or collected or not body is CharacterBody3D:
         return
-    var ray:=PhysicsRayQueryParameters3D.create(player.global_position+Vector3.UP,global_position)
-    ray.exclude=[player.get_rid()]
+    if not shared_grant.is_valid() and body!=player:
+        return
+    if shared_grant.is_valid() and body.global_position.distance_to(global_position)>1.9:
+        return
+    var ray:=PhysicsRayQueryParameters3D.create(body.global_position+Vector3.UP,global_position)
+    ray.exclude=[body.get_rid()]
     if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
         return
-    if combat.collect_sector_loot(pickup_type,quantity,from_opponent):
+    var granted: bool=bool(shared_grant.call(body,pickup_type,quantity)) if shared_grant.is_valid() else combat.collect_sector_loot(pickup_type,quantity,from_opponent)
+    if granted:
         collected=true
         set_deferred("monitoring",false)
         _visual.visible=false
