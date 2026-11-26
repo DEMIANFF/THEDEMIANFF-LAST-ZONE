@@ -24,6 +24,7 @@ var _cursor: int=0
 var _ambience: AudioStreamPlayer
 var _foot_index: int=0
 var _sound_enabled: bool=true
+var _closing: bool=false
 var _steps: AudioStreamPlayer
 var _flight_transition: AudioStreamPlayer
 var _aircraft_active: bool=false
@@ -169,6 +170,8 @@ func _ensure_bus(bus_name: String,send_to: String="Master") -> void:
 
 
 func _process(_delta: float) -> void:
+    if _closing:
+        return
     # Update directional position on dedicated buses, NOT playing AudioStream
     # nodes. Updating player.volume_db/bus or using AudioStreamPlayer3D can
     # retire playback bus details from the mix thread concurrently.
@@ -336,6 +339,8 @@ func set_aircraft_audio(active: bool) -> void:
 
 
 func set_enabled(enabled: bool) -> void:
+    if _closing:
+        return
     _sound_enabled=enabled
     if _ambience:
         if enabled and not _ambience.playing:
@@ -351,6 +356,35 @@ func set_enabled(enabled: bool) -> void:
             voice.stop()
         _flight_transition.stop()
         _steps.stop()
+
+
+## Idempotent scene-owned audio shutdown. Keep the persistent mixer buses
+## and preferences intact, but do not leave playing voices in a removed map.
+func shutdown() -> void:
+    if _closing:
+        return
+    _closing=true
+    _sound_enabled=false
+    set_process(false)
+    var voices: Array[AudioStreamPlayer]=[]
+    voices.append_array(_voices)
+    voices.append_array(_world_voices)
+    voices.append_array(_spatial_addendum)
+    voices.append_array([_ambience,_steps,_flight_transition])
+    for voice in voices:
+        if is_instance_valid(voice):
+            voice.stop()
+            voice.stream=null
+    # Wait for an in-flight mixer step after stopping, never while holding
+    # the server lock across AudioStreamPlayer operations.
+    AudioServer.lock()
+    AudioServer.unlock()
+    _pan_cache.clear()
+    _gain_cache.clear()
+
+
+func _exit_tree() -> void:
+    shutdown()
 
 
 func _render(kind: String,duration: float) -> AudioStreamWAV:

@@ -125,6 +125,8 @@ var _target_visible: bool = false
 var _last_seen: Vector3 = Vector3.ZERO
 var _alert_time: float = 0.0
 var _dead_time: float = 0.0
+# Own the training respawn deadline; no global SceneTreeTimer survives a bot.
+var _respawn_timer: Timer
 var _rig: Node3D
 var _enemy_right_hand_socket: BoneAttachment3D
 var _enemy_hand_rifle: Node3D
@@ -203,6 +205,7 @@ func _ready() -> void:
 func begin_real_airdrop(origin: Vector3,delay: float) -> void:
     if not origin.is_finite() or not is_inside_tree():
         return
+    _cancel_respawn_timer()
     _airdrop_origin=origin
     _airdrop_delay=maxf(0.0,delay)
     _airdrop_stage="waiting"
@@ -1023,6 +1026,7 @@ func warn_explosive(at: Vector3,seconds_left: float) -> bool:
 
 func configure_sector_battle(actors: Array[CharacterBody3D],
         preserve_airdrop: bool=false) -> void:
+    _cancel_respawn_timer()
     _reset_death_presentation()
     muzzle_flashes_shown=0
     weapon_actions_shown=0
@@ -1127,7 +1131,7 @@ func take_training_damage(damage: float,attacker: Node3D=null) -> bool:
         set_physics_process(false)
         if respawn_enabled:
             # Keep original training respawn; BR eliminates permanently.
-            get_tree().create_timer(_dead_time).timeout.connect(_respawn)
+            _schedule_training_respawn()
         eliminated.emit(self,attacker)
         return true
     if sector_battle and is_instance_valid(attacker):
@@ -1334,9 +1338,28 @@ func _reset_death_presentation() -> void:
         marker.visible=not sector_battle
 
 
+func _cancel_respawn_timer() -> void:
+    if is_instance_valid(_respawn_timer):
+        _respawn_timer.stop()
+    _dead_time=0.0
+
+
+func _schedule_training_respawn() -> void:
+    if not is_instance_valid(_respawn_timer):
+        _respawn_timer=Timer.new()
+        _respawn_timer.name="TrainingRespawnTimer"
+        _respawn_timer.one_shot=true
+        _respawn_timer.process_mode=Node.PROCESS_MODE_ALWAYS
+        _respawn_timer.timeout.connect(_respawn)
+        add_child(_respawn_timer)
+    _respawn_timer.start(_dead_time)
+
+
 func _respawn() -> void:
-    if not respawn_enabled:
+    # A late callback must never reset a living or BR combatant.
+    if not respawn_enabled or sector_battle or health>0.0 or not is_inside_tree():
         return
+    _cancel_respawn_timer()
     _grenade_evasion_left=0.0
     _grenade_last_at=Vector3(INF,INF,INF)
     _reset_death_presentation()
