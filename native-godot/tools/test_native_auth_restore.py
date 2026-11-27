@@ -35,6 +35,16 @@ class SessionRecoveryContract(unittest.TestCase):
         self.assertIn('"online_ready":confirmed and transport_ready',gd)
         self.assertNotIn("DebugAppCheckProviderFactory",java)
 
+    def test_frontend_preserves_native_auth_error_until_retry(self):
+        front=(ROOT/"native-godot/scripts/ui/aurora_frontend.gd").read_text(encoding="utf-8")
+        begin=front.split("func _begin_welcome_auth",1)[1].split("static func _can_resume_native_session",1)[0]
+        poll=front.split("func _poll_login_state",1)[1].split("func _show_startup_diagnostics",1)[0]
+        self.assertIn('_login_last_failure=""',begin)
+        self.assertIn('if not _login_last_failure.is_empty():',poll)
+        self.assertIn('str(session.get("reason","identity_pending"))',poll)
+        self.assertIn('google_web_client_id_missing',front)
+        self.assertIn('server_identity_unavailable',front)
+
     def test_logout_does_not_fabricate_identity(self):
         java=JAVA.read_text(encoding="utf-8")
         gd=GD.read_text(encoding="utf-8")
