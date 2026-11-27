@@ -33,6 +33,10 @@ if [ "${AURORA_ONLINE_TACTICAL_QA:-0}" = 1 ]; then
   logdir="$project/out/online/tactical"
   client_script="online_tactical_room_qa.gd"
 fi
+if [ "${AURORA_FLEX_QA:-0}" = 1 ]; then
+  logdir="$project/out/online/flexible"
+  client_script="online_flexible_room_qa.gd"
+fi
 mkdir -p "$logdir" "$work/server"
 pids=()
 cleanup() {
@@ -49,16 +53,34 @@ for i in $(seq 1 120); do
 done
 grep -F 'AURORA_ONLINE READY' "$logdir/server.log"
 clients=()
-for i in 0 1 2 3; do
+slots="0 1 2 3"
+if [ "${AURORA_FLEX_QA:-0}" = 1 ]; then slots="0 1"; fi
+for i in $slots; do
   mkdir -p "$work/client$i"
   XDG_DATA_HOME="$work/client$i" timeout 90 "$engine" --headless --path "$project" --script "res://scripts/network/$client_script" >"$logdir/client$i.log" 2>&1 &
   clients+=("$!"); pids+=("$!")
 done
+if [ "${AURORA_FLEX_QA:-0}" = 1 ]; then
+  for i in $(seq 1 100); do
+    if grep -q 'V75250_SEALED humans=2 bots=48 total=50' "$logdir/server.log"; then break; fi
+    sleep .2
+  done
+  grep -F 'V75250_SEALED humans=2 bots=48 total=50' "$logdir/server.log"
+  mkdir -p "$work/late"
+  AURORA_FLEX_LATE=1 XDG_DATA_HOME="$work/late" timeout 25 "$engine" --headless --path "$project" --script "res://scripts/network/$client_script" >"$logdir/late.log" 2>&1 &
+  clients+=("$!"); pids+=("$!")
+fi
 status=0
 for pid in "${clients[@]}"; do wait "$pid" || status=1; done
 cat "$logdir/"*.log
 test "$status" -eq 0
-if [ "${AURORA_ONLINE_TACTICAL_QA:-0}" = 1 ]; then
+if [ "${AURORA_FLEX_QA:-0}" = 1 ]; then
+  for i in 0 1; do grep -F 'V75250_FLEX PASS' "$logdir/client$i.log"; done
+  grep -F 'V75250_LATE PASS' "$logdir/late.log"
+  grep -F 'V75250_LATE_DENIED' "$logdir/server.log"
+  grep -F 'V75244_MIXED_READY humans=2 physical_bots=48 total=50' "$logdir/server.log"
+  grep -F 'V75246_GROUND humans=2 bots_landed=48 total=50' "$logdir/server.log"
+elif [ "${AURORA_ONLINE_TACTICAL_QA:-0}" = 1 ]; then
   for i in 0 1 2 3; do grep -F 'V75249_TACTICAL PASS' "$logdir/client$i.log"; done
   grep -F 'V75249_THROW slot=0 remaining=0' "$logdir/server.log"
   grep -F 'V75249_WALL slot=0 remaining=0' "$logdir/server.log"

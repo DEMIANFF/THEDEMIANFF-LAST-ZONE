@@ -664,7 +664,12 @@ func apply_snapshot(data: Dictionary) -> void:
                     _status.text+=" · BUSCA SALIDA SEGURA"
     if match_mode=="waiting":
         if bool(data.get("mixed_flight",false)):
-            _status.text="ISLA DE ESPERA · %d/50 · DESPEGUE EN %02d s"%[int(data.waiting_ready),ceili(float(data.waiting_remaining))]
+            if bool(data.get("room_flexible",false)) and not bool(data.get("room_sealed",false)):
+                _status.text="SALA LAN · %d/4 HUMANOS · CIERRE EN %02d s"%[int(data.human_count),ceili(float(data.room_join_remaining))]
+            elif not bool(data.get("mixed_ready",false)):
+                _status.text="PREPARANDO PARTICIPANTES FÍSICOS"
+            else:
+                _status.text="ISLA DE ESPERA · %d/50 · DESPEGUE EN %02d s"%[int(data.waiting_ready),ceili(float(data.waiting_remaining))]
         elif bool(data.get("dual_combat",false)):
             _status.text="DUELO LOCAL · HP %d · %s %d/%d · BAJAS %d"%[roundi(float(data.health)),str(WEAPONS.ENTRIES[int(data.weapon)].short),int(data.ammo),int(data.reserve),int(data.get("kills",0))]
             if bool(data.get("expanded_room",false)):

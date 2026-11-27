@@ -2,7 +2,13 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=29
+const PROTOCOL: int=30
+var room_flexible: bool=false
+var room_sealed: bool=false
+var room_join_remaining: float=20.0
+var room_bot_target: int=46
+var room_initial_humans: int=0
+var room_occupied_slots: Dictionary={}
 const ROOM_GRENADE=preload("res://scripts/combat/aurora_grenade.gd")
 const ROOM_COVER=preload("res://scripts/combat/aurora_deployable_cover.gd")
 var room_tactical: bool=false
@@ -169,7 +175,10 @@ func listen(port: int=PORT) -> Error:
     if room_lan and not is_private_lan_host(bind_ip):
         return ERR_INVALID_PARAMETER
     peer.set_bind_ip(bind_ip if room_lan else "127.0.0.1")
-    mixed_flight=room_lan or OS.get_environment("AURORA_ONLINE_MIXED_FLIGHT")=="1"
+    var flexible_qa: bool=OS.get_environment("AURORA_FLEX_QA")=="1"
+    room_flexible=room_lan or flexible_qa
+    room_join_remaining=6.0 if flexible_qa else 20.0
+    mixed_flight=room_flexible or OS.get_environment("AURORA_ONLINE_MIXED_FLIGHT")=="1"
     mixed_room=mixed_flight or OS.get_environment("AURORA_ONLINE_MIXED_COMBAT")=="1"
     terrain_room=mixed_room or OS.get_environment("AURORA_ONLINE_TERRAIN_COMBAT")=="1"
     catalog_room=mixed_room or OS.get_environment("AURORA_ONLINE_CATALOG_QA")=="1"
@@ -333,8 +342,24 @@ func _begin_waiting() -> void:
 
 # Stage original match actors incrementally on the idle thread, never
 # instantiate colliders in a physics callback or duplicate the battle roster.
+func _admission_complete() -> bool:
+    return room_sealed if room_flexible else _dual_admitted==room_capacity
+
+func _seal_flexible_room() -> void:
+    if room_sealed or dual_peers.is_empty():
+        return
+    room_sealed=true
+    room_initial_humans=dual_peers.size()
+    room_bot_target=50-room_initial_humans
+    combat.encounter_size=room_bot_target+1
+    print("V75250_SEALED humans=",room_initial_humans," bots=",room_bot_target," total=",room_initial_humans+room_bot_target)
+
 func _process(_delta: float) -> void:
-    if mixed_room and multiplayer.is_server() and dual_peers.size()==room_capacity and not _mixed_ready and not _dual_finished:
+    if room_flexible and multiplayer.is_server() and not room_sealed and not dual_peers.is_empty():
+        room_join_remaining=maxf(0.0,room_join_remaining-_delta)
+        if room_join_remaining<=0.0 or dual_peers.size()==room_capacity:
+            _seal_flexible_room()
+    if mixed_room and multiplayer.is_server() and _admission_complete() and not _mixed_ready and not _dual_finished and not dual_peers.is_empty():
         _stage_mixed_roster()
     if remote_id!=0 and multiplayer.is_server() and director.mode=="waiting" and not _waiting_transition:
         _stage_waiting_roster()
@@ -491,9 +516,17 @@ func _left(id: int) -> void:
 # Two authenticated-by-transport peer IDs, no client-selected actor IDs.
 # This is an isolated noncombat staging room, not a 50-human battle.
 func _dual_joined(id: int) -> void:
-    if _dual_admitted>=room_capacity or not is_instance_valid(world):
+    if _dual_admitted>=room_capacity or (room_flexible and room_sealed) or not is_instance_valid(world):
+        if room_flexible and room_sealed:
+            print("V75250_LATE_DENIED peer=",id)
         multiplayer.multiplayer_peer.disconnect_peer(id)
         return
+    var slot: int=_dual_admitted
+    if room_flexible:
+        for candidate in range(room_capacity):
+            if not room_occupied_slots.has(candidate):
+                slot=candidate
+                break
     if _dual_admitted==0:
         combat.end_sector_battle()
         combat.hide()
@@ -517,19 +550,19 @@ func _dual_joined(id: int) -> void:
             waiting_island.physical=true
             world.add_child(waiting_island)
     var actor: CharacterBody3D=operator
-    if _dual_admitted>0:
+    if slot>0:
         actor=HUMAN_OPERATOR.new()
         actor.name="OnlineHuman"+str(id)
         world.add_child(actor)
-    var side: float=-1.0 if _dual_admitted==0 else 1.0
+    var side: float=-1.0 if slot==0 else 1.0
     var home: Vector3=WAITING_ISLAND.SPAWN+Vector3(side*3.0,0,0)
     var heading: float=side*PI*.5
     if expanded_room:
         var offsets: Array[Vector3]=[Vector3(-6,0,0),Vector3(6,0,0),Vector3(0,0,-9),Vector3(0,0,9)]
-        home=WAITING_ISLAND.SPAWN+offsets[_dual_admitted]
-        heading=atan2(offsets[_dual_admitted].x,offsets[_dual_admitted].z)
+        home=WAITING_ISLAND.SPAWN+offsets[slot]
+        heading=atan2(offsets[slot].x,offsets[slot].z)
     if terrain_room and not mixed_flight:
-        var site: Vector2=_terrain_sites[_dual_admitted]
+        var site: Vector2=_terrain_sites[slot]
         home=Vector3(site.x,director.terrain.height_at(site.x,site.y)+.45,site.y)
         var toward: Vector2=director.CENTER-site
         heading=atan2(-toward.x,-toward.y)
@@ -539,7 +572,13 @@ func _dual_joined(id: int) -> void:
     actor.air_mode="ground"
     actor.training_health=actor.MAX_HEALTH
     actor.battle_royale_active=dual_combat
-    actor.set_meta("online_team",floori(float(_dual_admitted)/float(room_team_size)) if room_team_size>1 else -1)
+    actor.set_meta("online_team",floori(float(slot)/float(room_team_size)) if room_team_size>1 else -1)
+    if room_flexible:
+        actor.collision_layer=1
+        actor.collision_mask=1
+        actor.set_physics_process(true)
+        actor.show()
+        room_occupied_slots[slot]=id
     actor.armor_points=0.0
     actor.helmet_points=0.0
     actor.vest_level=0
@@ -560,7 +599,7 @@ func _dual_joined(id: int) -> void:
         "reload_remaining":0.0,"reloads":0,"fire_clock":0.0,"audio_seq":0,
         "medkits":0,"loot_claims":0,"heal_pending":false,"heal_remaining":0.0,
         "heal_anchor":home,"heal_completed":0,"heal_cancelled":0,"heal_gained":0.0,
-        "slot":_dual_admitted,"weapon":WEAPON_CATALOG.AR,"awm_owned":false,
+        "slot":slot,"weapon":WEAPON_CATALOG.AR,"awm_owned":false,
         "stored_ar":30,"stored_ar_reserve":90,"stored_awm":0,"stored_awm_reserve":0,
         "aim":false,"stance_pending":0,"switch_ms":-1000,"backpack":0,"zone_hits":0,"bot_hits":0,"bot_damage":0,"bot_loot_claims":0,"bot_loot_rounds":0,"ambient_seq":0,"ambient":[],
         "flight_jumped":false,"flight_canopy":false,"flight_landed":false,"flight_pending":false,
@@ -569,7 +608,7 @@ func _dual_joined(id: int) -> void:
         "grenades":0,"covers":0,"cover_clock":0.0,"tactical_ms":-1000,"tactical_pending":0,
         "throws":0,"walls":0,"vehicle_result":""}
     _dual_admitted+=1
-    if dual_loot and dual_peers.size()==room_capacity:
+    if not room_flexible and dual_loot and dual_peers.size()==room_capacity:
         if terrain_room:
             _terrain_ready=not mixed_room
             if not mixed_flight:
@@ -651,7 +690,7 @@ func _stage_mixed_roster() -> void:
     for bot in combat._targets:
         bot.set_physics_process(false)
         bot.collision_layer=0
-    if combat._targets.size()!=MIXED_BOTS:
+    if combat._targets.size()!=room_bot_target:
         return
     _mixed_bots.assign(combat._targets)
     var foes: Array[CharacterBody3D]=[]
@@ -718,7 +757,7 @@ func _stage_mixed_roster() -> void:
             bot.cancel_real_airdrop()
             var ring: int=0 if i<16 else 1
             var idx: int=i if ring==0 else i-16
-            var count: int=16 if ring==0 else 30
+            var count: int=16 if ring==0 else room_bot_target-16
             var angle: float=TAU*float(idx)/float(count)
             var radius: float=13.0 if ring==0 else 19.0
             var home: Vector3=WAITING_ISLAND.SPAWN+Vector3(sin(angle)*radius,-.15,-cos(angle)*radius)
@@ -904,7 +943,7 @@ func _mixed_flight_tick(delta: float) -> void:
         if bot._airdrop_stage=="landed" and not _mixed_ground_bots.has(bot.get_instance_id()):
             _mixed_activate_bot(bot)
     _mixed_landed_bots=_mixed_ground_bots.size()
-    if all_humans and _mixed_landed_bots==MIXED_BOTS and not _mixed_battle_pending:
+    if all_humans and _mixed_landed_bots==room_bot_target and not _mixed_battle_pending:
         _mixed_battle_pending=true
         call_deferred("_mixed_complete_deployment")
 
@@ -974,7 +1013,7 @@ func _living_teams() -> Array[int]:
     return teams
 
 func _room_active() -> bool:
-    return _dual_admitted==room_capacity and not _dual_finished and (not mixed_room or _mixed_ready) and (not mixed_flight or _early_ground_started) and (_living_teams().size()>1 if room_team_size>1 else _living_room_count()>1)
+    return _admission_complete() and not _dual_finished and (not mixed_room or _mixed_ready) and (not mixed_flight or _early_ground_started) and (_living_teams().size()>1 if room_team_size>1 else _living_room_count()>1)
 
 func _terrain_zone_tick(delta: float) -> void:
     if not terrain_room or not _terrain_ready or not _room_active():
@@ -1293,7 +1332,7 @@ func _flush_death_loot() -> void:
             _dual_loot_nodes.remove_at(i)
 
 func _finish_room_if_needed() -> void:
-    if not dual_combat or _dual_admitted!=room_capacity or _dual_finished or (mixed_room and not _mixed_ready):
+    if not dual_combat or not _admission_complete() or _dual_finished or (mixed_room and not _mixed_ready):
         return
     if (_living_teams().size()>1 if room_team_size>1 else _living_room_count()>1):
         return
@@ -1445,6 +1484,10 @@ func _dual_left(id: int) -> void:
             if bot._foes.has(actor) or bot._target_actor==actor or bot._last_attacker==actor:
                 remaining_refs+=1
         print("V75245_DISCONNECT_CLEAN slot=",dual_peers[id].slot," bots_checked=",checked," remaining_refs=",remaining_refs)
+    if room_flexible and not room_sealed:
+        room_occupied_slots.erase(int(dual_peers[id].slot))
+        _dual_admitted=maxi(0,_dual_admitted-1)
+        print("V75250_QUEUE_RELEASE slot=",dual_peers[id].slot," remaining=",_dual_admitted)
     dual_peers.erase(id)
     if actor!=operator:
         actor.queue_free()
@@ -2089,7 +2132,9 @@ func _dual_tick(delta: float) -> void:
             "position":actor.global_position,"velocity":actor.velocity,"body_yaw":actor.rotation.y,
             "clip":str(actor._current_clip),"air_mode":actor.air_mode if mixed_flight else "ground",
             "match_mode":("sector_battle" if _peer_ground_ready(peer) else _mixed_phase) if mixed_flight else ("sector_battle" if terrain_room else "waiting"),
-            "waiting_remaining":_mixed_wait if mixed_flight else 0.0,"waiting_ready":dual_peers.size()+_mixed_bots.size() if mixed_flight else dual_peers.size(),"rivals":rivals,
+            "waiting_remaining":_mixed_wait if mixed_flight else 0.0,
+            "room_flexible":room_flexible,"room_sealed":room_sealed,"room_join_remaining":room_join_remaining,
+            "room_initial_humans":room_initial_humans if room_flexible else room_capacity,"room_bot_target":room_bot_target,"waiting_ready":dual_peers.size()+_mixed_bots.size() if mixed_flight else dual_peers.size(),"rivals":rivals,
             "mixed_flight":mixed_flight,"flight_elapsed":_mixed_flight_elapsed,"flight_landed_bots":_mixed_landed_bots,
             "flight_jumped":peer.flight_jumped,"flight_canopy":peer.flight_canopy,"flight_landed":peer.flight_landed,
             "deployment_complete":mixed_flight and _mixed_phase=="sector_battle",
