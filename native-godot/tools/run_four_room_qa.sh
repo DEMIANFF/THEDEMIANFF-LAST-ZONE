@@ -15,6 +15,11 @@ if [ "${AURORA_MIXED_QA:-0}" = 1 ]; then
   client_script="online_mixed_room_qa.gd"
   export AURORA_ONLINE_MIXED_COMBAT=1
 fi
+if [ "${AURORA_MIXED_LOOT_QA:-0}" = 1 ]; then
+  logdir="$project/out/online/mixed_loot"
+  client_script="online_mixed_loot_qa.gd"
+  export AURORA_ONLINE_MIXED_COMBAT=1
+fi
 mkdir -p "$logdir" "$work/server"
 pids=()
 cleanup() {
@@ -40,11 +45,20 @@ status=0
 for pid in "${clients[@]}"; do wait "$pid" || status=1; done
 cat "$logdir/"*.log
 test "$status" -eq 0
-if [ "${AURORA_MIXED_QA:-0}" = 1 ]; then
+if [ "${AURORA_MIXED_LOOT_QA:-0}" = 1 ]; then
+  for i in 0 1 2 3; do grep -F 'V75245_BOT_LOOT PASS' "$logdir/client$i.log"; done
+  grep -F 'V75244_MIXED_READY humans=4 physical_bots=46 total=50' "$logdir/server.log"
+  grep -E 'V75245_BOT_DROP kind=ammo_ar .*human_kill=true' "$logdir/server.log"
+  grep -E 'V75245_BOT_CLAIM .*slot=1 kind=ammo_ar .*rounds_granted=[1-9]' "$logdir/server.log"
+elif [ "${AURORA_MIXED_QA:-0}" = 1 ]; then
   for i in 0 1 2 3; do grep -F 'V75244_MIXED PASS' "$logdir/client$i.log"; done
   grep -F 'V75244_MIXED_READY humans=4 physical_bots=46 total=50' "$logdir/server.log"
   grep -F 'V75244_BOT_HUMAN' "$logdir/server.log"
   grep -F 'V75244_HUMAN_BOT' "$logdir/server.log"
+  grep -F 'V75245_DISCONNECT_CLEAN slot=1 bots_checked=46 remaining_refs=0' "$logdir/server.log"
+  for slot in 0 2 3; do
+    grep -F "V75245_LIVE_DISCONNECT slot=$slot removed=true continued=true" "$logdir/"client*.log
+  done
 elif [ "${AURORA_TERRAIN_QA:-0}" = 1 ]; then
   for i in 0 1 2 3; do grep -F 'V75243_TERRAIN PASS' "$logdir/client$i.log"; done
   grep -F 'V75243_TERRAIN_READY humans=4' "$logdir/server.log"
