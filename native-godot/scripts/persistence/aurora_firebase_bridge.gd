@@ -54,9 +54,14 @@ static func status() -> Dictionary:
         return _blocked("plugin_status_invalid")
     var details: Dictionary=state
     if (int(details.get("api_version",-1))!=API_VERSION or
-            details.get("provider")!="play_integrity" or
-            details.get("configured")!=true):
+            details.get("provider")!="play_integrity"):
         return _blocked("firebase_configuration_incomplete")
+    if details.get("configured")!=true:
+        var reason: String=str(details.get("reason",""))
+        if reason not in ["activity_unavailable","incorrect_android_package",
+                "google_services_configuration_missing","firebase_init_failed"]:
+            reason="firebase_configuration_incomplete"
+        return _blocked(reason)
     # A token returned by the SDK is NOT a server-verified attestation.
     # Only protected Firebase Functions can perform that validation.
     if details.get("app_check")!="token_ready":
