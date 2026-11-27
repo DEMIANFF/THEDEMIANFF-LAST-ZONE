@@ -54,6 +54,9 @@ if [ "${AURORA_MIXED_FLIGHT_QA:-0}" = 1 ]; then
   for i in 0 1 2 3; do grep -F 'V75246_FLIGHT PASS' "$logdir/client$i.log"; done
   grep -F 'V75246_DEPART humans=4 bots=46' "$logdir/server.log"
   grep -F 'V75246_GROUND humans=4 bots_landed=46 total=50' "$logdir/server.log"
+  grep -F 'V75247_EARLY_SHOT slot=0' "$logdir/server.log"
+  grep -F 'V75247_EARLY_PICKUP slot=0 kind=ammo_ar' "$logdir/server.log"
+  grep -F 'V75247_INDIVIDUAL slot=0 early_fire=true early_pickup=true air_safe=true shared_early=true' "$logdir/"client*.log
   for slot in 0 1 2 3; do
     grep -F "V75246_JUMP slot=$slot " "$logdir/server.log"
     grep -F "V75246_CANOPY slot=$slot" "$logdir/server.log"
