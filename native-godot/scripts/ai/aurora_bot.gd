@@ -1539,6 +1539,9 @@ func _interrupt_field_heal() -> void:
 func _is_live_foe(foe: CharacterBody3D) -> bool:
     if not is_instance_valid(foe) or foe==self or foe.is_queued_for_deletion():
         return false
+    var own_team: int=int(get_meta("online_team",-1))
+    if own_team>=0 and own_team==int(foe.get_meta("online_team",-1)):
+        return false
     if foe.has_method("receive_training_hit"):
         return not foe.royale_eliminated and not foe.round_finished and (not online_ground_only or foe.air_mode=="ground")
     return foe.is_in_group("training_target") and foe.health>0.0 and (not online_ground_only or (foe.sector_battle and foe._airdrop_stage=="inactive"))
@@ -1654,13 +1657,13 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
     shot_trace.emit(_visible_trace_origin(muzzle),
         hit.get("position",endpoint))
     var actor: Object=hit.get("collider")
-    if actor is CharacterBody3D and actor.has_method("receive_training_hit") and not actor.royale_eliminated and (not online_ground_only or _is_live_foe(actor as CharacterBody3D)):
+    if actor is CharacterBody3D and actor.has_method("receive_training_hit") and not actor.royale_eliminated and _is_live_foe(actor as CharacterBody3D):
         var before: float=actor.training_health
         actor.receive_training_hit(_loadout_damage(),false,global_position,hit["position"])
         shots_hit+=1
         if actor.training_health<before:
             human_damaged.emit(actor,before-actor.training_health)
-    elif actor is CharacterBody3D and actor.is_in_group("training_target") and actor.health>0 and (not online_ground_only or _is_live_foe(actor as CharacterBody3D)):
+    elif actor is CharacterBody3D and actor.is_in_group("training_target") and actor.health>0 and _is_live_foe(actor as CharacterBody3D):
         actor.take_training_damage(_loadout_damage(),self)
         shots_hit+=1
     elif actor is StaticBody3D and actor.is_in_group("aurora_deployable_cover"):

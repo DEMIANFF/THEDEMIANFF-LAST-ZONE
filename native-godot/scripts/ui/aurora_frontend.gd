@@ -2853,6 +2853,12 @@ func _select_tab(tab: String) -> void:
     _selected_tab=tab
     if stage!="lobby" or _info==null:
         return
+    var lan_button: Button=_page.get_node_or_null("AuroraLanTest")
+    if lan_button==null:
+        lan_button=_button("PRUEBA LAN",_open_lan_test,0)
+        lan_button.name="AuroraLanTest"
+        _page.add_child(lan_button)
+    lan_button.visible=tab=="SOCIAL"
     if tab!="JUGAR":
         _close_mode_gallery()
     if tab!="TIENDA":
@@ -3458,6 +3464,71 @@ func _finish_lobby_hud_return() -> void:
     if stage=="training" and _game!=null:
         _return_to_lobby()
 
+
+func _open_lan_test() -> void:
+    if stage!="lobby":
+        return
+    var dialog:=ConfirmationDialog.new()
+    dialog.title="Multijugador LAN de desarrollo"
+    dialog.ok_button_text="CONECTAR"
+    var content:=VBoxContainer.new()
+    var note:=Label.new()
+    note.text="Solo red privada de confianza. Servidor de prueba externo requerido. Sin clasificación ni cuenta online."
+    note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+    note.custom_minimum_size=Vector2(460,80)
+    content.add_child(note)
+    var host:=LineEdit.new()
+    host.placeholder_text="IP privada del servidor"
+    content.add_child(host)
+    dialog.add_child(content)
+    add_child(dialog)
+    dialog.confirmed.connect(func():
+        var address: String=host.text.strip_edges()
+        if preload("res://scripts/network/aurora_online_session.gd").is_private_lan_host(address):
+            call_deferred("_launch_lan_test",address)
+        else:
+            _info.text="Dirección inválida: solo IPv4 privada 10.x, 172.16–31.x o 192.168.x."
+        dialog.queue_free())
+    dialog.canceled.connect(dialog.queue_free)
+    dialog.popup_centered()
+
+func _launch_lan_test(host: String) -> void:
+    if stage!="lobby":
+        return
+    AuroraLobbyMusic.leave_lobby()
+    _release_preview()
+    _clear_page()
+    stage="loading"
+    visible=false
+    await get_tree().process_frame
+    var scene: Node3D=_game_scene.instantiate()
+    scene.online_presentation_only=true
+    scene.name="AuroraLanGame"
+    get_parent().add_child(scene)
+    var transport=preload("res://scripts/network/aurora_online_session.gd").new()
+    transport.name="AuroraOnline"
+    get_tree().root.add_child(transport)
+    var view=preload("res://scripts/network/online_presentation.gd").new()
+    scene.add_child(view)
+    view.setup(scene,transport)
+    var leave:=Button.new()
+    leave.text="SALIR LAN"
+    view._touch_root.add_child(leave)
+    leave.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+    leave.offset_left=-160
+    leave.offset_bottom=54
+    leave.pressed.connect(func():
+        if transport.multiplayer.multiplayer_peer!=null:
+            transport.multiplayer.multiplayer_peer.close()
+            transport.multiplayer.multiplayer_peer=null
+        transport.queue_free()
+        scene.queue_free()
+        visible=true
+        _show_lobby())
+    var result: Error=transport.connect_lan(host)
+    if result!=OK:
+        view._status.text="LAN · conexión rechazada"
+    stage="online_lan"
 
 func _launch(battle: bool) -> void:
     if stage!="lobby":
