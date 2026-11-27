@@ -624,8 +624,8 @@ func apply_snapshot(data: Dictionary) -> void:
     if duel:
         _fire_pad.visible=duel_playable
         _reload.visible=duel_playable
-        _grenade.hide()
-        _cover.hide()
+        _grenade.visible=duel_playable and bool(data.get("room_tactical",false))
+        _cover.visible=duel_playable and bool(data.get("room_tactical",false))
         if bool(data.get("expanded_room",false)):
             _weapon.visible=duel_playable
             _weapon.disabled=not bool(data.inventory.awm_owned) and data.inventory.additions.is_empty()
@@ -642,6 +642,10 @@ func apply_snapshot(data: Dictionary) -> void:
         weapon_visuals.visible=duel_playable and not bool(data.get("eliminated",false))
         if not duel_playable:
             firing=false
+        if _ride_id!=0:
+            for control in [_fire_pad,_reload,_run,_jump,_crouch,_weapon,_heal,_aim,_grenade,_cover]:
+                control.hide()
+            weapon_visuals.hide()
     _crouch.text="LEVANTAR" if bool(data.crouched) else "AGACHAR"
     _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · MUNICIÓN %d/%d%s"%[
         int(data.alive),roundi(float(data.health)),float(data.zone_radius),
@@ -678,10 +682,14 @@ func apply_snapshot(data: Dictionary) -> void:
         _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
     if bool(data.get("mixed_flight",false)) and match_mode=="sector_battle" and not bool(data.get("deployment_complete",false)):
         _status.text+=" · DESPLIEGUE EN CURSO"
+    if int(data.get("team_size",1))>1:
+        _status.text+=" · EQUIPO %d"%(int(data.get("team",0))+1)
     if bool(data.get("eliminated",false)):
         _status.text="ONLINE · ELIMINADO"
     elif bool(data.get("ended",false)):
         _status.text="ONLINE · VICTORIA IA" if bool(data.get("winner_bot",false)) else ("DUELO · VICTORIA" if bool(data.get("dual_combat",false)) and int(data.get("duel_winner",0))==int(data.get("self_peer",-1)) else "ONLINE · PARTIDA FINALIZADA")
+    if bool(data.get("ended",false)) and int(data.get("team_size",1))>1 and int(data.get("winner_team",-1))==int(data.get("team",-2)):
+        _status.text="ONLINE · VICTORIA DE EQUIPO"
     applied_snapshot_id=int(data.get("snapshot_id",0))
 
 func _clear_remote() -> void:

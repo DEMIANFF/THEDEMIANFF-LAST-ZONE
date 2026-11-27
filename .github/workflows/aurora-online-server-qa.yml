@@ -1,7 +1,7 @@
-name: Aurora V75.248 dedicated online server real UDP QA
+name: Aurora V75.249 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-248-authoritative-weapon-catalog]
+    branches: [codex/v75-249-integrated-online-android]
   workflow_dispatch:
 permissions:
   contents: read
@@ -208,9 +208,578 @@ jobs:
         run: AURORA_MIXED_FLIGHT_QA=1 bash native-godot/tools/run_four_room_qa.sh
       - name: Four-client actual catalog pickups switching shared calibers and reload
         run: AURORA_ONLINE_CATALOG_QA=1 bash native-godot/tools/run_four_room_qa.sh
+      - name: Four-client shared physical grenades and destructible cover
+        run: AURORA_ONLINE_TACTICAL_QA=1 bash native-godot/tools/run_four_room_qa.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.248-ONLINE-SERVER-QA
+          name: AURORA-V75.249-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3
+
+  android-preview:
+    needs: project
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v5
+      # Fail fast on version metadata, before Blender, Godot and Android setup.
+      - name: Preflight Mobile/Vulkan preview version, ABI and export path
+        run: |
+          python3 native-godot/tools/configure_android_renderer.py --variant mobile
+          # Preserve the validated code across export setup without an obsolete version pin.
+          sed -n 's/^version\/code=/AURORA_VERSION_CODE=/p' native-godot/export_presets.cfg >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          package-manager-cache: false  # Keep CI behavior deterministic; no dependency installation here.
+      - name: Verify Firebase Android bridge prerequisites (no deployment)
+        run: python3 native-godot/tools/audit_firebase_native_preflight.py --assert-blocked
+      - name: Preflight exact-package Firebase JSON before expensive Android build
+        env:
+          AURORA_NATIVE_GOOGLE_SERVICES_B64: ${{ secrets.AURORA_NATIVE_GOOGLE_SERVICES_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "${AURORA_NATIVE_GOOGLE_SERVICES_B64:-}" ]; then
+            umask 077
+            CONFIG="$(mktemp /tmp/aurora-firebase-config.XXXXXX.json)"
+            trap 'rm -f "$CONFIG"' EXIT
+            printf '%s' "$AURORA_NATIVE_GOOGLE_SERVICES_B64" | base64 --decode > "$CONFIG"
+            python3 native-godot/tools/prepare_firebase_gradle_trial.py validate --firebase-json "$CONFIG"
+          else
+            echo "AURORA_FIREBASE_JSON_PREFLIGHT_DIAGNOSTIC_ONLY missing_secret=1"
+          fi
+      - name: Test official Godot Android Gradle resource layout without credentials
+        run: python3 -m unittest discover -s native-godot/tools -p 'test_firebase_gradle_trial.py' -v
+      - name: Verify restored Firebase Auth session and true logout source contract
+        run: python3 -m unittest discover -s native-godot/tools -p 'test_native_auth_restore.py' -v
+      - name: Test Firebase offline-progress callables (no deployment)
+        run: |
+          node --version
+          node --check functions/src/index.js
+          node --check functions/src/offline-progress.js
+          node --check functions/src/player-profile.js
+          node --test functions/test/*.test.js
+      # Generated CC0 models depend only on the pinned source and converter.
+      # On retries use validated cached GLBs; never repeat a large Blender
+      # installation when the exact source scripts are unchanged.
+      - name: Cache reproducible Aurora model GLBs
+        id: aurora-model-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            native-godot/assets/characters/aurora_operator.glb
+            native-godot/assets/weapons/aurora_awm.glb
+          key: aurora-godot472-original-glbs-v1-${{ hashFiles('native-godot/tools/fetch_operator.sh', 'native-godot/tools/convert_operator.py', 'native-godot/tools/build_awm.py') }}
+          # Caches save automatically after successful jobs; no deprecated flag.
+      - name: Prepare CC0 detailed AI rig source (pinned and verified)
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
+        run: bash native-godot/tools/fetch_operator.sh /tmp/aurora-operator
+      - name: Install official Blender 4.0.2 portable archive (no apt install)
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
+        run: |
+          set -euo pipefail
+          # Ubuntu's apt-get Blender installation timed out repeatedly.
+          # Use Blender's exact 4.0.2 official standalone Linux build instead.
+          # Check the archive against the official SHA-256 release manifest.
+          name="blender-4.0.2-linux-x64.tar.xz"
+          version_manifest="blender-4.0.2.sha256"
+          primary="https://download.blender.org/release/Blender4.0"
+          backup="https://ftp.blender.org/release/Blender4.0"
+          download() {
+            local filename="$1"
+            local output="$2"
+            if ! curl --fail --location --silent --show-error --retry 2 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 480 "$primary/$filename" -o "$output"; then
+              rm -f "$output"
+              curl --fail --location --silent --show-error --retry 2 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 480 "$backup/$filename" -o "$output"
+            fi
+          }
+          cd /tmp
+          download "$name" "$name"
+          download "$version_manifest" "$version_manifest"
+          test "$(stat -c '%s' "$name")" -eq 277588768
+          grep -F "$name" "$version_manifest" | sha256sum --check --status
+          echo "AURORA_OFFICIAL_BLENDER_SHA256_PASS blender=4.0.2"
+          mkdir -p /tmp/aurora-blender
+          tar -xJf "$name" -C /tmp/aurora-blender
+          bin="/tmp/aurora-blender/blender-4.0.2-linux-x64"
+          test -x "$bin/blender"
+          "$bin/blender" --background --version | head -n 2
+          echo "$bin" >> "$GITHUB_PATH"
+          rm -f "/tmp/$name" "/tmp/$version_manifest"
+      - name: Generate the detailed AI rig from verified CC0 source
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
+        run: |
+          blender -b --python native-godot/tools/convert_operator.py -- \
+            /tmp/aurora-operator/attractor_mechanic_tpose.fbx \
+            /tmp/aurora-operator/attractor_mechanic_tpose.png \
+            native-godot/assets/characters/aurora_operator.glb
+          python3 - <<'PY'
+          import json,struct
+          from pathlib import Path
+          f=Path('native-godot/assets/characters/aurora_operator.glb')
+          data=f.read_bytes()
+          magic,ver,total=struct.unpack_from('<III',data)
+          assert magic==0x46546c67 and ver==2 and total==len(data)
+          chunk_length,chunk_type=struct.unpack_from('<II',data,12)
+          assert chunk_type==0x4e4f534a
+          scene=json.loads(data[20:20+chunk_length])
+          print('Skinned GLB:',f.stat().st_size,'bytes',len(scene.get('skins',[])),'skins',len(scene.get('animations',[])),'clips',len(scene.get('meshes',[])),'meshes')
+          assert len(scene.get('skins',[]))>=1,'Rigged character has no skin'
+          assert len(scene.get('animations',[]))>=1,'Character has no animation clips'
+          animation_names={anim.get('name','') for anim in scene.get('animations',[])}
+          for required in ('AuroraArmedStrafeLeft','AuroraArmedStrafeRight','AuroraArmedBackpedal'):
+              assert any(required in name for name in animation_names), (
+                  'The original skinned tactical locomotion clip is missing: '+required)
+          print('LILA_DIRECTIONAL_ANIMATION_GLTF_PASS',sorted(
+              a for a in animation_names if 'Strafe' in a or 'Backpedal' in a))
+          impact_clips=('AuroraHitFront','AuroraHitBack',
+                        'AuroraHitLeft','AuroraHitRight','AuroraFireAWM')
+          for required in impact_clips:
+              assert any(required in name for name in animation_names), (
+                  'Direction-aware physical combat animation not in GLB: '+required)
+          print('LILA_IMPACT_RECOIL_GLTF_PASS',len(impact_clips),'skinned clips')
+          kit_meshes=[m for m in scene.get('meshes',[])
+                      if 'LilaAuroraSignature' in m.get('name','')]
+          kit_nodes=[n for n in scene.get('nodes',[])
+                     if n.get('name')=='LilaAuroraSignatureKit']
+          kit_mats=[m for m in scene.get('materials',[])
+                    if m.get('name','').startswith('LilaAurora') and
+                       not m.get('name','').startswith('LilaAuroraHair')]
+          assert len(kit_meshes)==1,'Lila original tactical kit is absent'
+          assert len(kit_nodes)==1 and 'skin' in kit_nodes[0],\
+              'Lila kit is not weighted to original humanoid skeleton'
+          assert len(kit_mats)==3,'Lila signature needs three shared PBR materials'
+          kit_vertices=sum(scene['accessors'][p['attributes']['POSITION']]['count']
+                           for p in kit_meshes[0]['primitives'])
+          assert 152<=kit_vertices<=1500, 'Lila original kit geometry too large or missing'
+          hair_meshes=[m for m in scene.get('meshes',[])
+                       if 'LilaAuroraHairSculpt' in m.get('name','')]
+          hair_nodes=[n for n in scene.get('nodes',[])
+                      if n.get('name')=='LilaAuroraOriginalHair']
+          hair_mats=[m for m in scene.get('materials',[])
+                     if m.get('name','').startswith('LilaAuroraHair')]
+          assert len(hair_meshes)==1, 'Original Lila curved hair mesh was not exported'
+          assert len(hair_nodes)==1 and 'skin' in hair_nodes[0], \
+              'Lila hairstyle is not weighted to the humanoid armature'
+          assert len(hair_mats)==3,'Lila sculpted hair needs 3 original PBR materials'
+          hair_vertices=sum(scene['accessors'][p['attributes']['POSITION']]['count']
+                            for p in hair_meshes[0]['primitives'])
+          assert 1200<=hair_vertices<=12000, 'Lila mobile hair vertex budget violated'
+          print('LILA_SIGNATURE_GLTF_PASS',len(kit_nodes),'skinned armor,',
+                kit_vertices,'vertices,',len(kit_mats),'materials')
+          print('LILA_HAIR_GLTF_PASS',len(hair_nodes),'skinned hairstyle,',
+                hair_vertices,'vertices,',len(hair_mats),'materials')
+          PY
+      - name: Build original AWM GLB from authored Blender mesh
+        if: ${{ steps.aurora-model-cache.outputs.cache-hit != 'true' }}
+        run: |
+          blender --background --python native-godot/tools/build_awm.py -- native-godot/assets/weapons/aurora_awm.glb
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,struct
+          p=Path('native-godot/assets/weapons/aurora_awm.glb')
+          blob=p.read_bytes()
+          magic,version,length=struct.unpack_from('<III',blob)
+          assert (magic,version,length)==(0x46546c67,2,len(blob))
+          n,t=struct.unpack_from('<II',blob,12)
+          assert t==0x4e4f534a
+          payload=json.loads(blob[20:20+n])
+          print('ORIGINAL_AWM_MESH',len(payload.get('meshes',[])),'GLB_BYTES',p.stat().st_size)
+          assert len(payload.get('meshes',[]))>=32, 'AWM missing real modelling detail'
+          PY
+      - name: Verify cached or generated GLBs against Aurora rig requirements
+        run: python3 native-godot/tools/verify_prepared_model_glbs.py
+      - name: Install Godot 4.7.2 editor
+        run: |
+          curl -fL --retry 3 --retry-delay 3 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip' -o /tmp/aurora-godot.zip
+          unzip -q /tmp/aurora-godot.zip -d /tmp
+          sudo install -m 0755 /tmp/Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot
+          godot --headless --version
+      - name: Install matching Godot Android export templates
+        run: |
+          curl -fL --retry 3 --retry-delay 4 'https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz' -o /tmp/aurora-templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          unzip -jo /tmp/aurora-templates.tpz 'templates/android_debug.apk' 'templates/android_release.apk' 'templates/android_source.zip' -d "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          echo 4.7.2.stable > "$HOME/.local/share/godot/export_templates/4.7.2.stable/version.txt"
+          test -s "$HOME/.local/share/godot/export_templates/4.7.2.stable/android_debug.apk"
+          rm /tmp/aurora-templates.tpz
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+      - name: Install Android platform and SDK build tools
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.1" "platform-tools" >/dev/null
+      - name: Configure Godot Android SDK (never regenerate preview signing key)
+        run: |
+          mkdir -p "$HOME/.config/godot" "$HOME/.android"
+          cat > "$HOME/.config/godot/editor_settings-4.7.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOF
+      - name: Import 3D models and parse project
+        run: godot --headless --path native-godot --editor --quit
+      - name: Run complete native QA and Motorola regressions
+        run: bash native-godot/tools/run_qa.sh
+      # Use the same tag as the actual GDScript screenshot writers.
+      - name: Resolve screenshot tag from the Godot Android export preset
+        run: |
+          set -euo pipefail
+          tag="$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          preset=Path('native-godot/export_presets.cfg').read_text()
+          match=re.search(r'^version/name="(\d+)\.(\d+)\.[^"]+"$', preset, re.M)
+          if match is None:
+              raise SystemExit('Invalid Android version/name in export_presets.cfg')
+          print('v'+match.group(1)+'-'+match.group(2))
+          PY
+          )"
+          test -n "$tag"
+          printf 'AURORA_CAPTURE_TAG=%s\n' "$tag" >> "$GITHUB_ENV"
+          echo "AURORA_CAPTURE_TAG=$tag"
+      - name: Capture actual Godot scene with software OpenGL
+        continue-on-error: false
+        run: |
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri >/tmp/aurora-xvfb.log
+          mkdir -p native-godot/out
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_lila_body_qa.gd
+          for pose in ar-front awm-front awm-side scar-front mp40-crouch vector-walk p90-front p90-side p90-crouch; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-lila-${pose}.png"
+          done
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_preview.gd
+          test -s native-godot/out/aurora-native-v75-19-preview.png
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_frontend_preview.gd
+          test -s native-godot/out/aurora-v75-19-welcome.png
+          test -s native-godot/out/aurora-v75-19-lobby.png
+          test -s native-godot/out/aurora-v75-77-account.png
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-loading.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-login.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-lobby.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-account.png"
+          echo "AURORA_FRONTEND_CAPTURE PASS version=${AURORA_CAPTURE_TAG} login=lobby=account rendered_on_Godot"
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_real_skin_variants.gd
+          for outfit in aurora_base aurora_glacier aurora_ember; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-skin-${outfit}.png"
+          done
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_coastal_preview.gd
+          test -s native-godot/out/aurora-v75-19-coastal-quarter.png
+          test -s native-godot/out/aurora-v75-19-coastal-street.png
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_weapon_preview.gd
+          test -s native-godot/out/aurora-v74-1-ak74.png
+          test -s native-godot/out/aurora-v74-1-awm.png
+          # Separate actual 964x434 Xvfb capture to evaluate touch-safe composition.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_frontend_qa.gd
+          for screen in loading login lobby player-profile character-emotes; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_MOTOROLA_FRONTEND_CAPTURE PASS 964x434"
+          # The actual 3D screen and its structural panel/navigation QA
+          # are mandatory, including the 5-footer and HUD settings contract.
+          echo "AURORA_V75161_REFERENCE_LOBBY_CAPTURE PASS phone=964x434 real_3D=1"
+          # Real showroom GLBs, same phone-aspect viewport. Desktop render
+          # evidence only; actual Motorola/Vulkan test remains separate.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_armory_qa.gd
+          for weapon in ar awm scar mp40 kriss p90; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-armory-${weapon}.png"
+          done
+          echo "AURORA_ARMORY_MOTOROLA_VIEWPORT_CAPTURE PASS models=4"
+          # Additional real UI captures, not artwork or mockups.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_inventory_operator_qa.gd
+          for screen in inventory operator-lila; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-mode-selector.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-settings-hud.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-skin-gallery.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-local-objectives.png"
+          echo "AURORA_OBJECTIVE_PROGRESS_CAPTURE PASS resolution=964x434 genuine_journal=1"
+          echo "AURORA_SKIN_GALLERY_CAPTURE PASS resolution=964x434 original_skins=3"
+          echo "AURORA_SINGLE_MODE_SELECTOR_CAPTURE PASS resolution=964x434 selector=right_only settings_hud=4 no_footer_preset=1"
+          echo "AURORA_GEAR_OPERATOR_CAPTURE PASS resolution=964x434 screens=2"
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_zone_map_qa.gd
+          for screen in minimap-zones tactical-zones; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_ZONE_MAP_CAPTURE PASS resolution=964x434 screens=2"
+          echo "AURORA_MAP_READABILITY_CAPTURE PASS resolution=964x434 map_source=physical_island"
+          # Real 13th opponent supply cache, after a previous physical pickup.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_late_loot_qa.gd
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-late-loot.png"
+          echo "AURORA_LATE_LOOT_CAPTURE PASS resolution=964x434 physical_source=13th_kill"
+          # Actual loot map at Motorola phone aspect, desktop GL evidence only.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_live_loot_map_qa.gd
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-live-loot-map.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-waypoint-offscreen.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-player-offscreen.png"
+          echo "AURORA_LIVE_LOOT_MAP_CAPTURE PASS 964x434 actual_weapon=1 real_cache=1"
+          echo "AURORA_MAP_EDGE_VISUAL_CAPTURE PASS 964x434 screenshots=2 real_player_awm=1"
+          # True scene with two real post-kill ammo caches, 50-fighter BR.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_live_loot_minimap_qa.gd
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-live-loot-minimap.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-minimap-north-right.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-minimap-east-rotation.png"
+          echo "AURORA_MINIMAP_LIVE_LOOT_CAPTURE PASS resolution=964x434 roster=50 real_kills=2"
+          echo "AURORA_MINIMAP_PRECISION_CAPTURE PASS viewport=964x434 centered_player=1 compass=1 actual_right_movement=1 screenshots=2"
+          # The user-provided phone footage shows the original blue Aurora
+          # cover consuming the screen while Lila disappears. Capture the
+          # REAL camera near the physical wall, then after it is destroyed.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_close_cover_qa.gd
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-right-cover-left-camera.png"
+          test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-cover-cleared-camera.png"
+          echo "AURORA_REAL_COVER_CAMERA_CAPTURE PASS resolution=964x434 real_blue_wall=1 Lila_visible=1 screenshots=2"
+          # Mandatory screenshots from actual playable Main.tscn,
+          # NOT a photograph of another battle royale: live minimap,
+          # 512px detailed right-side street map and full-island overview.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_detailed_cartography_qa.gd
+          for screen in detailed-roof-minimap right-side-urban-map full-island-overview; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_V75160_LIVE_CARTOGRAPHY_CAPTURE PASS real_roofs=12 shared_map=512 right_pane=1 images=3"
+          # Same REAL 50-participant scene in player-selected visual modes.
+          # Desktop captures are NOT claims about physical Vulkan FPS.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_world_quality_qa.gd
+          for screen in quality-claridad-world quality-fluidez-world; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_V75162_WORLD_QUALITY_CAPTURE PASS 964x434 mipmapped_normals=2 original_3D_forest_lods=2 screenshots=2"
+          # Lila is the actual imported skinned operator, never substituted
+          # with a screenshot or a placeholder while producing this APK.
+          echo "AURORA_V75163_LILA_QA PASS physical_grounding=1 PBR_outfits=1 full_suite=1"
+          # Live airplane phase: real flight route on minimap and tactical map.
+          # Xvfb screenshots are engine output, not hardware Vulkan certification.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_flight_route_qa.gd
+          for screen in aircraft-live-minimap aircraft-tactical-route freefall-live-hud parachute-live-hud; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_FLIGHT_MAP_CAPTURE PASS viewport=964x434 screenshots=4 physical_transitions=2"
+          # Genuine BR supplies, physical cars (if original GLBs are installed),
+          # and real world-coordinate foot navigation from the same Main.tscn.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_integrated_br_intel_qa.gd
+          for screen in ground-navigation live-supplies-map; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_INTEGRATED_BR_CAPTURE PASS viewport=964x434 screenshots=2"
+          # Genuine grenade physics, audible fuse, 200 HP enemy reaction,
+          # and the expanding 6.5-metre blast ring in the actual 3D match.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_grenade_threat_qa.gd
+          for screen in real-grenade-fuse-warning real-grenade-blast real-grenade-minimap real-grenade-tactical-map; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_REAL_GRENADE_CAPTURE PASS viewport=964x434 screenshots=4"
+          # AWM exported original bolt, lever and knob move in real Main.tscn.
+          # These are software-rendered engine screenshots, not hardware QA.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_awm_bolt_qa.gd
+          for screen in real-awm-bolt-open real-awm-bolt-closed; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_AWM_BOLT_CAPTURE PASS real_glb_part_animation=1 viewport=964x434 screenshots=2"
+          # Same original glTF weapons with additive physical recoil on fire.
+          # Desktop Xvfb screenshots, NOT Motorola Vulkan performance proof.
+          xvfb-run -a -s "-screen 0 964x434x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_motorola_weapon_recoil_qa.gd
+          for screen in real-scar-fire-recoil real-mp40-fire-recoil; do
+            test -s "native-godot/out/aurora-${AURORA_CAPTURE_TAG}-motorola-${screen}.png"
+          done
+          echo "AURORA_WEAPON_FIRE_RECOIL_CAPTURE PASS actual_held_GLTF=2 viewport=964x434 screenshots=2"
+      # Preserve real in-engine screenshots even if a later APK gate fails.
+      # This lets the Motorola UI redesign be reviewed before installation.
+      - uses: actions/upload-artifact@v6
+        with:
+          name: THEDEMIAN-${{ env.AURORA_CAPTURE_TAG }}-GODOT-VISUAL-QA
+          path: |
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-lila-*.png
+            native-godot/out/aurora-v75-19-welcome.png
+            native-godot/out/aurora-v75-19-lobby.png
+            native-godot/out/aurora-v75-77-account.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-loading.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-login.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-lobby.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-account.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_base.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_glacier.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-skin-aurora_ember.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-loading.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-login.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-lobby.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-player-profile.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-character-emotes.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-armory-*.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-mode-selector.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-settings-hud.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-skin-gallery.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-local-objectives.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-inventory.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-operator-*.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-minimap-zones.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-tactical-zones.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-detailed-roof-minimap.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-right-side-urban-map.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-full-island-overview.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-quality-claridad-world.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-quality-fluidez-world.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-late-loot.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-live-loot-map.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-live-loot-minimap.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-aircraft-live-minimap.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-aircraft-tactical-route.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-freefall-live-hud.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-parachute-live-hud.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-ground-navigation.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-grenade-fuse-warning.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-grenade-blast.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-awm-bolt-open.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-awm-bolt-closed.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-scar-fire-recoil.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-mp40-fire-recoil.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-grenade-minimap.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-real-grenade-tactical-map.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-motorola-live-supplies-map.png
+          retention-days: 30
+      - name: Render expanded Motorola layout and verify absence of side bars
+        run: xvfb-run -a -s "-screen 0 2712x1220x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_responsive_preview.gd > native-godot/out/qa/responsive-render.log 2>&1
+      - name: Render real first animated canopy in desktop OpenGL compatibility
+        run: |
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path native-godot --rendering-method gl_compatibility --script res://scripts/qa/capture_canopy_render_qa.gd > native-godot/out/qa/canopy-render.log 2>&1
+          if grep -E 'SCRIPT ERROR:|ERROR:' native-godot/out/qa/canopy-render.log; then exit 1; fi
+          grep -F 'CANOPY_OPENGL_RENDER PASS' native-godot/out/qa/canopy-render.log
+          test -s native-godot/out/audit-first-canopy-opengl.png
+      - name: Configure permanent signed preview identity
+        env:
+          PREVIEW_KEYSTORE_B64: ${{ secrets.AURORA_PREVIEW_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PREVIEW_KEYSTORE_B64:-}" ]; then
+            echo "::error::Missing AURORA_PREVIEW_KEYSTORE_B64. Configure this GitHub Actions repository secret. Never regenerate a signing key for the same preview package."
+            exit 1
+          fi
+          # The private key is NEVER committed to the public repository.
+          printf '%s' "$PREVIEW_KEYSTORE_B64" | base64 --decode > "$HOME/.android/debug.keystore"
+          chmod 600 "$HOME/.android/debug.keystore"
+          keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey >/dev/null
+          expected="60390683c689ea7376dba5392450929e30044589189c9a200d4db54806f4a653"
+          actual="$(keytool -exportcert -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sha256sum | awk '{print $1}')"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::The keystore certificate differs from pinned V75.102 preview identity. Refusing to produce APKs that cannot update."
+            exit 1
+          fi
+          # Godot otherwise falls back to its own transient Android debug key.
+          python3 - <<'PY'
+          from pathlib import Path
+          preset=Path("native-godot/export_presets.cfg")
+          raw=preset.read_text()
+          for needle in ['keystore/debug=""','keystore/debug_user=""','keystore/debug_password=""']:
+              assert raw.count(needle)==1, f'Export setting absent: {needle}'
+          raw=raw.replace('keystore/debug=""',
+              'keystore/debug="'+str(Path.home()/'.android/debug.keystore')+'"')
+          raw=raw.replace('keystore/debug_user=""',
+              'keystore/debug_user="androiddebugkey"')
+          raw=raw.replace('keystore/debug_password=""',
+              'keystore/debug_password="android"')
+          preset.write_text(raw)
+          PY
+          printf '%s\n' "$actual" > native-godot/out/preview-signer-sha256.txt
+          echo "Pinned non-production preview certificate: $actual"
+
+      # User requested one signed test build on the isolated branch; all other pushes QA-only.
+      # Push builds verify game mechanics, real rendering and mobile layouts.
+      # One production-directed Android preview: Mobile/Vulkan ONLY.
+      # Desktop headless QA may use OpenGL to run on CI; no OpenGL APK built.
+      - name: Export signed Vulkan Mobile APK (single release)
+        run: |
+          set -euo pipefail
+          if grep -E "SCRIPT ERROR:|ERROR:" native-godot/out/qa/responsive-render.log; then exit 1; fi
+          mkdir -p native-godot/out/vulkan-verification
+          python3 native-godot/tools/configure_android_renderer.py --variant mobile
+          grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
+          grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
+          grep -Fx "version/code=${AURORA_VERSION_CODE}" native-godot/export_presets.cfg
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.249-MOTOROLA-VULKAN.apk
+          test -s native-godot/out/THEDEMIAN-V75.249-MOTOROLA-VULKAN.apk
+      - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
+        run: |
+          set -euo pipefail
+          APK=native-godot/out/THEDEMIAN-V75.249-MOTOROLA-VULKAN.apk
+          python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/vulkan-verification
+          expected="$(cat native-godot/out/preview-signer-sha256.txt)"
+          grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/vulkan-verification/signature.txt
+          AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported-vulkan" bash native-godot/tools/run_exported_qa.sh "$APK"
+          grep -F 'V7546_RENDER_AB PASS requested_mobile=mobile' native-godot/out/qa-exported-vulkan/v7546_renderer_variants_qa.log
+          grep -F 'V7548_BATTLE_LOOT PASS' native-godot/out/qa-exported-vulkan/v7548_battle_loot_qa.log
+          grep -F 'V7549_FIRST_AID PASS' native-godot/out/qa-exported-vulkan/v7549_tactical_first_aid_qa.log
+          grep -F 'V7550_TACTICAL_AI PASS' native-godot/out/qa-exported-vulkan/v7550_tactical_ai_combat_qa.log
+          grep -F 'V7555_UNIFIED PASS' native-godot/out/qa-exported-vulkan/v7555_unified_battle_royale_qa.log
+          grep -F 'V7556_COMBAT_FEEDBACK PASS' native-godot/out/qa-exported-vulkan/v7556_combat_feedback_qa.log
+          grep -F 'V7557_MATCH_LEDGER PASS' native-godot/out/qa-exported-vulkan/v7557_ten_minute_ledger_qa.log
+          grep -F 'V7558_HEADSHOTS PASS' native-godot/out/qa-exported-vulkan/v7558_physical_headshot_qa.log
+          grep -F 'V7559_LILA_RIG PASS' native-godot/out/qa-exported-vulkan/v7559_lila_rig_identity_qa.log
+          grep -F 'V7560_LILA_HOLSTERS PASS' native-godot/out/qa-exported-vulkan/v7560_lila_hair_holster_qa.log
+          grep -F 'V7560_LILA_ABILITY PASS' native-godot/out/qa-exported-vulkan/v7560_lila_tactical_ability_qa.log
+          grep -F 'V7561_LILA_MOTION PASS' native-godot/out/qa-exported-vulkan/v7561_lila_motion_precision_qa.log
+          grep -F 'V7562_BOT_MEDICINE PASS' native-godot/out/qa-exported-vulkan/v7562_bot_medicine_tactics_qa.log
+          grep -F 'V7563_LILA_MEDKIT PASS' native-godot/out/qa-exported-vulkan/v7563_lila_medkit_visual_qa.log
+          grep -F 'V7564_REAL_OPPONENT_LOOT PASS' native-godot/out/qa-exported-vulkan/v7564_opponent_inventory_loot_qa.log
+          grep -F 'V7565_LILA_TACTICAL_GAIT PASS' native-godot/out/qa-exported-vulkan/v7565_tactical_strafe_animation_qa.log
+          grep -F 'V7566_LILA_IMPACT_RECOIL PASS' native-godot/out/qa-exported-vulkan/v7566_directional_hit_awm_recoil_qa.log
+          grep -F 'V7567_LOBBY_MODE PASS' native-godot/out/qa-exported-vulkan/v7567_lobby_mode_gate_qa.log
+          grep -F 'V7568_LOCAL_COINS PASS' native-godot/out/qa-exported-vulkan/v7568_local_coins_ledger_qa.log
+          grep -F 'V7569_OBJECTIVES PASS' native-godot/out/qa-exported-vulkan/v7569_unified_objectives_qa.log
+          grep -F 'V7570_AUTOBACKUP PASS' native-godot/out/qa-exported-vulkan/v7570_local_autobackup_recovery_qa.log
+          grep -F 'V7571_PROFILE_EXPORT PASS' native-godot/out/qa-exported-vulkan/v7571_local_profile_export_qa.log
+          grep -F 'V7573_PLAYER_NAME PASS' native-godot/out/qa-exported-vulkan/v7573_local_name_identity_qa.log
+          grep -F 'V7574_FIREBASE_PREFLIGHT PASS' native-godot/out/qa-exported-vulkan/v7574_firebase_bridge_preflight_qa.log
+          grep -F 'V7575_AUTH_LINK PASS' native-godot/out/qa-exported-vulkan/v7575_native_auth_link_qa.log
+          grep -F 'V7577_LOBBY_ACCOUNT PASS' native-godot/out/qa-exported-vulkan/v7577_lobby_account_ux_qa.log
+          grep -F 'V7578_AURORA_LOBBY PASS' native-godot/out/qa-exported-vulkan/v7578_aurora_lobby_login_reference_qa.log
+          grep -F 'V7579_PREMIUM_LOBBY PASS' native-godot/out/qa-exported-vulkan/v7579_premium_lobby_stage_qa.log
+          grep -F 'V7581_50_AI_FINAL_ZONE PASS' native-godot/out/qa-exported-vulkan/v7581_fifty_ai_final_zone_qa.log
+          grep -F 'V7582_FREE_PASS PASS' native-godot/out/qa-exported-vulkan/v7582_free_pass_claim_qa.log
+          grep -F 'V7583_AI_RIG_BUDGET PASS' native-godot/out/qa-exported-vulkan/v7583_mobile_ai_rig_budget_qa.log
+          grep -F 'V7584_AI_RIG_PRIORITY PASS' native-godot/out/qa-exported-vulkan/v7584_near_enemy_rig_priority_qa.log
+          grep -F 'V7585_REAL_SKIN_SHOP PASS' native-godot/out/qa-exported-vulkan/v7585_real_local_skin_shop_qa.log
+          grep -F 'V7587_SINGLE_BR50 PASS' native-godot/out/qa-exported-vulkan/v7587_single_fifty_roster_qa.log
+          grep -F 'V7588_MOVING_ZONE PASS' native-godot/out/qa-exported-vulkan/v7588_moving_zone_qa.log
+          grep -F 'V7589_BOT_AI_BUDGET PASS' native-godot/out/qa-exported-vulkan/v7589_fifty_bot_ai_budget_qa.log
+          grep -F 'V75216_ENEMY_CLOCK PASS' native-godot/out/qa-exported-vulkan/v75216_enemy_animation_clock_qa.log
+          grep -F 'V75217_LIFECYCLE PASS cycles=3' native-godot/out/qa-exported-vulkan/v75217_scene_lifecycle_qa.log
+          grep -F 'V75219_LILA_RUNTIME PASS private=false' native-godot/out/qa-exported-vulkan/v75219_private_lila_runtime_qa.log
+          grep -F 'V75220_NAV PASS' native-godot/out/qa-exported-vulkan/v75220_navigation_live_budget_qa.log
+          grep -F 'V7590_ZONE_ROTATION PASS' native-godot/out/qa-exported-vulkan/v7590_proactive_zone_rotation_qa.log
+          grep -F 'V7590_FIFTY_RESULTS PASS' native-godot/out/qa-exported-vulkan/v7590_fifty_survivor_results_qa.log
+          grep -F 'V7591_FINAL_RING_AI PASS' native-godot/out/qa-exported-vulkan/v7591_final_ring_ai_qa.log
+          grep -F 'V7592_ACOUSTIC_RADAR PASS' native-godot/out/qa-exported-vulkan/v7592_acoustic_radar_qa.log
+          grep -F 'V7593_ELIMINATION_INTEGRITY PASS' native-godot/out/qa-exported-vulkan/v7593_elimination_integrity_qa.log
+          grep -F 'V7594_STORM_AI_THREAT PASS' native-godot/out/qa-exported-vulkan/v7594_storm_ai_threat_qa.log
+          grep -F 'V7595_SAFE_LANDING PASS' native-godot/out/qa-exported-vulkan/v7595_safe_parachute_landing_qa.log
+          grep -F 'V7596_ELIMINATION_VISUAL PASS' native-godot/out/qa-exported-vulkan/v7596_elimination_visual_qa.log
+          grep -F 'V7597_DIRECTIONAL_OPPONENT_IMPACT PASS' native-godot/out/qa-exported-vulkan/v7597_directional_opponent_impact_qa.log
+          grep -F 'V7598_KNOWN_CONTACT_AI PASS' native-godot/out/qa-exported-vulkan/v7598_known_contact_pursuit_qa.log
+          grep -F 'V7599_COVER_VISIBILITY PASS' native-godot/out/qa-exported-vulkan/v7599_cover_visibility_qa.log
+          grep -F 'V75100_BOT_WEAPON_MOTION PASS' native-godot/out/qa-exported-vulkan/v75100_bot_weapon_motion_qa.log
+          grep -F 'V75101_BOT_HAND_RIFLE PASS' native-godot/out/qa-exported-vulkan/v75101_bot_hand_rifle_qa.log
+          grep -F 'V75102_RIFLE_MUZZLE PASS' native-godot/out/qa-exported-vulkan/v75102_rifle_muzzle_qa.log
+          sha256sum "$APK" > native-godot/out/SHA256SUMS.txt
+          { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
+      - uses: actions/upload-artifact@v6
+        with:
+          name: THEDEMIAN-V75.249-MOTOROLA-VULKAN
+          path: |
+            native-godot/out/THEDEMIAN-V75.249-MOTOROLA-VULKAN.apk
+            native-godot/out/vulkan-verification/
+            native-godot/out/qa/
+            native-godot/out/qa-exported-vulkan/
+            native-godot/out/SHA256SUMS.txt
+            native-godot/out/BUILD.txt
+            native-godot/out/preview-signer-sha256.txt
+            native-godot/out/aurora-v75-19-lobby.png
+            native-godot/out/aurora-v75-77-account.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-loading.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-login.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-lobby.png
+            native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-account.png
+          retention-days: 30
+
