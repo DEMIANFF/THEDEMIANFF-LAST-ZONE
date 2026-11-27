@@ -116,7 +116,11 @@ static func session_state() -> Dictionary:
             "reason":"invalid_native_session"}
     var payload: Dictionary=parsed
     if payload.get("authenticated")!=true:
+        # Credential Manager may still be open or FirebaseAuth may still be
+        # awaiting its network response. Preserve the SDK's actual pending
+        # flag so the frontend does not clear the user's login intent.
         return {"authenticated":false,"identity_confirmed":false,
+            "online_ready":false,"pending":payload.get("pending")==true,
             "reason":str(payload.get("reason","not_signed_in"))}
     var provider: String=str(payload.get("provider",""))
     if not (provider in ["guest","google"]):

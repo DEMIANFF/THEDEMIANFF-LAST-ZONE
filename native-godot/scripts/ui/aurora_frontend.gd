@@ -1084,7 +1084,9 @@ func _begin_welcome_auth(provider: String) -> void:
 ## when App Check, Android plugin, provider or server identity are invalid.
 static func _can_resume_native_session(session: Dictionary,from_startup: bool,
         initiated_login: bool) -> bool:
-    return bool(session.get("authenticated",false)) and not bool(
+    return bool(session.get("authenticated",false)) and bool(
+        session.get("identity_confirmed",false)) and bool(
+        session.get("online_ready",false)) and not bool(
         session.get("pending",false)) and (
         from_startup or initiated_login)
 
@@ -1095,8 +1097,6 @@ static func _can_resume_native_session(session: Dictionary,from_startup: bool,
 func _resume_native_session_if_ready(session: Dictionary) -> bool:
     if not _can_resume_native_session(session,_auto_resume_on_entry,
             not _login_waiting_provider.is_empty()):
-        return false
-    if not bool(session.get("online_ready",false)):
         return false
     _auto_resume_on_entry=false
     _explicit_offline=false
