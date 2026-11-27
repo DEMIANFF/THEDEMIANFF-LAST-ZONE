@@ -159,6 +159,7 @@ var _login_guest_button: Button
 var _login_local_button: Button
 var _login_pending_provider: String=""
 var _login_waiting_provider: String=""
+var _login_last_failure: String=""
 var _login_timer: Timer
 var _login_manage_button: Button
 var _login_signout_button: Button
@@ -1082,6 +1083,7 @@ func _begin_welcome_auth(provider: String) -> void:
         if bool(session.get("pending",false)):
             return
         _login_waiting_provider=""
+    _login_last_failure=""
     _login_pending_provider=provider
     _auto_resume_on_entry=false
     _poll_login_state()
@@ -1131,18 +1133,19 @@ func _poll_login_state() -> void:
             _login_waiting_provider=provider
             _login_status_label.text="INICIANDO "+provider.to_upper()+" · CONFIRMANDO CUENTA"
         else:
-            _login_status_label.text="NO SE PUDO INICIAR · "+_firebase_state_message(
-                str(attempt.get("reason","desconocido")))
+            _login_last_failure=str(attempt.get("reason","desconocido"))
+            _login_status_label.text="NO SE PUDO INICIAR · "+_firebase_state_message(_login_last_failure)
         return
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
     var enter: Button=_login_local_button
     if bool(session.get("authenticated",false)):
+        _login_last_failure=""
         if bool(session.get("online_ready",false)):
             _login_status_label.text="SESIÓN CONFIRMADA · ID "+str(session.get("official_id",""))
         elif not bool(health.get("ready",false)):
             _login_status_label.text="CUENTA AUTENTICADA · "+_firebase_state_message(str(health.get("reason","app_check_unverified")))
         else:
-            _login_status_label.text="CUENTA AUTENTICADA · ID PENDIENTE DEL SERVIDOR"
+            _login_status_label.text="CUENTA AUTENTICADA · "+_firebase_state_message(str(session.get("reason","identity_pending")))
         if enter!=null:
             enter.text="CONTINUAR AL LOBBY" if bool(session.get("online_ready",false)) else "JUGAR SIN CONEXIÓN"
         # Preserve the explicit sign-in intent WHILE Firebase/App Check is
@@ -1157,9 +1160,12 @@ func _poll_login_state() -> void:
             _login_status_label.text="VALIDANDO CUENTA "+_login_waiting_provider.to_upper()
         else:
             var reason: String=str(session.get("reason",""))
-            _login_status_label.text=("ACCESO NO CONFIRMADO · "+_firebase_state_message(reason)
-                if not reason.is_empty() else "ESPERANDO CONFIRMACIÓN DE FIREBASE")
+            _login_last_failure=reason if not reason.is_empty() else "not_signed_in"
+            _login_status_label.text="ACCESO NO CONFIRMADO · "+_firebase_state_message(_login_last_failure)
             _login_waiting_provider=""
+        return
+    if not _login_last_failure.is_empty():
+        _login_status_label.text="ACCESO NO CONFIRMADO · "+_firebase_state_message(_login_last_failure)
         return
     _login_status_label.text="GOOGLE E INVITADO DISPONIBLES" if bool(health.get("ready",false)) else _firebase_state_message(str(health.get("reason","app_check_unverified")))
 
@@ -1713,6 +1719,22 @@ func _firebase_state_message(reason: String) -> String:
         return "Plugin detectado, faltan métodos: "+reason.get_slice(":",1)
     if reason=="firebase_configuration_incomplete":
         return "Firebase todavía no se ha inicializado"
+    if reason=="google_web_client_id_missing":
+        return "Falta configurar el cliente OAuth de Google en esta APK"
+    if reason=="google_selection_failed":
+        return "No se pudo seleccionar una cuenta Google. Vuelve a intentar."
+    if reason=="google_auth_failed":
+        return "Firebase rechazó el acceso con Google. Comprueba la conexión y el registro del juego."
+    if reason=="guest_auth_failed":
+        return "Firebase no pudo crear la sesión de invitado. Vuelve a intentar."
+    if reason=="google_account_already_in_use":
+        return "Esta cuenta Google ya está vinculada a otro perfil"
+    if reason=="server_identity_unavailable":
+        return "El servidor no confirmó tu ID. Se reintentará automáticamente."
+    if reason in ["identity_pending","profile_loading"]:
+        return "Confirmando tu perfil en el servidor"
+    if reason=="not_signed_in":
+        return "Selecciona tu cuenta para volver a intentar"
     if reason=="app_check_attestation_rejected":
         return "Google Play no validó esta APK. Revisa el registro App Check del juego."
     if reason=="app_check_rate_limited":
@@ -1731,8 +1753,9 @@ func _check_firebase_connection() -> void:
         _info.text="FIREBASE / APP CHECK: SIN CONEXIÓN\n"
         _info.text+="Estado: %s\n"%_firebase_state_message(
             str(state.get("reason","desconocido")))
-        _info.text+="No se ha iniciado sesión ni asignado ID.\n"
-        _info.text+="Google e Invitado estarán disponibles al verificar App Check."
+        var pending_session: Dictionary=FIREBASE_BRIDGE.session_state()
+        _info.text+="Cuenta autenticada; acceso online pendiente.\n" if bool(pending_session.get("authenticated",false)) else "Cuenta sin confirmar.\n"
+        _info.text+="Puedes seleccionar Google o Invitado si Firebase Auth está disponible."
         return
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
     _sync_lobby_match_mode()
