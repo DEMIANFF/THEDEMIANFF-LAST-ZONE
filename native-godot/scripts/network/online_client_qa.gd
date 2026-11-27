@@ -148,13 +148,27 @@ func _verify() -> void:
     await create_timer(1.3).timeout
     var final: Dictionary=session.state
     var tactical_ok: bool=grenade_ok and cover_ok and cooldown_ok
+    # RPC polling and presentation physics need not occur in the same frame.
+    # A fresh batch may already be received but still be queued for playback.
+    # Consume the real inbox first, then replay exactly the same events without
+    # yielding. Otherwise a legitimate first playback looks like a duplicate.
+    var pending: Array=session.drain_sounds()
+    view._sync_sounds(pending)
+    var replay: Array=session.last_sound_batch.duplicate(true)
+    if not session.last_critical_sound.is_empty():
+        replay.append(session.last_critical_sound.duplicate(true))
     var sound_counts: Dictionary=view.received_sounds.duplicate()
     var sound_seq: int=view.last_sound_sequence
     var critical_seq: int=view.last_critical_sound_sequence
-    view._sync_sounds(session.last_sound_batch)
-    if not session.last_critical_sound.is_empty():
-        view._sync_sounds([session.last_critical_sound])
-    var dedup: bool=sound_counts==view.received_sounds and sound_seq==view.last_sound_sequence and critical_seq==view.last_critical_sound_sequence
+    var eligible: bool=not replay.is_empty()
+    for event in replay:
+        var kind: String=str(event.kind)
+        var critical: bool=kind=="local" or kind=="remote_blast" or kind in ["duel_remote_shot","duel_remote_reload"]
+        eligible=eligible and int(event.seq)<=(critical_seq if critical else sound_seq)
+    view._sync_sounds(replay)
+    view._sync_sounds(replay)
+    var dedup: bool=eligible and sound_counts==view.received_sounds and sound_seq==view.last_sound_sequence and critical_seq==view.last_critical_sound_sequence
+    print("V75251_AUDIO_REPLAY drained=",pending.size()," replayed=",replay.size()," previously_consumed=",eligible," dedup=",dedup)
     var critical_ok: bool=critical_seq>0 and critical_seq==session.received_critical_sequence and session.critical_sound_gaps==0
     print("V75229_CRITICAL_AUDIO received=",session.received_critical_sequence," consumed=",critical_seq," gaps=",session.critical_sound_gaps," ambient_seq=",sound_seq," dedup=",dedup)
     var audio_ok: bool=int(sound_counts.get("ar_fire",0))==int(final.shots) and int(sound_counts.get("reload",0))>=1 and int(sound_counts.get("jump",0))>=1 and int(sound_counts.get("remote_blast",0))>=1 and dedup and critical_ok and view.sound._voices.size()==8 and int(final.sound_payload_peak)>0 and int(final.sound_payload_peak)<1200

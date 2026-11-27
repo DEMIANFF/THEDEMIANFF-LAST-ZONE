@@ -1717,8 +1717,8 @@ func _dual_sound(recipient: int,kind: String,sample: String,at: Vector3=Vector3.
     if not dual_peers.has(recipient) or not multiplayer.get_peers().has(recipient):
         return
     var peer: Dictionary=dual_peers[recipient]
-    if kind.begins_with("duel_remote"):
-        var maximum: float=150.0 if kind=="duel_remote_shot" else 26.0
+    if kind.begins_with("duel_remote") or kind=="remote_blast":
+        var maximum: float=105.0 if kind=="remote_blast" else (150.0 if kind=="duel_remote_shot" else 26.0)
         if not at.is_finite() or peer.actor.global_position.distance_squared_to(at)>maximum*maximum:
             return
         at=at.snapped(Vector3(4.0,2.0,4.0))
@@ -1814,6 +1814,9 @@ func _room_grenade_blast(at: Vector3,owner_id: int) -> void:
     for id in dual_peers:
         var peer: Dictionary=dual_peers[id]
         var target: CharacterBody3D=peer.actor
+        # Use the existing reliable blast cue and its own sequence space.
+        # Audio is spatially filtered independently of damage/occlusion.
+        _dual_sound(int(id),"remote_blast","",at)
         if target.royale_eliminated or not _peer_ground_ready(peer) or _same_team(attacker,target):
             continue
         var damage: float=_room_blast_damage(at,target)
