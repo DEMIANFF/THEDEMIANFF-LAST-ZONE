@@ -26,6 +26,10 @@ func _verify() -> void:
         quit(1)
         return
     var slot: int=int(session.state.room_slot)
+    if slot==1:
+        view.operator._desired_yaw=float(session.state.body_yaw)
+        view.operator._desired_pitch=0.0
+    var search_yaw: float=float(session.state.body_yaw)
     var initial_reserve: int=int(session.state.reserve)
     var budget: bool=true
     var killed: bool=false
@@ -53,8 +57,12 @@ func _verify() -> void:
                     view.operator._desired_yaw=atan2(-offset.x,-offset.z)
                     view.operator._desired_pitch=clampf(atan2(offset.y-.25,Vector2(offset.x,offset.z).length()),-.55,.62)
                     view.firing=true
+                    search_yaw=view.operator._desired_yaw
                 else:
                     view.firing=false
+                    search_yaw=wrapf(search_yaw+.09,-PI,PI)
+                    view.operator._desired_yaw=search_yaw
+                    view.operator._desired_pitch=0.0
             else:
                 view.firing=false
                 if cache_id==0:

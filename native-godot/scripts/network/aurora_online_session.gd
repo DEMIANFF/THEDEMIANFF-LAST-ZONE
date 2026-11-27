@@ -590,12 +590,48 @@ func _stage_mixed_roster() -> void:
         # interaction regression, not for normal match population.
         var site: Vector2=_terrain_sites[1]
         var toward: Vector2=(director.CENTER-site).normalized()
-        for step in range(20):
-            var near: Vector2=site+toward.rotated(float(step)*.31)*(8.0+float(step%3))
-            if combat._is_clear_spawn(near):
+        var shooter: CharacterBody3D=null
+        for participant in dual_peers.values():
+            if int(participant.slot)==1:
+                shooter=participant.actor
+                break
+        var found_clear: bool=false
+        if is_instance_valid(shooter):
+            var origin: Vector3=shooter.global_position+Vector3.UP*1.35
+            for step in range(64):
+                var near: Vector2=site+toward.rotated(float(step%32)*TAU/32.0)*(5.5+float(step/32)*2.0)
+                if not combat._is_clear_spawn(near):
+                    continue
+                var at:=Vector3(near.x,director.terrain.height_at(near.x,near.y)+1.15,near.y)
+                if absf(at.y-origin.y)>1.2:
+                    continue
+                var ray:=PhysicsRayQueryParameters3D.create(origin,at)
+                ray.exclude=[shooter.get_rid()]
+                ray.collision_mask=1
+                if not world.get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
+                    continue
+                var separated: bool=true
+                for rival in _mixed_bots:
+                    if rival!=_mixed_bots[0] and near.distance_squared_to(rival.spawn_coordinates)<3.0*3.0:
+                        separated=false
+                        break
+                if not separated:
+                    continue
                 _mixed_bots[0].set_match_spawn(near)
                 _mixed_bots[0].weapon_slot=WEAPON_CATALOG.AR
+                var offset: Vector3=at-origin
+                var heading: float=atan2(-offset.x,-offset.z)
+                shooter._yaw=heading
+                shooter._desired_yaw=heading
+                shooter.rotation.y=heading
+                for participant in dual_peers.values():
+                    if participant.actor==shooter:
+                        participant.yaw=heading
+                found_clear=true
+                print("V75247_QA_CLEAR_TARGET at=",near," heading=",heading)
                 break
+        if not found_clear:
+            push_warning("V75247 QA could not establish an unobstructed nearby bot start")
     for i in range(_mixed_bots.size()):
         var bot: CharacterBody3D=_mixed_bots[i]
         if mixed_flight:
@@ -629,6 +665,10 @@ func _stage_mixed_roster() -> void:
         if bot.is_physics_processing() and bot.collision_layer==1 and bot.health==bot.MAX_HEALTH:
             physical+=1
     print("V75244_MIXED_READY humans=",dual_peers.size()," physical_bots=",physical," total=",_living_room_count())
+    if OS.get_environment("AURORA_MIXED_QA")=="1" or OS.get_environment("AURORA_MIXED_LOOT_QA")=="1":
+        # Give the test client time for its first real replicated contact;
+        # this does not disable the bot, its movement, or its hit collider.
+        _mixed_bots[0]._attack_clock=2.5
     if OS.get_environment("AURORA_MIXED_LOOT_QA")=="1":
         # Separate QA room: one wounded original bot, real shots required.
         # The ordinary 50-full-health combat regression remains unchanged.
