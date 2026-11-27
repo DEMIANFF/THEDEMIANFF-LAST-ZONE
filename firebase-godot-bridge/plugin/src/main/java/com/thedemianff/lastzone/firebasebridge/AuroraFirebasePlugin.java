@@ -25,7 +25,9 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.functions.FirebaseFunctions;
 import com.google.firebase.functions.FirebaseFunctionsException;
-import com.google.firebase.functions.HttpsCallableResult;
+import com.google.firebase.functions.HttpsCallableReference;
+import java.net.URL;
+import java.net.MalformedURLException;
 
 import org.godotengine.godot.Godot;
 import org.godotengine.godot.plugin.GodotPlugin;
@@ -38,9 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Source-only Godot Android v2 plugin for a FUTURE Gradle/App Check APK.
- *
- * This module is not in the current signed Vulkan preview APK.
+ * Godot Android v2 Firebase plugin for the signed Gradle Vulkan APK.
  * The Firebase Auth/App Check SDK owns the tokens; neither access nor App Check
  * tokens are returned to GDScript, written to disk, or printed in logcat.
  * Callable requests use the Firebase SDK's authenticated and attested transport.
@@ -84,6 +84,27 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
     @Override
     public String getPluginName() {
         return PLUGIN_NAME;
+    }
+
+    // Keep the existing SDK callable protocol so Firebase Auth and App Check
+    // tokens are attached by the SDK, not exported into Godot or logs.
+    private String backendOrigin() {
+        android.content.Context context = FirebaseApp.getInstance().getApplicationContext();
+        int id = context.getResources().getIdentifier("aurora_backend_origin", "string", context.getPackageName());
+        return id == 0 ? "not_configured" : context.getString(id);
+    }
+
+    private HttpsCallableReference getHttpsCallable(String name) {
+        String origin = backendOrigin();
+        if (!origin.matches("https://[a-zA-Z0-9-]+\\.onrender\\.com"))
+            throw new IllegalStateException("backend_origin_missing");
+        try {
+            return FirebaseFunctions.getInstance("us-central1")
+                .getHttpsCallableFromUrl(new URL(origin + "/api/" + name))
+                .withTimeout(90, TimeUnit.SECONDS);
+        } catch (MalformedURLException invalid) {
+            throw new IllegalStateException("backend_origin_missing");
+        }
     }
 
     private void setError(String category) {
@@ -357,8 +378,7 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
             matchResult = "{\"status\":\"pending\"}";
         }
         try {
-            FirebaseFunctions.getInstance("us-central1")
-                .getHttpsCallable("requestOnlineMatch")
+            getHttpsCallable("requestOnlineMatch")
                 .withTimeout(25, TimeUnit.SECONDS)
                 .call(Map.of("mode", mode, "protocol", protocol))
                 .addOnCompleteListener(task -> {
@@ -609,10 +629,13 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
             authBusy.set(false);
             return;
         }
+        if ("not_configured".equals(backendOrigin())) {
+            failIdentity("backend_origin_missing");
+            return;
+        }
         // Neither the UID nor an ID chosen by the client is sent to the callable.
         try {
-            FirebaseFunctions.getInstance("us-central1")
-                .getHttpsCallable("ensurePlayerIdentity")
+            getHttpsCallable("ensurePlayerIdentity")
                 .call()
                 .addOnCompleteListener(task -> {
                     if (!isCurrentUid(uid)) {
@@ -633,8 +656,7 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                     final String expectedId = String.format(java.util.Locale.ROOT, "%05d", number);
                     setError("profile_loading");
                     try {
-                        FirebaseFunctions.getInstance("us-central1")
-                            .getHttpsCallable("getPlayerProfile")
+                        getHttpsCallable("getPlayerProfile")
                             .call()
                             .addOnCompleteListener(info -> {
                                 if (!isCurrentUid(uid)) {
@@ -685,7 +707,7 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
         FirebaseUser user=FirebaseAuth.getInstance().getCurrentUser();
         if (user==null) {statsBusy.set(false);return;}
         final String uid=user.getUid();
-        FirebaseFunctions.getInstance("us-central1").getHttpsCallable("getOnlineStats").call()
+        getHttpsCallable("getOnlineStats").call()
             .addOnCompleteListener(task->{
                 try {
                     FirebaseUser current=FirebaseAuth.getInstance().getCurrentUser();
@@ -714,7 +736,7 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
         final String uid=user.getUid();
         final int revision;
         synchronized(stateLock){revision=profileRevision;profileWriteStatus="pending";}
-        FirebaseFunctions.getInstance("us-central1").getHttpsCallable("setPlayerDisplayName")
+        getHttpsCallable("setPlayerDisplayName")
             .call(Map.of("displayName",name,"expectedRevision",revision))
             .addOnCompleteListener(task->{
                 try {

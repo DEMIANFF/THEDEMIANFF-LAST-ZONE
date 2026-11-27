@@ -1768,6 +1768,8 @@ func _firebase_state_message(reason: String) -> String:
         return "Firebase no pudo crear la sesión de invitado. Vuelve a intentar."
     if reason=="google_account_already_in_use":
         return "Esta cuenta Google ya está vinculada a otro perfil"
+    if reason=="backend_origin_missing":
+        return "Servidor de cuentas gratuito pendiente de configuración. Tu cuenta se conserva."
     if reason=="server_identity_unavailable":
         return "El servidor no confirmó tu ID. Se reintentará automáticamente."
     if reason in ["identity_pending","profile_loading"]:

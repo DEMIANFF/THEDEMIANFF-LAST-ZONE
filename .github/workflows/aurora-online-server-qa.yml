@@ -707,6 +707,8 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Compile matching Godot 4.7.2 Firebase SDK bridge AARs
+        env:
+          AURORA_BACKEND_ORIGIN: ${{ vars.AURORA_BACKEND_ORIGIN || 'not_configured' }}
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do

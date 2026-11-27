@@ -8,6 +8,12 @@ android {
 
     defaultConfig {
         minSdk = 26
+        // Trusted build-time origin only; never read a token destination from user input.
+        val backendOrigin = providers.environmentVariable("AURORA_BACKEND_ORIGIN").orElse("not_configured").get().trim()
+        require(backendOrigin == "not_configured" || backendOrigin.matches(Regex("https://[a-zA-Z0-9-]+\\.onrender\\.com"))) {
+            "AURORA_BACKEND_ORIGIN must be the owner's exact HTTPS Render service origin"
+        }
+        resValue("string", "aurora_backend_origin", backendOrigin)
         manifestPlaceholders["godotPluginName"] = "AuroraFirebase"
         manifestPlaceholders["godotPluginPackageName"] =
             "com.thedemianff.lastzone.firebasebridge"

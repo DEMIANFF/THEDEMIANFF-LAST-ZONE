@@ -93,6 +93,16 @@ class SessionRecoveryContract(unittest.TestCase):
         self.assertIn('native.call("cancelOnlineMatch")',front)
         self.assertIn('_online_match_notice(_online_search_error("search_timeout"))',front)
 
+    def test_external_backend_is_build_time_only_and_uses_sdk(self):
+        java=JAVA.read_text(encoding="utf-8")
+        gradle=(ROOT/"firebase-godot-bridge/plugin/build.gradle.kts").read_text(encoding="utf-8")
+        self.assertIn("getHttpsCallableFromUrl(new URL(origin",java)
+        self.assertIn("AURORA_BACKEND_ORIGIN",gradle)
+        self.assertIn("aurora_backend_origin",gradle)
+        self.assertIn('failIdentity("backend_origin_missing")',java)
+        self.assertIn("onrender",java)
+        self.assertNotIn("getIdToken().getResult()",java)
+
     def test_logout_does_not_fabricate_identity(self):
         java=JAVA.read_text(encoding="utf-8")
         gd=GD.read_text(encoding="utf-8")
