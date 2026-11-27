@@ -412,7 +412,7 @@ func _sync_sounds(events: Array) -> void:
             "local_step":
                 sound.play_operator_contact(bool(item.stone),bool(item.run))
             "remote_shot","duel_remote_shot":
-                sound.play_world_shot(at)
+                sound.play_world_shot(at,sample if kind=="duel_remote_shot" else "ar_fire")
             "duel_remote_reload":
                 sound.play_world_reload(at)
             "remote_step":
@@ -572,6 +572,17 @@ func apply_snapshot(data: Dictionary) -> void:
         target_positions[id]=item.position
         target_yaws[id]=float(item.yaw)
         var replica: Node3D=replicas[id]
+        if bool(data.get("expanded_room",false)):
+            var vest: int=int(item.get("vest_level",0))
+            var helmet: int=int(item.get("helmet_level",0))
+            var protection: Node3D=replica.get_node_or_null("OnlineProtection")
+            if protection==null and (vest>0 or helmet>0):
+                protection=preload("res://scripts/player/aurora_protection_visual.gd").new()
+                protection.name="OnlineProtection"
+                replica.add_child(protection)
+                protection.attach(replica)
+            if protection!=null:
+                protection.apply_levels(helmet,vest)
         var airborne: bool=bool(item.get("airborne",false))
         var waiting: bool=bool(item.get("waiting",false))
         _sync_rival_weapon(replica,-1 if airborne or waiting else int(item.get("weapon",-1)))
@@ -601,6 +612,17 @@ func apply_snapshot(data: Dictionary) -> void:
     _sync_tactical(data.tactical)
     _sync_inventory(data)
     if duel:
+        if bool(data.get("expanded_room",false)):
+            _weapon.visible=duel_playable
+            _weapon.disabled=not bool(data.inventory.awm_owned)
+            _aim.visible=duel_playable
+            _crouch.visible=duel_playable
+            operator.vest_level=int(data.vest_level)
+            operator.helmet_level=int(data.helmet_level)
+            operator.armor_points=float(data.armor)
+            operator.helmet_points=float(data.helmet)
+            operator._sync_protection_visual()
+            operator.set_backpack_visual_level(int(data.backpack))
         _heal.visible=duel_playable and bool(data.get("dual_loot",false))
         _heal.disabled=int(data.inventory.medkits)<=0 or float(data.health)>=200.0 or float(data.get("heal_remaining",0.0))>0.0
         weapon_visuals.visible=duel_playable and not bool(data.get("eliminated",false))
@@ -618,7 +640,9 @@ func apply_snapshot(data: Dictionary) -> void:
                     _status.text+=" · BUSCA SALIDA SEGURA"
     if match_mode=="waiting":
         if bool(data.get("dual_combat",false)):
-            _status.text="DUELO LOCAL · HP %d · AR %d/%d · BAJAS %d"%[roundi(float(data.health)),int(data.ammo),int(data.reserve),int(data.get("kills",0))]
+            _status.text="DUELO LOCAL · HP %d · %s %d/%d · BAJAS %d"%[roundi(float(data.health)),str(WEAPONS.ENTRIES[int(data.weapon)].short),int(data.ammo),int(data.reserve),int(data.get("kills",0))]
+            if bool(data.get("expanded_room",false)):
+                _status.text="SALA %d VIVOS · "%int(data.alive)+_status.text+" · CHALECO %d · CASCO %d · MOCHILA %d"%[roundi(float(data.armor)),roundi(float(data.helmet)),int(data.backpack)]
             if bool(data.get("dual_loot",false)):
                 _status.text+=" · BOTIQUINES %d"%int(data.inventory.medkits)
                 if float(data.get("heal_remaining",0.0))>0.0:
@@ -630,7 +654,9 @@ func apply_snapshot(data: Dictionary) -> void:
             _status.text="ISLA DE ESPERA · %d/50 PARTICIPANTES · DESPEGUE EN %02d s"%[int(data.get("waiting_ready",1)),ceili(float(data.get("waiting_remaining",0.0)))]
     elif air!="ground":
         _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
-    if bool(data.get("ended",false)):
+    if bool(data.get("eliminated",false)):
+        _status.text="ONLINE · ELIMINADO"
+    elif bool(data.get("ended",false)):
         _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else ("DUELO · VICTORIA" if bool(data.get("dual_combat",false)) and int(data.get("duel_winner",0))==int(data.get("self_peer",-1)) else "ONLINE · PARTIDA FINALIZADA")
     applied_snapshot_id=int(data.get("snapshot_id",0))
 
@@ -710,7 +736,7 @@ func _physics_process(delta: float) -> void:
             var replica: Node3D=replicas[id]
             replica.global_position=replica.global_position.lerp(target_positions[id],factor)
             replica.rotation.y=lerp_angle(replica.rotation.y,target_yaws[id],factor)
-    if not connected or not send_controls or not _has_state or bool(_last_state.get("ended",false)):
+    if not connected or not send_controls or not _has_state or bool(_last_state.get("ended",false)) or bool(_last_state.get("eliminated",false)):
         return
     _clock+=delta
     if _clock>=.05:
