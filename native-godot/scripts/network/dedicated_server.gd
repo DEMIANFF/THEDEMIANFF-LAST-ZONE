@@ -21,4 +21,4 @@ func _boot() -> void:
         push_error("ENet server listen failed: "+str(result))
         quit(1)
         return
-    print("AURORA_ONLINE READY loopback UDP ",SESSION.PORT)
+    print("AURORA_ONLINE READY ",("private LAN" if session.room_lan else "loopback")," UDP ",SESSION.PORT)

@@ -1,7 +1,7 @@
-name: Aurora V75.249 dedicated online server real UDP QA
+name: Aurora V75.250 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-249-integrated-online-android]
+    branches: [codex/v75-250-flexible-lan-admission]
   workflow_dispatch:
 permissions:
   contents: read
@@ -210,10 +210,12 @@ jobs:
         run: AURORA_ONLINE_CATALOG_QA=1 bash native-godot/tools/run_four_room_qa.sh
       - name: Four-client shared physical grenades and destructible cover
         run: AURORA_ONLINE_TACTICAL_QA=1 bash native-godot/tools/run_four_room_qa.sh
+      - name: Two humans plus 48 real bots and late admission rejection
+        run: AURORA_FLEX_QA=1 bash native-godot/tools/run_four_room_qa.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.249-ONLINE-SERVER-QA
+          name: AURORA-V75.250-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3
 
@@ -698,12 +700,12 @@ jobs:
           grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
           grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
           grep -Fx "version/code=${AURORA_VERSION_CODE}" native-godot/export_presets.cfg
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.249-MOTOROLA-VULKAN.apk
-          test -s native-godot/out/THEDEMIAN-V75.249-MOTOROLA-VULKAN.apk
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.250-MOTOROLA-VULKAN.apk
+          test -s native-godot/out/THEDEMIAN-V75.250-MOTOROLA-VULKAN.apk
       - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
         run: |
           set -euo pipefail
-          APK=native-godot/out/THEDEMIAN-V75.249-MOTOROLA-VULKAN.apk
+          APK=native-godot/out/THEDEMIAN-V75.250-MOTOROLA-VULKAN.apk
           python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/vulkan-verification
           expected="$(cat native-godot/out/preview-signer-sha256.txt)"
           grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/vulkan-verification/signature.txt
@@ -766,9 +768,9 @@ jobs:
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v6
         with:
-          name: THEDEMIAN-V75.249-MOTOROLA-VULKAN
+          name: THEDEMIAN-V75.250-MOTOROLA-VULKAN
           path: |
-            native-godot/out/THEDEMIAN-V75.249-MOTOROLA-VULKAN.apk
+            native-godot/out/THEDEMIAN-V75.250-MOTOROLA-VULKAN.apk
             native-godot/out/vulkan-verification/
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
