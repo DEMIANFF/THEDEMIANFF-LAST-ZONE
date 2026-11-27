@@ -236,7 +236,17 @@ func _sync_rival_weapon(holder: Node3D,slot: int) -> void:
     mount.position=Vector3(0,-.012,-.075)/imported_scale
     mount.rotation_degrees=Vector3(-12,0,90)
     var loader: Node3D=WEAPON_VISUALS.new()
-    var visual: Node3D=loader._load_visual(path,"AK74OnlineRivalVisual" if slot==WEAPONS.AR else "OnlineRivalWeaponVisual",mount)
+    var visual: Node3D=null
+    if slot>=WEAPONS.SCAR:
+        var source:=load(path) as PackedScene
+        if source!=null:
+            visual=source.instantiate() as Node3D
+            if visual!=null:
+                visual.name="OnlineRivalWeaponVisual"
+                mount.add_child(visual)
+                loader.calibrate_expansion(visual,slot)
+    else:
+        visual=loader._load_visual(path,"AK74OnlineRivalVisual" if slot==WEAPONS.AR else "OnlineRivalWeaponVisual",mount)
     loader.free()
     if visual==null:
         skeleton.remove_child(socket)
@@ -618,7 +628,7 @@ func apply_snapshot(data: Dictionary) -> void:
         _cover.hide()
         if bool(data.get("expanded_room",false)):
             _weapon.visible=duel_playable
-            _weapon.disabled=not bool(data.inventory.awm_owned)
+            _weapon.disabled=not bool(data.inventory.awm_owned) and data.inventory.additions.is_empty()
             _aim.visible=duel_playable
             _crouch.visible=duel_playable
             operator.vest_level=int(data.vest_level)
