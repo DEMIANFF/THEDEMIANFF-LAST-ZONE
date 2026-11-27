@@ -933,7 +933,7 @@ func _dual_tick(delta: float) -> void:
             "expanded_room":expanded_room,"room_capacity":room_capacity,"room_slot":peer.slot,
             "death_spawned":_death_spawned,"death_claims":_death_claims,
             "armor":actor.armor_points,"helmet":actor.helmet_points,"vest_level":actor.vest_level,"helmet_level":actor.helmet_level,
-            "backpack":peer.backpack,
+            "backpack":peer.backpack,"awm_reserve":peer.reserve if int(peer.weapon)==WEAPON_CATALOG.AWM else peer.stored_awm_reserve,
             "hits":peer.hits,"kills":peer.kills,"reloads":peer.reloads,"duel_audio_sent":peer.audio_seq,
             "position":actor.global_position,"velocity":actor.velocity,"body_yaw":actor.rotation.y,
             "clip":str(actor._current_clip),"air_mode":"ground","match_mode":"waiting",

@@ -20,6 +20,15 @@ func _walk_loot(session: Node,view: Node,kind: String,death: bool=false) -> bool
             target=item.position
             break
     if id==0:
+        # A physical overlap on the way to a different pickup may already
+        # have granted this particular item. Require own state, not absence.
+        match kind:
+            "weapon_awm": return bool(session.state.inventory.awm_owned)
+            "ammo_awm": return int(session.state.get("awm_reserve",0))>0
+            "backpack": return int(session.state.backpack)>0
+            "helmet_2": return int(session.state.helmet_level)==2
+            "vest_2": return int(session.state.vest_level)==2
+            "medkit": return int(session.state.inventory.medkits)>0
         return false
     view.operator._desired_yaw=0.0
     await create_timer(.6).timeout
@@ -78,6 +87,12 @@ func _verify() -> void:
         view.request_action(session.ACTION_AIM)
         await create_timer(.4).timeout
         var scoped: bool=bool(session.state.aim) and float(session.state.zoom)==4.0
+        view.request_action(session.ACTION_CROUCH)
+        await create_timer(.4).timeout
+        var crouched: bool=bool(session.state.crouched)
+        view.request_action(session.ACTION_STAND)
+        await create_timer(.4).timeout
+        var stance: bool=crouched and not bool(session.state.crouched)
         var target_ready: bool=false
         for i in range(260):
             await create_timer(.05).timeout
@@ -109,8 +124,8 @@ func _verify() -> void:
         var ar_restored: bool=int(session.state.weapon)==0 and int(session.state.ammo)==30 and int(session.state.reserve)==90
         var recovered: bool=await _walk_loot(session,view,"ammo_ar",true)
         var death_claim: bool=recovered and int(session.state.death_claims)>=1 and int(session.state.reserve)==108
-        print("V75242_ATTACKER owned=",owned," equipped=",equipped," scoped=",scoped," target_ready=",target_ready," kill=",kill," death_visible=",death_visible," ar_restored=",ar_restored," death_claim=",death_claim)
-        ok=ok and owned and equipped and scoped and target_ready and kill and death_visible and ar_restored and death_claim
+        print("V75242_ATTACKER owned=",owned," equipped=",equipped," scoped=",scoped," stance=",stance," target_ready=",target_ready," kill=",kill," death_visible=",death_visible," ar_restored=",ar_restored," death_claim=",death_claim)
+        ok=ok and owned and equipped and scoped and stance and target_ready and kill and death_visible and ar_restored and death_claim
     elif slot==1:
         var med: bool=await _walk_loot(session,view,"medkit")
         var helmet: bool=await _walk_loot(session,view,"helmet_2")

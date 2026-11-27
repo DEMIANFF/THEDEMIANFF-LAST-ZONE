@@ -167,7 +167,7 @@ func _action_button(label: String,offset: Vector2,callback: Callable) -> Button:
     return button
 
 func request_action(action: int) -> void:
-    if not _has_state or not send_controls or bool(_last_state.get("ended",false)):
+    if not _has_state or not send_controls or bool(_last_state.get("ended",false)) or bool(_last_state.get("eliminated",false)):
         return
     if session.multiplayer.multiplayer_peer==null or session.multiplayer.multiplayer_peer.get_connection_status()!=MultiplayerPeer.CONNECTION_CONNECTED:
         return
