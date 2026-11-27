@@ -1,7 +1,7 @@
-name: Aurora V75.241 dedicated online server real UDP QA
+name: Aurora V75.242 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-241-authoritative-medical-channel]
+    branches: [codex/v75-242-integrated-four-peer-combat]
   workflow_dispatch:
 permissions:
   contents: read
@@ -196,9 +196,11 @@ jobs:
           grep -F 'V75241_HEAL PASS' native-godot/out/online/dual_loot/second.log
           test "$(grep -c 'V75241_SERVER_HEAL peer=' native-godot/out/online/dual_loot/server.log)" -eq 1
           grep -F 'V75241_SERVER_HEAL_CANCEL reason=input_or_movement medkits=1' native-godot/out/online/dual_loot/server.log
+      - name: Four independent ENet clients with weapons armor and elimination loot
+        run: bash native-godot/tools/run_four_room_qa.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.241-ONLINE-SERVER-QA
+          name: AURORA-V75.242-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3

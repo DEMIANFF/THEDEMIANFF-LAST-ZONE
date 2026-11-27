@@ -253,7 +253,7 @@ func play_event(kind: String,pitch: float=1.0) -> void:
     voice.play()
 
 
-func play_world_shot(at: Vector3) -> void:
+func play_world_shot(at: Vector3,sample: String="ar_fire") -> void:
     if not _sound_enabled or not at.is_finite():
         return
     var listener: Camera3D=get_viewport().get_camera_3d()
@@ -268,7 +268,8 @@ func play_world_shot(at: Vector3) -> void:
     if listener!=null:
         # Each new sound refreshes its reused voice regardless of cache.
         _update_world_pan(voice_index,listener,true)
-    source.stream=_samples["distant_fire" if distance>=62.0 else "ar_fire"]
+    var close_sample: String=sample if sample in ["ar_fire","awm_fire"] and _samples.has(sample) else "ar_fire"
+    source.stream=_samples["distant_fire" if distance>=62.0 else close_sample]
     source.pitch_scale=.91+float(_world_cursor%4)*.04
     source.play()
 
