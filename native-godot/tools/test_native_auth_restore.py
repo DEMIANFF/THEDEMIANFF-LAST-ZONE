@@ -45,6 +45,25 @@ class SessionRecoveryContract(unittest.TestCase):
         self.assertIn('google_web_client_id_missing',front)
         self.assertIn('server_identity_unavailable',front)
 
+    def test_transient_activity_and_atomic_profile_recovery(self):
+        java=JAVA.read_text(encoding="utf-8")
+        gd=GD.read_text(encoding="utf-8")
+        init=java.split("private void ensureInitialized()",1)[1].split("private void refreshAppCheck()",1)[0]
+        missing_activity=init.split("if (host == null)",1)[1].split("if (!EXPECTED_PACKAGE",1)[0]
+        self.assertIn("initialized = false;",missing_activity)
+        self.assertIn('"activity_unavailable"',missing_activity)
+        self.assertIn('"activity_unavailable"',gd)
+        recover=java.split("private void resolveServerIdentity(FirebaseUser user)",1)[1].split("public void refreshOnlineStats()",1)[0]
+        self.assertIn('if (!uid.equals(activeUid))',recover)
+        self.assertIn('onlineStats = "{}";',recover)
+        self.assertIn('profileRevision = 0;',recover)
+        self.assertIn('nextIdentityAttemptAt = SystemClock.elapsedRealtime() + 30000L;',recover)
+        self.assertIn('failIdentity("profile_unavailable")',recover)
+        self.assertIn('failIdentity("profile_mismatch")',recover)
+        self.assertLess(recover.index('getHttpsCallable("getPlayerProfile")'),recover.index("officialPlayerId = expectedId;"))
+        self.assertLess(recover.index("!expectedId.equals(returnedId)"),recover.index("officialPlayerId = expectedId;"))
+        self.assertEqual(recover.count("officialPlayerId = expectedId;"),1)
+
     def test_logout_does_not_fabricate_identity(self):
         java=JAVA.read_text(encoding="utf-8")
         gd=GD.read_text(encoding="utf-8")
