@@ -123,5 +123,13 @@ else
   grep -F 'V75242_ELIMINATION' "$logdir/server.log"
   grep -F 'V75242_DEATH_CLAIM' "$logdir/server.log"
 fi
-grep -F 'live_humans=4' "$logdir/server.log"
+# Every fixture must prove the expected number of actual admissions.
+if [ "${AURORA_FLEX_QA:-0}" = 1 ]; then
+  grep -F 'live_humans=2' "$logdir/server.log"
+  test "$(grep -c 'V75237_SERVER_ADMIT' "$logdir/server.log")" -eq 2
+  grep -F 'V75245_DISCONNECT_CLEAN slot=0 bots_checked=48 remaining_refs=0' "$logdir/server.log"
+  grep -F 'V75245_DISCONNECT_CLEAN slot=1 bots_checked=48 remaining_refs=0' "$logdir/server.log"
+else
+  grep -F 'live_humans=4' "$logdir/server.log"
+fi
 if grep -E 'SCRIPT ERROR|ERROR: Failed to load script' "$logdir/"*.log; then exit 1; fi

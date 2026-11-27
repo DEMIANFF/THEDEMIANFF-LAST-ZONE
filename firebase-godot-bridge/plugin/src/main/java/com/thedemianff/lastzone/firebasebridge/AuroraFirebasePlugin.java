@@ -60,6 +60,11 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
     private String activeUid = "";
     private String officialPlayerId = "";
     private String accountName = "";
+    private int profileRevision = 0;
+    private String onlineStats = "{}";
+    private String profileWriteStatus = "idle";
+    private final AtomicBoolean statsBusy = new AtomicBoolean(false);
+    private final AtomicBoolean profileWriteBusy = new AtomicBoolean(false);
     private String provider = "none";
     // One automatic identity recovery per Firebase Auth UID per process.
     // Retry requires an explicit login request; never flood callables.
@@ -193,6 +198,9 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                 activeUid = uid;
                 officialPlayerId = "";
                 accountName = "";
+                profileRevision = 0;
+                onlineStats = "{}";
+                profileWriteStatus = "idle";
                 provider = current == null ? "none" : current.isAnonymous() ? "guest" : "google";
             }
             // FirebaseAuth persists its own real Google/Guest user. After
@@ -216,6 +224,9 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                 out.put("uid_present", current != null);
                 out.put("official_id", officialPlayerId);
                 out.put("display_name", accountName);
+                out.put("online_stats", new JSONObject(onlineStats));
+                out.put("profile_revision", profileRevision);
+                out.put("profile_write_status", profileWriteStatus);
                 out.put("identity_confirmed", !officialPlayerId.isEmpty());
                 out.put("pending", authBusy.get());
                 out.put("reason", lastError);
@@ -245,11 +256,74 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                 restoredAccountUid = "";
                 officialPlayerId = "";
                 accountName = "";
+                profileRevision = 0;
+                onlineStats = "{}";
+                profileWriteStatus = "idle";
+                matchResult = "{\"status\":\"idle\"}";
+                profileRevision = 0;
+                onlineStats = "{}";
+                profileWriteStatus = "idle";
                 provider = "none";
                 lastError = "none";
             }
         } catch (RuntimeException problem) {
             setError("firebase_logout_failed");
+        }
+    }
+
+    // Only the single-use game ticket crosses JNI. Firebase Auth and App
+    // Check credentials remain inside the official SDK.
+    private final AtomicBoolean matchBusy = new AtomicBoolean(false);
+    private String matchResult = "{\"status\":\"idle\"}";
+
+    @UsedByGodot
+    public void beginOnlineMatch(String mode, int protocol) {
+        if (!matchBusy.compareAndSet(false, true)) return;
+        synchronized (stateLock) { matchResult = "{\"status\":\"pending\"}"; }
+        if (!isTransportReady() || FirebaseAuth.getInstance().getCurrentUser() == null) {
+            finishOnlineMatch("{\"status\":\"unavailable\"}");
+            return;
+        }
+        final String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        try {
+            FirebaseFunctions.getInstance("us-central1")
+                .getHttpsCallable("requestOnlineMatch")
+                .call(Map.of("mode", mode, "protocol", protocol))
+                .addOnCompleteListener(task -> {
+                    FirebaseUser current = FirebaseAuth.getInstance().getCurrentUser();
+                    if (!task.isSuccessful() || current == null || !uid.equals(current.getUid())) {
+                        finishOnlineMatch("{\"status\":\"unavailable\"}");
+                        return;
+                    }
+                    try {
+                        Object data = task.getResult().getData();
+                        if (!(data instanceof Map)) throw new JSONException("invalid response");
+                        Map<?, ?> result = (Map<?, ?>) data;
+                        JSONObject out = new JSONObject();
+                        out.put("status", "ready");
+                        out.put("endpoint", result.get("endpoint"));
+                        out.put("ticket", result.get("ticket"));
+                        finishOnlineMatch(out.toString());
+                    } catch (Exception problem) {
+                        finishOnlineMatch("{\"status\":\"unavailable\"}");
+                    }
+                });
+        } catch (RuntimeException problem) {
+            finishOnlineMatch("{\"status\":\"unavailable\"}");
+        }
+    }
+
+    private void finishOnlineMatch(String value) {
+        synchronized (stateLock) { matchResult = value; }
+        matchBusy.set(false);
+    }
+
+    @UsedByGodot
+    public String takeOnlineMatch() {
+        synchronized (stateLock) {
+            String value = matchResult;
+            if (!matchBusy.get()) matchResult = "{\"status\":\"idle\"}";
+            return value;
         }
     }
 
@@ -452,6 +526,8 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                                     returnedId.equals(officialPlayerId)) {
                                 synchronized (stateLock) {
                                     accountName = (String) name;
+                                    Object revision = ((Map<?, ?>) response).get("revision");
+                                    profileRevision = revision instanceof Number ? ((Number)revision).intValue() : 0;
                                     lastError = "none";
                                 }
                             } else {
@@ -461,7 +537,66 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                             setError("profile_unavailable");
                         }
                         authBusy.set(false);
+                        refreshOnlineStats();
                     });
+            });
+    }
+
+    @UsedByGodot
+    public void refreshOnlineStats() {
+        if (!isTransportReady() || !statsBusy.compareAndSet(false, true)) return;
+        FirebaseUser user=FirebaseAuth.getInstance().getCurrentUser();
+        if (user==null) {statsBusy.set(false);return;}
+        final String uid=user.getUid();
+        FirebaseFunctions.getInstance("us-central1").getHttpsCallable("getOnlineStats").call()
+            .addOnCompleteListener(task->{
+                try {
+                    FirebaseUser current=FirebaseAuth.getInstance().getCurrentUser();
+                    if(current==null||!uid.equals(current.getUid())||!task.isSuccessful()) return;
+                    Object payload=task.getResult().getData();
+                    if(!(payload instanceof Map))return;
+                    Map<?,?> values=(Map<?,?>)payload;
+                    JSONObject next=new JSONObject();
+                    for(String field:new String[]{"played","wins","kills","hits","abandoned","seconds"}) {
+                        Object value=values.get(field);
+                        if(!(value instanceof Number)||((Number)value).longValue()<0)return;
+                        next.put(field,((Number)value).longValue());
+                    }
+                    synchronized(stateLock){if(uid.equals(activeUid))onlineStats=next.toString();}
+                } catch(JSONException invalid) {
+                    // Never replace verified stats with fabricated data.
+                } finally {statsBusy.set(false);}
+            });
+    }
+
+    @UsedByGodot
+    public void saveOnlineDisplayName(String name) {
+        if(!isTransportReady()||!profileWriteBusy.compareAndSet(false,true))return;
+        FirebaseUser user=FirebaseAuth.getInstance().getCurrentUser();
+        if(user==null){profileWriteBusy.set(false);return;}
+        final String uid=user.getUid();
+        final int revision;
+        synchronized(stateLock){revision=profileRevision;profileWriteStatus="pending";}
+        FirebaseFunctions.getInstance("us-central1").getHttpsCallable("setPlayerDisplayName")
+            .call(Map.of("displayName",name,"expectedRevision",revision))
+            .addOnCompleteListener(task->{
+                try {
+                    FirebaseUser current=FirebaseAuth.getInstance().getCurrentUser();
+                    if(current==null||!uid.equals(current.getUid()))return;
+                    Object payload=task.isSuccessful()?task.getResult().getData():null;
+                    synchronized(stateLock){
+                        if(!uid.equals(activeUid))return;
+                        if(payload instanceof Map) {
+                            Map<?,?> values=(Map<?,?>)payload;
+                            Object returnedName=values.get("displayName"),returnedId=values.get("playerId"),returnedRevision=values.get("revision");
+                            if(returnedName instanceof String&&officialPlayerId.equals(returnedId)&&returnedRevision instanceof Number){
+                                accountName=(String)returnedName;profileRevision=((Number)returnedRevision).intValue();
+                                profileWriteStatus="saved";return;
+                            }
+                        }
+                        profileWriteStatus="failed";
+                    }
+                } finally {profileWriteBusy.set(false);}
             });
     }
 }
