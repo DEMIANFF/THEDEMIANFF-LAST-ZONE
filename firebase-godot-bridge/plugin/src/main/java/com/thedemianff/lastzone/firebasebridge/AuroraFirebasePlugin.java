@@ -52,7 +52,7 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
     private final Object stateLock = new Object();
 
     private boolean initialized = false;
-    private boolean configured = false;
+    private volatile boolean configured = false;
     private boolean appCheckPending = false;
     private boolean tokenReady = false;
     private long tokenCheckedAt = 0;
@@ -70,8 +70,8 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
     private final AtomicBoolean statsBusy = new AtomicBoolean(false);
     private final AtomicBoolean profileWriteBusy = new AtomicBoolean(false);
     private String provider = "none";
-    // One automatic identity recovery per Firebase Auth UID per process.
-    // Retry requires an explicit login request; never flood callables.
+    // Recover the real SDK user and retry failed identity/profile requests
+    // with a bounded interval; never flood callables.
     private String restoredAccountUid = "";
 
     public AuroraFirebasePlugin(Godot godot) {
@@ -100,7 +100,16 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
             initialized = true;
         }
         Activity host = getActivity();
-        if (host == null || !EXPECTED_PACKAGE.equals(host.getPackageName())) {
+        if (host == null) {
+            // Godot may poll before the Activity is attached. This is a
+            // transient lifecycle condition, not a permanent configuration error.
+            synchronized (stateLock) {
+                initialized = false;
+                lastError = "activity_unavailable";
+            }
+            return;
+        }
+        if (!EXPECTED_PACKAGE.equals(host.getPackageName())) {
             setError("incorrect_android_package");
             return;
         }
@@ -232,6 +241,7 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                 profileRevision = 0;
                 onlineStats = "{}";
                 profileWriteStatus = "idle";
+                matchResult = "{\"status\":\"idle\"}";
                 provider = current == null ? "none" : current.isAnonymous() ? "guest" : "google";
                 restoredAccountUid = "";
                 nextIdentityAttemptAt = 0;
@@ -507,17 +517,34 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
         });
     }
 
+    private boolean isCurrentUid(String uid) {
+        FirebaseUser current = FirebaseAuth.getInstance().getCurrentUser();
+        return current != null && uid.equals(current.getUid());
+    }
+
+    private void failIdentity(String reason) {
+        setError(reason);
+        authBusy.set(false);
+    }
+
     private void resolveServerIdentity(FirebaseUser user) {
         if (user == null) {
-            setError("firebase_session_missing");
-            authBusy.set(false);
+            failIdentity("firebase_session_missing");
             return;
         }
         String uid = user.getUid();
         synchronized (stateLock) {
+            // A successful Google switch may arrive before getSessionState
+            // observes the new UID. Clear previous account metadata here too.
+            if (!uid.equals(activeUid)) {
+                onlineStats = "{}";
+                matchResult = "{\"status\":\"idle\"}";
+            }
             activeUid = uid;
             officialPlayerId = "";
             accountName = "";
+            profileRevision = 0;
+            profileWriteStatus = "idle";
             provider = user.isAnonymous() ? "guest" : "google";
             lastError = "identity_pending";
             restoredAccountUid = uid;
@@ -531,66 +558,74 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
             authBusy.set(false);
             return;
         }
-        // Request body contains no UID or chosen ID. Existing callable uses
-        // request.auth.uid and a Firestore transaction for ID 00001..99999.
-        FirebaseFunctions.getInstance("us-central1")
-            .getHttpsCallable("ensurePlayerIdentity")
-            .call()
-            .addOnCompleteListener(task -> {
-                if (!uid.equals(FirebaseAuth.getInstance().getCurrentUser() == null
-                        ? "" : FirebaseAuth.getInstance().getCurrentUser().getUid())) {
-                    setError("account_switched");
-                    authBusy.set(false);
-                    return;
-                }
-                Object payload = task.isSuccessful() && task.getResult() != null
-                    ? task.getResult().getData() : null;
-                Object value = payload instanceof Map
-                    ? ((Map<?, ?>) payload).get("number") : null;
-                int number = value instanceof Number ? ((Number) value).intValue() : 0;
-                if (number < 1 || number > 99999) {
-                    setError("server_identity_unavailable");
-                    authBusy.set(false);
-                    return;
-                }
-                synchronized (stateLock) {
-                    officialPlayerId = String.format(java.util.Locale.ROOT, "%05d", number);
-                    lastError = "profile_loading";
-                }
-                // getPlayerProfile is App Check enforced on the backend.
-                FirebaseFunctions.getInstance("us-central1")
-                    .getHttpsCallable("getPlayerProfile")
-                    .call()
-                    .addOnCompleteListener(info -> {
-                        if (!uid.equals(FirebaseAuth.getInstance().getCurrentUser() == null
-                                ? "" : FirebaseAuth.getInstance().getCurrentUser().getUid())) {
-                            setError("account_switched");
-                            authBusy.set(false);
-                            return;
-                        }
-                        Object response = info.isSuccessful() && info.getResult() != null
-                            ? info.getResult().getData() : null;
-                        if (response instanceof Map) {
-                            Object name = ((Map<?, ?>) response).get("displayName");
-                            Object returnedId = ((Map<?, ?>) response).get("playerId");
-                            if (name instanceof String && returnedId instanceof String &&
-                                    returnedId.equals(officialPlayerId)) {
+        // Neither the UID nor an ID chosen by the client is sent to the callable.
+        try {
+            FirebaseFunctions.getInstance("us-central1")
+                .getHttpsCallable("ensurePlayerIdentity")
+                .call()
+                .addOnCompleteListener(task -> {
+                    if (!isCurrentUid(uid)) {
+                        failIdentity("account_switched");
+                        return;
+                    }
+                    Object payload = task.isSuccessful() && task.getResult() != null
+                        ? task.getResult().getData() : null;
+                    Object value = payload instanceof Map
+                        ? ((Map<?, ?>) payload).get("number") : null;
+                    int number = value instanceof Number ? ((Number) value).intValue() : 0;
+                    if (number < 1 || number > 99999) {
+                        failIdentity("server_identity_unavailable");
+                        return;
+                    }
+                    // Do not publish a confirmed ID until its corresponding
+                    // profile has also been validated by the protected callable.
+                    final String expectedId = String.format(java.util.Locale.ROOT, "%05d", number);
+                    setError("profile_loading");
+                    try {
+                        FirebaseFunctions.getInstance("us-central1")
+                            .getHttpsCallable("getPlayerProfile")
+                            .call()
+                            .addOnCompleteListener(info -> {
+                                if (!isCurrentUid(uid)) {
+                                    failIdentity("account_switched");
+                                    return;
+                                }
+                                Object response = info.isSuccessful() && info.getResult() != null
+                                    ? info.getResult().getData() : null;
+                                if (!(response instanceof Map)) {
+                                    failIdentity("profile_unavailable");
+                                    return;
+                                }
+                                Map<?, ?> profile = (Map<?, ?>) response;
+                                Object name = profile.get("displayName");
+                                Object returnedId = profile.get("playerId");
+                                Object revision = profile.get("revision");
+                                if (!(name instanceof String) || !expectedId.equals(returnedId)
+                                        || !(revision instanceof Number)
+                                        || ((Number) revision).intValue() < 0) {
+                                    failIdentity("profile_mismatch");
+                                    return;
+                                }
                                 synchronized (stateLock) {
+                                    if (!uid.equals(activeUid)) {
+                                        authBusy.set(false);
+                                        return;
+                                    }
                                     accountName = (String) name;
-                                    Object revision = ((Map<?, ?>) response).get("revision");
-                                    profileRevision = revision instanceof Number ? ((Number)revision).intValue() : 0;
+                                    profileRevision = ((Number) revision).intValue();
+                                    officialPlayerId = expectedId;
                                     lastError = "none";
                                 }
-                            } else {
-                                setError("profile_mismatch");
-                            }
-                        } else {
-                            setError("profile_unavailable");
-                        }
-                        authBusy.set(false);
-                        refreshOnlineStats();
-                    });
-            });
+                                authBusy.set(false);
+                                refreshOnlineStats();
+                            });
+                    } catch (RuntimeException problem) {
+                        failIdentity("profile_unavailable");
+                    }
+                });
+        } catch (RuntimeException problem) {
+            failIdentity("server_identity_unavailable");
+        }
     }
 
     @UsedByGodot
