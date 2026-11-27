@@ -2,7 +2,13 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=22
+const PROTOCOL: int=23
+var terrain_room: bool=false
+var _terrain_ready: bool=false
+var _room_elapsed: float=0.0
+var _room_damage_clock: float=0.0
+var _room_zone: Dictionary={}
+var _terrain_sites: Array[Vector2]=[]
 var expanded_room: bool=false
 var room_capacity: int=2
 var _death_claims: int=0
@@ -117,7 +123,8 @@ var _sounds: Array[Dictionary]=[]
 func listen(port: int=PORT) -> Error:
     var peer:=ENetMultiplayerPeer.new()
     peer.set_bind_ip("127.0.0.1")
-    expanded_room=OS.get_environment("AURORA_ONLINE_FOUR_COMBAT")=="1"
+    terrain_room=OS.get_environment("AURORA_ONLINE_TERRAIN_COMBAT")=="1"
+    expanded_room=terrain_room or OS.get_environment("AURORA_ONLINE_FOUR_COMBAT")=="1"
     room_capacity=4 if expanded_room else 2
     dual_loot=expanded_room or OS.get_environment("AURORA_ONLINE_DUAL_LOOT")=="1"
     dual_combat=dual_loot or OS.get_environment("AURORA_ONLINE_DUAL_COMBAT")=="1"
@@ -420,9 +427,18 @@ func _dual_joined(id: int) -> void:
         director.mode="waiting"
         director.set_process(false)
         director.match_ended=false
-        waiting_island=WAITING_ISLAND.new()
-        waiting_island.physical=true
-        world.add_child(waiting_island)
+        if terrain_room:
+            director._configure_zone_centers(1)
+            _room_zone=director.zone_state_at(0.0)
+            _terrain_sites=_choose_terrain_sites()
+            if _terrain_sites.size()!=room_capacity:
+                push_error("V75243 unable to find four safe terrain starts")
+                multiplayer.multiplayer_peer.disconnect_peer(id)
+                return
+        else:
+            waiting_island=WAITING_ISLAND.new()
+            waiting_island.physical=true
+            world.add_child(waiting_island)
     var actor: CharacterBody3D=operator
     if _dual_admitted>0:
         actor=HUMAN_OPERATOR.new()
@@ -435,6 +451,11 @@ func _dual_joined(id: int) -> void:
         var offsets: Array[Vector3]=[Vector3(-6,0,0),Vector3(6,0,0),Vector3(0,0,-9),Vector3(0,0,9)]
         home=WAITING_ISLAND.SPAWN+offsets[_dual_admitted]
         heading=atan2(offsets[_dual_admitted].x,offsets[_dual_admitted].z)
+    if terrain_room:
+        var site: Vector2=_terrain_sites[_dual_admitted]
+        home=Vector3(site.x,director.terrain.height_at(site.x,site.y)+.45,site.y)
+        var toward: Vector2=director.CENTER-site
+        heading=atan2(-toward.x,-toward.y)
     actor.reset_controls()
     actor.round_finished=false
     actor.royale_eliminated=false
@@ -463,14 +484,111 @@ func _dual_joined(id: int) -> void:
         "heal_anchor":home,"heal_completed":0,"heal_cancelled":0,"heal_gained":0.0,
         "slot":_dual_admitted,"weapon":WEAPON_CATALOG.AR,"awm_owned":false,
         "stored_ar":30,"stored_ar_reserve":90,"stored_awm":0,"stored_awm_reserve":0,
-        "aim":false,"stance_pending":0,"switch_ms":-1000,"backpack":0}
+        "aim":false,"stance_pending":0,"switch_ms":-1000,"backpack":0,"zone_hits":0}
     _dual_admitted+=1
     if dual_loot and dual_peers.size()==room_capacity:
-        _spawn_dual_loot()
+        if terrain_room:
+            _terrain_ready=true
+            _spawn_terrain_loot()
+        else:
+            _spawn_dual_loot()
     print("V75237_SERVER_ADMIT peer=",id," live_humans=",dual_peers.size())
+
+# Reuse the established map's terrain checks instead of spawning bodies
+# on arbitrary coordinates or adding an invisible test platform.
+func _choose_terrain_sites() -> Array[Vector2]:
+    var result: Array[Vector2]=[]
+    for slot in range(room_capacity):
+        # Outer starting point is deliberately outside the opening circle;
+        # only the explicit CI fixture uses this to exercise zone damage.
+        var qa_outer: bool=slot==0 and OS.get_environment("AURORA_TERRAIN_QA")=="1"
+        var found: bool=false
+        for i in range(128):
+            var angle: float=float(slot)*TAU/float(room_capacity)+float(i)*.39
+            var distance: float=250.0+float(i%10)*1.5 if qa_outer else 38.0+float(i%15)*3.0
+            var site: Vector2=director.CENTER+Vector2.from_angle(angle)*distance
+            var valid: bool=combat._is_clear_spawn(site)
+            if qa_outer:
+                # Existing clear-spawn helper may cap at the initial ring.
+                # Require real land, moderate slopes and terrain height.
+                var h: float=director.terrain.height_at(site.x,site.y)
+                valid=h>float(director.terrain.sea_level)+1.0 and absf(director.terrain.height_at(site.x+1.5,site.y)-director.terrain.height_at(site.x-1.5,site.y))<2.0 and absf(director.terrain.height_at(site.x,site.y+1.5)-director.terrain.height_at(site.x,site.y-1.5))<2.0
+            if not valid:
+                continue
+            var separated: bool=true
+            for old in result:
+                separated=separated and old.distance_to(site)>20.0
+            if separated:
+                result.append(site)
+                found=true
+                break
+        if not found:
+            return []
+    return result
+
+func _spawn_terrain_loot() -> void:
+    for slot in range(_terrain_sites.size()):
+        var site: Vector2=_terrain_sites[slot]
+        for item in [{"kind":"ammo_ar","amount":45,"offset":Vector2(3,0)},
+                {"kind":"medkit","amount":1,"offset":Vector2(0,3)}]:
+            var at: Vector2=site+item.offset
+            if combat._is_clear_spawn(at):
+                _spawn_room_pickup(str(item.kind),Vector3(at.x,director.terrain.height_at(at.x,at.y),at.y),int(item.amount))
+    print("V75243_TERRAIN_READY humans=",dual_peers.size()," radius=",_room_zone.radius," sites=",_terrain_sites.size())
 
 func _room_active() -> bool:
     return _dual_admitted==room_capacity and not _dual_finished and _living_room_count()>1
+
+func _terrain_zone_tick(delta: float) -> void:
+    if not terrain_room or not _terrain_ready or not _room_active():
+        return
+    _room_elapsed+=delta
+    # Accelerated clock is isolated to a server environment fixture.
+    # The normal room uses the existing ten-minute schedule unchanged.
+    var clock: float=_room_elapsed*(12.0 if OS.get_environment("AURORA_TERRAIN_QA")=="1" else 1.0)
+    _room_zone=director.zone_state_at(clock)
+    _room_damage_clock+=delta
+    if _room_damage_clock<1.0:
+        return
+    _room_damage_clock=fmod(_room_damage_clock,1.0)
+    var phase: int=int(_room_zone.phase)
+    var damage: float=6.0 if phase==0 else (8.0 if phase==1 else (10.0 if phase==2 else 13.0))
+    if clock>=director.SHRINK_DURATION:
+        damage=13.0+clampf(clock-director.SHRINK_DURATION,0.0,director.OVERTIME_DURATION)*.15
+    for peer in dual_peers.values():
+        var actor: CharacterBody3D=peer.actor
+        if actor.royale_eliminated:
+            continue
+        var at:=Vector2(actor.global_position.x,actor.global_position.z)
+        if at.distance_to(_room_zone.center)<=float(_room_zone.radius):
+            continue
+        var before: float=actor.training_health
+        actor.receive_training_hit(damage,true)
+        if actor.training_health<before:
+            peer.zone_hits+=1
+            _dual_cancel_heal(peer,"zone")
+            if peer.zone_hits==1:
+                print("V75243_ZONE_HIT slot=",peer.slot," hp=",actor.training_health," phase=",phase)
+        if actor.royale_eliminated:
+            _queue_death_loot(peer)
+            actor.collision_layer=0
+            actor.collision_mask=0
+            actor.hide()
+            print("V75243_ZONE_ELIMINATION slot=",peer.slot)
+    _finish_room_if_needed()
+
+func _terrain_contact(observer: CharacterBody3D,target: CharacterBody3D) -> bool:
+    var offset: Vector3=target.global_position-observer.global_position
+    if offset.length_squared()>80.0*80.0:
+        return false
+    var horizontal:=Vector2(offset.x,offset.z)
+    var forward:=Vector2(-sin(observer._yaw),-cos(observer._yaw))
+    if horizontal.length_squared()>1.0 and horizontal.normalized().dot(forward)<.30:
+        return false
+    var ray:=PhysicsRayQueryParameters3D.create(observer.global_position+Vector3.UP*1.4,target.global_position+Vector3.UP*(.85 if target._crouching else 1.1))
+    ray.exclude=[observer.get_rid()]
+    ray.collision_mask=1
+    return world.get_world_3d().direct_space_state.intersect_ray(ray).get("collider")==target
 
 func _living_room_count() -> int:
     var alive: int=0
@@ -486,7 +604,7 @@ func _spawn_room_pickup(kind: String,at: Vector3,amount: int,death: bool=false) 
     pickup.from_opponent=death
     pickup.terrain=director.terrain
     pickup.world_spot=Vector2(at.x,at.z)
-    pickup.surface_height_override=WAITING_ISLAND.SPAWN.y-.3
+    pickup.surface_height_override=director.terrain.height_at(at.x,at.z) if terrain_room else WAITING_ISLAND.SPAWN.y-.3
     pickup.shared_grant=Callable(self,"_grant_dual_loot").bind(death)
     world.add_child(pickup)
     _dual_loot_nodes.append(pickup)
@@ -870,6 +988,7 @@ func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> voi
 func _dual_tick(delta: float) -> void:
     if dual_peers.is_empty():
         return
+    _terrain_zone_tick(delta)
     for id in dual_peers:
         var peer: Dictionary=dual_peers[id]
         var actor: CharacterBody3D=peer.actor
@@ -886,9 +1005,17 @@ func _dual_tick(delta: float) -> void:
             else:
                 peer.action_rejected+=1
             peer.jump_pending=false
-        if actor.global_position.y<WAITING_ISLAND.SPAWN.y-3.0:
+        if not terrain_room and actor.global_position.y<WAITING_ISLAND.SPAWN.y-3.0:
             actor.global_position=peer.home
             actor.velocity=Vector3.ZERO
+        elif terrain_room and not actor.royale_eliminated and actor.global_position.y<float(director.terrain.sea_level)-12.0:
+            actor.receive_training_hit(actor.MAX_HEALTH,true)
+            if actor.royale_eliminated:
+                _queue_death_loot(peer)
+                actor.collision_layer=0
+                actor.collision_mask=0
+                actor.hide()
+                _finish_room_if_needed()
         if expanded_room:
             _apply_room_stance(peer,fresh)
         if dual_combat:
@@ -906,7 +1033,7 @@ func _dual_tick(delta: float) -> void:
             if other_id==id:
                 continue
             var other: CharacterBody3D=dual_peers[other_id].actor
-            if other.royale_eliminated:
+            if other.royale_eliminated or (terrain_room and not _terrain_contact(actor,other)):
                 continue
             # The isolated open platform has no hidden combat roster.
             var clip: String=str(other._current_clip)
@@ -936,7 +1063,7 @@ func _dual_tick(delta: float) -> void:
             "backpack":peer.backpack,"awm_reserve":peer.reserve if int(peer.weapon)==WEAPON_CATALOG.AWM else peer.stored_awm_reserve,
             "hits":peer.hits,"kills":peer.kills,"reloads":peer.reloads,"duel_audio_sent":peer.audio_seq,
             "position":actor.global_position,"velocity":actor.velocity,"body_yaw":actor.rotation.y,
-            "clip":str(actor._current_clip),"air_mode":"ground","match_mode":"waiting",
+            "clip":str(actor._current_clip),"air_mode":"ground","match_mode":"sector_battle" if terrain_room else "waiting",
             "waiting_remaining":0.0,"waiting_ready":dual_peers.size(),"rivals":rivals,
             "ended":dual_combat and _dual_finished,"eliminated":actor.royale_eliminated,"loot":_dual_loot_snapshot(actor),"vehicles":{},
             "inventory":{"awm_owned":peer.awm_owned,"additions":[],"medkits":peer.medkits,"grenades":0,"covers":0},
@@ -944,7 +1071,11 @@ func _dual_tick(delta: float) -> void:
             "firing":dual_combat and bool(actor._fire_held),"crouched":actor._crouching,"grounded":actor.is_on_floor(),
             "ammo":peer.ammo if dual_combat else 0,"reserve":peer.reserve if dual_combat else 0,
             "reload_remaining":peer.reload_remaining if dual_combat else 0.0,"health":actor.training_health,"participants":dual_peers.size(),
-            "alive":alive,"bots":0,"shots":peer.shots,"zone_center":Vector2.ZERO,"zone_radius":0.0,
+            "alive":alive,"bots":0,"shots":peer.shots,
+            "terrain_room":terrain_room,"zone_hits":peer.zone_hits,
+            "zone_center":_room_zone.get("center",Vector2.ZERO),"zone_radius":float(_room_zone.get("radius",0.0)),
+            "zone_phase":int(_room_zone.get("phase",0)),"zone_remaining":int(_room_zone.get("remaining",0)),
+            "zone_outside":terrain_room and Vector2(actor.global_position.x,actor.global_position.z).distance_to(_room_zone.get("center",Vector2.ZERO))>float(_room_zone.get("radius",0.0)),
             "action_ack":peer.action_ack,"action_applied":peer.action_applied,"action_rejected":peer.action_rejected,
             "accepted":peer.accepted,"rejected":peer.rejected,"ack":peer.sequence},id)
 
