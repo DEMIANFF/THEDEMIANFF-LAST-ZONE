@@ -1,0 +1,29 @@
+[Unit]
+Description=THEDEMIAN LAST ZONE public TLS room on TCP %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aurora
+Group=aurora
+WorkingDirectory=/opt/aurora/functions
+EnvironmentFile=/etc/aurora/rooms/%i.env
+Environment=AURORA_ROOM_PORT=%i
+Environment=GODOT_BIN=/opt/aurora/bin/godot
+Environment=XDG_DATA_HOME=/var/lib/aurora-%i
+Environment=AURORA_RESULT_SPOOL=/var/lib/aurora-%i/results
+ExecStart=/usr/bin/node /opt/aurora/functions/scripts/run-online-room.js
+Restart=always
+RestartSec=5
+TimeoutStopSec=40
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+StateDirectory=aurora-%i
+StateDirectoryMode=0700
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

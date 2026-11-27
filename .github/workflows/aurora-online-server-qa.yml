@@ -1,7 +1,7 @@
-name: Aurora V75.251 dedicated online server real UDP QA
+name: Aurora V75.252 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-251-internet-authenticated-matchmaking]
+    branches: [codex/v75-252-public-server-bundle-recovery]
   workflow_dispatch:
 permissions:
   contents: read
@@ -155,7 +155,7 @@ jobs:
           "$engine" --headless --path native-godot --editor --import > "$RUNNER_TEMP/aurora-online-import.log" 2>&1
       - name: Signed ticket broker and real TLS authentication
         run: |
-          node --test functions/test/online-matchmaking.test.js functions/test/online-stats.test.js
+          node --test functions/test/online-matchmaking.test.js functions/test/online-stats.test.js functions/test/online-result-journal.test.js
           node --check functions/scripts/run-online-room.js
           bash native-godot/tools/run_internet_qa.sh
       - name: Real ENet authoritative server and independent client
@@ -217,10 +217,17 @@ jobs:
         run: AURORA_ONLINE_TACTICAL_QA=1 bash native-godot/tools/run_four_room_qa.sh
       - name: Two humans plus 48 real bots and late admission rejection
         run: AURORA_FLEX_QA=1 bash native-godot/tools/run_four_room_qa.sh
+      - name: Package and independently exercise deployable Linux server
+        run: bash deployment/build-server-bundle.sh
+      - uses: actions/upload-artifact@v6
+        with:
+          name: THEDEMIAN-V75.252-LINUX-SERVER
+          path: native-godot/out/server-release/
+          retention-days: 30
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.251-ONLINE-SERVER-QA
+          name: AURORA-V75.252-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3
 
@@ -700,7 +707,19 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Compile matching Godot 4.7.2 Firebase SDK bridge AARs
-        run: gradle -p firebase-godot-bridge :plugin:assembleDebug :plugin:assembleRelease --no-daemon
+        env:
+          AURORA_BACKEND_ORIGIN: ${{ vars.AURORA_BACKEND_ORIGIN || 'not_configured' }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if gradle -p firebase-godot-bridge :plugin:assembleDebug :plugin:assembleRelease --no-daemon 2>&1 | tee "$RUNNER_TEMP/firebase-gradle-$attempt.log"; then
+              exit 0
+            fi
+            if ! grep -Eq '429|Too Many Requests|HTTP 503|Read timed out|Connection reset' "$RUNNER_TEMP/firebase-gradle-$attempt.log" || [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            sleep "$((attempt * 45))"
+          done
       - name: Install separate Firebase Android Gradle template and addon
         run: |
           set -euo pipefail
@@ -743,9 +762,9 @@ jobs:
           grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
           grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
           grep -Fx "version/code=${AURORA_VERSION_CODE}" native-godot/export_presets.cfg
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.251-MOTOROLA-VULKAN.apk
-          test -s native-godot/out/THEDEMIAN-V75.251-MOTOROLA-VULKAN.apk
-          APK=native-godot/out/THEDEMIAN-V75.251-MOTOROLA-VULKAN.apk
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.252-MOTOROLA-VULKAN.apk
+          test -s native-godot/out/THEDEMIAN-V75.252-MOTOROLA-VULKAN.apk
+          APK=native-godot/out/THEDEMIAN-V75.252-MOTOROLA-VULKAN.apk
           "$ANDROID_HOME/build-tools/35.0.1/apksigner" sign --ks "$HOME/.android/debug.keystore" --ks-key-alias androiddebugkey --ks-pass pass:android --key-pass pass:android --min-sdk-version 24 --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true --out "${APK%.apk}.resigned.apk" "$APK"
           mv "${APK%.apk}.resigned.apk" "$APK"
           python3 - "$APK" <<'PY'
@@ -758,7 +777,7 @@ jobs:
       - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
         run: |
           set -euo pipefail
-          APK=native-godot/out/THEDEMIAN-V75.251-MOTOROLA-VULKAN.apk
+          APK=native-godot/out/THEDEMIAN-V75.252-MOTOROLA-VULKAN.apk
           # Gradle raises the actual manifest API floor to Android 9 or
           # higher. Verify the real supported range first, then explicitly
           # exercise the existing v2 block over the API 24+ range.
@@ -830,9 +849,9 @@ jobs:
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v6
         with:
-          name: THEDEMIAN-V75.251-MOTOROLA-VULKAN
+          name: THEDEMIAN-V75.252-MOTOROLA-VULKAN
           path: |
-            native-godot/out/THEDEMIAN-V75.251-MOTOROLA-VULKAN.apk
+            native-godot/out/THEDEMIAN-V75.252-MOTOROLA-VULKAN.apk
             native-godot/out/vulkan-verification/
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
@@ -851,7 +870,7 @@ jobs:
       - uses: actions/upload-artifact@v6
         if: failure()
         with:
-          name: V75251-ANDROID-FAILED-VALIDATION-LOGS
+          name: V75252-ANDROID-FAILED-VALIDATION-LOGS
           path: |
             native-godot/out/vulkan-verification/
             native-godot/out/qa/

@@ -89,13 +89,36 @@ func _verify() -> void:
         "authenticated":false,"pending":false}) and
         front._login_waiting_provider=="google",
         "unverified provider was allowed to enter a fabricated session")
-    check(front._resume_native_session_if_ready({
-        "authenticated":true,"pending":false}) and
+    check(not front._resume_native_session_if_ready({
+        "authenticated":true,"pending":false,"identity_confirmed":false,
+        "online_ready":false,"provider":"google"}) and
+        front._login_waiting_provider=="google",
+        "SDK authentication alone cannot authorize online lobby")
+    check(not front._resume_native_session_if_ready({
+        "authenticated":true,"pending":false,"identity_confirmed":true,
+        "online_ready":false,"provider":"google","official_id":"00042"}) and
+        front._login_waiting_provider=="google",
+        "missing App Check must preserve sign-in intent without entering")
+    var confirmed: Dictionary={"authenticated":true,"pending":false,
+        "identity_confirmed":true,"online_ready":true,"provider":"google",
+        "official_id":"00042"}
+    check(not front._can_resume_native_session(confirmed,false,false),
+        "manual account selection must not auto-resume")
+    check(front._can_resume_native_session(confirmed,true,false),
+        "verified persisted session cannot auto-resume on startup")
+    check(front._resume_native_session_if_ready(confirmed) and
         front._login_waiting_provider.is_empty(),
         "confirmed Google/Guest sign-in did not transition to real lobby")
     await process_frame
     check(front.stage=="lobby" and front._preview_avatar!=null,
         "confirmed existing session failed to enter original live 3D lobby")
+    if front.stage!="lobby" or not is_instance_valid(front._preview_avatar):
+        front.queue_free()
+        await process_frame
+        quit(1)
+        return
+    check(front.find_child("AuroraLanTest",true,false)==null,
+        "duplicate online button returned after session recovery")
     for dimensions in [Vector2i(964,434),Vector2i(1280,720)]:
         root.size=dimensions
         await process_frame
