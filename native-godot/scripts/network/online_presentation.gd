@@ -649,7 +649,9 @@ func apply_snapshot(data: Dictionary) -> void:
                 if str(data.vehicles.get("result",""))=="blocked_exit":
                     _status.text+=" · BUSCA SALIDA SEGURA"
     if match_mode=="waiting":
-        if bool(data.get("dual_combat",false)):
+        if bool(data.get("mixed_flight",false)):
+            _status.text="ISLA DE ESPERA · %d/50 · DESPEGUE EN %02d s"%[int(data.waiting_ready),ceili(float(data.waiting_remaining))]
+        elif bool(data.get("dual_combat",false)):
             _status.text="DUELO LOCAL · HP %d · %s %d/%d · BAJAS %d"%[roundi(float(data.health)),str(WEAPONS.ENTRIES[int(data.weapon)].short),int(data.ammo),int(data.reserve),int(data.get("kills",0))]
             if bool(data.get("expanded_room",false)):
                 _status.text="SALA %d VIVOS · "%int(data.alive)+_status.text+" · CHALECO %d · CASCO %d · MOCHILA %d"%[roundi(float(data.armor)),roundi(float(data.helmet)),int(data.backpack)]
@@ -664,6 +666,8 @@ func apply_snapshot(data: Dictionary) -> void:
             _status.text="ISLA DE ESPERA · %d/50 PARTICIPANTES · DESPEGUE EN %02d s"%[int(data.get("waiting_ready",1)),ceili(float(data.get("waiting_remaining",0.0)))]
     elif air!="ground":
         _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
+    if bool(data.get("mixed_flight",false)) and match_mode=="aircraft" and air=="ground":
+        _status.text="ONLINE · ATERRIZADO · ESPERANDO DESPLIEGUE %d/46 IA"%int(data.get("flight_landed_bots",0))
     if bool(data.get("eliminated",false)):
         _status.text="ONLINE · ELIMINADO"
     elif bool(data.get("ended",false)):

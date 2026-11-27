@@ -20,6 +20,11 @@ if [ "${AURORA_MIXED_LOOT_QA:-0}" = 1 ]; then
   client_script="online_mixed_loot_qa.gd"
   export AURORA_ONLINE_MIXED_COMBAT=1
 fi
+if [ "${AURORA_MIXED_FLIGHT_QA:-0}" = 1 ]; then
+  logdir="$project/out/online/mixed_flight"
+  client_script="online_mixed_flight_qa.gd"
+  export AURORA_ONLINE_MIXED_FLIGHT=1
+fi
 mkdir -p "$logdir" "$work/server"
 pids=()
 cleanup() {
@@ -45,7 +50,16 @@ status=0
 for pid in "${clients[@]}"; do wait "$pid" || status=1; done
 cat "$logdir/"*.log
 test "$status" -eq 0
-if [ "${AURORA_MIXED_LOOT_QA:-0}" = 1 ]; then
+if [ "${AURORA_MIXED_FLIGHT_QA:-0}" = 1 ]; then
+  for i in 0 1 2 3; do grep -F 'V75246_FLIGHT PASS' "$logdir/client$i.log"; done
+  grep -F 'V75246_DEPART humans=4 bots=46' "$logdir/server.log"
+  grep -F 'V75246_GROUND humans=4 bots_landed=46 total=50' "$logdir/server.log"
+  for slot in 0 1 2 3; do
+    grep -F "V75246_JUMP slot=$slot " "$logdir/server.log"
+    grep -F "V75246_CANOPY slot=$slot" "$logdir/server.log"
+    grep -F "V75246_LAND slot=$slot " "$logdir/server.log"
+  done
+elif [ "${AURORA_MIXED_LOOT_QA:-0}" = 1 ]; then
   for i in 0 1 2 3; do grep -F 'V75245_BOT_LOOT PASS' "$logdir/client$i.log"; done
   grep -F 'V75244_MIXED_READY humans=4 physical_bots=46 total=50' "$logdir/server.log"
   grep -E 'V75245_BOT_DROP kind=ammo_ar .*human_kill=true' "$logdir/server.log"
