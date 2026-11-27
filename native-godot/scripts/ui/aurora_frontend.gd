@@ -1072,8 +1072,16 @@ func _enter_local_lobby() -> void:
 
 
 func _begin_welcome_auth(provider: String) -> void:
-    if stage!="welcome" or provider not in ["google","guest"] or not _login_waiting_provider.is_empty():
+    if stage!="welcome" or provider not in ["google","guest"]:
         return
+    # A previous SDK request may have completed while App Check or the
+    # identity callable is still blocked. Do not lock account selection
+    # indefinitely; only a real in-flight native operation blocks a tap.
+    if not _login_waiting_provider.is_empty():
+        var session: Dictionary=FIREBASE_BRIDGE.session_state()
+        if bool(session.get("pending",false)):
+            return
+        _login_waiting_provider=""
     _login_pending_provider=provider
     _auto_resume_on_entry=false
     _poll_login_state()

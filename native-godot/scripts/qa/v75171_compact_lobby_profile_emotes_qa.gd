@@ -35,18 +35,25 @@ func _verify() -> void:
     # is initialized. A top-level preload fails --check-only because the
     # lobby music autoload is not registered in that isolated parse stage.
     var session_policy: Script=load("res://scripts/ui/aurora_frontend.gd")
-    check(bool(session_policy.call("_can_resume_native_session",
-        {"authenticated":true,"pending":false},true,false)) and
-        bool(session_policy.call("_can_resume_native_session",
-        {"authenticated":true,"pending":false},false,true)) and
-        not bool(session_policy.call("_can_resume_native_session",
-        {"authenticated":true,"pending":true},true,false)) and
-        not bool(session_policy.call("_can_resume_native_session",
-        {"authenticated":false,"pending":false},true,true)) and
-        not bool(session_policy.call("_can_resume_native_session",
-        {"authenticated":true,"pending":false},false,false)),
-        "auth auto-resume must require an existing confirmed SDK session "+
-        "and either startup or an actual user sign-in; never fake login")
+    # Exercise the full production policy truth table, not the obsolete
+    # two-field SDK-only contract. These dictionaries are test inputs only.
+    var cases: int=0
+    for authenticated in [false,true]:
+        for identity in [false,true]:
+            for online in [false,true]:
+                for pending in [false,true]:
+                    for startup in [false,true]:
+                        for initiated in [false,true]:
+                            var session: Dictionary={"authenticated":authenticated,
+                                "identity_confirmed":identity,"online_ready":online,
+                                "pending":pending,"provider":"google","official_id":"00042"}
+                            var expected: bool=authenticated and identity and online and not pending and (startup or initiated)
+                            var actual: bool=bool(session_policy.call("_can_resume_native_session",
+                                session,startup,initiated))
+                            check(actual==expected,"auth resume policy mismatch case="+str(cases))
+                            cases+=1
+    print("V75252_AUTH_POLICY cases=",cases)
+    check(cases==64,"incomplete auth resume policy coverage")
     front._enter_local_lobby()
     await process_frame
     front._layout_safe()
