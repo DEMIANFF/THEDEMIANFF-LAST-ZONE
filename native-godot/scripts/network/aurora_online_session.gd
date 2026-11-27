@@ -989,9 +989,20 @@ func _dual_left(id: int) -> void:
     actor.collision_layer=0
     actor.collision_mask=0
     actor.hide()
+    if mixed_room:
+        var checked: int=0
+        var remaining_refs: int=0
+        for bot in _mixed_bots:
+            if not is_instance_valid(bot):
+                continue
+            bot.forget_departed_foe(actor)
+            checked+=1
+            if bot._foes.has(actor) or bot._target_actor==actor or bot._last_attacker==actor:
+                remaining_refs+=1
+        print("V75245_DISCONNECT_CLEAN slot=",dual_peers[id].slot," bots_checked=",checked," remaining_refs=",remaining_refs)
+    dual_peers.erase(id)
     if actor!=operator:
         actor.queue_free()
-    dual_peers.erase(id)
     print("V75237_SERVER_LEAVE peer=",id," remaining=",dual_peers.size())
     _finish_room_if_needed()
     if dual_peers.is_empty():
@@ -1064,7 +1075,7 @@ func _dual_action(version: int,request_id: int,action: int) -> void:
 # Per-recipient sequence space. The original single-player reliable audio
 # channel is reused, never a broadcast containing another player's local cues.
 func _dual_sound(recipient: int,kind: String,sample: String,at: Vector3=Vector3.ZERO) -> void:
-    if not dual_peers.has(recipient):
+    if not dual_peers.has(recipient) or not multiplayer.get_peers().has(recipient):
         return
     var peer: Dictionary=dual_peers[recipient]
     if kind.begins_with("duel_remote"):
@@ -1343,7 +1354,8 @@ func _dual_tick(delta: float) -> void:
                 if is_instance_valid(cover) and cover.is_active() and actor.global_position.distance_squared_to(cover.global_position)<=TACTICAL_RANGE*TACTICAL_RANGE:
                     cover_items.append({"id":cover.get_instance_id(),"position":cover.global_position,"yaw":cover.rotation.y})
         if not peer.ambient.is_empty():
-            receive_sound_batch.rpc_id(int(id),PROTOCOL,peer.ambient)
+            if multiplayer.get_peers().has(int(id)):
+                receive_sound_batch.rpc_id(int(id),PROTOCOL,peer.ambient)
             peer.ambient=[]
         _send_world_state({"snapshot_id":snapshot_sequence,"self_peer":id,"dual_waiting":true,"dual_combat":dual_combat,"dual_loot":dual_loot,
             "duel_loot_claims":peer.loot_claims,"duel_world_claims":_dual_loot_claims,
@@ -1613,7 +1625,7 @@ func _send_sound_batches() -> void:
 
 func _send_world_state(data: Dictionary,destination: int=0) -> void:
     var recipient: int=remote_id if destination==0 else destination
-    if recipient<=0:
+    if recipient<=0 or not multiplayer.get_peers().has(recipient):
         return
     var raw: PackedByteArray=var_to_bytes(data)
     if raw.is_empty() or raw.size()>STATE_RAW_LIMIT:

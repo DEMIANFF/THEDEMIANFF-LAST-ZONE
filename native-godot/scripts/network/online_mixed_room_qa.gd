@@ -72,10 +72,31 @@ func _verify() -> void:
     var ok: bool=roster and identity and bounded and combat and own and cache_budget and not world.operator.is_physics_processing()
     print("V75245_CACHE_BUDGET active=",session.state.death_active," peak=",session.state.death_peak," bot_drops=",session.state.bot_death_spawned," valid=",cache_budget)
     print("V75244_MIXED slot=",slot," roster=",roster," bounded=",bounded," combat=",combat," own=",own," bots=",session.state.bots," bot_shots=",session.state.bot_shots," damage_events=",session.state.bot_damage_events," human_hits=",session.state.human_bot_hits)
+    # Slot 1 is a real secondary operator, not the retained primary body.
+    # Make its disconnect happen while the other clients and AI keep running.
+    # The server must clean every AI reference, not merely avoid a crash at quit.
+    if slot==1:
+        await create_timer(1.0).timeout
+    else:
+        var removed: bool=false
+        var continued: bool=false
+        var after_leave: int=0
+        for i in range(180):
+            await create_timer(.05).timeout
+            if int(session.state.human_count)==3:
+                if not removed:
+                    removed=true
+                    after_leave=int(session.state.snapshot_id)
+                continued=continued or int(session.state.snapshot_id)>after_leave+10
+            if removed and continued:
+                break
+        ok=ok and removed and continued
+        print("V75245_LIVE_DISCONNECT slot=",slot," removed=",removed," continued=",continued)
+        # Keep all observers connected until each has observed the cleanup.
+        await create_timer(2.5).timeout
     if ok:
         print("V75244_MIXED PASS")
     else:
         push_error("V75244 mixed roster regression")
-    await create_timer(3.0).timeout
     session.multiplayer.multiplayer_peer.close()
     quit(0 if ok else 1)

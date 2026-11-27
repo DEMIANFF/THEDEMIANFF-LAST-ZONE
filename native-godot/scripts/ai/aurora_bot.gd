@@ -683,7 +683,25 @@ func _advance_waiting_walk(dt: float) -> void:
         if _animation!=null and _animation.active and _animation.has_animation(clip):
             _animation.play(clip,.18)
 
+# A disconnect is not a death with a retained body. Invalidate all
+# references before the session releases the human CharacterBody3D.
+func forget_departed_foe(foe: CharacterBody3D) -> void:
+    _foes.erase(foe)
+    if _target_actor==foe:
+        _target_actor=null
+        _target_visible=false
+        _sense_clock=0.0
+    if _last_attacker==foe:
+        _last_attacker=null
+
 func _physics_process(dt: float) -> void:
+    # Defensive guard for externally removed actors, before any typed
+    # helper receives a previously freed Object.
+    if not is_instance_valid(_target_actor):
+        _target_actor=null
+        _target_visible=false
+    if not is_instance_valid(_last_attacker):
+        _last_attacker=null
     if waiting_active:
         _advance_waiting_walk(dt)
         return
@@ -990,7 +1008,8 @@ func _nearest_sight_candidates() -> Array[Dictionary]:
         _insert_sight_candidate(picks,operator,origin,range_sq)
     if sector_battle:
         for foe in _foes:
-            _insert_sight_candidate(picks,foe,origin,range_sq)
+            if is_instance_valid(foe) and not foe.is_queued_for_deletion():
+                _insert_sight_candidate(picks,foe,origin,range_sq)
     return picks
 
 
@@ -1515,7 +1534,7 @@ func _interrupt_field_heal() -> void:
 ## Exclude real eliminated actors from both physics sight and firearm use.
 ## Visual contact and ballistic clearance are different questions.
 func _is_live_foe(foe: CharacterBody3D) -> bool:
-    if foe==self or not is_instance_valid(foe):
+    if not is_instance_valid(foe) or foe==self or foe.is_queued_for_deletion():
         return false
     if foe.has_method("receive_training_hit"):
         return not foe.royale_eliminated and not foe.round_finished
