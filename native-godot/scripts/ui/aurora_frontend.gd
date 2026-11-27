@@ -888,6 +888,7 @@ func _welcome() -> void:
     # Authentication is an ENTRY flow, never a row of permanent lobby badges.
     # This screen offers actual Firebase providers and a clearly separate
     # LOCAL offline choice. It never labels an unverified ID as official.
+    _cancel_online_search()
     _auto_resume_on_entry=(stage=="startup")
     stage="welcome"
     if _profile_overlay!=null:
@@ -1943,6 +1944,7 @@ func _update_objective_details() -> void:
 func _on_match_mode_selected(index: int) -> void:
     if _match_mode_selector==null:
         return
+    _cancel_online_search()
     match _match_mode_selector.get_item_id(index):
         0:
             _selected_match_mode="classic"
@@ -2979,6 +2981,8 @@ func _select_tab(tab: String) -> void:
     if tab in ["PRESET","AJUSTES"]:
         _open_settings()
         return
+    if tab!="JUGAR":
+        _cancel_online_search()
     _selected_tab=tab
     if stage!="lobby" or _info==null:
         return
@@ -3589,6 +3593,36 @@ func _finish_lobby_hud_return() -> void:
 
 
 var _online_search_active: bool=false
+var _online_search_serial: int=0
+
+func _cancel_online_search() -> void:
+    if not _online_search_active:
+        return
+    _online_search_serial+=1
+    _online_search_active=false
+    if Engine.has_singleton("AuroraFirebase"):
+        var native: Object=Engine.get_singleton("AuroraFirebase")
+        if bool(native.call("has_java_method",&"cancelOnlineMatch")):
+            native.call("cancelOnlineMatch")
+    if is_instance_valid(_battle_entry):
+        _battle_entry.disabled=false
+        _battle_entry.text="INICIAR"
+
+
+static func _online_search_error(reason: String) -> String:
+    match reason:
+        "account_not_ready","account_changed":
+            return "Confirma tu cuenta y la seguridad del dispositivo antes de jugar."
+        "incompatible_client":
+            return "Esta versión no es compatible con el servicio de partidas. Comprueba si hay una actualización."
+        "search_timeout":
+            return "La búsqueda online agotó el tiempo. Intenta de nuevo."
+        "service_busy":
+            return "El servicio está ocupado. Intenta de nuevo en unos segundos."
+        "invalid_match":
+            return "El servicio no devolvió una entrada online válida."
+        _:
+            return "No hay una sala online disponible o el servicio no responde."
 
 func _open_online_match() -> void:
     if stage!="lobby" or _online_search_active:
@@ -3597,12 +3631,14 @@ func _open_online_match() -> void:
         _online_match_notice("Confirma tu cuenta y la seguridad del dispositivo para jugar por Internet.")
         return
     if not Engine.has_singleton("AuroraFirebase"):
-        _info.text="La aplicación necesita el puente Firebase Android."
+        _online_match_notice("La aplicación necesita el puente Firebase Android.")
         return
     var native: Object=Engine.get_singleton("AuroraFirebase")
-    if not bool(native.call("has_java_method",&"beginOnlineMatch")) or not bool(native.call("has_java_method",&"takeOnlineMatch")):
-        _info.text="Versión de autenticación incompatible."
+    if not bool(native.call("has_java_method",&"beginOnlineMatch")) or not bool(native.call("has_java_method",&"takeOnlineMatch")) or not bool(native.call("has_java_method",&"cancelOnlineMatch")):
+        _online_match_notice("Versión de autenticación incompatible.")
         return
+    _online_search_serial+=1
+    var serial: int=_online_search_serial
     _online_search_active=true
     _battle_entry.disabled=true
     _battle_entry.text="BUSCANDO PARTIDA…"
@@ -3610,30 +3646,31 @@ func _open_online_match() -> void:
     native.call("beginOnlineMatch","solo",preload("res://scripts/network/aurora_online_session.gd").PROTOCOL)
     for i in range(160):
         await get_tree().create_timer(.25).timeout
-        if stage!="lobby":
-            _online_search_active=false
+        if serial!=_online_search_serial:
+            return
+        if stage!="lobby" or _selected_tab!="JUGAR" or _selected_match_mode!="classic":
+            _cancel_online_search()
             return
         var raw: Variant=native.call("takeOnlineMatch")
         var result: Variant=JSON.parse_string(raw) if raw is String else null
-        if not (result is Dictionary) or str(result.get("status",""))=="pending":
+        if not (result is Dictionary) or str(result.get("status","")) in ["pending","idle"]:
             continue
         _online_search_active=false
         _battle_entry.disabled=false
         _battle_entry.text="INICIAR"
         if str(result.get("status",""))!="ready":
-            _online_match_notice("No hay una sala online disponible o el servicio no confirmó el acceso.")
+            _online_match_notice(_online_search_error(str(result.get("reason","service_unavailable"))))
             return
         var endpoint: String=str(result.get("endpoint",""))
         var ticket: String=str(result.get("ticket",""))
         if not endpoint.begins_with("wss://") or ticket.is_empty():
-            _info.text="El servicio no devolvió una entrada online válida."
+            _online_match_notice(_online_search_error("invalid_match"))
             return
         call_deferred("_launch_internet_match",endpoint,ticket)
         return
-    _online_search_active=false
-    _battle_entry.disabled=false
-    _battle_entry.text="INICIAR"
-    _online_match_notice("La búsqueda online agotó el tiempo. Intenta de nuevo.")
+    if serial==_online_search_serial:
+        _cancel_online_search()
+        _online_match_notice(_online_search_error("search_timeout"))
 
 func _online_match_notice(message: String) -> void:
     _info.text=message
@@ -3699,6 +3736,7 @@ func _launch(battle: bool) -> void:
     if battle and OS.has_feature("android") and not _explicit_offline and not _hud_editor_requested:
         _open_online_match()
         return
+    _cancel_online_search()
     if not _hud_editor_requested:
         AuroraLobbyMusic.leave_lobby()
     stage="loading"

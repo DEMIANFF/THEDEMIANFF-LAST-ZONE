@@ -24,6 +24,7 @@ import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.functions.FirebaseFunctionsException;
 import com.google.firebase.functions.HttpsCallableResult;
 
 import org.godotengine.godot.Godot;
@@ -33,6 +34,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -241,7 +243,7 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                 profileRevision = 0;
                 onlineStats = "{}";
                 profileWriteStatus = "idle";
-                matchResult = "{\"status\":\"idle\"}";
+                cancelOnlineMatch();
                 provider = current == null ? "none" : current.isAnonymous() ? "guest" : "google";
                 restoredAccountUid = "";
                 nextIdentityAttemptAt = 0;
@@ -306,7 +308,7 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                 profileRevision = 0;
                 onlineStats = "{}";
                 profileWriteStatus = "idle";
-                matchResult = "{\"status\":\"idle\"}";
+                cancelOnlineMatch();
                 profileRevision = 0;
                 onlineStats = "{}";
                 profileWriteStatus = "idle";
@@ -320,56 +322,105 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
 
     // Only the single-use game ticket crosses JNI. Firebase Auth and App
     // Check credentials remain inside the official SDK.
-    private final AtomicBoolean matchBusy = new AtomicBoolean(false);
+    // All matchmaking state is protected by stateLock. A cancelled or
+    // superseded callback must never publish a ticket into a newer search.
+    private long matchGeneration = 0;
+    private boolean matchBusy = false;
+    private String matchUid = "";
     private String matchResult = "{\"status\":\"idle\"}";
 
     @UsedByGodot
-    public void beginOnlineMatch(String mode, int protocol) {
-        if (!matchBusy.compareAndSet(false, true)) return;
-        synchronized (stateLock) { matchResult = "{\"status\":\"pending\"}"; }
-        if (!isTransportReady() || FirebaseAuth.getInstance().getCurrentUser() == null) {
-            finishOnlineMatch("{\"status\":\"unavailable\"}");
-            return;
+    public void cancelOnlineMatch() {
+        synchronized (stateLock) {
+            matchGeneration++;
+            matchBusy = false;
+            matchUid = "";
+            matchResult = "{\"status\":\"idle\"}";
         }
-        final String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+    }
+
+    @UsedByGodot
+    public void beginOnlineMatch(String mode, int protocol) {
+        boolean ready = isTransportReady();
+        FirebaseUser user = configured ? FirebaseAuth.getInstance().getCurrentUser() : null;
+        final String uid = user == null ? "" : user.getUid();
+        final long generation;
+        synchronized (stateLock) {
+            if (matchBusy) return;
+            generation = ++matchGeneration;
+            matchUid = uid;
+            if (!ready || uid.isEmpty() || !uid.equals(activeUid) || officialPlayerId.isEmpty() || authBusy.get()) {
+                matchResult = "{\"status\":\"unavailable\",\"reason\":\"account_not_ready\"}";
+                return;
+            }
+            matchBusy = true;
+            matchResult = "{\"status\":\"pending\"}";
+        }
         try {
             FirebaseFunctions.getInstance("us-central1")
                 .getHttpsCallable("requestOnlineMatch")
+                .withTimeout(25, TimeUnit.SECONDS)
                 .call(Map.of("mode", mode, "protocol", protocol))
                 .addOnCompleteListener(task -> {
-                    FirebaseUser current = FirebaseAuth.getInstance().getCurrentUser();
-                    if (!task.isSuccessful() || current == null || !uid.equals(current.getUid())) {
-                        finishOnlineMatch("{\"status\":\"unavailable\"}");
+                    if (!isCurrentUid(uid)) {
+                        finishOnlineMatch(generation, uid, "{\"status\":\"unavailable\",\"reason\":\"account_changed\"}");
+                        return;
+                    }
+                    if (!task.isSuccessful() || task.getResult() == null) {
+                        String reason = "service_unavailable";
+                        if (task.getException() instanceof FirebaseFunctionsException) {
+                            switch (((FirebaseFunctionsException) task.getException()).getCode()) {
+                                case UNAUTHENTICATED:
+                                case PERMISSION_DENIED: reason = "account_not_ready"; break;
+                                case FAILED_PRECONDITION: reason = "incompatible_client"; break;
+                                case DEADLINE_EXCEEDED: reason = "search_timeout"; break;
+                                case RESOURCE_EXHAUSTED: reason = "service_busy"; break;
+                                default: break;
+                            }
+                        }
+                        finishOnlineMatch(generation, uid, "{\"status\":\"unavailable\",\"reason\":\"" + reason + "\"}");
                         return;
                     }
                     try {
                         Object data = task.getResult().getData();
                         if (!(data instanceof Map)) throw new JSONException("invalid response");
                         Map<?, ?> result = (Map<?, ?>) data;
+                        Object endpoint = result.get("endpoint");
+                        Object ticket = result.get("ticket");
+                        if (!(endpoint instanceof String) || !((String) endpoint).startsWith("wss://")
+                                || !(ticket instanceof String) || ((String) ticket).isEmpty())
+                            throw new JSONException("invalid match");
                         JSONObject out = new JSONObject();
                         out.put("status", "ready");
-                        out.put("endpoint", result.get("endpoint"));
-                        out.put("ticket", result.get("ticket"));
-                        finishOnlineMatch(out.toString());
+                        out.put("endpoint", endpoint);
+                        out.put("ticket", ticket);
+                        finishOnlineMatch(generation, uid, out.toString());
                     } catch (Exception problem) {
-                        finishOnlineMatch("{\"status\":\"unavailable\"}");
+                        finishOnlineMatch(generation, uid, "{\"status\":\"unavailable\",\"reason\":\"invalid_match\"}");
                     }
                 });
         } catch (RuntimeException problem) {
-            finishOnlineMatch("{\"status\":\"unavailable\"}");
+            finishOnlineMatch(generation, uid, "{\"status\":\"unavailable\",\"reason\":\"service_unavailable\"}");
         }
     }
 
-    private void finishOnlineMatch(String value) {
-        synchronized (stateLock) { matchResult = value; }
-        matchBusy.set(false);
+    private void finishOnlineMatch(long generation, String uid, String value) {
+        synchronized (stateLock) {
+            if (generation != matchGeneration || !uid.equals(matchUid)) return;
+            matchResult = value;
+            matchBusy = false;
+        }
     }
 
     @UsedByGodot
     public String takeOnlineMatch() {
         synchronized (stateLock) {
+            if (!matchUid.isEmpty() && !isCurrentUid(matchUid)) {
+                cancelOnlineMatch();
+                return "{\"status\":\"unavailable\",\"reason\":\"account_changed\"}";
+            }
             String value = matchResult;
-            if (!matchBusy.get()) matchResult = "{\"status\":\"idle\"}";
+            if (!matchBusy) matchResult = "{\"status\":\"idle\"}";
             return value;
         }
     }
@@ -538,7 +589,7 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
             // observes the new UID. Clear previous account metadata here too.
             if (!uid.equals(activeUid)) {
                 onlineStats = "{}";
-                matchResult = "{\"status\":\"idle\"}";
+                cancelOnlineMatch();
             }
             activeUid = uid;
             officialPlayerId = "";

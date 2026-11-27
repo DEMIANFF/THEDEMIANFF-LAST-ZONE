@@ -80,6 +80,19 @@ class SessionRecoveryContract(unittest.TestCase):
         self.assertLess(recover.index("!expectedId.equals(returnedId)"),recover.index("officialPlayerId = expectedId;"))
         self.assertEqual(recover.count("officialPlayerId = expectedId;"),1)
 
+    def test_matchmaking_cancel_invalidates_callbacks(self):
+        java=JAVA.read_text(encoding="utf-8")
+        front=(ROOT/"native-godot/scripts/ui/aurora_frontend.gd").read_text(encoding="utf-8")
+        cancel=java.split("public void cancelOnlineMatch()",1)[1].split("public void beginOnlineMatch",1)[0]
+        self.assertIn("matchGeneration++;",cancel)
+        self.assertIn("matchBusy = false;",cancel)
+        finish=java.split("private void finishOnlineMatch",1)[1].split("public String takeOnlineMatch",1)[0]
+        self.assertLess(finish.index("generation != matchGeneration"),finish.index("matchResult = value"))
+        self.assertIn(".withTimeout(25, TimeUnit.SECONDS)",java)
+        self.assertIn("serial!=_online_search_serial",front)
+        self.assertIn('native.call("cancelOnlineMatch")',front)
+        self.assertIn('_online_match_notice(_online_search_error("search_timeout"))',front)
+
     def test_logout_does_not_fabricate_identity(self):
         java=JAVA.read_text(encoding="utf-8")
         gd=GD.read_text(encoding="utf-8")
