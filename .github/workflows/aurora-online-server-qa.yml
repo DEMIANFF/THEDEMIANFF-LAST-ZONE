@@ -153,6 +153,11 @@ jobs:
           engine="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
           echo "GODOT_BIN=$engine" >> "$GITHUB_ENV"
           "$engine" --headless --path native-godot --editor --import > "$RUNNER_TEMP/aurora-online-import.log" 2>&1
+      - name: Signed ticket broker and real TLS authentication
+        run: |
+          node --test functions/test/online-matchmaking.test.js functions/test/online-stats.test.js
+          node --check functions/scripts/run-online-room.js
+          bash native-godot/tools/run_internet_qa.sh
       - name: Real ENet authoritative server and independent client
         run: |
           bash native-godot/tools/run_online_qa.sh
@@ -212,11 +217,6 @@ jobs:
         run: AURORA_ONLINE_TACTICAL_QA=1 bash native-godot/tools/run_four_room_qa.sh
       - name: Two humans plus 48 real bots and late admission rejection
         run: AURORA_FLEX_QA=1 bash native-godot/tools/run_four_room_qa.sh
-      - name: Signed ticket broker and real TLS authentication
-        run: |
-          node --test functions/test/online-matchmaking.test.js functions/test/online-stats.test.js
-          node --check functions/scripts/run-online-room.js
-          bash native-godot/tools/run_internet_qa.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:

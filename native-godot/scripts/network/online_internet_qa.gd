@@ -17,9 +17,10 @@ func _verify() -> void:
     if cert.load(OS.get_environment("AURORA_TLS_CERT"))!=OK:
         quit(1)
         return
-    var denied: bool=OS.get_environment("AURORA_QA_DENIED")=="1"
-    var credential: String=valid+"0" if denied else valid
-    if session.connect_internet("wss://localhost:24621",credential,cert)!=OK:
+    var scenario: String=OS.get_environment("AURORA_QA_CASE")
+    var denied: bool=scenario in ["tampered","replay","untrusted"]
+    var credential: String=valid+"0" if scenario=="tampered" else valid
+    if session.connect_internet("wss://localhost:24621",credential,null if scenario=="untrusted" else cert)!=OK:
         quit(1)
         return
     var saw_state: bool=false
@@ -30,9 +31,24 @@ func _verify() -> void:
             break
     var disconnected: bool=session.multiplayer.multiplayer_peer==null or session.multiplayer.multiplayer_peer.get_connection_status()==MultiplayerPeer.CONNECTION_DISCONNECTED
     ok=ok and (not saw_state and disconnected if denied else saw_state and bool(session.state.get("room_internet",false)))
-    print("V75251_TLS ", "DENIED" if denied else "AUTH", " PASS" if ok else " FAIL")
+    if not denied and saw_state:
+        # Authentication alone does not prove gameplay RPCs work over WSS.
+        var origin: Vector3=session.state.position
+        var moved: bool=false
+        var acked: bool=false
+        for seq in range(1,41):
+            session.submit_input.rpc_id(1,SESSION.PROTOCOL,seq,Vector2(.5,0),0.0,-.14,false,false)
+            await create_timer(.05).timeout
+            moved=moved or (session.state.position as Vector3).distance_to(origin)>.4
+            acked=acked or int(session.state.get("ack",0))>=20
+        session.submit_input.rpc_id(1,SESSION.PROTOCOL,41,Vector2.ZERO,0.0,-.14,false,false)
+        ok=ok and moved and acked
+        print("V75251_WSS_INPUT moved=",moved," acked=",acked)
+    var label: String=scenario.to_upper() if denied else "AUTH"
+    print("V75251_TLS ",label," PASS" if ok else " FAIL")
     if not denied:
-        await create_timer(7.0).timeout
+        # Allow independent replay attempt while the original client is alive.
+        await create_timer(12.0).timeout
     if session.multiplayer.multiplayer_peer!=null:
         session.multiplayer.multiplayer_peer.close()
     quit(0 if ok else 1)

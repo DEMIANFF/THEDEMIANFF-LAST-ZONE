@@ -257,7 +257,10 @@ func _authenticate_internet_peer(id: int,payload: PackedByteArray) -> void:
         return
     _used_tickets[claims.nonce]=true
     _internet_users[id]=claims.sub
-    _internet_auth.send_auth(id,"OK".to_utf8_buffer())
+    if _internet_auth.send_auth(id,"OK".to_utf8_buffer())!=OK:
+        _internet_users.erase(id)
+        multiplayer.multiplayer_peer.disconnect_peer(id)
+        return
     if _internet_auth.complete_auth(id)!=OK:
         _internet_users.erase(id)
         multiplayer.multiplayer_peer.disconnect_peer(id)

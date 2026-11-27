@@ -20,3 +20,40 @@ test('unauthenticated or incompatible requests cannot access room registry',asyn
  await assert.rejects(requestOnlineMatch({firestore,request:{data:{mode:'solo',protocol:PROTOCOL}},signingKey:'ab'.repeat(32),createError:err}),{code:'unauthenticated'});
  await assert.rejects(requestOnlineMatch({firestore,request:{auth:{uid:'a'},app:{},data:{mode:'ranked',protocol:PROTOCOL}},signingKey:'ab'.repeat(32),createError:err}),{code:'failed-precondition'});
 });
+
+function fixture() {
+  const rooms=new Map(), assignments=new Map(), identities=new Map();
+  const collections={online_rooms:rooms,online_assignments:assignments,player_identities:identities};
+  const ref=(name,id)=>({id,name,get:async()=>snapshot(name,id)});
+  const snapshot=(name,id)=>({exists:collections[name].has(id),data:()=>structuredClone(collections[name].get(id))});
+  const firestore={
+    collection(name){return {doc:id=>ref(name,id),where:(field,op,value)=>({limit:n=>({get:async()=>({docs:[...rooms].filter(([,r])=>r[field]===value).slice(0,n).map(([id])=>({ref:ref(name,id)}))})})})};},
+    async runTransaction(fn){
+      const writes=[];
+      const result=await fn({get:async r=>snapshot(r.name,r.id),update:(r,v)=>writes.push([r,{...collections[r.name].get(r.id),...v}]),set:(r,v)=>writes.push([r,v])});
+      for(const [r,v] of writes)collections[r.name].set(r.id,structuredClone(v));
+      return result;
+    }
+  };
+  return {firestore,rooms,assignments,identities};
+}
+const validRoom=()=>({status:'open',mode:'solo',protocol:PROTOCOL,heartbeat:100,capacity:4,endpoint:'wss://br.example.com:24621',reservations:{}});
+const error=(code,message)=>Object.assign(new Error(message),{code});
+function reserve(f,uid,now=100){return requestOnlineMatch({firestore:f.firestore,request:{auth:{uid},app:{},data:{mode:'solo',protocol:PROTOCOL}},signingKey:'ab'.repeat(32),createError:error,now});}
+test('reservation keeps account identity stable and caps actual available slots',async()=>{
+ const f=fixture();f.rooms.set('real-room-instance-1',validRoom());
+ for(let n=0;n<5;n++)f.identities.set('user'+n,{number:n+1});
+ const first=await reserve(f,'user0'),again=await reserve(f,'user0');
+ assert.equal(first.ticket,again.ticket);
+ assert.equal(first.expires,145);
+ for(let n=1;n<4;n++)await reserve(f,'user'+n);
+ await assert.rejects(reserve(f,'user4'),{code:'unavailable'});
+ assert.equal(Object.keys(f.rooms.get('real-room-instance-1').reservations).length,4);
+});
+test('stale rooms and accounts without permanent identity are rejected',async()=>{
+ const f=fixture();f.rooms.set('real-room-instance-1',{...validRoom(),heartbeat:80});
+ await assert.rejects(reserve(f,'user0'),{code:'failed-precondition'});
+ f.identities.set('user0',{number:1});
+ await assert.rejects(reserve(f,'user0'),{code:'unavailable'});
+ assert.equal(f.assignments.size,0);
+});
