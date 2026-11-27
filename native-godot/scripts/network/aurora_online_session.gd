@@ -11,6 +11,8 @@ var _used_tickets: Dictionary={}
 var _internet_users: Dictionary={}
 var _internet_ticket: String=""
 var _internet_auth: SceneMultiplayer
+var _internet_records: Dictionary={}
+var _internet_result_emitted: bool=false
 var room_flexible: bool=false
 var room_sealed: bool=false
 var room_join_remaining: float=20.0
@@ -439,6 +441,12 @@ func _seal_flexible_room() -> void:
         return
     room_sealed=true
     room_initial_humans=dual_peers.size()
+    if room_internet:
+        for peer in dual_peers.values():
+            var sub: String=str(peer.online_sub)
+            if sub.length()==64:
+                _internet_records[sub]={"sub":sub,"slot":peer.slot,"kills":0,"hits":0,"won":false,"abandoned":false}
+        print("AURORA_ROOM_ROSTER "+JSON.stringify({"room":_internet_room_id,"accounts":_internet_records.keys()}))
     room_bot_target=50-room_initial_humans
     combat.encounter_size=room_bot_target+1
     print("V75250_SEALED humans=",room_initial_humans," bots=",room_bot_target," total=",room_initial_humans+room_bot_target)
@@ -696,7 +704,7 @@ func _dual_joined(id: int) -> void:
         "catalog_owned":[WEAPON_CATALOG.AR],"catalog_mags":{WEAPON_CATALOG.AR:30},
         "catalog_reserves":{WEAPON_CATALOG.AR:90},"catalog_switches":0,
         "grenades":0,"covers":0,"cover_clock":0.0,"tactical_ms":-1000,"tactical_pending":0,
-        "throws":0,"walls":0,"vehicle_result":""}
+        "throws":0,"walls":0,"vehicle_result":"","online_sub":str(_internet_users.get(id,""))}
     _dual_admitted+=1
     if not room_flexible and dual_loot and dual_peers.size()==room_capacity:
         if terrain_room:
@@ -1421,6 +1429,22 @@ func _flush_death_loot() -> void:
         if not is_instance_valid(_dual_loot_nodes[i]):
             _dual_loot_nodes.remove_at(i)
 
+func _capture_internet_record(peer: Dictionary,abandoned: bool,won: bool) -> void:
+    var sub: String=str(peer.online_sub)
+    if not _internet_records.has(sub):
+        return
+    _internet_records[sub]={"sub":sub,"slot":peer.slot,"kills":clampi(int(peer.kills),0,49),
+        "hits":clampi(int(peer.hits),0,100000),"won":won and not abandoned,"abandoned":abandoned}
+
+func _emit_internet_result(completed: bool) -> void:
+    if not room_internet or not room_sealed or _internet_result_emitted or _internet_records.is_empty():
+        return
+    _internet_result_emitted=true
+    # Private process-to-worker envelope. Never part of gameplay snapshots.
+    # A cancelled room has no winner; no competitive points are awarded.
+    print("AURORA_ROOM_RESULT "+JSON.stringify({"room":_internet_room_id,"completed":completed,
+        "seconds":clampi(roundi(_room_elapsed),0,7200),"records":_internet_records.values()}))
+
 func _finish_room_if_needed() -> void:
     if not dual_combat or not _admission_complete() or _dual_finished or (mixed_room and not _mixed_ready):
         return
@@ -1450,6 +1474,13 @@ func _finish_room_if_needed() -> void:
         var peer: Dictionary=dual_peers[id]
         records.append({"slot":peer.slot,"team":int(peer.actor.get_meta("online_team",-1)),"kills":peer.kills,"hits":peer.hits,"survived":not peer.actor.royale_eliminated})
     room_result={"winner":_dual_winner,"winner_team":room_winner_team,"winner_bot":_mixed_winner_bot,"records":records,"seconds":_room_elapsed,"ranked":false}
+    if room_internet:
+        for peer in dual_peers.values():
+            var won: bool=not peer.actor.royale_eliminated
+            if room_team_size>1:
+                won=room_winner_team>=0 and int(peer.actor.get_meta("online_team",-1))==room_winner_team
+            _capture_internet_record(peer,false,won)
+        _emit_internet_result(true)
     print("V75242_ROOM_END winner=",_dual_winner," alive=",_living_room_count())
 
 func _grant_dual_loot(body: Node3D,kind: String,quantity: int,death: bool=false,bot_drop: bool=false) -> bool:
@@ -1555,6 +1586,8 @@ func _dual_left(id: int) -> void:
     if not dual_peers.has(id):
         return
     var actor: CharacterBody3D=dual_peers[id].actor
+    if room_internet and room_sealed and not _internet_result_emitted:
+        _capture_internet_record(dual_peers[id],not actor.royale_eliminated,false)
     if actor.vehicle_ride_active():
         actor.force_vehicle_exit()
     actor.reset_controls()
@@ -1584,6 +1617,8 @@ func _dual_left(id: int) -> void:
     print("V75237_SERVER_LEAVE peer=",id," remaining=",dual_peers.size())
     _finish_room_if_needed()
     if dual_peers.is_empty():
+        if room_internet and room_sealed:
+            _emit_internet_result(false)
         get_tree().quit()
 
 func _dual_input(version: int,sequence: int,move: Vector2,heading: float,look_pitch: float,run: bool,shoot: bool) -> void:

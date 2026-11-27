@@ -133,6 +133,8 @@ static func session_state() -> Dictionary:
         "identity_confirmed":confirmed,
         "official_id":id if confirmed else "",
         "display_name":name if confirmed else "",
+        "online_stats":payload.get("online_stats",{}) if confirmed and payload.get("online_stats",{}) is Dictionary else {},
+        "profile_write_status":str(payload.get("profile_write_status","idle")),
         "provider":provider,
         "pending":payload.get("pending")==true,
         "reason":str(payload.get("reason","identity_pending"))

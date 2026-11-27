@@ -5,6 +5,7 @@ const { FieldValue, getFirestore } = require('firebase-admin/firestore');
 const { HttpsError, onCall } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const { requestOnlineMatch } = require('./online-matchmaking');
+const { getOnlineStats } = require('./online-stats');
 const matchSigningKey = defineSecret('AURORA_MATCH_SIGNING_KEY');
 const { assignSequentialPlayerId, getAuthenticatedUid } = require('./identity');
 const { saveOfflineProgress, loadOfflineProgress } = require('./offline-progress');
@@ -72,4 +73,10 @@ exports.setPlayerDisplayName = onCall(
 exports.requestOnlineMatch = onCall(
   { region: 'us-central1', maxInstances: 10, enforceAppCheck: true, secrets: [matchSigningKey] },
   async (request) => requestOnlineMatch({firestore, request, signingKey: matchSigningKey.value(), createError: asHttpsError}),
+);
+
+// Authenticated read only. There is deliberately no client callable to write match results.
+exports.getOnlineStats = onCall(
+  {region:'us-central1', maxInstances:10, enforceAppCheck:true},
+  async request => getOnlineStats({firestore,request,createError:asHttpsError}),
 );

@@ -25,6 +25,10 @@ async function requestOnlineMatch({firestore, request, signingKey, createError, 
   if (!MODES.has(mode) || request.data?.protocol !== PROTOCOL)
     throw createError('failed-precondition','Unsupported mode or protocol');
   if (!/^[0-9a-f]{64}$/i.test(signingKey)) throw createError('unavailable','Match service not configured');
+  const identity = await firestore.collection('player_identities').doc(uid).get();
+  const playerNumber = identity.data()?.number;
+  if (!Number.isSafeInteger(playerNumber) || playerNumber < 1 || playerNumber > 99999)
+    throw createError('failed-precondition','Permanent player identity required');
   const sub = hash(uid);
   const candidates = await firestore.collection('online_rooms').where('status','==','open').limit(40).get();
   for (const candidate of candidates.docs) {

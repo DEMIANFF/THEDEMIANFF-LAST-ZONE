@@ -1651,6 +1651,36 @@ func _save_player_name() -> void:
     if stage!="lobby" or _player_name==null or _name_entry==null:
         return
     var candidate: String=_name_entry.text
+    var account: Dictionary=FIREBASE_BRIDGE.session_state()
+    if bool(account.get("authenticated",false)):
+        if not bool(account.get("identity_confirmed",false)):
+            _info.text="Espera a que Firebase confirme tu identidad."
+            return
+        var native: Object=Engine.get_singleton("AuroraFirebase")
+        if native==null or not bool(native.call("has_java_method",&"saveOnlineDisplayName")):
+            _info.text="Guardado online no disponible en esta APK."
+            return
+        _info.text="Guardando apodo en tu cuenta Firebase…"
+        _name_save_button.disabled=true
+        native.call("saveOnlineDisplayName",candidate)
+        for attempt in range(80):
+            await get_tree().create_timer(.25).timeout
+            if stage!="lobby" or not is_instance_valid(_name_save_button):
+                return
+            var state: Dictionary=FIREBASE_BRIDGE.session_state()
+            var result: String=str(state.get("profile_write_status",""))
+            if result=="saved" or result=="failed":
+                _name_save_button.disabled=false
+                if result=="saved":
+                    _name_entry.text=str(state.get("display_name",""))
+                    _update_identity_strip(_offline_records.snapshot())
+                    _info.text="APODO GUARDADO EN FIREBASE"
+                else:
+                    _info.text="No se confirmó el guardado. Revisa el nombre y vuelve a iniciar sesión si cambió en otro dispositivo."
+                return
+        _name_save_button.disabled=false
+        _info.text="No se recibió confirmación de Firebase."
+        return
     var saved: Error=_player_name.save_name(candidate)
     if saved!=OK:
         _info.text="NOMBRE NO GUARDADO\nUsa entre 3 y 16 caracteres: letras, números, espacios internos o _.\nNo se permiten nombres reservados."
@@ -1695,7 +1725,7 @@ func _check_firebase_connection() -> void:
         _info.text+="NOMBRE DE CUENTA: %s\n"%(
             server_name if not server_name.is_empty() else "Pendiente de servidor")
         _info.text+="Proveedor: %s\n"%str(session.get("provider",""))
-        _info.text+="Estos datos provienen de callables Firebase. El saldo y las partidas locales NO se sincronizan automáticamente."
+        _info.text+="Nombre y resultados online provienen del servidor. El saldo y las partidas locales no se mezclan con las estadísticas online."
         _update_identity_strip(_offline_records.snapshot())
         return
     if bool(session.get("authenticated",false)):
@@ -1848,6 +1878,7 @@ func _sync_lobby_match_mode() -> void:
     var show_name: bool=_selected_tab=="CUENTA"
     _name_entry.visible=show_name
     _name_save_button.visible=show_name
+    _name_save_button.text="GUARDAR APODO ONLINE" if bool(FIREBASE_BRIDGE.session_state().get("authenticated",false)) else "GUARDAR APODO LOCAL"
     _firebase_check_button.visible=show_name
     _account_connection_label.visible=show_name
     _login_manage_button.visible=show_name
@@ -2808,15 +2839,17 @@ func _refresh_player_profile() -> void:
     _profile_id_label.text=("ID %s · IDENTIDAD CONFIRMADA"%[
         str(session.get("official_id",""))] if confirmed
         else "PERFIL LOCAL · SIN ID EN LÍNEA CONFIRMADO")
+    var authenticated: bool=bool(session.get("authenticated",false))
+    var stats: Dictionary=session.get("online_stats",{}) if authenticated else saved
+    var available: bool=not stats.is_empty()
     var values: Array[int]=[
-        int(saved.get("played",0)),int(saved.get("wins",0)),
-        int(saved.get("kills",0))]
+        int(stats.get("played",0)),int(stats.get("wins",0)),
+        int(stats.get("kills",0))]
     for i in range(mini(_profile_stat_labels.size(),values.size())):
-        _profile_stat_labels[i].text=str(values[i])
+        _profile_stat_labels[i].text=str(values[i]) if available else "—"
     _profile_session_label.text=(
-        "Sesión autenticada: "+str(session.get("provider","")).to_upper()
-        if bool(session.get("authenticated",false)) else
-        "Progreso local verificado en este dispositivo")
+        ("Estadísticas online confirmadas · "+str(session.get("provider","")).to_upper() if available else "Estadísticas online pendientes de Firebase")
+        if authenticated else "Progreso local verificado en este dispositivo")
 
 
 func _open_player_profile() -> void:
@@ -2824,6 +2857,15 @@ func _open_player_profile() -> void:
         return
     _refresh_player_profile()
     _profile_overlay.show()
+    if bool(FIREBASE_BRIDGE.session_state().get("authenticated",false)) and Engine.has_singleton("AuroraFirebase"):
+        var native: Object=Engine.get_singleton("AuroraFirebase")
+        if bool(native.call("has_java_method",&"refreshOnlineStats")):
+            native.call("refreshOnlineStats")
+            for attempt in range(8):
+                await get_tree().create_timer(.5).timeout
+                if stage!="lobby" or not is_instance_valid(_profile_overlay) or not _profile_overlay.visible:
+                    return
+                _refresh_player_profile()
 
 
 func _close_player_profile() -> void:
@@ -2956,7 +2998,7 @@ func _select_tab(tab: String) -> void:
                 var remote_name: String=str(session.get("display_name",""))
                 name_line=(remote_name+" (Firebase)" if not remote_name.is_empty()
                     else _player_name.display_name+" (local; nombre remoto pendiente)")
-            _info.text="Firebase / Perfil\nNOMBRE: %s\n%s\n%s\nGoogle e Invitado se administran en la pantalla de entrada. El apodo y las monedas siguen guardados localmente; no se declara sincronización sin confirmación del servidor."%[
+            _info.text="Firebase / Perfil\nNOMBRE: %s\n%s\n%s\nGoogle e Invitado se administran en la pantalla de entrada. El apodo online se guarda en Firebase. Las monedas locales aún no se sincronizan."%[
                 name_line,id_line,auto_text]
         _:
             _info.text="SECCIÓN NO DISPONIBLE"
@@ -3482,7 +3524,7 @@ func _open_online_match() -> void:
         return
     _online_search_active=true
     _info.text="Buscando una sala disponible por Internet…"
-    native.call("beginOnlineMatch","solo",31)
+    native.call("beginOnlineMatch","solo",preload("res://scripts/network/aurora_online_session.gd").PROTOCOL)
     for i in range(160):
         await get_tree().create_timer(.25).timeout
         if stage!="lobby":

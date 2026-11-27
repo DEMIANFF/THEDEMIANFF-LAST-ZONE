@@ -1,0 +1,26 @@
+[Unit]
+Description=THEDEMIAN LAST ZONE public room worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aurora
+Group=aurora
+WorkingDirectory=/opt/aurora/functions
+EnvironmentFile=/etc/aurora/room.env
+ExecStart=/usr/bin/node /opt/aurora/functions/scripts/run-online-room.js
+Restart=always
+RestartSec=3
+TimeoutStopSec=40
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/aurora
+StateDirectory=aurora
+Environment=XDG_DATA_HOME=/var/lib/aurora
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
