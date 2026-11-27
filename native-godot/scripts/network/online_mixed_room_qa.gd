@@ -65,10 +65,12 @@ func _verify() -> void:
             break
     view.firing=false
     view.move_axis=Vector2.ZERO
+    var cache_budget: bool=int(session.state.death_active)<=12 and int(session.state.death_peak)<=12 and int(session.state.bot_death_spawned)>0
     var combat: bool=int(session.state.bot_shots)>0 and int(session.state.bot_damage_events)>0 and int(session.state.human_bot_hits)>0
     var identity: bool=int(session.state.self_peer)==session.multiplayer.get_unique_id()
     var own: bool=seen_bot and original and int(session.state.own_bot_hits)>0 if slot==1 else real_motion or bool(session.state.eliminated)
-    var ok: bool=roster and identity and bounded and combat and own and not world.operator.is_physics_processing()
+    var ok: bool=roster and identity and bounded and combat and own and cache_budget and not world.operator.is_physics_processing()
+    print("V75245_CACHE_BUDGET active=",session.state.death_active," peak=",session.state.death_peak," bot_drops=",session.state.bot_death_spawned," valid=",cache_budget)
     print("V75244_MIXED slot=",slot," roster=",roster," bounded=",bounded," combat=",combat," own=",own," bots=",session.state.bots," bot_shots=",session.state.bot_shots," damage_events=",session.state.bot_damage_events," human_hits=",session.state.human_bot_hits)
     if ok:
         print("V75244_MIXED PASS")

@@ -667,7 +667,7 @@ func apply_snapshot(data: Dictionary) -> void:
     if bool(data.get("eliminated",false)):
         _status.text="ONLINE · ELIMINADO"
     elif bool(data.get("ended",false)):
-        _status.text="ONLINE · ELIMINADO" if bool(data.get("eliminated",false)) else ("DUELO · VICTORIA" if bool(data.get("dual_combat",false)) and int(data.get("duel_winner",0))==int(data.get("self_peer",-1)) else "ONLINE · PARTIDA FINALIZADA")
+        _status.text="ONLINE · VICTORIA IA" if bool(data.get("winner_bot",false)) else ("DUELO · VICTORIA" if bool(data.get("dual_combat",false)) and int(data.get("duel_winner",0))==int(data.get("self_peer",-1)) else "ONLINE · PARTIDA FINALIZADA")
     applied_snapshot_id=int(data.get("snapshot_id",0))
 
 func _clear_remote() -> void:

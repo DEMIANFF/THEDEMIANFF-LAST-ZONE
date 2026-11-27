@@ -2,7 +2,12 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=24
+const PROTOCOL: int=25
+const ROOM_DEATH_CAP: int=12
+var _bot_death_spawned: int=0
+var _bot_death_claims: int=0
+var _death_retired: int=0
+var _death_peak: int=0
 const MIXED_BOTS: int=46
 var mixed_room: bool=false
 var _mixed_ready: bool=false
@@ -496,7 +501,7 @@ func _dual_joined(id: int) -> void:
         "heal_anchor":home,"heal_completed":0,"heal_cancelled":0,"heal_gained":0.0,
         "slot":_dual_admitted,"weapon":WEAPON_CATALOG.AR,"awm_owned":false,
         "stored_ar":30,"stored_ar_reserve":90,"stored_awm":0,"stored_awm_reserve":0,
-        "aim":false,"stance_pending":0,"switch_ms":-1000,"backpack":0,"zone_hits":0,"bot_hits":0,"bot_damage":0,"ambient_seq":0,"ambient":[]}
+        "aim":false,"stance_pending":0,"switch_ms":-1000,"backpack":0,"zone_hits":0,"bot_hits":0,"bot_damage":0,"bot_loot_claims":0,"bot_loot_rounds":0,"ambient_seq":0,"ambient":[]}
     _dual_admitted+=1
     if dual_loot and dual_peers.size()==room_capacity:
         if terrain_room:
@@ -565,7 +570,7 @@ func _stage_mixed_roster() -> void:
     for peer in dual_peers.values():
         if peer.actor!=operator:
             foes.append(peer.actor)
-    if OS.get_environment("AURORA_MIXED_QA")=="1":
+    if OS.get_environment("AURORA_MIXED_QA")=="1" or OS.get_environment("AURORA_MIXED_LOOT_QA")=="1":
         # Place one REAL bot on clear terrain near slot 1 for the network
         # interaction regression, not for normal match population.
         var site: Vector2=_terrain_sites[1]
@@ -590,6 +595,12 @@ func _stage_mixed_roster() -> void:
         if bot.is_physics_processing() and bot.collision_layer==1 and bot.health==bot.MAX_HEALTH:
             physical+=1
     print("V75244_MIXED_READY humans=",dual_peers.size()," physical_bots=",physical," total=",_living_room_count())
+    if OS.get_environment("AURORA_MIXED_LOOT_QA")=="1":
+        # Separate QA room: one wounded original bot, real shots required.
+        # The ordinary 50-full-health combat regression remains unchanged.
+        _mixed_bots[0].health=26.0
+        _mixed_bots[0]._attack_clock=4.0
+        _mixed_bots[0]._magazine=18
 
 func _mixed_on_bot_shot(at: Vector3,bot: CharacterBody3D) -> void:
     if not _mixed_ready or _dual_finished:
@@ -629,6 +640,7 @@ func _mixed_on_bot_dead(bot: CharacterBody3D,killer: Node3D) -> void:
     if not _mixed_ready or _dual_finished or _mixed_bot_dead.has(bot.get_instance_id()):
         return
     _mixed_bot_dead[bot.get_instance_id()]=true
+    _queue_bot_death_loot(bot,killer)
     for peer in dual_peers.values():
         if peer.actor==killer:
             peer.kills+=1
@@ -710,15 +722,16 @@ func _living_room_count() -> int:
                 alive+=1
     return alive
 
-func _spawn_room_pickup(kind: String,at: Vector3,amount: int,death: bool=false) -> void:
+func _spawn_room_pickup(kind: String,at: Vector3,amount: int,death: bool=false,surface: float=NAN,bot_drop: bool=false) -> void:
     var pickup: Area3D=SHARED_LOOT.new()
     pickup.pickup_type=kind
     pickup.quantity=amount
     pickup.from_opponent=death
     pickup.terrain=director.terrain
     pickup.world_spot=Vector2(at.x,at.z)
-    pickup.surface_height_override=director.terrain.height_at(at.x,at.z) if terrain_room else WAITING_ISLAND.SPAWN.y-.3
-    pickup.shared_grant=Callable(self,"_grant_dual_loot").bind(death)
+    pickup.surface_height_override=surface if is_finite(surface) else (director.terrain.height_at(at.x,at.z) if terrain_room else WAITING_ISLAND.SPAWN.y-.3)
+    pickup.set_meta("mixed_bot_cache",bot_drop)
+    pickup.shared_grant=Callable(self,"_grant_dual_loot").bind(death,bot_drop)
     world.add_child(pickup)
     _dual_loot_nodes.append(pickup)
 
@@ -737,15 +750,102 @@ func _spawn_dual_loot() -> void:
     for item in items:
         _spawn_room_pickup(str(item.kind),WAITING_ISLAND.SPAWN+item.offset,int(item.amount))
 
+func _death_surface(at: Vector3,victim: CharacterBody3D) -> float:
+    if not terrain_room:
+        return WAITING_ISLAND.SPAWN.y-.3
+    var ground: float=director.terrain.height_at(at.x,at.z)
+    # Only actual support close to the fallen body is accepted. Airborne
+    # deaths settle onto terrain, not an arbitrary elevated ray contact.
+    if at.y>=ground-.25 and at.y-ground<40.0:
+        var ray:=PhysicsRayQueryParameters3D.create(at+Vector3.UP*.35,Vector3(at.x,ground-2.0,at.z))
+        ray.collision_mask=3
+        ray.exclude=[victim.get_rid()]
+        var hit: Dictionary=world.get_world_3d().direct_space_state.intersect_ray(ray)
+        if not hit.is_empty() and hit.get("collider") is StaticBody3D:
+            var point: Vector3=hit.position
+            var normal: Vector3=hit.normal
+            if normal.y>.55 and point.y>=ground-.15 and point.y<=at.y+.35 and at.y-point.y<=1.25:
+                return point.y
+    return ground
+
+func _queue_bot_death_loot(bot: CharacterBody3D,killer: Node3D) -> void:
+    var at: Vector3=bot.global_position
+    if not at.is_finite() or Vector2(at.x,at.z).distance_to(_room_zone.center)>float(_room_zone.radius):
+        return
+    var rounds: int=maxi(0,int(bot._magazine))
+    var kits: int=clampi(int(bot._field_medkits),0,1)
+    var kind: String=""
+    var amount: int=0
+    # Do not convert unrelated SMG/shotgun ammunition into AR rounds.
+    # The two currently implemented human ammunition families are exact.
+    if rounds>0 and int(bot.weapon_slot)==WEAPON_CATALOG.AR:
+        kind="ammo_ar"
+        amount=mini(rounds,18)
+    elif rounds>0 and int(bot.weapon_slot)==WEAPON_CATALOG.AWM:
+        kind="ammo_awm"
+        amount=mini(rounds,8)
+    elif kits>0:
+        kind="medkit"
+        amount=kits
+    if amount<=0:
+        return
+    var human_kill: bool=false
+    for peer in dual_peers.values():
+        human_kill=human_kill or peer.actor==killer
+    _death_pending.append({"kind":kind,"at":at,"amount":amount,"surface":_death_surface(at,bot),
+        "bot":true,"human_kill":human_kill})
+    # Only the actual one-time inventory reward survives elimination.
+    bot._magazine=0
+    bot._field_medkits=0
+    call_deferred("_flush_death_loot")
+
+func _active_room_deaths() -> int:
+    var active: int=0
+    for pickup in _dual_loot_nodes:
+        if is_instance_valid(pickup) and pickup.from_opponent and not pickup.collected and not pickup.is_queued_for_deletion():
+            active+=1
+    return active
+
+func _distance_to_living_humans(at: Vector3) -> float:
+    var nearest: float=INF
+    for peer in dual_peers.values():
+        if not peer.actor.royale_eliminated:
+            nearest=minf(nearest,peer.actor.global_position.distance_squared_to(at))
+    return nearest
+
+func _retire_remote_room_cache(at: Vector3) -> bool:
+    if _distance_to_living_humans(at)>38.0*38.0:
+        return false
+    var furthest: float=95.0*95.0
+    var chosen: Area3D=null
+    for pickup in _dual_loot_nodes:
+        if not is_instance_valid(pickup) or not pickup.from_opponent or pickup.collected or pickup.is_queued_for_deletion():
+            continue
+        var distance: float=_distance_to_living_humans(pickup.global_position)
+        if distance>furthest:
+            chosen=pickup
+            furthest=distance
+    if chosen==null:
+        return false
+    _dual_loot_nodes.erase(chosen)
+    chosen.hide()
+    chosen.queue_free()
+    _death_retired+=1
+    return true
+
 func _queue_death_loot(peer: Dictionary) -> void:
     if not expanded_room:
         return
     var at: Vector3=peer.actor.global_position
+    if not at.is_finite():
+        return
     var ar_reserve: int=int(peer.reserve) if int(peer.weapon)==WEAPON_CATALOG.AR else int(peer.stored_ar_reserve)
     if ar_reserve>0:
-        _death_pending.append({"kind":"ammo_ar","at":at+Vector3(.8,0,0),"amount":mini(ar_reserve,18)})
+        var spot: Vector3=at+Vector3(.8,0,0)
+        _death_pending.append({"kind":"ammo_ar","at":spot,"amount":mini(ar_reserve,18),"surface":_death_surface(spot,peer.actor)})
     if int(peer.medkits)>0:
-        _death_pending.append({"kind":"medkit","at":at+Vector3(-.8,0,0),"amount":1})
+        var spot: Vector3=at+Vector3(-.8,0,0)
+        _death_pending.append({"kind":"medkit","at":spot,"amount":1,"surface":_death_surface(spot,peer.actor)})
     # No second claim from the victim. Drop bounded amounts, discard remainder.
     peer.medkits=0
     peer.reserve=0
@@ -757,13 +857,24 @@ func _flush_death_loot() -> void:
     if _dual_finished:
         _death_pending.clear()
         return
+    # Prioritize real nearby kills if multiple deaths share one frame.
+    _death_pending.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return _distance_to_living_humans(a.at)<_distance_to_living_humans(b.at))
     for item in _death_pending:
-        if _death_spawned>=12:
-            break
-        _spawn_room_pickup(str(item.kind),item.at,int(item.amount),true)
+        if _active_room_deaths()>=ROOM_DEATH_CAP and not _retire_remote_room_cache(item.at):
+            continue
+        var bot_drop: bool=bool(item.get("bot",false))
+        _spawn_room_pickup(str(item.kind),item.at,int(item.amount),true,float(item.get("surface",NAN)),bot_drop)
         _death_spawned+=1
+        _death_peak=maxi(_death_peak,_active_room_deaths())
+        if bot_drop:
+            _bot_death_spawned+=1
+            print("V75245_BOT_DROP kind=",item.kind," amount=",item.amount," human_kill=",item.human_kill," active=",_active_room_deaths()," cumulative=",_death_spawned)
         print("V75242_DEATH_DROP kind=",item.kind," total=",_death_spawned)
     _death_pending.clear()
+    # Trim freed nodes from the ledger; never count historical slots.
+    for i in range(_dual_loot_nodes.size()-1,-1,-1):
+        if not is_instance_valid(_dual_loot_nodes[i]):
+            _dual_loot_nodes.remove_at(i)
 
 func _finish_room_if_needed() -> void:
     if not dual_combat or _dual_admitted!=room_capacity or _dual_finished or _living_room_count()>1:
@@ -785,13 +896,14 @@ func _finish_room_if_needed() -> void:
                 bot.set_physics_process(false)
     print("V75242_ROOM_END winner=",_dual_winner," alive=",_living_room_count())
 
-func _grant_dual_loot(body: Node3D,kind: String,quantity: int,death: bool=false) -> bool:
+func _grant_dual_loot(body: Node3D,kind: String,quantity: int,death: bool=false,bot_drop: bool=false) -> bool:
     if not dual_loot or not _room_active():
         return false
     for id in dual_peers:
         var peer: Dictionary=dual_peers[id]
         if peer.actor!=body or not peer.actor.can_act():
             continue
+        var actual_rounds: int=0
         match kind:
             "ammo_ar":
                 var current: bool=int(peer.weapon)==WEAPON_CATALOG.AR
@@ -799,6 +911,7 @@ func _grant_dual_loot(body: Node3D,kind: String,quantity: int,death: bool=false)
                 var gained: int=mini(clampi(quantity,0,45),180+int(peer.backpack)*45-stock)
                 if gained<=0:
                     return false
+                actual_rounds=gained
                 if current:
                     peer.reserve+=gained
                 else:
@@ -811,6 +924,7 @@ func _grant_dual_loot(body: Node3D,kind: String,quantity: int,death: bool=false)
                 var gained: int=mini(clampi(quantity,0,8),30+int(peer.backpack)*8-stock)
                 if gained<=0:
                     return false
+                actual_rounds=gained
                 if current:
                     peer.reserve+=gained
                 else:
@@ -837,6 +951,11 @@ func _grant_dual_loot(body: Node3D,kind: String,quantity: int,death: bool=false)
                 return false
         peer.loot_claims+=1
         _dual_loot_claims+=1
+        if bot_drop:
+            _bot_death_claims+=1
+            peer.bot_loot_claims+=1
+            peer.bot_loot_rounds+=actual_rounds
+            print("V75245_BOT_CLAIM peer=",id," slot=",peer.slot," kind=",kind," amount=",quantity," rounds_granted=",actual_rounds," total=",_bot_death_claims)
         if death:
             _death_claims+=1
             print("V75242_DEATH_CLAIM peer=",id," kind=",kind," total=",_death_claims)
@@ -853,7 +972,11 @@ func _dual_loot_snapshot(actor: CharacterBody3D) -> Array[Dictionary]:
             continue
         if actor.global_position.distance_squared_to(pickup.global_position)<=LOOT_RANGE*LOOT_RANGE:
             result.append({"id":pickup.get_instance_id(),"position":pickup.global_position,
-                "kind":pickup.pickup_type,"from_opponent":pickup.from_opponent,"quantity":pickup.quantity})
+                "kind":pickup.pickup_type,"from_opponent":pickup.from_opponent,"quantity":pickup.quantity,
+                "from_ai":bool(pickup.get_meta("mixed_bot_cache",false)),"distance_sq":actor.global_position.distance_squared_to(pickup.global_position)})
+    result.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return float(a.distance_sq)<float(b.distance_sq))
+    if result.size()>MAX_LOOT_SNAPSHOT:
+        result.resize(MAX_LOOT_SNAPSHOT)
     return result
 
 func _dual_left(id: int) -> void:
@@ -1229,6 +1352,9 @@ func _dual_tick(delta: float) -> void:
             "duel_ready":_room_active() and not actor.royale_eliminated,"duel_winner":_dual_winner,
             "expanded_room":expanded_room,"room_capacity":room_capacity,"room_slot":peer.slot,
             "death_spawned":_death_spawned,"death_claims":_death_claims,
+            "death_active":_active_room_deaths(),"death_peak":_death_peak,"death_retired":_death_retired,
+            "bot_death_spawned":_bot_death_spawned,"bot_death_claims":_bot_death_claims,
+            "own_bot_loot_claims":peer.bot_loot_claims,"own_bot_loot_rounds":peer.bot_loot_rounds,
             "armor":actor.armor_points,"helmet":actor.helmet_points,"vest_level":actor.vest_level,"helmet_level":actor.helmet_level,
             "backpack":peer.backpack,"awm_reserve":peer.reserve if int(peer.weapon)==WEAPON_CATALOG.AWM else peer.stored_awm_reserve,
             "hits":peer.hits,"kills":peer.kills,"reloads":peer.reloads,"duel_audio_sent":peer.audio_seq,
