@@ -13,6 +13,8 @@ signal weapon_fired(world_position: Vector3)
 signal foot_contact(world_position: Vector3,running: bool,on_stone: bool)
 ## This line is derived from the actual PhysicsServer hit; never a fake shot.
 signal shot_trace(from: Vector3,to: Vector3)
+# Real damage only, emitted after the victim's own protection/immunity logic.
+signal human_damaged(victim: CharacterBody3D,damage: float)
 
 var waiting_active: bool=false
 var waiting_distance: float=0.0
@@ -1018,7 +1020,7 @@ func _sense_player() -> void:
     # as long as it remains alive, visible and within the sight radius.
     if (found!=null and is_instance_valid(previous) and previous!=found and
             vision_rays_last<MAX_VISION_RAYS and
-            (previous==operator or previous.health>0.0)):
+            _is_live_foe(previous)):
         var prior_distance: float=global_position.distance_squared_to(previous.global_position)
         if prior_distance<_loadout_sight_range()*_loadout_sight_range() and prior_distance<=(
                 sqrt(found_distance)+TARGET_STICKINESS_METERS)*(
@@ -1515,9 +1517,9 @@ func _interrupt_field_heal() -> void:
 func _is_live_foe(foe: CharacterBody3D) -> bool:
     if foe==self or not is_instance_valid(foe):
         return false
-    if foe==operator:
-        return not operator.royale_eliminated
-    return foe.health>0.0
+    if foe.has_method("receive_training_hit"):
+        return not foe.royale_eliminated and not foe.round_finished
+    return foe.is_in_group("training_target") and foe.health>0.0
 
 
 func _has_verified_sight(foe: CharacterBody3D) -> bool:
@@ -1630,9 +1632,12 @@ func _fire_at_target(foe: CharacterBody3D) -> bool:
     shot_trace.emit(_visible_trace_origin(muzzle),
         hit.get("position",endpoint))
     var actor: Object=hit.get("collider")
-    if actor==operator and not operator.royale_eliminated:
-        operator.receive_training_hit(_loadout_damage(),false,global_position,hit["position"])
+    if actor is CharacterBody3D and actor.has_method("receive_training_hit") and not actor.royale_eliminated:
+        var before: float=actor.training_health
+        actor.receive_training_hit(_loadout_damage(),false,global_position,hit["position"])
         shots_hit+=1
+        if actor.training_health<before:
+            human_damaged.emit(actor,before-actor.training_health)
     elif actor is CharacterBody3D and actor.is_in_group("training_target") and actor.health>0:
         actor.take_training_damage(_loadout_damage(),self)
         shots_hit+=1

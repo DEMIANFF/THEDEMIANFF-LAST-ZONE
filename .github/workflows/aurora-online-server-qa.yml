@@ -1,7 +1,7 @@
-name: Aurora V75.243 dedicated online server real UDP QA
+name: Aurora V75.244 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-243-multihuman-terrain-zone]
+    branches: [codex/v75-244-fifty-fighter-mixed-roster]
   workflow_dispatch:
 permissions:
   contents: read
@@ -200,9 +200,11 @@ jobs:
         run: bash native-godot/tools/run_four_room_qa.sh
       - name: Four real clients on Aurora terrain with authoritative moving zone
         run: AURORA_TERRAIN_QA=1 bash native-godot/tools/run_four_room_qa.sh
+      - name: Fifty physical fighters four real clients and forty-six server AI
+        run: AURORA_MIXED_QA=1 bash native-godot/tools/run_four_room_qa.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.243-ONLINE-SERVER-QA
+          name: AURORA-V75.244-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3

@@ -637,6 +637,8 @@ func apply_snapshot(data: Dictionary) -> void:
         int(data.alive),roundi(float(data.health)),float(data.zone_radius),
         int(data.ammo),int(data.reserve)," · RECARGANDO" if float(data.reload_remaining)>0.0 else ""]
     if bool(data.get("terrain_room",false)):
+        if bool(data.get("mixed_room",false)):
+            _status.text+=" · IA %d"%int(data.bots)
         _status.text+=" · FASE %d · %ds"%[int(data.get("zone_phase",0))+1,int(data.get("zone_remaining",0))]
         if bool(data.get("zone_outside",false)):
             _status.text+=" · FUERA DE ZONA"
