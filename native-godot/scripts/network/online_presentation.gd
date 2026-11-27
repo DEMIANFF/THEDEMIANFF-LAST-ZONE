@@ -544,7 +544,7 @@ func apply_snapshot(data: Dictionary) -> void:
         _presented_match_mode=match_mode
     var duel: bool=bool(data.get("dual_combat",false))
     var duel_playable: bool=duel and bool(data.get("duel_ready",false)) and not bool(data.get("ended",false))
-    _sync_air_presentation(air,match_mode!="waiting" or duel_playable)
+    _sync_air_presentation(air,duel_playable if duel else match_mode!="waiting")
     _sync_waiting(match_mode,duel_playable,duel_playable and bool(data.get("dual_loot",false)))
     var previous_ride: int=_ride_id
     _sync_vehicles(data.get("vehicles",{}))
@@ -612,6 +612,10 @@ func apply_snapshot(data: Dictionary) -> void:
     _sync_tactical(data.tactical)
     _sync_inventory(data)
     if duel:
+        _fire_pad.visible=duel_playable
+        _reload.visible=duel_playable
+        _grenade.hide()
+        _cover.hide()
         if bool(data.get("expanded_room",false)):
             _weapon.visible=duel_playable
             _weapon.disabled=not bool(data.inventory.awm_owned)
@@ -632,6 +636,10 @@ func apply_snapshot(data: Dictionary) -> void:
     _status.text="ONLINE · %d VIVOS · HP %d · ZONA %.0fm · MUNICIÓN %d/%d%s"%[
         int(data.alive),roundi(float(data.health)),float(data.zone_radius),
         int(data.ammo),int(data.reserve)," · RECARGANDO" if float(data.reload_remaining)>0.0 else ""]
+    if bool(data.get("terrain_room",false)):
+        _status.text+=" · FASE %d · %ds"%[int(data.get("zone_phase",0))+1,int(data.get("zone_remaining",0))]
+        if bool(data.get("zone_outside",false)):
+            _status.text+=" · FUERA DE ZONA"
     if _ride_id!=0:
         for car in data.get("vehicles",{}).get("cars",[]):
             if int(car.id)==_ride_id:
