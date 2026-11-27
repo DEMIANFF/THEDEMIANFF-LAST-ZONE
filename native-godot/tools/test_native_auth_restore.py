@@ -45,6 +45,22 @@ class SessionRecoveryContract(unittest.TestCase):
         self.assertIn('google_web_client_id_missing',front)
         self.assertIn('server_identity_unavailable',front)
 
+    def test_failed_google_link_never_auto_resumes_old_account(self):
+        front=(ROOT/"native-godot/scripts/ui/aurora_frontend.gd").read_text(encoding="utf-8")
+        poll=front.split("func _poll_login_state",1)[1].split("func _show_startup_diagnostics",1)[0]
+        guard=poll.split("if _is_explicit_auth_failure(failure):",1)[1].split('if bool(session.get("authenticated",false)):',1)[0]
+        self.assertIn("_login_last_failure=failure",guard)
+        self.assertIn('_login_waiting_provider=""',guard)
+        self.assertIn("_auto_resume_on_entry=false",guard)
+        self.assertIn("CONTINUAR CON CUENTA ACTUAL",guard)
+        self.assertIn("return",guard)
+        self.assertLess(poll.index("if _is_explicit_auth_failure(failure):"),
+                        poll.index("_resume_native_session_if_ready(session)"))
+        helper=front.split("static func _is_explicit_auth_failure",1)[1].split("func _firebase_state_message",1)[0]
+        for reason in ("google_account_already_in_use","google_link_failed",
+                       "google_selection_failed","google_auth_failed"):
+            self.assertIn('"'+reason+'"',helper)
+
     def test_transient_activity_and_atomic_profile_recovery(self):
         java=JAVA.read_text(encoding="utf-8")
         gd=GD.read_text(encoding="utf-8")
