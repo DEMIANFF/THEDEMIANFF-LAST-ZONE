@@ -707,7 +707,17 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Compile matching Godot 4.7.2 Firebase SDK bridge AARs
-        run: gradle -p firebase-godot-bridge :plugin:assembleDebug :plugin:assembleRelease --no-daemon
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if gradle -p firebase-godot-bridge :plugin:assembleDebug :plugin:assembleRelease --no-daemon 2>&1 | tee "$RUNNER_TEMP/firebase-gradle-$attempt.log"; then
+              exit 0
+            fi
+            if ! grep -Eq '429|Too Many Requests|HTTP 503|Read timed out|Connection reset' "$RUNNER_TEMP/firebase-gradle-$attempt.log" || [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            sleep "$((attempt * 45))"
+          done
       - name: Install separate Firebase Android Gradle template and addon
         run: |
           set -euo pipefail

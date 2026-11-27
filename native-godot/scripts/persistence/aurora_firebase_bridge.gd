@@ -60,11 +60,14 @@ static func status() -> Dictionary:
     # A token returned by the SDK is NOT a server-verified attestation.
     # Only protected Firebase Functions can perform that validation.
     if details.get("app_check")!="token_ready":
-        return _blocked("app_check_unverified")
+        var pending: Dictionary=_blocked(str(details.get("app_check_reason","app_check_unverified")))
+        pending["auth_available"]=true
+        return pending
     # This only enables a future *attempt* to authenticate: it is not a
     # claim that any Google or guest session has already been established.
     return {
         "ready":true,
+        "auth_available":true,
         "reason":"native_transport_ready",
         "firebase_auth":"session_not_asserted",
         "app_check":"token_ready",
@@ -76,7 +79,7 @@ static func request_sign_in(provider: String) -> Dictionary:
     if not (provider in ["guest","google"]):
         return {"queued":false,"authenticated":false,"reason":"invalid_provider"}
     var current: Dictionary=status()
-    if not bool(current.get("ready",false)):
+    if not bool(current.get("auth_available",false)):
         return {
             "queued":false,
             "authenticated":false,
@@ -96,7 +99,7 @@ static func request_sign_in(provider: String) -> Dictionary:
 ## writes. Firebase callables must verify Auth UID and App Check server-side.
 static func session_state() -> Dictionary:
     var current: Dictionary=status()
-    if not bool(current.get("ready",false)):
+    if not bool(current.get("auth_available",false)):
         return {
             "authenticated":false,
             "identity_confirmed":false,
@@ -121,6 +124,7 @@ static func session_state() -> Dictionary:
             "reason":"provider_invalid"}
     var id: String=str(payload.get("official_id",""))
     var confirmed: bool=payload.get("identity_confirmed")==true
+    var transport_ready: bool=bool(current.get("ready",false))
     if confirmed:
         if (id.length()!=5 or not id.is_valid_int() or
                 int(id)<1 or int(id)>99999 or
@@ -131,6 +135,8 @@ static func session_state() -> Dictionary:
     return {
         "authenticated":true,
         "identity_confirmed":confirmed,
+        "online_ready":confirmed and transport_ready,
+        "app_check_reason":str(payload.get("app_check_reason","app_check_unverified")),
         "official_id":id if confirmed else "",
         "display_name":name if confirmed else "",
         "online_stats":payload.get("online_stats",{}) if confirmed and payload.get("online_stats",{}) is Dictionary else {},

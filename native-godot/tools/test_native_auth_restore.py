@@ -23,6 +23,18 @@ class SessionRecoveryContract(unittest.TestCase):
         self.assertIn('getHttpsCallable("ensurePlayerIdentity")',java)
         self.assertIn('getHttpsCallable("getPlayerProfile")',java)
 
+    def test_auth_selection_independent_from_attestation(self):
+        java=JAVA.read_text(encoding="utf-8")
+        gd=GD.read_text(encoding="utf-8")
+        for method in ("beginGoogleSignIn", "beginGuestSignIn"):
+            body=java.split("public void "+method+"()",1)[1].split("runOnHostThread",1)[0]
+            self.assertIn("isAuthSdkReady()",body)
+            self.assertNotIn("isTransportReady()",body)
+        self.assertIn("identity_waiting_app_check",java)
+        self.assertIn("nextAttestationAt",java)
+        self.assertIn('"online_ready":confirmed and transport_ready',gd)
+        self.assertNotIn("DebugAppCheckProviderFactory",java)
+
     def test_logout_does_not_fabricate_identity(self):
         java=JAVA.read_text(encoding="utf-8")
         gd=GD.read_text(encoding="utf-8")

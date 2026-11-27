@@ -102,6 +102,7 @@ var _emote_wheel: PanelContainer
 var _preview_press_origin: Vector2=Vector2.ZERO
 var _preview_tap_dragged: bool=false
 var _auto_resume_on_entry: bool=false
+var _explicit_offline: bool=false
 var _profile_overlay: Control
 var _profile_name_label: Label
 var _profile_id_label: Label
@@ -1066,6 +1067,7 @@ func _enter_local_lobby() -> void:
         return
     _login_pending_provider=""
     _login_waiting_provider=""
+    _explicit_offline=not bool(FIREBASE_BRIDGE.session_state().get("online_ready",false))
     _show_lobby()
 
 
@@ -1094,7 +1096,10 @@ func _resume_native_session_if_ready(session: Dictionary) -> bool:
     if not _can_resume_native_session(session,_auto_resume_on_entry,
             not _login_waiting_provider.is_empty()):
         return false
+    if not bool(session.get("online_ready",false)):
+        return false
     _auto_resume_on_entry=false
+    _explicit_offline=false
     _login_waiting_provider=""
     call_deferred("_show_lobby")
     return true
@@ -1104,13 +1109,12 @@ func _poll_login_state() -> void:
     if stage!="welcome" or _login_status_label==null or not is_instance_valid(_login_status_label):
         return
     var health: Dictionary=FIREBASE_BRIDGE.status()
-    if not bool(health.get("ready",false)):
+    if not bool(health.get("auth_available",false)):
         _login_status_label.text="ACCESO PENDIENTE · "+_firebase_state_message(
             str(health.get("reason","desconocido")))
         return
-    # The SDK may need time to obtain Play Integrity. A user-initiated
-    # request is retried only until it was actually submitted; no fake
-    # login, no automatic account swapping or repeated Google popups.
+    # Auth account selection and server attestation are independent stages.
+    # Do not queue a Google tap forever while Play Integrity is pending.
     if not _login_pending_provider.is_empty():
         var provider: String=_login_pending_provider
         _login_pending_provider=""
@@ -1125,12 +1129,14 @@ func _poll_login_state() -> void:
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
     var enter: Button=_login_local_button
     if bool(session.get("authenticated",false)):
-        if bool(session.get("identity_confirmed",false)):
+        if bool(session.get("online_ready",false)):
             _login_status_label.text="SESIÓN CONFIRMADA · ID "+str(session.get("official_id",""))
+        elif not bool(health.get("ready",false)):
+            _login_status_label.text="CUENTA AUTENTICADA · "+_firebase_state_message(str(health.get("reason","app_check_unverified")))
         else:
             _login_status_label.text="CUENTA AUTENTICADA · ID PENDIENTE DEL SERVIDOR"
         if enter!=null:
-            enter.text="CONTINUAR AL LOBBY"
+            enter.text="CONTINUAR AL LOBBY" if bool(session.get("online_ready",false)) else "JUGAR SIN CONEXIÓN"
         # Preserve the explicit sign-in intent WHILE Firebase/App Check is
         # resolving. V75.171 accidentally cleared _login_waiting_provider
         # before checking it, so fresh Google/Guest login could never enter.
@@ -1147,7 +1153,7 @@ func _poll_login_state() -> void:
                 if not reason.is_empty() else "ESPERANDO CONFIRMACIÓN DE FIREBASE")
             _login_waiting_provider=""
         return
-    _login_status_label.text="GOOGLE E INVITADO DISPONIBLES"
+    _login_status_label.text="GOOGLE E INVITADO DISPONIBLES" if bool(health.get("ready",false)) else _firebase_state_message(str(health.get("reason","app_check_unverified")))
 
 func _show_startup_diagnostics() -> void:
     stage="startup_diagnostics"
@@ -1699,8 +1705,12 @@ func _firebase_state_message(reason: String) -> String:
         return "Plugin detectado, faltan métodos: "+reason.get_slice(":",1)
     if reason=="firebase_configuration_incomplete":
         return "Firebase todavía no se ha inicializado"
-    if reason=="app_check_unverified":
-        return "App Check pendiente: revisa internet y Google Play"
+    if reason=="app_check_attestation_rejected":
+        return "Google Play no validó esta APK. Revisa el registro App Check del juego."
+    if reason=="app_check_rate_limited":
+        return "Verificación temporalmente limitada. Se reintentará."
+    if reason in ["app_check_unverified","app_check_pending","app_check_unavailable","identity_waiting_app_check"]:
+        return "Verificando seguridad del dispositivo · puedes seleccionar tu cuenta"
     return reason.replace("_"," ")
 
 
@@ -1933,7 +1943,8 @@ func _sync_lobby_match_mode() -> void:
     _lobby_detail_scroll.visible=not show_modes and _selected_tab!="AJUSTES"
     match _selected_match_mode:
         "classic":
-            _lobby_mode_status.text="BR CLÁSICO LOCAL · 50 PARTICIPANTES (1 JUGADOR + 49 IA).\nSin clasificación online."
+            _lobby_mode_status.text="BR CLÁSICO · 50 PARTICIPANTES · INTERNET" if OS.has_feature("android") and not _explicit_offline else "BR CLÁSICO LOCAL · 50 PARTICIPANTES (1 JUGADOR + 49 IA).\nSin clasificación online."
+            _battle_entry.text="BUSCANDO PARTIDA…" if _online_search_active else "INICIAR"
         "ranked":
             _lobby_mode_status.text="CLASIFICATORIA BLOQUEADA\nRequiere cuentas, servidor autoritativo y anti-trampas."
         "training":
@@ -2895,12 +2906,6 @@ func _select_tab(tab: String) -> void:
     _selected_tab=tab
     if stage!="lobby" or _info==null:
         return
-    var lan_button: Button=_page.get_node_or_null("AuroraLanTest")
-    if lan_button==null:
-        lan_button=_button("JUGAR ONLINE",_open_online_match,0)
-        lan_button.name="AuroraLanTest"
-        _page.add_child(lan_button)
-    lan_button.visible=tab in ["SOCIAL","JUGAR"]
     if tab!="JUGAR":
         _close_mode_gallery()
     if tab!="TIENDA":
@@ -2942,7 +2947,7 @@ func _select_tab(tab: String) -> void:
             else "BASE AURORA · CENTRO DE OPERACIONES")
     match tab:
         "JUGAR":
-            _info.text="BR CLÁSICO · 50 PARTICIPANTES\n1 operador y 49 rivales IA. Pulsa INICIAR para desplegarte.\nCLASIFICATORIA ONLINE: pendiente de servidor."
+            _info.text="BR CLÁSICO · 50 PARTICIPANTES\nPulsa INICIAR para buscar una partida por Internet." if OS.has_feature("android") and not _explicit_offline else "BR CLÁSICO · 50 PARTICIPANTES\n1 operador y 49 rivales IA. Pulsa INICIAR para desplegarte.\nCLASIFICATORIA ONLINE: pendiente de servidor."
         "AJUSTES":
             _info.text="CÁMARA / PRECISIÓN / HUD\nSensibilidades y controles personalizables guardados en este dispositivo."
         "PERSONAJE":
@@ -2982,7 +2987,7 @@ func _select_tab(tab: String) -> void:
         "PASE":
             _refresh_free_pass()
         "SOCIAL":
-            _info.text="AMIGOS Y CLANES\nAún no existe un servidor social autenticado.\nNo hay amigos ficticios, invitaciones simuladas ni chat mundial falso.\nLas partidas locales siguen disponibles."
+            _info.text="AMIGOS Y CLANES\nFunciones sociales pendientes de servicio."
         "CUENTA":
             var stats: Dictionary=_offline_records.snapshot()
             var health: Dictionary=_offline_records.auto_backup_status()
@@ -3512,8 +3517,8 @@ var _online_search_active: bool=false
 func _open_online_match() -> void:
     if stage!="lobby" or _online_search_active:
         return
-    if not bool(FIREBASE_BRIDGE.session_state().get("authenticated",false)):
-        _info.text="Inicia sesión con Google o Invitado para jugar por Internet."
+    if not bool(FIREBASE_BRIDGE.session_state().get("online_ready",false)):
+        _online_match_notice("Confirma tu cuenta y la seguridad del dispositivo para jugar por Internet.")
         return
     if not Engine.has_singleton("AuroraFirebase"):
         _info.text="La aplicación necesita el puente Firebase Android."
@@ -3523,6 +3528,8 @@ func _open_online_match() -> void:
         _info.text="Versión de autenticación incompatible."
         return
     _online_search_active=true
+    _battle_entry.disabled=true
+    _battle_entry.text="BUSCANDO PARTIDA…"
     _info.text="Buscando una sala disponible por Internet…"
     native.call("beginOnlineMatch","solo",preload("res://scripts/network/aurora_online_session.gd").PROTOCOL)
     for i in range(160):
@@ -3535,8 +3542,10 @@ func _open_online_match() -> void:
         if not (result is Dictionary) or str(result.get("status",""))=="pending":
             continue
         _online_search_active=false
+        _battle_entry.disabled=false
+        _battle_entry.text="INICIAR"
         if str(result.get("status",""))!="ready":
-            _info.text="No hay una sala online disponible o la autenticación no fue aceptada. Intenta de nuevo."
+            _online_match_notice("No hay una sala online disponible o el servicio no confirmó el acceso.")
             return
         var endpoint: String=str(result.get("endpoint",""))
         var ticket: String=str(result.get("ticket",""))
@@ -3546,7 +3555,20 @@ func _open_online_match() -> void:
         call_deferred("_launch_internet_match",endpoint,ticket)
         return
     _online_search_active=false
-    _info.text="La búsqueda online agotó el tiempo. Intenta de nuevo."
+    _battle_entry.disabled=false
+    _battle_entry.text="INICIAR"
+    _online_match_notice("La búsqueda online agotó el tiempo. Intenta de nuevo.")
+
+func _online_match_notice(message: String) -> void:
+    _info.text=message
+    var dialog:=AcceptDialog.new()
+    dialog.title="Conexión online"
+    dialog.dialog_text=message
+    dialog.ok_button_text="ACEPTAR"
+    add_child(dialog)
+    dialog.confirmed.connect(dialog.queue_free)
+    dialog.canceled.connect(dialog.queue_free)
+    dialog.popup_centered(Vector2i(440,150))
 
 func _launch_internet_match(endpoint: String,ticket: String) -> void:
     if stage!="lobby":
@@ -3595,6 +3617,11 @@ func _launch(battle: bool) -> void:
     # Ranked cannot be disguised as an offline match or accrue fictitious RP.
     # Opening the real HUD editor may temporarily enter Training by design.
     if _selected_match_mode=="ranked" and not _hud_editor_requested:
+        return
+    # The existing INICIAR button is the only Classic online entry.
+    # Explicit offline mode and headless regression fixtures remain local.
+    if battle and OS.has_feature("android") and not _explicit_offline and not _hud_editor_requested:
+        _open_online_match()
         return
     if not _hud_editor_requested:
         AuroraLobbyMusic.leave_lobby()

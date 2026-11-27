@@ -56,6 +56,10 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
     private boolean appCheckPending = false;
     private boolean tokenReady = false;
     private long tokenCheckedAt = 0;
+    private long nextAttestationAt = 0;
+    private int attestationFailures = 0;
+    private String appCheckReason = "app_check_pending";
+    private long nextIdentityAttemptAt = 0;
     private String lastError = "none";
     private String activeUid = "";
     private String officialPlayerId = "";
@@ -121,7 +125,7 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
 
     private void refreshAppCheck() {
         synchronized (stateLock) {
-            if (!configured || appCheckPending) return;
+            if (!configured || appCheckPending || SystemClock.elapsedRealtime() < nextAttestationAt) return;
             if (tokenReady && SystemClock.elapsedRealtime() - tokenCheckedAt < TOKEN_MAX_AGE_MS) {
                 return;
             }
@@ -140,16 +144,40 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                             && result.getResult().getToken() != null
                             && !result.getResult().getToken().isEmpty();
                         tokenCheckedAt = SystemClock.elapsedRealtime();
-                        if (!tokenReady) lastError = "app_check_unavailable";
+                        if (tokenReady) {
+                            attestationFailures = 0;
+                            nextAttestationAt = 0;
+                            appCheckReason = "none";
+                        } else {
+                            attestationFailedLocked(result.getException());
+                        }
                     }
                 });
         } catch (RuntimeException problem) {
             synchronized (stateLock) {
                 appCheckPending = false;
                 tokenReady = false;
-                lastError = "app_check_unavailable";
+                attestationFailedLocked(problem);
             }
         }
+    }
+
+    // No raw exception message, attestation token or account data crosses JNI.
+    private void attestationFailedLocked(Exception problem) {
+        attestationFailures = Math.min(4, attestationFailures + 1);
+        nextAttestationAt = SystemClock.elapsedRealtime()
+            + Math.min(60000L, 5000L << (attestationFailures - 1));
+        String message = problem == null || problem.getMessage() == null ? "" :
+            problem.getMessage().toLowerCase(java.util.Locale.ROOT);
+        appCheckReason = message.contains("403") || message.contains("attestation failed")
+            ? "app_check_attestation_rejected"
+            : message.contains("429") || message.contains("too many")
+                ? "app_check_rate_limited" : "app_check_unavailable";
+    }
+
+    private boolean isAuthSdkReady() {
+        ensureInitialized();
+        synchronized (stateLock) { return configured; }
     }
 
     private boolean isTransportReady() {
@@ -173,6 +201,9 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
             out.put("configured", configured);
             out.put("provider", "play_integrity");
             out.put("app_check", ready ? "token_ready" : "unverified");
+            synchronized (stateLock) {
+                out.put("app_check_reason", appCheckPending ? "app_check_pending" : appCheckReason);
+            }
             out.put("auth_request_pending", authBusy.get());
             synchronized (stateLock) {
                 out.put("reason", lastError);
@@ -202,14 +233,18 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                 onlineStats = "{}";
                 profileWriteStatus = "idle";
                 provider = current == null ? "none" : current.isAnonymous() ? "guest" : "google";
+                restoredAccountUid = "";
+                nextIdentityAttemptAt = 0;
             }
             // FirebaseAuth persists its own real Google/Guest user. After
             // App Check is ready, fetch the server ID/profile once; never
             // call signInAnonymously on startup or fabricate a UID.
             if (ready && current != null && officialPlayerId.isEmpty()
-                    && !uid.equals(restoredAccountUid)
+                    && (!uid.equals(restoredAccountUid)
+                        || SystemClock.elapsedRealtime() >= nextIdentityAttemptAt)
                     && authBusy.compareAndSet(false, true)) {
                 restoredAccountUid = uid;
+                nextIdentityAttemptAt = SystemClock.elapsedRealtime() + 30000L;
                 restoreExistingIdentity = true;
             }
         }
@@ -228,6 +263,8 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
                 out.put("profile_revision", profileRevision);
                 out.put("profile_write_status", profileWriteStatus);
                 out.put("identity_confirmed", !officialPlayerId.isEmpty());
+                out.put("app_check_ready", ready);
+                out.put("app_check_reason", appCheckPending ? "app_check_pending" : appCheckReason);
                 out.put("pending", authBusy.get());
                 out.put("reason", lastError);
                 return json(out);
@@ -330,8 +367,10 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
     /** Guest does not overwrite a linked Google account or create a fake ID. */
     @UsedByGodot
     public void beginGuestSignIn() {
-        if (!isTransportReady()) {
-            setError("app_check_not_ready");
+        // Auth can request the real SDK credential even while attestation
+        // is pending; protected identity and matchmaking calls still require it.
+        if (!isAuthSdkReady()) {
+            setError("firebase_not_initialized");
             return;
         }
         if (!authBusy.compareAndSet(false, true)) {
@@ -363,8 +402,10 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
     /** Google Identity Credential Manager; link anonymous UID instead of replacing it. */
     @UsedByGodot
     public void beginGoogleSignIn() {
-        if (!isTransportReady()) {
-            setError("app_check_not_ready");
+        // Auth can request the real SDK credential even while attestation
+        // is pending; protected identity and matchmaking calls still require it.
+        if (!isAuthSdkReady()) {
+            setError("firebase_not_initialized");
             return;
         }
         if (!authBusy.compareAndSet(false, true)) {
@@ -479,6 +520,16 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
             accountName = "";
             provider = user.isAnonymous() ? "guest" : "google";
             lastError = "identity_pending";
+            restoredAccountUid = uid;
+            nextIdentityAttemptAt = SystemClock.elapsedRealtime() + 30000L;
+        }
+        if (!isTransportReady()) {
+            synchronized (stateLock) {
+                lastError = "identity_waiting_app_check";
+                restoredAccountUid = "";
+            }
+            authBusy.set(false);
+            return;
         }
         // Request body contains no UID or chosen ID. Existing callable uses
         // request.auth.uid and a Firestore transaction for ID 00001..99999.

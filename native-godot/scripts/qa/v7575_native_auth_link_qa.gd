@@ -67,7 +67,12 @@ func _verify() -> void:
         check(root.get_visible_rect().encloses(
             front._firebase_check_button.get_global_rect()),
             "Firebase check control clipped at "+str(res))
+    front._select_tab("SOCIAL")
+    check(front.find_child("AuroraLanTest",true,false)==null,
+        "extra online button must not appear in Social")
     front._select_tab("JUGAR")
+    check(front.find_child("AuroraLanTest",true,false)==null,
+        "Classic must use the original INICIAR button")
     check(front._battle_entry.visible and
         not front._auth_guest_button.visible and
         not front._auth_google_button.visible,
