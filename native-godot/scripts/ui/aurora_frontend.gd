@@ -1766,8 +1766,14 @@ func _check_firebase_connection() -> void:
         _info.text+="Estado: %s\n"%_firebase_state_message(
             str(state.get("reason","desconocido")))
         var pending_session: Dictionary=FIREBASE_BRIDGE.session_state()
-        _info.text+="Cuenta autenticada; acceso online pendiente.\n" if bool(pending_session.get("authenticated",false)) else "Cuenta sin confirmar.\n"
-        _info.text+="Puedes seleccionar Google o Invitado si Firebase Auth está disponible."
+        if bool(pending_session.get("authenticated",false)):
+            _info.text+="Cuenta autenticada; acceso online pendiente.\n"
+        else:
+            _info.text+="No se ha iniciado sesión. No se ha confirmado un ID oficial.\n"
+        if bool(state.get("auth_available",false)):
+            _info.text+="Puedes seleccionar Google o Invitado."
+        else:
+            _info.text+="Google e Invitado aún no están disponibles en este dispositivo."
         return
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
     _sync_lobby_match_mode()
