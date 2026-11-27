@@ -16,9 +16,18 @@ func _boot() -> void:
     session.combat=world.get_node("CombatRange")
     session.director=world.get_node("AuroraSectorMatch")
     root.add_child(session)
-    var result: Error=session.listen()
+    var port: int=SESSION.PORT
+    if OS.get_environment("AURORA_INTERNET_SERVER")=="1":
+        var configured_port: String=OS.get_environment("AURORA_ROOM_PORT")
+        if not configured_port.is_empty():
+            if not configured_port.is_valid_int() or int(configured_port)<1024 or int(configured_port)>65535:
+                push_error("Invalid public room TCP port")
+                quit(1)
+                return
+            port=int(configured_port)
+    var result: Error=session.listen(port)
     if result!=OK:
-        push_error("ENet server listen failed: "+str(result))
+        push_error("Dedicated server listen failed: "+str(result))
         quit(1)
         return
-    print("AURORA_ONLINE READY ",("TLS Internet" if session.room_internet else ("private LAN" if session.room_lan else "loopback"))," UDP ",SESSION.PORT)
+    print("AURORA_ONLINE READY ",("TLS Internet" if session.room_internet else ("private LAN" if session.room_lan else "loopback")),(" TCP " if session.room_internet else " UDP "),port)

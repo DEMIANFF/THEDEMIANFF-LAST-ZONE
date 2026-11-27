@@ -13,6 +13,7 @@ var _internet_ticket: String=""
 var _internet_auth: SceneMultiplayer
 var _internet_records: Dictionary={}
 var _internet_result_emitted: bool=false
+var _internet_finished_at_ms: int=0
 var room_flexible: bool=false
 var room_sealed: bool=false
 var room_join_remaining: float=20.0
@@ -455,6 +456,11 @@ func _seal_flexible_room() -> void:
     print("V75250_SEALED humans=",room_initial_humans," bots=",room_bot_target," total=",room_initial_humans+room_bot_target)
 
 func _process(_delta: float) -> void:
+    # Single-use public worker: give clients time to read their final
+    # snapshot, then release the instance so the supervisor starts a new room.
+    if room_internet and _internet_finished_at_ms>0 and Time.get_ticks_msec()-_internet_finished_at_ms>=20000:
+        get_tree().quit()
+        return
     if room_flexible and multiplayer.is_server() and not room_sealed and not dual_peers.is_empty():
         room_join_remaining=maxf(0.0,room_join_remaining-_delta)
         if room_join_remaining<=0.0 or dual_peers.size()==room_capacity:
@@ -1484,6 +1490,7 @@ func _finish_room_if_needed() -> void:
                 won=room_winner_team>=0 and int(peer.actor.get_meta("online_team",-1))==room_winner_team
             _capture_internet_record(peer,false,won)
         _emit_internet_result(true)
+        _internet_finished_at_ms=Time.get_ticks_msec()
     print("V75242_ROOM_END winner=",_dual_winner," alive=",_living_room_count())
 
 func _grant_dual_loot(body: Node3D,kind: String,quantity: int,death: bool=false,bot_drop: bool=false) -> bool:
