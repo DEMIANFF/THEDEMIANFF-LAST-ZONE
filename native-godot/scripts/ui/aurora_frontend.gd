@@ -1719,6 +1719,18 @@ func _firebase_state_message(reason: String) -> String:
         return "Plugin detectado, faltan métodos: "+reason.get_slice(":",1)
     if reason=="firebase_configuration_incomplete":
         return "Firebase todavía no se ha inicializado"
+    if reason=="activity_unavailable":
+        return "Preparando la ventana de acceso Android"
+    if reason=="incorrect_android_package":
+        return "Esta APK no coincide con el paquete registrado"
+    if reason=="google_services_configuration_missing":
+        return "Falta la configuración Firebase de esta APK"
+    if reason=="firebase_init_failed":
+        return "No se pudo inicializar Firebase en Android"
+    if reason=="profile_unavailable":
+        return "No se pudo recuperar el perfil. Se reintentará automáticamente."
+    if reason=="profile_mismatch":
+        return "El perfil recibido no coincide con tu identidad. Se reintentará."
     if reason=="google_web_client_id_missing":
         return "Falta configurar el cliente OAuth de Google en esta APK"
     if reason=="google_selection_failed":
