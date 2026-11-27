@@ -759,9 +759,18 @@ jobs:
         run: |
           set -euo pipefail
           APK=native-godot/out/THEDEMIAN-V75.251-MOTOROLA-VULKAN.apk
-          python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/vulkan-verification
+          # Gradle raises the actual manifest API floor to Android 9 or
+          # higher. Verify the real supported range first, then explicitly
+          # exercise the existing v2 block over the API 24+ range.
+          SIGNER="$ANDROID_HOME/build-tools/35.0.1/apksigner"
+          mkdir -p native-godot/out/vulkan-verification
+          "$SIGNER" verify --verbose --print-certs "$APK" | tee native-godot/out/vulkan-verification/signature-manifest.txt
+          grep -F 'Verified using v3 scheme (APK Signature Scheme v3): true' native-godot/out/vulkan-verification/signature-manifest.txt
+          python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/vulkan-verification --verify-min-sdk 24
           expected="$(cat native-godot/out/preview-signer-sha256.txt)"
+          grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/vulkan-verification/signature-manifest.txt
           grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/vulkan-verification/signature.txt
+          echo AURORA_INTERNET_DUAL_SIGNATURE_RANGE_PASS
           AURORA_QA_LOGS="$PWD/native-godot/out/qa-exported-vulkan" bash native-godot/tools/run_exported_qa.sh "$APK"
           grep -F 'V7546_RENDER_AB PASS requested_mobile=mobile' native-godot/out/qa-exported-vulkan/v7546_renderer_variants_qa.log
           grep -F 'V7548_BATTLE_LOOT PASS' native-godot/out/qa-exported-vulkan/v7548_battle_loot_qa.log
@@ -838,3 +847,15 @@ jobs:
             native-godot/out/aurora-${{ env.AURORA_CAPTURE_TAG }}-account.png
           retention-days: 30
 
+
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: V75251-ANDROID-FAILED-VALIDATION-LOGS
+          path: |
+            native-godot/out/vulkan-verification/
+            native-godot/out/qa/
+            native-godot/out/qa-exported-vulkan/
+            native-godot/out/firebase-gradle-export.log
+          retention-days: 7
+          if-no-files-found: warn
