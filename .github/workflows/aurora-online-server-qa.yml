@@ -1,7 +1,7 @@
-name: Aurora V75.246 dedicated online server real UDP QA
+name: Aurora V75.247 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-246-mixed-authoritative-airdrop]
+    branches: [codex/v75-247-individual-touchdown-combat]
   workflow_dispatch:
 permissions:
   contents: read
@@ -209,6 +209,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.246-ONLINE-SERVER-QA
+          name: AURORA-V75.247-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3

@@ -666,8 +666,8 @@ func apply_snapshot(data: Dictionary) -> void:
             _status.text="ISLA DE ESPERA · %d/50 PARTICIPANTES · DESPEGUE EN %02d s"%[int(data.get("waiting_ready",1)),ceili(float(data.get("waiting_remaining",0.0)))]
     elif air!="ground":
         _status.text="ONLINE · "+("AERONAVE" if air=="aircraft" else ("CAÍDA LIBRE" if air=="freefall" else "PARACAÍDAS"))
-    if bool(data.get("mixed_flight",false)) and match_mode=="aircraft" and air=="ground":
-        _status.text="ONLINE · ATERRIZADO · ESPERANDO DESPLIEGUE %d/46 IA"%int(data.get("flight_landed_bots",0))
+    if bool(data.get("mixed_flight",false)) and match_mode=="sector_battle" and not bool(data.get("deployment_complete",false)):
+        _status.text+=" · DESPLIEGUE EN CURSO"
     if bool(data.get("eliminated",false)):
         _status.text="ONLINE · ELIMINADO"
     elif bool(data.get("ended",false)):
