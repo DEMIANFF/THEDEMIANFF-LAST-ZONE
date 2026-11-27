@@ -1763,6 +1763,7 @@ func _check_firebase_connection() -> void:
     _sync_lobby_match_mode()
     if not bool(state.get("ready",false)):
         _info.text="FIREBASE / APP CHECK: SIN CONEXIÓN\n"
+        _info.text+="App Check: sin verificar.\n"
         _info.text+="Estado: %s\n"%_firebase_state_message(
             str(state.get("reason","desconocido")))
         var pending_session: Dictionary=FIREBASE_BRIDGE.session_state()
