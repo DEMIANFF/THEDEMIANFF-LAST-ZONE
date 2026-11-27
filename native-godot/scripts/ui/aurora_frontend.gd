@@ -906,6 +906,7 @@ func _welcome() -> void:
     visible=true
     _login_pending_provider=""
     _login_waiting_provider=""
+    _login_last_failure=""
     _release_preview()
     if _lobby_nav!=null and is_instance_valid(_lobby_nav):
         _lobby_nav.visible=false
@@ -1138,6 +1139,19 @@ func _poll_login_state() -> void:
         return
     var session: Dictionary=FIREBASE_BRIDGE.session_state()
     var enter: Button=_login_local_button
+    # A failed Google link or account selection can leave an older valid
+    # Firebase session intact. Do not mistake that session for success.
+    if not _login_waiting_provider.is_empty() and not bool(session.get("pending",false)):
+        var failure: String=str(session.get("reason",""))
+        if _is_explicit_auth_failure(failure):
+            _login_last_failure=failure
+            _login_waiting_provider=""
+            _auto_resume_on_entry=false
+    if not _login_last_failure.is_empty():
+        _login_status_label.text="ACCESO NO CONFIRMADO · "+_firebase_state_message(_login_last_failure)
+        if enter!=null:
+            enter.text="CONTINUAR CON CUENTA ACTUAL" if bool(session.get("online_ready",false)) else "JUGAR SIN CONEXIÓN"
+        return
     if bool(session.get("authenticated",false)):
         _login_last_failure=""
         if bool(session.get("online_ready",false)):
@@ -1163,9 +1177,6 @@ func _poll_login_state() -> void:
             _login_last_failure=reason if not reason.is_empty() else "not_signed_in"
             _login_status_label.text="ACCESO NO CONFIRMADO · "+_firebase_state_message(_login_last_failure)
             _login_waiting_provider=""
-        return
-    if not _login_last_failure.is_empty():
-        _login_status_label.text="ACCESO NO CONFIRMADO · "+_firebase_state_message(_login_last_failure)
         return
     _login_status_label.text="GOOGLE E INVITADO DISPONIBLES" if bool(health.get("ready",false)) else _firebase_state_message(str(health.get("reason","app_check_unverified")))
 
@@ -1710,6 +1721,13 @@ func _save_player_name() -> void:
     _select_tab("CUENTA")
 
 
+static func _is_explicit_auth_failure(reason: String) -> bool:
+    return reason in ["google_web_client_id_missing","google_selection_failed",
+        "google_auth_failed","google_account_already_in_use","google_link_failed",
+        "google_credential_type_invalid","google_token_invalid","guest_auth_failed",
+        "firebase_not_initialized","activity_unavailable","another_auth_request_pending"]
+
+
 func _firebase_state_message(reason: String) -> String:
     if reason=="android_device_required":
         return "El acceso requiere un dispositivo Android"
@@ -1737,6 +1755,14 @@ func _firebase_state_message(reason: String) -> String:
         return "No se pudo seleccionar una cuenta Google. Vuelve a intentar."
     if reason=="google_auth_failed":
         return "Firebase rechazó el acceso con Google. Comprueba la conexión y el registro del juego."
+    if reason=="google_link_failed":
+        return "No se pudo vincular Google. Tu cuenta anterior se conserva."
+    if reason in ["google_credential_type_invalid","google_token_invalid"]:
+        return "Google no entregó una credencial válida. Vuelve a intentar."
+    if reason=="another_auth_request_pending":
+        return "Ya hay una solicitud de acceso en curso. Espera y vuelve a intentar."
+    if reason=="firebase_not_initialized":
+        return "Firebase todavía no se ha inicializado."
     if reason=="guest_auth_failed":
         return "Firebase no pudo crear la sesión de invitado. Vuelve a intentar."
     if reason=="google_account_already_in_use":
