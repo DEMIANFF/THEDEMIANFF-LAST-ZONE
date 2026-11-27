@@ -665,7 +665,7 @@ func apply_snapshot(data: Dictionary) -> void:
     if match_mode=="waiting":
         if bool(data.get("mixed_flight",false)):
             if bool(data.get("room_flexible",false)) and not bool(data.get("room_sealed",false)):
-                _status.text="SALA LAN · %d/4 HUMANOS · CIERRE EN %02d s"%[int(data.human_count),ceili(float(data.room_join_remaining))]
+                _status.text=("SALA ONLINE" if bool(data.get("room_internet",false)) else "SALA DE PRUEBA")+" · %d/4 HUMANOS · CIERRE EN %02d s"%[int(data.human_count),ceili(float(data.room_join_remaining))]
             elif not bool(data.get("mixed_ready",false)):
                 _status.text="PREPARANDO PARTICIPANTES FÍSICOS"
             else:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 from pathlib import Path
@@ -50,8 +51,9 @@ def stage_addon() -> None:
                        '"res://addons/AuroraFirebase/plugin.cfg")\n', encoding="utf-8")
     one_edit(PRESET, "gradle_build/use_gradle_build=false",
              "gradle_build/use_gradle_build=true")
-    one_edit(PRESET, 'export_path="out/THEDEMIAN-V75.105-MOTOROLA-VULKAN.apk"',
-             f'export_path="{TEST_APK}"')
+    if os.environ.get("AURORA_KEEP_ANDROID_EXPORT_PATH") != "1":
+        one_edit(PRESET, 'export_path="out/THEDEMIAN-V75.105-MOTOROLA-VULKAN.apk"',
+                 f'export_path="{TEST_APK}"')
     print("AURORA_FIREBASE_GRADLE_ADDON_STAGE_PASS sdk=compiled package=" + PACKAGE)
 
 

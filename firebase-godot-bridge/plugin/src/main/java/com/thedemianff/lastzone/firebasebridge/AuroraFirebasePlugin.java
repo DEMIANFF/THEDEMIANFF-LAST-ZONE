@@ -253,6 +253,62 @@ public final class AuroraFirebasePlugin extends GodotPlugin {
         }
     }
 
+    // Only the single-use game ticket crosses JNI. Firebase Auth and App
+    // Check credentials remain inside the official SDK.
+    private final AtomicBoolean matchBusy = new AtomicBoolean(false);
+    private String matchResult = "{\"status\":\"idle\"}";
+
+    @UsedByGodot
+    public void beginOnlineMatch(String mode, int protocol) {
+        if (!matchBusy.compareAndSet(false, true)) return;
+        synchronized (stateLock) { matchResult = "{\"status\":\"pending\"}"; }
+        if (!isTransportReady() || FirebaseAuth.getInstance().getCurrentUser() == null) {
+            finishOnlineMatch("{\"status\":\"unavailable\"}");
+            return;
+        }
+        final String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        try {
+            FirebaseFunctions.getInstance("us-central1")
+                .getHttpsCallable("requestOnlineMatch")
+                .call(Map.of("mode", mode, "protocol", protocol))
+                .addOnCompleteListener(task -> {
+                    FirebaseUser current = FirebaseAuth.getInstance().getCurrentUser();
+                    if (!task.isSuccessful() || current == null || !uid.equals(current.getUid())) {
+                        finishOnlineMatch("{\"status\":\"unavailable\"}");
+                        return;
+                    }
+                    try {
+                        Object data = task.getResult().getData();
+                        if (!(data instanceof Map)) throw new JSONException("invalid response");
+                        Map<?, ?> result = (Map<?, ?>) data;
+                        JSONObject out = new JSONObject();
+                        out.put("status", "ready");
+                        out.put("endpoint", result.get("endpoint"));
+                        out.put("ticket", result.get("ticket"));
+                        finishOnlineMatch(out.toString());
+                    } catch (Exception problem) {
+                        finishOnlineMatch("{\"status\":\"unavailable\"}");
+                    }
+                });
+        } catch (RuntimeException problem) {
+            finishOnlineMatch("{\"status\":\"unavailable\"}");
+        }
+    }
+
+    private void finishOnlineMatch(String value) {
+        synchronized (stateLock) { matchResult = value; }
+        matchBusy.set(false);
+    }
+
+    @UsedByGodot
+    public String takeOnlineMatch() {
+        synchronized (stateLock) {
+            String value = matchResult;
+            if (!matchBusy.get()) matchResult = "{\"status\":\"idle\"}";
+            return value;
+        }
+    }
+
     /** Guest does not overwrite a linked Google account or create a fake ID. */
     @UsedByGodot
     public void beginGuestSignIn() {

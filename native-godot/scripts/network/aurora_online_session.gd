@@ -2,7 +2,15 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=30
+const PROTOCOL: int=31
+const TICKETS=preload("res://scripts/network/online_admission_ticket.gd")
+var room_internet: bool=false
+var _internet_room_id: String=""
+var _internet_secret: PackedByteArray=[]
+var _used_tickets: Dictionary={}
+var _internet_users: Dictionary={}
+var _internet_ticket: String=""
+var _internet_auth: SceneMultiplayer
 var room_flexible: bool=false
 var room_sealed: bool=false
 var room_join_remaining: float=20.0
@@ -169,14 +177,16 @@ var sound_sequence: int=0
 var _sounds: Array[Dictionary]=[]
 
 func listen(port: int=PORT) -> Error:
-    var peer:=ENetMultiplayerPeer.new()
+    room_internet=OS.get_environment("AURORA_INTERNET_SERVER")=="1"
+    var peer: MultiplayerPeer
     var bind_ip: String=OS.get_environment("AURORA_LAN_BIND").strip_edges()
     room_lan=not bind_ip.is_empty()
     if room_lan and not is_private_lan_host(bind_ip):
         return ERR_INVALID_PARAMETER
-    peer.set_bind_ip(bind_ip if room_lan else "127.0.0.1")
+    if room_internet and room_lan:
+        return ERR_INVALID_PARAMETER
     var flexible_qa: bool=OS.get_environment("AURORA_FLEX_QA")=="1"
-    room_flexible=room_lan or flexible_qa
+    room_flexible=room_internet or room_lan or flexible_qa
     room_join_remaining=6.0 if flexible_qa else 20.0
     mixed_flight=room_flexible or OS.get_environment("AURORA_ONLINE_MIXED_FLIGHT")=="1"
     mixed_room=mixed_flight or OS.get_environment("AURORA_ONLINE_MIXED_COMBAT")=="1"
@@ -196,12 +206,88 @@ func listen(port: int=PORT) -> Error:
     dual_loot=expanded_room or OS.get_environment("AURORA_ONLINE_DUAL_LOOT")=="1"
     dual_combat=dual_loot or OS.get_environment("AURORA_ONLINE_DUAL_COMBAT")=="1"
     dual_waiting=dual_combat or OS.get_environment("AURORA_ONLINE_DUAL_WAITING")=="1"
-    var result: Error=peer.create_server(port,room_capacity if dual_waiting else 1,5)
+    var result: Error
+    if room_internet:
+        _internet_room_id=OS.get_environment("AURORA_ROOM_ID")
+        _internet_secret=OS.get_environment("AURORA_MATCH_SIGNING_KEY").hex_decode()
+        if _internet_room_id.length()<16 or _internet_secret.size()!=32:
+            return ERR_INVALID_PARAMETER
+        var cert:=X509Certificate.new()
+        var key:=CryptoKey.new()
+        if cert.load(OS.get_environment("AURORA_TLS_CERT"))!=OK or key.load(OS.get_environment("AURORA_TLS_KEY"))!=OK:
+            return ERR_CANT_OPEN
+        var ws:=WebSocketMultiplayerPeer.new()
+        ws.inbound_buffer_size=65536
+        ws.outbound_buffer_size=131072
+        ws.max_queued_packets=128
+        var address: String="127.0.0.1" if OS.get_environment("AURORA_INTERNET_QA")=="1" else "0.0.0.0"
+        result=ws.create_server(port,address,TLSOptions.server(key,cert))
+        peer=ws
+        if result==OK:
+            _install_server_auth()
+    else:
+        var enet:=ENetMultiplayerPeer.new()
+        enet.set_bind_ip(bind_ip if room_lan else "127.0.0.1")
+        result=enet.create_server(port,room_capacity if dual_waiting else 1,5)
+        peer=enet
     if result!=OK:
         return result
     multiplayer.multiplayer_peer=peer
     multiplayer.peer_connected.connect(_joined)
     multiplayer.peer_disconnected.connect(_left)
+    return OK
+
+func _install_server_auth() -> void:
+    _internet_auth=multiplayer as SceneMultiplayer
+    _internet_auth.auth_timeout=8.0
+    _internet_auth.server_relay=false
+    _internet_auth.auth_callback=_authenticate_internet_peer
+    _internet_auth.peer_authentication_failed.connect(func(id: int): _internet_users.erase(id))
+
+func _authenticate_internet_peer(id: int,payload: PackedByteArray) -> void:
+    if not room_internet or room_sealed or _internet_users.size()>=room_capacity or payload.size()>2048:
+        multiplayer.multiplayer_peer.disconnect_peer(id)
+        return
+    var claims: Dictionary=TICKETS.verify(payload.get_string_from_utf8(),_internet_secret,_internet_room_id,PROTOCOL,int(Time.get_unix_time_from_system()))
+    if claims.is_empty() or _used_tickets.has(claims.nonce) or _internet_users.values().has(claims.sub) or _used_tickets.size()>=256:
+        print("V75251_AUTH_DENIED")
+        multiplayer.multiplayer_peer.disconnect_peer(id)
+        return
+    _used_tickets[claims.nonce]=true
+    _internet_users[id]=claims.sub
+    _internet_auth.send_auth(id,"OK".to_utf8_buffer())
+    if _internet_auth.complete_auth(id)!=OK:
+        _internet_users.erase(id)
+        multiplayer.multiplayer_peer.disconnect_peer(id)
+        return
+    print("V75251_AUTH_ACCEPTED")
+
+func connect_internet(endpoint: String,ticket: String,qa_certificate: X509Certificate=null) -> Error:
+    if not endpoint.begins_with("wss://") or endpoint.length()>240 or ticket.is_empty() or ticket.length()>2048:
+        return ERR_INVALID_PARAMETER
+    # No insecure TLS options. A private test CA is allowed only in headless QA.
+    if qa_certificate!=null and (DisplayServer.get_name()!="headless" or OS.get_environment("AURORA_INTERNET_QA")!="1"):
+        return ERR_INVALID_PARAMETER
+    var peer:=WebSocketMultiplayerPeer.new()
+    peer.inbound_buffer_size=131072
+    peer.outbound_buffer_size=65536
+    peer.max_queued_packets=128
+    var result: Error=peer.create_client(endpoint,TLSOptions.client(qa_certificate))
+    if result!=OK:
+        return result
+    _internet_ticket=ticket
+    _internet_auth=multiplayer as SceneMultiplayer
+    _internet_auth.auth_timeout=8.0
+    _internet_auth.auth_callback=func(id: int,payload: PackedByteArray):
+        if id==1 and payload.get_string_from_utf8()=="OK":
+            _internet_ticket=""
+            _internet_auth.complete_auth(id)
+        else:
+            multiplayer.multiplayer_peer.disconnect_peer(id)
+    _internet_auth.peer_authenticating.connect(func(id: int):
+        if id==1:
+            _internet_auth.send_auth(id,_internet_ticket.to_utf8_buffer()))
+    multiplayer.multiplayer_peer=peer
     return OK
 
 static func is_private_lan_host(host: String) -> bool:
@@ -229,6 +315,9 @@ func _connect_endpoint(host: String,port: int) -> Error:
     return result
 
 func _joined(id: int) -> void:
+    if room_internet and not _internet_users.has(id):
+        multiplayer.multiplayer_peer.disconnect_peer(id)
+        return
     if dual_waiting:
         _dual_joined(id)
         return
@@ -503,6 +592,7 @@ func _advance_rival_fixture() -> void:
 
 
 func _left(id: int) -> void:
+    _internet_users.erase(id)
     if dual_waiting:
         _dual_left(id)
         return
@@ -2133,7 +2223,7 @@ func _dual_tick(delta: float) -> void:
             "clip":str(actor._current_clip),"air_mode":actor.air_mode if mixed_flight else "ground",
             "match_mode":("sector_battle" if _peer_ground_ready(peer) else _mixed_phase) if mixed_flight else ("sector_battle" if terrain_room else "waiting"),
             "waiting_remaining":_mixed_wait if mixed_flight else 0.0,
-            "room_flexible":room_flexible,"room_sealed":room_sealed,"room_join_remaining":room_join_remaining,
+            "room_flexible":room_flexible,"room_sealed":room_sealed,"room_internet":room_internet,"room_join_remaining":room_join_remaining,
             "room_initial_humans":room_initial_humans if room_flexible else room_capacity,"room_bot_target":room_bot_target,"waiting_ready":dual_peers.size()+_mixed_bots.size() if mixed_flight else dual_peers.size(),"rivals":rivals,
             "mixed_flight":mixed_flight,"flight_elapsed":_mixed_flight_elapsed,"flight_landed_bots":_mixed_landed_bots,
             "flight_jumped":peer.flight_jumped,"flight_canopy":peer.flight_canopy,"flight_landed":peer.flight_landed,

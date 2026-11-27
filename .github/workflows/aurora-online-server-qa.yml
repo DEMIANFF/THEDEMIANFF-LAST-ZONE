@@ -1,7 +1,7 @@
-name: Aurora V75.250 dedicated online server real UDP QA
+name: Aurora V75.251 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-250-flexible-lan-admission]
+    branches: [codex/v75-251-internet-authenticated-matchmaking]
   workflow_dispatch:
 permissions:
   contents: read
@@ -212,10 +212,14 @@ jobs:
         run: AURORA_ONLINE_TACTICAL_QA=1 bash native-godot/tools/run_four_room_qa.sh
       - name: Two humans plus 48 real bots and late admission rejection
         run: AURORA_FLEX_QA=1 bash native-godot/tools/run_four_room_qa.sh
+      - name: Signed ticket broker and real TLS authentication
+        run: |
+          node --test functions/test/online-matchmaking.test.js
+          bash native-godot/tools/run_internet_qa.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.250-ONLINE-SERVER-QA
+          name: AURORA-V75.251-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3
 
@@ -691,6 +695,44 @@ jobs:
       # Push builds verify game mechanics, real rendering and mobile layouts.
       # One production-directed Android preview: Mobile/Vulkan ONLY.
       # Desktop headless QA may use OpenGL to run on CI; no OpenGL APK built.
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: '8.13'
+      - name: Compile matching Godot 4.7.2 Firebase SDK bridge AARs
+        run: gradle -p firebase-godot-bridge :plugin:assembleDebug :plugin:assembleRelease --no-daemon
+      - name: Install separate Firebase Android Gradle template and addon
+        run: |
+          set -euo pipefail
+          AURORA_KEEP_ANDROID_EXPORT_PATH=1 python3 native-godot/tools/prepare_firebase_gradle_trial.py stage
+          # Godot's editor template-installer UI needs Android device discovery,
+          # which is unavailable in headless CI; directly install the pinned
+          # android_source.zip shipped with the SAME Godot 4.7.2 template.
+          TEMPLATE="$HOME/.local/share/godot/export_templates/4.7.2.stable/android_source.zip"
+          test -s "$TEMPLATE"
+          mkdir -p native-godot/android/build
+          unzip -q "$TEMPLATE" -d native-godot/android/build
+          test -s native-godot/android/build/build.gradle
+          test -s native-godot/android/build/gradlew
+          # Godot 4.7.2's official template installer also writes these two
+          # metadata files in res://android; merely unzipping is insufficient.
+          echo 4.7.2.stable > native-godot/android/.build_version
+          touch native-godot/android/build/.gdignore
+          grep -Fx '4.7.2.stable' native-godot/android/.build_version
+          echo AURORA_GODOT_472_GRADLE_TEMPLATE_PASS
+      - name: Configure isolated Firebase test host (no production writes)
+        env:
+          AURORA_NATIVE_GOOGLE_SERVICES_B64: ${{ secrets.AURORA_NATIVE_GOOGLE_SERVICES_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -n "${AURORA_NATIVE_GOOGLE_SERVICES_B64:-}" ]; then
+            printf '%s' "$AURORA_NATIVE_GOOGLE_SERVICES_B64" | base64 --decode > /tmp/aurora-native-gs.json
+            python3 native-godot/tools/prepare_firebase_gradle_trial.py configure --firebase-json /tmp/aurora-native-gs.json
+            rm -f /tmp/aurora-native-gs.json
+          else
+            echo "::error::Internet APK requires the exact-package Firebase configuration secret"
+            exit 1
+          fi
+          godot --headless --path native-godot --editor --quit
       - name: Export signed Vulkan Mobile APK (single release)
         run: |
           set -euo pipefail
@@ -700,12 +742,22 @@ jobs:
           grep -Fx 'renderer/rendering_method.mobile="mobile"' native-godot/project.godot
           grep -Fx 'rendering_device/driver.android="vulkan"' native-godot/project.godot
           grep -Fx "version/code=${AURORA_VERSION_CODE}" native-godot/export_presets.cfg
-          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.250-MOTOROLA-VULKAN.apk
-          test -s native-godot/out/THEDEMIAN-V75.250-MOTOROLA-VULKAN.apk
+          godot --headless --path native-godot --export-debug "Android Preview" out/THEDEMIAN-V75.251-MOTOROLA-VULKAN.apk
+          test -s native-godot/out/THEDEMIAN-V75.251-MOTOROLA-VULKAN.apk
+          APK=native-godot/out/THEDEMIAN-V75.251-MOTOROLA-VULKAN.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" sign --ks "$HOME/.android/debug.keystore" --ks-key-alias androiddebugkey --ks-pass pass:android --key-pass pass:android --min-sdk-version 24 --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true --out "${APK%.apk}.resigned.apk" "$APK"
+          mv "${APK%.apk}.resigned.apk" "$APK"
+          python3 - "$APK" <<'PY'
+          import sys,zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              assert any(b'AuroraFirebasePlugin' in z.read(n) for n in z.namelist() if n.startswith('classes') and n.endswith('.dex'))
+              assert z.testzip() is None
+          print("AURORA_INTERNET_FIREBASE_PLUGIN_PACKAGED")
+          PY
       - name: Verify Vulkan APK signature, ARM64 and complete exported gameplay QA
         run: |
           set -euo pipefail
-          APK=native-godot/out/THEDEMIAN-V75.250-MOTOROLA-VULKAN.apk
+          APK=native-godot/out/THEDEMIAN-V75.251-MOTOROLA-VULKAN.apk
           python3 native-godot/tools/verify_android_apk.py "$APK" --build-tools "$ANDROID_HOME/build-tools/35.0.1" --logs native-godot/out/vulkan-verification
           expected="$(cat native-godot/out/preview-signer-sha256.txt)"
           grep -F "Signer #1 certificate SHA-256 digest: $expected" native-godot/out/vulkan-verification/signature.txt
@@ -768,9 +820,9 @@ jobs:
           { git rev-parse HEAD; godot --headless --version; echo 'ONE VULKAN MOBILE signed Android APK; real phone trial still required'; } > native-godot/out/BUILD.txt
       - uses: actions/upload-artifact@v6
         with:
-          name: THEDEMIAN-V75.250-MOTOROLA-VULKAN
+          name: THEDEMIAN-V75.251-MOTOROLA-VULKAN
           path: |
-            native-godot/out/THEDEMIAN-V75.250-MOTOROLA-VULKAN.apk
+            native-godot/out/THEDEMIAN-V75.251-MOTOROLA-VULKAN.apk
             native-godot/out/vulkan-verification/
             native-godot/out/qa/
             native-godot/out/qa-exported-vulkan/
