@@ -2,7 +2,10 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=27
+const PROTOCOL: int=28
+var catalog_room: bool=false
+var _catalog_available: Array[int]=[]
+const CATALOG_VISUALS=preload("res://scripts/combat/weapon_visuals.gd")
 var _mixed_ground_bots: Dictionary={}
 var _early_ground_shots: int=0
 var _early_ground_claims: int=0
@@ -152,7 +155,14 @@ func listen(port: int=PORT) -> Error:
     mixed_flight=OS.get_environment("AURORA_ONLINE_MIXED_FLIGHT")=="1"
     mixed_room=mixed_flight or OS.get_environment("AURORA_ONLINE_MIXED_COMBAT")=="1"
     terrain_room=mixed_room or OS.get_environment("AURORA_ONLINE_TERRAIN_COMBAT")=="1"
-    expanded_room=terrain_room or OS.get_environment("AURORA_ONLINE_FOUR_COMBAT")=="1"
+    catalog_room=mixed_room or OS.get_environment("AURORA_ONLINE_CATALOG_QA")=="1"
+    expanded_room=terrain_room or catalog_room or OS.get_environment("AURORA_ONLINE_FOUR_COMBAT")=="1"
+    if catalog_room:
+        _catalog_available=[WEAPON_CATALOG.AR]
+        for slot in range(1,WEAPON_CATALOG.ENTRIES.size()):
+            var path: String=CATALOG_VISUALS.AWM_PATH if slot==WEAPON_CATALOG.AWM else str(WEAPON_CATALOG.ENTRIES[slot].get("asset",""))
+            if not path.is_empty() and ResourceLoader.exists(path,"PackedScene"):
+                _catalog_available.append(slot)
     room_capacity=4 if expanded_room else 2
     dual_loot=expanded_room or OS.get_environment("AURORA_ONLINE_DUAL_LOOT")=="1"
     dual_combat=dual_loot or OS.get_environment("AURORA_ONLINE_DUAL_COMBAT")=="1"
@@ -515,7 +525,9 @@ func _dual_joined(id: int) -> void:
         "slot":_dual_admitted,"weapon":WEAPON_CATALOG.AR,"awm_owned":false,
         "stored_ar":30,"stored_ar_reserve":90,"stored_awm":0,"stored_awm_reserve":0,
         "aim":false,"stance_pending":0,"switch_ms":-1000,"backpack":0,"zone_hits":0,"bot_hits":0,"bot_damage":0,"bot_loot_claims":0,"bot_loot_rounds":0,"ambient_seq":0,"ambient":[],
-        "flight_jumped":false,"flight_canopy":false,"flight_landed":false,"flight_pending":false}
+        "flight_jumped":false,"flight_canopy":false,"flight_landed":false,"flight_pending":false,
+        "catalog_owned":[WEAPON_CATALOG.AR],"catalog_mags":{WEAPON_CATALOG.AR:30},
+        "catalog_reserves":{WEAPON_CATALOG.AR:90},"catalog_switches":0}
     _dual_admitted+=1
     if dual_loot and dual_peers.size()==room_capacity:
         if terrain_room:
@@ -568,6 +580,22 @@ func _spawn_terrain_loot() -> void:
             var at: Vector2=site+item.offset
             if combat._is_clear_spawn(at):
                 _spawn_room_pickup(str(item.kind),Vector3(at.x,director.terrain.height_at(at.x,at.y),at.y),int(item.amount))
+    if catalog_room and OS.get_environment("AURORA_MIXED_QA")!="1" and OS.get_environment("AURORA_MIXED_LOOT_QA")!="1" and OS.get_environment("AURORA_MIXED_FLIGHT_QA")!="1":
+        var spawned: int=0
+        for slot in _catalog_available:
+            if slot==WEAPON_CATALOG.AR:
+                continue
+            var site: Vector2=_terrain_sites[spawned%_terrain_sites.size()]
+            for attempt in range(24):
+                var at: Vector2=site+Vector2.from_angle(float(spawned)*2.4+float(attempt)*.6)*(7.0+float(spawned/4)*4.0)
+                if combat._is_clear_spawn(at):
+                    _spawn_room_pickup("weapon_awm" if slot==WEAPON_CATALOG.AWM else str(WEAPON_CATALOG.ENTRIES[slot].pickup),Vector3(at.x,director.terrain.height_at(at.x,at.y),at.y),1)
+                    var ammo_at: Vector2=at+Vector2(2.5,0)
+                    var ammo_kind: String=_catalog_ammo_kind(slot)
+                    if not ammo_kind.is_empty() and combat._is_clear_spawn(ammo_at):
+                        _spawn_room_pickup(ammo_kind,Vector3(ammo_at.x,director.terrain.height_at(ammo_at.x,ammo_at.y),ammo_at.y),_catalog_pickup_amount(ammo_kind))
+                    break
+            spawned+=1
     print("V75243_TERRAIN_READY humans=",dual_peers.size()," radius=",_room_zone.radius," sites=",_terrain_sites.size())
 
 func _stage_mixed_roster() -> void:
@@ -972,6 +1000,12 @@ func _spawn_dual_loot() -> void:
             {"kind":"vest_2","offset":Vector3(6,0,3),"amount":1},
             {"kind":"helmet_2","offset":Vector3(6,0,6),"amount":1},
             {"kind":"medkit","offset":Vector3(9,0,6),"amount":1}]
+    if catalog_room and OS.get_environment("AURORA_ONLINE_CATALOG_QA")=="1":
+        items=[{"kind":"weapon_scar","offset":Vector3(-6,0,-3),"amount":1},
+            {"kind":"weapon_mp40","offset":Vector3(-6,0,-6),"amount":1},
+            {"kind":"weapon_p90","offset":Vector3(-9,0,-6),"amount":1},
+            {"kind":"ammo_smg","offset":Vector3(-9,0,-3),"amount":30},
+            {"kind":"ammo_ar","offset":Vector3(-9,0,0),"amount":45}]
     for item in items:
         _spawn_room_pickup(str(item.kind),WAITING_ISLAND.SPAWN+item.offset,int(item.amount))
 
@@ -993,6 +1027,83 @@ func _death_surface(at: Vector3,victim: CharacterBody3D) -> float:
                 return point.y
     return ground
 
+func _catalog_ammo_kind(slot: int) -> String:
+    match WEAPON_CATALOG.reserve_slot(slot):
+        WEAPON_CATALOG.AR: return "ammo_ar"
+        WEAPON_CATALOG.AWM: return "ammo_awm"
+        WEAPON_CATALOG.MP40: return "ammo_smg"
+        WEAPON_CATALOG.SHOTGUN: return "ammo_shells"
+        WEAPON_CATALOG.MAGNUM: return "ammo_pistol"
+    return ""
+
+func _catalog_pickup_amount(kind: String) -> int:
+    match kind:
+        "ammo_ar": return 45
+        "ammo_awm": return 8
+        "ammo_smg": return 30
+        "ammo_shells": return 16
+        "ammo_pistol": return 24
+    return 0
+
+func _catalog_reserve(peer: Dictionary,family: int) -> int:
+    if WEAPON_CATALOG.reserve_slot(int(peer.weapon))==family:
+        return int(peer.reserve)
+    return int(peer.catalog_reserves.get(family,0))
+
+func _catalog_set_reserve(peer: Dictionary,family: int,value: int) -> void:
+    peer.catalog_reserves[family]=value
+    if WEAPON_CATALOG.reserve_slot(int(peer.weapon))==family:
+        peer.reserve=value
+
+func _catalog_next(peer: Dictionary) -> int:
+    var owned: Array=peer.catalog_owned
+    return int(owned[(owned.find(int(peer.weapon))+1)%owned.size()])
+
+func _catalog_additions(peer: Dictionary) -> Dictionary:
+    var result: Dictionary={}
+    for slot in peer.catalog_owned:
+        if int(slot)>=WEAPON_CATALOG.SCAR:
+            result[slot]={"loaded":int(peer.ammo) if int(peer.weapon)==int(slot) else int(peer.catalog_mags.get(slot,0)),
+                "reserve":_catalog_reserve(peer,WEAPON_CATALOG.reserve_slot(int(slot)))}
+    return result
+
+func _catalog_claim(peer: Dictionary,kind: String,quantity: int) -> int:
+    var slot: int=WEAPON_CATALOG.AWM if kind=="weapon_awm" else WEAPON_CATALOG.pickup_slot(kind)
+    if slot>=0:
+        if not _catalog_available.has(slot) or peer.catalog_owned.has(slot):
+            return -1
+        peer.catalog_owned.append(slot)
+        peer.catalog_owned.sort()
+        peer.catalog_mags[slot]=int(WEAPON_CATALOG.ENTRIES[slot].capacity)
+        if slot==WEAPON_CATALOG.AWM:
+            peer.awm_owned=true
+        print("V75248_OWN slot=",peer.slot," weapon=",slot," owned=",peer.catalog_owned)
+        return 0
+    var family: int=-1
+    match kind:
+        "ammo_ar": family=WEAPON_CATALOG.AR
+        "ammo_awm": family=WEAPON_CATALOG.AWM
+        "ammo_smg": family=WEAPON_CATALOG.MP40
+        "ammo_shells": family=WEAPON_CATALOG.SHOTGUN
+        "ammo_pistol": family=WEAPON_CATALOG.MAGNUM
+    if family<0:
+        return -1
+    # Preserve original AR/AWM pickup behavior; other families require
+    # ownership of a weapon that consumes the corresponding reserve.
+    if family!=WEAPON_CATALOG.AR and family!=WEAPON_CATALOG.AWM:
+        var owned_family: bool=false
+        for index in peer.catalog_owned:
+            owned_family=owned_family or WEAPON_CATALOG.reserve_slot(int(index))==family
+        if not owned_family:
+            return -1
+    var capacity: int=180+int(peer.backpack)*45 if family==WEAPON_CATALOG.AR else (30+int(peer.backpack)*8 if family==WEAPON_CATALOG.AWM else combat.reserve_capacity_by_level(family,int(peer.backpack)))
+    var stock: int=_catalog_reserve(peer,family)
+    var amount: int=mini(clampi(quantity,0,_catalog_pickup_amount(kind)),maxi(0,capacity-stock))
+    if amount<=0:
+        return -1
+    _catalog_set_reserve(peer,family,stock+amount)
+    return amount
+
 func _queue_bot_death_loot(bot: CharacterBody3D,killer: Node3D) -> void:
     var at: Vector3=bot.global_position
     if not at.is_finite() or Vector2(at.x,at.z).distance_to(_room_zone.center)>float(_room_zone.radius):
@@ -1009,6 +1120,9 @@ func _queue_bot_death_loot(bot: CharacterBody3D,killer: Node3D) -> void:
     elif rounds>0 and int(bot.weapon_slot)==WEAPON_CATALOG.AWM:
         kind="ammo_awm"
         amount=mini(rounds,8)
+    elif catalog_room and rounds>0 and not _catalog_ammo_kind(int(bot.weapon_slot)).is_empty():
+        kind=_catalog_ammo_kind(int(bot.weapon_slot))
+        amount=mini(rounds,mini(18,_catalog_pickup_amount(kind)))
     elif kits>0:
         kind="medkit"
         amount=kits
@@ -1064,7 +1178,7 @@ func _queue_death_loot(peer: Dictionary) -> void:
     var at: Vector3=peer.actor.global_position
     if not at.is_finite():
         return
-    var ar_reserve: int=int(peer.reserve) if int(peer.weapon)==WEAPON_CATALOG.AR else int(peer.stored_ar_reserve)
+    var ar_reserve: int=_catalog_reserve(peer,WEAPON_CATALOG.AR) if catalog_room else (int(peer.reserve) if int(peer.weapon)==WEAPON_CATALOG.AR else int(peer.stored_ar_reserve))
     if ar_reserve>0:
         var spot: Vector3=at+Vector3(.8,0,0)
         _death_pending.append({"kind":"ammo_ar","at":spot,"amount":mini(ar_reserve,18),"surface":_death_surface(spot,peer.actor)})
@@ -1076,6 +1190,7 @@ func _queue_death_loot(peer: Dictionary) -> void:
     peer.reserve=0
     peer.stored_ar_reserve=0
     peer.stored_awm_reserve=0
+    peer.catalog_reserves.clear()
     call_deferred("_flush_death_loot")
 
 func _flush_death_loot() -> void:
@@ -1129,51 +1244,56 @@ func _grant_dual_loot(body: Node3D,kind: String,quantity: int,death: bool=false,
         if peer.actor!=body or not peer.actor.can_act() or not _peer_ground_ready(peer):
             continue
         var actual_rounds: int=0
-        match kind:
-            "ammo_ar":
-                var current: bool=int(peer.weapon)==WEAPON_CATALOG.AR
-                var stock: int=int(peer.reserve) if current else int(peer.stored_ar_reserve)
-                var gained: int=mini(clampi(quantity,0,45),180+int(peer.backpack)*45-stock)
-                if gained<=0:
-                    return false
-                actual_rounds=gained
-                if current:
-                    peer.reserve+=gained
-                else:
-                    peer.stored_ar_reserve+=gained
-            "ammo_awm":
-                if not expanded_room:
-                    return false
-                var current: bool=int(peer.weapon)==WEAPON_CATALOG.AWM
-                var stock: int=int(peer.reserve) if current else int(peer.stored_awm_reserve)
-                var gained: int=mini(clampi(quantity,0,8),30+int(peer.backpack)*8-stock)
-                if gained<=0:
-                    return false
-                actual_rounds=gained
-                if current:
-                    peer.reserve+=gained
-                else:
-                    peer.stored_awm_reserve+=gained
-            "weapon_awm":
-                if not expanded_room or bool(peer.awm_owned) or not ResourceLoader.exists("res://assets/weapons/aurora_awm.glb"):
-                    return false
-                peer.awm_owned=true
-                peer.stored_awm=int(WEAPON_CATALOG.ENTRIES[WEAPON_CATALOG.AWM].capacity)
-            "vest_1","vest_2","vest_3","helmet_1","helmet_2","helmet_3":
-                if not expanded_room or not peer.actor.equip_protection(kind.begins_with("helmet"),int(kind.get_slice("_",1))):
-                    return false
-            "backpack","backpack_2","backpack_3":
-                var level: int=1 if kind=="backpack" else int(kind.get_slice("_",1))
-                if not expanded_room or int(peer.backpack)>=level:
-                    return false
-                peer.backpack=level
-                peer.actor.set_backpack_visual_level(level)
-            "medkit":
-                if int(peer.medkits)>=5 or quantity!=1:
-                    return false
-                peer.medkits+=1
-            _:
+        if catalog_room and (kind.begins_with("weapon_") or kind.begins_with("ammo_")):
+            actual_rounds=_catalog_claim(peer,kind,quantity)
+            if actual_rounds<0:
                 return false
+        else:
+            match kind:
+                "ammo_ar":
+                    var current: bool=int(peer.weapon)==WEAPON_CATALOG.AR
+                    var stock: int=int(peer.reserve) if current else int(peer.stored_ar_reserve)
+                    var gained: int=mini(clampi(quantity,0,45),180+int(peer.backpack)*45-stock)
+                    if gained<=0:
+                        return false
+                    actual_rounds=gained
+                    if current:
+                        peer.reserve+=gained
+                    else:
+                        peer.stored_ar_reserve+=gained
+                "ammo_awm":
+                    if not expanded_room:
+                        return false
+                    var current: bool=int(peer.weapon)==WEAPON_CATALOG.AWM
+                    var stock: int=int(peer.reserve) if current else int(peer.stored_awm_reserve)
+                    var gained: int=mini(clampi(quantity,0,8),30+int(peer.backpack)*8-stock)
+                    if gained<=0:
+                        return false
+                    actual_rounds=gained
+                    if current:
+                        peer.reserve+=gained
+                    else:
+                        peer.stored_awm_reserve+=gained
+                "weapon_awm":
+                    if not expanded_room or bool(peer.awm_owned) or not ResourceLoader.exists("res://assets/weapons/aurora_awm.glb"):
+                        return false
+                    peer.awm_owned=true
+                    peer.stored_awm=int(WEAPON_CATALOG.ENTRIES[WEAPON_CATALOG.AWM].capacity)
+                "vest_1","vest_2","vest_3","helmet_1","helmet_2","helmet_3":
+                    if not expanded_room or not peer.actor.equip_protection(kind.begins_with("helmet"),int(kind.get_slice("_",1))):
+                        return false
+                "backpack","backpack_2","backpack_3":
+                    var level: int=1 if kind=="backpack" else int(kind.get_slice("_",1))
+                    if not expanded_room or int(peer.backpack)>=level:
+                        return false
+                    peer.backpack=level
+                    peer.actor.set_backpack_visual_level(level)
+                "medkit":
+                    if int(peer.medkits)>=5 or quantity!=1:
+                        return false
+                    peer.medkits+=1
+                _:
+                    return false
         peer.loot_claims+=1
         _dual_loot_claims+=1
         if mixed_flight and _mixed_phase=="aircraft":
@@ -1290,7 +1410,7 @@ func _dual_action(version: int,request_id: int,action: int) -> void:
         if now-int(peer.input_ms)>INPUT_TIMEOUT_MS or now-int(peer.switch_ms)<ACTION_MIN_INTERVAL_MS or not peer.actor.can_act() or int(peer.stance_pending)!=0:
             peer.action_rejected+=1
             return
-        if action==ACTION_NEXT_WEAPON and (not bool(peer.awm_owned) or float(peer.reload_remaining)>0.0 or bool(peer.reload_pending)):
+        if action==ACTION_NEXT_WEAPON and ((peer.catalog_owned.size()<2 if catalog_room else not bool(peer.awm_owned)) or float(peer.reload_remaining)>0.0 or bool(peer.reload_pending)):
             peer.action_rejected+=1
             return
         peer.stance_pending=action
@@ -1357,10 +1477,20 @@ func _apply_room_stance(peer: Dictionary,fresh: bool) -> void:
     _dual_cancel_heal(peer,"stance")
     match action:
         ACTION_NEXT_WEAPON:
-            if not bool(peer.awm_owned) or float(peer.reload_remaining)>0.0:
+            if (peer.catalog_owned.size()<2 if catalog_room else not bool(peer.awm_owned)) or float(peer.reload_remaining)>0.0:
                 peer.action_rejected+=1
                 return
-            if int(peer.weapon)==WEAPON_CATALOG.AR:
+            if catalog_room:
+                var old: int=int(peer.weapon)
+                peer.catalog_mags[old]=int(peer.ammo)
+                peer.catalog_reserves[WEAPON_CATALOG.reserve_slot(old)]=int(peer.reserve)
+                var next: int=_catalog_next(peer)
+                peer.weapon=next
+                peer.ammo=int(peer.catalog_mags.get(next,0))
+                peer.reserve=int(peer.catalog_reserves.get(WEAPON_CATALOG.reserve_slot(next),0))
+                peer.catalog_switches+=1
+                print("V75248_SWITCH slot=",peer.slot," weapon=",next," loaded=",peer.ammo," reserve=",peer.reserve)
+            elif int(peer.weapon)==WEAPON_CATALOG.AR:
                 peer.stored_ar=peer.ammo
                 peer.stored_ar_reserve=peer.reserve
                 peer.weapon=WEAPON_CATALOG.AWM
@@ -1378,7 +1508,7 @@ func _apply_room_stance(peer: Dictionary,fresh: bool) -> void:
             actor.set_ads(false,1.0)
         ACTION_AIM:
             peer.aim=not bool(peer.aim)
-            actor.set_ads(bool(peer.aim),4.0 if int(peer.weapon)==WEAPON_CATALOG.AWM else 2.0)
+            actor.set_ads(bool(peer.aim),4.0 if WEAPON_CATALOG.reserve_slot(int(peer.weapon))==WEAPON_CATALOG.AWM else 2.0)
         ACTION_CROUCH,ACTION_STAND:
             var desired: bool=action==ACTION_CROUCH
             actor.set_crouch(desired)
@@ -1441,12 +1571,14 @@ func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> voi
             peer.reloads+=1
         actor.set_firing(false)
         return
-    var firing_now: bool=fresh and bool(peer.fire) and int(peer.ammo)>0
+    var melee: bool=catalog_room and bool(spec.get("melee",false))
+    var firing_now: bool=fresh and bool(peer.fire) and (melee or int(peer.ammo)>0)
     actor.set_firing(firing_now)
     if not firing_now or float(peer.fire_clock)>0.0:
         return
     peer.fire_clock=float(spec.cadence)
-    peer.ammo-=1
+    if not melee:
+        peer.ammo-=1
     peer.shots+=1
     if mixed_flight and _mixed_phase=="aircraft":
         _early_ground_shots+=1
@@ -1458,7 +1590,7 @@ func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> voi
     var angle: float=actor._yaw
     var pitch_angle: float=actor._pitch
     var direction:=Vector3(-sin(angle)*cos(pitch_angle),sin(pitch_angle),-cos(angle)*cos(pitch_angle))
-    var ray:=PhysicsRayQueryParameters3D.create(origin,origin+direction*80.0)
+    var ray:=PhysicsRayQueryParameters3D.create(origin,origin+direction*float(spec.get("range",80.0)))
     ray.exclude=[actor.get_rid()]
     ray.collision_mask=1
     var impact: Dictionary=world.get_world_3d().direct_space_state.intersect_ray(ray)
@@ -1563,7 +1695,7 @@ func _dual_tick(delta: float) -> void:
                 if float(dual_peers[other_id].heal_remaining)>0.0:
                     clip="AuroraHeal"
                 elif float(dual_peers[other_id].reload_remaining)>0.0:
-                    clip="AuroraReloadAWM" if int(dual_peers[other_id].weapon)==WEAPON_CATALOG.AWM else "AuroraReloadAR"
+                    clip="AuroraReloadAWM" if int(dual_peers[other_id].weapon)==WEAPON_CATALOG.AWM else ("AuroraReloadMP40" if int(dual_peers[other_id].weapon)==WEAPON_CATALOG.MP40 else "AuroraReloadAR")
                 elif bool(other._fire_held) and not _dual_finished:
                     clip="AuroraFireAWM" if int(dual_peers[other_id].weapon)==WEAPON_CATALOG.AWM else "AuroraFire"
             var staged: bool=mixed_flight and not _peer_ground_ready(dual_peers[other_id])
@@ -1625,7 +1757,10 @@ func _dual_tick(delta: float) -> void:
             "bot_death_spawned":_bot_death_spawned,"bot_death_claims":_bot_death_claims,
             "own_bot_loot_claims":peer.bot_loot_claims,"own_bot_loot_rounds":peer.bot_loot_rounds,
             "armor":actor.armor_points,"helmet":actor.helmet_points,"vest_level":actor.vest_level,"helmet_level":actor.helmet_level,
-            "backpack":peer.backpack,"awm_reserve":peer.reserve if int(peer.weapon)==WEAPON_CATALOG.AWM else peer.stored_awm_reserve,
+            "backpack":peer.backpack,"awm_reserve":_catalog_reserve(peer,WEAPON_CATALOG.AWM) if catalog_room else (peer.reserve if int(peer.weapon)==WEAPON_CATALOG.AWM else peer.stored_awm_reserve),
+            "catalog_room":catalog_room,"catalog_available":_catalog_available,"catalog_switches":peer.catalog_switches,
+            "ar_reserve":_catalog_reserve(peer,WEAPON_CATALOG.AR) if catalog_room else (peer.reserve if int(peer.weapon)==WEAPON_CATALOG.AR else peer.stored_ar_reserve),
+            "smg_reserve":_catalog_reserve(peer,WEAPON_CATALOG.MP40) if catalog_room else 0,
             "hits":peer.hits,"kills":peer.kills,"reloads":peer.reloads,"duel_audio_sent":peer.audio_seq,
             "position":actor.global_position,"velocity":actor.velocity,"body_yaw":actor.rotation.y,
             "clip":str(actor._current_clip),"air_mode":actor.air_mode if mixed_flight else "ground",
@@ -1636,8 +1771,8 @@ func _dual_tick(delta: float) -> void:
             "deployment_complete":mixed_flight and _mixed_phase=="sector_battle",
             "early_ground_shots":_early_ground_shots,"early_ground_claims":_early_ground_claims,
             "ended":dual_combat and _dual_finished,"eliminated":actor.royale_eliminated,"loot":_dual_loot_snapshot(actor),"vehicles":{},
-            "inventory":{"awm_owned":peer.awm_owned,"additions":[],"medkits":peer.medkits,"grenades":0,"covers":0},
-            "tactical":{"cover_cooldown":0.0,"covers":cover_items},"weapon":peer.weapon,"aim":peer.aim,"zoom":(4.0 if int(peer.weapon)==WEAPON_CATALOG.AWM else 2.0) if bool(peer.aim) else 1.0,
+            "inventory":{"awm_owned":peer.awm_owned,"additions":_catalog_additions(peer) if catalog_room else {},"medkits":peer.medkits,"grenades":0,"covers":0},
+            "tactical":{"cover_cooldown":0.0,"covers":cover_items},"weapon":peer.weapon,"aim":peer.aim,"zoom":(4.0 if WEAPON_CATALOG.reserve_slot(int(peer.weapon))==WEAPON_CATALOG.AWM else 2.0) if bool(peer.aim) else 1.0,
             "firing":dual_combat and bool(actor._fire_held),"crouched":actor._crouching,"grounded":actor.is_on_floor(),
             "ammo":peer.ammo if dual_combat else 0,"reserve":peer.reserve if dual_combat else 0,
             "reload_remaining":peer.reload_remaining if dual_combat else 0.0,"health":actor.training_health,"participants":50 if mixed_room and _mixed_ready else dual_peers.size(),

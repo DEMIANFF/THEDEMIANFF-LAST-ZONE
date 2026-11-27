@@ -1,7 +1,7 @@
-name: Aurora V75.247 dedicated online server real UDP QA
+name: Aurora V75.248 dedicated online server real UDP QA
 on:
   push:
-    branches: [codex/v75-247-individual-touchdown-combat]
+    branches: [codex/v75-248-authoritative-weapon-catalog]
   workflow_dispatch:
 permissions:
   contents: read
@@ -206,9 +206,11 @@ jobs:
         run: AURORA_MIXED_LOOT_QA=1 bash native-godot/tools/run_four_room_qa.sh
       - name: Mixed fifty fighters waiting island aircraft individual canopy and physical touchdown
         run: AURORA_MIXED_FLIGHT_QA=1 bash native-godot/tools/run_four_room_qa.sh
+      - name: Four-client actual catalog pickups switching shared calibers and reload
+        run: AURORA_ONLINE_CATALOG_QA=1 bash native-godot/tools/run_four_room_qa.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: AURORA-V75.247-ONLINE-SERVER-QA
+          name: AURORA-V75.248-ONLINE-SERVER-QA
           path: native-godot/out/online/**/*.log
           retention-days: 3

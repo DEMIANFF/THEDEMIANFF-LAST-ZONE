@@ -25,6 +25,10 @@ if [ "${AURORA_MIXED_FLIGHT_QA:-0}" = 1 ]; then
   client_script="online_mixed_flight_qa.gd"
   export AURORA_ONLINE_MIXED_FLIGHT=1
 fi
+if [ "${AURORA_ONLINE_CATALOG_QA:-0}" = 1 ]; then
+  logdir="$project/out/online/catalog"
+  client_script="online_catalog_room_qa.gd"
+fi
 mkdir -p "$logdir" "$work/server"
 pids=()
 cleanup() {
@@ -50,7 +54,10 @@ status=0
 for pid in "${clients[@]}"; do wait "$pid" || status=1; done
 cat "$logdir/"*.log
 test "$status" -eq 0
-if [ "${AURORA_MIXED_FLIGHT_QA:-0}" = 1 ]; then
+if [ "${AURORA_ONLINE_CATALOG_QA:-0}" = 1 ]; then
+  for i in 0 1 2 3; do grep -F 'V75248_CATALOG PASS' "$logdir/client$i.log"; done
+  for slot in 2 3 6; do grep -F "V75248_SWITCH slot=0 weapon=$slot " "$logdir/server.log"; done
+elif [ "${AURORA_MIXED_FLIGHT_QA:-0}" = 1 ]; then
   for i in 0 1 2 3; do grep -F 'V75246_FLIGHT PASS' "$logdir/client$i.log"; done
   grep -F 'V75246_DEPART humans=4 bots=46' "$logdir/server.log"
   grep -F 'V75246_GROUND humans=4 bots_landed=46 total=50' "$logdir/server.log"
