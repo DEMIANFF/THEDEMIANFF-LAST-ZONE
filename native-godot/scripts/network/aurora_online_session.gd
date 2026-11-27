@@ -2,7 +2,16 @@ extends Node
 ## Internal ENet development transport. One human operator, 49 server bots.
 ## Loopback only until authenticated admission and a production endpoint exist.
 const PORT: int=24621
-const PROTOCOL: int=23
+const PROTOCOL: int=24
+const MIXED_BOTS: int=46
+var mixed_room: bool=false
+var _mixed_ready: bool=false
+var _mixed_bots: Array[CharacterBody3D]=[]
+var _mixed_bot_shots: int=0
+var _mixed_human_damage: int=0
+var _mixed_human_hits: int=0
+var _mixed_bot_dead: Dictionary={}
+var _mixed_winner_bot: bool=false
 var terrain_room: bool=false
 var _terrain_ready: bool=false
 var _room_elapsed: float=0.0
@@ -123,7 +132,8 @@ var _sounds: Array[Dictionary]=[]
 func listen(port: int=PORT) -> Error:
     var peer:=ENetMultiplayerPeer.new()
     peer.set_bind_ip("127.0.0.1")
-    terrain_room=OS.get_environment("AURORA_ONLINE_TERRAIN_COMBAT")=="1"
+    mixed_room=OS.get_environment("AURORA_ONLINE_MIXED_COMBAT")=="1"
+    terrain_room=mixed_room or OS.get_environment("AURORA_ONLINE_TERRAIN_COMBAT")=="1"
     expanded_room=terrain_room or OS.get_environment("AURORA_ONLINE_FOUR_COMBAT")=="1"
     room_capacity=4 if expanded_room else 2
     dual_loot=expanded_room or OS.get_environment("AURORA_ONLINE_DUAL_LOOT")=="1"
@@ -259,6 +269,8 @@ func _begin_waiting() -> void:
 # Stage original match actors incrementally on the idle thread, never
 # instantiate colliders in a physics callback or duplicate the battle roster.
 func _process(_delta: float) -> void:
+    if mixed_room and multiplayer.is_server() and dual_peers.size()==room_capacity and not _mixed_ready and not _dual_finished:
+        _stage_mixed_roster()
     if remote_id!=0 and multiplayer.is_server() and director.mode=="waiting" and not _waiting_transition:
         _stage_waiting_roster()
 
@@ -484,12 +496,14 @@ func _dual_joined(id: int) -> void:
         "heal_anchor":home,"heal_completed":0,"heal_cancelled":0,"heal_gained":0.0,
         "slot":_dual_admitted,"weapon":WEAPON_CATALOG.AR,"awm_owned":false,
         "stored_ar":30,"stored_ar_reserve":90,"stored_awm":0,"stored_awm_reserve":0,
-        "aim":false,"stance_pending":0,"switch_ms":-1000,"backpack":0,"zone_hits":0}
+        "aim":false,"stance_pending":0,"switch_ms":-1000,"backpack":0,"zone_hits":0,"bot_hits":0,"bot_damage":0,"ambient_seq":0,"ambient":[]}
     _dual_admitted+=1
     if dual_loot and dual_peers.size()==room_capacity:
         if terrain_room:
-            _terrain_ready=true
+            _terrain_ready=not mixed_room
             _spawn_terrain_loot()
+            if mixed_room:
+                combat.encounter_size=MIXED_BOTS+1
         else:
             _spawn_dual_loot()
     print("V75237_SERVER_ADMIT peer=",id," live_humans=",dual_peers.size())
@@ -536,8 +550,93 @@ func _spawn_terrain_loot() -> void:
                 _spawn_room_pickup(str(item.kind),Vector3(at.x,director.terrain.height_at(at.x,at.y),at.y),int(item.amount))
     print("V75243_TERRAIN_READY humans=",dual_peers.size()," radius=",_room_zone.radius," sites=",_terrain_sites.size())
 
+func _stage_mixed_roster() -> void:
+    # Stage the original CharacterBody3D agents in small batches. No fake
+    # counters and no second combat simulation on clients.
+    combat._ensure_encounter_capacity(3)
+    for bot in combat._targets:
+        bot.set_physics_process(false)
+        bot.collision_layer=0
+    if combat._targets.size()!=MIXED_BOTS:
+        return
+    _mixed_bots.assign(combat._targets)
+    var foes: Array[CharacterBody3D]=[]
+    foes.assign(_mixed_bots)
+    for peer in dual_peers.values():
+        if peer.actor!=operator:
+            foes.append(peer.actor)
+    if OS.get_environment("AURORA_MIXED_QA")=="1":
+        # Place one REAL bot on clear terrain near slot 1 for the network
+        # interaction regression, not for normal match population.
+        var site: Vector2=_terrain_sites[1]
+        var toward: Vector2=(director.CENTER-site).normalized()
+        for step in range(20):
+            var near: Vector2=site+toward.rotated(float(step)*.31)*(8.0+float(step%3))
+            if combat._is_clear_spawn(near):
+                _mixed_bots[0].set_match_spawn(near)
+                _mixed_bots[0].weapon_slot=WEAPON_CATALOG.AR
+                break
+    for bot in _mixed_bots:
+        bot.configure_sector_battle(foes)
+        bot.safe_center=_room_zone.center
+        bot.safe_radius=float(_room_zone.radius)
+        bot.human_damaged.connect(_mixed_on_human_damage)
+        bot.weapon_fired.connect(_mixed_on_bot_shot.bind(bot))
+        bot.eliminated.connect(_mixed_on_bot_dead)
+    _mixed_ready=true
+    _terrain_ready=true
+    var physical: int=0
+    for bot in _mixed_bots:
+        if bot.is_physics_processing() and bot.collision_layer==1 and bot.health==bot.MAX_HEALTH:
+            physical+=1
+    print("V75244_MIXED_READY humans=",dual_peers.size()," physical_bots=",physical," total=",_living_room_count())
+
+func _mixed_on_bot_shot(at: Vector3,bot: CharacterBody3D) -> void:
+    if not _mixed_ready or _dual_finished:
+        return
+    _mixed_bot_shots+=1
+    for peer in dual_peers.values():
+        if peer.actor.royale_eliminated or peer.actor.global_position.distance_squared_to(at)>150.0*150.0 or peer.ambient.size()>=12:
+            continue
+        peer.ambient_seq+=1
+        peer.ambient.append({"seq":peer.ambient_seq,"kind":"remote_shot","sample":"","at":at.snapped(Vector3(4,2,4)),"run":false,"stone":false})
+    for other in _mixed_bots:
+        if is_instance_valid(other) and other.health>0.0:
+            other.hear_gunshot(at,bot)
+
+func _mixed_on_human_damage(victim: CharacterBody3D,amount: float) -> void:
+    if not _mixed_ready or _dual_finished or amount<=0.0:
+        return
+    for id in dual_peers:
+        var peer: Dictionary=dual_peers[id]
+        if peer.actor!=victim:
+            continue
+        peer.bot_damage+=1
+        _mixed_human_damage+=1
+        _dual_cancel_heal(peer,"bot_damage")
+        _dual_sound(int(id),"local","hit")
+        if peer.bot_damage==1:
+            print("V75244_BOT_HUMAN slot=",peer.slot," hp=",victim.training_health)
+        if victim.royale_eliminated:
+            _queue_death_loot(peer)
+            victim.set_deferred("collision_layer",0)
+            victim.set_deferred("collision_mask",0)
+            victim.hide()
+            _finish_room_if_needed()
+        return
+
+func _mixed_on_bot_dead(bot: CharacterBody3D,killer: Node3D) -> void:
+    if not _mixed_ready or _dual_finished or _mixed_bot_dead.has(bot.get_instance_id()):
+        return
+    _mixed_bot_dead[bot.get_instance_id()]=true
+    for peer in dual_peers.values():
+        if peer.actor==killer:
+            peer.kills+=1
+            break
+    _finish_room_if_needed()
+
 func _room_active() -> bool:
-    return _dual_admitted==room_capacity and not _dual_finished and _living_room_count()>1
+    return _dual_admitted==room_capacity and not _dual_finished and (not mixed_room or _mixed_ready) and _living_room_count()>1
 
 func _terrain_zone_tick(delta: float) -> void:
     if not terrain_room or not _terrain_ready or not _room_active():
@@ -547,6 +646,12 @@ func _terrain_zone_tick(delta: float) -> void:
     # The normal room uses the existing ten-minute schedule unchanged.
     var clock: float=_room_elapsed*(12.0 if OS.get_environment("AURORA_TERRAIN_QA")=="1" else 1.0)
     _room_zone=director.zone_state_at(clock)
+    if mixed_room:
+        for bot in _mixed_bots:
+            if is_instance_valid(bot) and bot.health>0.0:
+                bot.safe_center=_room_zone.center
+                bot.safe_radius=float(_room_zone.radius)
+                bot.zone_seconds_remaining=int(_room_zone.remaining)
     _room_damage_clock+=delta
     if _room_damage_clock<1.0:
         return
@@ -575,6 +680,10 @@ func _terrain_zone_tick(delta: float) -> void:
             actor.collision_mask=0
             actor.hide()
             print("V75243_ZONE_ELIMINATION slot=",peer.slot)
+    if mixed_room:
+        for bot in _mixed_bots:
+            if is_instance_valid(bot) and bot.health>0.0 and Vector2(bot.global_position.x,bot.global_position.z).distance_to(_room_zone.center)>float(_room_zone.radius):
+                bot.take_training_damage(damage)
     _finish_room_if_needed()
 
 func _terrain_contact(observer: CharacterBody3D,target: CharacterBody3D) -> bool:
@@ -585,7 +694,7 @@ func _terrain_contact(observer: CharacterBody3D,target: CharacterBody3D) -> bool
     var forward:=Vector2(-sin(observer._yaw),-cos(observer._yaw))
     if horizontal.length_squared()>1.0 and horizontal.normalized().dot(forward)<.30:
         return false
-    var ray:=PhysicsRayQueryParameters3D.create(observer.global_position+Vector3.UP*1.4,target.global_position+Vector3.UP*(.85 if target._crouching else 1.1))
+    var ray:=PhysicsRayQueryParameters3D.create(observer.global_position+Vector3.UP*1.4,target.global_position+Vector3.UP*(.85 if target.has_method("receive_training_hit") and target._crouching else 1.1))
     ray.exclude=[observer.get_rid()]
     ray.collision_mask=1
     return world.get_world_3d().direct_space_state.intersect_ray(ray).get("collider")==target
@@ -595,6 +704,10 @@ func _living_room_count() -> int:
     for peer in dual_peers.values():
         if not peer.actor.royale_eliminated:
             alive+=1
+    if mixed_room:
+        for bot in _mixed_bots:
+            if is_instance_valid(bot) and bot.health>0.0:
+                alive+=1
     return alive
 
 func _spawn_room_pickup(kind: String,at: Vector3,amount: int,death: bool=false) -> void:
@@ -664,6 +777,12 @@ func _finish_room_if_needed() -> void:
         peer.actor.reset_controls()
         peer.actor.round_finished=true
         peer.fire=false
+    if mixed_room:
+        for bot in _mixed_bots:
+            if is_instance_valid(bot):
+                if bot.health>0.0:
+                    _mixed_winner_bot=true
+                bot.set_physics_process(false)
     print("V75242_ROOM_END winner=",_dual_winner," alive=",_living_room_count())
 
 func _grant_dual_loot(body: Node3D,kind: String,quantity: int,death: bool=false) -> bool:
@@ -742,6 +861,7 @@ func _dual_left(id: int) -> void:
         return
     var actor: CharacterBody3D=dual_peers[id].actor
     actor.reset_controls()
+    actor.royale_eliminated=true
     actor.set_physics_process(false)
     actor.collision_layer=0
     actor.collision_mask=0
@@ -960,6 +1080,25 @@ func _dual_combat_tick(id: int,peer: Dictionary,fresh: bool,delta: float) -> voi
     ray.exclude=[actor.get_rid()]
     ray.collision_mask=1
     var impact: Dictionary=world.get_world_3d().direct_space_state.intersect_ray(ray)
+    if mixed_room:
+        for bot in _mixed_bots:
+            if is_instance_valid(bot) and bot.health>0.0:
+                bot.hear_gunshot(origin,actor)
+        var body: Object=impact.get("collider")
+        if body is CharacterBody3D and _mixed_bots.has(body) and body.health>0.0:
+            var old_hp: float=body.health
+            body.take_training_damage(float(spec.damage),actor)
+            if body.health<old_hp:
+                peer.hits+=1
+                peer.bot_hits+=1
+                _mixed_human_hits+=1
+                _dual_sound(id,"local","impact")
+                if peer.bot_hits==1:
+                    print("V75244_HUMAN_BOT slot=",peer.slot," hp=",body.health)
+            return
+        if body is StaticBody3D and body.is_in_group("aurora_deployable_cover"):
+            body.take_damage(float(spec.damage))
+            return
     for other_id in dual_peers:
         if other_id==id:
             continue
@@ -1049,9 +1188,40 @@ func _dual_tick(delta: float) -> void:
                 "weapon":int(dual_peers[other_id].weapon) if dual_combat else -1,"waiting":not dual_combat,"human":true,
                 "slot":dual_peers[other_id].slot,"vest_level":other.vest_level,"helmet_level":other.helmet_level,
                 "medical":float(dual_peers[other_id].heal_remaining)>0.0})
-        var alive: int=0
-        for participant in dual_peers.values():
-            alive+=0 if participant.actor.royale_eliminated else 1
+        if mixed_room and _mixed_ready and not actor.royale_eliminated:
+            var near: Array[Dictionary]=[]
+            for bot in _mixed_bots:
+                if not is_instance_valid(bot) or bot.health<=0.0:
+                    continue
+                var distance: float=actor.global_position.distance_squared_to(bot.global_position)
+                if distance<=80.0*80.0:
+                    near.append({"bot":bot,"distance":distance})
+            near.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return float(a.distance)<float(b.distance))
+            var checked: int=0
+            for item in near:
+                if checked>=12 or rivals.size()>=8:
+                    break
+                checked+=1
+                var bot: CharacterBody3D=item.bot
+                if not _terrain_contact(actor,bot):
+                    continue
+                rivals.append({"id":1099511627776+bot.get_instance_id(),"position":bot.global_position,
+                    "yaw":bot.rotation.y,"clip":str(bot._clip),"weapon":int(bot.weapon_slot),
+                    "waiting":false,"human":false,"vest_level":0,"helmet_level":0})
+        var alive: int=_living_room_count()
+        var bot_alive: int=0
+        if mixed_room:
+            for bot in _mixed_bots:
+                if is_instance_valid(bot) and bot.health>0.0:
+                    bot_alive+=1
+        var cover_items: Array[Dictionary]=[]
+        if mixed_room:
+            for cover in get_tree().get_nodes_in_group("aurora_deployable_cover"):
+                if is_instance_valid(cover) and cover.is_active() and actor.global_position.distance_squared_to(cover.global_position)<=TACTICAL_RANGE*TACTICAL_RANGE:
+                    cover_items.append({"id":cover.get_instance_id(),"position":cover.global_position,"yaw":cover.rotation.y})
+        if not peer.ambient.is_empty():
+            receive_sound_batch.rpc_id(int(id),PROTOCOL,peer.ambient)
+            peer.ambient=[]
         _send_world_state({"snapshot_id":snapshot_sequence,"self_peer":id,"dual_waiting":true,"dual_combat":dual_combat,"dual_loot":dual_loot,
             "duel_loot_claims":peer.loot_claims,"duel_world_claims":_dual_loot_claims,
             "heal_remaining":peer.heal_remaining,"heal_completed":peer.heal_completed,
@@ -1067,11 +1237,14 @@ func _dual_tick(delta: float) -> void:
             "waiting_remaining":0.0,"waiting_ready":dual_peers.size(),"rivals":rivals,
             "ended":dual_combat and _dual_finished,"eliminated":actor.royale_eliminated,"loot":_dual_loot_snapshot(actor),"vehicles":{},
             "inventory":{"awm_owned":peer.awm_owned,"additions":[],"medkits":peer.medkits,"grenades":0,"covers":0},
-            "tactical":{"cover_cooldown":0.0},"weapon":peer.weapon,"aim":peer.aim,"zoom":(4.0 if int(peer.weapon)==WEAPON_CATALOG.AWM else 2.0) if bool(peer.aim) else 1.0,
+            "tactical":{"cover_cooldown":0.0,"covers":cover_items},"weapon":peer.weapon,"aim":peer.aim,"zoom":(4.0 if int(peer.weapon)==WEAPON_CATALOG.AWM else 2.0) if bool(peer.aim) else 1.0,
             "firing":dual_combat and bool(actor._fire_held),"crouched":actor._crouching,"grounded":actor.is_on_floor(),
             "ammo":peer.ammo if dual_combat else 0,"reserve":peer.reserve if dual_combat else 0,
-            "reload_remaining":peer.reload_remaining if dual_combat else 0.0,"health":actor.training_health,"participants":dual_peers.size(),
-            "alive":alive,"bots":0,"shots":peer.shots,
+            "reload_remaining":peer.reload_remaining if dual_combat else 0.0,"health":actor.training_health,"participants":50 if mixed_room and _mixed_ready else dual_peers.size(),
+            "alive":alive,"bots":bot_alive,"shots":peer.shots,
+            "mixed_room":mixed_room,"mixed_ready":_mixed_ready,"human_count":dual_peers.size(),
+            "bot_roster":_mixed_bots.size(),"bot_shots":_mixed_bot_shots,"bot_damage_events":_mixed_human_damage,"human_bot_hits":_mixed_human_hits,
+            "own_bot_hits":peer.bot_hits,"own_bot_damage":peer.bot_damage,"winner_bot":_mixed_winner_bot,
             "terrain_room":terrain_room,"zone_hits":peer.zone_hits,
             "zone_center":_room_zone.get("center",Vector2.ZERO),"zone_radius":float(_room_zone.get("radius",0.0)),
             "zone_phase":int(_room_zone.get("phase",0)),"zone_remaining":int(_room_zone.get("remaining",0)),
