@@ -8,7 +8,12 @@ const VOICES: int=8
 
 var _samples: Dictionary={}
 var _voices: Array[AudioStreamPlayer]=[]
-var _world_voices: Array[AudioStreamPlayer3D]=[]
+## Godot 4.7.2 Android: keep positional gunfire via per-voice bus panners,
+## not AudioStreamPlayer3D, which swaps audio playback bus details repeatedly.
+var _world_voices: Array[AudioStreamPlayer]=[]
+var _world_buses: Array[int]=[]
+var _world_panners: Array[AudioEffectPanner]=[]
+var _world_positions: Array[Vector3]=[]
 var _world_cursor: int=0
 var _cursor: int=0
 var _ambience: AudioStreamPlayer
@@ -43,14 +48,24 @@ func _ready() -> void:
         add_child(voice)
         _voices.append(voice)
     for i in range(5):
-        var outdoor:=AudioStreamPlayer3D.new()
+        var bus_name: String="AuroraWorldShot"+str(i)
+        _ensure_bus(bus_name,"AuroraSFX")
+        var bus_index: int=AudioServer.get_bus_index(bus_name)
+        var panner: AudioEffectPanner=null
+        if AudioServer.get_bus_effect_count(bus_index)>0:
+            panner=AudioServer.get_bus_effect(bus_index,0) as AudioEffectPanner
+        if panner==null:
+            panner=AudioEffectPanner.new()
+            AudioServer.add_bus_effect(bus_index,panner,0)
+        var outdoor:=AudioStreamPlayer.new()
         outdoor.name="SpatialWeapon"+str(i)
-        outdoor.bus="AuroraSFX"
+        outdoor.bus=bus_name
         outdoor.volume_db=-11.0
-        outdoor.unit_size=8.0
-        outdoor.max_distance=90.0
         add_child(outdoor)
         _world_voices.append(outdoor)
+        _world_buses.append(bus_index)
+        _world_panners.append(panner)
+        _world_positions.append(Vector3.ZERO)
     _ambience=AudioStreamPlayer.new()
     _ambience.name="AuroraWindAmbience"
     _ambience.bus="AuroraAmbience"
@@ -61,13 +76,45 @@ func _ready() -> void:
         _ambience.play()
 
 
-func _ensure_bus(bus_name: String) -> void:
+func _ensure_bus(bus_name: String,send_to: String="Master") -> void:
     if AudioServer.get_bus_index(bus_name)>=0:
         return
     AudioServer.add_bus()
     var index: int=AudioServer.bus_count-1
     AudioServer.set_bus_name(index,bus_name)
-    AudioServer.set_bus_send(index,"Master")
+    AudioServer.set_bus_send(index,send_to)
+
+
+func _process(_delta: float) -> void:
+    # Update directional position on dedicated buses, NOT playing AudioStream
+    # nodes. Updating player.volume_db/bus or using AudioStreamPlayer3D can
+    # retire playback bus details from the mix thread concurrently.
+    var listener: Camera3D=get_viewport().get_camera_3d()
+    if listener!=null:
+        for i in range(_world_voices.size()):
+            if _world_voices[i].playing:
+                _update_world_pan(i,listener)
+    # Godot 4.7.2 audio-mixer concurrency mitigation: wait for an in-flight
+    # mix step at least once per main-loop iteration before retired audio-bus
+    # data can be reclaimed. This is a narrow, temporary engine workaround,
+    # not a replacement for an upstream AudioServer lifetime fix.
+    AudioServer.lock()
+    AudioServer.unlock()
+
+
+func _update_world_pan(index: int,listener: Camera3D) -> void:
+    var source: Vector3=_world_positions[index]
+    var toward: Vector3=source-listener.global_position
+    var distance: float=toward.length()
+    toward.y=0.0
+    var pan: float=0.0
+    if toward.length_squared()>.001:
+        pan=clampf(toward.normalized().dot(listener.global_basis.x),-1.0,1.0)
+    _world_panners[index].pan=pan
+    # 3D-style distance attenuation retained, applied on the audio BUS to
+    # avoid per-playback bus-details mutations while a sound is playing.
+    var gain: float=pow(clampf(1.0-distance/90.0,0.001,1.0),2.0)
+    AudioServer.set_bus_volume_db(_world_buses[index],linear_to_db(gain))
 
 
 func _load_settings() -> void:
@@ -105,10 +152,14 @@ func play_event(kind: String,pitch: float=1.0) -> void:
 func play_world_shot(at: Vector3) -> void:
     if not _sound_enabled:
         return
-    var source: AudioStreamPlayer3D=_world_voices[_world_cursor]
+    var voice_index: int=_world_cursor
+    var source: AudioStreamPlayer=_world_voices[voice_index]
     _world_cursor=(_world_cursor+1)%_world_voices.size()
     source.stop()
-    source.global_position=at+Vector3.UP*1.35
+    _world_positions[voice_index]=at+Vector3.UP*1.35
+    var listener: Camera3D=get_viewport().get_camera_3d()
+    if listener!=null:
+        _update_world_pan(voice_index,listener)
     source.stream=_samples["ar_fire"]
     source.pitch_scale=.91+float(_world_cursor%4)*.04
     source.play()
